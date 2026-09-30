@@ -1,0 +1,716 @@
+{
+  "id": "ffeb272436154d25",
+  "status": "completed",
+  "started_at": 1790790450,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New necessary scientific/engineering decision AFTER original full2000 serving CPU/GPU qualification and complete measured diagnostic terminal PASS. Prior ab88a8 cache-trust-boundary pair and role-width pair are terminal and reused; neither reviewed a newly pinned native256 So400m substrate/fresh-control pilot. Review only corrected committed boundary, no duplicate consultation or open-ended research.",
+  "rolling_6h_count": 3,
+  "prompt_preview": "Read-only hard GO/KILL review of ONE corrected new substrate procedure in repo /home/rb/worktrees/sfora-positive-causality master1d6c28d7. FIRST read docs/inshop_so400_native256_review_boundary_2026-09-30.md (parent authoritative proposal), docs/full2000_public_serving_gate_2026-09-30.md terminal current row, raw full2000-terminal-next-plan-v1.json and so400-native256-upstream-metadata-v1.json under docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1. Read prior role-matched-terminal-next-dual-review-v1.json and exact closed method ledgers as needed; do NOT duplicate/reopen retained256/old cache critiques. SAME production joint SOP+InShop strongest protocol quality and matched B1+B32 speed goalUNMET. Current historical InShop full2000R1/mAP96.307498/81.882593 vsC96.216064/81.675230, dated96.7R1gap.392502pp; current verified public100call diagnostic B1p50/p9512.877/14.757ms,B32batch242.314/245.822,unpaired/no p99win. CPU/GPU strictparity/resourcePASS under120/300s8GiBnoSwap<10GB CUDA; alljobs collected. Native256 SO400 upstream revision e8708ab72d125807e45b36fb7d4e0aacbb59f379:1152hidden27blocks4304MLP16heads (Large1024/24/4096), fullweight4.542792928GB/LFS810ddc85...; onlymetadatafetched, no weights/nativejobs. Corrected proposal freshLargevsSO400 FIT PCA128/head/bank initialization; sameclassschedule/augmentations/objective/pairedseeds179032041/B64/trainfinal12blocks, preservepacked128. Root rejects planner's universalexhaustion/operator-scoperelaxation, speculative forecastasmeasurement, FITprototypeorderingasdecisivelearningKILL, changed+.50R1-only/zeroAP thresholds, UNICOMpretrainedgraphproxyasmatchedquality, B1-onlyjointspeedclaim. RetainexistingfixedTRAINpilotgate meanR1+AP each>=+.20pp/product95lowerboth>0/5000drawseed179019/perseedguards/freshwall+median<=1.50, CPU120 -> requiredsource-qualifiedFITexport/PCA -> fullCPUinitializerqualification -> discarded17mechanics120 -> ONLYONE100TRAINpilot300 perarmseed, boundedlocks8GiBnoSwap/<10GBwholeCUDApeak. Norescue. Need your separate verdict on whether this is causally distinct and useful path vs pointless weakproxy; identify exact missing source/control/PCA/bank/dimension/optimizer/resource authority needed BEFOREnative. ExistingmethodcanbeKILLedonlyitsdeclaredprocedure, not alllearningmethods. Assess potential samefull2000 trainedcheckpoint FP32-autocast vsFP16-native as genuine internalmatchedspeedcontrol ONLYafteractualpacked/metric equivalence and bothmodelresourcequalification; no authorize new10000calls absentseparatefrozenprotocol. Do not invent resourcefit/qualitygain/So400headroom/strongestcurrentreferencecompleteness or hidden datasetfinetunedUNICOMweights. Return concrete narrow GO/KILL/prerequisite fixes, minimal acceptance/falsifier, no architecturemenu/theorem-onlyprobe/research/edits/SSH/Torch/GPU/train/quality/jobs/otherconsults/operatorcontact. Root owns finaldecision, sourcefreeze/resources/integration; preserve allPareto.",
+  "prompt_sha256": "c818807df3bae1cd22d383b5f717cb2e53852240f42fe6decb9895c6ca70aec3",
+  "prompt_bytes": 2962,
+  "fingerprint": "263114ea421b89cc4b71481dd38c0018cca6dbeba69afa10a51862ebe3a67e00",
+  "evidence": {
+    "git_commit": "1d6c28d7886eb82a5fa6f9c06d9093ccc2b9194b",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "02f93c97161942d2",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790790450,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790791650,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only hard GO/KILL review of ONE corrected new substrate procedure in repo /home/rb/worktrees/sfora-positive-causality master1d6c28d7. FIRST read docs/inshop_so400_native256_review_boundary_2026-09-30.md (parent authoritative proposal), docs/full2000_public_serving_gate_2026-09-30.md terminal current row, raw full2000-terminal-next-plan-v1.json and so400-native256-upstream-metadata-v1.json under docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1. Read prior role-matched-terminal-next-dual-review-v1.json and exact closed method ledgers as needed; do NOT duplicate/reopen retained256/old cache critiques. SAME production joint SOP+InShop strongest protocol quality and matched B1+B32 speed goalUNMET. Current historical InShop full2000R1/mAP96.307498/81.882593 vsC96.216064/81.675230, dated96.7R1gap.392502pp; current verified public100call diagnostic B1p50/p9512.877/14.757ms,B32batch242.314/245.822,unpaired/no p99win. CPU/GPU strictparity/resourcePASS under120/300s8GiBnoSwap<10GB CUDA; alljobs collected. Native256 SO400 upstream revision e8708ab72d125807e45b36fb7d4e0aacbb59f379:1152hidden27blocks4304MLP16heads (Large1024/24/4096), fullweight4.542792928GB/LFS810ddc85...; onlymetadatafetched, no weights/nativejobs. Corrected proposal freshLargevsSO400 FIT PCA128/head/bank initialization; sameclassschedule/augmentations/objective/pairedseeds179032041/B64/trainfinal12blocks, preservepacked128. Root rejects planner's universalexhaustion/operator-scoperelaxation, speculative forecastasmeasurement, FITprototypeorderingasdecisivelearningKILL, changed+.50R1-only/zeroAP thresholds, UNICOMpretrainedgraphproxyasmatchedquality, B1-onlyjointspeedclaim. RetainexistingfixedTRAINpilotgate meanR1+AP each>=+.20pp/product95lowerboth>0/5000drawseed179019/perseedguards/freshwall+median<=1.50, CPU120 -> requiredsource-qualifiedFITexport/PCA -> fullCPUinitializerqualification -> discarded17mechanics120 -> ONLYONE100TRAINpilot300 perarmseed, boundedlocks8GiBnoSwap/<10GBwholeCUDApeak. Norescue. Need your separate verdict on whether this is causally distinct and useful path vs pointless weakproxy; identify exact missing source/control/PCA/bank/dimension/optimizer/resource authority needed BEFOREnative. ExistingmethodcanbeKILLedonlyitsdeclaredprocedure, not alllearningmethods. Assess potential samefull2000 trainedcheckpoint FP32-autocast vsFP16-native as genuine internalmatchedspeedcontrol ONLYafteractualpacked/metric equivalence and bothmodelresourcequalification; no authorize new10000calls absentseparatefrozenprotocol. Do not invent resourcefit/qualitygain/So400headroom/strongestcurrentreferencecompleteness or hidden datasetfinetunedUNICOMweights. Return concrete narrow GO/KILL/prerequisite fixes, minimal acceptance/falsifier, no architecturemenu/theorem-onlyprobe/research/edits/SSH/Torch/GPU/train/quality/jobs/otherconsults/operatorcontact. Root owns finaldecision, sourcefreeze/resources/integration; preserve allPareto.",
+      "prompt_sha256": "f1d3ffb5774016da9bc6e9663e0bdcc42872ed1fed5f53b207fbb35aec50295b",
+      "prompt_bytes": 3332,
+      "fingerprint": "80d138d6e94183497842e09ff357eefe26bb1def610d350e85a23159250ad299",
+      "evidence": {
+        "git_commit": "1d6c28d7886eb82a5fa6f9c06d9093ccc2b9194b",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "79a7e54d79ee8ef14fc1cfb63bc483874f01f9ecd5e5b55b98f4f99fbcee50fa",
+      "reused": false,
+      "critique_id": "ffeb272436154d25",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-02f93c97161942d2.service",
+      "pid": 178268,
+      "pgid": 178268,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790790450
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790790766,
+      "event_cursor": 40,
+      "events": [
+        {
+          "seq": 17,
+          "at": 1790790573,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790790573,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 19,
+          "at": 1790790579,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 20,
+          "at": 1790790582,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 21,
+          "at": 1790790601,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 22,
+          "at": 1790790606,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 23,
+          "at": 1790790609,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 24,
+          "at": 1790790697,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 25,
+          "at": 1790790697,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 26,
+          "at": 1790790748,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 27,
+          "at": 1790790749,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 28,
+          "at": 1790790751,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 29,
+          "at": 1790790752,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 30,
+          "at": 1790790753,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 31,
+          "at": 1790790755,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 32,
+          "at": 1790790756,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 33,
+          "at": 1790790757,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 34,
+          "at": 1790790759,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 35,
+          "at": 1790790760,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 36,
+          "at": 1790790761,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1790790762,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 38,
+          "at": 1790790764,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1790790765,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 40,
+          "at": 1790790766,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 33,
+            "at": 1790790757,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 34,
+            "at": 1790790759,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 35,
+            "at": 1790790760,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 36,
+            "at": 1790790761,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 37,
+            "at": 1790790762,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 38,
+            "at": 1790790764,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 39,
+            "at": 1790790765,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 40,
+            "at": 1790790766,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: GO on the direction, but NOT READY to launch.** Swapping in So400m is causally distinct from the closed within-Large knobs and has a trained-model path. As written, though, the procedure has an undeclared lineage confound and several missing authorities. Fix P1–P7 below before downloading weights or starting any native job. I edited nothing and ran no jobs.\n\n## Why it is distinct, and where it is still a weak proxy\n\n- **Distinct.** It changes the pretrained representation. That is the only axis with a demonstrated multi-point effect (S16 → PE-B16 → Large at a matched 100 updates). Every closed arm left the 106-error shared core invariant, and all of them were Large lineages.\n- **Same inputs.** The So400m preprocessor hash `d14ba2ee…` matches `_DIRECT_PROCESSOR_SHA` in `src/sfora/siglip2_compact_serving.py:29`, so identical input pixels across arms is achievable.\n- **Expected gain is unpriced.** Large and So400m share a family, data and objective. No receipt predicts a gain, and none should be assumed.\n- **Weak-proxy risk.** No receipt shows that a cross-substrate gap at 100 updates survives longer training. Width went +0.80 → −0.02; PE went from +1.76 frozen to −0.60 trained. Keep the fixed gate as is. A PASS only admits a full-scale step that carries its own kill (P7); it does not establish usefulness.\n\n## Missing prerequisites\n\n**P1. Lineage is undeclared. This is the defect nobody has named yet.**\n- The incumbent full2000 is \"full-TRAIN 2000, F5 source\" (`docs/inshop_full_valid_anchor_result_2026-09-29.md:10`).\n- F5 is `teacher.TEACHER = base.INIT/'large.pt'`, and `base.INIT` resolves to `/home/riomus/runs/sfora-pe-augmented-100-v2` (`scripts/pe_large_pool.py:15`). That run was an **FP32** Large, trained 100 updates from pretrained with a half-prefix freeze, at 12.94 GB CUDA and 897 ms/step (`docs/inshop_pe_augmented_training_result_2026-09-28.md`).\n- So the pilot arms are FP16 analogues of F5, not of full2000. Declare now:\n  - The fresh FP16 Large arm is the only valid control. F5's 95.672/78.624 is a descriptive anchor only.\n  - The exact objective version for both arms.\n  - The seed-179041 construction path. `pe_large_optimization.schedule()` is tied to `pair.SEED` 179032.\n  - Which full-scale comparison a survivor gets:\n    - (a) a fresh Large F5-analogue → full2000 matched control, or\n    - (b) an absolute-bar-only official read against 96.7. This supports no causal substrate claim, because historical full2000 differs in stage-1 precision and lineage.\n\n**P2. Source authority.**\n- `model.safetensors` is 4.54 GB and includes the text tower. The full2000 memory profile hit the 8 GiB cgroup cap on file-backed pages (7.96 GB) during startup.\n- Require one separately capped, vision-only extraction unit. It must produce a tensor-by-tensor hash chain back to LFS `810ddc85…` and a measured tensor inventory. Every later unit loads only the derived file.\n- Also needed: a `load_arm`/`freeze_prefix` path for `'so400m'` with a pinned snapshot at `e8708ab7…`, and a runtime/environment identity.\n\n**P3. Dimensions: parameterise the guards, don't remove them.** Bind the source hash to pooled width (1152), vision tensor count and frozen inventory. Add negative tests so a Large source rejects 1152 and So400m rejects 1024. Sites:\n- `nn.Linear(1024,128)` in `scripts/pe_large_coverage.py:99`, `scripts/train_pe_large_coverage.py:194`, `scripts/qualify_pe_large_coverage_checkpoint.py:97`, `scripts/train_role_matched_adaptation.py:457`\n- `src/sfora/siglip2_compact_serving.py:127/227/257/262`\n- the `==400` tensor checks in `scripts/late_dense_boundary.py:22` and `scripts/pe_large_coverage.py:97`\n- The 128/130-byte wire and the native/cuTile path stay unchanged.\n\n**P4. Freeze and optimizer.**\n- \"Final 12 trainable\" departs from the only prior cross-substrate procedure, which froze half the prefix. The flat-boundary evidence is Large-only, so declare this choice with no boundary rescue.\n- Point in its favour: by my structural count (not measured), final-12 keeps the optimizer inventory at an identical 208 members (192 + 2 + 11 + 2 + 1). So400m's vision state would be 448 tensors; measure it.\n- Keep AdamW lr 1e-5/1e-4/1e-4, weight decay 0.05 and scaler 128. No width-scaled LR.\n\n**P5. Initializer symmetry.**\n- Both arms use the pe-augmented \"own full fit-only PCA128/proxies/detached bank\" constructor with the same calibration floors.\n- Both use the same exporter code, precision, row order and unaugmented FIT 13,283 images. Each bank is its own source's features through its own PCA.\n- The archived Large initializers may be reused only if the So400m export uses byte-identical exporter code and precision. Otherwise export both fresh, with the export cost declared.\n\n**P6. Resource failures must be labelled.**\n- Large discarded-17 mechanics already took **116.191/120 s** (5.95 GB CUDA), and training peaked at 6.56 GB. So400m's load and step cost are unmeasured, and the mechanics cap is the most likely first failure.\n- Predeclare that a cap failure is \"procedure not executable under the declared caps\": no substrate verdict and no cap relaxation.\n\n**P7. Speed is unpriced.**\n- The ≤1.50 training-cost ratio is not a serving gate. So400m encoder latency is unmeasured, and I'm assuming no headroom.\n- A survivor stays unproven under the joint goal until the declared full model passes B1+B32 serving qualification.\n- A survivor changes the In-Shop model only. SOP stays on Large; claim no SOP transfer.\n\n## Minimal acceptance and falsifier\n\n- **Accept:** P1–P7 each has a receipt, followed by the pilot gate verbatim.\n- **Falsifier:** if the gate fails, KILL only \"So400m/16@256, final-12, fresh F5-analogue, 100 updates, this recipe\". It says nothing about other substrates or learning methods.\n\n## FP32-autocast vs FP16-native on the same full2000 checkpoint\n\n**NO-GO as a matched speed control for the goal.**\n1. The comparator is our own slower serving mode, not the reference system, so a win closes nothing.\n2. FP16-native is not batch-invariant: only 5/33 B1 codes match the archived B32 codes (`docs/full2000_public_serving_gate_2026-09-30.md:31`). Exact packed equivalence across precision modes is therefore implausible, and showing metric equivalence would need another read of an already-observed official split.\n3. It is worth running only as an attribution diagnostic, after both models pass resource qualification. It authorizes no 10,000-call job.\n\nI agree with root's rejections of the UNICOM pretrained graph proxy and of a B1-only speed claim.\n\n**Not verified:** the exact objective version F5 used relative to the current recipe, the 448-tensor and 208-member counts on the real file, and any memory or wall-time figure for So400m.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: GO on the direction, but NOT READY to launch.** Swapping in So400m is causally distinct from the closed within-Large knobs and has a trained-model path. As written, though, the procedure has an undeclared lineage confound and several missing authorities. Fix P1–P7 below before downloading weights or starting any native job. I edited nothing and ran no jobs.\n\n## Why it is distinct, and where it is still a weak proxy\n\n- **Distinct.** It changes the pretrained representation. That is the only axis with a demonstrated multi-point effect (S16 → PE-B16 → Large at a matched 100 updates). Every closed arm left the 106-error shared core invariant, and all of them were Large lineages.\n- **Same inputs.** The So400m preprocessor hash `d14ba2ee…` matches `_DIRECT_PROCESSOR_SHA` in `src/sfora/siglip2_compact_serving.py:29`, so identical input pixels across arms is achievable.\n- **Expected gain is unpriced.** Large and So400m share a family, data and objective. No receipt predicts a gain, and none should be assumed.\n- **Weak-proxy risk.** No receipt shows that a cross-substrate gap at 100 updates survives longer training. Width went +0.80 → −0.02; PE went from +1.76 frozen to −0.60 trained. Keep the fixed gate as is. A PASS only admits a full-scale step that carries its own kill (P7); it does not establish usefulness.\n\n## Missing prerequisites\n\n**P1. Lineage is undeclared. This is the defect nobody has named yet.**\n- The incumbent full2000 is \"full-TRAIN 2000, F5 source\" (`docs/inshop_full_valid_anchor_result_2026-09-29.md:10`).\n- F5 is `teacher.TEACHER = base.INIT/'large.pt'`, and `base.INIT` resolves to `/home/riomus/runs/sfora-pe-augmented-100-v2` (`scripts/pe_large_pool.py:15`). That run was an **FP32** Large, trained 100 updates from pretrained with a half-prefix freeze, at 12.94 GB CUDA and 897 ms/step (`docs/inshop_pe_augmented_training_result_2026-09-28.md`).\n- So the pilot arms are FP16 analogues of F5, not of full2000. Declare now:\n  - The fresh FP16 Large arm is the only valid control. F5's 95.672/78.624 is a descriptive anchor only.\n  - The exact objective version for both arms.\n  - The seed-179041 construction path. `pe_large_optimization.schedule()` is tied to `pair.SEED` 179032.\n  - Which full-scale comparison a survivor gets:\n    - (a) a fresh Large F5-analogue → full2000 matched control, or\n    - (b) an absolute-bar-only official read against 96.7. This supports no causal substrate claim, because historical full2000 differs in stage-1 precision and lineage.\n\n**P2. Source authority.**\n- `model.safetensors` is 4.54 GB and includes the text tower. The full2000 memory profile hit the 8 GiB cgroup cap on file-backed pages (7.96 GB) during startup.\n- Require one separately capped, vision-only extraction unit. It must produce a tensor-by-tensor hash chain back to LFS `810ddc85…` and a measured tensor inventory. Every later unit loads only the derived file.\n- Also needed: a `load_arm`/`freeze_prefix` path for `'so400m'` with a pinned snapshot at `e8708ab7…`, and a runtime/environment identity.\n\n**P3. Dimensions: parameterise the guards, don't remove them.** Bind the source hash to pooled width (1152), vision tensor count and frozen inventory. Add negative tests so a Large source rejects 1152 and So400m rejects 1024. Sites:\n- `nn.Linear(1024,128)` in `scripts/pe_large_coverage.py:99`, `scripts/train_pe_large_coverage.py:194`, `scripts/qualify_pe_large_coverage_checkpoint.py:97`, `scripts/train_role_matched_adaptation.py:457`\n- `src/sfora/siglip2_compact_serving.py:127/227/257/262`\n- the `==400` tensor checks in `scripts/late_dense_boundary.py:22` and `scripts/pe_large_coverage.py:97`\n- The 128/130-byte wire and the native/cuTile path stay unchanged.\n\n**P4. Freeze and optimizer.**\n- \"Final 12 trainable\" departs from the only prior cross-substrate procedure, which froze half the prefix. The flat-boundary evidence is Large-only, so declare this choice with no boundary rescue.\n- Point in its favour: by my structural count (not measured), final-12 keeps the optimizer inventory at an identical 208 members (192 + 2 + 11 + 2 + 1). So400m's vision state would be 448 tensors; measure it.\n- Keep AdamW lr 1e-5/1e-4/1e-4, weight decay 0.05 and scaler 128. No width-scaled LR.\n\n**P5. Initializer symmetry.**\n- Both arms use the pe-augmented \"own full fit-only PCA128/proxies/detached bank\" constructor with the same calibration floors.\n- Both use the same exporter code, precision, row order and unaugmented FIT 13,283 images. Each bank is its own source's features through its own PCA.\n- The archived Large initializers may be reused only if the So400m export uses byte-identical exporter code and precision. Otherwise export both fresh, with the export cost declared.\n\n**P6. Resource failures must be labelled.**\n- Large discarded-17 mechanics already took **116.191/120 s** (5.95 GB CUDA), and training peaked at 6.56 GB. So400m's load and step cost are unmeasured, and the mechanics cap is the most likely first failure.\n- Predeclare that a cap failure is \"procedure not executable under the declared caps\": no substrate verdict and no cap relaxation.\n\n**P7. Speed is unpriced.**\n- The ≤1.50 training-cost ratio is not a serving gate. So400m encoder latency is unmeasured, and I'm assuming no headroom.\n- A survivor stays unproven under the joint goal until the declared full model passes B1+B32 serving qualification.\n- A survivor changes the In-Shop model only. SOP stays on Large; claim no SOP transfer.\n\n## Minimal acceptance and falsifier\n\n- **Accept:** P1–P7 each has a receipt, followed by the pilot gate verbatim.\n- **Falsifier:** if the gate fails, KILL only \"So400m/16@256, final-12, fresh F5-analogue, 100 updates, this recipe\". It says nothing about other substrates or learning methods.\n\n## FP32-autocast vs FP16-native on the same full2000 checkpoint\n\n**NO-GO as a matched speed control for the goal.**\n1. The comparator is our own slower serving mode, not the reference system, so a win closes nothing.\n2. FP16-native is not batch-invariant: only 5/33 B1 codes match the archived B32 codes (`docs/full2000_public_serving_gate_2026-09-30.md:31`). Exact packed equivalence across precision modes is therefore implausible, and showing metric equivalence would need another read of an already-observed official split.\n3. It is worth running only as an attribution diagnostic, after both models pass resource qualification. It authorizes no 10,000-call job.\n\nI agree with root's rejections of the UNICOM pretrained graph proxy and of a B1-only speed claim.\n\n**Not verified:** the exact objective version F5 used relative to the current recipe, the 448-tensor and 208-member counts on the real file, and any memory or wall-time figure for So400m."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3332,
+      "output_bytes": 6752,
+      "elapsed_seconds": 316,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)",
+      "progress_truncated": false,
+      "result": "**Verdict: GO on the direction, but NOT READY to launch.** Swapping in So400m is causally distinct from the closed within-Large knobs and has a trained-model path. As written, though, the procedure has an undeclared lineage confound and several missing authorities. Fix P1–P7 below before downloading weights or starting any native job. I edited nothing and ran no jobs.\n\n## Why it is distinct, and where it is still a weak proxy\n\n- **Distinct.** It changes the pretrained representation. That is the only axis with a demonstrated multi-point effect (S16 → PE-B16 → Large at a matched 100 updates). Every closed arm left the 106-error shared core invariant, and all of them were Large lineages.\n- **Same inputs.** The So400m preprocessor hash `d14ba2ee…` matches `_DIRECT_PROCESSOR_SHA` in `src/sfora/siglip2_compact_serving.py:29`, so identical input pixels across arms is achievable.\n- **Expected gain is unpriced.** Large and So400m share a family, data and objective. No receipt predicts a gain, and none should be assumed.\n- **Weak-proxy risk.** No receipt shows that a cross-substrate gap at 100 updates survives longer training. Width went +0.80 → −0.02; PE went from +1.76 frozen to −0.60 trained. Keep the fixed gate as is. A PASS only admits a full-scale step that carries its own kill (P7); it does not establish usefulness.\n\n## Missing prerequisites\n\n**P1. Lineage is undeclared. This is the defect nobody has named yet.**\n- The incumbent full2000 is \"full-TRAIN 2000, F5 source\" (`docs/inshop_full_valid_anchor_result_2026-09-29.md:10`).\n- F5 is `teacher.TEACHER = base.INIT/'large.pt'`, and `base.INIT` resolves to `/home/riomus/runs/sfora-pe-augmented-100-v2` (`scripts/pe_large_pool.py:15`). That run was an **FP32** Large, trained 100 updates from pretrained with a half-prefix freeze, at 12.94 GB CUDA and 897 ms/step (`docs/inshop_pe_augmented_training_result_2026-09-28.md`).\n- So the pilot arms are FP16 analogues of F5, not of full2000. Declare now:\n  - The fresh FP16 Large arm is the only valid control. F5's 95.672/78.624 is a descriptive anchor only.\n  - The exact objective version for both arms.\n  - The seed-179041 construction path. `pe_large_optimization.schedule()` is tied to `pair.SEED` 179032.\n  - Which full-scale comparison a survivor gets:\n    - (a) a fresh Large F5-analogue → full2000 matched control, or\n    - (b) an absolute-bar-only official read against 96.7. This supports no causal substrate claim, because historical full2000 differs in stage-1 precision and lineage.\n\n**P2. Source authority.**\n- `model.safetensors` is 4.54 GB and includes the text tower. The full2000 memory profile hit the 8 GiB cgroup cap on file-backed pages (7.96 GB) during startup.\n- Require one separately capped, vision-only extraction unit. It must produce a tensor-by-tensor hash chain back to LFS `810ddc85…` and a measured tensor inventory. Every later unit loads only the derived file.\n- Also needed: a `load_arm`/`freeze_prefix` path for `'so400m'` with a pinned snapshot at `e8708ab7…`, and a runtime/environment identity.\n\n**P3. Dimensions: parameterise the guards, don't remove them.** Bind the source hash to pooled width (1152), vision tensor count and frozen inventory. Add negative tests so a Large source rejects 1152 and So400m rejects 1024. Sites:\n- `nn.Linear(1024,128)` in `scripts/pe_large_coverage.py:99`, `scripts/train_pe_large_coverage.py:194`, `scripts/qualify_pe_large_coverage_checkpoint.py:97`, `scripts/train_role_matched_adaptation.py:457`\n- `src/sfora/siglip2_compact_serving.py:127/227/257/262`\n- the `==400` tensor checks in `scripts/late_dense_boundary.py:22` and `scripts/pe_large_coverage.py:97`\n- The 128/130-byte wire and the native/cuTile path stay unchanged.\n\n**P4. Freeze and optimizer.**\n- \"Final 12 trainable\" departs from the only prior cross-substrate procedure, which froze half the prefix. The flat-boundary evidence is Large-only, so declare this choice with no boundary rescue.\n- Point in its favour: by my structural count (not measured), final-12 keeps the optimizer inventory at an identical 208 members (192 + 2 + 11 + 2 + 1). So400m's vision state would be 448 tensors; measure it.\n- Keep AdamW lr 1e-5/1e-4/1e-4, weight decay 0.05 and scaler 128. No width-scaled LR.\n\n**P5. Initializer symmetry.**\n- Both arms use the pe-augmented \"own full fit-only PCA128/proxies/detached bank\" constructor with the same calibration floors.\n- Both use the same exporter code, precision, row order and unaugmented FIT 13,283 images. Each bank is its own source's features through its own PCA.\n- The archived Large initializers may be reused only if the So400m export uses byte-identical exporter code and precision. Otherwise export both fresh, with the export cost declared.\n\n**P6. Resource failures must be labelled.**\n- Large discarded-17 mechanics already took **116.191/120 s** (5.95 GB CUDA), and training peaked at 6.56 GB. So400m's load and step cost are unmeasured, and the mechanics cap is the most likely first failure.\n- Predeclare that a cap failure is \"procedure not executable under the declared caps\": no substrate verdict and no cap relaxation.\n\n**P7. Speed is unpriced.**\n- The ≤1.50 training-cost ratio is not a serving gate. So400m encoder latency is unmeasured, and I'm assuming no headroom.\n- A survivor stays unproven under the joint goal until the declared full model passes B1+B32 serving qualification.\n- A survivor changes the In-Shop model only. SOP stays on Large; claim no SOP transfer.\n\n## Minimal acceptance and falsifier\n\n- **Accept:** P1–P7 each has a receipt, followed by the pilot gate verbatim.\n- **Falsifier:** if the gate fails, KILL only \"So400m/16@256, final-12, fresh F5-analogue, 100 updates, this recipe\". It says nothing about other substrates or learning methods.\n\n## FP32-autocast vs FP16-native on the same full2000 checkpoint\n\n**NO-GO as a matched speed control for the goal.**\n1. The comparator is our own slower serving mode, not the reference system, so a win closes nothing.\n2. FP16-native is not batch-invariant: only 5/33 B1 codes match the archived B32 codes (`docs/full2000_public_serving_gate_2026-09-30.md:31`). Exact packed equivalence across precision modes is therefore implausible, and showing metric equivalence would need another read of an already-observed official split.\n3. It is worth running only as an attribution diagnostic, after both models pass resource qualification. It authorizes no 10,000-call job.\n\nI agree with root's rejections of the UNICOM pretrained graph proxy and of a B1-only speed claim.\n\n**Not verified:** the exact objective version F5 used relative to the current recipe, the 448-tensor and 208-member counts on the real file, and any memory or wall-time figure for So400m.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "05acde7107874b67",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790790450,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790791650,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only hard GO/KILL review of ONE corrected new substrate procedure in repo /home/rb/worktrees/sfora-positive-causality master1d6c28d7. FIRST read docs/inshop_so400_native256_review_boundary_2026-09-30.md (parent authoritative proposal), docs/full2000_public_serving_gate_2026-09-30.md terminal current row, raw full2000-terminal-next-plan-v1.json and so400-native256-upstream-metadata-v1.json under docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1. Read prior role-matched-terminal-next-dual-review-v1.json and exact closed method ledgers as needed; do NOT duplicate/reopen retained256/old cache critiques. SAME production joint SOP+InShop strongest protocol quality and matched B1+B32 speed goalUNMET. Current historical InShop full2000R1/mAP96.307498/81.882593 vsC96.216064/81.675230, dated96.7R1gap.392502pp; current verified public100call diagnostic B1p50/p9512.877/14.757ms,B32batch242.314/245.822,unpaired/no p99win. CPU/GPU strictparity/resourcePASS under120/300s8GiBnoSwap<10GB CUDA; alljobs collected. Native256 SO400 upstream revision e8708ab72d125807e45b36fb7d4e0aacbb59f379:1152hidden27blocks4304MLP16heads (Large1024/24/4096), fullweight4.542792928GB/LFS810ddc85...; onlymetadatafetched, no weights/nativejobs. Corrected proposal freshLargevsSO400 FIT PCA128/head/bank initialization; sameclassschedule/augmentations/objective/pairedseeds179032041/B64/trainfinal12blocks, preservepacked128. Root rejects planner's universalexhaustion/operator-scoperelaxation, speculative forecastasmeasurement, FITprototypeorderingasdecisivelearningKILL, changed+.50R1-only/zeroAP thresholds, UNICOMpretrainedgraphproxyasmatchedquality, B1-onlyjointspeedclaim. RetainexistingfixedTRAINpilotgate meanR1+AP each>=+.20pp/product95lowerboth>0/5000drawseed179019/perseedguards/freshwall+median<=1.50, CPU120 -> requiredsource-qualifiedFITexport/PCA -> fullCPUinitializerqualification -> discarded17mechanics120 -> ONLYONE100TRAINpilot300 perarmseed, boundedlocks8GiBnoSwap/<10GBwholeCUDApeak. Norescue. Need your separate verdict on whether this is causally distinct and useful path vs pointless weakproxy; identify exact missing source/control/PCA/bank/dimension/optimizer/resource authority needed BEFOREnative. ExistingmethodcanbeKILLedonlyitsdeclaredprocedure, not alllearningmethods. Assess potential samefull2000 trainedcheckpoint FP32-autocast vsFP16-native as genuine internalmatchedspeedcontrol ONLYafteractualpacked/metric equivalence and bothmodelresourcequalification; no authorize new10000calls absentseparatefrozenprotocol. Do not invent resourcefit/qualitygain/So400headroom/strongestcurrentreferencecompleteness or hidden datasetfinetunedUNICOMweights. Return concrete narrow GO/KILL/prerequisite fixes, minimal acceptance/falsifier, no architecturemenu/theorem-onlyprobe/research/edits/SSH/Torch/GPU/train/quality/jobs/otherconsults/operatorcontact. Root owns finaldecision, sourcefreeze/resources/integration; preserve allPareto.",
+      "prompt_sha256": "80e839cee4419217836411a5fb2fa4f659ea4032efe0773397f97201d4aab6fd",
+      "prompt_bytes": 3366,
+      "fingerprint": "422b884ba0b6391523df7071f773b81dce4d8edd4ff2fc711d26b57bf4e33958",
+      "evidence": {
+        "git_commit": "1d6c28d7886eb82a5fa6f9c06d9093ccc2b9194b",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "80d138d6e94183497842e09ff357eefe26bb1def610d350e85a23159250ad299",
+      "reused": false,
+      "critique_id": "ffeb272436154d25",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-05acde7107874b67.service",
+      "pid": 178321,
+      "pgid": 178321,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790790450
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790790709,
+      "event_cursor": 58,
+      "events": [
+        {
+          "seq": 35,
+          "at": 1790790524,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 36,
+          "at": 1790790525,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 37,
+          "at": 1790790525,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 38,
+          "at": 1790790525,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 39,
+          "at": 1790790535,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 40,
+          "at": 1790790535,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 41,
+          "at": 1790790543,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 42,
+          "at": 1790790548,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 43,
+          "at": 1790790548,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 44,
+          "at": 1790790575,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 45,
+          "at": 1790790575,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 46,
+          "at": 1790790575,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 47,
+          "at": 1790790575,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 48,
+          "at": 1790790586,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 49,
+          "at": 1790790586,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 50,
+          "at": 1790790596,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 51,
+          "at": 1790790598,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 52,
+          "at": 1790790613,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 53,
+          "at": 1790790618,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 54,
+          "at": 1790790618,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 55,
+          "at": 1790790644,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 56,
+          "at": 1790790645,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 57,
+          "at": 1790790708,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 58,
+          "at": 1790790708,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 51,
+            "at": 1790790598,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 52,
+            "at": 1790790613,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 53,
+            "at": 1790790618,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 54,
+            "at": 1790790618,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 2"
+          },
+          {
+            "seq": 55,
+            "at": 1790790644,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 56,
+            "at": 1790790645,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 57,
+            "at": 1790790708,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 58,
+            "at": 1790790708,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Conditional GO for this one substrate procedure; NO-GO for native launch as currently specified.** It is causally distinct and can produce a useful trained packed128 model. It tests the complete pretrained substrate under a fixed adaptation recipe; it cannot isolate width, establish So400m headroom, or exhaust other learning methods.\n\nThe corrected [parent boundary](/home/rb/worktrees/sfora-positive-causality/docs/inshop_so400_native256_review_boundary_2026-09-30.md:9) addresses the planner’s scientific overreach. These concrete prerequisites remain:\n\n1. **Training precision is unresolved—and the planner misidentifies the existing implementation.** The inherited trainer explicitly records `native_float32_fp16_autocast`; its loader requires FP32 model parameters. Native FP16 serving qualification does not qualify FP16 parameters, gradients or Adam state for training. Freeze parameter/input/autocast/head/bank/moment dtypes, scaler behavior and numerical flags for both arms before resource admission. A switch to FP16 parameters is an additional unqualified change, not an established memory saving. [Trainer identity](/home/rb/worktrees/sfora-positive-causality/scripts/train_role_matched_adaptation.py:288), [source loader](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_coverage.py:94).\n\n2. **Fresh pretrained construction needs a new authority.** The current continuation path loads F5 and then `cc58377f…`, including learned head/proxies/bank. Its augmentation counter also starts at `1000 + step`. Reusing this path unchanged would violate the proposed fresh comparison. Pin both pretrained revisions and actual weight/config/processor hashes; authenticate the So400 archive against the recorded LFS digest; enumerate the selected vision keyset, shapes and buffers with strict loading. Bind resolved runtime defaults and executing module origins. The [metadata receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1/so400-native256-upstream-metadata-v1.json:114) explicitly says weights were not downloaded. [Continuation initializer](/home/rb/worktrees/sfora-positive-causality/scripts/late_dense_boundary.py:34), [augmentation counters](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:35).\n\n3. **Changing the model constructor alone fails the dimension contract.** Both the PCA initializer and shared `compact_head_features` reject 1152 inputs. Public serving also constructs and validates a 1024→128 head. Bind source width throughout initialization, training, reload and export; preserve strict per-source inventories instead of weakening `400`-tensor checks indiscriminately. Serving support must be part of the survivor’s concrete release path. Packed output remains 128 signed bytes plus the existing inverse norm. [Initializer](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:210), [shared forward](/home/rb/worktrees/sfora-positive-causality/src/sfora/sop_compact_training.py:25), [public constructor](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:124).\n\n4. **“Own PCA/head/bank” needs an exact construction contract.** Freeze the same 13,283 FIT rows, 2,004 products, class mapping, image hashes and order for both arms, disjoint from held identities. Each cache must bind its own authenticated encoder, processor, batch context and arithmetic. Reuse the existing centered image-PCA128 procedure: normalized source features, fixed SVD/sign convention, affine `W=components`, `b=−W·mean`, and the helper’s precise proxy arithmetic. Initialize the detached `(13283,128)` bank from that arm’s actual initialized head; never borrow Large/F5 rows. Preserve finite/nonzero checks, artifact hashes and initialization RNG isolation. Fit once per source and reuse the frozen initializer across paired training seeds. The PCA helper and bank path use different floating-point operations; algebraic similarity alone is insufficient for byte-parity claims. [PCA implementation](/home/rb/worktrees/sfora-positive-causality/src/sfora/representation_ceiling.py:117), [bank initialization](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:299).\n\n5. **The optimizer and input contract must be exact, not a “family.”** Enumerate frozen embeddings/blocks 0–11 versus 0–14, trainable final12 blocks/postLN/pool/head/proxies, and every optimizer member exactly once. Freeze AdamW options, rates, clipping, microbatching, scaler, corrected valid-anchor objective and bank-refresh semantics. Require fresh empty optimizer state and counter0 after final parameter construction. Pair actual schedules and augmented RGB hashes for seeds179032/179041; identical seed integers alone do not guarantee identical inputs after different constructors consume RNG. Resume qualification must include model, nonpersistent buffers, head, proxies, bank, optimizer, scaler and CPU/CUDA RNG.\n\n6. **Preparation and resource authority are still missing.** Declare bounded units for source CPU qualification, FIT export, PCA construction, complete initializer qualification, mechanics, training and held export. Record preparation costs separately and freeze their accounting before results; retain the existing fresh training wall/median gates. Neither the 4.543GB archive nor previous Large receipts proves So400 resource fit. Measure whole-unit host/cgroup peaks, swap and CUDA peaks—including construction, optimizer allocation, serialization and independent reload—with both locks and no post-construction peak reset. Do not turn export or PCA overruns into undeclared extra chunks.\n\n**Minimal acceptance/falsifier:** after the frozen source CPU120 gate, admit only the declared FIT-export/PCA prerequisite and complete CPU initializer qualification; then discarded17 mechanics for each arm with exact uninterrupted17 versus serialized8+9 and independent updated-state/raw/normalized/packed reload. All units retain their stated120/300s, 8GiB/noSwap and `<10GB` CUDA bounds. Negative controls must reject wrong source/width/row order, altered artifacts, missing or duplicate optimizer members, frozen-state mutation and incompatible resume state.\n\nOnly those passes admit **four fresh100-update runs: two arms × two seeds**, followed by the fixed held export/scorer. Preserve the [existing gate](/home/rb/worktrees/sfora-positive-causality/scripts/score_late_dense_adaptation.py:45):\n\n- Each seed: ΔR1>0 and ΔmAP@R≥0.\n- Equal-seed means: both≥+0.20pp.\n- Both paired product95 lower bounds>0; 5,000 draws, seed179019; report query intervals.\n- Each fresh wall and median training-cost ratio≤1.50, plus all integrity/resource gates.\n\nFailure closes this declared procedure, with the failure classified as integrity, resource/cost or quality. It does not close substrate learning generally. A pass admits a separately frozen full-TRAIN development and confirmation procedure; it does not predict closing the official0.392502pp gap. No prototype-quality screen or rescue sweep is needed.\n\n**Internal speed control: valid in principle, unqualified today.** Same full2000 checkpoint, public scorer and authenticated gallery can support a genuine internal matched comparison after FP32-autocast versus FP16-native output/metric qualification. Existing CPU proof compares two FP32 forwards before recording a cast; GPU proof compares FP16 native/public paths. Neither establishes cross-precision packed equivalence. [CPU/GPU qualification](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_full_valid_anchor_serving.py:590).\n\nQualify both B1 and B32 separately, including codes, inverse norms, exact scorer results and the claimed quality scope. If precision changes wires, establish the frozen metric-equivalence criterion before timing; do not assume equivalence from checkpoint identity or mix incompatible galleries. Qualify the paired runner’s actual model residency and complete resource footprint. Any p99 claim still requires a separate frozen protocol with10,000 interleaved pairs per claimed batch size and a95% ratio interval supporting improvement.\n\nThat comparison could establish an internal serving improvement. It cannot establish matched-quality superiority over UNICOM or complete the joint SOP/InShop goal. Preserve full2000 and all existing Pareto artifacts.\n\nRead-only inspection at `1d6c28d7`; no edits, native execution, downloads, consultations or operator contact.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Conditional GO for this one substrate procedure; NO-GO for native launch as currently specified.** It is causally distinct and can produce a useful trained packed128 model. It tests the complete pretrained substrate under a fixed adaptation recipe; it cannot isolate width, establish So400m headroom, or exhaust other learning methods.\n\nThe corrected [parent boundary](/home/rb/worktrees/sfora-positive-causality/docs/inshop_so400_native256_review_boundary_2026-09-30.md:9) addresses the planner’s scientific overreach. These concrete prerequisites remain:\n\n1. **Training precision is unresolved—and the planner misidentifies the existing implementation.** The inherited trainer explicitly records `native_float32_fp16_autocast`; its loader requires FP32 model parameters. Native FP16 serving qualification does not qualify FP16 parameters, gradients or Adam state for training. Freeze parameter/input/autocast/head/bank/moment dtypes, scaler behavior and numerical flags for both arms before resource admission. A switch to FP16 parameters is an additional unqualified change, not an established memory saving. [Trainer identity](/home/rb/worktrees/sfora-positive-causality/scripts/train_role_matched_adaptation.py:288), [source loader](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_coverage.py:94).\n\n2. **Fresh pretrained construction needs a new authority.** The current continuation path loads F5 and then `cc58377f…`, including learned head/proxies/bank. Its augmentation counter also starts at `1000 + step`. Reusing this path unchanged would violate the proposed fresh comparison. Pin both pretrained revisions and actual weight/config/processor hashes; authenticate the So400 archive against the recorded LFS digest; enumerate the selected vision keyset, shapes and buffers with strict loading. Bind resolved runtime defaults and executing module origins. The [metadata receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1/so400-native256-upstream-metadata-v1.json:114) explicitly says weights were not downloaded. [Continuation initializer](/home/rb/worktrees/sfora-positive-causality/scripts/late_dense_boundary.py:34), [augmentation counters](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:35).\n\n3. **Changing the model constructor alone fails the dimension contract.** Both the PCA initializer and shared `compact_head_features` reject 1152 inputs. Public serving also constructs and validates a 1024→128 head. Bind source width throughout initialization, training, reload and export; preserve strict per-source inventories instead of weakening `400`-tensor checks indiscriminately. Serving support must be part of the survivor’s concrete release path. Packed output remains 128 signed bytes plus the existing inverse norm. [Initializer](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:210), [shared forward](/home/rb/worktrees/sfora-positive-causality/src/sfora/sop_compact_training.py:25), [public constructor](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:124).\n\n4. **“Own PCA/head/bank” needs an exact construction contract.** Freeze the same 13,283 FIT rows, 2,004 products, class mapping, image hashes and order for both arms, disjoint from held identities. Each cache must bind its own authenticated encoder, processor, batch context and arithmetic. Reuse the existing centered image-PCA128 procedure: normalized source features, fixed SVD/sign convention, affine `W=components`, `b=−W·mean`, and the helper’s precise proxy arithmetic. Initialize the detached `(13283,128)` bank from that arm’s actual initialized head; never borrow Large/F5 rows. Preserve finite/nonzero checks, artifact hashes and initialization RNG isolation. Fit once per source and reuse the frozen initializer across paired training seeds. The PCA helper and bank path use different floating-point operations; algebraic similarity alone is insufficient for byte-parity claims. [PCA implementation](/home/rb/worktrees/sfora-positive-causality/src/sfora/representation_ceiling.py:117), [bank initialization](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:299).\n\n5. **The optimizer and input contract must be exact, not a “family.”** Enumerate frozen embeddings/blocks 0–11 versus 0–14, trainable final12 blocks/postLN/pool/head/proxies, and every optimizer member exactly once. Freeze AdamW options, rates, clipping, microbatching, scaler, corrected valid-anchor objective and bank-refresh semantics. Require fresh empty optimizer state and counter0 after final parameter construction. Pair actual schedules and augmented RGB hashes for seeds179032/179041; identical seed integers alone do not guarantee identical inputs after different constructors consume RNG. Resume qualification must include model, nonpersistent buffers, head, proxies, bank, optimizer, scaler and CPU/CUDA RNG.\n\n6. **Preparation and resource authority are still missing.** Declare bounded units for source CPU qualification, FIT export, PCA construction, complete initializer qualification, mechanics, training and held export. Record preparation costs separately and freeze their accounting before results; retain the existing fresh training wall/median gates. Neither the 4.543GB archive nor previous Large receipts proves So400 resource fit. Measure whole-unit host/cgroup peaks, swap and CUDA peaks—including construction, optimizer allocation, serialization and independent reload—with both locks and no post-construction peak reset. Do not turn export or PCA overruns into undeclared extra chunks.\n\n**Minimal acceptance/falsifier:** after the frozen source CPU120 gate, admit only the declared FIT-export/PCA prerequisite and complete CPU initializer qualification; then discarded17 mechanics for each arm with exact uninterrupted17 versus serialized8+9 and independent updated-state/raw/normalized/packed reload. All units retain their stated120/300s, 8GiB/noSwap and `<10GB` CUDA bounds. Negative controls must reject wrong source/width/row order, altered artifacts, missing or duplicate optimizer members, frozen-state mutation and incompatible resume state.\n\nOnly those passes admit **four fresh100-update runs: two arms × two seeds**, followed by the fixed held export/scorer. Preserve the [existing gate](/home/rb/worktrees/sfora-positive-causality/scripts/score_late_dense_adaptation.py:45):\n\n- Each seed: ΔR1>0 and ΔmAP@R≥0.\n- Equal-seed means: both≥+0.20pp.\n- Both paired product95 lower bounds>0; 5,000 draws, seed179019; report query intervals.\n- Each fresh wall and median training-cost ratio≤1.50, plus all integrity/resource gates.\n\nFailure closes this declared procedure, with the failure classified as integrity, resource/cost or quality. It does not close substrate learning generally. A pass admits a separately frozen full-TRAIN development and confirmation procedure; it does not predict closing the official0.392502pp gap. No prototype-quality screen or rescue sweep is needed.\n\n**Internal speed control: valid in principle, unqualified today.** Same full2000 checkpoint, public scorer and authenticated gallery can support a genuine internal matched comparison after FP32-autocast versus FP16-native output/metric qualification. Existing CPU proof compares two FP32 forwards before recording a cast; GPU proof compares FP16 native/public paths. Neither establishes cross-precision packed equivalence. [CPU/GPU qualification](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_full_valid_anchor_serving.py:590).\n\nQualify both B1 and B32 separately, including codes, inverse norms, exact scorer results and the claimed quality scope. If precision changes wires, establish the frozen metric-equivalence criterion before timing; do not assume equivalence from checkpoint identity or mix incompatible galleries. Qualify the paired runner’s actual model residency and complete resource footprint. Any p99 claim still requires a separate frozen protocol with10,000 interleaved pairs per claimed batch size and a95% ratio interval supporting improvement.\n\nThat comparison could establish an internal serving improvement. It cannot establish matched-quality superiority over UNICOM or complete the joint SOP/InShop goal. Preserve full2000 and all existing Pareto artifacts.\n\nRead-only inspection at `1d6c28d7`; no edits, native execution, downloads, consultations or operator contact."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3366,
+      "output_bytes": 8543,
+      "elapsed_seconds": 259,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)",
+      "progress_truncated": false,
+      "result": "**Conditional GO for this one substrate procedure; NO-GO for native launch as currently specified.** It is causally distinct and can produce a useful trained packed128 model. It tests the complete pretrained substrate under a fixed adaptation recipe; it cannot isolate width, establish So400m headroom, or exhaust other learning methods.\n\nThe corrected [parent boundary](/home/rb/worktrees/sfora-positive-causality/docs/inshop_so400_native256_review_boundary_2026-09-30.md:9) addresses the planner’s scientific overreach. These concrete prerequisites remain:\n\n1. **Training precision is unresolved—and the planner misidentifies the existing implementation.** The inherited trainer explicitly records `native_float32_fp16_autocast`; its loader requires FP32 model parameters. Native FP16 serving qualification does not qualify FP16 parameters, gradients or Adam state for training. Freeze parameter/input/autocast/head/bank/moment dtypes, scaler behavior and numerical flags for both arms before resource admission. A switch to FP16 parameters is an additional unqualified change, not an established memory saving. [Trainer identity](/home/rb/worktrees/sfora-positive-causality/scripts/train_role_matched_adaptation.py:288), [source loader](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_coverage.py:94).\n\n2. **Fresh pretrained construction needs a new authority.** The current continuation path loads F5 and then `cc58377f…`, including learned head/proxies/bank. Its augmentation counter also starts at `1000 + step`. Reusing this path unchanged would violate the proposed fresh comparison. Pin both pretrained revisions and actual weight/config/processor hashes; authenticate the So400 archive against the recorded LFS digest; enumerate the selected vision keyset, shapes and buffers with strict loading. Bind resolved runtime defaults and executing module origins. The [metadata receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1/so400-native256-upstream-metadata-v1.json:114) explicitly says weights were not downloaded. [Continuation initializer](/home/rb/worktrees/sfora-positive-causality/scripts/late_dense_boundary.py:34), [augmentation counters](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:35).\n\n3. **Changing the model constructor alone fails the dimension contract.** Both the PCA initializer and shared `compact_head_features` reject 1152 inputs. Public serving also constructs and validates a 1024→128 head. Bind source width throughout initialization, training, reload and export; preserve strict per-source inventories instead of weakening `400`-tensor checks indiscriminately. Serving support must be part of the survivor’s concrete release path. Packed output remains 128 signed bytes plus the existing inverse norm. [Initializer](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:210), [shared forward](/home/rb/worktrees/sfora-positive-causality/src/sfora/sop_compact_training.py:25), [public constructor](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:124).\n\n4. **“Own PCA/head/bank” needs an exact construction contract.** Freeze the same 13,283 FIT rows, 2,004 products, class mapping, image hashes and order for both arms, disjoint from held identities. Each cache must bind its own authenticated encoder, processor, batch context and arithmetic. Reuse the existing centered image-PCA128 procedure: normalized source features, fixed SVD/sign convention, affine `W=components`, `b=−W·mean`, and the helper’s precise proxy arithmetic. Initialize the detached `(13283,128)` bank from that arm’s actual initialized head; never borrow Large/F5 rows. Preserve finite/nonzero checks, artifact hashes and initialization RNG isolation. Fit once per source and reuse the frozen initializer across paired training seeds. The PCA helper and bank path use different floating-point operations; algebraic similarity alone is insufficient for byte-parity claims. [PCA implementation](/home/rb/worktrees/sfora-positive-causality/src/sfora/representation_ceiling.py:117), [bank initialization](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:299).\n\n5. **The optimizer and input contract must be exact, not a “family.”** Enumerate frozen embeddings/blocks 0–11 versus 0–14, trainable final12 blocks/postLN/pool/head/proxies, and every optimizer member exactly once. Freeze AdamW options, rates, clipping, microbatching, scaler, corrected valid-anchor objective and bank-refresh semantics. Require fresh empty optimizer state and counter0 after final parameter construction. Pair actual schedules and augmented RGB hashes for seeds179032/179041; identical seed integers alone do not guarantee identical inputs after different constructors consume RNG. Resume qualification must include model, nonpersistent buffers, head, proxies, bank, optimizer, scaler and CPU/CUDA RNG.\n\n6. **Preparation and resource authority are still missing.** Declare bounded units for source CPU qualification, FIT export, PCA construction, complete initializer qualification, mechanics, training and held export. Record preparation costs separately and freeze their accounting before results; retain the existing fresh training wall/median gates. Neither the 4.543GB archive nor previous Large receipts proves So400 resource fit. Measure whole-unit host/cgroup peaks, swap and CUDA peaks—including construction, optimizer allocation, serialization and independent reload—with both locks and no post-construction peak reset. Do not turn export or PCA overruns into undeclared extra chunks.\n\n**Minimal acceptance/falsifier:** after the frozen source CPU120 gate, admit only the declared FIT-export/PCA prerequisite and complete CPU initializer qualification; then discarded17 mechanics for each arm with exact uninterrupted17 versus serialized8+9 and independent updated-state/raw/normalized/packed reload. All units retain their stated120/300s, 8GiB/noSwap and `<10GB` CUDA bounds. Negative controls must reject wrong source/width/row order, altered artifacts, missing or duplicate optimizer members, frozen-state mutation and incompatible resume state.\n\nOnly those passes admit **four fresh100-update runs: two arms × two seeds**, followed by the fixed held export/scorer. Preserve the [existing gate](/home/rb/worktrees/sfora-positive-causality/scripts/score_late_dense_adaptation.py:45):\n\n- Each seed: ΔR1>0 and ΔmAP@R≥0.\n- Equal-seed means: both≥+0.20pp.\n- Both paired product95 lower bounds>0; 5,000 draws, seed179019; report query intervals.\n- Each fresh wall and median training-cost ratio≤1.50, plus all integrity/resource gates.\n\nFailure closes this declared procedure, with the failure classified as integrity, resource/cost or quality. It does not close substrate learning generally. A pass admits a separately frozen full-TRAIN development and confirmation procedure; it does not predict closing the official0.392502pp gap. No prototype-quality screen or rescue sweep is needed.\n\n**Internal speed control: valid in principle, unqualified today.** Same full2000 checkpoint, public scorer and authenticated gallery can support a genuine internal matched comparison after FP32-autocast versus FP16-native output/metric qualification. Existing CPU proof compares two FP32 forwards before recording a cast; GPU proof compares FP16 native/public paths. Neither establishes cross-precision packed equivalence. [CPU/GPU qualification](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_full_valid_anchor_serving.py:590).\n\nQualify both B1 and B32 separately, including codes, inverse norms, exact scorer results and the claimed quality scope. If precision changes wires, establish the frozen metric-equivalence criterion before timing; do not assume equivalence from checkpoint identity or mix incompatible galleries. Qualify the paired runner’s actual model residency and complete resource footprint. Any p99 claim still requires a separate frozen protocol with10,000 interleaved pairs per claimed batch size and a95% ratio interval supporting improvement.\n\nThat comparison could establish an internal serving improvement. It cannot establish matched-quality superiority over UNICOM or complete the joint SOP/InShop goal. Preserve full2000 and all existing Pareto artifacts.\n\nRead-only inspection at `1d6c28d7`; no edits, native execution, downloads, consultations or operator contact.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790791080,
+  "elapsed_seconds": 316,
+  "input_bytes": 2962,
+  "output_bytes": 15295
+}
