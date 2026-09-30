@@ -77,6 +77,37 @@ def complete_state(driver, arm="candidate", step=8, cpu=True):
 
 
 class Admission(unittest.TestCase):
+    def test_restore_step_scalars_do_not_retain_full_checkpoint_mapping(self):
+        import weakref
+        class Allocation: pass
+        class Step:
+            def __init__(self, owner=None): self.owner = owner
+            def clone(self): return Step()
+        owned = []
+        def load(*args, **kw):
+            allocation = Allocation(); owned.append(weakref.ref(allocation))
+            return {'optimizer': {'param_groups': [], 'state': {0: {'step': Step(allocation)}}},
+                    'vision': {}, 'head': {}, 'buffers': {}, 'cpu_rng': 0,
+                    'residual': 0, 'classifier': 0, 'bank': 0}
+        class Optimizer:
+            def load_state_dict(self, saved): self.step = saved['state'][0]['step']
+        optimizer = Optimizer()
+        model = SimpleNamespace(load_state_dict=lambda *a, **kw: None, named_buffers=lambda: [])
+        state = {'optimizer': optimizer, 'model': model, 'head': model, 'scaler': None, 'params': []}
+        state.update({k: SimpleNamespace(copy_=lambda _: None) for k in ('residual', 'classifier', 'bank')})
+        from contextlib import nullcontext
+        ns = {'torch': SimpleNamespace(load=load, no_grad=nullcontext,
+                random=SimpleNamespace(set_rng_state=lambda _: None)),
+              'verify': lambda *a: None, 'sha': lambda _: 'sha',
+              'payload': lambda *a: {'optimizer': {'param_groups': []}},
+              'validate_resume': lambda *a: None, 'old': SimpleNamespace(fingerprint=lambda _: 'fingerprint')}
+        fn = next(n for n in ast.parse(PATH.read_text()).body if isinstance(n, ast.FunctionDef) and n.name == 'restore')
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), str(PATH), 'exec'), ns)
+        ns['restore'](state, {}, 'path', 'sha', 'fingerprint', 8)
+        self.assertIsNone(owned[0](), 'AdamW step scalar retained complete mmap')
+        self.assertIsNone(optimizer.step.owner)
+        self.assertEqual(state['counter'], 8)
+
     def test_reload_owns_cuda_copy_and_releases_mapping_before_live_fingerprints(self):
         from contextlib import nullcontext
         import weakref

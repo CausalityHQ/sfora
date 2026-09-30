@@ -267,6 +267,10 @@ def restore(state, base, path, expected_sha, fingerprint, step):
     with torch.no_grad():
         for key in ("residual","classifier","bank"): state[key].copy_(saved[key])
         for n,value in state["model"].named_buffers(): value.copy_(saved["buffers"][n])
+    # Non-fused AdamW retains CPU step tensors verbatim. Own those scalars so
+    # they cannot keep the entire mapped checkpoint resident during replay.
+    for moment in saved["optimizer"]["state"].values():
+        moment["step"] = moment["step"].clone()
     state["optimizer"].load_state_dict(saved["optimizer"])
     if state["scaler"]:
         state["scaler"].load_state_dict(saved["scaler"])
