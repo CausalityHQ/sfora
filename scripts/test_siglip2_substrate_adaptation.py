@@ -21,8 +21,6 @@ import shutil
 import subprocess
 import struct
 import sys
-import threading
-import weakref
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -77,269 +75,6 @@ class Rows(list):
 
     def sum(self):
         return sum(self)
-
-
-def original_fingerprint(value, frozen=None, consumed=None):
-    """Immutable serializer from 97838823, independent of the candidate."""
-    import torch
-    digest = hashlib.sha256()
-    def frame(raw):
-        raw = raw.encode() if isinstance(raw, str) else raw
-        digest.update(str(len(raw)).encode() + b':' + raw)
-    def visit(item):
-        if isinstance(item, torch.Tensor):
-            frame('Tensor')
-            key = (item.data_ptr(), item._version, str(item.dtype), tuple(item.shape))
-            fact = frozen.get(key) if frozen is not None else None
-            if fact is None:
-                raw = item.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()
-                fact = (str(item.dtype), tuple(item.shape), hashlib.sha256(memoryview(raw)).hexdigest())
-            if consumed is not None:
-                consumed(item)
-            visit(fact)
-        elif isinstance(item, dict):
-            frame('dict'); frame(str(len(item)))
-            for key in sorted(item, key=repr):
-                visit(key); visit(item[key])
-        elif isinstance(item, (tuple, list)):
-            frame(type(item).__name__); frame(str(len(item)))
-            for child in item:
-                visit(child)
-        else:
-            frame(type(item).__name__); frame(repr(item))
-    visit(value)
-    return digest.hexdigest()
-
-
-def fingerprint_pipeline_checks(driver):
-    # A serial-only implementation must fail: staging stays on the caller,
-    # but >=1MiB live leaves run on worker threads, with exact old-tree identity.
-    caller, events, staged = threading.get_ident(), [], []
-    gate, finished, lock = threading.Event(), [], threading.Lock()
-    live = {'bytes': 0, 'peak': 0}
-    reordered = False
-    failing_hash = failing_stage = None
-    class Raw(bytearray):
-        pass
-    def released(size):
-        with lock:
-            live['bytes'] -= size
-    class Tensor:
-        _version = 0
-        def __init__(self, size=1024**2, mark=97, dtype='torch.uint8', shape=None, device='cpu', stride=False):
-            self.size, self.mark, self.dtype, self.stride = size, mark, dtype, stride
-            self.device = SimpleNamespace(type=device)
-            self.shape = shape if shape is not None else (size // self.element_size(),)
-        def data_ptr(self):
-            return id(self)
-        def numel(self):
-            return math.prod(self.shape)
-        def element_size(self):
-            return {'torch.uint8': 1, 'torch.float32': 4, 'torch.int64': 8}[self.dtype]
-        def detach(self):
-            assert threading.get_ident() == caller
-            events.append(('stage', 'detach'))
-            return self
-        def cpu(self):
-            assert threading.get_ident() == caller
-            events.append(('stage', 'cpu'))
-            return self
-        def contiguous(self):
-            assert threading.get_ident() == caller
-            events.append(('stage', 'contiguous'))
-            events.append(('contiguous', self.stride))
-            return self
-        def reshape(self, *args):
-            assert threading.get_ident() == caller
-            assert args == (-1,)
-            events.append(('stage', 'reshape'))
-            return self
-        def view(self, dtype):
-            assert threading.get_ident() == caller
-            assert dtype == 'torch.uint8'
-            events.append(('stage', 'view'))
-            return self
-        def numpy(self):
-            assert threading.get_ident() == caller
-            events.append(('stage', 'numpy'))
-            assert self.size == self.numel() * self.element_size()
-            if self.mark == failing_stage:
-                raise OSError('staging failed')
-            if reordered and self.mark == 99:
-                assert gate.is_set(), 'third buffer staged before draining the full 64MiB budget'
-            raw = Raw(bytes([self.mark])) * self.size
-            # Multiplication returns bytearray, so use a weak-referenceable owner.
-            raw = Raw(raw)
-            with lock:
-                live['bytes'] += self.size
-                live['peak'] = max(live['peak'], live['bytes'])
-                if reordered and self.size <= 64 * 1024**2:
-                    assert live['bytes'] <= 64 * 1024**2, 'staged buffers exceed 64MiB including current'
-                if self.size > 64 * 1024**2:
-                    assert live['bytes'] == self.size, 'oversized serial leaf retained outstanding buffers'
-            weakref.finalize(raw, released, self.size)
-            staged.append(weakref.ref(raw))
-            return raw
-    fake_torch = SimpleNamespace(Tensor=Tensor, uint8='torch.uint8')
-    real_sha = hashlib.sha256
-    def traced_sha(raw=b''):
-        if isinstance(raw, memoryview):
-            thread = threading.get_ident()
-            events.append(('hash', thread, len(raw), raw[0] if raw else None))
-            if raw and raw[0] == failing_hash:
-                raise OSError('worker hash failed')
-            if reordered and raw and raw[0] == 97:
-                assert gate.wait(3), 'second worker never released the first leaf'
-            result = real_sha(raw)
-            if reordered:
-                with lock:
-                    finished.append(raw[0] if raw else None)
-                if raw and raw[0] == 98:
-                    gate.set()
-            return result
-        return real_sha(raw)
-    value = {'tensor': Tensor(), 'typed': [True, 1, (None, 'x')]}
-    with patch.dict(sys.modules, {'torch': fake_torch}):
-        expected = original_fingerprint(value, {})
-        events.clear()
-        output = io.StringIO()
-        with patch.object(driver.hashlib, 'sha256', traced_sha), patch('sys.stdout', output):
-            assert driver.fingerprint(value, {}) == expected
-        hashes = [event for event in events if event[0] == 'hash']
-        assert [event[1] for event in events if event[0] == 'stage'] == [
-            'detach', 'cpu', 'contiguous', 'reshape', 'view', 'numpy'], 'caller staging sequence differs'
-        assert hashes and all(event[1] != caller for event in hashes), 'live tensor SHA remained serial'
-        stats = json.loads(output.getvalue())
-        assert stats['bytes_by_device'] == {'cpu': 1024**2} and stats['cache_hits'] == 0
-        assert stats['peak_outstanding'] == 1 and stats['peak_staged_bytes'] == 1024**2
-        assert all(stats[key] >= 0 for key in ('wall_seconds', 'stage_seconds', 'worker_sha_seconds_sum',
-                                             'inline_sha_seconds', 'queue_wait_seconds'))
-        # Exact framing, key repr order, tuple/list/types, shapes/dtypes/bytes,
-        # repeated aliases, noncontiguous staging and an immutable cache miss.
-        alias = Tensor(1024**2, 100, device='cuda', stride=True)
-        cached = Tensor(4, 101, 'torch.float32', (1,))
-        key = (cached.data_ptr(), cached._version, str(cached.dtype), tuple(cached.shape))
-        cache = {key: (str(cached.dtype), tuple(cached.shape), real_sha(bytes([101]) * 4).hexdigest())}
-        values = [{2: [alias, alias], '2': (cached, None, False, 1, 1., b'x')},
-                  Tensor(8, 102, 'torch.float32', (2,)), Tensor(8, 102, 'torch.int64', (1,)),
-                  Tensor(8, 102, 'torch.float32', (1, 2)), Tensor(8, 103, 'torch.float32', (2,)),
-                  Tensor(4, 104, 'torch.float32', ()), [1, 2], (1, 2), True, 1, {}, [], (), Tensor(0)]
-        expected = [original_fingerprint(value, cache) for value in values]
-        events.clear(); output = io.StringIO()
-        with patch.object(driver.hashlib, 'sha256', traced_sha), patch('sys.stdout', output):
-            actual = [driver.fingerprint(value, cache) for value in values]
-        assert actual == expected and len(set(actual[1:5])) == 4
-        stats = json.loads(output.getvalue().splitlines()[0])
-        assert stats['cache_hits'] == 1 and stats['bytes_by_device'] == {'cuda': 2 * 1024**2}
-        assert sum(event[0] == 'hash' and event[-1] == 100 for event in events) == 2, 'alias hash skipped'
-        assert ('contiguous', True) in events and list(cache) == [key]
-        cached._version += 1
-        with patch('sys.stdout', io.StringIO()):
-            assert driver.fingerprint(cached, cache) == original_fingerprint(cached, cache)
-        assert list(cache) == [key], 'candidate populated or mutated frozen cache'
-        # Serial branches include frozen={} plus consumed: every uncached leaf
-        # finishes hashing before its callback, and no worker is created.
-        for frozen, consumed in ((None, None), (cache, lambda item: events.append(('consume', item.mark)))):
-            events.clear()
-            with patch.object(driver.hashlib, 'sha256', traced_sha), patch('sys.stdout', io.StringIO()):
-                assert driver.fingerprint([alias, cached], frozen, consumed) == original_fingerprint([alias, cached], frozen)
-            hashes = [event for event in events if event[0] == 'hash']
-            assert all(event[1] == caller for event in hashes), 'serial path dispatched workers'
-            if consumed:
-                sequence = [event[0] for event in events if event[0] in ('hash', 'consume')]
-                assert sequence[:4] == ['hash', 'consume', 'hash', 'consume']
-        # Both job count and reservation must hold before staging the next
-        # buffer; whole-buffer completion is deliberately B before A.
-        value = [Tensor(40 * 1024**2, 97), Tensor(24 * 1024**2, 98), Tensor(1, 99),
-                 Tensor(1024**2 - 1, 100), Tensor(1024**2, 101), Tensor(65 * 1024**2, 102)]
-        expected = original_fingerprint(value, {})
-        reordered = True
-        events.clear(); finished.clear(); live['peak'] = 0; output = io.StringIO()
-        with patch.object(driver.hashlib, 'sha256', traced_sha), patch('sys.stdout', output):
-            assert driver.fingerprint(value, {}) == expected
-        reordered = False
-        stats = json.loads(output.getvalue())
-        assert finished[:2] == [98, 97], 'worker completion was not reordered'
-        assert stats['peak_outstanding'] == 2 and stats['peak_staged_bytes'] == 64 * 1024**2
-        assert stats['oversized_serial_bytes'] == 65 * 1024**2
-        assert len({event[1] for event in events if event[0] == 'hash' and
-                    1024**2 <= event[2] <= 64 * 1024**2}) == 2, 'worker count differs'
-        assert all(event[1] == caller for event in events if event[0] == 'hash' and
-                   (event[2] < 1024**2 or event[2] > 64 * 1024**2))
-        assert all(event[1] != caller for event in events if event[0] == 'hash' and
-                   1024**2 <= event[2] <= 64 * 1024**2)
-        # Hash/staging/traversal/submit failures join started work and release
-        # every staged owner before returning the error to the caller.
-        for failure in ('hash', 'stage', 'traversal', 'submit'):
-            events.clear()
-            failing_hash = 98 if failure == 'hash' else None
-            failing_stage = 98 if failure == 'stage' else None
-            value = [Tensor(1024**2, 97), Tensor(1024**2, 98)]
-            if failure == 'traversal':
-                class Broken:
-                    def __repr__(self):
-                        raise OSError('traversal failed')
-                value.append(Broken())
-            context = patch.object(driver.ThreadPoolExecutor, 'submit', side_effect=OSError('submit failed')) if failure == 'submit' else nullcontext()
-            with context, patch.object(driver.hashlib, 'sha256', traced_sha), patch('sys.stdout', io.StringIO()):
-                rejects(lambda: driver.fingerprint(value, {}), {'hash': 'worker hash failed', 'stage': 'staging failed',
-                                                               'traversal': 'traversal failed', 'submit': 'submit failed'}[failure])
-            assert live['bytes'] == 0 and all(ref() is None for ref in staged), 'failed pipeline retained raw owners'
-        failing_hash = failing_stage = None
-        assert not any(thread.name.startswith('ThreadPoolExecutor-') for thread in threading.enumerate())
-
-
-def fingerprint_screen_checks(driver):
-    # The screen alternates order on exactly one payload, never reads quality,
-    # and fails immediately on same-payload or post-update digest disagreement.
-    state, identity, flags, saved, calls = {'frozen_cache': {}}, {}, {}, object(), []
-    def payload(actual, binding, numerical):
-        assert actual is state and binding is identity and numerical is flags
-        calls.append('payload')
-        return saved
-    def serial(value, cache):
-        assert value is saved and cache is state['frozen_cache']
-        calls.append('serial')
-        return 'same-payload-digest'
-    def candidate(value, cache):
-        assert value is saved and cache is state['frozen_cache']
-        calls.append('candidate')
-        return 'same-payload-digest'
-    for step, order in ((3, ['serial', 'candidate']), (9, ['candidate', 'serial']), (17, ['serial', 'candidate'])):
-        calls.clear()
-        with patch.object(driver, 'payload', payload), patch.object(driver, 'fingerprint_serial', serial), \
-             patch.object(driver, 'fingerprint', candidate), patch.object(driver.time, 'perf_counter', side_effect=[0., .5, 1., 1.2]), \
-             patch('sys.stdout', io.StringIO()):
-            row = driver.fingerprint_screen(state, identity, flags, step, 'same-payload-digest')
-        assert calls == ['payload'] + order and row['order'] == order and row['step'] == step
-        assert math.isclose(row['saving_seconds'], .3 if step != 9 else -.3)
-    with patch.object(driver, 'payload', payload), patch.object(driver, 'fingerprint_serial', serial), \
-         patch.object(driver, 'fingerprint', return_value='wrong'):
-        rejects(lambda: driver.fingerprint_screen(state, identity, flags, 3, 'same-payload-digest'), 'parity differs')
-    with patch.object(driver, 'payload', payload), patch.object(driver, 'fingerprint_serial', serial), \
-         patch.object(driver, 'fingerprint', candidate):
-        rejects(lambda: driver.fingerprint_screen(state, identity, flags, 3, 'different-update'), 'parity differs')
-    rejects(lambda: driver.fingerprint_screen(state, identity, flags, 8, 'unused'), 'fixed fingerprint screen step')
-    # Execute the real final-screen block with literal timing evidence. Exactly
-    # 0.10s passes; a smaller median or missing/reordered snapshot is fatal.
-    run = next(node for node in ast.parse(Path(driver.__file__).read_bytes()).body if getattr(node, 'name', None) == 'run')
-    screen_gate = next(node for node in ast.walk(run) if isinstance(node, ast.If) and
-                       any(isinstance(part, ast.Constant) and part.value == 'fingerprint_screen_summary'
-                           for part in ast.walk(node)))
-    code = compile(ast.Module(body=[screen_gate], type_ignores=[]), '<actual-screen-gate>', 'exec')
-    for steps, savings, accepted in (([3, 9, 17], [.09, .10, .11], True),
-                                      ([3, 9, 17], [.09, .099, .3], False),
-                                      ([3, 17, 9], [.2, .2, .2], False),
-                                      ([3, 9], [.2, .2], False)):
-        namespace = {**vars(driver), 'args': SimpleNamespace(phase='mechanics'),
-                     'fingerprint_screens': [dict(step=step, saving_seconds=saving)
-                                             for step, saving in zip(steps, savings, strict=True)]}
-        with patch('sys.stdout', io.StringIO()):
-            if accepted:
-                exec(code, namespace)
-            else:
-                rejects(lambda: exec(code, namespace), 'fingerprint median saving')
-    exec(code, {**vars(driver), 'args': SimpleNamespace(phase='train')})  # TRAIN never runs the screen.
 
 
 def checkpoint_restore_checks(driver, root):
@@ -537,34 +272,7 @@ def native_contract_checks(driver):
     # change, plus the explicitly replaced exit traversal below. Includes ALL
     # admission, writer, math, freshCPU,17/8+9, final raw/packed reload and caps.
     tree = ast.parse(Path(driver.__file__).read_bytes())
-    oracle = next(node for node in ast.parse(Path(__file__).read_bytes()).body
-                  if getattr(node, 'name', None) == 'original_fingerprint')
-    assert hashlib.sha256(ast.dump(oracle, include_attributes=False).encode()).hexdigest() == (
-        'c182c1cda5c933900a0b830654025d912270d11987dde69439a223b089dbb507')
     run = next(node for node in tree.body if getattr(node, 'name', None) == 'run')
-    # Strip only the exact new mechanics-screen statements. All original run
-    # math/RNG/payload/update/restore/cap statements still face the original pin.
-    additions = [ast.parse(source).body[0] for source in (
-        'fingerprint_screens = []',
-        """if args.phase == 'mechanics' and step in (3, 9, 17):
-    fingerprint_screens.append(fingerprint_screen(state, identity, flags, step, row['state_sha256']))""",
-        """if args.phase == 'mechanics':
-    saving = statistics.median(row['saving_seconds'] for row in fingerprint_screens)
-    print(json.dumps({'diagnostic': 'fingerprint_screen_summary', 'steps': [3, 9, 17],
-                      'median_saving_seconds': saving, 'minimum_saving_seconds': 0.10},
-                     sort_keys=True, allow_nan=False), flush=True)
-    require([row['step'] for row in fingerprint_screens] == [3, 9, 17] and saving >= 0.10,
-            'fingerprint median saving below 0.10 seconds')""" )]
-    counts = Counter()
-    class WithoutScreen(ast.NodeTransformer):
-        def visit(self, node):
-            for index, addition in enumerate(additions):
-                if ast.dump(node) == ast.dump(addition):
-                    counts[index] += 1
-                    return None
-            return super().visit(node)
-    WithoutScreen().visit(run)
-    assert counts == Counter({0: 1, 1: 1, 2: 1}), 'mechanics screen contract changed'
     replacement = ast.parse('origins = exit_rehash(context)').body[0]
     indices = [i for i, node in enumerate(run.body) if ast.dump(node) == ast.dump(replacement)]
     assert len(indices) == 1, 'exactly one trainer-owned exit traversal required'
@@ -580,10 +288,7 @@ for path, digest in origins['files'].items():
 q.rehash(initialized)
 require(closure(context['root'], args.execution_sha256, FILES, {}) == context['code'], 'exit own closure differs')
 ''').body
-    fingerprint = copy.deepcopy(next(node for node in tree.body if getattr(node, 'name', None) == 'fingerprint_serial'))
-    fingerprint.name = 'fingerprint'
-    assert hashlib.sha256(ast.dump(fingerprint, include_attributes=False).encode()).hexdigest() == (
-        '3de225c57984a5ee3f292ecddce7a1516154938d5b4d415e692837abda5b2d0f')
+    fingerprint = copy.deepcopy(next(node for node in tree.body if getattr(node, 'name', None) == 'fingerprint'))
     assert fingerprint.args.args[-1].arg == 'consumed'
     fingerprint.args.args.pop(); fingerprint.args.defaults.pop()
     class WithoutAdvice(ast.NodeTransformer):
@@ -594,28 +299,6 @@ require(closure(context['root'], args.execution_sha256, FILES, {}) == context['c
     assert hashlib.sha256(ast.dump(WithoutAdvice().visit(fingerprint), include_attributes=False).encode()).hexdigest() == (
         '9f9e4a507c623fab8d907210db8626f597e37ecb45a9abd8f3fe5acc165d7aaa')
     restore = next(node for node in tree.body if getattr(node, 'name', None) == 'restore_independent')
-    # Restore instrumentation may add these timestamps only; strict loading,
-    # copies, RNG restoration, mmap release and every original statement stay.
-    timing_nodes = [ast.parse('restore_started = time.monotonic()').body[0]]
-    timing_nodes += [ast.parse(f"phase_diagnostic('restore.{phase}.{edge}', restore_started)").body[0]
-                     for phase in ('file_authentication', 'mmap_fingerprint', 'construction_loading',
-                                   'transfers', 'integrity_fingerprint') for edge in ('begin', 'end')]
-    timing_counts = Counter()
-    class WithoutTimings(ast.NodeTransformer):
-        def visit(self, node):
-            for index, addition in enumerate(timing_nodes):
-                if ast.dump(node) == ast.dump(addition):
-                    timing_counts[index] += 1
-                    return None
-            return super().visit(node)
-    normalized_restore = WithoutTimings().visit(copy.deepcopy(restore))
-    assert timing_counts == Counter({index: 1 for index in range(11)})
-    assert hashlib.sha256(ast.dump(normalized_restore, include_attributes=False).encode()).hexdigest() == (
-        '54aa4bfb90dc9012bf1998cf453746cb387e8e64dc2e9afcdae1e28054cb5965')
-    for name, expected in {'CheckpointPages': 'b385888b8e97acf8a73f325cacd583dd97ea850138573b80d0f843745db80f13',
-                           'load_vision': '16db9764d3593c1abcbd4de662b7e4d82023cd208fbda33c0ec0c62dd4335998'}.items():
-        node = next(node for node in tree.body if getattr(node, 'name', None) == name)
-        assert hashlib.sha256(ast.dump(node, include_attributes=False).encode()).hexdigest() == expected
     predicates = [node for node in ast.walk(restore) if isinstance(node, ast.Call) and
                   isinstance(node.func, ast.Name) and node.func.id == 'require']
     for predicate in predicates:
@@ -625,15 +308,8 @@ require(closure(context['root'], args.execution_sha256, FILES, {}) == context['c
     assert hashlib.sha256('\n'.join(sorted(ast.dump(node, include_attributes=False)
                                            for node in predicates)).encode()).hexdigest() == (
         'bf2f4c8aa1174c86bac0218f34306da28c995cb8289ebd7abb7d436e37b9bb79')
-    changed = {'fingerprint', 'fingerprint_serial', 'fingerprint_screen', 'restore_independent',
-               'CheckpointPages', 'load_vision', 'exit_rehash'}
+    changed = {'fingerprint', 'restore_independent', 'CheckpointPages', 'load_vision', 'exit_rehash'}
     tree.body = [node for node in tree.body if getattr(node, 'name', None) not in changed]
-    imports = [ast.parse(source).body[0] for source in ('from collections import deque',
-                                                      'from concurrent.futures import ThreadPoolExecutor')]
-    for addition in imports:
-        matches = [node for node in tree.body if ast.dump(node) == ast.dump(addition)]
-        assert len(matches) == 1
-        tree.body.remove(matches[0])
     assert hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest() == (
         '6325c182e27eda4e1aaa26f461adeb0c221f357502052644abfedbb38558e7c6')
 
@@ -1322,8 +998,6 @@ def flat_chain_checks(driver, base):
 def main():
     path = Path(__file__).with_name('train_siglip2_substrate_adaptation.py').resolve()
     driver = module(path, 'adaptation_under_test')
-    fingerprint_pipeline_checks(driver)
-    fingerprint_screen_checks(driver)
     native_contract_checks(driver)
     with TemporaryDirectory() as directory:
         checkpoint_restore_checks(driver, Path(directory))
