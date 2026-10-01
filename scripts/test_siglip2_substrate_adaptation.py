@@ -295,7 +295,7 @@ def native_contract_checks(driver):
     changed = {'fingerprint', 'restore_independent', 'CheckpointPages', 'load_vision'}
     tree.body = [node for node in tree.body if getattr(node, 'name', None) not in changed]
     assert hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest() == (
-        '1944ddd235a078ae0b85e741f2b0b801f4a09a7068c694c0bd5eec9ee2529891')
+        '6325c182e27eda4e1aaa26f461adeb0c221f357502052644abfedbb38558e7c6')
 
 
 def checkpoint_write_checks(driver, root):
@@ -835,7 +835,7 @@ def main():
         result = subprocess.run([sys.executable, '-B', '-S', *flags, str(path), *arguments],
                                 capture_output=True, text=True)
         assert result.returncode == code and marker in result.stdout + result.stderr
-    assert driver.policy('mechanics')['seconds'] == 120 and driver.policy('train')['seconds'] == 300
+    assert driver.policy('mechanics')['seconds'] == 300 and driver.policy('train')['seconds'] == 300
     rejects(lambda: driver.policy('quality'), 'fixed phase')
     native_facts = {'seed': 179041, 'counter': 0, 'parameter_names': ['original'],
                     'optimizer_defaults': {'betas': (.9, .999), 'eps': 1e-8},
@@ -1043,7 +1043,7 @@ def main():
             sys.modules.pop('_siglip2_pinned_adaptation_qualifier')
             for key, value in (('schema', 'wrong'), ('execution_sha256', '0'*64), ('arm', 'so400'),
                                ('seed', 179041), ('phase', 'train'), ('both_locks_held', False),
-                               ('selected_mechanics', {}), ('resource_policy', driver.policy('train'))):
+                               ('selected_mechanics', {}), ('resource_policy', {**driver.policy('mechanics'), 'seconds': 301})):
                 args.authority_sha256 = write(args.authority, {**launch, key: value})
                 rejects(lambda: driver.bootstrap(args), 'launch authority')
             args.authority_sha256 = write(args.authority, launch)

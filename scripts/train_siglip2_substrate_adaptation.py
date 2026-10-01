@@ -83,7 +83,7 @@ def require(condition, message):
 
 def policy(phase):
     require(phase in ('mechanics', 'train'), 'fixed phase required')
-    return {'seconds': 120 if phase == 'mechanics' else 300, 'host_bytes': 8 * 1024**3,
+    return {'seconds': 300, 'host_bytes': 8 * 1024**3,
             'swap_bytes': 0, 'cuda_allocated_bytes_exclusive': 10_000_000_000}
 
 
@@ -931,7 +931,7 @@ def admit_mechanics(context, admission=None):
                                 'selected_mechanics': None, 'resource_policy': policy('mechanics')},
             'original mechanics launch authority differs')
     terminal = admission.admit_terminal if admission else context['initialized']['init'].admit_terminal
-    return record, terminal(record, descriptor, 120, context['guards'])
+    return record, terminal(record, descriptor, policy('mechanics')['seconds'], context['guards'])
 
 
 def authority(args):
