@@ -1,0 +1,100 @@
+{
+  "arm": "candidate",
+  "both_locks_held": true,
+  "execution_sha256": "907dfed63ec7678b2ef930463640b098ea2e38ad1c5fc1ad312cceb628151598",
+  "fit_inventory": {
+    "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-native256-fit-export-collected-inputs-v1.json",
+    "sha256": "4694490f347949a7d814f5001655d1c7a9eb41c5ea369f4e838b231ad2ee7662"
+  },
+  "initialized_inventory": {
+    "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-native256-full-initialized-cpu-collected-inputs-v1.json",
+    "sha256": "da925901082ff22994a90dcdb0ccfea0cd5e2144cb3f87c3950904e9928a503e"
+  },
+  "phase": "train",
+  "recipe": {
+    "augmentation": false,
+    "batch": 64,
+    "candidate": "gelu-exact",
+    "classes": 2004,
+    "clip": 1,
+    "control": "0.5*z",
+    "encoder_updates": false,
+    "initial_scaler": 128,
+    "initialization_seed": 179034,
+    "learning_rate": 0.0001,
+    "margin": 0.3,
+    "microbatch": 16,
+    "output_dim": 128,
+    "rank": 32,
+    "rank_weight": 8,
+    "rows": 13283,
+    "scale": 64,
+    "seeds": [
+      179032,
+      179041
+    ],
+    "steps": 1000,
+    "views": "fixed-normalized-cache",
+    "weight_decay": 0.05,
+    "width": 1152
+  },
+  "reference": {
+    "execution_sha256": "236327289f110ed2bf2012ea6e0d1ea48cf822b4e4094d9cf544081a2dc476f7",
+    "root": "/home/riomus/runs/sfora-native256-adaptation-source-v6"
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "siglip2-cached-readout-launch-v1",
+  "seed": 179032,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "06d7247611e44213b5cab1e93f4f08b5",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-so400-cached-readout-cpu-v2.log",
+      "sha256": "99ded71eb167f75a4393b860eb98950b3a9c21d045f60f0042d33ff71afe0e67"
+    },
+    "native_peak_rss_kib": 4427224,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-cached-readout-cpu-v2/receipt.json",
+      "sha256": "8d301503cb5e60fd029c8d9ba5d262f61bfb92b1f2801c963d861d6574591dad"
+    },
+    "service_seconds": 69.732,
+    "unit": "sfora-so400-cached-readout-cpu-v2"
+  },
+  "selected_mechanics": {
+    "candidate": {
+      "both_locks_held": true,
+      "invocation_id": "facf73999031493db23ed265a466ca88",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-so400-cached-readout-mechanics-candidate-v2.log",
+        "sha256": "86e883383535c75f1467a13e9d4769a2f18318d73bcfa0c2535ff9f0e48d2bdc"
+      },
+      "native_peak_rss_kib": 2557672,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-mechanics-candidate-v2/receipt.json",
+        "sha256": "527f3952b43be1efc6f13f95758efdb3dfe36587c019f2a5acf65bd3a68fbb88"
+      },
+      "service_seconds": 54.44,
+      "unit": "sfora-so400-cached-readout-mechanics-candidate-v2"
+    },
+    "control": {
+      "both_locks_held": true,
+      "invocation_id": "6a7a238e83ae4d4b918dfdd1121e6ab0",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-so400-cached-readout-mechanics-control-v2.log",
+        "sha256": "fcedc13cb7a1db4fcdc8991e8bd5e522f742c21d8388b7ed0356b6425a9b8e5d"
+      },
+      "native_peak_rss_kib": 2544832,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-mechanics-control-v2/receipt.json",
+        "sha256": "58b575651741380cbbc8a0b393391c654ce8ea779f40a463bb0c3cbf9b227d79"
+      },
+      "service_seconds": 52.618,
+      "unit": "sfora-so400-cached-readout-mechanics-control-v2"
+    }
+  }
+}
