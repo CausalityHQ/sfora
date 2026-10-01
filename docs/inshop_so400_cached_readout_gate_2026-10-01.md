@@ -124,11 +124,11 @@ All four original TRAIN1000 endpoints pass; control041 original83576 service145.
 
 Updated evaluation CPUv1 original32929/invocationfcff55cd146d408680164ff53a5e92bc stopped at admission, exit1/service35.756s/host308404224B/events0/swap0, before model construction. `held_manifest` was missing because FIT `original_receipt` is a teacher-target receipt, not the original held-role preflight. The original unchanged held-role authority is sfora-pe-augmented-100-v2/preflight.json SHA41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293; its actual FIT13283/held12599/query6354/gallery6245 metadata passes the unchanged split validator. This is an evaluator binding defect, not a quality verdict. All four trained endpoints remain accepted; no retraining, held images or quality read. One bounded specialist corrects the evaluator binding and adds a regression before a new immutable CPU120 qualification.
 
-Current convergence row (measured costs, quality pending):
+Current convergence row (verified terminal measurements):
 
 | Dataset/split | Matched control/candidate quality | Training cost | Public latency | Remaining gap | Next decisive test |
 |---|---|---|---|---|---|
-| In-Shop TRAIN FIT13283/2004 products; held6354 query/6245 gallery/1993 products | R1 and mAP@R both unmeasured for new So400 cached affine/GELU arms | Seed032 control/candidate whole143.275/154.511s; seed041 145.995/143.540s, 1000 cached updates each; both cost gates pass | Unmeasured | Both quality gain and joint official quality/speed unproven | Corrected updated CPU120 → shared held export300 → paired score300 |
+| In-Shop TRAIN FIT13283/2004 products; held6354 query/6245 gallery/1993 products | Verified equal-seed affine control93.240478% R1/73.302961% mAP@R; GELU92.831287%/72.548303%; delta−0.409191/−0.753658pp, product95% CIs wholly negative: recipe KILL | Seed032 control/candidate whole143.275/154.511s; seed041 145.995/143.540s, 1000 cached updates each; both cost gates pass | Unmeasured | This recipe fails quality; official quality and matched public speed still open | One next trained-model intervention selected from new evidence, using fresh TRAIN-only selection authority |
 
 Corrected independent held-split binding source196d28d4 integrated; exact new evaluator v2 six-file execution 2a70ecf032ad42b8a91ff0c5b3aaedf7ba381ac25d1de22cb3f8769c942abebf and authority 2ba754ce5850cb70b82135bbb3aee431701832c1eafae170488373d2eccc0006 frozen prospectively before CPU120. Trainer and all four accepted endpoint authorities/checkpoints remain unchanged. v1 failed qualification preserved, no retrospective pass or quality read.
 
