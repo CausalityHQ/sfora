@@ -1,0 +1,99 @@
+{
+  "authority_sha256": "907de55cc3f72cd1b1b668ff1163e89fddd56fd0f315480e99a7f0670e9e88c1",
+  "complete_8_plus9_replay_done": false,
+  "cuda_peak_numeric_measurement": null,
+  "decision": "KILL",
+  "execution_sha256": "5199f5f9791489760ca05d847dd8350a0768bf163234dc0f175d58d1c7dd0460",
+  "exit_code": 1,
+  "exit_rehash_done": false,
+  "host_peak_bytes": 6286626816,
+  "invocation_id": "b75becf0a16d43d9bf5fa0aa5a86c205",
+  "last_parallel_diagnostic": {
+    "bytes_by_device": {
+      "cpu": 636688,
+      "cuda": 1993693488
+    },
+    "cache_hits": 195,
+    "diagnostic": "fingerprint",
+    "inline_sha_seconds": 0.004381782375276089,
+    "mode": "parallel",
+    "oversized_serial_bytes": 0,
+    "peak_outstanding": 2,
+    "peak_staged_bytes": 33885720,
+    "queue_wait_seconds": 0.2958382721990347,
+    "stage_seconds": 3.7812133487313986,
+    "wall_seconds": 4.105781473219395,
+    "worker_sha_seconds_sum": 0.8823035419918597
+  },
+  "median_saving_seconds": -2.942413317039609,
+  "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "minimum_saving_seconds": 0.1,
+  "original_session": 73430,
+  "paired_same_payload_digest_checks_passed": true,
+  "raw_log_sha256": "fcabab05e4e6926fb7e7d80a6b4d4985f636ca15a9542f15606b77439977d1b2",
+  "schema": "native256-fingerprint-performance-kill-v1",
+  "scope": "bounded parallel SHA pipeline only; production goal remains active",
+  "screens": [
+    {
+      "candidate_seconds": 4.203778549097478,
+      "diagnostic": "fingerprint_screen",
+      "order": [
+        "serial",
+        "candidate"
+      ],
+      "saving_seconds": -3.073644533753395,
+      "serial_seconds": 1.1301340153440833,
+      "sha256": "4c29c4e7bd903b759d07d733f9c7258c95238633feb504788c13d51530c300d0",
+      "step": 3
+    },
+    {
+      "candidate_seconds": 4.006805872078985,
+      "diagnostic": "fingerprint_screen",
+      "order": [
+        "candidate",
+        "serial"
+      ],
+      "saving_seconds": -2.788940804079175,
+      "serial_seconds": 1.21786506799981,
+      "sha256": "761a585abd5bdd4f29c46b028d658c9d7c9d87100b719937b7ab99cb2cf71e49",
+      "step": 9
+    },
+    {
+      "candidate_seconds": 4.10585254477337,
+      "diagnostic": "fingerprint_screen",
+      "order": [
+        "serial",
+        "candidate"
+      ],
+      "saving_seconds": -2.942413317039609,
+      "serial_seconds": 1.163439227733761,
+      "sha256": "bb6cb633f7e6f92de7a1c03765f695ee3445e5c8a1bd2fc7e45aacf9285da708",
+      "step": 17
+    }
+  ],
+  "service_seconds": 157.788,
+  "so400_launched": false,
+  "stop_cgroup": {
+    "exit_code": "exited",
+    "exit_status": "1",
+    "invocation_id": "b75becf0a16d43d9bf5fa0aa5a86c205",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v7.service",
+    "service_result": "exit-code",
+    "values": {
+      "memory.current": "2551906304",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "6286626816",
+      "memory.stat": "anon 5292032\nfile 2482442240\nkernel 61870080\nkernel_stack 0\npagetables 90112\nsec_pagetables 0\npercpu 704\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 102400\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5259264\ninactive_file 564772864\nactive_file 1917669376\nunevictable 0\nslab_reclaimable 61725712\nslab_unreclaimable 25912\nslab 61751624\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 17245384\npgmajfault 8763\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 114188\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1004\nthp_collapse_alloc 61\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "strict_final_reload_done": false,
+  "swap_peak_bytes": 0,
+  "training_or_quality_read": false,
+  "uninterrupted_updates": 17,
+  "unit": "sfora-native256-mechanics-large-v7",
+  "update_seconds_sum": 87.0083182468079
+}
