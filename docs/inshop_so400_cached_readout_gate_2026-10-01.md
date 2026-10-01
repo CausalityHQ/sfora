@@ -115,3 +115,5 @@ Original corrected candidatemechanics65247/invocationfacf73999031493db23ed265a46
 Prospective freshTRAIN1000 endpoints/order and exact authority/commands frozen from correctedsource2 and acceptedCPUv2+bothmechanicsv2 originalterminaldescriptors. Control032 first; others sequential onlyafterprioracceptedfullterminal. Everyendpoint300s whole/8GiB/noSwap/events0/CUDA<10GB/bothlocks/completefinalreload/exit. No outcomes measured beforefreeze, noqualityread untilallfourpass.
 
 Original fresh control032TRAIN1000 session90941 normalexit0; full1000/strictindependentreload/exitPASS, noqualityread. Originalreceipt/log retained. Otherthreeendpoints remainpending; completeprocedure/quality/cost notyetdecided.
+
+Original candidate032TRAIN1000 session46741/invocationcf41d547059a4050949a89dfc95a1f3e normalexit0/service154.511s, full1000/strictindependentreload/exitPASS, host3010756608B/CUDA573490176B/events0/swap0. Paired032 inputrow/drawhashes exactlymatchcontrol. Whole-service ratio1.078422614, medianupdate ratio1.101437841 both<=1.50; optimizationwall101.760508418s reportedseparately. Noheldqualityread; both041endpoints remainpending.
