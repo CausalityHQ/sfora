@@ -26,3 +26,7 @@ Frozen source root `/home/riomus/runs/sfora-native256-adaptation-source-v5`, exe
 ### v5 terminal outcome
 
 Original session10687/invocatione3c02b979367415f8985c2eb69117440 exited0 successfully in189.303s whole service (driver187.290s). Full17 versus serialized8+independent9 and strict final whole/raw-packed reload, uncached exit rehash PASS; state discarded/no quality read. Driver host peak6,548,062,208B/events0/swap0, CUDA6,128,466,432B; median uninterrupted update2.085331s. Raw log and compact pinned receipt are committed beside prior failure evidence. Engineering mechanics GO only; product quality and speed remain unqualified. No second engineering job or TRAIN started under this one-job authorization.
+
+### Prospective sequential So400 v5 gate
+
+Authorization immediate-1790882776853633660-1991058 permits ONE sequential So400 mechanics-only300s gate after Large terminal authentication. Same exact v5 source execution; So400 authority SHA371cfbaa518b9b5df33934087f037bd9cac0d125635d171b0574ad3ba34fb3d7 binds unchanged original fullCPU proof. New output `/home/riomus/runs/sfora-native256-mechanics-so400-v5`. DGX compute/services idle and both nonblocking resource locks checked before launch. Full17+independent8+9/strict final reload/exit and all resource limits remain mandatory; any failure kills this arm. Report paired terminal decision before any freshTRAIN100 launch. No prior failure is reclassified.
