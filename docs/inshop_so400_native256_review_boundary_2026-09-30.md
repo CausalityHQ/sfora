@@ -93,3 +93,80 @@ Combined Large v3 terminal: original28256/00386f046f1f4b8fa7b2d565c33aef1c exit1
 Restore correction checkpoint: childa720939c (rootc4906a46) preserves original Torch mmap loader/strict independent source model and every complete-state predicate. Actual checkpoint private VMA is bound to opened fd dev/inode/offset/exact extent; only consumed complete tensor pages are advised after hashing/copy, madvise before fadvise. CPU AdamW steps own copies; CUDA moments transfer synchronously; temporary strict-loader hooks removed on all paths. Parent stdlib checks PASS, including five worker mutants and complete native-contract AST pins; actual corrected resource/parity remains UNRUN until original v4 gate. Source-v4 exact5 execution085782809fdd65cf41895d0b63f83b9d6002896dabd28b713851bc60b39a76e6; original Large session26703/unit sfora-native256-mechanics-large-v4/inv9e61f1c141a84319aaf6a3ec7f721415 now active under unchanged caps. No So400/pilot/quality admission; worker runtime estimate is not a measurement. Parent receipt native256-restore-parent-receipt-v1.json.
 
 Large v4 terminal decision: original26703/unit sfora-native256-mechanics-large-v4/inv9e61f1c141a84319aaf6a3ec7f721415 timeout120.738s,17 uninterrupted updates +2 resumed rows (9,10) exactly matched original diagnostics. Corrected restore8 completed93.241→114.421s (21.181s) with complete reload fingerprint equality and all actual model/head/buffer/optimizer/scaler/RNG checks; no full9/finalreload/exit receipt. Actual STOP_CGROUP peak6390661120B/events all0/swap0/file_mapped522285056B versus v3 8589934592B/max174/file_mapped3092234240B. This verifies the concrete archive retention reduction for the observed restore, not whole mechanics qualification or a quality gain. Frozen120s whole mechanics procedure reaches a reproducible runtime NO-GO after memory correction; no So400 or TRAIN admitted, no change to thresholds. Final historical quality candidates and accepted source/FIT/PCA/CPU receipts retained. Raw v4 log/phase audit preserve exact final facts.
+
+## Prospective native256 held tooling contract
+
+The separately recorded v5 mechanics runtime amendment and paired actual mechanics passes remain authoritative. The following tooling adds no trainer/qualifier/scientific-policy change and does not establish native resource fit or quality. Root alone freezes actual future authorities, performs native runs, and integrates the implementation. No successful TRAIN100/held-export hashes are predicted here.
+
+Stage a **separate held source root** with `execution.json` containing exactly ten filename-to-SHA256 entries: the original trainer's unchanged five (`train_siglip2_substrate_adaptation.py`, `test_siglip2_substrate_adaptation.py`, `deployed_code_rank.py`, `reference_train_sop_siglip2_compact.py`, `reference_unicom_training.py`), the three new scripts (`export_siglip2_substrate_adaptation.py`, `score_siglip2_substrate_adaptation.py`, `test_siglip2_substrate_held.py`), and two unchanged full-file reference copies. Copy `compare_inshop_sop_warmstart_100.py` to `reference_compare_inshop_sop_warmstart_100.py` (source SHA `8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250`) and `score_inshop_crop_view_pair.py` to `reference_score_inshop_crop_view_pair.py` (source SHA `16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed`). The packed scorer's selected AST SHA is `717489188a008ceba1b930d9e7dff32b90cd5347302835538eb171fe23f4b33e`; the bootstrap's is `76971d1089c8494e16450d56057a5b2fa2c71e40cf360d4ede0562fc53d9c720`. These are observed source/AST hashes, not future native-result pins. Execute only these two fixed definitions, retaining `@torch.inference_mode()` and stable ties. The scorer retains byte-identical `averaged_deltas`/`quality_gate` function ASTs from the late-dense scorer, mapping Large to `control` and So400 to `candidate`.
+
+Load the original trainer from its **original five-file root**, whose `execution.json` stays unchanged. Its selected-endpoint `authority()` runs once per held unit; repeated fixed-name bootstrap loads are prohibited. Both arms' original initializedCPU/mechanics records, full byte inventories, original launches and final terminal logs are authenticated; only the selected arm needs a factory context. No helper `FILES`, `__file__`, or original globals are patched. All four complete native checkpoints are then admitted before inference or scoring using the trainer's `PAYLOAD_KEYS`, `check_payload()`, `fingerprint()`, `CheckpointPages`, `load_vision()` and original member-bank positive definition. JSON canonicalization applies only to receipt comparisons: tuple identity, optimizer options and integer config keys remain native in the TRAIN payload fingerprint.
+
+`native256-held-authority.json` has **exactly** these keys:
+
+```text
+schema: "native256-held-authority-v1"
+execution_sha256: actual held10 execution.json SHA
+training_root: canonical absolute original trainer5 root
+training_execution_sha256: actual original execution.json SHA
+prerequisites: {large: PRIOR, so400: PRIOR}
+endpoints: [ENDPOINT032Large, ENDPOINT032So400, ENDPOINT041So400, ENDPOINT041Large]
+schedules: {"179032": APPROVED, "179041": APPROVED}
+frozen_split: FILE (the original fit.json original_receipt descriptor)
+resource_policies: {cpu: CPU_POLICY, export: EXPORT_POLICY, score: SCORE_POLICY}
+cost_policy: {whole_service_ratio_max: 1.50, median_update_ratio_max: 1.50,
+              training_wall_ratio: "report_only"}
+both_locks_held: true
+FILE: {path: canonical absolute regular-file path, sha256: actual SHA256}
+TERMINAL: {receipt: FILE, log: FILE, unit, invocation_id, service_seconds,
+           native_peak_rss_kib, both_locks_held: true}
+PRIOR: {qualifier_root, qualifier_execution_sha256, qualifier_authority: FILE,
+        cpu: TERMINAL, mechanics: TERMINAL}
+ENDPOINT: {seed, arm, launch: FILE, terminal: TERMINAL, checkpoint: FILE,
+           terminal_state_sha256}
+APPROVED: {batches: original exact 100x64 integer draws, fact: original CPU
+           schedule tensor fact {dtype,shape,sha256}, sha256: original trainer
+           typed fingerprint of that int64 schedule tensor}
+CPU_POLICY: {seconds: 120, host_bytes: 8589934592, swap_bytes: 0,
+             cuda_visible_devices: ""}
+EXPORT_POLICY: {seconds: 300, host_bytes: 8589934592, swap_bytes: 0,
+                cuda_allocated_bytes_exclusive: 10000000000}
+SCORE_POLICY: {seconds: 300, host_bytes: 8589934592, swap_bytes: 0,
+               cuda_visible_devices: ""}
+```
+
+Each original launch binds its own arm's accepted CPU and discarded mechanics proof, original TRAIN receipt/log and retained `resume.pt`; summaries such as `native256-mechanics-*-pass-v5.json` only identify the full receipt and cannot replace it. Require fresh `siglip2-substrate-adaptation-v1` TRAIN100, complete independent reload, no quality read, original interpreter/argv and uncached exit pass. Check all100 logged rows and the exact approved draws, original schedule tensor facts and typed digest, common augmentation `179032*100000+step` for steps1..100, paired ordered RGB/pixel hashes and original first17 mechanics replay for seed179032. Native admission regenerates both schedules with the genuine qualifier; a coverage-valid alternate schedule is rejected. The complete payload binds strict400/448 FP32 vision inventories, configuration, nonpersistent position buffers, head `(128,1024)`/`(128,1152)`, classifier `(2004,128)`, bank `(13283,128)`, PCA, FIT targets, singleton-positive table, both schedules,208 optimizer members/moments, scaler and CPU/CUDA RNG.
+
+The exporter APIs are `authority(args) -> dict`, `validate_endpoint(record, endpoint, launch, cpu, mechanics, batches) -> None`, `paired_cost(endpoints) -> dict`, and `load_inference(context, endpoint, *, device) -> (vision, FP32 head, processor, facts)`. The CPU loader independently constructs strict complete vision/head/buffers, releases consumed mapped pages after hashing/copying, and returns no mapped tensor; it never invokes the CUDA training restore. CPU proof uses **sequential independent constructors**, exact FIT first2 pixels/raw/unit/int8 codes/FP16 inverse bits and complete FP32/nativeFP16 state hashes. Export authenticates that original proof plus full terminal log/footer, repeats FIT parity before any held decode, and uses the existing nativeFP16 vision/FP32 normalized pooled head arithmetic. Independent models must match raw, unit and packed outputs for every held batch. Query6354 and gallery6245 are exported separately at B32, preserving tails18/5, all12599 rows/1993 products and packed128.
+
+Run one fresh CPU unit for each endpoint, with CUDA explicitly hidden, both parent locks,120s/8GiB/noSwap/zero memory-failure events and complete cgroup peaks. The parent collects its original `proof.json` and terminal log into a frozen standalone TERMINAL JSON file. Then run that endpoint's export with both locks,300s/8GiB/noSwap/zero events/CUDAallocated<10GB. Full uncached exit rehash includes all original prerequisite/endpoint bytes and newly consumed held-image bytes. There is no peak reset. Resource fit of this lifecycle remains **unmeasured** until root executes it; a synthetic/source-only pass is not native admission.
+
+```bash
+python -B HELD_ROOT/export_siglip2_substrate_adaptation.py \
+  --execution-sha256 HELD10_SHA --authority HELD_ROOT/native256-held-authority.json \
+  --authority-sha256 AUTHORITY_SHA --phase cpu --seed 179032 --arm large \
+  --output NEW_CPU_DIRECTORY
+
+python -B HELD_ROOT/export_siglip2_substrate_adaptation.py \
+  --execution-sha256 HELD10_SHA --authority HELD_ROOT/native256-held-authority.json \
+  --authority-sha256 AUTHORITY_SHA --phase export --seed 179032 --arm large \
+  --output NEW_EXPORT_DIRECTORY --cpu-terminal ORIGINAL_CPU_TERMINAL_JSON \
+  --cpu-terminal-sha256 CPU_TERMINAL_SHA
+```
+
+Repeat in the exact endpoint order above, pinning actual output hashes only after successful original units. Export produces `receipt.json`, `held.npy` (FP32 unit12599x128), `held.codes.npy` (int8), and `held.inverse.npy` (FP16). Receipts bind held authority/execution, endpoint, original CPU terminal descriptor, full state/FIT witnesses, frozen split, B32 grouping/tails, complete resources and input guards. They make no quality, official, public-serving or latency claim.
+
+Only after all four endpoints/CPU proofs/exports qualify, root freezes `native256-held-wires.json`, **exactly** `{schema: "native256-held-wires-v1", authority_sha256, execution_sha256, wires, both_locks_held: true}`. `wires` has four ordered entries, each **exactly** `{seed, arm, terminal: TERMINAL, cpu_terminal: FILE}`; `cpu_terminal` points to the same standalone original CPU TERMINAL JSON admitted by that export. All original training/CPU/mechanics/export units and invocations must be distinct. The scorer authenticates every terminal, checkpoint and saved wire before reading quality; it verifies finite FP32 unit values, exact int8 codes and exact FP16 inverse **bits** against the original packer. The fixed scorer runs on CPU, CUDA hidden, under300s/8GiB/noSwap/both locks/zero events with full exit rehash. Root clarification1790886847563921369 fixes this prospective score300 policy; FIT CPU proof120 and held export300 remain unchanged. This is the intended new tooling policy, not a native retry or cap rescue.
+
+```bash
+python -B HELD_ROOT/score_siglip2_substrate_adaptation.py \
+  --execution-sha256 HELD10_SHA --authority HELD_ROOT/native256-held-authority.json \
+  --authority-sha256 AUTHORITY_SHA --wires-authority HELD_ROOT/native256-held-wires.json \
+  --wires-authority-sha256 WIRES_SHA --output NEW_SCORE_JSON
+
+python3 -B -S scripts/test_siglip2_substrate_held.py
+```
+
+The frozen quality gate remains per-seed R1>0/AP>=0, equal-seed mean R1 and AP deltas each>=.002, and both product95 lower bounds>0. The original bootstrap resets shared5000 draws/seed179019 for each metric and interval endpoint; query intervals remain descriptive. Fresh per-seed **whole original service** and median-update ratios each must be<=1.50. Training-wall ratios are reported separately without introducing a new threshold; the tooling's frozen cost authority explicitly records this distinction. Source/FIT/PCA/initializedCPU/mechanics preparation durations are separate from training ratios. Scoring reports GO/KILL for this declared substrate procedure only; no official confirmation, independent-pretraining-seed assurance, public serving/speed result or broader product completion follows.
+
+The one runnable stdlib falsifier includes passing synthetic Large and So400 metadata and rejection of mechanics17/wrong endpoint, swapped/duplicate/order errors, So4001024/head-width mismatch, foreign source/config/CPU descriptor, changed schedule digest, structurally valid alternate draws, augmentation1000, changed/missing/extra closure members and a score authority retaining120s instead of the prospective300s cap. It pins the unchanged quality functions and fixed reference ASTs without native imports. Syntax, `--help`, optimized-mode rejection and diff checks are the local verification boundary; root owns the future native admission and result.
