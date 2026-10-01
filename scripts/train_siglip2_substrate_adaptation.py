@@ -1052,7 +1052,7 @@ def valid_rank(ref, raw, bank, head, positives, ordinals):
                                     live_head=False) * (valid.sum() / len(valid))
 
 
-def fingerprint(value, frozen=None, consumed=None):
+def fingerprint_serial(value, frozen=None, consumed=None):
     """Typed, length-framed complete tree hash; tensor device is not identity."""
     import torch
     digest = hashlib.sha256()
@@ -1082,6 +1082,148 @@ def fingerprint(value, frozen=None, consumed=None):
             frame(type(item).__name__); frame(repr(item))
     visit(value)
     return digest.hexdigest()
+
+
+def fingerprint(value, frozen=None, consumed=None):
+    """Batch live CUDA byte ranges; retain serial leaf SHA and tree framing."""
+    if frozen is None or consumed is not None:
+        return fingerprint_serial(value, frozen, consumed)
+    import torch
+    started = time.perf_counter()
+    limit = 128 * 1024**2
+    digest, pending, parts, ranges = hashlib.sha256(), [], [], []
+    chunk_bytes, device = 0, None
+    stats = {'diagnostic': 'fingerprint', 'mode': 'batched', 'bytes_by_device': {},
+             'cache_hits': 0, 'stage_seconds': 0., 'sha_seconds': 0.,
+             'chunks': 0, 'peak_chunk_bytes': 0}
+    def direct_frame(raw):
+        raw = raw.encode() if isinstance(raw, str) else raw
+        digest.update(str(len(raw)).encode() + b':' + raw)
+    def frame(raw):
+        raw = raw.encode() if isinstance(raw, str) else raw
+        pending.append(str(len(raw)).encode() + b':' + raw)
+    def flush():
+        nonlocal chunk_bytes, device
+        if not parts:
+            return
+        packed = host = raw = buffer = None
+        try:
+            tick = time.perf_counter()
+            packed = torch.cat(parts)
+            host = packed.cpu()
+            raw = host.numpy()
+            stats['stage_seconds'] += time.perf_counter() - tick
+            buffer = memoryview(raw)
+            require(len(buffer) == chunk_bytes <= limit, 'fingerprint staged chunk size differs')
+            stats['chunks'] += 1
+            stats['peak_chunk_bytes'] = max(stats['peak_chunk_bytes'], chunk_bytes)
+            tick = time.perf_counter()
+            for leaf, offset, size in ranges:
+                with buffer[offset:offset + size] as segment:
+                    leaf.update(segment)
+            stats['sha_seconds'] += time.perf_counter() - tick
+        finally:
+            if buffer is not None:
+                buffer.release()
+            packed = host = raw = buffer = None
+            parts.clear(); ranges.clear()
+            chunk_bytes, device = 0, None
+    def byte_views(item):
+        # Contiguous leaves are zero-copy source views, including oversized
+        # leaves. Strided leaves are split in logical C order BEFORE copying.
+        require(item.layout == torch.strided, 'unsupported live CUDA tensor layout')
+        if item.is_contiguous() or item.numel() * item.element_size() <= limit:
+            tick = time.perf_counter()
+            raw = item.contiguous().reshape(-1).view(torch.uint8)
+            stats['stage_seconds'] += time.perf_counter() - tick
+            yield raw
+        else:
+            # ponytail: oversized strided leaves copy per row; tune only if measured staging needs it.
+            for index in range(item.shape[0]):
+                yield from byte_views(item.select(0, index))
+    def visit(item, emit=frame):
+        nonlocal chunk_bytes, device
+        if isinstance(item, torch.Tensor):
+            emit('Tensor')
+            key = (item.data_ptr(), item._version, str(item.dtype), tuple(item.shape))
+            fact = frozen.get(key)
+            if fact is None:
+                size = item.numel() * item.element_size()
+                kind = item.device.type
+                stats['bytes_by_device'][kind] = stats['bytes_by_device'].get(kind, 0) + size
+                if kind == 'cuda':
+                    leaf = hashlib.sha256()
+                    pending.append((str(item.dtype), tuple(item.shape), leaf))
+                    for view in byte_views(item.detach()):
+                        offset, size = 0, view.numel()
+                        while offset < size:
+                            if parts and device != item.device:
+                                flush()
+                            count = min(size - offset, limit - chunk_bytes)
+                            tick = time.perf_counter()
+                            parts.append(view.narrow(0, offset, count))
+                            ranges.append((leaf, chunk_bytes, count))
+                            chunk_bytes += count; offset += count
+                            device = item.device
+                            stats['stage_seconds'] += time.perf_counter() - tick
+                            if chunk_bytes == limit:
+                                flush()
+                    return
+                # CPU leaves retain the original serial contiguous-byte path.
+                tick = time.perf_counter()
+                raw = item.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()
+                try:
+                    fact = (str(item.dtype), tuple(item.shape), hashlib.sha256(memoryview(raw)).hexdigest())
+                finally:
+                    raw = None
+                stats['sha_seconds'] += time.perf_counter() - tick
+            else:
+                stats['cache_hits'] += 1
+            visit(fact, emit)
+        elif isinstance(item, dict):
+            emit('dict'); emit(str(len(item)))
+            for key in sorted(item, key=repr):
+                visit(key, emit); visit(item[key], emit)
+        elif isinstance(item, (tuple, list)):
+            emit(type(item).__name__); emit(str(len(item)))
+            for child in item:
+                visit(child, emit)
+        else:
+            emit(type(item).__name__); emit(repr(item))
+    try:
+        visit(value)
+        flush()
+        for entry in pending:
+            if isinstance(entry, bytes):
+                digest.update(entry)
+            else:
+                dtype, shape, leaf = entry
+                visit((dtype, shape, leaf.hexdigest()), direct_frame)
+    finally:
+        parts.clear(); ranges.clear(); pending.clear()
+    stats['wall_seconds'] = time.perf_counter() - started
+    print(json.dumps(stats, sort_keys=True, allow_nan=False), flush=True)
+    return digest.hexdigest()
+
+
+def fingerprint_screen(state, identity, flags, step, expected):
+    """Mechanics-only paired timings on one stationary post-update payload."""
+    require(step in (3, 9, 17), 'fixed fingerprint screen step required')
+    saved = payload(state, identity, flags)
+    calls = [('serial', fingerprint_serial), ('candidate', fingerprint)]
+    if step == 9:
+        calls.reverse()
+    timings, digests = {}, {}
+    for name, call in calls:
+        tick = time.perf_counter()
+        digests[name] = call(saved, state['frozen_cache'])
+        timings[name] = time.perf_counter() - tick
+    require(digests['serial'] == digests['candidate'] == expected, 'same-payload fingerprint parity differs')
+    row = {'diagnostic': 'fingerprint_screen', 'step': step, 'order': [name for name, _ in calls],
+           'serial_seconds': timings['serial'], 'candidate_seconds': timings['candidate'],
+           'saving_seconds': timings['serial'] - timings['candidate'], 'sha256': digests['serial']}
+    print(json.dumps(row, sort_keys=True, allow_nan=False), flush=True)
+    return row
 
 
 def payload(state, identity, flags):
@@ -1557,6 +1699,7 @@ def run(args):
     frozen_sha = fingerprint({n: p for n, p in state['model'].named_parameters() if not p.requires_grad})
     phase_diagnostic('initial_state.end', diagnostic_started)
     rows, resumed = [], []
+    fingerprint_screens = []
     state['calibration_pixels'] = calibration_pixels
     args.output.mkdir()
     cpu_rng, cuda_rng = torch.random.get_rng_state().clone(), torch.cuda.get_rng_state_all()
@@ -1572,10 +1715,19 @@ def run(args):
                 require(diagnostic(row) == diagnostic(context['mechanics']['steps'][step - 1]),
                         'fresh TRAIN first17 mechanics diagnostic replay differs')
             rows.append(row)
+            if args.phase == 'mechanics' and step in (3, 9, 17):
+                fingerprint_screens.append(fingerprint_screen(state, identity, flags, step, row['state_sha256']))
             if args.phase == 'mechanics' and step == 8:
                 phase_diagnostic('save8.begin', diagnostic_started)
                 sha8, fingerprint8 = save(context, state, identity, flags, checkpoint8)
                 phase_diagnostic('save8.end', diagnostic_started)
+        if args.phase == 'mechanics':
+            saving = statistics.median(row['saving_seconds'] for row in fingerprint_screens)
+            print(json.dumps({'diagnostic': 'fingerprint_screen_summary', 'steps': [3, 9, 17],
+                              'median_saving_seconds': saving, 'minimum_saving_seconds': 0.10},
+                             sort_keys=True, allow_nan=False), flush=True)
+            require([row['step'] for row in fingerprint_screens] == [3, 9, 17] and saving >= 0.10,
+                    'fingerprint median saving below 0.10 seconds')
         training_seconds = time.perf_counter() - tick
         phase_diagnostic('updates.end', diagnostic_started)
         checkpoint = temporary / 'step17.pt' if args.phase == 'mechanics' else args.output / 'resume.pt'
