@@ -269,9 +269,25 @@ def checkpoint_restore_checks(driver, root):
 
 def native_contract_checks(driver):
     # Frozen base 8bdaf7d6: only fingerprint/restore and their page helpers may
-    # change. Includes ALL admission, writer, math, freshCPU,17/8+9, final raw/
-    # packed reload, locks/caps, and uncached exit logic, not just named constants.
+    # change, plus the explicitly replaced exit traversal below. Includes ALL
+    # admission, writer, math, freshCPU,17/8+9, final raw/packed reload and caps.
     tree = ast.parse(Path(driver.__file__).read_bytes())
+    run = next(node for node in tree.body if getattr(node, 'name', None) == 'run')
+    replacement = ast.parse('origins = exit_rehash(context)').body[0]
+    indices = [i for i, node in enumerate(run.body) if ast.dump(node) == ast.dump(replacement)]
+    assert len(indices) == 1, 'exactly one trainer-owned exit traversal required'
+    index = indices[0]
+    assert ast.unparse(run.body[index - 1]) == "phase_diagnostic('exit_rehash.begin', diagnostic_started)"
+    assert ast.unparse(run.body[index + 1]) == "phase_diagnostic('exit_rehash.end', diagnostic_started)"
+    # Restore ONLY the original four exit statements before applying the old
+    # whole-contract pin; never bless a new hash for unrelated native changes.
+    run.body[index:index + 1] = ast.parse('''
+origins = source.imported_origins(initialized['source_context']['extract'], initialized['packages'])
+for path, digest in origins['files'].items():
+    bound_file(context['guards'], path, digest)
+q.rehash(initialized)
+require(closure(context['root'], args.execution_sha256, FILES, {}) == context['code'], 'exit own closure differs')
+''').body
     fingerprint = copy.deepcopy(next(node for node in tree.body if getattr(node, 'name', None) == 'fingerprint'))
     assert fingerprint.args.args[-1].arg == 'consumed'
     fingerprint.args.args.pop(); fingerprint.args.defaults.pop()
@@ -292,7 +308,7 @@ def native_contract_checks(driver):
     assert hashlib.sha256('\n'.join(sorted(ast.dump(node, include_attributes=False)
                                            for node in predicates)).encode()).hexdigest() == (
         'bf2f4c8aa1174c86bac0218f34306da28c995cb8289ebd7abb7d436e37b9bb79')
-    changed = {'fingerprint', 'restore_independent', 'CheckpointPages', 'load_vision'}
+    changed = {'fingerprint', 'restore_independent', 'CheckpointPages', 'load_vision', 'exit_rehash'}
     tree.body = [node for node in tree.body if getattr(node, 'name', None) not in changed]
     assert hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest() == (
         '6325c182e27eda4e1aaa26f461adeb0c221f357502052644abfedbb38558e7c6')
@@ -497,6 +513,194 @@ def predicate_correspondence_checks(driver):
                    if isinstance(n, ast.FunctionDef) and n.name == original)
         new = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == replacement)
         assert not predicates(old, {}) - predicates(new, renames), (file, original, 'missing predicate')
+    exit_check = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'exit_rehash')
+    exit_ledger = (
+        ('qualify_siglip2_initialized_cpu', 'rehash', {
+            'initialized': 'context', 'q.closure': 'closure', 'q.FILES': 'FILES'}),
+        ('qualify_siglip2_substrate_cpu', 'rehash', {
+            'source_context': 'context', 'source.fit_rows': 'fit_rows', 'source.bootstrap': 'bootstrap',
+            'actual': "context['extract'].sha(canonical(path))"}),
+        ('export_siglip2_substrate_fit', 'rehash', {
+            'source_context': 'context', 'images': 'all_fit_images(context)', 'exporter.bootstrap': 'bootstrap'}),
+        ('export_siglip2_substrate_fit', 'all_fit_images', {}))
+    for file, original, renames in exit_ledger:
+        old = next(n for n in ast.parse((repo / (file + '.py')).read_text()).body
+                   if isinstance(n, ast.FunctionDef) and n.name == original)
+        assert not predicates(old, {}) - predicates(exit_check, renames), (file, original, 'missing exit predicate')
+
+
+def exit_chain_checks(driver, context, base):
+    """Catch cached/stat-only exits, duplicate bulk reads and lost predicates.
+    Exercise the genuine loaded-origin validator with synthetic module objects,
+    and substitute only /proc discovery and failing IO, never helper globals.
+    Additional payload is one 2MiB+tail origin and one empty mapped library.
+    """
+    initialized, guards = context['initialized'], context['guards']
+    source, sc = initialized['source'], initialized['source_context']
+    packages = initialized['packages']
+    origin = Path(packages['numpy']['root']) / 'exit_origin.py'
+    origin.write_bytes(bytes(range(256)) * 8192 + b'partial tail!')
+    library = base / 'exit-empty.so'
+    library.write_bytes(b'')
+    assert origin.stat().st_size + library.stat().st_size <= 4 * 1024**2
+    loaded = {'numpy.exit_origin': SimpleNamespace(__file__=str(origin))}
+    maps = f'0-1 r-xp 00000000 00:00 1 {library}\n'
+    real_text, real_open = Path.read_text, Path.open
+    def read_text(path, *args, **kwargs):
+        return maps if str(path) == '/proc/self/maps' else real_text(path, *args, **kwargs)
+    streamed, opened, ranges = Counter(), Counter(), {}
+    fail_read = False
+    class Stream:
+        def __init__(self, stream, path):
+            self.stream, self.path = stream, str(path)
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return self.stream.__exit__(*args)
+        def __getattr__(self, name):
+            return getattr(self.stream, name)
+        def readinto(self, buffer):
+            assert len(buffer) <= 1024**2, 'exit read buffer exceeds 1MiB'
+            if fail_read and self.path == str(origin) and self.stream.tell():
+                raise OSError('exit mid-read failed')
+            count = self.stream.readinto(buffer)
+            streamed[self.path] += count
+            return count
+        def read(self, *args):
+            data = self.stream.read(*args)
+            streamed[self.path] += len(data)
+            return data
+    def opened_stream(path, *args, **kwargs):
+        stream = real_open(path, *args, **kwargs)
+        if (args and args[0] == 'rb') or kwargs.get('mode') == 'rb':
+            opened[str(path)] += 1
+            return Stream(stream, path)
+        return stream
+    real_advice = os.posix_fadvise
+    def advice(fd, offset, size, hint):
+        path = os.readlink('/proc/self/fd/' + str(fd))
+        ranges.setdefault(path, []).append((offset, size, hint))
+        real_advice(fd, offset, size, hint)
+    with patch.object(Path, 'read_text', read_text), patch.dict(sys.modules, loaded):
+        before = guards.copy()
+        # The original traversal is an independent inventory oracle. Only its
+        # discovery is used here; its returned hashes never reach the new exit.
+        expected = source.imported_origins(sc['extract'], packages)
+        with patch.object(Path, 'open', opened_stream), patch.object(os, 'posix_fadvise', advice):
+            actual = driver.exit_rehash(context)
+        assert actual == expected
+        assert guards == {**before, **expected['files']}, 'exit lost or invented guards'
+        closure_files = set()
+        for root, code in ((context['root'], context['code']), (initialized['root'], initialized['code']),
+                           (sc['root'], sc['code']), (sc['own_root'], sc['own_code'])):
+            closure_files.update(str(root / name) for name in (*code, 'execution.json'))
+        for path in guards.keys() - closure_files:
+            assert opened[path] == 1, ('repeated bulk exit open', path, opened[path])
+            assert streamed[path] == Path(path).stat().st_size, ('exit streamed bytes', path, streamed[path])
+        for path in (origin, library):
+            assert ranges.get(str(path), []) == [
+                (offset, min(1024**2, path.stat().st_size - offset), os.POSIX_FADV_DONTNEED)
+                for offset in range(0, path.stat().st_size, 1024**2)]
+        # A second exit must read afresh, including newly admitted origins.
+        streamed.clear(); opened.clear()
+        with patch.object(Path, 'open', opened_stream):
+            assert driver.exit_rehash(context) == expected
+        assert opened[str(origin)] == opened[str(library)] == 1
+        assert streamed[str(origin)] == origin.stat().st_size
+        original_guards = guards.copy()
+        for path in (origin, sc['all_images'][2], Path(context['cpu']['checkpoint']['path']),
+                     Path(initialized['record']['artifact']['path'])):
+            stamp = path.stat()
+            offset = stamp.st_size - 1 if path == origin else 0
+            with real_open(path, 'r+b') as stream:
+                stream.seek(offset); first = stream.read(1)
+                stream.seek(offset); stream.write(bytes([first[0] ^ 1]))
+            os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+            assert path.stat().st_size == stamp.st_size and path.stat().st_mtime_ns == stamp.st_mtime_ns
+            rejects(lambda: driver.exit_rehash(context), 'exit authority SHA256')
+            with real_open(path, 'r+b') as stream:
+                stream.seek(offset); stream.write(first)
+            os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        # Resolution is ordered, contained and injective, even with equal bytes.
+        fit_root = Path(sc['fit']['dataset_root'])
+        for index, target, message in ((0, sc['all_images'][2], 'resolution'),
+                                       (2, origin, 'escaped'),
+                                       (2, sc['all_images'][3], 'aliases')):
+            image = fit_root / sc['fit']['rows'][index]['relative_path']
+            held = image.with_suffix('.exit-held')
+            image.rename(held)
+            try:
+                image.symlink_to(target)
+                rejects(lambda: driver.exit_rehash(context), message)
+            finally:
+                image.unlink(); held.rename(image)
+        for key in ('images', 'all_images'):
+            value = sc[key]
+            sc[key] = list(reversed(value))
+            rejects(lambda: driver.exit_rehash(context), 'resolution')
+            sc[key] = value
+        row = sc['fit']['rows'][2]
+        row_digest = row['image_sha256']
+        row['image_sha256'] = '0'*64
+        rejects(lambda: driver.exit_rehash(context), 'conflicting FIT')
+        row['image_sha256'] = row_digest
+        fit_quality = sc['fit']['quality_read']
+        sc['fit']['quality_read'] = True
+        rejects(lambda: driver.exit_rehash(context), 'FIT manifest profile')
+        sc['fit']['quality_read'] = fit_quality
+        for owner in (context, initialized, initialized['pca'], sc):
+            owner['guards'] = guards.copy()
+            rejects(lambda: driver.exit_rehash(context), 'shared')
+            owner['guards'] = guards
+        held = library.with_suffix('.held')
+        library.rename(held)
+        try:
+            rejects(lambda: driver.exit_rehash(context), 'canonical')
+        finally:
+            held.rename(library)
+        guards[str(origin)] = '0'*64
+        rejects(lambda: driver.exit_rehash(context), 'exit authority SHA256')
+        guards[str(origin)] = original_guards[str(origin)]
+        with patch.dict(sys.modules, {'numpy.exit_origin': SimpleNamespace(__file__=str(base / 'absent.py'))}):
+            rejects(lambda: driver.exit_rehash(context), 'loaded native module origin')
+        for name, marker in (('torch.ops', '_ops.py'), ('torch.classes', '_classes.py')):
+            with patch.dict(sys.modules, {name: SimpleNamespace(__file__=marker, __name__=name)}):
+                rejects(lambda: driver.exit_rehash(context), 'loaded native module origin')
+        # Genuine source bootstrap must still reject extractor identity changes.
+        extract = sys.modules['extract_siglip2_vision_source']
+        with patch.object(extract, '__file__', str(origin)):
+            rejects(lambda: driver.exit_rehash(context), 'extractor loaded origin')
+        spec = extract.__spec__
+        with patch.object(spec, 'origin', str(origin)):
+            rejects(lambda: driver.exit_rehash(context), 'extractor import origin')
+        for owner, key in ((sc, 'code'), (sc, 'own_code'), (initialized, 'code'), (context, 'code')):
+            code = owner[key]
+            owner[key] = {name: '0'*64 for name in code}
+            rejects(lambda: driver.exit_rehash(context), 'closure differs')
+            owner[key] = code
+        def failing_open(path, *args, **kwargs):
+            if path == origin:
+                raise OSError('exit read failed')
+            return real_open(path, *args, **kwargs)
+        # Failed fresh origins cannot acquire a placeholder guard.
+        del guards[str(origin)]
+        with patch.object(Path, 'open', failing_open):
+            rejects(lambda: driver.exit_rehash(context), 'exit read failed')
+        assert str(origin) not in guards
+        fail_read = True
+        streamed.clear()
+        with patch.object(Path, 'open', opened_stream):
+            rejects(lambda: driver.exit_rehash(context), 'exit mid-read failed')
+        assert str(origin) not in guards and streamed[str(origin)] == 1024**2
+        fail_read = False
+        def failed_advice(fd, *args):
+            if os.readlink('/proc/self/fd/' + str(fd)) == str(origin):
+                raise OSError('exit advice failed')
+            real_advice(fd, *args)
+        with patch.object(os, 'posix_fadvise', failed_advice):
+            rejects(lambda: driver.exit_rehash(context), 'exit advice failed')
+        assert str(origin) not in guards
+        assert driver.exit_rehash(context) == expected and guards == original_guards
 
 
 def flat_chain_checks(driver, base):
@@ -767,6 +971,7 @@ def flat_chain_checks(driver, base):
         assert set(cpu['input_guards']) <= context['guards'].keys()
         assert initialized['source_context']['proof'] == proof
         assert context['cpu'] == cpu and initialized['record'] == pca_record
+        exit_chain_checks(driver, context, base)
         # Missing source proof, changed flags/roles/stage inventories must reject
         # before any native import, even when the containing JSON is re-pinned.
         source_bad = copy.deepcopy(proof)

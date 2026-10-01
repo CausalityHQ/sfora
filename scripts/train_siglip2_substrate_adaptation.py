@@ -962,6 +962,70 @@ def authority(args):
     return context
 
 
+def exit_rehash(context):
+    """Fresh union SHA pass; retain the original exit predicates and closures.
+
+    source.fit_rows and loaded_module_origin remain genuine. Discovery never
+    invents hashes; new origins join the shared guards only after a full read.
+    Admission caches are gone, and the small original closure rereads remain.
+    """
+    initialized, q = context['initialized'], context['qualifier']
+    source, source_context = initialized['source'], initialized['source_context']
+    guards, packages = context['guards'], initialized['packages']
+    require(initialized['guards'] is initialized['pca']['guards'] is initialized['source_context']['guards'],
+            'complete exit guard inventory must remain shared')
+    require(guards is initialized['guards'] is initialized['pca']['source_context']['guards'],
+            'trainer exit guard inventory must remain shared')
+    require(source.fit_rows(source_context['extract'], source_context['fit']) == source_context['images'],
+            'FIT image resolution changed')
+    root = Path(source_context['fit']['dataset_root'])
+    images = [(root / row['relative_path']).resolve() for row in source_context['fit']['rows']]
+    require(all(path.is_relative_to(root) for path in images), 'FIT image escaped dataset root')
+    require(len(set(images)) == 13283, 'FIT resolved image aliases collide')
+    require(images == source_context['all_images'], 'FIT image resolution changed')
+    for path, row in zip(images, source_context['fit']['rows']):
+        require(guards.get(str(path)) == row['image_sha256'], 'conflicting FIT file authority')
+    modules, origin_paths, native = {}, set(), set()
+    for name, module in tuple(sys.modules.items()):
+        if name.split('.')[0] not in packages:
+            continue
+        path = source.loaded_module_origin(name, module, packages)
+        if path is not None:
+            modules[name] = str(path)
+            origin_paths.add(str(path))
+    for line in Path('/proc/self/maps').read_text().splitlines():
+        fields = line.split(maxsplit=5)
+        if len(fields) == 6 and fields[5].startswith('/') and '.so' in fields[5]:
+            native.add(str(source.canonical(Path(fields[5]).resolve())))
+    origin_paths.update(native)
+    files = {}
+    for path in sorted(guards.keys() | origin_paths):
+        expected = guards.get(path)
+        if path in guards:
+            source_context['extract'].digest_string(expected)
+        with source.canonical(path).open('rb') as stream:
+            digest, buffer = hashlib.sha256(), bytearray(1024**2)
+            while read := stream.readinto(buffer):
+                digest.update(memoryview(buffer)[:read])
+                os.posix_fadvise(stream.fileno(), stream.tell() - read, read, os.POSIX_FADV_DONTNEED)
+            actual = digest.hexdigest()
+        if path in guards:
+            require(actual == expected, 'exit authority SHA256 differs: ' + path)
+        require(guards.setdefault(path, actual) == actual, 'conflicting exit file authority')
+        if path in origin_paths:
+            files[path] = actual
+    require(source.bootstrap(source_context['root'], source_context['args'].execution_sha256)[1] == source_context['code'],
+            'exit closure differs')
+    exporter, args = initialized['pca']['exporter'], source_context['export_args']
+    require(exporter.bootstrap(source_context['own_root'], args.execution_sha256) == source_context['own_code'],
+            'exit exporter closure differs')
+    require(q.closure(initialized['root'], initialized['args'].execution_sha256, q.FILES, {}) == initialized['code'],
+            'exit initialized closure differs')
+    require(closure(context['root'], context['args'].execution_sha256, FILES, {}) == context['code'],
+            'exit own closure differs')
+    return {'packages': packages, 'modules': modules, 'native_files': sorted(native), 'files': files}
+
+
 def reference_math(context):
     import numpy as np
     import torch
@@ -1560,11 +1624,7 @@ def run(args):
         gc.collect(); torch.cuda.empty_cache()
         phase_diagnostic('final_droprefs.end', diagnostic_started)
     phase_diagnostic('exit_rehash.begin', diagnostic_started)
-    origins = source.imported_origins(initialized['source_context']['extract'], initialized['packages'])
-    for path, digest in origins['files'].items():
-        bound_file(context['guards'], path, digest)
-    q.rehash(initialized)
-    require(closure(context['root'], args.execution_sha256, FILES, {}) == context['code'], 'exit own closure differs')
+    origins = exit_rehash(context)
     phase_diagnostic('exit_rehash.end', diagnostic_started)
     after = source.cgroup_memory()
     initialized['init'].admit_cgroup(after, unit)
