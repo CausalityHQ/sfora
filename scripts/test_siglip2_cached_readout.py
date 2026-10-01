@@ -245,8 +245,39 @@ def source_checks(driver, path):
     assert 'std(unbiased=False)' in head_code and 'weight.zero_()' in head_code
 
 
+def calibration_device_check(path):
+    """Execute the real calibration with a CPU-only wire packer stand-in."""
+    from contextlib import nullcontext
+    node = next(n for n in ast.parse(path.read_text()).body
+                if isinstance(n, ast.FunctionDef) and n.name == 'calibration')
+    node.body = [n for n in node.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
+    class Value:
+        def __init__(self, device): self.device = device
+        def cpu(self): return Value('cpu')
+        def __getitem__(self, key): return self
+    def pack(value):
+        assert value.device == 'cpu', 'wire packer requires CPU normalized input'
+        return SimpleNamespace(codes=value, inverse_norms=value, to_bytes=lambda: b'wire')
+    fake_packing = SimpleNamespace(pack_int8_unit_embeddings=pack)
+    previous = sys.modules.get('_siglip2_pinned_initialized_packing')
+    sys.modules['_siglip2_pinned_initialized_packing'] = fake_packing
+    namespace = {'sys': sys, 'torch': SimpleNamespace(no_grad=nullcontext,
+                 autocast=lambda **kwargs: nullcontext()),
+                 'F': SimpleNamespace(normalize=lambda value, **kwargs: value)}
+    try:
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
+                     str(path), 'exec'), namespace)
+        features = Value(SimpleNamespace(type='cuda'))
+        result = namespace['calibration']({}, {'features': features, 'head': lambda value: value})
+        assert result['wire'] == b'wire' and result['raw'].device == result['unit'].device == 'cpu'
+    finally:
+        if previous is None: sys.modules.pop('_siglip2_pinned_initialized_packing', None)
+        else: sys.modules['_siglip2_pinned_initialized_packing'] = previous
+
+
 def main():
     path = Path(__file__).absolute().with_name('train_siglip2_cached_readout.py')
+    calibration_device_check(path)
     native = {'torch', 'numpy', 'PIL', 'transformers', 'safetensors', 'torchvision', 'sfora'}
     old_import = builtins.__import__
     def guarded_import(name, *args, **kwargs):

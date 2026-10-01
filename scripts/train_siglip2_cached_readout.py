@@ -678,7 +678,7 @@ def calibration(context, state):
     with torch.no_grad(), torch.autocast(device_type=state['features'].device.type, enabled=False):
         raw = state['head'](state['features'][:64])
         unit = F.normalize(raw, dim=1)
-        packed = packing.pack_int8_unit_embeddings(unit)
+        packed = packing.pack_int8_unit_embeddings(unit.cpu())
     return {'raw': raw.cpu(), 'unit': unit.cpu(), 'codes': packed.codes.cpu(),
             'inverse_norms': packed.inverse_norms.cpu(), 'wire': packed.to_bytes()}
 
