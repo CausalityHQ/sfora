@@ -1,0 +1,36 @@
+{
+  "authority_sha256": "0474ab17972224438f3834ff67edb15453edd4e615158996ffb26f7d4a40ab93",
+  "both_locks_held": true,
+  "cpu_terminal": {
+    "both_locks_held": true,
+    "invocation_id": "196b2e19d6184a74b0fabb587d218b15",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-cached-readout-evaluation-source-v3/sfora-so400-cached-readout-evaluation-cpu-v3.log",
+      "sha256": "148c4f5f663498deb3e5a6bf3ee095b6471d79e7a5db34397ab841fdc5b98308"
+    },
+    "native_peak_rss_kib": 4535872,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-cached-readout-evaluation-cpu-v3/receipt.json",
+      "sha256": "4b5e0ccc587253e967bab96d306ad8b7365e36548ca34824451099974e0b3568"
+    },
+    "service_seconds": 91.223,
+    "unit": "sfora-so400-cached-readout-evaluation-cpu-v3"
+  },
+  "execution_sha256": "aec32dd2f9dfecdcc9aa1de22d466503373d84fcac9cd8306969f8cbd54853c6",
+  "export_terminal": {
+    "both_locks_held": true,
+    "invocation_id": "677601fe892a49f7a606c5cf284833c5",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-cached-readout-evaluation-source-v3/sfora-so400-cached-readout-evaluation-export-v3.log",
+      "sha256": "69378949dfd65b6c6a09a397b2aa1f170922107454a3d3b366f76007a6b7cb4e"
+    },
+    "native_peak_rss_kib": 4556700,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-cached-readout-evaluation-export-v3/receipt.json",
+      "sha256": "0baa107e57b051f3f6266b1f6ee7a477d97c87d88103d7e4948cec8358587178"
+    },
+    "service_seconds": 284.224,
+    "unit": "sfora-so400-cached-readout-evaluation-export-v3"
+  },
+  "schema": "siglip2-cached-readout-wires-v1"
+}
