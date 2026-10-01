@@ -1,0 +1,55 @@
+{
+  "arm": "control",
+  "both_locks_held": true,
+  "execution_sha256": "907dfed63ec7678b2ef930463640b098ea2e38ad1c5fc1ad312cceb628151598",
+  "fit_inventory": {
+    "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-native256-fit-export-collected-inputs-v1.json",
+    "sha256": "4694490f347949a7d814f5001655d1c7a9eb41c5ea369f4e838b231ad2ee7662"
+  },
+  "initialized_inventory": {
+    "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-native256-full-initialized-cpu-collected-inputs-v1.json",
+    "sha256": "da925901082ff22994a90dcdb0ccfea0cd5e2144cb3f87c3950904e9928a503e"
+  },
+  "phase": "cpu",
+  "recipe": {
+    "augmentation": false,
+    "batch": 64,
+    "candidate": "gelu-exact",
+    "classes": 2004,
+    "clip": 1,
+    "control": "0.5*z",
+    "encoder_updates": false,
+    "initial_scaler": 128,
+    "initialization_seed": 179034,
+    "learning_rate": 0.0001,
+    "margin": 0.3,
+    "microbatch": 16,
+    "output_dim": 128,
+    "rank": 32,
+    "rank_weight": 8,
+    "rows": 13283,
+    "scale": 64,
+    "seeds": [
+      179032,
+      179041
+    ],
+    "steps": 1000,
+    "views": "fixed-normalized-cache",
+    "weight_decay": 0.05,
+    "width": 1152
+  },
+  "reference": {
+    "execution_sha256": "236327289f110ed2bf2012ea6e0d1ea48cf822b4e4094d9cf544081a2dc476f7",
+    "root": "/home/riomus/runs/sfora-native256-adaptation-source-v6"
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 120,
+    "swap_bytes": 0
+  },
+  "schema": "siglip2-cached-readout-launch-v1",
+  "seed": 179032,
+  "selected_cpu": null,
+  "selected_mechanics": null
+}
