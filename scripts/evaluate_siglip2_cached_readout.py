@@ -429,14 +429,28 @@ def prerequisites(context):
 def native_start(context):
     """Packages/interpreter/limits/flags qualified before any native execution."""
     helper, selected = context['helper'], context['selected']
+    qualified = dict(selected['old_cpu']['origins']['files'])
+    if context['args'].phase == 'export':
+        require(set(context['records']) == set(ORDER), 'all four original TRAIN origins required')
+        for key in ORDER:
+            record = context['records'][key]  # All original terminals/guards already authenticated by authority.
+            require(record['origins']['packages'] == selected['initialized']['packages'],
+                    'original TRAIN origin packages differ')
+            for path, digest in record['origins']['files'].items():
+                require(record['input_guards'].get(path) == digest,
+                        'original TRAIN origin lacks authenticated guard: ' + path)
+                require(qualified.setdefault(path, digest) == digest,
+                        'conflicting original qualified origin: ' + path)
     context['cpus'] = {'so400': selected['old_cpu']}
     context['args'].arm = 'so400'
     before = helper.native_start(context, context['args'].phase)
     helper.zero_events(before)
     source = selected['initialized']['source']
     origins = source.imported_origins(selected['initialized']['source_context']['extract'], selected['initialized']['packages'])
-    require(all(selected['old_cpu']['origins']['files'].get(p) == h for p, h in origins['files'].items()),
-            'actual native imports differ from original qualified origins')
+    differences = [path + (' (missing authority)' if path not in qualified else ' (SHA256 differs)')
+                   for path, digest in origins['files'].items() if qualified.get(path) != digest]
+    require(not differences, 'actual native imports differ from original qualified origins: ' +
+            '; '.join(differences[:5]) + (f'; ... ({len(differences)} total)' if len(differences) > 5 else ''))
     return before
 
 

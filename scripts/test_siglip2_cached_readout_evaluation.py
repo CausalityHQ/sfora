@@ -324,6 +324,50 @@ def authority_checks(driver, cached, trainer_test):
         rejects(lambda: driver.check_receipt(context, changed, 'export'), message)
 
 
+def native_origin_checks(driver):
+    """Exercise real admission; stand-ins only replace native loading/discovery."""
+    cpu = {'/qualified/cpu.so': 'a' * 64}
+    gpu = '/qualified/cuda.so'
+    packages = {'torch': {'root': '/qualified/torch'}}
+    actual = {'packages': packages, 'files': dict(cpu, **{gpu: 'b' * 64})}
+    selected = {'old_cpu': {'origins': {'packages': packages, 'files': cpu}},
+                'initialized': {'packages': packages, 'source_context': {'extract': None},
+                                'source': SimpleNamespace(imported_origins=lambda *args: actual)}}
+    records = {key: {'origins': {'packages': packages, 'files': dict(cpu)},
+                     'input_guards': dict(cpu)} for key in driver.ORDER}
+    # Only the fourth authenticated endpoint supplies the additional origin.
+    records[driver.ORDER[-1]]['origins']['files'][gpu] = 'b' * 64
+    records[driver.ORDER[-1]]['input_guards'][gpu] = 'b' * 64
+    context = {'args': SimpleNamespace(phase='export'), 'selected': selected, 'records': records,
+               'helper': SimpleNamespace(native_start=lambda *args: {'fixture': True}, zero_events=lambda value: None)}
+    driver.native_start(context)
+    assert cpu == {'/qualified/cpu.so': 'a' * 64}  # Union must not broaden CPU authority.
+    for phase in ('cpu', 'score'):
+        context['args'].phase = phase
+        rejects(lambda: driver.native_start(context), gpu)
+        actual['files'] = dict(cpu)
+        driver.native_start(context)
+        actual['files'][gpu] = 'b' * 64
+    context['args'].phase = 'export'
+    for path, digest in (('/foreign/extra.so', 'c' * 64), (gpu, 'c' * 64), ('/qualified/cpu.so', 'c' * 64)):
+        actual['files'] = dict(cpu, **{gpu: 'b' * 64, path: digest})
+        rejects(lambda: driver.native_start(context), path)
+    actual['files'] = dict(cpu, **{gpu: 'b' * 64})
+    for mutation, message in (
+        (lambda m: m.pop(driver.ORDER[-1]), 'all four original TRAIN origins'),
+        (lambda m: m[driver.ORDER[-1]]['origins']['files'].pop(gpu), gpu),
+        (lambda m: m[driver.ORDER[-1]]['input_guards'].pop(gpu), gpu),
+        (lambda m: m[driver.ORDER[-1]]['input_guards'].update({gpu: 'c' * 64}), gpu),
+        (lambda m: m[driver.ORDER[-1]]['origins'].update(packages={}), 'original TRAIN origin packages'),
+        (lambda m: m[driver.ORDER[0]]['origins']['files'].update({'/qualified/cpu.so': 'c' * 64}) or
+                   m[driver.ORDER[0]]['input_guards'].update({'/qualified/cpu.so': 'c' * 64}), '/qualified/cpu.so'),
+        (lambda m: m[driver.ORDER[0]]['origins']['files'].update({gpu: 'c' * 64}) or
+                   m[driver.ORDER[0]]['input_guards'].update({gpu: 'c' * 64}), gpu)):
+        context['records'] = copy.deepcopy(records)
+        mutation(context['records'])
+        rejects(lambda: driver.native_start(context), message)
+
+
 def terminal_checks(driver, root, original, initializer, helper):
     """Real stdlib terminal reader rejects unauthenticated normal exits/footers."""
     admission = original.FlatAdmission()
@@ -449,6 +493,7 @@ def main():
         original = load('original_trainer_fixture', path.with_name('train_siglip2_substrate_adaptation.py'))
         initializer = load('initializer_fixture', path.with_name('initialize_siglip2_substrate_fit.py'))
         authority_checks(driver, cached, trainer_test)
+        native_origin_checks(driver)
         endpoint_checks(driver, cached, trainer_test)
         metric_checks(driver, score, helper, cached, trainer_test)
         with TemporaryDirectory() as directory:
@@ -465,7 +510,7 @@ def main():
         result = subprocess.run([sys.executable, '-B', '-S', *flags, str(path), '--help'], capture_output=True, text=True)
         assert result.returncode == (1 if flags else 0), result.stderr
         assert ('optimized mode is forbidden' in result.stderr) if flags else ('--phase {cpu,export,score}' in result.stdout)
-    print('PASS stdlib four-endpoint/five-payload/replay/cost/metric/split/closure/tamper/source checks; help/-O/-OO; native gates UNRUN')
+    print('PASS stdlib four-endpoint/five-payload/replay/cost/metric/split/closure/tamper/source/phase-origins checks; help/-O/-OO; native gates UNRUN')
 
 
 if __name__ == '__main__':
