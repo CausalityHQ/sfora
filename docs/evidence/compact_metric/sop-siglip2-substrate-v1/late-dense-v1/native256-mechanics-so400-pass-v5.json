@@ -1,0 +1,58 @@
+{
+  "arm": "so400",
+  "authority_sha256": "371cfbaa518b9b5df33934087f037bd9cac0d125635d171b0574ad3ba34fb3d7",
+  "cgroup_after": {
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-so400-v5.service",
+    "values": {
+      "memory.current": "5319122944",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "7335288832",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "completed_step": 17,
+  "execution_sha256": "d00d7d70ac2af4acb654d2054e28ffd6f0a0c286ad00d86d02869cfa5534b326",
+  "exit_rehash_pass": true,
+  "invocation_id": "c9833e1754c84f5aaa3a69211d82ba5f",
+  "log_sha256": "255b32d4c6a2ec15fe34572166ad9a04dfc576bf19d33ec91ad9d6d79513ce53",
+  "median_update_seconds": 2.2884830562397838,
+  "native17_equals_serialized8_plus9_exact": true,
+  "original_session": 23754,
+  "pass": true,
+  "peak_cuda_allocated_bytes": 7286658048,
+  "phase": "mechanics",
+  "process_peak_rss_kib": 4768752,
+  "quality_read": false,
+  "receipt_path": "/home/riomus/runs/sfora-native256-mechanics-so400-v5/receipt.json",
+  "receipt_sha256": "6645198359a17f5ab98e731366dadfdf2ae32cbe3dda9891679a4e7602d1a567",
+  "schema": "siglip2-substrate-adaptation-v1",
+  "seed": 179032,
+  "service_seconds": 215.643,
+  "strict_independent_whole_head_buffers_raw_packed_reload_exact": true,
+  "terminal_cgroup": {
+    "exit_code": "exited",
+    "exit_status": "0",
+    "invocation_id": "c9833e1754c84f5aaa3a69211d82ba5f",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-so400-v5.service",
+    "service_result": "success",
+    "values": {
+      "memory.current": "1151320064",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "7335288832",
+      "memory.stat": "anon 5292032\nfile 1084678144\nkernel 59047936\nkernel_stack 0\npagetables 90112\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1118208\nfile_dirty 16384\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5255168\ninactive_file 460709888\nactive_file 623960064\nunevictable 0\nslab_reclaimable 58893304\nslab_unreclaimable 37672\nslab 58930976\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 4225702\npgmajfault 15424\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1298\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "terminal_exit": 0,
+  "terminal_state_sha256": "158eda70b7eaed43800867f06365cd46f3c9dfe1432640c2dec4d655663db938",
+  "training_state_discarded": true,
+  "training_wall_seconds": 49.08644739724696,
+  "unit": "sfora-native256-mechanics-so400-v5",
+  "wall_seconds": 213.72134167933837
+}

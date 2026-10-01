@@ -30,3 +30,7 @@ Original session10687/invocatione3c02b979367415f8985c2eb69117440 exited0 success
 ### Prospective sequential So400 v5 gate
 
 Authorization immediate-1790882776853633660-1991058 permits ONE sequential So400 mechanics-only300s gate after Large terminal authentication. Same exact v5 source execution; So400 authority SHA371cfbaa518b9b5df33934087f037bd9cac0d125635d171b0574ad3ba34fb3d7 binds unchanged original fullCPU proof. New output `/home/riomus/runs/sfora-native256-mechanics-so400-v5`. DGX compute/services idle and both nonblocking resource locks checked before launch. Full17+independent8+9/strict final reload/exit and all resource limits remain mandatory; any failure kills this arm. Report paired terminal decision before any freshTRAIN100 launch. No prior failure is reclassified.
+
+### Paired mechanics decision
+
+So400 original23754/invocationc9833e1754c84f5aaa3a69211d82ba5f normalexit0/service215.643s: complete17 versus8+9, strict independent final whole/raw-packed reload and full uncached exitPASS; state discarded/no quality. Terminal hostpeak7335288832B/events0/swap0, CUDA7286658048B. Both v5 mechanics arms are engineering GO under the prospective300s envelope; all v1–v4 failures remain unchanged. FreshTRAIN100 and held-quality remain unrun; this paired decision is reported before launching them.
