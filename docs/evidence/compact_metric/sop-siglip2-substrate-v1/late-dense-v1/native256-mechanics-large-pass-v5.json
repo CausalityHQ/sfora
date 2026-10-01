@@ -1,0 +1,41 @@
+{
+  "arm": "large",
+  "authority_sha256": "5065f464218827ee96aca444af4e08ec8102cc725ae0fa0b5c251db917283fb1",
+  "cgroup_after": {
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v5.service",
+    "values": {
+      "memory.current": "4927004672",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "6548062208",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "completed_step": 17,
+  "execution_sha256": "d00d7d70ac2af4acb654d2054e28ffd6f0a0c286ad00d86d02869cfa5534b326",
+  "exit_rehash_pass": true,
+  "invocation_id": "e3c02b979367415f8985c2eb69117440",
+  "log_sha256": "a16c5b0104ed06ac4a0ad50a0a864db929736be0bc3f44d5cb9ca495db1fbdd2",
+  "median_update_seconds": 2.085331216920167,
+  "native17_equals_serialized8_plus9_exact": true,
+  "original_session": 10687,
+  "pass": true,
+  "peak_cuda_allocated_bytes": 6128466432,
+  "phase": "mechanics",
+  "process_peak_rss_kib": 4456948,
+  "quality_read": false,
+  "receipt_path": "/home/riomus/runs/sfora-native256-mechanics-large-v5/receipt.json",
+  "receipt_sha256": "ecdc9160c0545e815de551061bf20386f80a1b15d28a18ab09d17137b6b99c44",
+  "schema": "siglip2-substrate-adaptation-v1",
+  "seed": 179032,
+  "service_seconds": 189.303,
+  "strict_independent_whole_head_buffers_raw_packed_reload_exact": true,
+  "terminal_exit": 0,
+  "terminal_state_sha256": "f93a81b0a308c7595d0bf3dfb0011c29bc5977077971d586105530e0d4f4fa02",
+  "training_state_discarded": true,
+  "training_wall_seconds": 44.173894356004894,
+  "unit": "sfora-native256-mechanics-large-v5",
+  "wall_seconds": 187.29024386079982
+}
