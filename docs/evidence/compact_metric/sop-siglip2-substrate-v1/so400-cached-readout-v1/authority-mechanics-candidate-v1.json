@@ -1,0 +1,69 @@
+{
+  "arm": "candidate",
+  "both_locks_held": true,
+  "execution_sha256": "16b29bc94b3ef74f72cc8047f3304ec719e66742a1f72d3b2f8ae72e57cb3c64",
+  "fit_inventory": {
+    "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v1/sfora-native256-fit-export-collected-inputs-v1.json",
+    "sha256": "4694490f347949a7d814f5001655d1c7a9eb41c5ea369f4e838b231ad2ee7662"
+  },
+  "initialized_inventory": {
+    "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v1/sfora-native256-full-initialized-cpu-collected-inputs-v1.json",
+    "sha256": "da925901082ff22994a90dcdb0ccfea0cd5e2144cb3f87c3950904e9928a503e"
+  },
+  "phase": "mechanics",
+  "recipe": {
+    "augmentation": false,
+    "batch": 64,
+    "candidate": "gelu-exact",
+    "classes": 2004,
+    "clip": 1,
+    "control": "0.5*z",
+    "encoder_updates": false,
+    "initial_scaler": 128,
+    "initialization_seed": 179034,
+    "learning_rate": 0.0001,
+    "margin": 0.3,
+    "microbatch": 16,
+    "output_dim": 128,
+    "rank": 32,
+    "rank_weight": 8,
+    "rows": 13283,
+    "scale": 64,
+    "seeds": [
+      179032,
+      179041
+    ],
+    "steps": 1000,
+    "views": "fixed-normalized-cache",
+    "weight_decay": 0.05,
+    "width": 1152
+  },
+  "reference": {
+    "execution_sha256": "236327289f110ed2bf2012ea6e0d1ea48cf822b4e4094d9cf544081a2dc476f7",
+    "root": "/home/riomus/runs/sfora-native256-adaptation-source-v6"
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "siglip2-cached-readout-launch-v1",
+  "seed": 179032,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "df03638a49304717bc9a6e213c53b2aa",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v1/sfora-so400-cached-readout-cpu-v1.log",
+      "sha256": "07674fe9c30c6e58dc724edecd0ccc553b50da133d58f1938a9dee87ea0085fe"
+    },
+    "native_peak_rss_kib": 4426696,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-cached-readout-cpu-v1/receipt.json",
+      "sha256": "ce066d0e5a31782ac4a9e01866a62969ea1bbeb409c339b8c70ad42426369280"
+    },
+    "service_seconds": 66.308,
+    "unit": "sfora-so400-cached-readout-cpu-v1"
+  },
+  "selected_mechanics": null
+}

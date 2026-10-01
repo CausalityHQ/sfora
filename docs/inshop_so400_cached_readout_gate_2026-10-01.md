@@ -99,3 +99,5 @@ command275e2dd53185990028baf821ea21e967912f5cb9936d213e1fd2c2dff3389b48.
 Original serial v6 reference five-file closure remains separate and unchanged.
 [Immutable launch evidence](evidence/compact_metric/sop-siglip2-substrate-v1/so400-cached-readout-v1/).
 Native CPU result pending; no mechanics or TRAIN endpoint admitted.
+
+Original CPU session70852/invocationdf03638a49304717bc9a6e213c53b2aa passed normalexit0/service66.308s, hostpeak5924012032B, RSS4426696KiB, events0/swap0/CUDAhidden. Actual source strictreload, initial matched raw/unit/packed arm parity, nonzero-up/subsequent-down witnesses and uncached exit pass. Five optimizer members/445056 scalars. Receiptce066d0e5a31782ac4a9e01866a62969ea1bbeb409c339b8c70ad42426369280. Prospective discarded mechanics authorities and commands are frozen next; no TRAIN or quality admitted.
