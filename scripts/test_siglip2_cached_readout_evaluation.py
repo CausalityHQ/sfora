@@ -185,29 +185,73 @@ def statistics_mean(values):
     return statistics.mean(values)
 
 
-def split_checks(helper):
+def split_checks(driver, helper, original, path, root):
     products = ['held-' + str(i) for i in range(1993)]
     rows = [{'relative_path': 'Img/img/' + str(i) + '.jpg', 'product': products[i % 1993], 'image_sha256': 'a' * 64}
             for i in range(12599)]
-    fit = {'rows': [{'product': 'fit'}], 'class_names': ['fit']}
+    classes = ['fit-' + str(i) for i in range(2004)]
+    fit_rows = [{'train_row': i, 'product': classes[i % 2004],
+                 'relative_path': 'Img/img/fit-' + str(i) + '.jpg', 'image_sha256': 'b' * 64}
+                for i in range(13283)]
+    teacher = write_json(root / 'teacher-fit-receipt.json',
+                         {'fit_manifest': fit_rows, 'target_products': [i % 2004 for i in range(13283)]})
+    fit = {'schema': 'native256-frozen-fit-manifest-v1', 'dataset_root': '/dataset',
+           'rows': fit_rows, 'targets': [i % 2004 for i in range(13283)], 'class_names': classes,
+           'fit_images': 13283, 'fit_identities': 2004, 'original_receipt': teacher,
+           'held_images_read': 0, 'quality_read': False, 'source_features_reused': False,
+           'teacher_state_reused': False}
     frozen = {'fit_manifest': fit['rows'], 'held_manifest': rows, 'query': list(range(6354)), 'gallery': list(range(6354, 12599))}
     helper.validate_split(frozen, fit)
+    # Execute the real authority split boundary without the unrelated TRAIN closures.
+    auth = next(n for n in ast.parse(path.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name == 'authority')
+    start = next(i for i, n in enumerate(auth.body) if isinstance(n, ast.Assign) and
+                 any(isinstance(t, ast.Name) and t.id == 'fit' for t in n.targets))
+    stop = next(i for i, n in enumerate(auth.body) if isinstance(n, ast.Expr) and
+                isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Attribute) and
+                n.value.func.attr == 'validate_split')
+    boundary = compile(ast.Module(body=auth.body[start:stop + 1], type_ignores=[]), str(path), 'exec')
+    def admit(ref, manifest=fit):
+        guards = {}
+        namespace = {**vars(driver), 'spec': {'frozen_split': ref}, 'helper': helper,
+                     'admission': original.FlatAdmission(),
+                     'selected': {'initialized': {'source_context': {'fit': manifest}}, 'guards': guards}}
+        exec(boundary, namespace)
+        return namespace['frozen'], guards
+    split_path = root / 'held-preflight.json'
+    split_ref = write_json(split_path, frozen)
+    accepted, guards = admit(split_ref)
+    assert accepted == frozen and guards[split_ref['path']] == split_ref['sha256']
+    # The FIT-only receipt admitted by the former equality has no held inventory.
+    rejects(lambda: helper.validate_split(driver.read_json(teacher, {}), fit), 'held_manifest')
+    changed_fit = copy.deepcopy(fit)
+    changed_fit['rows'][0]['image_sha256'] = 'c' * 64
+    rejects(lambda: admit(split_ref, changed_fit), 'original TRAIN-held split')
+    rejects(lambda: admit(dict(split_ref, sha256='0' * 64)), 'JSON size/SHA256 differs')
+    rejects(lambda: admit(dict(split_ref, extra=True)), 'exact JSON descriptor')
+    alias = root / 'held-alias.json'
+    alias.symlink_to(split_path)
+    rejects(lambda: admit(dict(split_ref, path=str(alias))), 'canonical file')
     for mutation, message in (
+        (lambda m: m['fit_manifest'][0].update(train_row=1), 'original TRAIN-held split'),
         (lambda m: m['gallery'].__setitem__(0, 0), 'original TRAIN-held split'),
         (lambda m: m['query'].pop(), 'original TRAIN-held split'),
-        (lambda m: m['held_manifest'][0].update(product='fit'), 'original TRAIN-held split'),
+        (lambda m: m['held_manifest'][0].update(product=classes[0]), 'original TRAIN-held split'),
         (lambda m: m['held_manifest'][0].update(relative_path='../outside.jpg'), 'held manifest row'),
         (lambda m: m['held_manifest'][0].update(image_sha256='bad'), 'held manifest row')):
         changed = copy.deepcopy(frozen)
         mutation(changed)
-        rejects(lambda: helper.validate_split(changed, fit), message)
+        changed_ref = write_json(split_path, changed)
+        rejects(lambda: admit(changed_ref), message)
+        rejects(lambda: driver.bound_file(guards, split_path, split_ref['sha256']), 'file SHA256 differs')
 
 
 def authority_checks(driver, cached, trainer_test):
     endpoints = [endpoint_fixture(driver, cached, trainer_test, seed, arm)[0] for seed, arm in driver.ORDER]
     spec = {'schema': driver.AUTHORITY_SCHEMA, 'execution_sha256': 'a' * 64,
             'training': {'root': '/frozen/trainer2-v2', 'execution_sha256': driver.TRAIN_EXECUTION_SHA},
-            'endpoints': endpoints, 'frozen_split': {'path': '/frozen/split.json', 'sha256': 'b' * 64},
+            'endpoints': endpoints, 'frozen_split': {
+                'path': '/home/riomus/runs/sfora-pe-augmented-100-v2/preflight.json',
+                'sha256': '41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293'},
             'resource_policies': {p: driver.policy(p) for p in ('cpu', 'export', 'score')},
             'cost_policy': driver.COST_POLICY.copy(), 'both_locks_held': True}
     args = SimpleNamespace(execution_sha256='a' * 64, authority=Path('/frozen/evaluation.json'),
@@ -219,6 +263,12 @@ def authority_checks(driver, cached, trainer_test):
         (lambda m: m['cost_policy'].update(whole_service_ratio_max=1.51), 'evaluation authority profile'),
         (lambda m: m['resource_policies']['export'].update(host_bytes=16 * 1024**3), 'evaluation authority profile'),
         (lambda m: m['training'].update(execution_sha256='0' * 64), 'exact corrected training REFERENCE'),
+        (lambda m: m['frozen_split'].update(path='/home/riomus/runs/sfora-large-teacher-fit-targets-v1/receipt.json',
+                                          sha256='277f9b774470355f76c16675a9c7808abe602c83612d83f4d90e4d37cb5507fe'),
+         'original frozen split authority'),
+        (lambda m: m['frozen_split'].update(path='/different/preflight.json'), 'original frozen split authority'),
+        (lambda m: m['frozen_split'].update(sha256='0' * 64), 'original frozen split authority'),
+        (lambda m: m['frozen_split'].update(extra=True), 'original frozen split authority'),
         (lambda m: m['endpoints'].pop(), 'four ordered endpoints'),
         (lambda m: m['endpoints'].reverse(), 'four ordered endpoints'),
         (lambda m: m['endpoints'].__setitem__(3, m['endpoints'][2]), 'four ordered endpoints'),
@@ -401,7 +451,8 @@ def main():
         authority_checks(driver, cached, trainer_test)
         endpoint_checks(driver, cached, trainer_test)
         metric_checks(driver, score, helper, cached, trainer_test)
-        split_checks(helper)
+        with TemporaryDirectory() as directory:
+            split_checks(driver, helper, original, path, Path(directory))
         source_checks(driver, path, helper, score)
         with TemporaryDirectory() as directory:
             file_checks(driver, Path(directory))

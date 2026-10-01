@@ -17,7 +17,8 @@ SPEC_KEYS. training is {root: canonical absolute directory, execution_sha256}.
 endpoints is ordered control032,candidate032,candidate041,control041, each
 exactly {seed, arm, launch: FILE, terminal: TERMINAL, checkpoint: FILE,
 terminal_state_sha256}. launch is the ORIGINAL accepted TRAIN1000 authority.
-frozen_split is the original FIT authority's original_receipt FILE. Policies
+frozen_split is the pinned original held preflight FILE, independently bound
+from the native256 FIT authority's FIT-only teacher receipt. Policies
 are {cpu: policy('cpu'), export: policy('export'), score: policy('score')},
 cost_policy is COST_POLICY, both_locks_held is true. FILE is exactly
 {path: canonical absolute file, sha256: actual lowercase SHA256}. TERMINAL is
@@ -91,6 +92,9 @@ TRAIN_PINS = {
     'train_siglip2_cached_readout.py': 'a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c',
     'test_siglip2_cached_readout.py': '9fd8a780c412f9423e9e75192a1e8d91ead520d46f6269e77482965e85a28500'}
 TRAIN_EXECUTION_SHA = '907dfed63ec7678b2ef930463640b098ea2e38ad1c5fc1ad312cceb628151598'
+# Original split authenticated by pe_large_pool.control/train_inshop_pe_pair.check_startup.
+FROZEN_SPLIT = {'path': '/home/riomus/runs/sfora-pe-augmented-100-v2/preflight.json',
+                'sha256': '41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293'}
 SPEC_KEYS = {'schema', 'execution_sha256', 'training', 'endpoints', 'frozen_split',
              'resource_policies', 'cost_policy', 'both_locks_held'}
 COST_POLICY = {'whole_service_ratio_max': 1.50, 'median_update_ratio_max': 1.50,
@@ -181,6 +185,7 @@ def check_spec(spec, args):
             spec['cost_policy'] == COST_POLICY, 'evaluation authority profile differs')
     require(spec['training'].keys() == {'root', 'execution_sha256'} and
             spec['training']['execution_sha256'] == TRAIN_EXECUTION_SHA, 'exact corrected training REFERENCE required')
+    require(spec['frozen_split'] == FROZEN_SPLIT, 'original frozen split authority differs')
     require([(e['seed'], e['arm']) for e in spec['endpoints']] == list(ORDER), 'four ordered endpoints required')
     for endpoint in spec['endpoints']:
         require(endpoint.keys() == {'seed', 'arm', 'launch', 'terminal', 'checkpoint', 'terminal_state_sha256'} and
@@ -324,7 +329,6 @@ def authority(args):
             len({e['checkpoint']['path'] for e in spec['endpoints']}) == 4, 'distinct original whole units/checkpoints required')
     costs = paired_cost(records)
     fit = selected['initialized']['source_context']['fit']
-    require(spec['frozen_split'] == fit['original_receipt'], 'original frozen split authority differs')
     frozen = admission.descriptor_json(spec['frozen_split'], selected['guards'])
     helper.validate_split(frozen, fit)
     for path, digest in guards.items():
