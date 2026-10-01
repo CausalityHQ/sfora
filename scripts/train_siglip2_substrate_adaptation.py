@@ -45,6 +45,8 @@ import statistics
 import struct
 import sys
 import time
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -1052,7 +1054,7 @@ def valid_rank(ref, raw, bank, head, positives, ordinals):
                                     live_head=False) * (valid.sum() / len(valid))
 
 
-def fingerprint(value, frozen=None, consumed=None):
+def fingerprint_serial(value, frozen=None, consumed=None):
     """Typed, length-framed complete tree hash; tensor device is not identity."""
     import torch
     digest = hashlib.sha256()
@@ -1082,6 +1084,140 @@ def fingerprint(value, frozen=None, consumed=None):
             frame(type(item).__name__); frame(repr(item))
     visit(value)
     return digest.hexdigest()
+
+
+def fingerprint(value, frozen=None, consumed=None):
+    """Same digest; only live cached calls pipeline caller-staged SHA leaves."""
+    started = time.perf_counter()
+    if frozen is None or consumed is not None:
+        result = fingerprint_serial(value, frozen, consumed)
+        print(json.dumps({'diagnostic': 'fingerprint', 'mode': 'serial',
+                          'wall_seconds': time.perf_counter() - started}, sort_keys=True), flush=True)
+        return result
+    import torch
+    digest, pending = hashlib.sha256(), deque()
+    outstanding = staged_bytes = 0
+    stats = {'diagnostic': 'fingerprint', 'mode': 'parallel', 'bytes_by_device': {},
+             'cache_hits': 0, 'stage_seconds': 0., 'worker_sha_seconds_sum': 0.,
+             'inline_sha_seconds': 0., 'queue_wait_seconds': 0.,
+             'peak_outstanding': 0, 'peak_staged_bytes': 0, 'oversized_serial_bytes': 0}
+    def leaf_sha(buffer):
+        # Workers touch only the already staged buffer, never Torch or CUDA.
+        try:
+            tick = time.perf_counter()
+            return hashlib.sha256(buffer).hexdigest(), time.perf_counter() - tick
+        finally:
+            buffer.release()
+    def direct_frame(raw):
+        raw = raw.encode() if isinstance(raw, str) else raw
+        digest.update(str(len(raw)).encode() + b':' + raw)
+    def frame(raw):
+        raw = raw.encode() if isinstance(raw, str) else raw
+        framed = str(len(raw)).encode() + b':' + raw
+        if pending:
+            pending.append(framed)
+        else:
+            digest.update(framed)
+    def drain():
+        nonlocal outstanding, staged_bytes
+        entry = pending.popleft()
+        if isinstance(entry, bytes):
+            digest.update(entry)
+            return
+        future, dtype, shape, size = entry
+        try:
+            tick = time.perf_counter()
+            sha, elapsed = future.result()
+            stats['queue_wait_seconds'] += time.perf_counter() - tick
+            stats['worker_sha_seconds_sum'] += elapsed
+            visit((dtype, shape, sha), direct_frame)
+        finally:
+            outstanding -= 1
+            staged_bytes -= size
+            entry = future = None
+    def visit(item, emit=frame):
+        nonlocal outstanding, staged_bytes
+        if isinstance(item, torch.Tensor):
+            emit('Tensor')
+            key = (item.data_ptr(), item._version, str(item.dtype), tuple(item.shape))
+            fact = frozen.get(key)
+            if fact is None:
+                size = item.numel() * item.element_size()
+                # Reserve the current tensor BEFORE staging, including inline
+                # leaves; an oversized serial leaf runs with no queued buffers.
+                while pending and (outstanding >= 2 or staged_bytes + size > 64 * 1024**2):
+                    drain()
+                tick = time.perf_counter()
+                raw = item.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()
+                stats['stage_seconds'] += time.perf_counter() - tick
+                device = item.device.type
+                stats['bytes_by_device'][device] = stats['bytes_by_device'].get(device, 0) + size
+                buffer = memoryview(raw)
+                try:
+                    if size <= 64 * 1024**2:
+                        stats['peak_staged_bytes'] = max(stats['peak_staged_bytes'], staged_bytes + size)
+                    else:
+                        stats['oversized_serial_bytes'] = max(stats['oversized_serial_bytes'], size)
+                    if 1024**2 <= size <= 64 * 1024**2:
+                        future = pool.submit(leaf_sha, buffer)
+                        buffer = None  # Worker releases the view before publishing its result.
+                        pending.append((future, str(item.dtype), tuple(item.shape), size))
+                        outstanding += 1
+                        staged_bytes += size
+                        stats['peak_outstanding'] = max(stats['peak_outstanding'], outstanding)
+                        return
+                    sha, elapsed = leaf_sha(buffer)
+                    stats['inline_sha_seconds'] += elapsed
+                    fact = (str(item.dtype), tuple(item.shape), sha)
+                finally:
+                    if buffer is not None:
+                        buffer.release()
+                    raw = None
+            else:
+                stats['cache_hits'] += 1
+            visit(fact, emit)
+        elif isinstance(item, dict):
+            emit('dict'); emit(str(len(item)))
+            for key in sorted(item, key=repr):
+                visit(key, emit); visit(item[key], emit)
+        elif isinstance(item, (tuple, list)):
+            emit(type(item).__name__); emit(str(len(item)))
+            for child in item:
+                visit(child, emit)
+        else:
+            emit(type(item).__name__); emit(repr(item))
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            visit(value)
+            while pending:
+                drain()
+    finally:
+        # The executor joins even on traversal/staging/hash failure. Drop all
+        # futures and deferred frames after it has released its buffer arguments.
+        pending.clear()
+    stats['wall_seconds'] = time.perf_counter() - started
+    print(json.dumps(stats, sort_keys=True, allow_nan=False), flush=True)
+    return digest.hexdigest()
+
+
+def fingerprint_screen(state, identity, flags, step, expected):
+    """Mechanics-only paired timings on one stationary post-update payload."""
+    require(step in (3, 9, 17), 'fixed fingerprint screen step required')
+    saved = payload(state, identity, flags)
+    calls = [('serial', fingerprint_serial), ('candidate', fingerprint)]
+    if step == 9:
+        calls.reverse()
+    timings, digests = {}, {}
+    for name, call in calls:
+        tick = time.perf_counter()
+        digests[name] = call(saved, state['frozen_cache'])
+        timings[name] = time.perf_counter() - tick
+    require(digests['serial'] == digests['candidate'] == expected, 'same-payload fingerprint parity differs')
+    row = {'diagnostic': 'fingerprint_screen', 'step': step, 'order': [name for name, _ in calls],
+           'serial_seconds': timings['serial'], 'candidate_seconds': timings['candidate'],
+           'saving_seconds': timings['serial'] - timings['candidate'], 'sha256': digests['serial']}
+    print(json.dumps(row, sort_keys=True, allow_nan=False), flush=True)
+    return row
 
 
 def payload(state, identity, flags):
@@ -1317,7 +1453,11 @@ def restore_independent(context, ref, checkpoint, expected_sha, expected_fingerp
     import torch
     from transformers import AutoImageProcessor
     source, initialized = context['source'], context['initialized']
+    restore_started = time.monotonic()
+    phase_diagnostic('restore.file_authentication.begin', restore_started)
     bound_file({}, checkpoint, expected_sha)
+    phase_diagnostic('restore.file_authentication.end', restore_started)
+    phase_diagnostic('restore.mmap_fingerprint.begin', restore_started)
     disk = torch.load(checkpoint, map_location='cpu', weights_only=True, mmap=True)
     with checkpoint.open('rb') as stream:
         pages = CheckpointPages(stream)
@@ -1325,6 +1465,8 @@ def restore_independent(context, ref, checkpoint, expected_sha, expected_fingerp
                       identity['parameter_names'], flags)
         require(fingerprint(disk, consumed=pages.consume) == expected_fingerprint and
                 disk['config'] == identity['config'], 'serialized complete state differs')
+        phase_diagnostic('restore.mmap_fingerprint.end', restore_started)
+        phase_diagnostic('restore.construction_loading.begin', restore_started)
         model = source.construct(disk['config'], initialized['source_context'])
         load_vision(model, disk['vision'], pages)
         roles = source.configure_roles(model, initialized['source_context']['expected'], model.config.num_hidden_layers)
@@ -1349,6 +1491,8 @@ def restore_independent(context, ref, checkpoint, expected_sha, expected_fingerp
                  'pca': {n: pages.copy(v) for n, v in disk['pca'].items()},
                  'schedules': {n: pages.copy(v) for n, v in disk['schedules'].items()},
                  'seed': disk['seed'], 'counter': disk['counter']}
+        phase_diagnostic('restore.construction_loading.end', restore_started)
+        phase_diagnostic('restore.transfers.begin', restore_started)
         state = move_cuda(context, state, ref)
         require(runtime(context, state) == identity['runtime'], 'independent complete runtime/processor differs')
         require(torch.equal(state['positive'].cpu(), disk['positive']), 'independent singleton/positive table differs')
@@ -1364,9 +1508,12 @@ def restore_independent(context, ref, checkpoint, expected_sha, expected_fingerp
         torch.cuda.set_rng_state_all([pages.copy(value) for value in disk['cuda_rng']])
     del disk, buffers, value, model, head
     gc.collect()
+    phase_diagnostic('restore.transfers.end', restore_started)
+    phase_diagnostic('restore.integrity_fingerprint.begin', restore_started)
     integrity(state, identity)
     require(fingerprint(payload(state, identity, flags), state['frozen_cache']) == expected_fingerprint,
             'independent whole/head/buffers/proxy/bank/optimizer/scaler/RNG reload differs')
+    phase_diagnostic('restore.integrity_fingerprint.end', restore_started)
     return state
 
 
@@ -1557,6 +1704,7 @@ def run(args):
     frozen_sha = fingerprint({n: p for n, p in state['model'].named_parameters() if not p.requires_grad})
     phase_diagnostic('initial_state.end', diagnostic_started)
     rows, resumed = [], []
+    fingerprint_screens = []
     state['calibration_pixels'] = calibration_pixels
     args.output.mkdir()
     cpu_rng, cuda_rng = torch.random.get_rng_state().clone(), torch.cuda.get_rng_state_all()
@@ -1572,10 +1720,19 @@ def run(args):
                 require(diagnostic(row) == diagnostic(context['mechanics']['steps'][step - 1]),
                         'fresh TRAIN first17 mechanics diagnostic replay differs')
             rows.append(row)
+            if args.phase == 'mechanics' and step in (3, 9, 17):
+                fingerprint_screens.append(fingerprint_screen(state, identity, flags, step, row['state_sha256']))
             if args.phase == 'mechanics' and step == 8:
                 phase_diagnostic('save8.begin', diagnostic_started)
                 sha8, fingerprint8 = save(context, state, identity, flags, checkpoint8)
                 phase_diagnostic('save8.end', diagnostic_started)
+        if args.phase == 'mechanics':
+            saving = statistics.median(row['saving_seconds'] for row in fingerprint_screens)
+            print(json.dumps({'diagnostic': 'fingerprint_screen_summary', 'steps': [3, 9, 17],
+                              'median_saving_seconds': saving, 'minimum_saving_seconds': 0.10},
+                             sort_keys=True, allow_nan=False), flush=True)
+            require([row['step'] for row in fingerprint_screens] == [3, 9, 17] and saving >= 0.10,
+                    'fingerprint median saving below 0.10 seconds')
         training_seconds = time.perf_counter() - tick
         phase_diagnostic('updates.end', diagnostic_started)
         checkpoint = temporary / 'step17.pt' if args.phase == 'mechanics' else args.output / 'resume.pt'
