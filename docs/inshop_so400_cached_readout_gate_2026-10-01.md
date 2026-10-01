@@ -117,3 +117,5 @@ Prospective freshTRAIN1000 endpoints/order and exact authority/commands frozen f
 Original fresh control032TRAIN1000 session90941 normalexit0; full1000/strictindependentreload/exitPASS, noqualityread. Originalreceipt/log retained. Otherthreeendpoints remainpending; completeprocedure/quality/cost notyetdecided.
 
 Original candidate032TRAIN1000 session46741/invocationcf41d547059a4050949a89dfc95a1f3e normalexit0/service154.511s, full1000/strictindependentreload/exitPASS, host3010756608B/CUDA573490176B/events0/swap0. Paired032 inputrow/drawhashes exactlymatchcontrol. Whole-service ratio1.078422614, medianupdate ratio1.101437841 both<=1.50; optimizationwall101.760508418s reportedseparately. Noheldqualityread; both041endpoints remainpending.
+
+Candidate041 original session98852/invocation82091cef03384b68acaa434f80c76c17 terminal exit0/service143.540s, full1000/strict reload/exit PASS; host3010809856B/events0/swap0. Receipt 3541d119114e94240872a8df77141f93ebe95075e5ddcf0f2ae0c065341067b9. No held quality read; final control041 pending.
