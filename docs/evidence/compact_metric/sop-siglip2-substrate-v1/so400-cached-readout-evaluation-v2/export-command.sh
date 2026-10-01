@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+cd /home/riomus/runs/sfora-so400-cached-readout-evaluation-source-v2
+trap 'sfora_command_status=$?; trap - EXIT; set +e; export SFORA_COMMAND_STATUS=$sfora_command_status; /usr/bin/python3 /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py; sfora_footer_status=$?; if (( sfora_command_status != 0 )); then exit "$sfora_command_status"; fi; exit "$sfora_footer_status"' EXIT
+sha256sum -c <<'HASHES'
+719bfb316008f7ffcc797d3e5400a9f0e0ac0db1900fe2f0fa0263419ccd72b6  evaluate_siglip2_cached_readout.py
+89eed215795492d8237d736077b8ee0d0b821ba07dfd3535c65f6643533b9863  export_siglip2_substrate_adaptation.py
+8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250  reference_compare_inshop_sop_warmstart_100.py
+16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed  reference_score_inshop_crop_view_pair.py
+5be3d922b198bd2f6470523cfdcde95884fd03600b9eec0dba876da6df27683f  score_siglip2_substrate_adaptation.py
+dc373826d1a0b63aba410ae95bc0655131e7abf366b3630f41222adcfa6e59ff  test_siglip2_cached_readout_evaluation.py
+2a70ecf032ad42b8a91ff0c5b3aaedf7ba381ac25d1de22cb3f8769c942abebf  execution.json
+2ba754ce5850cb70b82135bbb3aee431701832c1eafae170488373d2eccc0006  authority.json
+HASHES
+/home/riomus/group-learning/.venv/bin/python -B /home/riomus/runs/sfora-so400-cached-readout-evaluation-source-v2/evaluate_siglip2_cached_readout.py --execution-sha256 2a70ecf032ad42b8a91ff0c5b3aaedf7ba381ac25d1de22cb3f8769c942abebf --authority /home/riomus/runs/sfora-so400-cached-readout-evaluation-source-v2/authority.json --authority-sha256 2ba754ce5850cb70b82135bbb3aee431701832c1eafae170488373d2eccc0006 --phase export --output /home/riomus/runs/sfora-so400-cached-readout-evaluation-export-v2 --prerequisite /home/riomus/runs/sfora-so400-cached-readout-evaluation-source-v2/cpu-terminal.json --prerequisite-sha256 2930203e47c531b1a4b1efe0b7e45b237ec88c8c30c77d1011d9e1966cb1e99d
+sha256sum -c <<'HASHES'
+719bfb316008f7ffcc797d3e5400a9f0e0ac0db1900fe2f0fa0263419ccd72b6  evaluate_siglip2_cached_readout.py
+89eed215795492d8237d736077b8ee0d0b821ba07dfd3535c65f6643533b9863  export_siglip2_substrate_adaptation.py
+8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250  reference_compare_inshop_sop_warmstart_100.py
+16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed  reference_score_inshop_crop_view_pair.py
+5be3d922b198bd2f6470523cfdcde95884fd03600b9eec0dba876da6df27683f  score_siglip2_substrate_adaptation.py
+dc373826d1a0b63aba410ae95bc0655131e7abf366b3630f41222adcfa6e59ff  test_siglip2_cached_readout_evaluation.py
+2a70ecf032ad42b8a91ff0c5b3aaedf7ba381ac25d1de22cb3f8769c942abebf  execution.json
+2ba754ce5850cb70b82135bbb3aee431701832c1eafae170488373d2eccc0006  authority.json
+HASHES
