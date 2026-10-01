@@ -1,0 +1,8 @@
+{
+  "evaluate_siglip2_cached_readout.py": "b2c8d80a0acabd45fa5a7d7f5a327433d9db2f157817ae12ddd31e04ae2008f8",
+  "export_siglip2_substrate_adaptation.py": "89eed215795492d8237d736077b8ee0d0b821ba07dfd3535c65f6643533b9863",
+  "reference_compare_inshop_sop_warmstart_100.py": "8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250",
+  "reference_score_inshop_crop_view_pair.py": "16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed",
+  "score_siglip2_substrate_adaptation.py": "5be3d922b198bd2f6470523cfdcde95884fd03600b9eec0dba876da6df27683f",
+  "test_siglip2_cached_readout_evaluation.py": "0156a41d2d2c33b922b0faf53d30c08bcab625f2ec77021a548bcdebb8b71ed6"
+}

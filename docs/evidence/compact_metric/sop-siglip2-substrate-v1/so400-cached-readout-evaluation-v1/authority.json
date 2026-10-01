@@ -1,0 +1,152 @@
+{
+  "both_locks_held": true,
+  "cost_policy": {
+    "median_update_ratio_max": 1.5,
+    "training_wall_ratio": "report_only",
+    "whole_service_ratio_max": 1.5
+  },
+  "endpoints": [
+    {
+      "arm": "control",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-train-control-179032-v2/resume.pt",
+        "sha256": "7a3b844a10efa6ce030076b57cc3ac29a3f070ba246eab113eb4cecf9ced6d81"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/authority-train-control-179032-v2.json",
+        "sha256": "603d6d66484f3afe571bc2e50337ed883c9abc5affc02720b21d04857749098f"
+      },
+      "seed": 179032,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "8b57cdded5ac4a01bf6122084ab4208b",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-so400-cached-readout-train-control-179032-v2.log",
+          "sha256": "cbe0bf8c0a1f935d67e5cbd2ab01345382644505ec22bcb8a2ef816e067f2ab0"
+        },
+        "native_peak_rss_kib": 2560244,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-cached-readout-train-control-179032-v2/receipt.json",
+          "sha256": "d92b31a4a81f757f16074ac9490339284ab2d6ee0bb3cd3a85b118b8ff37e112"
+        },
+        "service_seconds": 143.275,
+        "unit": "sfora-so400-cached-readout-train-control-179032-v2"
+      },
+      "terminal_state_sha256": "fed75d321b5be92e90cf7b50adc059d7c61ebb4eddaa3a66f3eb625fe0dcc355"
+    },
+    {
+      "arm": "candidate",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-train-candidate-179032-v2/resume.pt",
+        "sha256": "7c38dd8240bd02bde5511f551d2e37bf7f7d782d30f1b667c72ac580809e1409"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/authority-train-candidate-179032-v2.json",
+        "sha256": "bd09534e4c791287a6023696fe032e0de52fa6766895d13bb0a7c31635f021a4"
+      },
+      "seed": 179032,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "cf41d547059a4050949a89dfc95a1f3e",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-so400-cached-readout-train-candidate-179032-v2.log",
+          "sha256": "6b7467bd575b766f9bc8a4a904d93f6645f6bc0e4aabae4302df40dd28cbebf5"
+        },
+        "native_peak_rss_kib": 2573148,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-cached-readout-train-candidate-179032-v2/receipt.json",
+          "sha256": "a63e596998a11135556216b0c8c9e49f3f732ff5b8eaa1aa28efefa5d25c22a1"
+        },
+        "service_seconds": 154.511,
+        "unit": "sfora-so400-cached-readout-train-candidate-179032-v2"
+      },
+      "terminal_state_sha256": "d244e2a5060749aeb982351f749d3cdd4a518ab2c55e5c96e12ab6c5ce58a441"
+    },
+    {
+      "arm": "candidate",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-train-candidate-179041-v2/resume.pt",
+        "sha256": "d92e78abe5b63ea54334b020136eb468d6b4e2820dc28b083f9d379beacbaf90"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/authority-train-candidate-179041-v2.json",
+        "sha256": "0204777aff59348fbff586683ab43cb21c843c5437524ddf63758e899c1c1aae"
+      },
+      "seed": 179041,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "82091cef03384b68acaa434f80c76c17",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-so400-cached-readout-train-candidate-179041-v2.log",
+          "sha256": "bb0dbdcc0f0307a00b8d23abb95ee0d620e642e6a29540e69a10503e846716e3"
+        },
+        "native_peak_rss_kib": 2573192,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-cached-readout-train-candidate-179041-v2/receipt.json",
+          "sha256": "3541d119114e94240872a8df77141f93ebe95075e5ddcf0f2ae0c065341067b9"
+        },
+        "service_seconds": 143.54,
+        "unit": "sfora-so400-cached-readout-train-candidate-179041-v2"
+      },
+      "terminal_state_sha256": "e6932018b3e06da3a577143f183918429844dc2bacad3db2b6159a3a04b51ba7"
+    },
+    {
+      "arm": "control",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-train-control-179041-v2/resume.pt",
+        "sha256": "2f5e6080b8a394980c5259961822dac7f75e8d09b525902f4d1ba9740393b49c"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/authority-train-control-179041-v2.json",
+        "sha256": "ba6895cc1d440fc786c42ddbc6089e31f547e6bb9569feed8050aa4b02ca8661"
+      },
+      "seed": 179041,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "3bfb95ae144c4926bff0293065db3a0d",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/sfora-so400-cached-readout-train-control-179041-v2.log",
+          "sha256": "75aae59315f352379f42ea9fdb53afa3065d362e841432618dcb4c4351d7a604"
+        },
+        "native_peak_rss_kib": 2560188,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-cached-readout-train-control-179041-v2/receipt.json",
+          "sha256": "cea2f1e489c222d15058bcd444c4c33a1c0938e8df5ee99ce2a92bb7dc52adfe"
+        },
+        "service_seconds": 145.995,
+        "unit": "sfora-so400-cached-readout-train-control-179041-v2"
+      },
+      "terminal_state_sha256": "960133ccd256281c29456e4b79b9580a299d8ec70dfe2f31cc9a6239100ade52"
+    }
+  ],
+  "execution_sha256": "723104a99075fe86ae8bd0d209b8e5c2bbc5513d0d955ed412fdce7c175954cf",
+  "frozen_split": {
+    "path": "/home/riomus/runs/sfora-large-teacher-fit-targets-v1/receipt.json",
+    "sha256": "277f9b774470355f76c16675a9c7808abe602c83612d83f4d90e4d37cb5507fe"
+  },
+  "resource_policies": {
+    "cpu": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 120,
+      "swap_bytes": 0
+    },
+    "export": {
+      "cuda_allocated_bytes_exclusive": 10000000000,
+      "host_bytes": 8589934592,
+      "seconds": 300,
+      "swap_bytes": 0
+    },
+    "score": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 300,
+      "swap_bytes": 0
+    }
+  },
+  "schema": "siglip2-cached-readout-evaluation-authority-v1",
+  "training": {
+    "execution_sha256": "907dfed63ec7678b2ef930463640b098ea2e38ad1c5fc1ad312cceb628151598",
+    "root": "/home/riomus/runs/sfora-so400-cached-readout-source-v2"
+  }
+}
