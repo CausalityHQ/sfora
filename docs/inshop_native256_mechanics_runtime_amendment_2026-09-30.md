@@ -34,3 +34,7 @@ Authorization immediate-1790882776853633660-1991058 permits ONE sequential So400
 ### Paired mechanics decision
 
 So400 original23754/invocationc9833e1754c84f5aaa3a69211d82ba5f normalexit0/service215.643s: complete17 versus8+9, strict independent final whole/raw-packed reload and full uncached exitPASS; state discarded/no quality. Terminal hostpeak7335288832B/events0/swap0, CUDA7286658048B. Both v5 mechanics arms are engineering GO under the prospective300s envelope; all v1–v4 failures remain unchanged. FreshTRAIN100 and held-quality remain unrun; this paired decision is reported before launching them.
+
+### Fresh TRAIN100 terminal runtime NO-GO
+
+First Large179032 original81064/invocation13508b928bbd47f2b7fd142052664873 timed out300.465s. All100 updates finished249.884s; strict final reload ended275.206s; full uncached exit rehash began275.346s but did not finish. Actual terminal peak6,476,185,600B/events0/swap0. No accepted training receipt or quality read. Remaining three endpoints are stopped before launch; partial checkpoint is unqualified and must not feed held scoring. This is a whole-unit engineering runtime failure, not model-quality evidence or an architecture KILL. No cap change/rescue. Next source-only correction must address demonstrated full-lifecycle integrity-read cost while preserving complete byte checks and300s cap.
