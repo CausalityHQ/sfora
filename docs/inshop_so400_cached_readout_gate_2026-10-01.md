@@ -91,3 +91,11 @@ No official quality or matched public latency has been measured for this method.
 Read-only plan f7323a6e88524ef0 completed exit0/447s atb91545a3;
 root independently checked the archived Large negative. Existing scientific
 Opus/Astra review findings remain in force; no duplicate review was launched.
+
+Prospective CPU freeze: source commit29bc6a6e, original trainer worker1942aee;
+new separate two-file execution16b29bc94b3ef74f72cc8047f3304ec719e66742a1f72d3b2f8ae72e57cb3c64,
+CPU authoritye0ff2e1ffa286ec4fb85ac899eabc6160eb28027a4a557fb0548c9a7ebd8ede7,
+command275e2dd53185990028baf821ea21e967912f5cb9936d213e1fd2c2dff3389b48.
+Original serial v6 reference five-file closure remains separate and unchanged.
+[Immutable launch evidence](evidence/compact_metric/sop-siglip2-substrate-v1/so400-cached-readout-v1/).
+Native CPU result pending; no mechanics or TRAIN endpoint admitted.
