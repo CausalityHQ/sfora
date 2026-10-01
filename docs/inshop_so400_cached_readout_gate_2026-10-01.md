@@ -129,3 +129,5 @@ Current convergence row (measured costs, quality pending):
 | Dataset/split | Matched control/candidate quality | Training cost | Public latency | Remaining gap | Next decisive test |
 |---|---|---|---|---|---|
 | In-Shop TRAIN FIT13283/2004 products; held6354 query/6245 gallery/1993 products | R1 and mAP@R both unmeasured for new So400 cached affine/GELU arms | Seed032 control/candidate whole143.275/154.511s; seed041 145.995/143.540s, 1000 cached updates each; both cost gates pass | Unmeasured | Both quality gain and joint official quality/speed unproven | Corrected updated CPU120 → shared held export300 → paired score300 |
+
+Corrected independent held-split binding source196d28d4 integrated; exact new evaluator v2 six-file execution 2a70ecf032ad42b8a91ff0c5b3aaedf7ba381ac25d1de22cb3f8769c942abebf and authority 2ba754ce5850cb70b82135bbb3aee431701832c1eafae170488373d2eccc0006 frozen prospectively before CPU120. Trainer and all four accepted endpoint authorities/checkpoints remain unchanged. v1 failed qualification preserved, no retrospective pass or quality read.
