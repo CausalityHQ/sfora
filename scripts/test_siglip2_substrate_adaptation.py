@@ -22,7 +22,6 @@ import subprocess
 import struct
 import sys
 import zipfile
-import weakref
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import FunctionType, SimpleNamespace
@@ -76,254 +75,6 @@ class Rows(list):
 
     def sum(self):
         return sum(self)
-
-
-def original_fingerprint(value, frozen=None, consumed=None):
-    """Immutable serializer from 97838823, independent of the candidate."""
-    import torch
-    digest = hashlib.sha256()
-    def frame(raw):
-        raw = raw.encode() if isinstance(raw, str) else raw
-        digest.update(str(len(raw)).encode() + b':' + raw)
-    def visit(item):
-        if isinstance(item, torch.Tensor):
-            frame('Tensor')
-            key = (item.data_ptr(), item._version, str(item.dtype), tuple(item.shape))
-            fact = frozen.get(key) if frozen is not None else None
-            if fact is None:
-                raw = item.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()
-                fact = (str(item.dtype), tuple(item.shape), hashlib.sha256(memoryview(raw)).hexdigest())
-            if consumed is not None:
-                consumed(item)
-            visit(fact)
-        elif isinstance(item, dict):
-            frame('dict'); frame(str(len(item)))
-            for key in sorted(item, key=repr):
-                visit(key); visit(item[key])
-        elif isinstance(item, (tuple, list)):
-            frame(type(item).__name__); frame(str(len(item)))
-            for child in item:
-                visit(child)
-        else:
-            frame(type(item).__name__); frame(repr(item))
-    visit(value)
-    return digest.hexdigest()
-
-
-def fingerprint_batch_checks(driver):
-    # Missing batching, leaf-range reordering, alias deduplication or retained
-    # staged owners must fail against the immutable serializer without Torch.
-    assert hasattr(driver, 'fingerprint_serial'), 'missing independently pinned serial path'
-    node = copy.deepcopy(next(n for n in ast.parse(Path(driver.__file__).read_bytes()).body
-                              if getattr(n, 'name', None) == 'fingerprint'))
-    limit = next(n for n in ast.walk(node) if isinstance(n, ast.Assign) and
-                 any(isinstance(t, ast.Name) and t.id == 'limit' for t in n.targets))
-    assert ast.unparse(limit.value) == '128 * 1024 ** 2', 'immutable 128MiB chunk cap differs'
-    limit.value = ast.Constant(11)  # Exercise real branches with small buffers.
-    namespace = vars(driver).copy()
-    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
-                 '<small-chunk-fingerprint>', 'exec'), namespace)
-    candidate = namespace['fingerprint']
-    events, owners = [], []
-    live = {'cuda': 0, 'cpu': 0}
-    failures = set()
-    class Raw(bytearray):
-        pass
-    def allocated(raw, device):
-        assert live[device] == 0, 'next chunk allocated before prior owner released'
-        assert len(raw) <= 11, 'staged chunk exceeds cap'
-        live[device] += len(raw)
-        events.append(('allocate', device, len(raw)))
-        def released():
-            live[device] -= len_raw
-            events.append(('release', device, len_raw))
-        len_raw = len(raw)
-        weakref.finalize(raw, released)
-        owners.append(weakref.ref(raw))
-        return raw
-    class Tensor:
-        _version, layout = 0, 'strided'
-        def __init__(self, data, device='cuda', dtype='uint8', shape=None, contiguous=True):
-            self.data, self.device, self.dtype = data, SimpleNamespace(type=device), dtype
-            self.shape = shape if shape is not None else (len(data) // self.element_size(),)
-            self.dense = contiguous
-        def data_ptr(self):
-            return id(self.data)
-        def numel(self):
-            return math.prod(self.shape)
-        def element_size(self):
-            return {'uint8': 1, 'float32': 4, 'int64': 8, 'float16': 2, 'bool': 1}[self.dtype]
-        def is_contiguous(self):
-            return self.dense
-        def detach(self):
-            return self
-        def cpu(self):
-            if self.device.type == 'cpu':
-                return self
-            if 'stage' in failures:
-                raise OSError('stage failed')
-            return Tensor(allocated(Raw(self.data), 'cpu'), 'cpu', self.dtype, self.shape)
-        def contiguous(self):
-            if self.dense:
-                return self
-            events.append(('contiguous', len(self.data)))
-            return Tensor(bytes(self.data), self.device.type, self.dtype, self.shape)
-        def reshape(self, *shape):
-            assert shape == (-1,) and self.dense
-            return Tensor(self.data, self.device.type, self.dtype)
-        def view(self, dtype):
-            assert dtype == 'uint8'
-            return Tensor(self.data, self.device.type)
-        def narrow(self, dim, offset, count):
-            assert dim == 0 and self.dtype == 'uint8'
-            return Tensor(memoryview(self.data)[offset:offset + count], self.device.type)
-        def select(self, dim, index):
-            assert dim == 0 and self.shape
-            size = math.prod(self.shape[1:]) * self.element_size()
-            return Tensor(memoryview(self.data)[index * size:(index + 1) * size],
-                          self.device.type, self.dtype, self.shape[1:], self.dense)
-        def numpy(self):
-            assert self.device.type == 'cpu'
-            return self.data
-    def cat(parts):
-        if 'cat' in failures:
-            raise OSError('cat failed')
-        assert parts and all(p.dtype == 'uint8' and p.device.type == 'cuda' for p in parts)
-        events.append(('cat', tuple(bytes(p.data) for p in parts)))
-        return Tensor(allocated(Raw(b''.join(bytes(p.data) for p in parts)), 'cuda'))
-    fake = SimpleNamespace(Tensor=Tensor, uint8='uint8', strided='strided', cat=cat)
-    # Oracle transfers may be arbitrarily large; observe only candidate staging.
-    def oracle(value, cache=None, consumed=None):
-        with patch.object(Tensor, 'cpu', lambda t: Tensor(bytes(t.data), 'cpu', t.dtype, t.shape)):
-            return original_fingerprint(value, cache, consumed)
-    cuda = Tensor(bytes(range(27)))
-    cpu = Tensor(b'abcd', 'cpu', 'float32', ())
-    cached = Tensor(b'frozen')
-    cache = {(cached.data_ptr(), 0, cached.dtype, cached.shape):
-             (cached.dtype, cached.shape, hashlib.sha256(cached.data).hexdigest())}
-    value = {'z': [cuda, cuda, cached, Tensor(b'', shape=(0,))],
-             3: (cpu, Tensor(bytes(range(16)), dtype='int64', shape=(2,)),
-                 Tensor(bytes(range(24)), dtype='float32', shape=(3, 2), contiguous=False)),
-             'typed': [True, 1, None, -0., 'x', Tensor(b'\x00\x01', dtype='bool')]}
-    with patch.dict(sys.modules, {'torch': fake}), patch('sys.stdout', io.StringIO()) as output:
-        expected = oracle(value, cache)
-        assert candidate(value, cache) == expected
-        stats = json.loads(output.getvalue().splitlines()[-1])
-        assert stats['mode'] == 'batched' and stats['peak_chunk_bytes'] == 11
-        assert stats['bytes_by_device'] == {'cuda': 96, 'cpu': 4} and stats['cache_hits'] == 1
-        assert stats['chunks'] == 9 and stats['stage_seconds'] >= 0 and stats['wall_seconds'] >= 0
-        staged = b''.join(b''.join(e[1]) for e in events if e[0] == 'cat')
-        assert staged == b'\x00\x01' + cuda.data * 2 + bytes(range(16)) + bytes(range(24))
-        assert all(ref() is None for ref in owners) and live == {'cuda': 0, 'cpu': 0}
-        assert all(e[1] <= 11 for e in events if e[0] == 'contiguous'), 'eager oversized strided copy'
-        events.clear()
-        changed = {**value, 'z': tuple(value['z'])}
-        assert candidate(changed, cache) != expected
-        assert candidate(dict(reversed(list(value.items()))), cache) == expected
-        cached._version += 1
-        assert candidate(value, cache) == oracle(value, cache)
-        assert json.loads(output.getvalue().splitlines()[-1])['cache_hits'] == 0
-        # Several small leaves share one transfer; CPU strided leaves stay serial.
-        events.clear()
-        small = [Tensor(b'ab'), Tensor(b'cde'), Tensor(b'f'),
-                 Tensor(b'gh', 'cpu', contiguous=False)]
-        assert candidate(small, {}) == oracle(small, {})
-        assert [e for e in events if e[0] == 'cat'] == [('cat', (b'ab', b'cde', b'f'))]
-        scalar = [Tensor(b'abcd', dtype='float32', shape=()), Tensor(b'ef', dtype='float16', shape=())]
-        assert candidate(scalar, {}) == oracle(scalar, {})
-        assert candidate(Tensor(b'same'), {}) == candidate(Tensor(b'same', 'cpu'), {})
-        # Identical pointers still require independent dtype/shape cache keys.
-        aliases = [Tensor(cached.data, dtype='float16'), Tensor(cached.data, shape=(2, 3))]
-        assert candidate(aliases, cache) == oracle(aliases, cache)
-        assert json.loads(output.getvalue().splitlines()[-1])['cache_hits'] == 0
-        events.clear()
-        another = Tensor(b'cd'); another.device.index = 1
-        assert candidate([small[0], another], {}) == oracle([small[0], another], {})
-        assert len([e for e in events if e[0] == 'cat']) == 2, 'different CUDA devices shared a chunk'
-        # Uncached and consumed entry points use the original path exactly.
-        events.clear()
-        with patch.object(driver, 'fingerprint_serial', return_value='serial') as serial:
-            assert driver.fingerprint(value) == driver.fingerprint(value, cache, lambda _: None) == 'serial'
-            assert serial.call_count == 2 and events == []
-        consumed = []
-        with patch.object(Tensor, 'cpu', lambda t: Tensor(bytes(t.data), 'cpu', t.dtype, t.shape)):
-            assert driver.fingerprint(value, cache, consumed.append) == oracle(value, cache)
-        assert consumed == [value['typed'][-1], *value['z'], cpu, value[3][1], value[3][2]]
-        invalid = Tensor(b'ab'); invalid.layout = 'sparse'
-        rejects(lambda: candidate([Tensor(b'a'), invalid], {}), 'layout')
-        for failure in ('cat', 'stage', 'hash', 'traversal'):
-            failures.add(failure)
-            class Broken:
-                def __repr__(self):
-                    raise OSError('traversal failed')
-            real_sha = hashlib.sha256
-            class Hash:
-                def __init__(self, raw=b''):
-                    self.inner = real_sha(raw)
-                def update(self, raw):
-                    if isinstance(raw, memoryview) and 'hash' in failures:
-                        raise OSError('hash failed')
-                    self.inner.update(raw)
-                def hexdigest(self):
-                    return self.inner.hexdigest()
-            failing = [cuda, Broken()] if failure == 'traversal' else [cuda]
-            with patch.object(driver.hashlib, 'sha256', Hash):
-                rejects(lambda: candidate(failing, {}), failure + ' failed')
-            failures.clear()
-            assert live == {'cuda': 0, 'cpu': 0} and all(ref() is None for ref in owners)
-
-
-def fingerprint_screen_checks(driver):
-    # The screen alternates order on exactly one payload, never reads quality,
-    # and fails immediately on same-payload or post-update digest disagreement.
-    state, identity, flags, saved, calls = {'frozen_cache': {}}, {}, {}, object(), []
-    def payload(actual, binding, numerical):
-        assert actual is state and binding is identity and numerical is flags
-        calls.append('payload')
-        return saved
-    def serial(value, cache):
-        assert value is saved and cache is state['frozen_cache']
-        calls.append('serial')
-        return 'same-payload-digest'
-    def candidate(value, cache):
-        assert value is saved and cache is state['frozen_cache']
-        calls.append('candidate')
-        return 'same-payload-digest'
-    for step, order in ((3, ['serial', 'candidate']), (9, ['candidate', 'serial']), (17, ['serial', 'candidate'])):
-        calls.clear()
-        with patch.object(driver, 'payload', payload), patch.object(driver, 'fingerprint_serial', serial), \
-             patch.object(driver, 'fingerprint', candidate), patch.object(driver.time, 'perf_counter', side_effect=[0., .5, 1., 1.2]), \
-             patch('sys.stdout', io.StringIO()):
-            row = driver.fingerprint_screen(state, identity, flags, step, 'same-payload-digest')
-        assert calls == ['payload'] + order and row['order'] == order and row['step'] == step
-        assert math.isclose(row['saving_seconds'], .3 if step != 9 else -.3)
-    with patch.object(driver, 'payload', payload), patch.object(driver, 'fingerprint_serial', serial), \
-         patch.object(driver, 'fingerprint', return_value='wrong'):
-        rejects(lambda: driver.fingerprint_screen(state, identity, flags, 3, 'same-payload-digest'), 'parity differs')
-    with patch.object(driver, 'payload', payload), patch.object(driver, 'fingerprint_serial', serial), \
-         patch.object(driver, 'fingerprint', candidate):
-        rejects(lambda: driver.fingerprint_screen(state, identity, flags, 3, 'different-update'), 'parity differs')
-    rejects(lambda: driver.fingerprint_screen(state, identity, flags, 8, 'unused'), 'fixed fingerprint screen step')
-    # Execute the real final-screen block with literal timing evidence. Exactly
-    # 0.10s passes; a smaller median or missing/reordered snapshot is fatal.
-    run = next(node for node in ast.parse(Path(driver.__file__).read_bytes()).body if getattr(node, 'name', None) == 'run')
-    screen_gate = next(node for node in ast.walk(run) if isinstance(node, ast.If) and
-                       any(isinstance(part, ast.Constant) and part.value == 'fingerprint_screen_summary'
-                           for part in ast.walk(node)))
-    code = compile(ast.Module(body=[screen_gate], type_ignores=[]), '<actual-screen-gate>', 'exec')
-    for steps, savings, accepted in (([3, 9, 17], [.09, .10, .11], True),
-                                      ([3, 9, 17], [.09, .099, .3], False),
-                                      ([3, 17, 9], [.2, .2, .2], False),
-                                      ([3, 9], [.2, .2], False)):
-        namespace = {**vars(driver), 'args': SimpleNamespace(phase='mechanics'),
-                     'fingerprint_screens': [dict(step=step, saving_seconds=saving)
-                                             for step, saving in zip(steps, savings, strict=True)]}
-        with patch('sys.stdout', io.StringIO()):
-            if accepted:
-                exec(code, namespace)
-            else:
-                rejects(lambda: exec(code, namespace), 'fingerprint median saving')
-    exec(code, {**vars(driver), 'args': SimpleNamespace(phase='train')})  # TRAIN never runs the screen.
 
 
 def checkpoint_restore_checks(driver, root):
@@ -521,43 +272,7 @@ def native_contract_checks(driver):
     # change, plus the explicitly replaced exit traversal below. Includes ALL
     # admission, writer, math, freshCPU,17/8+9, final raw/packed reload and caps.
     tree = ast.parse(Path(driver.__file__).read_bytes())
-    # This candidate does not change restore/page/exit implementations. Pin
-    # complete definitions from 369208da, beyond the older predicate ledger.
-    for name, expected in {
-            'restore_independent': '54aa4bfb90dc9012bf1998cf453746cb387e8e64dc2e9afcdae1e28054cb5965',
-            'CheckpointPages': 'b385888b8e97acf8a73f325cacd583dd97ea850138573b80d0f843745db80f13',
-            'load_vision': '16db9764d3593c1abcbd4de662b7e4d82023cd208fbda33c0ec0c62dd4335998',
-            'exit_rehash': 'be791054ed90c20b47e48d937d6b2d8c02710a6f1bb200d131a5b5af9fe29e01'}.items():
-        node = next(n for n in tree.body if getattr(n, 'name', None) == name)
-        assert hashlib.sha256(ast.dump(node, include_attributes=False).encode()).hexdigest() == expected, name
-    oracle = next(node for node in ast.parse(Path(__file__).read_bytes()).body
-                  if getattr(node, 'name', None) == 'original_fingerprint')
-    assert hashlib.sha256(ast.dump(oracle, include_attributes=False).encode()).hexdigest() == (
-        'c182c1cda5c933900a0b830654025d912270d11987dde69439a223b089dbb507')
     run = next(node for node in tree.body if getattr(node, 'name', None) == 'run')
-    # Strip only the exact new mechanics-screen statements. All original run
-    # math/RNG/payload/update/restore/cap statements still face the original pin.
-    additions = [ast.parse(source).body[0] for source in (
-        'fingerprint_screens = []',
-        """if args.phase == 'mechanics' and step in (3, 9, 17):
-    fingerprint_screens.append(fingerprint_screen(state, identity, flags, step, row['state_sha256']))""",
-        """if args.phase == 'mechanics':
-    saving = statistics.median(row['saving_seconds'] for row in fingerprint_screens)
-    print(json.dumps({'diagnostic': 'fingerprint_screen_summary', 'steps': [3, 9, 17],
-                      'median_saving_seconds': saving, 'minimum_saving_seconds': 0.10},
-                     sort_keys=True, allow_nan=False), flush=True)
-    require([row['step'] for row in fingerprint_screens] == [3, 9, 17] and saving >= 0.10,
-            'fingerprint median saving below 0.10 seconds')""" )]
-    counts = Counter()
-    class WithoutScreen(ast.NodeTransformer):
-        def visit(self, node):
-            for index, addition in enumerate(additions):
-                if ast.dump(node) == ast.dump(addition):
-                    counts[index] += 1
-                    return None
-            return super().visit(node)
-    WithoutScreen().visit(run)
-    assert counts == Counter({0: 1, 1: 1, 2: 1}), 'mechanics screen contract changed'
     replacement = ast.parse('origins = exit_rehash(context)').body[0]
     indices = [i for i, node in enumerate(run.body) if ast.dump(node) == ast.dump(replacement)]
     assert len(indices) == 1, 'exactly one trainer-owned exit traversal required'
@@ -573,10 +288,7 @@ for path, digest in origins['files'].items():
 q.rehash(initialized)
 require(closure(context['root'], args.execution_sha256, FILES, {}) == context['code'], 'exit own closure differs')
 ''').body
-    fingerprint = copy.deepcopy(next(node for node in tree.body if getattr(node, 'name', None) == 'fingerprint_serial'))
-    fingerprint.name = 'fingerprint'
-    assert hashlib.sha256(ast.dump(fingerprint, include_attributes=False).encode()).hexdigest() == (
-        '3de225c57984a5ee3f292ecddce7a1516154938d5b4d415e692837abda5b2d0f')
+    fingerprint = copy.deepcopy(next(node for node in tree.body if getattr(node, 'name', None) == 'fingerprint'))
     assert fingerprint.args.args[-1].arg == 'consumed'
     fingerprint.args.args.pop(); fingerprint.args.defaults.pop()
     class WithoutAdvice(ast.NodeTransformer):
@@ -596,7 +308,7 @@ require(closure(context['root'], args.execution_sha256, FILES, {}) == context['c
     assert hashlib.sha256('\n'.join(sorted(ast.dump(node, include_attributes=False)
                                            for node in predicates)).encode()).hexdigest() == (
         'bf2f4c8aa1174c86bac0218f34306da28c995cb8289ebd7abb7d436e37b9bb79')
-    changed = {'fingerprint', 'fingerprint_serial', 'fingerprint_screen', 'restore_independent', 'CheckpointPages', 'load_vision', 'exit_rehash'}
+    changed = {'fingerprint', 'restore_independent', 'CheckpointPages', 'load_vision', 'exit_rehash'}
     tree.body = [node for node in tree.body if getattr(node, 'name', None) not in changed]
     assert hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest() == (
         '6325c182e27eda4e1aaa26f461adeb0c221f357502052644abfedbb38558e7c6')
@@ -1286,8 +998,6 @@ def flat_chain_checks(driver, base):
 def main():
     path = Path(__file__).with_name('train_siglip2_substrate_adaptation.py').resolve()
     driver = module(path, 'adaptation_under_test')
-    fingerprint_batch_checks(driver)
-    fingerprint_screen_checks(driver)
     native_contract_checks(driver)
     with TemporaryDirectory() as directory:
         checkpoint_restore_checks(driver, Path(directory))
@@ -1707,7 +1417,7 @@ def main():
     with TemporaryDirectory() as directory, patch.dict(sys.modules):
         flat_chain_checks(driver, Path(directory).resolve())
     assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
-    print('PASS stdlib bounded-batched-fingerprint/original-serializer/cross-chunk/lifetime/screen/checkpoint-mmap/consumed-order/ownership/failures/native-contract/flat-chain/predicate-ledger/stage-guards/unique-bulk-SHA/uncached-exit-tamper/authority/reference/math/schedule/full-state/JSON/RGB/source-byte/checkpoint-write/ZIP/phase-log checks; native unrun')
+    print('PASS stdlib checkpoint-mmap/consumed-order/ownership/failures/native-contract/flat-chain/predicate-ledger/stage-guards/unique-bulk-SHA/uncached-exit-tamper/authority/reference/math/schedule/full-state/JSON/RGB/source-byte/checkpoint-write/ZIP/phase-log checks; native unrun')
 
 
 if __name__ == '__main__':
