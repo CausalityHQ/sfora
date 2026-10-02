@@ -1,0 +1,49 @@
+Running as unit: sfora-so400-genuine-view-startup-v1.service; invocation ID: e2a693d1baf64435abdb4c798c836a2d
+export_siglip2_genuine_views.py: OK
+test_siglip2_genuine_views.py: OK
+execution.json: OK
+authority.json: OK
+partition.json: OK
+train_sop_siglip2_compact.py: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+{"output": "/home/riomus/runs/sfora-so400-genuine-view-startup-v1", "phase": "startup", "schema": "siglip2-genuine-views-v1"}
+export_siglip2_genuine_views.py: OK
+test_siglip2_genuine_views.py: OK
+execution.json: OK
+authority.json: OK
+partition.json: OK
+train_sop_siglip2_compact.py: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+FINAL_CGROUP {"command_exit_status": 0, "invocation_id": "e2a693d1baf64435abdb4c798c836a2d", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-genuine-view-startup-v1.service", "values": {"memory.current": "103268352", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "142770176", "memory.stat": "anon 5865472\nfile 68780032\nkernel 27176960\nkernel_stack 65536\npagetables 331776\nsec_pagetables 0\npercpu 2112\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1114112\nfile_dirty 24576\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5709824\ninactive_file 54710272\nactive_file 14069760\nunevictable 0\nslab_reclaimable 26653984\nslab_unreclaimable 113472\nslab 26767456\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 21053\npgmajfault 163\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 0\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+	Command being timed: "/bin/bash /home/riomus/runs/sfora-so400-genuine-view-export-source-v1/startup-command.sh"
+	User time (seconds): 9.52
+	System time (seconds): 2.14
+	Percent of CPU this job got: 33%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:35.08
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 63172
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 161
+	Minor (reclaiming a frame) page faults: 20719
+	Voluntary context switches: 116432
+	Involuntary context switches: 62
+	Swaps: 0
+	File system inputs: 37346216
+	File system outputs: 5144
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+STOP_CGROUP {"exit_code": "exited", "exit_status": "0", "invocation_id": "e2a693d1baf64435abdb4c798c836a2d", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-genuine-view-startup-v1.service", "service_result": "success", "values": {"memory.current": "102260736", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "142770176", "memory.stat": "anon 5287936\nfile 68780032\nkernel 26828800\nkernel_stack 0\npagetables 102400\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1118208\nfile_dirty 24576\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5259264\ninactive_file 54710272\nactive_file 14069760\nunevictable 0\nslab_reclaimable 26651024\nslab_unreclaimable 61392\nslab 26712416\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 22537\npgmajfault 163\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 0\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 35.131s
+CPU time consumed: 11.696s
+Memory peak: 136.1M
+Memory swap peak: 0B
