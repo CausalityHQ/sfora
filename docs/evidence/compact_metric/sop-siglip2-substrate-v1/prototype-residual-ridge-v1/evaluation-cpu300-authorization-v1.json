@@ -1,0 +1,11 @@
+{
+  "approval": "immediate-1790978382026380937-1312788",
+  "candidate_commit": "35e0d20e5c271b184f48f59d3382b097bc7bb3bf",
+  "execution_sha256": "5dacb69b400565a3b3d01953bcca8b3fe40339b4eaa04ec05ed435925a1da89f",
+  "authority_sha256": "dab6656c23bc4efcb54092773163a20ecda5b4ef4ad96388344107b088c56f5c",
+  "status": "AUTHORIZED_ONE_PROSPECTIVE_CPU300_NOT_YET_LAUNCHED",
+  "old_cpu120_v4": "FAIL_TIMEOUT_UNCHANGED",
+  "root_source_bytes_equal_reviewed_proposal": true,
+  "stdlib_evidence": "reuse fresh unchanged bounded PASS; no code/dependency change",
+  "stop_rule": "one CPUv5 only; unchanged source/8GiB/noSwap/CUDA/bothlocks/cost/parity/science; quality only after accepted complete CPU proof"
+}
