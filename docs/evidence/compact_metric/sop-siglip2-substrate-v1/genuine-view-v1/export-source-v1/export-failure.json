@@ -1,0 +1,19 @@
+{
+  "cache_qualified": false,
+  "error": "CPU finite tensor required",
+  "exit_status": 1,
+  "invocation_id": "8ec5d458b64941cd857ec74bd2d897ae",
+  "log_sha256": "ee21052e5b9d765d48d803f82f4e736dafd12886f1c2ecfe03af435d9360621c",
+  "memory_events": 0,
+  "native_peak_rss_kib": 4395804,
+  "next": "explicit detached CPU witness copies; source-only refreeze, same scientific/resource gates",
+  "quality_read": false,
+  "root_cause": "calibrate and witness pass CUDA tensors to unchanged CPU-only source.tensor_fact",
+  "schema": "genuine-view-export-failure-v1",
+  "service_seconds": 44.07,
+  "session": 59819,
+  "source_execution_sha256": "2e4bcececc3b32c01544cdd3b075bf3c6079a8e3680bcb4e668b1e080f030031",
+  "swap_bytes": 0,
+  "unit": "sfora-so400-genuine-view-export-v1",
+  "whole_unit_host_peak_bytes": 6050369536
+}
