@@ -1,0 +1,29 @@
+{
+  "binding": "prepare_native requires warm disk partition == authenticated selected partition; fresh clones complete STATIC_KEYS",
+  "call_graph": [
+    "pre integrity STATIC",
+    "pre integrity frozen_tree",
+    "post integrity STATIC",
+    "post integrity frozen_tree",
+    "complete typed payload diagnostic"
+  ],
+  "native_runtime_attribution_measured": false,
+  "original_serializer_sha256": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+  "partition": {
+    "frame_calls": 48536,
+    "framed_bytes": 286299,
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c",
+    "size_bytes": 348832,
+    "typed_tree_nodes": 24268
+  },
+  "per_completed_update": {
+    "frame_calls": 242680,
+    "framed_bytes": 1431495,
+    "partition_fingerprint_traversals": 5,
+    "typed_tree_node_visits": 121340
+  },
+  "runtime_savings_measured": false,
+  "schema": "quadratic-partition-source-counts-v1",
+  "source_only": true
+}
