@@ -1,0 +1,21 @@
+{
+  "schema": "fresh-copy-lifetime-root-check-v1",
+  "worker_commit": "c7e888fb84e042c0796456e6263e9262c4181107",
+  "integration_commit": "1ba7f7e9",
+  "helper_sha256": "3ab43bea68a86cd30e5c41bebd35623e4796c9fd46e9800bc23d9ec8d244e132",
+  "focused_check": {
+    "exit": 0,
+    "seconds": 0.224,
+    "gc_disabled_success_and_error_checks": true
+  },
+  "unchanged_reproduction": {
+    "exit": 0,
+    "gc_disabled": true,
+    "retaining_calls": 0,
+    "retained_tensor_views": 0,
+    "native_imported": false
+  },
+  "native": "UNRUN",
+  "quality": "UNMEASURED",
+  "old_source_verdict": "NO-GO; preserved"
+}
