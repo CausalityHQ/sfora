@@ -1,0 +1,71 @@
+{
+  "decision": "KILL_QUADRATIC_PROCEDURE_ONLY",
+  "engineering_pass": true,
+  "quality_verified": true,
+  "dataset": "DeepFashion In-Shop",
+  "split": "previously observed TRAIN selection; no validation/official read",
+  "query_images": 1734,
+  "gallery_images": 1715,
+  "products": 498,
+  "metric_units": "fraction; displayed percentages multiply by100",
+  "metrics": {
+    "source": {
+      "recall_at_1": 0.9630911188004614,
+      "map_at_r": 0.8057229533585297
+    },
+    "linear": {
+      "recall_at_1": 0.9642445213379469,
+      "map_at_r": 0.8156035338692805
+    },
+    "quadratic": {
+      "recall_at_1": 0.9653979238754326,
+      "map_at_r": 0.8095200395785195
+    }
+  },
+  "aggregate_deltas": {
+    "linear_minus_source": {
+      "per_query_ap": 0.009880580510750773,
+      "per_query_r1": 0.0011534025374855825
+    },
+    "quadratic_minus_linear": {
+      "per_query_ap": -0.006083494290761057,
+      "per_query_r1": 0.0011534025374855825
+    },
+    "quadratic_minus_source": {
+      "per_query_ap": 0.0037970862199897173,
+      "per_query_r1": 0.002306805074971165
+    }
+  },
+  "paired_intervals": {},
+  "intervals_computed": false,
+  "reason": "quadratic-minus-linear mAP@R negative; R1 gain also below0.002 fraction. Frozen immediate quality gate fails before bootstrap.",
+  "cost": {
+    "linear": {
+      "service_seconds": 180.745,
+      "total_fit_core_seconds": 0.2489116513170302
+    },
+    "pass": true,
+    "quadratic": {
+      "service_seconds": 203.548,
+      "total_fit_core_seconds": 0.30416333908215165
+    },
+    "total_fit_core_ratio": 1.2219730875303594,
+    "whole_service_ratio": 1.1261611662839912
+  },
+  "original_session": 10536,
+  "unit": "sfora-so400-prototype-residual-evaluation-selection-score-v3",
+  "invocation_id": "2b77f1e7c9814cd78ca166551a93633a",
+  "service_seconds": 286.466,
+  "host_peak_bytes": 3275661312,
+  "swap_peak_bytes": 0,
+  "memory_events_all_zero": true,
+  "receipt_sha256": "05c75149b42e20e1bced400fb11803629eb7adcd62f071b726df77344eb745b9",
+  "log_sha256": "05519e636ee37dd37bad9d8a00047cee66dc8447ed09da6c72dad34574c56fc7",
+  "valid_pareto_candidates_preserved": [
+    "linear improves both source metrics",
+    "quadratic improves both source metrics and hashigher R1/lower mAP thanlinear"
+  ],
+  "public_latency_measured": false,
+  "global_production_goal_met": false,
+  "next": "Choose one intervention addressing full-output class scatter, retaining source/cost/quality gates; no validation permitted under this KILL."
+}
