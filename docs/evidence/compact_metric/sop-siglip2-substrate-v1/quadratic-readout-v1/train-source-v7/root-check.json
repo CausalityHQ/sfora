@@ -1,0 +1,23 @@
+{
+  "worker_commit": "202fe7641e4b371f7fd6b97bbf23c7d71d14caa7",
+  "integration": "4e38dc06",
+  "trainer_sha256": "17cf2dac93a45aae3ba929ad5c36e73f4c33576eae9bb5f9dec670c272a1731f",
+  "unchanged_function_class_nodes": 57,
+  "module_globals_unchanged": true,
+  "changed_functions": [
+    "calibration",
+    "check_terminal_record",
+    "cpu_witnesses",
+    "fresh",
+    "gpu_run",
+    "integrity",
+    "update"
+  ],
+  "focused_check_exit": 0,
+  "focused_seconds": 0.719,
+  "selected_frame_helper_sha256": "1928b2882b771f5c57437420755c1dcdb96fd119981b02077b275c2ba9b2e8db",
+  "runtime_source_frozen_qualified": false,
+  "native": "UNRUN",
+  "quality": "UNMEASURED",
+  "reuse_review": "existing architecture and original frame-helper critique retained; root verifies narrow storage/transfer change and adds native byte/layout witness"
+}

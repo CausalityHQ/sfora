@@ -1,0 +1,149 @@
+{
+  "schema": "quadratic-cpu-feature-residency-worker-receipt-v1",
+  "status": "complete",
+  "opening_turn_confirmed": true,
+  "parent_opening_message": "rejected: recipient already has 20 queued instructions",
+  "base_commit": "6d83b9587878b5c662ed376e90855a039498be54",
+  "base_trainer_sha256": "f5759274d4c8ba75d69f6728b9b309e0cafeaba80ed7127fce6393099730e17b",
+  "api": {
+    "feature_rows": "feature_rows(state, rows) -> state[features][rows].to(device=state[A].device)",
+    "features": "fresh canonical_features invocation-owned normalized FP32 CPU tensor, features.detach(); restore reconstructs fresh; no context cache",
+    "update": "four Python batch[start:start+16] gathers; keep CUDA torch.tensor index for targets/positive",
+    "calibration_and_initial_source": "route row inputs through feature_rows",
+    "integrity": "explicit CPU/FP32 features; full frozen_tree/frozen_tensors; both update boundaries retain check_complement; typed features_sha256 and pointer/versions and diagnostic row hash unchanged"
+  },
+  "audited_consumers": [
+    "frozen_tree",
+    "frozen_tensors",
+    "fresh",
+    "identity",
+    "integrity",
+    "calibration",
+    "update",
+    "cpu_witnesses",
+    "restore"
+  ],
+  "source_contracts": {
+    "affected_tests": [
+      "test_exit_only_differential_falsifier (complete trainer AST)",
+      "test_original_math_schedule_rng_and_exit_ast_stay_pinned",
+      "test_partition_interface_preserves_complete_baseline_ast",
+      "test_cached_math_updated_reload_bank_and_native_scope"
+    ],
+    "existing_checks": 20,
+    "existing_caps_unchanged": true,
+    "new_check": "test_cpu_feature_residency_preserves_fresh_bytes_and_rows, <=5s stdlib/fake tensors",
+    "affected_literal_sha_assertions": {
+      "exit_closure": "8a6635ebec61d6b994e9555f41536b06c6f24b501892b7e619681969ccf4bbd3",
+      "exit_closure_with_logical_device_reversed": "a233e88d37fc5adbf0efa2b1e1e9ac8ee5837ce22199500817cf16bd352ece54",
+      "math_reload_rng_exit_with_residency_and_witness": "efa204db7d324d15648754fb6a9c8c10da3acd0ea80b2c155fea759334d0269f",
+      "partition_interface_reversed": "96871499965d85e6a9d3c22d0bd1aebd5b7c4baaef632f8c628c9b84b287a22f"
+    }
+  },
+  "root_limitations": [
+    "qualified original frame-helper SHA 1928b288...b2e8db at cffdb936 must be used in root future four-file closure; current rejected cat helper stays untouched",
+    "no Torch/native/GPU/SSH/jobs/quality/reviews/children/operator",
+    "root owns native CPU120 and mechanics300, 8GiB/noSwap/<10G CUDA/both locks",
+    "mean+median<=0.180s and nonupdate<=110s is prospective estimate only, never fullrun GO",
+    "old source-v5 705/1000 timeout300.100 and cat KILL43.637vs45.224ms remain final; architecture quality unmeasured",
+    "no native driver construction; no master merge/push",
+    "Full worker stdlib suite used the untouched current worktree frame helper 3ab43bea68a86cd30e5c41bebd35623e4796c9fd46e9800bc23d9ec8d244e132. The future root original-helper four-file closure is not frozen or qualified by this worker.",
+    "Native witness is implemented and fake-tested only, native UNRUN. Its one mechanics-only temporary full CUDA mirror is the explicitly authorized exception to no full-matrix transfer in normal fresh/update/calibration/integrity/restore.",
+    "New source-bound method/state hashes differ prospectively. Root compares archived old first17 mathematical/batch/feature/mask/bank/gradient diagnostics individually; no old-method-SHA blanket parity claim."
+  ],
+  "updated_utc": "2026-10-02T12:03:20.393720+00:00",
+  "supplemental_instructions_consumed": [
+    "1790941805477579594-1312788",
+    "immediate-1790941995922336347-1312788",
+    "immediate-1790942340747565067-1312788"
+  ],
+  "mechanics_witness": {
+    "api": "inline in gpu_run, args.phase == mechanics only, after initial integrity and before update timings",
+    "temporary_cuda_mirror": "only full-matrix upload; discarded with microbatch temporaries and synchronized before timing; no lifetime peak reset",
+    "comparisons": {
+      "rows": 17,
+      "microbatches": 68,
+      "typed_fingerprint": "original unmodified serializer, ordered duplicates",
+      "dtype": "torch.float32",
+      "shape": [
+        16,
+        1152
+      ],
+      "stride": [
+        1152,
+        1
+      ],
+      "contiguous": true,
+      "device": "state A exact device"
+    },
+    "receipt_field": {
+      "feature_upload_witness": {
+        "pass": true,
+        "rows": 17,
+        "microbatches": 68
+      }
+    },
+    "admission": "check_terminal_record rejects absent/false/wrong row or microbatch count proof",
+    "native_status": "UNRUN",
+    "stride_and_contiguity_negative_checks": "PASS fake checks reject incorrect stride and noncontiguous uploads"
+  },
+  "root_gate_commit": "bad5e15520b1a80ee55728a4b6d9807eeeef4551",
+  "root_closure_base": "cffdb93668884a3a01a9da4a06a9623c9c382110",
+  "root_required_frame_helper_sha256": "1928b2882b771f5c57437420755c1dcdb96fd119981b02077b275c2ba9b2e8db",
+  "root_gate_note": "actual whole-service minus all26 recorded mechanics updates <=110s; first17 mean and median <=0.180s; these are root prospective screen, no claim of fullrun GO",
+  "verification": {
+    "red": [
+      "Original full canonical matrix upload rejected by new falsifier",
+      "Missing mechanics upload witness rejected after base correction"
+    ],
+    "narrow": {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_cpu_feature_residency_preserves_fresh_bytes_and_rows ContractTests.test_original_math_schedule_rng_and_exit_ast_stay_pinned ContractTests.test_partition_interface_preserves_complete_baseline_ast ContractTests.test_cached_math_updated_reload_bank_and_native_scope",
+      "result": "4 checks PASS, 1.575s"
+    },
+    "new_falsifier": "PASS independently 0.733s with 5s alarm; stdlib/fake tensors only",
+    "syntax_scope": "PASS compile both sources; only two owned files; only intended trainer functions changed; existing20 checks and per-test caps retained",
+    "diff_check": "PASS git diff --check",
+    "full_command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py -v",
+    "full_status": "PASS",
+    "full_exit_status": 0,
+    "full_test_count": 21,
+    "full_seconds": 39.095,
+    "full_invocations": 1,
+    "retained_existing_checks": 20,
+    "new_checks": 1,
+    "existing_per_test_caps_unchanged": true,
+    "postcommit_commands": [
+      "rtk proxy git log -1 --format=%H,%an,%ae,%cn,%ce,%B",
+      "rtk proxy git status --porcelain=v1",
+      "rtk proxy git diff-tree --no-commit-id --name-only -r HEAD",
+      "rtk proxy sha256sum scripts/train_siglip2_quadratic_readout.py scripts/test_siglip2_quadratic_readout.py scripts/quadratic_encoder_frames.py scripts/quadratic_readout.py"
+    ],
+    "postcommit_result": "PASS full commit/identity/no attribution/two-file-only scope/clean tree/unchanged helpers verified",
+    "syntax_command": "rtk proxy python3 -B - (compile both owned sources; AST exact changed-function set; original20 checks and caps comparison)",
+    "final_narrow_seconds": 1.575
+  },
+  "commit": "202fe7641e4b371f7fd6b97bbf23c7d71d14caa7",
+  "commit_subject": "Keep canonical quadratic features on CPU and verify row uploads",
+  "branch": "devbox/quadratic-cpu-feature-residency-20261002",
+  "owned_files": [
+    "scripts/test_siglip2_quadratic_readout.py",
+    "scripts/train_siglip2_quadratic_readout.py"
+  ],
+  "file_sha256": {
+    "scripts/test_siglip2_quadratic_readout.py": "1410060ac38065f39aa8e3f0a43fe47fb42321331bb00c9d43264381c4a23ba8",
+    "scripts/train_siglip2_quadratic_readout.py": "17cf2dac93a45aae3ba929ad5c36e73f4c33576eae9bb5f9dec670c272a1731f",
+    "scripts/quadratic_encoder_frames.py": "3ab43bea68a86cd30e5c41bebd35623e4796c9fd46e9800bc23d9ec8d244e132",
+    "scripts/quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6"
+  },
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "committer": "Roman Bartusiak <riomus@gmail.com>",
+  "no_ai_trailers": true,
+  "worktree_clean": true,
+  "merged": false,
+  "pushed": false,
+  "native_imports_or_execution": false,
+  "children_or_reviews": false,
+  "operator_contact": false,
+  "control_file_edited": false,
+  "blockers": []
+}
