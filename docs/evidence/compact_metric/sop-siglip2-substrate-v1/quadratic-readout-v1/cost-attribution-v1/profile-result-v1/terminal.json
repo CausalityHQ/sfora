@@ -1,0 +1,23 @@
+{
+  "schema": "quadratic-profile-diagnostic-terminal-v1",
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "session": 54922,
+  "exit_status": 0,
+  "unit": "sfora-so400-quadratic-readout-profile-control-179061-v1",
+  "invocation_id": "d0bc4125c9cb4e74b077e9992da3aaba",
+  "service_seconds": 123.743,
+  "host_peak_bytes": 2770354176,
+  "cuda_peak_bytes": 242560512,
+  "both_locks_held": true,
+  "all17_exact_omitting_only_seconds": true,
+  "independent8plus9": true,
+  "strict_reload": true,
+  "exit_rehash": true,
+  "files": {
+    "original.log": "ec13746508deb6f3b3883231bf5c4cda6ca429febdbce30d3c6519a36bc3bbd9",
+    "native-receipt.json": "afd78f997fc056fa9561c20f7904bb2d34952e52e824730d3f611deb75f47829",
+    "control061.pstats": "6e84fa692e6646ab556f9f3099281db17fcb25725c53a3315750051e5f01bb58",
+    "cost-analysis.json": "a75e6032321dc8f3c8cdf80654383cba345cf41a40ba61bc5d55ab33c8c13472"
+  }
+}
