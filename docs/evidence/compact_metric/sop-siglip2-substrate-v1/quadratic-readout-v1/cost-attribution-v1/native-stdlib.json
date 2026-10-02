@@ -1,0 +1,28 @@
+{
+  "libpython": {
+    "loaded_mapping_exact": false,
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/libpython3.13.so.1.0",
+    "qualification": "configured companion only; not mapped in measured interpreter; not profiler runtime identity",
+    "sha256": "006abd9f1c5c9025f9a31e10d922bb8737bf0f2f8bbbfb13bd28737686d2ba2a"
+  },
+  "loaded_libpython_paths": [],
+  "lsprof_builtin": true,
+  "lsprof_origin": "built-in",
+  "native_profile_run": false,
+  "profile_hook_initial": null,
+  "python": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+  "python_sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b",
+  "schema": "quadratic-profiler-native-stdlib-metadata-v1",
+  "stdlib_exception_witness": {
+    "convenience_Utils_suppresses_SystemExit": true,
+    "direct_Profile_runctx_preserves_SystemExit_7": true,
+    "model_executed": false
+  },
+  "stdlib_root": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13",
+  "stdlib_sha256": {
+    "cProfile.py": "7834ef85dff0d2563a968da9d1a61d9c36687820b47a557fcb8ad577b71aef52",
+    "profile.py": "20de245bd1ac2702ee67d064584ed9153b2ea6df8597fb696a02952e34173877",
+    "pstats.py": "6e80c883f5cb958926e511b38bb0c328a15ae7e2480722e5c0fceb32f18747b8"
+  },
+  "version": "3.13.9 (main, Oct 14 2025, 21:26:54) [Clang 20.1.4 ]"
+}
