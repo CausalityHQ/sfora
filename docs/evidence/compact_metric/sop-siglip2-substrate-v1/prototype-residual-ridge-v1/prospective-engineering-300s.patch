@@ -1,11 +1,5 @@
 --- a/scripts/fit_siglip2_prototype_residual.py
 +++ b/scripts/fit_siglip2_prototype_residual.py
-@@ -138,7 +138,7 @@
- 
- def policy(phase):
-     require(phase in ('cpu', 'fit'), 'new fixed phase required')
+@@ -141 +141 @@
 -    return {'seconds': 120 if phase == 'cpu' else 300, 'host_bytes': 8 * 1024**3,
 +    return {'seconds': 300, 'host_bytes': 8 * 1024**3,
-             'swap_bytes': 0, 'cuda_allocated_bytes_exclusive': 10_000_000_000}
- 
- 
