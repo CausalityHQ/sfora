@@ -1,0 +1,98 @@
+{
+  "both_locks_held": true,
+  "cost_policy": {
+    "median_update_ratio_max": 1.5,
+    "training_wall_ratio": "report_only",
+    "whole_service_ratio_max": 1.5
+  },
+  "endpoints": [
+    {
+      "arm": "control",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-identity-mix-train-control-179061-v2/resume.pt",
+        "sha256": "c68c466f48af8276e0c4687de803d92752bc4404ed32c157796329b121ad1b78"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/authority-train-control-179061-v2.json",
+        "sha256": "2451f3f8b2bd117c09dbb2322dafe9c83e937acc2801ba08916345d74581679b"
+      },
+      "seed": 179061,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "160489356515487eb38a71962f11a994",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/sfora-so400-identity-mix-train-control-179061-v2.log",
+          "sha256": "60eb0b7d165de71bdb111c84640edc73371124f763592e9121e0591f51a9a5d6"
+        },
+        "native_peak_rss_kib": 2275984,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-identity-mix-train-control-179061-v2/receipt.json",
+          "sha256": "8d6ce82750f50d2a7970de7dfed9c06b82c95449fb1e14476c4e589df93ee423"
+        },
+        "service_seconds": 164.504,
+        "unit": "sfora-so400-identity-mix-train-control-179061-v2"
+      },
+      "terminal_state_sha256": "ca7b2dafa0a1c22fe35812f988ac8475a1276340c852c9e5430adf33893807c6"
+    },
+    {
+      "arm": "candidate",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-identity-mix-train-candidate-179061-v2/resume.pt",
+        "sha256": "af129c5398969ab9d93fdcfff53ea21d496d0ec06c382b5567ce38ffcc7da004"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/authority-train-candidate-179061-v2.json",
+        "sha256": "8090aaa89c58c3c68f0dad1d79c12533ecf4da33267c8c24aef6b8efe0fb378c"
+      },
+      "seed": 179061,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "3daf824c390e43b689713a4f6f48a21c",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/sfora-so400-identity-mix-train-candidate-179061-v2.log",
+          "sha256": "5eae503a117afa4f03c26ecf4cc779c695a73c626df48ceceb029ff7148ccf79"
+        },
+        "native_peak_rss_kib": 2270924,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-identity-mix-train-candidate-179061-v2/receipt.json",
+          "sha256": "68c73c911ff293237cc30fc313ed29df90cb327f793a9414a29a7edd3db70aad"
+        },
+        "service_seconds": 167.093,
+        "unit": "sfora-so400-identity-mix-train-candidate-179061-v2"
+      },
+      "terminal_state_sha256": "6d7110c6a188698b527399a4415725a5c0732b660cc3953113516e1a0f146c9d"
+    }
+  ],
+  "evaluation_reference": {
+    "execution_sha256": "aec32dd2f9dfecdcc9aa1de22d466503373d84fcac9cd8306969f8cbd54853c6",
+    "root": "/home/riomus/runs/sfora-so400-cached-readout-evaluation-source-v3"
+  },
+  "execution_sha256": "f5711ecd17b439d8807871a6e8fa8164f9e2a435d9030e8510f0e76cebd2e086",
+  "first_selection": null,
+  "panel": "selection",
+  "partition": {
+    "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/partition.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "resource_policies": {
+    "cpu": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 120,
+      "swap_bytes": 0
+    },
+    "score": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 300,
+      "swap_bytes": 0
+    }
+  },
+  "schema": "siglip2-identity-mix-evaluation-authority-v1",
+  "selection_go": null,
+  "stage": "first",
+  "training": {
+    "execution_sha256": "8abb08aa570e0f436805cb4f7cf574eea3a5dae4db3fa7b73e43e45747e397ae",
+    "root": "/home/riomus/runs/sfora-so400-identity-mix-source-v2"
+  }
+}

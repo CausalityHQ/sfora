@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "3daf824c390e43b689713a4f6f48a21c",
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/sfora-so400-identity-mix-train-candidate-179061-v2.log",
+    "sha256": "5eae503a117afa4f03c26ecf4cc779c695a73c626df48ceceb029ff7148ccf79"
+  },
+  "native_peak_rss_kib": 2270924,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-identity-mix-train-candidate-179061-v2/receipt.json",
+    "sha256": "68c73c911ff293237cc30fc313ed29df90cb327f793a9414a29a7edd3db70aad"
+  },
+  "service_seconds": 167.093,
+  "unit": "sfora-so400-identity-mix-train-candidate-179061-v2"
+}
