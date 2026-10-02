@@ -4,7 +4,7 @@
 python3 -B -S scripts/test_siglip2_genuine_view_evaluation.py
 Optional --trainer-root DIRECTORY tests the separate authentic trainer2 source.
 Requires the integrated original helpers and trainer2 check; no native imports.
-No Torch/NumPy/native imports, image/cache reads, GPU, SSH or quality runs.
+No Torch/NumPy/native imports, real image/cache reads, GPU, SSH or quality runs.
 """
 if not __debug__:
     raise SystemExit('Checks require assertions; optimized mode is forbidden')
@@ -19,10 +19,11 @@ import json
 import os
 import subprocess
 import sys
+from collections import Counter
 from contextlib import redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 
@@ -266,8 +267,21 @@ def origin_checks(driver):
         rejects(lambda: driver.qualified_origins({**context, 'origin_records': changed}))
 
 
-def preexit_checks(driver, path):
-    """Execute the actual pre-exit path/guards with only in-memory file IO."""
+def preexit_checks(driver, path, original):
+    """Differential exit falsifier: genuine validators, synthetic bytes only.
+
+    The old nested traversal is the inventory oracle, never a source of hashes
+    for the new exit. Only loaded modules and /proc maps are synthetic; all
+    resolution, metadata, SHA streaming, cache advice and closures remain real.
+    """
+    started = driver.time.monotonic()
+    scripts = path.parent
+    source = load('_exit_source', scripts / 'qualify_siglip2_substrate_cpu.py')
+    reference = load('_exit_reference', scripts / 'export_siglip2_substrate_fit.py')
+    exporter = load('_exit_genuine', scripts / 'export_siglip2_genuine_views.py')
+    evidence = scripts.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
+    fit = json.loads((evidence / 'late-dense-v1/native256-fit-manifest-v1.json').read_bytes())
+    partition = json.loads((evidence / 'identity-mix-v1/partition.json').read_bytes())
     functions = {n.name: n for n in ast.parse(path.read_bytes()).body if isinstance(n, ast.FunctionDef)}
     body = functions['run'].body
     start = next(i + 1 for i, n in enumerate(body) if any(
@@ -275,74 +289,328 @@ def preexit_checks(driver, path):
     end = next(i for i in range(start, len(body)) if any(
         isinstance(v, ast.Constant) and v.value == 'exit separate evaluator/trainer/reference closure differs'
         for v in ast.walk(body[i])))
-    preexit = ast.parse("def preexit(context):\n    source = context['selected']['source_driver']\n    return origins\n").body[0]
-    preexit.body[1:1] = body[start:end]
-    events, memory = [], {}
+    preexit = ast.parse('def preexit(context):\n    args = context["args"]\n    return origins\n').body[0]
+    preexit.body[1:1] = body[start:end + 1]
+    final_closures = ast.parse('def final_closures(context):\n    args = context["args"]\n').body[0]
+    final_closures.body.append(body[end])
+    namespace = vars(driver).copy()
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[preexit, final_closures], type_ignores=[])), str(path), 'exec'), namespace)
 
-    class MemoryStream(io.BytesIO):
-        def fileno(self):
-            return 0
-
-    class MemoryPath(str):
-        def is_absolute(self):
-            return self.startswith('/')
-        def resolve(self):
-            return self
-        def is_file(self):
-            return self in memory
-        def open(self, mode):
-            assert mode == 'rb'
-            events.append(('read', str(self)))
-            return MemoryStream(memory[self])
-
-    namespace = {'Path': MemoryPath, 'hashlib': hashlib, 're': driver.re,
-                 'os': SimpleNamespace(posix_fadvise=lambda *args: None, POSIX_FADV_DONTNEED=0),
-                 'json': json, 'time': driver.time, 'UNIT_STARTED': driver.UNIT_STARTED}
-    tree = ast.Module(body=[functions[n] for n in (
-        'require', 'bound_file', 'qualified_origins', 'check_origins', 'exit_rehash')] + [preexit], type_ignores=[])
-    exec(compile(ast.fix_missing_locations(tree), str(path), 'exec'), namespace)
-    packages = {'torch': {'root': '/qualified/torch'}}
-    for fault in (None, 'foreign', 'conflicting', 'qualified-conflict', 'mutation'):
-        events.clear()
-        memory.update({'/qualified/base.so': b'original', '/authority.json': b'authority'})
-        guards = {p: hashlib.sha256(raw).hexdigest() for p, raw in memory.items()}
-        actual = {'packages': packages, 'files': {'/qualified/base.so': guards['/qualified/base.so']}}
-        records = [{'origins': copy.deepcopy(actual), 'input_guards': guards.copy()}]
-        if fault in ('foreign', 'conflicting'):
-            actual['files']['/foreign/extra.so' if fault == 'foreign' else '/qualified/base.so'] = 'c' * 64
-        if fault == 'qualified-conflict':
-            records.append({'origins': {'packages': packages, 'files': {'/qualified/base.so': 'c' * 64}},
-                            'input_guards': {'/qualified/base.so': 'c' * 64}})
-
-        def scan(extract, admitted):
-            assert extract == 'fixture' and admitted == packages
-            events.append('scan')
-            return copy.deepcopy(actual)
-
-        def rehash(genuine):
-            assert genuine == 'fixture'
-            events.append('rehash')
-            if fault == 'mutation':
-                changed = b'changed!'
-                assert len(changed) == len(memory['/qualified/base.so'])
-                memory['/qualified/base.so'] = changed
-
-        context = {'selected': {'packages': packages, 'extract': 'fixture', 'genuine': 'fixture',
-                               'source_driver': SimpleNamespace(imported_origins=scan),
-                               'exporter': SimpleNamespace(rehash=rehash)},
-                   'origin_records': records, 'guards': guards.copy()}
-        with redirect_stdout(io.StringIO()):
-            if fault is None:
-                assert namespace['preexit'](context) == actual
-                assert events == ['scan', 'rehash', *[('read', p) for p in guards]], events
-            elif fault == 'mutation':
-                rejects(lambda: namespace['preexit'](context), 'file SHA256 differs')
-                assert events == ['scan', 'rehash', ('read', '/qualified/base.so')], events
-            else:
-                rejects(lambda: namespace['preexit'](context),
-                        'conflicting qualified origin' if fault == 'qualified-conflict' else 'outside admitted qualified union')
-                assert events == ['scan'], events
-        assert context['guards'] == guards and records[0]['input_guards'] == guards
+    with TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        metadata = set()
+        def frozen(name, names):
+            directory = root / name; directory.mkdir()
+            for file in names:
+                (directory / file).write_bytes((scripts / file).read_bytes()
+                    if file == 'extract_siglip2_vision_source.py' else b'# synthetic closure\n')
+            code = {file: file_ref(directory / file)['sha256'] for file in names}
+            descriptor = write_json(directory / 'execution.json', code)
+            metadata.update(str(directory / file) for file in (*names, 'execution.json'))
+            return directory, code, descriptor['sha256']
+        source_root, code, source_sha = frozen('source', source.FILES)
+        ref_root, ref_code, ref_sha = frozen('reference', reference.FILES)
+        genuine_root, genuine_code, genuine_sha = frozen('genuine', exporter.FILES)
+        eval_root, eval_code, eval_sha = frozen('evaluator', driver.FILES)
+        train_root, train_code, train_sha = frozen('trainer', driver.TRAIN_FILES)
+        math_root, math_code, math_sha = frozen('math', driver.REFERENCE_PINS)
+        namespace.update(REFERENCE_EXECUTION_SHA=math_sha, REFERENCE_PINS=math_code)
+        extract = load('extract_siglip2_vision_source', source_root / 'extract_siglip2_vision_source.py')
+        dataset = root / 'z-images'; (dataset / 'Img/img').mkdir(parents=True)
+        fit['dataset_root'] = str(dataset)
+        image_sha = hashlib.sha256(b'image').hexdigest()
+        images = []
+        for i, row in enumerate(fit['rows']):
+            row.update(relative_path=f'Img/img/{i:05}.jpg', image_sha256=image_sha)
+            image = dataset / row['relative_path']; image.write_bytes(b'image'); images.append(image)
+        part = write_json(root / 'partition.json', partition)
+        ast_path = root / 'ImageRows.py'
+        ast_path.write_text(ast.unparse(exporter.image_rows_node(scripts / 'train_sop_siglip2_compact.py')))
+        metadata.update((part['path'], str(ast_path)))
+        prior = {'source_driver': source, 'extract': extract, 'fit': fit, 'images': images[:2],
+                 'all_images': images, 'root': source_root, 'code': code,
+                 'args': SimpleNamespace(execution_sha256=source_sha), 'own_root': ref_root,
+                 'own_code': ref_code, 'export_args': SimpleNamespace(execution_sha256=ref_sha)}
+        manifest = exporter.selected_manifest(partition, fit)
+        manifest['resolved_paths'] = [str(images[r]) for r in manifest['original_rows']]
+        genuine = {'prior': prior, 'reference': reference, 'root': genuine_root, 'code': genuine_code,
+                   'args': SimpleNamespace(execution_sha256=genuine_sha), 'selected': manifest,
+                   'launch': {'partition': part, 'image_rows': file_ref(ast_path)}}
+        packages, loaded = {}, {'extract_siglip2_vision_source': extract}
+        for name in ('numpy', 'torch'):
+            directory = root / name; directory.mkdir()
+            packages[name] = {'root': str(directory)}
+            loaded[name] = ModuleType(name)
+        origin = root / 'numpy/origin.py'
+        origin.write_bytes(bytes(range(256)) * 8192 + b'partial tail!')
+        loaded['numpy.origin'] = ModuleType('numpy.origin'); loaded['numpy.origin'].__file__ = str(origin)
+        for name, cls_name in (('ops', '_Ops'), ('classes', '_Classes')):
+            backing = ModuleType('torch._' + name)
+            backing.__file__ = str(root / 'torch' / ('_' + name + '.py'))
+            Path(backing.__file__).write_bytes(b'# dynamic module backing\n')
+            cls = type(cls_name, (ModuleType,), {'__module__': backing.__name__})
+            dynamic = cls('torch.' + name); dynamic.__file__ = '_' + name + '.py'
+            setattr(backing, cls_name, cls); setattr(backing, name, dynamic); setattr(loaded['torch'], name, dynamic)
+            loaded[backing.__name__] = backing; loaded[dynamic.__name__] = dynamic
+        library = root / 'mapped.so'; library.write_bytes(b'')
+        payloads = [root / name for name in ('source.pt', 'view.npy', 'endpoint.pt')]
+        for file in payloads:
+            file.write_bytes(b'original payload')
+        maps = f'0-1 r-xp 00000000 00:00 1 {library}\n'
+        real_text, real_open = Path.read_text, Path.open
+        after_discovery = None
+        def maps_text(file, *args, **kwargs):
+            if str(file) == '/proc/self/maps':
+                if after_discovery is not None:
+                    after_discovery()
+                return maps
+            return real_text(file, *args, **kwargs)
+        streamed, opened, ranges = Counter(), Counter(), {}
+        fail_read = False
+        class Stream:
+            def __init__(self, stream, file):
+                self.stream, self.file = stream, str(file)
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return self.stream.__exit__(*args)
+            def __getattr__(self, name):
+                return getattr(self.stream, name)
+            def read(self, size=-1):
+                if fail_read and self.file == str(origin) and self.stream.tell():
+                    raise OSError('exit mid-read failed')
+                raw = self.stream.read(size); streamed[self.file] += len(raw); return raw
+            def readinto(self, buffer):
+                count = self.stream.readinto(buffer); streamed[self.file] += count; return count
+        def recording_open(file, mode='r', *args, **kwargs):
+            stream = real_open(file, mode, *args, **kwargs)
+            if mode == 'rb':
+                opened[str(file)] += 1
+                return Stream(stream, file)
+            return stream
+        real_advice = os.posix_fadvise
+        def advice(fd, offset, size, hint):
+            file = os.readlink('/proc/self/fd/' + str(fd))
+            ranges.setdefault(file, []).append((offset, size, hint))
+            real_advice(fd, offset, size, hint)
+        def old_exit(context):
+            selected = context['selected']
+            origins = source.imported_origins(extract, selected['packages'])
+            driver.check_origins(context, origins)
+            exporter.rehash(selected['genuine'])
+            for file, digest in context['guards'].items():
+                driver.bound_file({}, file, digest)
+            return origins
+        with patch.object(Path, 'read_text', maps_text), patch.dict(sys.modules, loaded), redirect_stdout(io.StringIO()):
+            expected = source.imported_origins(extract, packages)
+            prior['guards'] = {str(file): file_ref(file)['sha256'] for file in (*images, *payloads)}
+            prior['guards'].update(expected['files'])
+            genuine['guards'] = {file: file_ref(Path(file))['sha256'] for file in metadata}
+            guards = {**prior['guards'], **genuine['guards']}
+            context = {'selected': {'source_driver': source, 'extract': extract, 'packages': packages,
+                                   'exporter': exporter, 'genuine': genuine, 'guards': guards},
+                       'guards': guards, 'origin_records': [{'origins': copy.deepcopy(expected), 'input_guards': guards.copy()}],
+                       'root': eval_root, 'code': eval_code, 'args': SimpleNamespace(execution_sha256=eval_sha),
+                       'spec': {'training': {'root': str(train_root), 'execution_sha256': train_sha, 'code': train_code},
+                                'evaluation_reference': {'root': str(math_root)}}}
+            context['admission'] = original.FlatAdmission()
+            for file in (images[2], *payloads, origin):
+                context['admission'].bound_file(guards, file, guards[str(file)])
+            inventories = [prior['guards'], genuine['guards'], guards, context['origin_records'][0]['input_guards']]
+            before = [value.copy() for value in inventories]
+            with patch.object(Path, 'open', recording_open):
+                assert old_exit(context) == expected
+            assert inventories == before
+            assert opened[str(images[2])] == opened[str(origin)] == 3, 'nested baseline must reread bulk inputs'
+            bulk = guards.keys() - metadata
+            for _ in range(2):
+                streamed.clear(); opened.clear(); ranges.clear()
+                with patch.object(Path, 'open', recording_open), patch.object(os, 'posix_fadvise', advice):
+                    assert namespace['preexit'](context) == expected
+                assert inventories == before, 'exit changed the complete guard inventories'
+                for file in bulk:
+                    assert opened[file] == 1, ('repeated bulk exit open', file, opened[file])
+                    assert streamed[file] == Path(file).stat().st_size, ('incomplete exit read', file, streamed[file])
+                for file in (origin, library):
+                    assert ranges.get(str(file), []) == [(offset, min(1024**2, file.stat().st_size - offset), os.POSIX_FADV_DONTNEED)
+                        for offset in range(0, file.stat().st_size, 1024**2)]
+            def reject_exit(message):
+                rejects(lambda: namespace['preexit'](context), message)
+                assert inventories == before, 'failed exit changed guard inventories'
+            def flip(file):
+                stamp = file.stat()
+                with real_open(file, 'r+b') as stream:
+                    stream.seek(stamp.st_size - 1); byte = stream.read(1)
+                    stream.seek(stamp.st_size - 1); stream.write(bytes([byte[0] ^ 1]))
+                os.utime(file, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+                assert file.stat().st_size == stamp.st_size and file.stat().st_mtime_ns == stamp.st_mtime_ns
+                def restore():
+                    with real_open(file, 'r+b') as stream:
+                        stream.seek(stamp.st_size - 1); stream.write(byte)
+                    os.utime(file, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+                return restore
+            # Admission may already have every digest cached. Exit must still
+            # reject equal-size/restored-mtime bytes, including after discovery.
+            for file in (images[2], *payloads, origin):
+                restore = flip(file)
+                try:
+                    with patch.object(Path, 'open', recording_open):
+                        opened.clear()
+                        context['admission'].bound_file({}, file, guards[str(file)])
+                        assert not opened, 'synthetic admission cache was not warm'
+                    reject_exit('file SHA256 differs')
+                finally:
+                    restore()
+                restorers = []
+                after_discovery = lambda: restorers.append(flip(file))
+                try:
+                    reject_exit('file SHA256 differs')
+                    assert len(restorers) == 1
+                finally:
+                    after_discovery = None
+                    for restore in restorers:
+                        restore()
+            # Conflicting input and qualified authorities fail before bulk IO.
+            for inventory in (genuine['guards'], guards):
+                file = str(payloads[0]); old = inventory.get(file)
+                inventory[file] = '0' * 64
+                try:
+                    with patch.object(Path, 'open', recording_open):
+                        opened.clear()
+                        rejects(lambda: driver.exit_rehash(context), 'conflicting exit file authority')
+                        assert not opened
+                finally:
+                    if old is None:
+                        del inventory[file]
+                    else:
+                        inventory[file] = old
+            records = context['origin_records']
+            for fault in ('packages', 'unguarded', 'conflict', 'actual-conflict'):
+                changed = copy.deepcopy(records)
+                if fault == 'packages':
+                    changed[0]['origins']['packages'] = {}
+                elif fault == 'unguarded':
+                    del changed[0]['input_guards'][str(origin)]
+                else:
+                    extra = copy.deepcopy(records[0])
+                    extra['origins']['files'][str(origin)] = extra['input_guards'][str(origin)] = '0' * 64
+                    changed = [*changed, extra] if fault == 'conflict' else [extra]
+                context['origin_records'] = changed
+                try:
+                    with patch.object(Path, 'open', recording_open):
+                        opened.clear()
+                        rejects(lambda: driver.exit_rehash(context),
+                                'packages differ' if fault == 'packages' else
+                                'lacks authenticated guard' if fault == 'unguarded' else 'conflicting qualified origin')
+                        assert not opened
+                finally:
+                    context['origin_records'] = records
+            unknown = root / 'unqualified.so'; unknown.write_bytes(b'')
+            original_maps = maps
+            maps += f'0-1 r-xp 00000000 00:00 2 {unknown}\n'
+            try:
+                with patch.object(Path, 'open', recording_open):
+                    opened.clear()
+                    reject_exit('outside admitted qualified union')
+                    assert not opened
+                    # A guard alone cannot qualify an unknown actual library.
+                    guards[str(unknown)] = hashlib.sha256(b'').hexdigest()
+                    try:
+                        rejects(lambda: driver.exit_rehash(context), 'outside admitted qualified union')
+                        assert not opened
+                    finally:
+                        del guards[str(unknown)]
+            finally:
+                maps = original_maps
+            for name, module in (
+                ('torch.ops', SimpleNamespace(__file__='_ops.py', __name__='torch.ops')),
+                ('torch.classes', SimpleNamespace(__file__='_classes.py', __name__='torch.classes')),
+                ('numpy.origin', SimpleNamespace(__file__=str(payloads[0]))),
+                ('numpy.origin', SimpleNamespace(__file__=str(root / 'absent.py'))),
+            ):
+                with patch.dict(sys.modules, {name: module}):
+                    reject_exit('loaded native module origin')
+            for index, target, message in ((0, images[2], 'resolution'), (2, origin, 'escaped'),
+                                           (2, images[3], 'aliases')):
+                file = images[index]; held = file.with_suffix('.held'); file.rename(held)
+                try:
+                    file.symlink_to(target)
+                    reject_exit(message)
+                finally:
+                    file.unlink(); held.rename(file)
+            for key in ('images', 'all_images'):
+                original = prior[key]; prior[key] = list(reversed(original))
+                try:
+                    reject_exit('resolution')
+                finally:
+                    prior[key] = original
+            row = fit['rows'][2]; original = row['image_sha256']; row['image_sha256'] = '0' * 64
+            try:
+                reject_exit('conflicting FIT file authority')
+            finally:
+                row['image_sha256'] = original
+            fit['quality_read'] = True
+            try:
+                reject_exit('FIT manifest profile')
+            finally:
+                fit['quality_read'] = False
+            original = manifest['resolved_paths'][0]; manifest['resolved_paths'][0] = str(origin)
+            try:
+                reject_exit('TRAIN mapping changed')
+            finally:
+                manifest['resolved_paths'][0] = original
+            restore = flip(Path(part['path']))
+            try:
+                reject_exit('JSON SHA256/size differs')
+            finally:
+                restore()
+            ast_bytes = ast_path.read_bytes()
+            ast_path.write_bytes(ast_bytes.replace(b'class ImageRows', b'class ImageRowz'))
+            try:
+                reject_exit('original ImageRows class differs')
+            finally:
+                ast_path.write_bytes(ast_bytes)
+            for owner, key in ((prior, 'code'), (prior, 'own_code'), (genuine, 'code')):
+                original = owner[key]; owner[key] = {}
+                try:
+                    reject_exit('closure differs')
+                finally:
+                    owner[key] = original
+            with patch.object(extract, '__file__', str(origin)):
+                reject_exit('extractor loaded origin differs')
+            with patch.object(extract.__spec__, 'origin', str(origin)):
+                reject_exit('extractor import origin differs')
+            # Execute the unchanged final run() predicate independently for
+            # each closure mismatch; successful preexit above includes it too.
+            for directory, file in ((eval_root, next(iter(eval_code))), (train_root, next(iter(train_code))),
+                                    (math_root, next(iter(math_code)))):
+                restore = flip(directory / file)
+                try:
+                    rejects(lambda: namespace['final_closures'](context), 'file SHA256 differs')
+                finally:
+                    restore()
+            def failed_open(file, *args, **kwargs):
+                if file == origin:
+                    raise OSError('exit open failed')
+                return real_open(file, *args, **kwargs)
+            with patch.object(Path, 'open', failed_open):
+                reject_exit('exit open failed')
+            fail_read = True; streamed.clear()
+            try:
+                with patch.object(Path, 'open', recording_open):
+                    reject_exit('exit mid-read failed')
+                    assert streamed[str(origin)] == 1024**2
+            finally:
+                fail_read = False
+            def failed_advice(fd, *args):
+                if os.readlink('/proc/self/fd/' + str(fd)) == str(origin):
+                    raise OSError('exit advice failed')
+                real_advice(fd, *args)
+            with patch.object(os, 'posix_fadvise', failed_advice):
+                reject_exit('exit advice failed')
+            assert inventories == before
+        assert sum(file.stat().st_size for file in root.rglob('*') if file.is_file()) <= 4 * 1024**2
+    assert driver.time.monotonic() - started < 30, 'exit falsifier exceeded 30 seconds'
 
 
 def write_json(path, value):
@@ -575,13 +843,10 @@ def endpoint_admission_checks(driver, trainer, original, initializer, helper, pa
         before = reads.count(str(shared))
         admission.bound_file(selected['guards'], shared, shared_ref['sha256'])
         assert reads.count(str(shared)) == before
-        origins, events = {'packages': {}, 'files': {}}, []
-        selected.update(packages={}, extract=None, genuine={},
-                        source_driver=SimpleNamespace(imported_origins=lambda *args: origins),
-                        exporter=SimpleNamespace(rehash=lambda genuine: events.append('exporter-rehash')))
-        rejects(lambda: driver.exit_rehash({'selected': selected, 'guards': selected['guards'],
-                                           'origin_records': []}), 'file SHA256 differs')
-        assert events == ['exporter-rehash'] and reads.count(str(shared)) == before + 1
+        # The full genuine exit fixture above checks this same fresh boundary
+        # with cached authorities; this admission fixture has no source context.
+        rejects(lambda: driver.bound_file({}, shared, shared_ref['sha256']), 'file SHA256 differs')
+        assert reads.count(str(shared)) == before + 1
 
 
 def output_wire_checks(driver, root):
@@ -619,7 +884,14 @@ def source_checks(driver, path):
                    for n in ast.walk(nodes['authority']))
     assert "bound_file(context['guards'], endpoint['checkpoint']['path'], endpoint['checkpoint']['sha256'])" in functions['load_head']
     assert "bound_file(context['guards'], proof['checkpoint']['path'], proof['checkpoint']['sha256'])" in functions['load_head']
-    assert 'bound_file({}, path, digest)' in functions['exit_rehash']
+    exit_source = functions['exit_rehash']
+    assert 'bound_file({}, path, digest)' in exit_source
+    assert 'imported_origins(' not in exit_source and '.rehash(' not in exit_source
+    for predicate in ('qualified_origins(context)', 'source.loaded_module_origin(', 'source.fit_rows(',
+                      'source.bootstrap(', "genuine['reference'].bootstrap(", 'exporter.closure(',
+                      'exporter.selected_manifest(', 'exporter.file_json(', 'exporter.image_rows_node('):
+        assert predicate in exit_source, predicate
+    assert functions['run'].index('exit_rehash(context)') < functions['run'].index('check_origins(context, origins)') < functions['run'].index("resources = context['helper'].resources") < functions['run'].index("context['helper'].publish")
     assert "head_from('control', tensors=saved['head'])" in functions['load_head']
     assert functions['load_head'].index('trainer.check_payload(saved, ident, 1000)') < functions['load_head'].index("head_from('control', tensors=saved['head'])")
     assert "context['features']['canonical'][:64]" in functions['qualify_heads']
@@ -656,7 +928,7 @@ def main():
     initializer = load('_initializer_fixture', root / 'initialize_siglip2_substrate_fit.py')
     helper = load('_held_helpers_fixture', root / 'export_siglip2_substrate_adaptation.py')
     authority_checks(driver); metric_checks(driver); origin_checks(driver)
-    preexit_checks(driver, path)
+    preexit_checks(driver, path, original)
     records, selected = endpoint_checks(driver, trainer)
     trainer_test.trainer_metadata_checks(trainer)
     with TemporaryDirectory() as directory:
@@ -677,7 +949,7 @@ def main():
     assert result.returncode == 0 and all('--' + n in result.stdout for n in
         ('execution-sha256', 'authority-sha256', 'phase', 'output', 'prerequisite-sha256'))
     assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
-    print('PASS: authority/endpoint-admission/complete-payload/partition/panel/early-stop/terminal/replay/cost/preparation/origins/preexit/tamper/roles/wire/exclusive-output/syntax/help/-O/-OO; native/resource/quality UNRUN')
+    print('PASS: authority/endpoint-admission/complete-payload/partition/panel/early-stop/terminal/replay/cost/preparation/origins/preexit-union-differential/fresh-tamper/predicates/io-failures/roles/wire/exclusive-output/syntax/help/-O/-OO; native/resource/quality UNRUN')
 
 
 if __name__ == '__main__':

@@ -860,14 +860,59 @@ def score_panel(context, cpu):
 
 
 def exit_rehash(context):
+    """Fresh conflict-checked union; retain every nested metadata predicate."""
     selected = context['selected']
-    source = selected['source_driver']
-    origins = source.imported_origins(selected['extract'], selected['packages'])
-    check_origins(context, origins)
-    selected['exporter'].rehash(selected['genuine'])
-    for path, digest in context['guards'].items():
+    source, exporter = selected['source_driver'], selected['exporter']
+    genuine, packages = selected['genuine'], selected['packages']
+    prior = genuine['prior']
+    qualified = qualified_origins(context)
+    modules, origin_paths, native = {}, set(), set()
+    for name, module in tuple(sys.modules.items()):
+        if name.split('.')[0] not in packages:
+            continue
+        path = source.loaded_module_origin(name, module, packages)
+        if path is not None:
+            modules[name] = str(path)
+            origin_paths.add(str(path))
+    for line in Path('/proc/self/maps').read_text().splitlines():
+        fields = line.split(maxsplit=5)
+        if len(fields) == 6 and fields[5].startswith('/') and '.so' in fields[5]:
+            native.add(str(source.canonical(Path(fields[5]).resolve())))
+    origin_paths.update(native)
+    for path in origin_paths:
+        require(path in qualified, 'actual native origin outside admitted qualified union: ' + path)
+
+    union = {}
+    for guards in (prior['guards'], genuine['guards'], context['guards']):
+        for path, digest in guards.items():
+            require(union.setdefault(path, digest) == digest, 'conflicting exit file authority: ' + path)
+    for path in origin_paths:
+        require(union.setdefault(path, qualified[path]) == qualified[path], 'conflicting qualified origin: ' + path)
+    require(source.fit_rows(prior['extract'], prior['fit']) == prior['images'], 'FIT image resolution changed')
+    root = Path(prior['fit']['dataset_root'])
+    images = [(root / row['relative_path']).resolve() for row in prior['fit']['rows']]
+    require(all(path.is_relative_to(root) for path in images), 'FIT image escaped dataset root')
+    require(len(set(images)) == 13283, 'FIT resolved image aliases collide')
+    require(images == prior['all_images'], 'FIT image resolution changed')
+    for path, row in zip(images, prior['fit']['rows']):
+        require(union.setdefault(str(path), row['image_sha256']) == row['image_sha256'],
+                'conflicting FIT file authority: ' + str(path))
+
+    # These small authenticated rereads preserve the nested exit predicates.
+    require(source.bootstrap(prior['root'], prior['args'].execution_sha256)[1] == prior['code'],
+            'exit closure differs')
+    require(genuine['reference'].bootstrap(prior['own_root'], prior['export_args'].execution_sha256) == prior['own_code'],
+            'exit exporter closure differs')
+    require(exporter.closure(genuine['root'], genuine['args'].execution_sha256, exporter.FILES, {}) == genuine['code'],
+            'exit genuine closure differs')
+    manifest = exporter.selected_manifest(exporter.file_json(genuine['launch']['partition'], {}), prior['fit'])
+    manifest['resolved_paths'] = [str(prior['all_images'][r]) for r in manifest['original_rows']]
+    require(manifest == genuine['selected'], 'exit TRAIN mapping changed')
+    exporter.image_rows_node(genuine['launch']['image_rows']['path'])
+    for path, digest in sorted(union.items()):
         bound_file({}, path, digest)
-    return origins
+    return {'packages': packages, 'modules': modules, 'native_files': sorted(native),
+            'files': {path: union[path] for path in sorted(origin_paths)}}
 
 
 def run(args):
