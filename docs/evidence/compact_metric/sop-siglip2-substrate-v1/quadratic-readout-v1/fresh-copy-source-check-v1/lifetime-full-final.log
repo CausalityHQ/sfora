@@ -1,0 +1,28 @@
+test_authority_rejects_source_recipe_phase_prerequisite_and_cap_mutations (__main__.ContractTests.test_authority_rejects_source_recipe_phase_prerequisite_and_cap_mutations) ... ok
+test_cached_math_updated_reload_bank_and_native_scope (__main__.ContractTests.test_cached_math_updated_reload_bank_and_native_scope) ... ok
+test_closure_and_fresh_exit_detect_same_size_same_mtime_tamper (__main__.ContractTests.test_closure_and_fresh_exit_detect_same_size_same_mtime_tamper) ... ok
+test_complete_frozen_byte_guard_catches_mutation_without_version_change (__main__.ContractTests.test_complete_frozen_byte_guard_catches_mutation_without_version_change) ... ok
+test_current_native_origin_union_rejects_unknown_or_conflicting_files_and_modules (__main__.ContractTests.test_current_native_origin_union_rejects_unknown_or_conflicting_files_and_modules) ... ok
+test_encoder_composition_requires_all448_source205_export_frozen_config_and_buffers (__main__.ContractTests.test_encoder_composition_requires_all448_source205_export_frozen_config_and_buffers) ... ok
+test_every_payload_omission_and_updated_optimizer_scaler_counter_tamper_rejected (__main__.ContractTests.test_every_payload_omission_and_updated_optimizer_scaler_counter_tamper_rejected) ... ok
+test_exact_own_four_file_closure_and_fixed_resources (__main__.ContractTests.test_exact_own_four_file_closure_and_fixed_resources) ... ok
+test_exit_only_differential_falsifier (__main__.ContractTests.test_exit_only_differential_falsifier)
+Catch lost nested predicates, expected-only seeding and repeated bulk reads. ... ok
+test_fingerprint_batches_fresh_cuda_bytes (__main__.ContractTests.test_fingerprint_batches_fresh_cuda_bytes)
+Catch changed typed hashes, per-leaf transfers and retained CUDA bytes. ... ok
+test_fixed_cli_help_lazy_imports_and_optimized_mode_rejection (__main__.ContractTests.test_fixed_cli_help_lazy_imports_and_optimized_mode_rejection) ... ok
+test_flat_admission_reuses_only_successful_same_call_ownership_exit_stays_uncached (__main__.ContractTests.test_flat_admission_reuses_only_successful_same_call_ownership_exit_stays_uncached) ... ok
+test_immutable_encoder_differential_falsifier (__main__.ContractTests.test_immutable_encoder_differential_falsifier)
+Full production admission plus old/new typed streams; no native libraries. ... ok
+test_integrity_head_uses_actual_A_device_and_retains_exact_tensor_checks (__main__.ContractTests.test_integrity_head_uses_actual_A_device_and_retains_exact_tensor_checks) ... ok
+test_json_presentation_does_not_convert_or_replace_typed_config_defaults (__main__.ContractTests.test_json_presentation_does_not_convert_or_replace_typed_config_defaults) ... ok
+test_one_member_optimizer_rejects_extra_duplicate_reordering_and_any_frozen_gradient (__main__.ContractTests.test_one_member_optimizer_rejects_extra_duplicate_reordering_and_any_frozen_gradient) ... ok
+test_original_fingerprint_keeps_tuple_and_integer_key_types (__main__.ContractTests.test_original_fingerprint_keeps_tuple_and_integer_key_types) ... ok
+test_original_full1000_schedules_and_sequential_owner (__main__.ContractTests.test_original_full1000_schedules_and_sequential_owner) ... ok
+test_original_math_schedule_rng_and_exit_ast_stay_pinned (__main__.ContractTests.test_original_math_schedule_rng_and_exit_ast_stay_pinned) ... ok
+test_partition_interface_preserves_complete_baseline_ast (__main__.ContractTests.test_partition_interface_preserves_complete_baseline_ast) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 38.914s
+
+OK

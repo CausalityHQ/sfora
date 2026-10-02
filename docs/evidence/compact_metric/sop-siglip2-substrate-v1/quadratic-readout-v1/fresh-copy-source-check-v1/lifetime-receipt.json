@@ -1,0 +1,138 @@
+{
+  "schema": "sfora-quadratic-fresh-copy-lifetime-worker-receipt-v1",
+  "worktree": "/home/rb/worktrees/sfora-quadratic-fresh-copy-20261002",
+  "base": "f9f11e74d3489d08ce1a2d990194c884bd0cd963",
+  "commit": "c7e888fb84e042c0796456e6263e9262c4181107",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "clean_after_commit": true,
+  "exact_committed_files": [
+    "scripts/quadratic_encoder_frames.py",
+    "scripts/test_siglip2_quadratic_readout.py"
+  ],
+  "source_sha256": {
+    "scripts/quadratic_encoder_frames.py": "3ab43bea68a86cd30e5c41bebd35623e4796c9fd46e9800bc23d9ec8d244e132",
+    "scripts/test_siglip2_quadratic_readout.py": "2485c4580848c222366633d69bf0e290e0edcb16436ae592afb1f0f90a3f6078",
+    "scripts/train_siglip2_quadratic_readout.py": "f5759274d4c8ba75d69f6728b9b309e0cafeaba80ed7127fce6393099730e17b",
+    "scripts/quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+    "scripts/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+  },
+  "original_source_sha256": {
+    "scripts/quadratic_encoder_frames.py": "50f6529a99c4010976c595c6cd7668a670f8834645ef9a8a1d27567062b0899d",
+    "scripts/test_siglip2_quadratic_readout.py": "c248f9cc98b49e3c5c3ae17daac7cd9696c3f2fb3943fe0c0bfdbb58c0069b87"
+  },
+  "original_patched_source_delta": {
+    "path": "/tmp/sfora-quadratic-fresh-copy-lifetime-delta.patch",
+    "sha256": "9755c5a0796f9856f840ee778fcd09ad0c190ab49a947fdcb2337d533c6b99d0"
+  },
+  "logs": [
+    {
+      "path": "/tmp/sfora-quadratic-fresh-copy-lifetime-full.log",
+      "sha256": "5b7df9200ef272e91a5614b5afc940a78197fc69aa835380c19f8c8f443dca2b"
+    },
+    {
+      "path": "/tmp/sfora-quadratic-fresh-copy-lifetime-exit-rerun.log",
+      "sha256": "9c65162f6fd86c86d19dad4681ca95ecad6870314a4814ca787efac1b964a2d2"
+    },
+    {
+      "path": "/tmp/sfora-quadratic-fresh-copy-lifetime-full-final.log",
+      "sha256": "8bcd9e8f426cd18acd74d2ac33466aee25ce623e6aa0597db231e83246253985"
+    }
+  ],
+  "implementation": "Explicit finally releases snapshot and device memoryviews; clears every per-device views list and all invocation containers; severs gather recursion cell. Each gather finally drops its temporary view. The iterator held by original recursive visit sees a cleared snapshot list. Partial buffers are owned incrementally so cat failure cleanup can reach earlier devices.",
+  "preserved": [
+    "public seal API",
+    "owned encoder/partition slots",
+    "original serializer SHA",
+    "literal individual SHA/framing",
+    "CPU/consumed fallback",
+    "trainer/primitive math",
+    "existing19 test ASTs",
+    "existing per-test caps",
+    "native resource gates"
+  ],
+  "checks": [
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_fingerprint_batches_fresh_cuda_bytes",
+      "phase": "RED against old helper SHA50f6529a99c4010976c595c6cd7668a670f8834645ef9a8a1d27567062b0899d",
+      "exit": 1,
+      "test_seconds": 0.109,
+      "result": "retained CUDA tensor view with cyclic GC disabled"
+    },
+    {
+      "command": "same focused stdlib check during traceback diagnosis",
+      "exit": 1,
+      "result": "fixed test expectations for traceback-retained empty gather function; verified recursion None and empty captured containers; hash fake releases borrowed argument to match C hashlib frames"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_fingerprint_batches_fresh_cuda_bytes",
+      "phase": "GREEN",
+      "exit": 0,
+      "test_seconds": 0.221,
+      "test_cap_seconds": 5,
+      "result": "all typed hashes/transfers/mutations/consumed/ownership/four mutants retained; gc-disabled weakrefs release every new tensor/view/storage on2 successes; gather/cat/hash exception identity preserved; owned storage released while source-exact helper tracebacks remain alive; no gather survives after traceback dropped"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py -v > /tmp/sfora-quadratic-fresh-copy-lifetime-full.log 2>&1",
+      "exit": 1,
+      "tests_run": 20,
+      "failures": 1,
+      "test_seconds": 47.352,
+      "result": "unchanged test_exit_only_differential_falsifier hit existing30s alarm during FIT validation; other19 checks pass"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_exit_only_differential_falsifier > /tmp/sfora-quadratic-fresh-copy-lifetime-exit-rerun.log 2>&1",
+      "exit": 0,
+      "tests_run": 1,
+      "test_seconds": 28.564,
+      "result": "failing layer rerun only; unchanged30s cap"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py -v > /tmp/sfora-quadratic-fresh-copy-lifetime-full-final.log 2>&1",
+      "exit": 0,
+      "tests_run": 20,
+      "failures": 0,
+      "skips": 0,
+      "test_seconds": 38.914,
+      "result": "one final full gate after failing layer passed; all caps unchanged"
+    },
+    {
+      "command": "rtk proxy git diff --check; compile both owned files; stdlib AST compare against f9f; trainer/primitive/original byte and SHA checks; exact two-file scope",
+      "exit": 0,
+      "result": "syntax/diff pass; existing19 ASTs unchanged; only focused test extended; original/trainer/primitive bytes unchanged"
+    },
+    {
+      "command": "git diff --check f9f c7e; commit parent/files/identity/trailers/clean-state/source-delta assertions",
+      "exit": 0,
+      "result": "clean exact two-file Roman commit with no AI attribution; saved delta matches committed bytes"
+    }
+  ],
+  "traceback_behavior": "Preserves original exception identity and traceback. A held traceback may retain an empty gather function/frame and caller inputs, but its recursion cell is None, all owned containers are empty, and all weakrefs to new CUDA tensor views and temporary byte storage are dead. Real hashlib C frames do not retain a Python mock argument; the failure fake faithfully releases that borrowed argument in finally.",
+  "production_gc_collect_calls": 0,
+  "native_imports_or_model_execution": false,
+  "consultations_children_ssh_gpu_train_eval_quality": false,
+  "merge_or_push": false,
+  "remaining_native_limits": {
+    "status": "UNRUN; parent-owned",
+    "comparison_body_seconds_max": 10,
+    "comparison_whole_service_seconds_max": 300,
+    "alternating_pairs": 8,
+    "both_locks_held": true,
+    "host_bytes_max": 8589934592,
+    "swap_bytes": 0,
+    "memory_events": 0,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "requires_exact_digest_and_lower_paired_median": true,
+    "qualification_eligible": false,
+    "state_reuse_eligible": false,
+    "follow_up": [
+      "fresh CPU120",
+      "fresh control mechanics300",
+      "fresh candidate mechanics300",
+      "fresh control061 TRAIN1000/300",
+      "candidate061 only after accepted control completion"
+    ],
+    "runtime_fit_claim": false,
+    "native_parity_and_cost": "UNRUN",
+    "full_goal_unchanged": true
+  }
+}
