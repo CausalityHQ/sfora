@@ -1,0 +1,16 @@
+{
+  "authority_sha256": "862cdec3df3b12af88d00c3fa9412fa01804222fc6defbaff39c84d532a51577",
+  "execution_sha256": "2e4bcececc3b32c01544cdd3b075bf3c6079a8e3680bcb4e668b1e080f030031",
+  "files": {
+    "authority.json": "862cdec3df3b12af88d00c3fa9412fa01804222fc6defbaff39c84d532a51577",
+    "execution.json": "2e4bcececc3b32c01544cdd3b075bf3c6079a8e3680bcb4e668b1e080f030031",
+    "export_siglip2_genuine_views.py": "34ac1412b0287c1ce891d49d49debecb6ff5e892f5c6e81a649fd925c7c316ce",
+    "partition.json": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c",
+    "test_siglip2_genuine_views.py": "d7b5c1a607e7cbd0ff3a01d22e9d5889a250d29b7e406cf9ce3f934290f0fde0",
+    "train_sop_siglip2_compact.py": "1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610"
+  },
+  "native_run": false,
+  "remote_root": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v1",
+  "source_commit": "5463519f",
+  "startup_command_sha256": "5bd5e74a693658a72caf38ba64f380ee27201a7f86b101a067a1883438fb1198"
+}
