@@ -109,30 +109,42 @@ def seal(original, *roots):
         if consumed is not None:
             return adapted(value, consumed=consumed)
         import torch
-        parts, sizes, occurrences = {}, {}, []
+        parts, sizes, occurrences, buffers, snapshots = {}, {}, [], {}, []
         def gather(item):
-            if isinstance(item, EncoderFrames):
-                frames(item)
-            elif isinstance(item, torch.Tensor):
-                if item.is_cuda:
-                    view = item.detach().contiguous().reshape(-1).view(torch.uint8)
-                    device, size = item.device, view.numel()
-                    start = sizes.get(device, 0)
-                    parts.setdefault(device, []).append(view)
-                    sizes[device] = start + size
-                    occurrences.append((device, start, start + size))
-            elif isinstance(item, dict):
-                for key in sorted(item, key=repr):
-                    gather(key); gather(item[key])
-            elif isinstance(item, (tuple, list)):
-                for child in item:
-                    gather(child)
-        gather(value)
-        if not occurrences:
-            return adapted(value)
-        buffers = {device: memoryview(torch.cat(views).cpu().numpy()) if sizes[device] else memoryview(b'')
-                   for device, views in parts.items()}
-        snapshots = [buffers[device][start:end] for device, start, end in occurrences]
-        return batched(value, _cuda_bytes=iter(snapshots))
+            view = None
+            try:
+                if isinstance(item, EncoderFrames):
+                    frames(item)
+                elif isinstance(item, torch.Tensor):
+                    if item.is_cuda:
+                        view = item.detach().contiguous().reshape(-1).view(torch.uint8)
+                        device, size = item.device, view.numel()
+                        start = sizes.get(device, 0)
+                        parts.setdefault(device, []).append(view)
+                        sizes[device] = start + size
+                        occurrences.append((device, start, start + size))
+                elif isinstance(item, dict):
+                    for key in sorted(item, key=repr):
+                        gather(key); gather(item[key])
+                elif isinstance(item, (tuple, list)):
+                    for child in item:
+                        gather(child)
+            finally:
+                view = None
+        try:
+            gather(value)
+            if not occurrences:
+                return adapted(value)
+            for device, views in parts.items():
+                buffers[device] = memoryview(torch.cat(views).cpu().numpy()) if sizes[device] else memoryview(b'')
+            snapshots.extend(buffers[device][start:end] for device, start, end in occurrences)
+            return batched(value, _cuda_bytes=iter(snapshots))
+        finally:
+            # Tracebacks and the original recursive visitor may outlive this call.
+            for snapshot in snapshots: snapshot.release()
+            for buffer in buffers.values(): buffer.release()
+            for views in parts.values(): views.clear()
+            snapshots.clear(); buffers.clear(); parts.clear(); sizes.clear(); occurrences.clear()
+            gather = None
 
     return capsules, fingerprint, check_owned

@@ -5,6 +5,7 @@ if not __debug__:
 
 import ast
 import copy
+import gc
 import hashlib
 import importlib.util
 import io
@@ -22,6 +23,7 @@ import tempfile
 from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 import unittest
+import weakref
 
 PATH = Path(__file__).resolve().with_name('train_siglip2_quadratic_readout.py')
 
@@ -843,10 +845,15 @@ class ContractTests(unittest.TestCase):
         copies, reads, cats = [], [], []
         sizes = {'torch.float32': 4, 'torch.float16': 2, 'torch.float64': 8,
                  'torch.int64': 8, 'torch.uint8': 1, 'torch.bool': 1}
+        tensor_refs, storage_refs, tracking = [], [], False
+        class Storage(bytearray): pass
         class Tensor(FrameTensor):
             def __init__(self, raw, device=None, dtype='torch.uint8', shape=None, indices=None, label='leaf'):
                 if device is None: device = cpu
-                self.raw = raw if isinstance(raw, bytearray) else bytearray(raw)
+                self.raw = raw if isinstance(raw, bytearray) else Storage(raw)
+                if tracking:
+                    tensor_refs.append(weakref.ref(self))
+                    storage_refs.append(weakref.ref(self.raw))
                 self.device, self.dtype, self.label = device, dtype, label
                 self.indices = tuple(range(len(self.raw) // sizes[dtype])) if indices is None else tuple(indices)
                 self.shape = (len(self.indices),) if shape is None else shape
@@ -961,13 +968,92 @@ class ContractTests(unittest.TestCase):
                     after = compare(fingerprint)
                     self.assertNotEqual(after, before)
                     before = after
+            # Disable cyclic GC: returned calls must release their own allocations immediately.
+            gather_code = next(c for c in fingerprint.__code__.co_consts
+                               if isinstance(c, type(fingerprint.__code__)) and c.co_name == 'gather')
+            def live_gathers():
+                return {id(obj) for obj in gc.get_objects() if isinstance(obj, type(fingerprint)) and
+                        obj.__code__ is gather_code}
+            def released(with_traceback=False):
+                self.assertFalse(any(ref() is not None for ref in tensor_refs), 'retained CUDA tensor view')
+                self.assertFalse(any(ref() is not None for ref in storage_refs), 'retained temporary byte storage')
+                if with_traceback:
+                    for obj in gc.get_objects():
+                        if isinstance(obj, type(fingerprint)) and obj.__code__ is gather_code:
+                            captures = dict(zip(obj.__code__.co_freevars,
+                                                (cell.cell_contents for cell in obj.__closure__)))
+                            self.assertIsNone(captures['gather'])
+                            for name in ('parts', 'sizes', 'occurrences'): self.assertFalse(captures[name])
+                else:
+                    self.assertEqual(live_gathers(), before_gathers, 'retained source-exact gather closure')
+            was_enabled = gc.isenabled()
+            gc.disable()
+            try:
+                before_gathers = live_gathers()
+                for _ in range(2):
+                    value = [Tensor(b'abcd', cuda0), Tensor(b'ef', cuda1)]
+                    expected = original.fingerprint(value)
+                    tensor_refs.clear(); storage_refs.clear(); tracking = True
+                    try: self.assertEqual(fingerprint(value), expected)
+                    finally: tracking = False
+                    del value
+                    released()
+                real_sha = hashlib.sha256
+                for failure in ('gather', 'cat', 'hash'):
+                    sentinel = RuntimeError('injected ' + failure)
+                    class BadKey:
+                        def __repr__(self): raise sentinel
+                    value = [Tensor(b'abcd', cuda0), Tensor(b'ef', cuda1)]
+                    if failure == 'gather': value.append({BadKey(): None})
+                    def fail_cat(parts):
+                        if parts[0].device == cuda1: raise sentinel
+                        return cat(parts)
+                    def fail_hash(raw=b''):
+                        try:
+                            if isinstance(raw, memoryview): raise sentinel
+                            return real_sha(raw)
+                        finally:
+                            # hashlib's C frame does not retain the borrowed argument in a traceback.
+                            raw = None
+                    tensor_refs.clear(); storage_refs.clear(); tracking = True
+                    try:
+                        with patch.object(fake_torch, 'cat', fail_cat if failure == 'cat' else cat), \
+                                patch.object(hashlib, 'sha256', fail_hash if failure == 'hash' else real_sha):
+                            try: fingerprint(value)
+                            except RuntimeError as error: self.assertIs(error, sentinel)
+                            else: self.fail('injected failure was swallowed: ' + failure)
+                    finally: tracking = False
+                    # Keep the original traceback alive: helper locals and released memoryviews
+                    # must no longer own newly allocated storage even while frames are inspectable.
+                    tb = sentinel.__traceback__
+                    self.assertIsNotNone(tb)
+                    while tb:
+                        frame = tb.tb_frame
+                        if frame.f_code is fingerprint.__code__:
+                            for name in ('parts', 'sizes', 'occurrences', 'buffers', 'snapshots'):
+                                self.assertFalse(frame.f_locals[name], name + ' retained after exception')
+                            self.assertIsNone(frame.f_locals['gather'])
+                        if frame.f_code is gather_code:
+                            self.assertIsNone(frame.f_locals.get('view'))
+                        if frame.f_code.co_filename == frames.__file__ and frame.f_code.co_name == 'visit':
+                            raw = frame.f_locals.get('raw')
+                            if isinstance(raw, memoryview):
+                                with self.assertRaises(ValueError): bytes(raw)
+                        tb = tb.tb_next
+                    del frame, tb
+                    released(with_traceback=True)
+                    sentinel.__traceback__ = None
+                    del value, sentinel
+                    released()
+            finally:
+                if was_enabled: gc.enable()
             # Mutate the real adapter, keeping the untouched pinned serializer as oracle.
             source = Path(frames.__file__).read_text()
             slice_expression = 'buffers[device][start:end]'
             self.assertIn(slice_expression, source)
             mutants = {
                 'wrong offsets': source.replace(slice_expression, 'buffers[device][0:end-start]', 1),
-                'wrong occurrence order': source.replace('in occurrences]', 'in reversed(occurrences)]', 1),
+                'wrong occurrence order': source.replace('in occurrences)', 'in reversed(occurrences))', 1),
                 'single concatenated SHA': source.replace(slice_expression, 'buffers[device]', 1),
             }
             for name, text in mutants.items():
@@ -980,9 +1066,10 @@ class ContractTests(unittest.TestCase):
                     compare(mutant, value)
             stale = source.replace('    def fingerprint(value, consumed=None):',
                 '    retained = None\n    def fingerprint(value, consumed=None):\n        nonlocal retained', 1)
-            stale = stale.replace('        return batched(value, _cuda_bytes=iter(snapshots))',
-                '        if retained is None: retained = snapshots\n'
-                '        snapshots = retained\n        return batched(value, _cuda_bytes=iter(snapshots))', 1)
+            stale = stale.replace('            return batched(value, _cuda_bytes=iter(snapshots))',
+                '            if retained is None: retained = [bytes(raw) for raw in snapshots]\n'
+                '            snapshots = [memoryview(raw) for raw in retained]\n'
+                '            return batched(value, _cuda_bytes=iter(snapshots))', 1)
             self.assertNotEqual(stale, source)
             module = ModuleType('_stale'); module.__file__ = frames.__file__
             exec(compile(stale, frames.__file__, 'exec'), vars(module))
