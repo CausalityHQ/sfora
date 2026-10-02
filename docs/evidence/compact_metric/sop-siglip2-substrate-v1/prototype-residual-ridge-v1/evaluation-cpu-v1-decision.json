@@ -1,0 +1,12 @@
+{
+  "status": "FAIL_AUTHORITY_BEFORE_NATIVE",
+  "root_cause": "dict_keys compared with mapping rather than expected key set",
+  "unit": "sfora-so400-prototype-residual-evaluation-cpu-v1",
+  "invocation_id": "fe3e5051d1504f5783b97ed384e5f4c4",
+  "service_seconds": 0.248,
+  "memory_peak_bytes": 38166528,
+  "quality_read": false,
+  "log_sha256": "40011a07409a6145808eda64c6ebf000c93325360448e2d29c2c0f0b2e15ddce",
+  "session": 91975,
+  "exit_status": 1
+}
