@@ -1,0 +1,63 @@
+{
+  "arm": "control",
+  "both_locks_held": true,
+  "cached_reference": {
+    "execution_sha256": "907dfed63ec7678b2ef930463640b098ea2e38ad1c5fc1ad312cceb628151598",
+    "root": "/home/riomus/runs/sfora-so400-cached-readout-source-v2"
+  },
+  "execution_sha256": "c2e55e7a43b16679058a32fa0644964231867359cdac405f1c8b7bafb8fd779a",
+  "original_authority": {
+    "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/authority-cpu-v2.json",
+    "sha256": "b54a0b4737e66469aa0568c02deacc03b3fa58a904c1a24b1ae8bc9882efe914"
+  },
+  "partition": {
+    "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v1/partition.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "phase": "cpu",
+  "recipe": {
+    "augmentation": false,
+    "bank": "unmixed pre-update detached last duplicate",
+    "batch": 64,
+    "candidate": "0.5*z",
+    "classes": 1008,
+    "clip": 1,
+    "control": "0.5*z",
+    "encoder_updates": false,
+    "initial_scaler": 128,
+    "initialization_seed": 179074,
+    "lambda": "float64 uniform[0,1) cast FP32",
+    "learning_rate": 0.0001,
+    "margin": 0.3,
+    "microbatch": 16,
+    "mix_probability": 0.5,
+    "mix_rng": "PCG64",
+    "output_dim": 128,
+    "rank": 32,
+    "rank_weight": 8,
+    "rows": 6355,
+    "scale": 64,
+    "seeds": [
+      179061,
+      179069
+    ],
+    "steps": 1000,
+    "stream_offsets": [
+      1000001,
+      2000001,
+      3000001
+    ],
+    "weight_decay": 0.05,
+    "width": 1152
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 120,
+    "swap_bytes": 0
+  },
+  "schema": "siglip2-identity-mix-launch-v1",
+  "seed": 179061,
+  "selected_cpu": null,
+  "selected_mechanics": null
+}
