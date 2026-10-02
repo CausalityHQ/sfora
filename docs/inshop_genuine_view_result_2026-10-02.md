@@ -1,0 +1,5 @@
+# Genuine augmented-view decision
+
+Current convergence row (verified): InShop selection1734query/1715gallery/498products, TRAIN6355/1008 seed179061 | matched control R1 96.3091118800%, mAP@R 80.5722953359%; genuine-view candidate R1 96.1937716263%, mAP@R 79.9243114670%; deltas -0.1153402537/-0.6479838689 percentage points; frozen first gate KILL, no CI or second seed | shared preparation283.636s; TRAIN1000 whole services182.390/165.297s, median70.290444/67.594217ms; whole/median ratios0.906283/0.961642 cost PASS; cached optimization is not image-training throughput | CPU v4 accepted89.170s; score accepted120.835s, host1327280128bytes/RSS996056KiB/events0/swap0; independent complete reload, packed/per-query replay and fresh exit PASS | public latency unmeasured; joint production target unmet | stop this recipe, preserve all v1-v3 failures and valid checkpoints; select one representation intervention; sealed validation remains unread.
+
+This closes this frozen cached-readout recipe only. It does not establish a universal architecture failure or satisfy the overall production goal. No official quality or public latency was measured.

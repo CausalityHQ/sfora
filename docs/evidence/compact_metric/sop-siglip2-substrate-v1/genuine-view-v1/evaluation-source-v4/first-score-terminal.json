@@ -1,0 +1,15 @@
+{
+  "schema": "genuine-view-first-score-terminal-v1",
+  "unit": "sfora-so400-genuine-view-evaluation-first-score-v1",
+  "invocation_id": "f8a6278997014c35b274021dcf1f438e",
+  "service_seconds": 120.835,
+  "native_peak_rss_kib": 996056,
+  "host_peak_bytes": 1327280128,
+  "normal_exit": 0,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "decision": "KILL",
+  "per_query_reduction_verified": true,
+  "receipt_sha256": "914f7a082570da853a404e8dd1960f41bbbdd634e92c01c9dd92aac8abd3f06d",
+  "log_sha256": "b74fd184eeafe42fe15b0aaf1af4d4226bf3c2847f7d61436e2e64348ee66650"
+}
