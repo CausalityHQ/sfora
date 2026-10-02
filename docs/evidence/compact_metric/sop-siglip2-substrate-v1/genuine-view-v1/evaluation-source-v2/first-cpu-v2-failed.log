@@ -1,0 +1,28 @@
+Running as unit: sfora-so400-genuine-view-evaluation-first-cpu-v2.service; invocation ID: 9856b835fdc4425797d220d9b8e5e1e4
+evaluate_siglip2_genuine_views.py: OK
+test_siglip2_genuine_view_evaluation.py: OK
+execution.json: OK
+authority-first-selection-v2.json: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+{"progress": "authority_start", "seconds": 0.0361618478782475}
+{"progress": "authority_end", "seconds": 84.02568172710016}
+{"progress": "native_admission_start", "seconds": 84.02571726310998}
+{"progress": "native_admission_end", "seconds": 91.4504031627439}
+{"progress": "qualification_load_first_start", "endpoint": "control-179061", "seconds": 91.45284098479897}
+{"progress": "qualification_load_first_end", "endpoint": "control-179061", "seconds": 93.12531520891935}
+{"progress": "qualification_load_second_start", "endpoint": "control-179061", "seconds": 93.22742347791791}
+{"progress": "qualification_load_second_end", "endpoint": "control-179061", "seconds": 94.77397082094103}
+{"progress": "qualification_load_first_start", "endpoint": "candidate-179061", "seconds": 94.84834387293085}
+{"progress": "qualification_load_first_end", "endpoint": "candidate-179061", "seconds": 96.37786688376218}
+{"progress": "qualification_load_second_start", "endpoint": "candidate-179061", "seconds": 96.45275473501533}
+{"progress": "qualification_load_second_end", "endpoint": "candidate-179061", "seconds": 97.99680643295869}
+{"progress": "exit_rehash_start", "seconds": 98.06829441571608}
+FINAL_CGROUP {"command_exit_status": 0, "invocation_id": "9856b835fdc4425797d220d9b8e5e1e4", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-genuine-view-evaluation-first-cpu-v2.service", "values": {"memory.current": "744050688", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "1214242816", "memory.stat": "anon 97091584\nfile 570232832\nkernel 37744640\nkernel_stack 49152\npagetables 3162112\nsec_pagetables 0\npercpu 2816\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1810432\nfile_dirty 32768\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 132169728\ninactive_file 124563456\nactive_file 445652992\nunevictable 0\nslab_reclaimable 34077640\nslab_unreclaimable 441984\nslab 34519624\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 175748\npgmajfault 3392\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 88\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+STOP_CGROUP {"exit_code": "killed", "exit_status": "TERM", "invocation_id": "9856b835fdc4425797d220d9b8e5e1e4", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-genuine-view-evaluation-first-cpu-v2.service", "service_result": "timeout", "values": {"memory.current": "730144768", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "1214242816", "memory.stat": "anon 97148928\nfile 570232832\nkernel 37744640\nkernel_stack 49152\npagetables 3158016\nsec_pagetables 0\npercpu 2464\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1810432\nfile_dirty 32768\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 118181888\ninactive_file 124563456\nactive_file 445652992\nunevictable 0\nslab_reclaimable 34077640\nslab_unreclaimable 443240\nslab 34520880\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 175762\npgmajfault 3392\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 88\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: timeout
+Main processes terminated with: code=killed/status=TERM
+Service runtime: 2min 77ms
+CPU time consumed: 49.735s
+Memory peak: 1.1G
+Memory swap peak: 0B
