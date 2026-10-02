@@ -1,0 +1,18 @@
+{
+  "authority_sha256": "a0072203febf1ef3d16ea329deb0a52dccef34a63223d7dc4b5a430d43d8b6a4",
+  "correction": "detached CPU copies for five bounded CUDA witness facts; unchanged math/guards/limits",
+  "execution_sha256": "8ec7f2687f7d1e7962de4f9753cefae989d0b6310d325b5e19da33a9961af3dc",
+  "files": {
+    "authority.json": "a0072203febf1ef3d16ea329deb0a52dccef34a63223d7dc4b5a430d43d8b6a4",
+    "execution.json": "8ec7f2687f7d1e7962de4f9753cefae989d0b6310d325b5e19da33a9961af3dc",
+    "export_siglip2_genuine_views.py": "e5e98f9bc85680cab013d53752e7fa140da9d5e7f7ecd4537413b29b1047f65e",
+    "partition.json": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c",
+    "test_siglip2_genuine_views.py": "980fe18f9fd2baaf7e1bb5c19738bc7971c3010f6b4e66c83d284dd7c79afb2b",
+    "train_sop_siglip2_compact.py": "1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610"
+  },
+  "native_run": false,
+  "prior_failure_preserved": true,
+  "remote_root": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v2",
+  "source_commit": "2e3b6a25",
+  "startup_command_sha256": "1a0de0efaaed519609077a4da688afdb4c718f6d407af138c2f309d5871706ee"
+}
