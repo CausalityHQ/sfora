@@ -17,7 +17,7 @@ import subprocess
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import SimpleNamespace
+from types import FunctionType, SimpleNamespace
 
 
 def rejects(call, text=None):
@@ -76,6 +76,7 @@ def check(d):
             lambda s: s['source_selection']['terminal'].update(service_seconds=1.),
             lambda s: s['endpoints'].reverse(), lambda s: s['endpoints'][0].update(seed=179061),
             lambda s: s['endpoints'][0]['terminal'].update(service_seconds=float('nan')),
+            lambda s: s['resource_policies']['cpu'].update(seconds=120),
             lambda s: s['resource_policies']['score'].update(seconds=301),
             lambda s: s['cost_policy'].update(total_fit_core_ratio_max=1.51),
         ):
@@ -124,7 +125,8 @@ def check(d):
         assert not d.paired_cost(bad)['pass']
         assert d.decide(arms, source, 'selection', intervals, d.paired_cost(bad))['decision'] == 'KILL'
         bad['linear'][key] = 0; rejects(lambda: d.paired_cost(bad))
-    assert d.policy('cpu')['seconds'] == 120 and d.policy('score')['seconds'] == 300
+    assert d.policy('cpu') == d.policy('score') == {
+        'seconds': 300, 'host_bytes': 8 * 1024**3, 'swap_bytes': 0, 'cuda_visible_devices': ''}
     threshold = {'linear': quality([1.] * (count - 13) + [0.] * 13, [.79] * count), 'quadratic': quadratic}
     tiny = d.metric_deltas(threshold, source, 'selection')['quadratic_minus_linear']
     tiny_ci = {m: dict(intervals[m], mean_delta=sum(tiny[m]) / count) for m in d.METRICS}
@@ -282,6 +284,8 @@ def flow_check(d, source):
     run = ast.get_source_segment(source, functions['run'])
     assert "args.phase == 'score' and context['costs']['pass']" in run
     assert run.index('authority(args)') < run.index('native_start(context)') < run.index('qualify_heads(context)')
+    assert 'resources_adapter(helper, guards)' in authority
+    assert "context['resources'](context, args.phase, before)" in run
     for name, digest in d.EVALUATOR_PINS.items():
         assert hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() == digest
     archive = Path(__file__).resolve().parents[1] / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/quadratic-readout-v1/train-source-v7'
@@ -535,6 +539,84 @@ def terminal_adapter_check(d):
     assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
 
 
+def resources_adapter_check(d):
+    """CPU300 is prospective; preserve the pinned checker and every resource gate."""
+    path = Path(__file__).with_name('export_siglip2_substrate_adaptation.py').resolve()
+    helper = d.load_bare('_resources_original_helper', path, d.REFERENCE_PINS[path.name])
+    original_globals = dict(vars(helper))
+    guards = {}
+    adapted = d.resources_adapter(helper, guards)
+    node = next(n for n in ast.parse(path.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name == 'resources')
+    assert ast.dump(adapted.__resources_ast__) == ast.dump(node), 'every predicate/report field stays exact'
+    assert adapted.__globals__.keys() == {
+        'Path', 'zero_events', 'time', 'UNIT_STARTED', 'require', 'resource', 'policy', '__builtins__', 'resources'}
+    for name in ('Path', 'zero_events', 'time', 'UNIT_STARTED', 'require', 'resource'):
+        assert adapted.__globals__[name] is getattr(helper, name)
+    assert adapted.__globals__['policy'] is d.policy and adapted is not helper.resources
+    assert guards == {str(path): d.REFERENCE_PINS[path.name]}
+    init_path = path.with_name('initialize_siglip2_substrate_fit.py')
+    initializer = d.load_bare('_resources_original_initializer', init_path, hashlib.sha256(init_path.read_bytes()).hexdigest())
+    before = {'path': '/sys/fs/cgroup/prospective-cpu.service', 'values': {
+        'memory.max': str(8 * 1024**3), 'memory.current': '1024', 'memory.peak': '2048',
+        'memory.swap.current': '0', 'memory.swap.peak': '0', 'memory.swap.max': '0',
+        'memory.events': 'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n'}}
+
+    def run(function=adapted, phase='cpu', elapsed=120.103, rss=1000, swap=0, after=None):
+        after = copy.deepcopy(before) if after is None else after
+        context = {'unit_started': 10., 'selected_context': {
+            'source': SimpleNamespace(cgroup_memory=lambda: after), 'initialized': {'init': initializer}}}
+        # Only host observations are synthetic; execute the actual checker and cgroup predicates.
+        namespace = {**function.__globals__, 'time': SimpleNamespace(perf_counter=lambda: 10. + elapsed),
+            'resource': SimpleNamespace(RUSAGE_SELF=0, getrusage=lambda _: SimpleNamespace(ru_maxrss=rss)),
+            'Path': lambda value: SimpleNamespace(read_text=lambda: f'VmSwap:\t{swap} kB\n')
+                    if value == '/proc/self/status' else Path(value)}
+        return FunctionType(function.__code__, namespace)(context, phase, before)
+
+    for phase in ('cpu', 'score'):
+        result = run(phase=phase, elapsed=299.)
+        assert result == {'resource_policy': {'seconds': 300, 'host_bytes': 8 * 1024**3,
+                'swap_bytes': 0, 'cuda_visible_devices': ''}, 'wall_seconds': 299.,
+            'process_peak_rss_kib': 1000, 'peak_cuda_allocated_bytes': 0,
+            'cgroup_before': before, 'cgroup_after': before, 'both_locks_held_in_parent_authority': True,
+            'terminal_exit_and_both_locks_require_parent_receipt': True}
+        for elapsed in (300., 301.):
+            rejects(lambda: run(phase=phase, elapsed=elapsed), 'complete-unit resources')
+    rejects(lambda: run(helper.resources), 'complete-unit resources')  # Historical CPU120 still fails.
+    assert abs(run()['wall_seconds'] - 120.103) < 1e-12
+    assert run(phase='score') == run(helper.resources, phase='score')
+    for rss in (0, 8 * 1024**2 + 1):
+        rejects(lambda: run(rss=rss), 'complete-unit resources')
+    rejects(lambda: run(swap=1), 'native swap')
+    rejects(lambda: run(after=dict(before, path='/sys/fs/cgroup/different.service')), 'complete-unit resources')
+    for key, value, message in (
+        ('memory.max', str(16 * 1024**3), 'memory/swap caps'),
+        ('memory.peak', str(8 * 1024**3 + 1), 'memory/swap caps'),
+        ('memory.swap.current', '1', 'memory/swap caps'),
+        ('memory.swap.peak', '1', 'memory/swap caps'),
+        ('memory.swap.max', '1', 'memory/swap caps'),
+        ('memory.events', before['values']['memory.events'].replace('high 0', 'high 1'), 'events must be zero')):
+        after = copy.deepcopy(before); after['values'][key] = value
+        rejects(lambda: run(after=after), message)
+    rejects(lambda: d.terminal_ast(helper, d.REFERENCE_PINS[path.name], '0' * 64, {}, name='resources'), 'body differs')
+    alias = SimpleNamespace(**{**vars(helper), '__spec__': SimpleNamespace(origin='/wrong/origin.py')})
+    rejects(lambda: d.resources_adapter(alias, {}), 'source origin')
+    # A live predicate bypass with intact pinned disk bytes must also be rejected.
+    alias = SimpleNamespace(**vars(helper))
+    mutant = copy.deepcopy(node)
+    guard = next(n for n in mutant.body if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+                 and isinstance(n.value.func, ast.Name) and n.value.func.id == 'require')
+    guard.value.args[0] = ast.Constant(value=True)
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[mutant], type_ignores=[])), str(path), 'exec'), vars(alias))
+    rejects(lambda: d.resources_adapter(alias, {}), 'body differs')
+    with TemporaryDirectory() as temporary:
+        changed = Path(temporary) / path.name
+        changed.write_bytes(path.read_bytes().replace(b"peak < 10_000_000_000", b"peak < 20_000_000_000"))
+        alias = SimpleNamespace(**{**vars(helper), '__file__': str(changed), '__spec__': SimpleNamespace(origin=str(changed))})
+        rejects(lambda: d.resources_adapter(alias, {}), 'SHA256')
+    assert vars(helper) == original_globals and helper.policy('cpu')['seconds'] == 120
+    assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
+
+
 def fitter_check(path):
     """Optional exact API check; reads only the sibling's new stdlib module."""
     spec = importlib.util.spec_from_file_location('_test_prototype_fitter_api', path)
@@ -566,6 +648,7 @@ def main():
     d = importlib.util.module_from_spec(spec); spec.loader.exec_module(d)
     check(d)
     closure_check(d)
+    resources_adapter_check(d)
     terminal_adapter_check(d)
     rng_binding_check(d, path.read_text())
     flow_check(d, path.read_text())

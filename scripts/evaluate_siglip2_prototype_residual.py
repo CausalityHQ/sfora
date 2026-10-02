@@ -7,7 +7,7 @@ has exactly four files, and the pinned scoring reference has exactly six.
 Authority keys are SPEC_KEYS, with FILE/UNIT descriptors identical to the
 original complete original-service admission. Endpoint order is linear then
 quadratic; neither endpoint carries a seed, optimizer or update schedule.
-CPU120 independently reloads each complete fitted payload twice without fitting.
+Prospective CPU300 independently reloads each complete fitted payload twice without fitting.
 Score300 first authenticates engineering/paired costs, then replays every source
 selection query before scoring the authorized direct-FIT panel and its wires.
 GO permits sealed validation only; all inference is conditional on one frozen
@@ -54,6 +54,7 @@ TERMINAL_SOURCE_SHA = 'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6
 TERMINAL_AST_SHA = 'ad9a5202986c9f3a80c992b6f7e40ef95bd81afbee98512b693dc48917f838d2'
 FIT_TERMINAL_AST_SHA = 'a94f81cadd4bd046c25a5279f0db7a3e28339f01c787b7b788f8d75a1186b78b'
 SOURCE_SELECTION_AST_SHA = '007cf3f693eef137769e158fb31fac6b8998f4a6b0323ac437276fab85fa034c'
+RESOURCES_AST_SHA = '9674922b63483fcc6a7d39697514da92655cf4a32f5ae5110b2d7ccd3a2d0838'
 
 COST_POLICY = {'whole_service_ratio_max': 1.50, 'total_fit_core_ratio_max': 1.50,
                'shared_export_seconds': 283.636, 'shared_export_in_fit_ratios': False}
@@ -140,7 +141,7 @@ def require(condition, message):
 
 def policy(phase):
     require(phase in ('cpu', 'score'), 'fixed evaluation phase required')
-    return {'seconds': 120 if phase == 'cpu' else 300, 'host_bytes': 8 * 1024**3,
+    return {'seconds': 300, 'host_bytes': 8 * 1024**3,
             'swap_bytes': 0, 'cuda_visible_devices': ''}
 
 
@@ -516,6 +517,20 @@ def source_selection_adapter(baseline, context):
     return adapted
 
 
+def resources_adapter(helper, guards):
+    """Retain the exact pinned resource checker with only our prospective policy."""
+    node = terminal_ast(helper, REFERENCE_PINS['export_siglip2_substrate_adaptation.py'],
+                        RESOURCES_AST_SHA, guards, name='resources')
+    namespace = {name: getattr(helper, name) for name in (
+        'Path', 'zero_events', 'time', 'UNIT_STARTED', 'require', 'resource')}
+    namespace['policy'] = policy
+    exec(compile(ast.Module(body=[node], type_ignores=[]),
+                 '<prototype evaluator resource admission>', 'exec'), namespace)
+    adapted = namespace['resources']
+    adapted.__resources_ast__ = node
+    return adapted
+
+
 def authority(args):
     require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native imports preceded admission')
     root, guards = Path(__file__).absolute().parent, {}
@@ -547,6 +562,7 @@ def authority(args):
                           REFERENCE_PINS['evaluate_siglip2_cached_readout.py'])
     helper = load_bare('_prototype_evaluation_helper', Path(REFERENCE_ROOT) / 'export_siglip2_substrate_adaptation.py',
                        REFERENCE_PINS['export_siglip2_substrate_adaptation.py'])
+    resources = resources_adapter(helper, guards)
     first = spec['endpoints'][0]
     fitting = fitter.authority(SimpleNamespace(execution_sha256=training['execution_sha256'],
         authority=Path(first['launch']['path']), authority_sha256=first['launch']['sha256'],
@@ -612,7 +628,8 @@ def authority(args):
     context = {'args': args, 'root': root, 'code': code, 'spec': spec, 'fitter': fitter, 'fitting': fitting,
                'baseline': baseline, 'trainer': fitting['old'], 'legacy': reference, 'selected': selected,
                'terminal_reader': source_selection.__globals__['_original_log_terminal'],
-               'guards': selected['guards'], 'helper': helper, 'admission': selected['admission'], 'records': records,
+               'guards': selected['guards'], 'helper': helper, 'resources': resources,
+               'admission': selected['admission'], 'records': records,
                'fit': old['genuine']['prior']['fit'], 'partition': partition, 'terminals': terminals,
                'origin_records': [old['source_cpu'], selected['warm_record'], original_cpu,
                    {**exported, 'input_guards': {**exported['original_input_guards'], **exported['input_guards']}},
@@ -997,7 +1014,7 @@ def run(args):
             not torch.cuda.is_initialized(), 'whole-unit RNG/flags/CUDA differs')
     print(json.dumps({'progress': 'exit_rehash_start', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
     origins = exit_rehash(context)
-    resources = context['helper'].resources(context, args.phase, before)
+    resources = context['resources'](context, args.phase, before)
     receipt = {**bind(context), 'schema': SCHEMA, 'phase': args.phase, 'pass': True,
         'engineering_admission_pass': True, 'integrity_pass': True, 'resources_pass': True,
         'certificate': 'updated cached readout composed with qualified immutable encoder', 'public_encoder_qualified': False,
