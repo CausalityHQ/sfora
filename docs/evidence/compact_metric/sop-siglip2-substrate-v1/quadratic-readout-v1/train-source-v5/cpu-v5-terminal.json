@@ -1,0 +1,21 @@
+{
+  "cuda_initialized": false,
+  "exit_code": 0,
+  "production_terminal_check": true,
+  "unit": {
+    "both_locks_held": true,
+    "invocation_id": "c7acfb15e52b416c98365972bbb4505a",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/cpu-v5.log",
+      "sha256": "e1cc4d0017bf3bf8e45ab1408f55015c9aef3910ecf1b623158e4a5646933c92"
+    },
+    "native_peak_rss_kib": 1117044,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-quadratic-readout-cpu-v5/receipt.json",
+      "sha256": "d9abc997516e01a858fd3d20b1a1c59205367777d15fbee501e246c4f1de499d"
+    },
+    "service_seconds": 99.21,
+    "unit": "sfora-so400-quadratic-readout-cpu-v5"
+  },
+  "whole_peak_bytes": 1372893184
+}
