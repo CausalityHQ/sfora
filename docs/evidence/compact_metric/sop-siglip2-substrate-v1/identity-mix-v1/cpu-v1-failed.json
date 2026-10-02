@@ -1,0 +1,14 @@
+{
+  "exit_status": 1,
+  "host_peak_bytes": 1453776896,
+  "host_swap_bytes": 0,
+  "invocation_id": "cf4dfc4a295e4e65a5f21450a0c1f1d9",
+  "log_sha256": "ce163a1c972588662d8c3c9cff457218f906a86b4157a1b4b493f5f0de29ddb5",
+  "memory_events_disallowed": 0,
+  "quality_read": false,
+  "reason": "Pinned PCA helper load_bare repeated by independent initializer reconstruction; no native qualification accepted.",
+  "service_seconds": 30.467,
+  "session": 81756,
+  "status": "engineering_FAIL",
+  "unit": "sfora-so400-identity-mix-cpu-v1"
+}
