@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "145169fc346649acb7ac5911a64afacf",
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/sfora-so400-identity-mix-mechanics-control-v2.log",
+    "sha256": "1f40f2407532ee2292dcb2b4d8c9ca8e4f4691ddc21670360b6f455fef213d54"
+  },
+  "native_peak_rss_kib": 2253308,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-identity-mix-mechanics-control-v2/receipt.json",
+    "sha256": "acd43e9692070d40ebae5ea62b624a5458b6b21293c0fc361a2ac8ee54382714"
+  },
+  "service_seconds": 68.747,
+  "unit": "sfora-so400-identity-mix-mechanics-control-v2"
+}
