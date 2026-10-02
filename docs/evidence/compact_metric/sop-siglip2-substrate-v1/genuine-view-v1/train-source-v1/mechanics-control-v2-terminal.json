@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "4885ed3b064e4567a96813a49c86023a",
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1/mechanics-control-v2.log",
+    "sha256": "96c981da677bac8a64066ff9e406b38e37d8bc3893786c7f4f6d2e515a56717e"
+  },
+  "native_peak_rss_kib": 2281396,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-mechanics-control-v2/receipt.json",
+    "sha256": "4fa25d68ec63e3984aa7e3a2dc451939c23d778d498f6bfec326f8d2691d36c8"
+  },
+  "service_seconds": 97.926,
+  "unit": "sfora-so400-genuine-view-mechanics-control-v2"
+}
