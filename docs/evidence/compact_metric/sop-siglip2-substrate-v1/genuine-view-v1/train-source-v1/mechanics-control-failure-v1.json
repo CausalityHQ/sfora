@@ -1,0 +1,15 @@
+{
+  "code_or_limits_changed": false,
+  "error": "original normal-exit log differs",
+  "exit_status": 1,
+  "invocation_id": "7b3b24af395740a09152ebf7054e9631",
+  "native_peak_rss_kib": 180464,
+  "quality_read": false,
+  "root_cause": "parent terminal used receipt process_peak_rss_kib1148080, original time-v log native_peak1188668; mismatch rejected",
+  "schema": "genuine-view-mechanics-admission-failure-v1",
+  "service_seconds": 38.975,
+  "session": 92106,
+  "unit": "sfora-so400-genuine-view-mechanics-control-v1",
+  "updates_admitted": false,
+  "whole_unit_host_peak_bytes": 292962304
+}
