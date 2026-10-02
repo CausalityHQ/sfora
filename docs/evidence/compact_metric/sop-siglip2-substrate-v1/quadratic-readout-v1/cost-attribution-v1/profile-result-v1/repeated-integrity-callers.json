@@ -1,0 +1,218 @@
+{
+  "schema": "quadratic-diagnostic-caller-ledger-v1",
+  "profile_sha256": "6e84fa692e6646ab556f9f3099281db17fcb25725c53a3315750051e5f01bb58",
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "timings_are_profile_observations_only": true,
+  "overlapping_cumulative_windows_not_additive": true,
+  "training_forecast": null,
+  "rows": [
+    {
+      "function": [
+        "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+        916,
+        "integrity"
+      ],
+      "primitive_calls": 60,
+      "total_calls": 60,
+      "self_seconds": 0.0076558500000000005,
+      "cumulative_seconds": 3.7620534950000004,
+      "callers": [
+        {
+          "function": [
+            "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+            1050,
+            "update"
+          ],
+          "values": [
+            52,
+            52,
+            0.00645379,
+            3.3409891640000002
+          ]
+        }
+      ]
+    },
+    {
+      "function": [
+        "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+        253,
+        "authority"
+      ],
+      "primitive_calls": 1,
+      "total_calls": 1,
+      "self_seconds": 0.015946164000000002,
+      "cumulative_seconds": 66.489925854,
+      "callers": []
+    },
+    {
+      "function": [
+        "~",
+        0,
+        "<method 'cpu' of 'torch._C.TensorBase' objects>"
+      ],
+      "primitive_calls": 3405,
+      "total_calls": 3405,
+      "self_seconds": 3.924329784,
+      "cumulative_seconds": 3.924329784,
+      "callers": [
+        {
+          "function": [
+            "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+            385,
+            "packed_outputs"
+          ],
+          "values": [
+            20,
+            20,
+            0.00027836500000000004,
+            0.00027836500000000004
+          ]
+        },
+        {
+          "function": [
+            "/home/riomus/runs/sfora-native256-adaptation-source-v6/train_siglip2_substrate_adaptation.py",
+            1062,
+            "visit"
+          ],
+          "values": [
+            709,
+            709,
+            0.246202885,
+            0.246202885
+          ]
+        },
+        {
+          "function": [
+            "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/quadratic_encoder_frames.py",
+            1062,
+            "visit"
+          ],
+          "values": [
+            2676,
+            2676,
+            3.6778485340000002,
+            3.6778485340000002
+          ]
+        }
+      ]
+    },
+    {
+      "function": [
+        "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/quadratic_encoder_frames.py",
+        1055,
+        "fingerprint"
+      ],
+      "primitive_calls": 1,
+      "total_calls": 1,
+      "self_seconds": 9.856e-06,
+      "cumulative_seconds": 0.160936442,
+      "callers": [
+        {
+          "function": [
+            "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/quadratic_encoder_frames.py",
+            76,
+            "<genexpr>"
+          ],
+          "values": [
+            1,
+            1,
+            9.856e-06,
+            0.160936442
+          ]
+        }
+      ]
+    },
+    {
+      "function": [
+        "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/quadratic_encoder_frames.py",
+        95,
+        "fingerprint"
+      ],
+      "primitive_calls": 221,
+      "total_calls": 221,
+      "self_seconds": 0.00019116600000000002,
+      "cumulative_seconds": 6.0339022060000005,
+      "callers": [
+        {
+          "function": [
+            "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+            817,
+            "identity"
+          ],
+          "values": [
+            6,
+            6,
+            1.1408e-05,
+            0.056619375000000007
+          ]
+        },
+        {
+          "function": [
+            "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+            916,
+            "integrity"
+          ],
+          "values": [
+            120,
+            120,
+            0.000106286,
+            0.34640774700000004
+          ]
+        },
+        {
+          "function": [
+            "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+            1050,
+            "update"
+          ],
+          "values": [
+            26,
+            26,
+            1.832e-05,
+            2.128187258
+          ]
+        },
+        {
+          "function": [
+            "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+            911,
+            "check_complement"
+          ],
+          "values": [
+            60,
+            60,
+            4.7136000000000004e-05,
+            3.15119423
+          ]
+        }
+      ]
+    },
+    {
+      "function": [
+        "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+        911,
+        "check_complement"
+      ],
+      "primitive_calls": 60,
+      "total_calls": 60,
+      "self_seconds": 0.000211535,
+      "cumulative_seconds": 3.1532331680000003,
+      "callers": [
+        {
+          "function": [
+            "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+            916,
+            "integrity"
+          ],
+          "values": [
+            60,
+            60,
+            0.000211535,
+            3.1532331680000003
+          ]
+        }
+      ]
+    }
+  ]
+}
