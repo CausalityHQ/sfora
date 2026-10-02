@@ -1,0 +1,59 @@
+{
+  "schema": "quadratic-feature-residency-source-audit-v1",
+  "source_sha256": "f5759274d4c8ba75d69f6728b9b309e0cafeaba80ed7127fce6393099730e17b",
+  "canonical_rows": 6355,
+  "width": 1152,
+  "dtype": "FP32",
+  "matrix_bytes": 29283840,
+  "rows_per_update": 64,
+  "microbatch_rows": 16,
+  "bytes_for_64_rows": 294912,
+  "features_constructed_on_state_device": true,
+  "features_consumers": [
+    {
+      "function": "frozen_tree",
+      "line": 769
+    },
+    {
+      "function": "frozen_tensors",
+      "line": 775
+    },
+    {
+      "function": "identity",
+      "line": 827
+    },
+    {
+      "function": "integrity",
+      "line": 945
+    },
+    {
+      "function": "integrity",
+      "line": 945
+    },
+    {
+      "function": "integrity",
+      "line": 945
+    },
+    {
+      "function": "calibration",
+      "line": 1026
+    },
+    {
+      "function": "update",
+      "line": 1067
+    },
+    {
+      "function": "update",
+      "line": 1094
+    },
+    {
+      "function": "cpu_witnesses",
+      "line": 1156
+    }
+  ],
+  "full_hash_boundaries": "before and after every update; fresh complement includes actual features bytes",
+  "checkpoint_file_hashes": "already invocation-owned via admitted_file; uncached exit retained",
+  "cpu_residency_intervention": "proposal only; native/maths/parity/cost UNRUN; await same specialist terminal decision",
+  "qualification_eligible": false,
+  "quality_read": false
+}
