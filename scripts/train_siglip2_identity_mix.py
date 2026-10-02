@@ -465,10 +465,7 @@ def initializer(context, ref, features, pca=None):
     from torch import nn
     from torch.nn import functional as F
     require(features.shape == (ROWS, WIDTH) and features.device.type == 'cpu', 'TRAIN-only CPU PCA required')
-    parent = context['initialized']['pca']
-    helper = context['initialized']['init']
-    pca_helper = helper.load_bare('_identity_mix_pinned_pca', parent['root'] / 'representation_ceiling.py',
-                                parent['launch']['pca_helper_sha256'])
+    pca_helper = context['pca_helper']
     normalized = F.normalize(features, dim=1)
     if pca is None:
         pca = pca_helper.fit_centered_pca(normalized, dimensions=DIM)
@@ -884,6 +881,9 @@ def run(args):
     python = Path(sys.executable).resolve()
     require(str(python) == prior['python'] and init.sha(python) == prior['python_sha256'] and
             sys.version == prior['python_version'], 'original qualified interpreter differs')
+    parent = context['initialized']['pca']
+    context['pca_helper'] = init.load_bare('_identity_mix_pinned_pca', parent['root'] / 'representation_ceiling.py',
+                                         parent['launch']['pca_helper_sha256'])
     import torch
     require(not torch.cuda.is_initialized(), 'admission must precede CUDA')
     flags = context['old_cpu']['numerical_flags']

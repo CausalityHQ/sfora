@@ -15,9 +15,11 @@ import json
 import math
 import subprocess
 import sys
+from contextlib import nullcontext
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest.mock import patch
 
 
 def rejects(call, message=None):
@@ -281,6 +283,141 @@ def file_checks(driver, root):
     rejects(lambda: driver.closure(root, sha(), driver.FILES, {}), 'exact execution closure')
 
 
+def initializer_lifetime_checks(driver, root):
+    """Real run/initializer/loader boundaries, scalar stand-ins; native math UNRUN.
+
+    Loading inside initializer again must fail on its independent reconstruction.
+    """
+    path = Path(driver.__file__).with_name('initialize_siglip2_substrate_fit.py')
+    spec = importlib.util.spec_from_file_location('_identity_mix_lifetime_init', path)
+    init = importlib.util.module_from_spec(spec); spec.loader.exec_module(init)
+    helper_path = root / 'representation_ceiling.py'
+    helper_path.write_text('''fit_calls = 0
+transforms = []
+class CenteredPcaTransform:
+    def __init__(self, mean, components):
+        self.mean, self.components = mean, components
+        transforms.append(self)
+    def apply(self, value):
+        return value.clone()
+def fit_centered_pca(value, dimensions):
+    global fit_calls
+    fit_calls += 1
+    assert dimensions == 128
+    return CenteredPcaTransform(value.mean(0), value.clone())
+''')
+    digest = hashlib.sha256(helper_path.read_bytes()).hexdigest()
+
+    class Scalar:
+        shape, device = (driver.ROWS, driver.WIDTH), SimpleNamespace(type='cpu')
+        def __init__(self, value=1): self.value = value
+        def clone(self): return Scalar(self.value)
+        def __matmul__(self, other): return Scalar(self.value * other.value)
+        def __neg__(self): return Scalar(-self.value)
+        def __sub__(self, other): return Scalar(self.value - other.value)
+        def __add__(self, other): return Scalar(self.value + other.value)
+        def __getitem__(self, index): return self
+        def __setitem__(self, index, value): self.value = value.value
+        def __gt__(self, other): return Scalar(self.value > other)
+        def __float__(self): return float(self.value)
+        def all(self): return self
+        def item(self): return self.value
+        def mean(self, dimension): return self.clone()
+        def std(self, unbiased): return Scalar()
+        def norm(self, dim): return Scalar()
+        def detach(self): return self
+        def numpy(self): return [0]
+        def copy_(self, other): self.value = other.value
+        def div_(self, other): self.value /= other.value
+
+    heads = []
+    def head_from(arm, tensors):
+        assert arm == 'control' and float(tensors['primary.bias']) == -1
+        class Head:
+            def __call__(self, value): return value.clone()
+            def state_dict(self): return tensors
+        head = Head()
+        head.down = lambda value: value.clone()
+        head.down.weight = tensors['down.weight']
+        head.center, head.preactivation_std = tensors['center'], tensors['preactivation_std']
+        heads.append(head)
+        return head
+
+    normalize = lambda value, dim: value.clone()
+    nn = SimpleNamespace(init=SimpleNamespace(kaiming_uniform_=lambda *a, **kw: None),
+                         functional=SimpleNamespace(normalize=normalize))
+    torch = SimpleNamespace(nn=nn, zeros=lambda *a: Scalar(0), ones=lambda *a: Scalar(),
+        Generator=lambda: SimpleNamespace(manual_seed=lambda seed: seed), no_grad=nullcontext,
+        tensor=lambda *a, **kw: Scalar(), from_numpy=lambda value: Scalar(), int64='int64',
+        isfinite=lambda value: Scalar(True), cuda=SimpleNamespace(is_initialized=lambda: False),
+        set_num_threads=lambda n: None, get_num_interop_threads=lambda: 1,
+        random=SimpleNamespace(default_generator=SimpleNamespace(manual_seed=lambda seed: None),
+                               get_rng_state=lambda: Scalar()))
+    before = {'path': '/test/lifetime.service', 'values': {'memory.max': str(8 * 1024**3),
+        'memory.current': '1', 'memory.peak': '1', 'memory.swap.current': '0',
+        'memory.swap.peak': '0', 'memory.swap.max': '0', 'memory.events': 'max 0\noom 0\noom_kill 0'}}
+    flags = {'threads': 1, 'interop_threads': 1}
+    parent = {'root': root, 'launch': {'pca_helper_sha256': digest}}
+    prior = {'python': str(Path(sys.executable).resolve()), 'python_sha256': init.sha(Path(sys.executable).resolve()),
+             'python_version': sys.version, 'numerical_flags': flags, 'origins': {'files': {}}}
+    context = {'initialized': {'init': init, 'pca': parent, 'source': SimpleNamespace(
+        cgroup_memory=lambda: before, numerical_flags=lambda: flags, imported_origins=lambda *a: {'files': {}}),
+        'source_context': {'extract': None}, 'packages': {}}, 'old_cpu': {'invocation': prior, **prior},
+        'original': SimpleNamespace(reference_math=lambda old: SimpleNamespace(
+            member_bank_positive_ordinals=lambda *a, **kw: Scalar())), 'old': {},
+        'cached': SimpleNamespace(head_from=head_from), 'target': [0],
+        'partition': {'panels': {'train': {'original_rows': [0]}}}}
+    args = SimpleNamespace(phase='cpu', arm='control', seed=driver.SEEDS[0], output=root / 'output',
+                           execution_sha256='a' * 64, authority=root / 'authority', authority_sha256='b' * 64)
+    argv = [str(Path(driver.__file__).absolute()), '--execution-sha256', args.execution_sha256,
+        '--authority', str(args.authority), '--authority-sha256', args.authority_sha256,
+        '--phase', args.phase, '--arm', args.arm, '--seed', str(args.seed), '--output', str(args.output)]
+    imports, results = [], []
+    real_import = __import__
+    def scalar_import(name, *a, **kw):
+        if name in ('torch', 'torch.nn'):
+            assert context['pca_helper'] is sys.modules['_identity_mix_pinned_pca']
+            imports.append(name)
+            return torch if name == 'torch' else nn
+        return real_import(name, *a, **kw)
+    class BoundaryComplete(Exception): pass
+    def witnesses(ctx, ref, output, numerical_flags):
+        results.append(driver.initializer(ctx, ref, Scalar()))
+        results.append(driver.initializer(ctx, ref, Scalar(), pca=results[0]['pca']))
+        raise BoundaryComplete
+    with patch.object(driver, 'authority', return_value=context), patch.object(driver, 'cpu_witnesses', witnesses), \
+         patch.object(driver, 'schedule_and_mixing', return_value=(None, {})), patch.object(sys, 'argv', argv), \
+         patch.dict(driver.os.environ, CUDA_VISIBLE_DEVICES='', INVOCATION_ID='c' * 32), \
+         patch('builtins.__import__', scalar_import):
+        before['values']['memory.max'] = '1'
+        rejects(lambda: driver.run(args), 'whole-cgroup memory/swap caps differ')
+        before['values']['memory.max'] = str(8 * 1024**3)
+        assert not imports and '_identity_mix_pinned_pca' not in sys.modules
+        try:
+            driver.run(args)
+        except BoundaryComplete:
+            pass
+        else:
+            raise AssertionError('initializer boundary did not execute')
+        helper = sys.modules['_identity_mix_pinned_pca']
+        assert context['pca_helper'] is helper
+        assert helper.__file__ == helper.__spec__.origin == str(helper_path)
+        assert helper.fit_calls == 1 and len(helper.transforms) == len(heads) == len(results) == 2
+        assert helper.transforms[0] is not helper.transforms[1] and heads[0] is not heads[1]
+        assert results[0]['head'] is not results[1]['head']
+        assert results[0]['classifier'] is not results[1]['classifier']
+        assert results[0]['bank'] is not results[1]['bank']
+        output_imports = imports.copy()
+        parent['root'] = root / 'missing'
+        rejects(lambda: driver.run(args), 'canonical regular file')
+        parent['root'] = root
+        parent['launch']['pca_helper_sha256'] = '0' * 64
+        rejects(lambda: driver.run(args), 'bound file SHA256 differs')
+        parent['launch']['pca_helper_sha256'] = digest
+        rejects(lambda: driver.run(args), 'helper already loaded; origin is not admissible')
+        assert imports == output_imports and sys.modules['_identity_mix_pinned_pca'] is helper
+
+
 def source_checks(driver, path):
     tree = ast.parse(path.read_bytes())
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
@@ -320,6 +457,8 @@ def main():
     partition_checks(driver, path.parent.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-mix-v1/partition.json')
     with TemporaryDirectory() as directory:
         file_checks(driver, Path(directory))
+    with TemporaryDirectory() as directory:
+        initializer_lifetime_checks(driver, Path(directory))
     source_checks(driver, path)
     for file in (path, Path(__file__).resolve()):
         compile(file.read_bytes(), str(file), 'exec')
@@ -330,7 +469,7 @@ def main():
     assert result.returncode == 0 and all('--' + n in result.stdout for n in
         ('execution-sha256', 'authority-sha256', 'phase', 'arm', 'seed', 'output'))
     assert not any(n.split('.')[0] in {'torch', 'numpy', 'PIL', 'transformers', 'sfora'} for n in sys.modules)
-    print('PASS: donors/singletons/mixing/norm/clean-bank/resume/partition/authority/tamper/syntax/help/-O/-OO; native UNRUN')
+    print('PASS: donors/singletons/mixing/norm/clean-bank/resume/partition/authority/tamper/initializer-lifetime/syntax/help/-O/-OO; native UNRUN')
 
 
 if __name__ == '__main__':
