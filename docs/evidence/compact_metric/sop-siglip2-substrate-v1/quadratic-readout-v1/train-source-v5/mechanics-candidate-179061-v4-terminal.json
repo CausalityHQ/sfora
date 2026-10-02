@@ -1,0 +1,39 @@
+{
+  "cuda_peak_bytes": 242560512,
+  "exit_code": 0,
+  "full17_independent8plus9": true,
+  "production_terminal_check": true,
+  "shared_initial_identity_keys_exact": [
+    "source",
+    "config",
+    "native_inventory",
+    "encoder_sha256",
+    "complement_sha256",
+    "buffers_sha256",
+    "head_buffers_sha256",
+    "means_sha256",
+    "frozen_sha256",
+    "features_sha256",
+    "static_sha256",
+    "warm_members_sha256",
+    "schedule_sha256",
+    "full_schedule_sha256"
+  ],
+  "strict_reload_exact": true,
+  "unit": {
+    "both_locks_held": true,
+    "invocation_id": "35eded03faef4a90b9b06776426afa19",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/mechanics-candidate-179061-v4.log",
+      "sha256": "2ac941d63446068909d28a4de4f78f6b11b3aacbbe39757bcd9c75cae3163d51"
+    },
+    "native_peak_rss_kib": 2455144,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-quadratic-readout-mechanics-candidate-179061-v4/receipt.json",
+      "sha256": "8ac49a8533dc1ce30742b630e7633804c28f7ce6339b4380ac5b8208721087bd"
+    },
+    "service_seconds": 96.717,
+    "unit": "sfora-so400-quadratic-readout-mechanics-candidate-179061-v4"
+  },
+  "whole_peak_bytes": 2822721536
+}

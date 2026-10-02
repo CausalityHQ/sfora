@@ -1,0 +1,126 @@
+{
+  "arm": "candidate",
+  "both_locks_held": true,
+  "execution_sha256": "a12ac8fe3ec0363db2c89243e633666f2485a3097cd9c249b4ec27c9d5db86b3",
+  "genuine_reference": {
+    "execution_sha256": "2003e9a6adba30c8f90fa17f6437cbba1f4b6cd2d12e75906195d16229846e08",
+    "root": "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1"
+  },
+  "partition": {
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "phase": "train",
+  "recipe": {
+    "bank": "original terminal bank; canonical pre-update detached last duplicate",
+    "batch": 64,
+    "candidate": "h0+A(z.square()-mean(z.square()))",
+    "certificate": "updated cached readout composed with qualified immutable encoder",
+    "classes": 1008,
+    "clip": 1,
+    "control": "h0+A(z-mean(z))",
+    "initial_scaler": 128,
+    "input": "original training_features normalized canonical TRAIN only; both control factory",
+    "learning_rate": 0.0001,
+    "local_initial_counter": 0,
+    "margin": 0.3,
+    "means": "raw canonical TRAIN6355 CPU FP32 fullmatrix; original CPU normalize then head normalize; independent means",
+    "microbatch": 16,
+    "output_dim": 128,
+    "rank": 32,
+    "rank_weight": 8,
+    "rows": 6355,
+    "scale": 64,
+    "schedule": "unchanged genuine full1000; masks metadata only",
+    "seeds": [
+      179061,
+      179069
+    ],
+    "steps": 1000,
+    "trainable": "A FP32[128,32], zero, sole AdamW member",
+    "warm_source_updates": 1000,
+    "weight_decay": 0.05,
+    "width": 1152
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "siglip2-quadratic-readout-launch-v1",
+  "seed": 179061,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "c7acfb15e52b416c98365972bbb4505a",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/cpu-v5.log",
+      "sha256": "e1cc4d0017bf3bf8e45ab1408f55015c9aef3910ecf1b623158e4a5646933c92"
+    },
+    "native_peak_rss_kib": 1117044,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-quadratic-readout-cpu-v5/receipt.json",
+      "sha256": "d9abc997516e01a858fd3d20b1a1c59205367777d15fbee501e246c4f1de499d"
+    },
+    "service_seconds": 99.21,
+    "unit": "sfora-so400-quadratic-readout-cpu-v5"
+  },
+  "selected_mechanics": {
+    "candidate": {
+      "both_locks_held": true,
+      "invocation_id": "35eded03faef4a90b9b06776426afa19",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/mechanics-candidate-179061-v4.log",
+        "sha256": "2ac941d63446068909d28a4de4f78f6b11b3aacbbe39757bcd9c75cae3163d51"
+      },
+      "native_peak_rss_kib": 2455144,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-quadratic-readout-mechanics-candidate-179061-v4/receipt.json",
+        "sha256": "8ac49a8533dc1ce30742b630e7633804c28f7ce6339b4380ac5b8208721087bd"
+      },
+      "service_seconds": 96.717,
+      "unit": "sfora-so400-quadratic-readout-mechanics-candidate-179061-v4"
+    },
+    "control": {
+      "both_locks_held": true,
+      "invocation_id": "5893c00c10044071a122134c11e5fece",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/mechanics-control-179061-v4.log",
+        "sha256": "4cb1644a2b0496e7f410ee26fe8b4aa78e09f11261bc80790d22bf44abdf1202"
+      },
+      "native_peak_rss_kib": 2395656,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-quadratic-readout-mechanics-control-179061-v4/receipt.json",
+        "sha256": "3fcde8d3d41bd66d4b4e53964c8001f190a4d7e498e56db67de7b1b373aed4e4"
+      },
+      "service_seconds": 101.895,
+      "unit": "sfora-so400-quadratic-readout-mechanics-control-179061-v4"
+    }
+  },
+  "warm_start": {
+    "checkpoint": {
+      "path": "/home/riomus/runs/sfora-so400-genuine-view-train-control-179061-v1/resume.pt",
+      "sha256": "97db53ab934edbef2656c6e9509e4518421eaba02d3864bdc336eedd7787c7d2"
+    },
+    "launch": {
+      "path": "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1/authority-train-control-179061-v1.json",
+      "sha256": "84ceaa5b819d9c9db89514bed13b140dab898e842ec6cbf85eb17dce123e6655"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "e76277bcc16c4a7b9b3c3643834cb840",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1/train-control-179061.log",
+        "sha256": "5c2c7ca41fe489d8ba56787c32ac6be5cc8b4fe5e842f223e6981c32de0b0bc8"
+      },
+      "native_peak_rss_kib": 2295028,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-genuine-view-train-control-179061-v1/receipt.json",
+        "sha256": "a85d7ef29909d677a12510bdafce2e1edbcd8e62d768918af572bdd3cfa87a5f"
+      },
+      "service_seconds": 182.39,
+      "unit": "sfora-so400-genuine-view-train-control-179061-v1"
+    },
+    "terminal_state_sha256": "b78bd945256438bfd24873347e26d62c970bf9d85048663301d4fe1236ac35a9"
+  }
+}
