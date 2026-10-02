@@ -13,6 +13,8 @@ import copy
 import hashlib
 import importlib.util
 import json
+import mmap
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -148,6 +150,193 @@ def check(d):
         rejects(lambda: d.authority(args), 'native imports preceded admission')
     finally:
         del sys.modules['torch']
+
+
+def encoder_retention_check(d, source):
+    """Catch a missing/extra/writable/partial retention or leaked mmap on rejection."""
+    functions = [n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef)]
+    unchanged = [n for n in functions if n.name not in {'native_start', 'run', 'retain_encoder'}]
+    assert hashlib.sha256('\n'.join(ast.get_source_segment(source, n) for n in unchanged).encode()).hexdigest() == (
+        'c7af7fd6a10ed8b4551f07dcdc7f2affe676c10c696c2ebac4f0dec6f768f265')
+    assert hashlib.sha256('\n'.join(ast.dump(n, include_attributes=False) for n in unchanged).encode()).hexdigest() == (
+        '2093ca87ebb50e7432ff47825171e37cf67b6c01723e165d7cb0e642dca218e7')
+    assert hasattr(d, 'retain_encoder'), 'missing owned encoder page retention'
+    assert d.ENCODER_CHECKPOINT_BYTES == 1711945083 and d.ENCODER_RETENTION_MAX_BYTES == 2 * 1024**3
+    native = copy.deepcopy(next(n for n in functions if n.name == 'native_start'))
+    native.body = [n for n in native.body if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and
+                   isinstance(n.value.func, ast.Name) and n.value.func.id == 'retain_encoder')]
+    assert hashlib.sha256(ast.dump(native, include_attributes=False).encode()).hexdigest() == (
+        'ff3daccc97a9294e0f9b5aa89232c335851636c92c9ee7459b97381d398dda06')
+    original_run = copy.deepcopy(next(n for n in functions if n.name == 'run'))
+    guard = next(n for n in original_run.body if isinstance(n, ast.Try))
+    original_run.body[original_run.body.index(guard):original_run.body.index(guard) + 1] = guard.body
+    receipt = next(n.value for n in guard.body if isinstance(n, ast.Assign) and
+                   isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'receipt')
+    index = next(i for i, key in enumerate(receipt.keys) if isinstance(key, ast.Constant) and key.value == 'encoder_retention')
+    del receipt.keys[index], receipt.values[index]
+    assert hashlib.sha256(ast.dump(original_run, include_attributes=False).encode()).hexdigest() == (
+        '2a0c92dbf7ca4c05187a5fe118465b9746f4b79c9324797fb7a4144f57c35b38')
+    page = os.sysconf('SC_PAGESIZE'); size = 2 * page + 1
+    with TemporaryDirectory() as temporary:
+        path = Path(temporary) / 'fresh_vision.pt'; path.write_bytes(b'a' * size)
+        fact = {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+        mappings, opened, events = [], [], []
+
+        class Pages:
+            def __init__(self, fd, length, access):
+                assert Path(os.readlink('/proc/self/fd/' + str(fd))) == path
+                assert length == size and access == mmap.ACCESS_READ
+                self.real = mmap.mmap(fd, length, access=access); self.offsets = []
+                opened.append(fd); mappings.append(self)
+
+            def __getitem__(self, offset):
+                self.offsets.append(offset)
+                if fail_population and offset == 2 * page:
+                    raise OSError('population failed')
+                return self.real[offset]
+
+            def close(self):
+                self.real.close(); events.append('close')
+
+        fail_population = False
+        namespace = {**d.retain_encoder.__globals__, 'ENCODER_CHECKPOINT_BYTES': size,
+                     'mmap': SimpleNamespace(mmap=Pages, ACCESS_READ=mmap.ACCESS_READ)}
+        retain = FunctionType(d.retain_encoder.__code__, namespace)
+
+        def context(descriptor=fact):
+            selected = {}
+            def owned(value):
+                assert value is selected; events.append('owned')
+                return SimpleNamespace(materialize=lambda: {'checkpoint': copy.deepcopy(descriptor)})
+            return {'selected': selected, 'trainer': SimpleNamespace(owned_encoder=owned), 'guards': {}}
+
+        c = context(); retain(c)
+        kept = c['_encoder_mapping']
+        assert mappings == [kept] and kept.offsets == [0, page, 2 * page] and kept.real[-1] == ord('a')
+        assert c['guards'] == {str(path): fact['sha256']}
+        assert c['encoder_retention'] == {**fact, 'bytes': size, 'max_bytes': 2 * 1024**3,
+            'page_bytes': page, 'pages_populated': 3, 'access': 'read-only'}
+        rejects(lambda: os.fstat(opened[-1]))
+        rejects(lambda: kept.real.__setitem__(0, ord('b')))
+        rejects(lambda: retain(c), 'already retained')
+        path.write_bytes(b'b' * size)
+        rejects(lambda: d.bound_file(c['guards'], path, fact['sha256']), 'SHA256')
+        assert not kept.real.closed
+        kept.close(); path.write_bytes(b'a' * size)
+        for descriptor in (dict(fact, sha256='0' * 64), dict(fact, extra=True),
+                           dict(fact, path='fresh_vision.pt'), dict(fact, path=str(path.parent / 'warm.pt'))):
+            rejects(lambda: retain(context(descriptor)))
+        link = path.parent / 'alias' / 'fresh_vision.pt'; link.parent.mkdir(); link.symlink_to(path)
+        rejects(lambda: retain(context(dict(fact, path=str(link)))), 'canonical file')
+        for actual_size in (0, size - 1, size + 1):
+            path.write_bytes(b'a' * actual_size)
+            descriptor = dict(fact, sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+            rejects(lambda: retain(context(descriptor)), 'retention size')
+        path.write_bytes(b'a' * size)
+        limited = FunctionType(retain.__code__, {**namespace, 'ENCODER_RETENTION_MAX_BYTES': size - 1})
+        rejects(lambda: limited(context()), 'retention size')
+        assert len(mappings) == 1, 'negative guards created an extra mapping'
+        fail_population = True
+        failed = context(); rejects(lambda: retain(failed), 'population failed')
+        assert mappings[-1].real.closed and '_encoder_mapping' not in failed
+        rejects(lambda: os.fstat(opened[-1]))
+        fail_population = False
+        def no_mapping(fd, length, access):
+            opened.append(fd)
+            raise OSError('mapping failed')
+        failed = context()
+        unavailable = FunctionType(retain.__code__, {**namespace,
+            'mmap': SimpleNamespace(mmap=no_mapping, ACCESS_READ=mmap.ACCESS_READ)})
+        rejects(lambda: unavailable(failed), 'mapping failed')
+        assert '_encoder_mapping' not in failed and len(mappings) == 2
+        rejects(lambda: os.fstat(opened[-1]))
+
+        # Execute the original admission prefix; stop at the native fitter boundary.
+        node = copy.deepcopy(next(n for n in functions if n.name == 'native_start'))
+        stop = next(i for i, n in enumerate(node.body) if isinstance(n, ast.Expr) and
+                    isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Attribute) and
+                    n.value.func.attr == 'prepare_native')
+        assert isinstance(node.body[stop - 1], ast.Expr) and node.body[stop - 1].value.func.id == 'retain_encoder'
+        node.body = node.body[:stop + 1]
+        native_namespace = {**vars(d), 'retain_encoder': retain,
+            'os': SimpleNamespace(environ={'CUDA_VISIBLE_DEVICES': '', 'INVOCATION_ID': '1' * 32}),
+            'sys': SimpleNamespace(modules={}, flags=SimpleNamespace(optimize=0), executable=str(path), version=sys.version)}
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), '<admission prefix>', 'exec'), native_namespace)
+        before = {'path': '/sys/fs/cgroup/new.service'}
+        c = context(); c['selected'].update(source_driver=SimpleNamespace(cgroup_memory=lambda: before),
+            selected={'source_cpu': {'invocation': {'python': str(path), 'python_sha256': fact['sha256'], 'python_version': sys.version}}})
+        def stage(name, fail=False):
+            def call(*args):
+                events.append(name)
+                if fail:
+                    raise ValueError(name)
+            return call
+        def prepare(value):
+            assert value is c['fitting'] and not c['_encoder_mapping'].real.closed
+            events.append('prepare')
+        c.update(baseline=SimpleNamespace(qualified_origins=stage('origins')), terminals=[], fitting={},
+            fitter=SimpleNamespace(prepare_native=prepare),
+            admission=SimpleNamespace(init=SimpleNamespace(admit_cgroup=stage('cgroup'))),
+            helper=SimpleNamespace(zero_events=stage('zero')))
+        events.clear(); native_namespace['native_start'](c)
+        assert events == ['origins', 'cgroup', 'zero', 'owned', 'prepare']; c['_encoder_mapping'].close()
+        del c['_encoder_mapping']
+        for owner, attribute in ((c['baseline'], 'qualified_origins'), (c['admission'].init, 'admit_cgroup'),
+                                 (c['helper'], 'zero_events')):
+            original = getattr(owner, attribute); setattr(owner, attribute, stage('admission failed', True))
+            events.clear(); rejects(lambda: native_namespace['native_start'](c), 'admission failed')
+            assert 'owned' not in events and '_encoder_mapping' not in c
+            setattr(owner, attribute, original)
+
+        # Run the actual outer lifecycle with native statements excluded from this stdlib fixture.
+        node = copy.deepcopy(next(n for n in functions if n.name == 'run'))
+        guarded = next(n for n in node.body if isinstance(n, ast.Try))
+        assert not guarded.handlers and guarded.finalbody
+        assert all(not isinstance(n, ast.Return) for n in node.body[:node.body.index(guarded)])
+        guarded.body = [n for n in guarded.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
+        args = SimpleNamespace(prerequisite=None, authority=path, authority_sha256=fact['sha256'],
+            execution_sha256='f' * 64, phase='cpu', output=path.parent / 'output')
+        for failure in (None, 'native', 'heads', 'exit', 'resources', 'receipt', 'publish', 'cap'):
+            mapping_count = len(mappings)
+            c = context(); args.output = path.parent / ('output-' + str(failure))
+            c.update(costs={'pass': True}, cpu_terminal=None,
+                selected={'source_driver': SimpleNamespace(numerical_flags=lambda: {}),
+                          'selected': {'source_cpu': {'invocation': {'python_sha256': fact['sha256']}}}})
+            c['trainer'] = SimpleNamespace(owned_encoder=lambda selected: SimpleNamespace(materialize=lambda: {'checkpoint': fact}))
+            def observe(name, result=None):
+                def call(*values):
+                    assert not c['_encoder_mapping'].real.closed
+                    events.append(name)
+                    if failure == name:
+                        raise ValueError(name)
+                    return result
+                return call
+            def start(value):
+                retain(value); return observe('native', before)()
+            c['resources'] = observe('resources', {})
+            c['helper'] = SimpleNamespace(publish=observe('publish'))
+            run_namespace = {**vars(d), 'authority': lambda value: c, 'prerequisites': lambda value: None,
+                'native_start': start, 'qualify_heads': observe('heads', {}), 'exit_rehash': observe('exit', {}),
+                'bind': lambda value: {}, 'check_receipt': observe('receipt'), 'preparation_costs': lambda value: {},
+                'torch': SimpleNamespace(random=SimpleNamespace(get_rng_state=lambda: SimpleNamespace(clone=lambda: 0)),
+                    equal=lambda *values: True, cuda=SimpleNamespace(is_initialized=lambda: False)),
+                'sys': SimpleNamespace(argv=d.cli_argv(path, fact['sha256'], 'f' * 64, 'cpu', args.output, None),
+                    executable=sys.executable, version=sys.version, flags=SimpleNamespace(optimize=0)),
+                'os': SimpleNamespace(getpid=os.getpid, environ={'INVOCATION_ID': '1' * 32, 'CUDA_VISIBLE_DEVICES': ''}),
+                'time': SimpleNamespace(perf_counter=lambda: d.UNIT_STARTED + (301 if failure == 'cap' and 'publish' in events else 1)),
+                'print': lambda *values, **kwargs: None}
+            exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), '<run lifecycle>', 'exec'), run_namespace)
+            events.clear()
+            if failure is None:
+                record = run_namespace['run'](args)
+                assert record['encoder_retention'] == c['encoder_retention']
+                assert events == ['native', 'heads', 'exit', 'resources', 'receipt', 'publish', 'close']
+            else:
+                rejects(lambda: run_namespace['run'](args))
+                assert events[-1] == 'close'
+            assert len(mappings) == mapping_count + 1 and events.count('close') == 1
+            assert mappings[-1].real.closed and '_encoder_mapping' not in c
+    assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
 
 
 def closure_check(d):
@@ -309,7 +498,7 @@ def score_schedule_check(d, source):
         assert hashlib.sha256(ast.get_source_segment(source, functions[name]).encode()).hexdigest() == digest
 
     # Execute run's actual phase dispatch: score success must not also qualify_heads.
-    body = functions['run'].body
+    body = next(n for n in functions['run'].body if isinstance(n, ast.Try)).body
     index = next(i for i, n in enumerate(body) if isinstance(n, ast.Assign) and
                  isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'result')
     dispatch = ast.parse('def dispatch(args, context, cpu):\n    pass').body[0]
@@ -855,6 +1044,7 @@ def main():
     spec = importlib.util.spec_from_file_location('_test_prototype_evaluator', path)
     d = importlib.util.module_from_spec(spec); spec.loader.exec_module(d)
     check(d)
+    encoder_retention_check(d, path.read_text())
     closure_check(d)
     resources_adapter_check(d)
     terminal_adapter_check(d)

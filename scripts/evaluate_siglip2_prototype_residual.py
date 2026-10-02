@@ -27,6 +27,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import mmap
 import os
 import re
 import statistics
@@ -38,6 +39,8 @@ from types import SimpleNamespace
 SCHEMA = 'siglip2-prototype-residual-evaluation-v1'
 AUTHORITY_SCHEMA = 'siglip2-prototype-residual-evaluation-authority-v1'
 FILES = {'evaluate_siglip2_prototype_residual.py', 'test_siglip2_prototype_residual_evaluation.py'}
+ENCODER_CHECKPOINT_BYTES = 1711945083
+ENCODER_RETENTION_MAX_BYTES = 2 * 1024**3
 TRAIN_FILES = {'fit_siglip2_prototype_residual.py', 'test_siglip2_prototype_residual.py'}
 ARMS = ('linear', 'quadratic')
 ORIGINAL_REFERENCE = {'root': '/home/riomus/runs/sfora-so400-quadratic-readout-source-v7',
@@ -651,6 +654,29 @@ def authority(args):
     return context
 
 
+def retain_encoder(context):
+    """Populate only the original authenticated encoder; every SHA read stays fresh."""
+    require('_encoder_mapping' not in context, 'encoder already retained')
+    checkpoint = context['trainer'].owned_encoder(context['selected']).materialize()['checkpoint']
+    check_file_descriptor(checkpoint)
+    require(Path(checkpoint['path']).name == 'fresh_vision.pt', 'original encoder checkpoint required')
+    path = bound_file(context['guards'], checkpoint['path'], checkpoint['sha256'])
+    with path.open('rb') as stream:
+        size, page = os.fstat(stream.fileno()).st_size, os.sysconf('SC_PAGESIZE')
+        require(size == ENCODER_CHECKPOINT_BYTES and 0 < size <= ENCODER_RETENTION_MAX_BYTES,
+                'fixed encoder retention size differs')
+        pages = mmap.mmap(stream.fileno(), size, access=mmap.ACCESS_READ)
+        context['_encoder_mapping'] = pages
+        try:
+            for offset in range(0, size, page):
+                _ = pages[offset]
+        except BaseException:
+            context.pop('_encoder_mapping').close()
+            raise
+    context['encoder_retention'] = {**checkpoint, 'bytes': size, 'max_bytes': ENCODER_RETENTION_MAX_BYTES,
+        'page_bytes': page, 'pages_populated': (size + page - 1) // page, 'access': 'read-only'}
+
+
 def native_start(context):
     selected, fitter, baseline = context['selected'], context['fitter'], context['baseline']
     source, prior = selected['source_driver'], selected['selected']['source_cpu']
@@ -666,6 +692,7 @@ def native_start(context):
     require(unit not in {t['unit'] for t in context['terminals']} and
             os.environ['INVOCATION_ID'] not in {t['invocation_id'] for t in context['terminals']}, 'distinct evaluator unit required')
     context['admission'].init.admit_cgroup(before, unit); context['helper'].zero_events(before)
+    retain_encoder(context)
     fitter.prepare_native(context['fitting'])
     import torch
     require(not torch.cuda.is_initialized() and not torch.cuda.is_available(), 'CPU evaluator initialized CUDA')
@@ -1023,48 +1050,53 @@ def run(args):
     context = authority(args); cpu = prerequisites(context)
     print(json.dumps({'progress': 'authority_end', 'cost_pass': context['costs']['pass'],
                       'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
-    before = native_start(context)
-    import torch
-    source = context['selected']['source_driver']
-    rng, flags = torch.random.get_rng_state().clone(), source.numerical_flags()
-    args.output.mkdir()
-    result = {'decision': None if args.phase == 'cpu' else 'KILL', 'quality_pass': None,
-              'quality_read': False, 'files': {}, 'validation_quality_exposed': False,
-              'selection_go_admits_validation_only': False}
-    if args.phase == 'score' and context['costs']['pass']:
-        result = score_panel(context, cpu)
-        facts = {key: result[key] for key in ('head_facts', 'train_witnesses')}
-    else:
-        facts = qualify_heads(context)
-    if cpu is not None:
-        require(all(facts[k] == cpu[k] for k in facts), 'accepted evaluator CPU witnesses differ')
-    require(torch.equal(rng, torch.random.get_rng_state()) and source.numerical_flags() == flags and
-            not torch.cuda.is_initialized(), 'whole-unit RNG/flags/CUDA differs')
-    print(json.dumps({'progress': 'exit_rehash_start', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
-    origins = exit_rehash(context)
-    resources = context['resources'](context, args.phase, before)
-    receipt = {**bind(context), 'schema': SCHEMA, 'phase': args.phase, 'pass': True,
-        'engineering_admission_pass': True, 'integrity_pass': True, 'resources_pass': True,
-        'certificate': 'updated cached readout composed with qualified immutable encoder', 'public_encoder_qualified': False,
-        'authority': {'path': str(args.authority), 'sha256': args.authority_sha256}, 'output': str(args.output),
-        'prerequisite': prior, 'cpu_terminal': context['cpu_terminal'], 'optimizer_updates': 0, 'optimizer_members': 0,
-        'fit_calls': 0, 'fitted_statistics_recomputed': False, 'numerical_flags': flags,
-        'strict_independent_head_reload_exact': True, 'train_raw_unit_cpu_packed_exact': True,
-        'complete_typed_terminal_state_exact': True, 'first_heads_released_before_reload': True,
-        'rng_flags_preserved': True, 'cuda_initialized': False, 'official_read': False,
-        'global_production_goal_met': False, 'product_go': False, 'public_latency_measured': False,
-        'cost': context['costs'], 'cost_pass': context['costs']['pass'], 'cost_policy': COST_POLICY,
-        'preparation_costs': preparation_costs(context), 'input_guards': context['guards'],
-        'origins': origins, 'exit_rehash_pass': True,
-        'invocation': {'argv': sys.argv, 'python': str(Path(sys.executable).resolve()),
-            'python_sha256': context['selected']['selected']['source_cpu']['invocation']['python_sha256'],
-            'python_version': sys.version, 'optimize': sys.flags.optimize, 'pid': os.getpid(),
-            'invocation_id': os.environ['INVOCATION_ID'], 'cuda_visible_devices': os.environ['CUDA_VISIBLE_DEVICES'],
-            'cublas_workspace_config': os.environ.get('CUBLAS_WORKSPACE_CONFIG')}, **facts, **result, **resources}
-    check_receipt(context, receipt, args.phase)
-    context['helper'].publish(args.output / 'receipt.json', receipt)
-    require(time.perf_counter() - UNIT_STARTED < policy(args.phase)['seconds'], 'receipt included whole-unit cap differs')
-    return receipt
+    try:
+        before = native_start(context)
+        import torch
+        source = context['selected']['source_driver']
+        rng, flags = torch.random.get_rng_state().clone(), source.numerical_flags()
+        args.output.mkdir()
+        result = {'decision': None if args.phase == 'cpu' else 'KILL', 'quality_pass': None,
+                  'quality_read': False, 'files': {}, 'validation_quality_exposed': False,
+                  'selection_go_admits_validation_only': False}
+        if args.phase == 'score' and context['costs']['pass']:
+            result = score_panel(context, cpu)
+            facts = {key: result[key] for key in ('head_facts', 'train_witnesses')}
+        else:
+            facts = qualify_heads(context)
+        if cpu is not None:
+            require(all(facts[k] == cpu[k] for k in facts), 'accepted evaluator CPU witnesses differ')
+        require(torch.equal(rng, torch.random.get_rng_state()) and source.numerical_flags() == flags and
+                not torch.cuda.is_initialized(), 'whole-unit RNG/flags/CUDA differs')
+        print(json.dumps({'progress': 'exit_rehash_start', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
+        origins = exit_rehash(context)
+        resources = context['resources'](context, args.phase, before)
+        receipt = {**bind(context), 'schema': SCHEMA, 'phase': args.phase, 'pass': True,
+            'engineering_admission_pass': True, 'integrity_pass': True, 'resources_pass': True,
+            'certificate': 'updated cached readout composed with qualified immutable encoder', 'public_encoder_qualified': False,
+            'authority': {'path': str(args.authority), 'sha256': args.authority_sha256}, 'output': str(args.output),
+            'prerequisite': prior, 'cpu_terminal': context['cpu_terminal'], 'optimizer_updates': 0, 'optimizer_members': 0,
+            'fit_calls': 0, 'fitted_statistics_recomputed': False, 'numerical_flags': flags,
+            'strict_independent_head_reload_exact': True, 'train_raw_unit_cpu_packed_exact': True,
+            'complete_typed_terminal_state_exact': True, 'first_heads_released_before_reload': True,
+            'rng_flags_preserved': True, 'cuda_initialized': False, 'official_read': False,
+            'global_production_goal_met': False, 'product_go': False, 'public_latency_measured': False,
+            'cost': context['costs'], 'cost_pass': context['costs']['pass'], 'cost_policy': COST_POLICY,
+            'preparation_costs': preparation_costs(context), 'input_guards': context['guards'],
+            'origins': origins, 'exit_rehash_pass': True, 'encoder_retention': context['encoder_retention'],
+            'invocation': {'argv': sys.argv, 'python': str(Path(sys.executable).resolve()),
+                'python_sha256': context['selected']['selected']['source_cpu']['invocation']['python_sha256'],
+                'python_version': sys.version, 'optimize': sys.flags.optimize, 'pid': os.getpid(),
+                'invocation_id': os.environ['INVOCATION_ID'], 'cuda_visible_devices': os.environ['CUDA_VISIBLE_DEVICES'],
+                'cublas_workspace_config': os.environ.get('CUBLAS_WORKSPACE_CONFIG')}, **facts, **result, **resources}
+        check_receipt(context, receipt, args.phase)
+        context['helper'].publish(args.output / 'receipt.json', receipt)
+        require(time.perf_counter() - UNIT_STARTED < policy(args.phase)['seconds'], 'receipt included whole-unit cap differs')
+        return receipt
+    finally:
+        mapping = context.pop('_encoder_mapping', None)
+        if mapping is not None:
+            mapping.close()
 
 
 def main():
