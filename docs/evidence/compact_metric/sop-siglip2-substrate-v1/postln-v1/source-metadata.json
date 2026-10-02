@@ -1,0 +1,39 @@
+{
+  "schema": "postln-source-metadata-v1",
+  "native_qualification": false,
+  "quality_read": false,
+  "proof": {
+    "path": "/home/riomus/runs/sfora-native256-source-cpu-so400-v4/proof.json",
+    "sha256": "e8a1e02e27ed4e4726682c0a61e547d097912b98e3535ddb3da8c1bb4e144cbf"
+  },
+  "source": {
+    "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py",
+    "sha256": "274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31",
+    "matches_original_guard": true
+  },
+  "forward_source": "def forward(\n        self,\n        pixel_values,\n        interpolate_pos_encoding: bool | None = False,\n        **kwargs: Unpack[TransformersKwargs],\n    ) -> BaseModelOutputWithPooling:\n        r\"\"\"\n        Examples:\n\n        ```python\n        >>> import httpx\n        >>> from io import BytesIO\n        >>> from PIL import Image\n        >>> from transformers import AutoProcessor, SiglipVisionModel\n\n        >>> model = SiglipVisionModel.from_pretrained(\"google/siglip-base-patch16-224\")\n        >>> processor = AutoProcessor.from_pretrained(\"google/siglip-base-patch16-224\")\n\n        >>> url = \"http://images.cocodataset.org/val2017/000000039769.jpg\"\n        >>> with httpx.stream(\"GET\", url) as response:\n        ...     image = Image.open(BytesIO(response.read()))\n\n        >>> inputs = processor(images=image, return_tensors=\"pt\")\n\n        >>> outputs = model(**inputs)\n        >>> last_hidden_state = outputs.last_hidden_state\n        >>> pooled_output = outputs.pooler_output  # pooled features\n        ```\"\"\"\n        hidden_states = self.embeddings(pixel_values, interpolate_pos_encoding=interpolate_pos_encoding)\n\n        encoder_outputs: BaseModelOutput = self.encoder(\n            inputs_embeds=hidden_states,\n            **kwargs,\n        )\n\n        last_hidden_state = encoder_outputs.last_hidden_state\n        last_hidden_state = self.post_layernorm(last_hidden_state)\n\n        pooler_output = self.head(last_hidden_state) if self.use_head else None\n\n        return BaseModelOutputWithPooling(\n            last_hidden_state=last_hidden_state,\n            pooler_output=pooler_output,\n        )",
+  "forward_ast_sha256": "ee5e58ee687261708bd0e0b842340308533d3386da1d13a40257d84c9e6c2000",
+  "native_inventory_tensors": 448,
+  "native_inventory_scalars": 427888064,
+  "proposed_norm_rows": [
+    {
+      "dtype": "torch.float32",
+      "name": "post_layernorm.weight",
+      "role": "trainable",
+      "shape": [
+        1152
+      ]
+    },
+    {
+      "dtype": "torch.float32",
+      "name": "post_layernorm.bias",
+      "role": "trainable",
+      "shape": [
+        1152
+      ]
+    }
+  ],
+  "proposed_norm_scalars": 2304,
+  "proposed_frozen_complement_tensors": 446,
+  "warning": "Original205-member source roles authenticate provenance only; prospective five/seven optimizer and gradient/layout/source/state/resource qualification remains mandatory."
+}
