@@ -257,13 +257,17 @@ def flow_check(d, source):
     assert 'fitter.raw_features(fitting, state, cache)' in head and 'target_mean' not in head
     assert 'normalize' not in head, 'direct FIT must retain original normalization arithmetic'
     authority = ast.get_source_segment(source, functions['authority'])
-    assert 'baseline.admit_source_selection(context)' in authority, 'full original source admission is mandatory'
+    assert 'source_selection_adapter(baseline, fitting)' in authority and 'source_selection(context)' in authority, (
+        'full authenticated original source admission is mandatory')
     assert 'fit_terminal_adapter(fitter, fitting)' in authority and (
-        "fit_terminal(branch, endpoint['terminal'], 'fit', endpoint['arm'])" in authority), 'fit-only adapter required'
+        "fit_terminal(branch, endpoint['terminal'], 'fit', endpoint['arm'])" in authority), 'fit adapter required'
     assert authority.index('fitter.authority(') < authority.index('fit_terminal_adapter(')
     assert "for endpoint in spec['endpoints']:" in authority
     accept = ast.get_source_segment(source, functions['accept_terminal'])
-    assert "context['admission'].admit_terminal(record, terminal" in accept, 'CPU/score reader stays original'
+    assert "context['terminal_reader'](context['admission'], record, terminal" in accept, (
+        'fresh prerequisite/validation terminals use the authenticated original reader')
+    assert not any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == 'admit_terminal'
+                   for n in ast.walk(tree)), 'evaluator-owned terminals must not bypass the adapter'
     fitter_source = Path(__file__).with_name('fit_siglip2_prototype_residual.py').read_text()
     fitter_tree = ast.parse(fitter_source)
     fitter_authority = next(n for n in fitter_tree.body if isinstance(n, ast.FunctionDef) and n.name == 'authority')
@@ -296,16 +300,45 @@ def terminal_adapter_check(d):
     original = load('_ms_original_admission', 'train_siglip2_substrate_adaptation.py')
     initializer = load('_ms_original_initializer', 'initialize_siglip2_substrate_fit.py')
     fitter = load('_ms_original_fitter', 'fit_siglip2_prototype_residual.py')
+    baseline = load('_ms_original_baseline', 'evaluate_siglip2_quadratic_readout.py')
     admission = original.FlatAdmission()
     admission.init = initializer
-    original_methods = (original.FlatAdmission.admit_terminal, fitter.admit_terminal)
+    original_methods = (original.FlatAdmission.admit_terminal, fitter.admit_terminal, baseline.admit_source_selection)
     with TemporaryDirectory() as temporary:
         root = Path(temporary)
         guards = {original.__file__: hashlib.sha256(Path(original.__file__).read_bytes()).hexdigest()}
         context = {'legacy': {'original': original, 'admission': admission}, 'guards': guards,
                    'code': {Path(fitter.__file__).name: hashlib.sha256(Path(fitter.__file__).read_bytes()).hexdigest()}}
         adapted = d.fit_terminal_adapter(fitter, context)
-        reader = adapted.__globals__['_fit_log_terminal']
+        source_selection = d.source_selection_adapter(baseline, context)
+        reader = source_selection.__globals__['_original_log_terminal']
+        fit_reader = adapted.__globals__['_original_log_terminal']
+        assert ast.dump(reader.__terminal_ast__) == ast.dump(fit_reader.__terminal_ast__)
+        archive = Path(__file__).resolve().parents[1] / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
+        for relative, unit_name, duration, log_sha, receipt_sha in (
+            ('prototype-residual-ridge-v1/fit-linear-v1', 'sfora-so400-prototype-residual-fit-linear-v1',
+             180.745, '0a02d3eb758e7de6a930bc2908937890ff1b26c388cf8d26ed3d72895788dc44',
+             '2a861afc762d92018b93eaf4f3b5a566a7be095d71b6da3fabfba6d8c4cada09'),
+            ('genuine-view-v1/evaluation-source-v4/first-score', d.SOURCE_SCORE_TERMINAL['unit'],
+             120.835, d.SOURCE_SCORE_TERMINAL['log']['sha256'], d.SOURCE_SCORE_TERMINAL['receipt']['sha256'])):
+            archived_log = archive / (relative + '.log')
+            proof_receipt = {'path': str(archive / (relative + '-receipt.json')), 'sha256': receipt_sha}
+            archived_record = d.read_json(proof_receipt, {})
+            proof = dict(terminal(unit_name), receipt=proof_receipt,
+                log={'path': str(archived_log), 'sha256': log_sha},
+                invocation_id=archived_record['invocation']['invocation_id'], service_seconds=duration,
+                native_peak_rss_kib=archived_record['process_peak_rss_kib'])
+            expected = json.loads(next(line.removeprefix('FINAL_CGROUP ') for line in archived_log.read_text().splitlines()
+                                       if line.startswith('FINAL_CGROUP ')))
+            for archived_reader in (fit_reader, reader):
+                archived_admission = original.FlatAdmission(); archived_admission.init = initializer
+                rejects(lambda: archived_admission.admit_terminal(archived_record, proof, 300, {}), 'runtime format')
+                assert archived_reader(archived_admission, archived_record, proof, 300, {}) == expected
+                rejects(lambda: archived_reader(archived_admission, archived_record,
+                        dict(proof, service_seconds=duration + .001), 300, {}), 'numeric binding')
+                rejects(lambda: archived_reader(archived_admission, archived_record,
+                        dict(proof, log=dict(proof['log'], sha256='0' * 64)), 300, {}), 'SHA256')
+            assert hashlib.sha256(archived_log.read_bytes()).hexdigest() == log_sha
         unit, identity = 'synthetic-fit', 'a' * 32
         group = {'path': '/sys/fs/cgroup/' + unit + '.service', 'values': {
             'memory.max': str(8 * 1024**3), 'memory.current': '1024', 'memory.peak': '2048',
@@ -355,6 +388,8 @@ def terminal_adapter_check(d):
             (text + '\tSwaps: 0\n', 'normal-exit log'),
             (text.replace('"invocation_id": "' + identity, '"invocation_id": "' + 'b' * 32), 'footer'),
             (text.replace('"memory.swap.peak": "0"', '"memory.swap.peak": "1"'), 'memory/swap'),
+            (text.replace('max 0', 'max 1'), 'memory failure events'),
+            (text.replace('"memory.max": "8589934592"', '"memory.max": "8589934593"'), 'memory/swap'),
             (text.replace('"memory.peak": "2048"', '"memory.peak": "1024"'), 'whole-unit peak')):
             desc = descriptor(value)
             rejects(lambda: reader(admission, record, desc, 300, {}), message)
@@ -373,6 +408,10 @@ def terminal_adapter_check(d):
         def write_json(path, value):
             path.write_text(json.dumps(value))
             return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+
+        inventory = write_json(root / 'source-inventory.json', {})
+        rejects(lambda: source_selection({'guards': {}, 'selected': {},
+            'spec': {'source_selection': {'inventory': inventory}}}), 'exact archived source selection inventory')
 
         cpu = terminal('new-cpu')
         common = {'schema': fitter.AUTHORITY_SCHEMA, 'execution_sha256': 'a' * 64, 'phase': 'fit',
@@ -451,11 +490,11 @@ def terminal_adapter_check(d):
             Path(checkpoint['path']).write_bytes(b'changed checkpoint')
             rejects(lambda: adapted(branch(), desc, 'fit', arm), 'current file SHA256')
 
-        # Reverse the two deliberate substitutions: every remaining AST node must match.
-        def definition(path, owner=None):
+        # Reverse only the deliberate substitutions: every remaining AST node must match.
+        def definition(path, owner=None, name='admit_terminal'):
             tree = ast.parse(Path(path).read_bytes())
             scope = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == owner).body if owner else tree.body
-            return next(n for n in scope if isinstance(n, ast.FunctionDef) and n.name == 'admit_terminal')
+            return next(n for n in scope if isinstance(n, ast.FunctionDef) and n.name == name)
 
         before = definition(original.__file__, 'FlatAdmission')
         after = copy.deepcopy(reader.__terminal_ast__)
@@ -463,21 +502,36 @@ def terminal_adapter_check(d):
                      isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'match')
         after.body[index:index + 1] = copy.deepcopy(before.body[index:index + 3])
         assert ast.dump(after, include_attributes=False) == ast.dump(before, include_attributes=False)
-        before = definition(fitter.__file__)
-        after = copy.deepcopy(adapted.__terminal_ast__)
-        index = next(i for i, n in enumerate(before.body) if isinstance(n, ast.Assign) and
-                     isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'final')
-        after.body[index] = copy.deepcopy(before.body[index])
-        assert ast.dump(after, include_attributes=False) == ast.dump(before, include_attributes=False)
-        assert original_methods == (original.FlatAdmission.admit_terminal, fitter.admit_terminal)
+        for module, adapter, name in ((fitter, adapted, 'admit_terminal'), (baseline, source_selection, 'admit_source_selection')):
+            before = definition(module.__file__, name=name)
+            after = copy.deepcopy(adapter.__terminal_ast__)
+            index = next(i for i, n in enumerate(before.body) if isinstance(n, ast.Assign) and
+                         isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'final')
+            call = after.body[index].value
+            assert call.func.id == '_original_log_terminal'
+            call.func = ast.Attribute(value=call.args.pop(0), attr='admit_terminal', ctx=ast.Load())
+            assert ast.dump(after, include_attributes=False) == ast.dump(before, include_attributes=False), (
+                'every original predicate and terminal argument must remain intact')
+        for name in ('read_json', 'require', 'SOURCE_INVENTORY', 'check_source_record', 'SOURCE_SCORE_TERMINAL', 'SOURCE_INVENTORY_SHA'):
+            assert source_selection.__globals__[name] is getattr(baseline, name)
+        assert original_methods == (original.FlatAdmission.admit_terminal, fitter.admit_terminal, baseline.admit_source_selection)
         assert admission.admit_terminal.__func__ is original_methods[0]
         changed = dict(context, code={Path(fitter.__file__).name: '0' * 64})
         rejects(lambda: d.fit_terminal_adapter(fitter, changed), 'SHA256')
         rejects(lambda: d.fit_terminal_adapter(fitter, dict(context, guards={})), 'original terminal source')
+        rejects(lambda: d.source_selection_adapter(baseline, dict(context, guards={})), 'original terminal source')
+        rejects(lambda: d.terminal_ast(baseline, d.EVALUATOR_PINS['evaluate_siglip2_quadratic_readout.py'],
+            '0' * 64, {}, name='admit_source_selection'), 'body differs')
         rejects(lambda: d.terminal_ast(original, d.TERMINAL_SOURCE_SHA, '0' * 64, {}, 'FlatAdmission'), 'body differs')
         alias = SimpleNamespace(**{**vars(original), '__spec__': SimpleNamespace(origin='/wrong/origin.py')})
         rejects(lambda: d.terminal_ast(alias, d.TERMINAL_SOURCE_SHA, d.TERMINAL_AST_SHA, {}, 'FlatAdmission'),
                 'source origin')
+        alias = SimpleNamespace(**{**vars(baseline), '__spec__': SimpleNamespace(origin='/wrong/origin.py')})
+        rejects(lambda: d.source_selection_adapter(alias, context), 'source origin')
+        changed_source = root / 'baseline.py'; changed_source.write_bytes(Path(baseline.__file__).read_bytes() + b'\n')
+        alias = SimpleNamespace(**{**vars(baseline), '__file__': str(changed_source),
+                                  '__spec__': SimpleNamespace(origin=str(changed_source))})
+        rejects(lambda: d.source_selection_adapter(alias, context), 'SHA256')
     assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
 
 

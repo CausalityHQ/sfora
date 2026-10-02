@@ -53,6 +53,7 @@ EVALUATOR_PINS = {
 TERMINAL_SOURCE_SHA = 'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543'
 TERMINAL_AST_SHA = 'ad9a5202986c9f3a80c992b6f7e40ef95bd81afbee98512b693dc48917f838d2'
 FIT_TERMINAL_AST_SHA = 'a94f81cadd4bd046c25a5279f0db7a3e28339f01c787b7b788f8d75a1186b78b'
+SOURCE_SELECTION_AST_SHA = '007cf3f693eef137769e158fb31fac6b8998f4a6b0323ac437276fab85fa034c'
 
 COST_POLICY = {'whole_service_ratio_max': 1.50, 'total_fit_core_ratio_max': 1.50,
                'shared_export_seconds': 283.636, 'shared_export_in_fit_ratios': False}
@@ -431,7 +432,7 @@ def runtime_components(value):
     return minutes, str(Decimal(milliseconds) / 1000)
 
 
-def terminal_ast(module, digest, ast_digest, guards, owner=None):
+def terminal_ast(module, digest, ast_digest, guards, owner=None, name='admit_terminal'):
     """Authenticate the actual context module and its live function against full bytes."""
     path = Path(module.__file__)
     require(module.__spec__ is not None and Path(module.__spec__.origin) == path,
@@ -445,17 +446,17 @@ def terminal_ast(module, digest, ast_digest, guards, owner=None):
         scope = next(n for n in scope if isinstance(n, ast.ClassDef) and n.name == owner).body
         code = next(c for c in code.co_consts if getattr(c, 'co_name', None) == owner)
         live = getattr(module, owner)
-    node = next(n for n in scope if isinstance(n, ast.FunctionDef) and n.name == 'admit_terminal')
+    node = next(n for n in scope if isinstance(n, ast.FunctionDef) and n.name == name)
     code = next(c for c in code.co_consts if getattr(c, 'co_name', None) == node.name)
-    function = live.admit_terminal
+    function = getattr(live, name)
     require(function.__globals__ is vars(module) and function.__code__ == code and
             hashlib.sha256(ast.dump(node, include_attributes=False).encode()).hexdigest() == ast_digest,
             'actual terminal function/body differs')
     return node
 
 
-def fit_terminal_adapter(fitter, context):
-    """Own ASTs change only duration parsing and the fitter's external log reader call."""
+def original_terminal_reader(context):
+    """Compile the authenticated original reader with only duration parsing extended."""
     original, admission = context['legacy']['original'], context['legacy']['admission']
     require(context['guards'].get(original.__file__) == TERMINAL_SOURCE_SHA and
             type(admission) is original.FlatAdmission and
@@ -469,22 +470,48 @@ def fit_terminal_adapter(fitter, context):
     namespace = {name: getattr(original, name) for name in ('require', 're', 'Decimal', 'strict_json')}
     namespace['runtime_components'] = runtime_components
     exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
-                 '<prototype evaluator fit log reader>', 'exec'), namespace)
+                 '<prototype evaluator original log reader>', 'exec'), namespace)
     reader = namespace['admit_terminal']
     reader.__terminal_ast__ = node
+    return reader
+
+
+def fit_terminal_adapter(fitter, context):
+    """Retain complete fitter admission, changing only its external log reader call."""
+    reader = original_terminal_reader(context)
     node = terminal_ast(fitter, context['code']['fit_siglip2_prototype_residual.py'],
                         FIT_TERMINAL_AST_SHA, context['guards'])
     index = next(i for i, n in enumerate(node.body) if isinstance(n, ast.Assign) and
                  isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'final')
     call = node.body[index].value
     call.args.insert(0, call.func.value)
-    call.func = ast.Name(id='_fit_log_terminal', ctx=ast.Load())
+    call.func = ast.Name(id='_original_log_terminal', ctx=ast.Load())
     namespace = {name: getattr(fitter, name) for name in (
         'check_unit', 'read_json', 'check_terminal_record', 'require', 'cli', 'policy', 'bound_file', 'Path')}
-    namespace['_fit_log_terminal'] = reader
+    namespace['_original_log_terminal'] = reader
     exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
                  '<prototype evaluator fit terminal admission>', 'exec'), namespace)
     adapted = namespace['admit_terminal']
+    adapted.__terminal_ast__ = node
+    return adapted
+
+
+def source_selection_adapter(baseline, context):
+    """Retain pinned baseline admission, changing only its external log reader call."""
+    reader = original_terminal_reader(context)
+    node = terminal_ast(baseline, EVALUATOR_PINS['evaluate_siglip2_quadratic_readout.py'],
+                        SOURCE_SELECTION_AST_SHA, context['guards'], name='admit_source_selection')
+    index = next(i for i, n in enumerate(node.body) if isinstance(n, ast.Assign) and
+                 isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'final')
+    call = node.body[index].value
+    call.args.insert(0, call.func.value)
+    call.func = ast.Name(id='_original_log_terminal', ctx=ast.Load())
+    namespace = {name: getattr(baseline, name) for name in (
+        'read_json', 'require', 'SOURCE_INVENTORY', 'check_source_record', 'SOURCE_SCORE_TERMINAL', 'SOURCE_INVENTORY_SHA')}
+    namespace['_original_log_terminal'] = reader
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
+                 '<prototype evaluator source selection admission>', 'exec'), namespace)
+    adapted = namespace['admit_source_selection']
     adapted.__terminal_ast__ = node
     return adapted
 
@@ -532,6 +559,7 @@ def authority(args):
     bound_file(fitting['guards'], partition['original_cache']['path'], FIT_SHA)
     new_cpu = fitting['terminals']['cpu:linear']
     fit_terminal = fit_terminal_adapter(fitter, fitting)
+    source_selection = source_selection_adapter(baseline, fitting)
     records, branches = {}, []
     for endpoint in spec['endpoints']:
         launch = read_json(endpoint['launch'], guards)
@@ -583,6 +611,7 @@ def authority(args):
     original_cpu = read_json(fitter.ORIGINAL_CPU['terminal']['receipt'], selected['guards'])
     context = {'args': args, 'root': root, 'code': code, 'spec': spec, 'fitter': fitter, 'fitting': fitting,
                'baseline': baseline, 'trainer': fitting['old'], 'legacy': reference, 'selected': selected,
+               'terminal_reader': source_selection.__globals__['_original_log_terminal'],
                'guards': selected['guards'], 'helper': helper, 'admission': selected['admission'], 'records': records,
                'fit': old['genuine']['prior']['fit'], 'partition': partition, 'terminals': terminals,
                'origin_records': [old['source_cpu'], selected['warm_record'], original_cpu,
@@ -591,7 +620,7 @@ def authority(args):
                'selected_context': {'source': selected['source_driver'], 'initialized': {'init': selected['admission'].init}},
                'unit_started': UNIT_STARTED, 'costs': paired_cost(records)}
     preparation_costs(context)
-    baseline.admit_source_selection(context)  # Unchanged original full source selection admission, before native.
+    source_selection(context)  # Complete authenticated original source admission, before native.
     merge_guards(fitting['guards'], context['guards'])
     context['base_guards'] = {p: h for p, h in context['guards'].items() if p != str(args.authority)}
     if spec['panel'] == 'validation':
@@ -764,7 +793,7 @@ def accept_terminal(context, terminal, phase):
     record = read_json(terminal['receipt'], context['guards'])
     check_receipt(context, record, phase)
     require(Path(terminal['receipt']['path']) == Path(record['output']) / 'receipt.json', 'original receipt role differs')
-    final = context['admission'].admit_terminal(record, terminal, policy(phase)['seconds'], context['guards'])
+    final = context['terminal_reader'](context['admission'], record, terminal, policy(phase)['seconds'], context['guards'])
     for value in (record['cgroup_before'], record['cgroup_after'], final):
         context['helper'].zero_events(value)
     excluded = {terminal['receipt']['path'], terminal['log']['path']}
