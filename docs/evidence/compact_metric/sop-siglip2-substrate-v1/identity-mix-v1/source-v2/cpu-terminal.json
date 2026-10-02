@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "4f95b6fc5a1641d2a5a512e28e89534c",
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/sfora-so400-identity-mix-cpu-v2.log",
+    "sha256": "e952a098e9a8775cbd3c037e4d8557c7446a8d9cdecc76e9ae308e6c380674c0"
+  },
+  "native_peak_rss_kib": 1142072,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-identity-mix-cpu-v2/receipt.json",
+    "sha256": "5e5d121c0aef89c2dd76cbf553441817f1565e3aacea40e03f4ffcdc439d1c94"
+  },
+  "service_seconds": 51.972,
+  "unit": "sfora-so400-identity-mix-cpu-v2"
+}

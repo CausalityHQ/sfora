@@ -1,0 +1,77 @@
+{
+  "arm": "control",
+  "both_locks_held": true,
+  "cached_reference": {
+    "execution_sha256": "907dfed63ec7678b2ef930463640b098ea2e38ad1c5fc1ad312cceb628151598",
+    "root": "/home/riomus/runs/sfora-so400-cached-readout-source-v2"
+  },
+  "execution_sha256": "8abb08aa570e0f436805cb4f7cf574eea3a5dae4db3fa7b73e43e45747e397ae",
+  "original_authority": {
+    "path": "/home/riomus/runs/sfora-so400-cached-readout-source-v2/authority-cpu-v2.json",
+    "sha256": "b54a0b4737e66469aa0568c02deacc03b3fa58a904c1a24b1ae8bc9882efe914"
+  },
+  "partition": {
+    "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/partition.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "phase": "mechanics",
+  "recipe": {
+    "augmentation": false,
+    "bank": "unmixed pre-update detached last duplicate",
+    "batch": 64,
+    "candidate": "0.5*z",
+    "classes": 1008,
+    "clip": 1,
+    "control": "0.5*z",
+    "encoder_updates": false,
+    "initial_scaler": 128,
+    "initialization_seed": 179074,
+    "lambda": "float64 uniform[0,1) cast FP32",
+    "learning_rate": 0.0001,
+    "margin": 0.3,
+    "microbatch": 16,
+    "mix_probability": 0.5,
+    "mix_rng": "PCG64",
+    "output_dim": 128,
+    "rank": 32,
+    "rank_weight": 8,
+    "rows": 6355,
+    "scale": 64,
+    "seeds": [
+      179061,
+      179069
+    ],
+    "steps": 1000,
+    "stream_offsets": [
+      1000001,
+      2000001,
+      3000001
+    ],
+    "weight_decay": 0.05,
+    "width": 1152
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "siglip2-identity-mix-launch-v1",
+  "seed": 179061,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "4f95b6fc5a1641d2a5a512e28e89534c",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-identity-mix-source-v2/sfora-so400-identity-mix-cpu-v2.log",
+      "sha256": "e952a098e9a8775cbd3c037e4d8557c7446a8d9cdecc76e9ae308e6c380674c0"
+    },
+    "native_peak_rss_kib": 1142072,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-identity-mix-cpu-v2/receipt.json",
+      "sha256": "5e5d121c0aef89c2dd76cbf553441817f1565e3aacea40e03f4ffcdc439d1c94"
+    },
+    "service_seconds": 51.972,
+    "unit": "sfora-so400-identity-mix-cpu-v2"
+  },
+  "selected_mechanics": null
+}
