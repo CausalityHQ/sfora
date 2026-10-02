@@ -1,0 +1,59 @@
+{
+  "group": "26f48ab76c7441fc",
+  "status": "completed",
+  "elapsed_seconds": 476,
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "96fc5606d0d44ebe",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "exit_code": 0,
+      "elapsed_seconds": 465,
+      "providers_used": [
+        "claude",
+        "codex"
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1199,
+          "started_at": 1790938597,
+          "effort": "high",
+          "effort_source": "fallback"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol",
+          "budget_usd": null,
+          "timeout_seconds": 1184,
+          "started_at": 1790938612
+        }
+      ]
+    },
+    {
+      "role": "engineering_critic",
+      "id": "b7b9f903da9542c0",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "exit_code": 0,
+      "elapsed_seconds": 475,
+      "providers_used": [
+        "codex"
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790938597
+        }
+      ]
+    }
+  ],
+  "reviewed_helper_sha256": "50f6529a99c4010976c595c6cd7668a670f8834645ef9a8a1d27567062b0899d",
+  "native_gate_authorized": false
+}
