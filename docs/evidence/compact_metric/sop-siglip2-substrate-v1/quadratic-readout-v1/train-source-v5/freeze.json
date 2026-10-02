@@ -1,0 +1,23 @@
+{
+  "evaluator_stdlib_pass": true,
+  "integrated_commit": "cffdb936",
+  "native_qualified": false,
+  "root_trainer_stdlib": {
+    "pass": true,
+    "seconds": 38.144,
+    "tests": 19
+  },
+  "schema": "quadratic-partition-source-freeze-v1",
+  "sha256": {
+    "authority-cpu-v5.json": "5d3c2477d02bd52001df86524a80c956f4984ea4093a312b762908b2a4fe592c",
+    "cpu-command.sh": "a5ffde8f6ef0685a9f0655ee47d7a9dee78ddb94f725d9664f7c4f0e0919b34a",
+    "execution.json": "a12ac8fe3ec0363db2c89243e633666f2485a3097cd9c249b4ec27c9d5db86b3",
+    "quadratic_encoder_frames.py": "1928b2882b771f5c57437420755c1dcdb96fd119981b02077b275c2ba9b2e8db",
+    "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+    "test_siglip2_quadratic_readout.py": "d1991583c2e6aff00f875d30d458f29d2c3e0ee113d033ed45172c8caf19b242",
+    "train_siglip2_quadratic_readout.py": "f5759274d4c8ba75d69f6728b9b309e0cafeaba80ed7127fce6393099730e17b"
+  },
+  "source_root": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5",
+  "stop_rule": "CPU120 then both discarded mechanics300; each must pass every original integrity/resource/replay/reload/exit predicate before fresh control061 TRAIN1000/300 once; candidate only after accepted control. No partial state or quality reads.",
+  "worker_commit": "326eaba7f0f9cbb090ac8c45beb6ee77a099fece"
+}

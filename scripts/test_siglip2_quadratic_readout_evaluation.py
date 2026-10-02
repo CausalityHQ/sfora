@@ -434,8 +434,9 @@ def saved_checks(d, trainer_root):
                     'initial': copy.deepcopy({k: saved[k] for k in ('head', 'classifier')}),
                     'static_sha256': ident['static_sha256'], 'terminals': {'cpu:control': {'arms': {
                         arm: {'identity': {'means_sha256': ident['means_sha256']}}}}}}
-        selected['encoder'], selected['encoder_fingerprint'], selected['encoder_check'] = frames.seal(
+        (selected['encoder'],), selected['encoder_fingerprint'], check_owned = frames.seal(
             original.fingerprint, saved['encoder'])
+        selected['encoder_check'] = lambda value: check_owned(0, value)
         context = {'trainer': t, 'selected': selected, 'records': {(179061, arm): {'identity': copy.deepcopy(ident)}},
                    'partition': copy.deepcopy(saved['partition']), 'features': features,
                    'feature_state_sha256': typed_digest(features),
@@ -444,7 +445,7 @@ def saved_checks(d, trainer_root):
         endpoint['terminal_state_sha256'] = typed_digest(saved)
         d.check_complete_payload(context, saved, endpoint)
         assert type(saved['encoder']) is dict and saved['encoder'] == t.owned_encoder(selected).materialize()
-        foreign, _, _ = frames.seal(original.fingerprint, saved['encoder'])
+        (foreign,), _, _ = frames.seal(original.fingerprint, saved['encoder'])
         rejects(lambda: d.check_saved_metadata({**context, 'selected': {**selected, 'encoder': foreign}}, saved, endpoint),
                 'foreign')
         for key in ('A', 'bank', 'cpu_rng', 'cuda_rng'):
@@ -518,7 +519,7 @@ def encoder_checks(d, t, fixture, original, frames):
         assert t.owned_encoder(selected) is capsule and selected['encoder_check'] is check
         assert selected['encoder_fingerprint'] is fingerprint and selected['guards'] == guards
         assert vars(selected['admission']) == admission
-        foreign, _, _ = frames.seal(original.fingerprint, capsule.materialize())
+        (foreign,), _, _ = frames.seal(original.fingerprint, capsule.materialize())
         rejects(lambda: d.check_exit_encoder({'trainer': t, 'selected': {**selected, 'encoder': foreign}}), 'foreign')
         # Equal Python values with different types must still fail the full typed hash.
         selected['selected']['source_cpu']['typed_witness'][0] = ('x', True)
