@@ -1,0 +1,292 @@
+#!/usr/bin/env python3
+"""One bounded stdlib falsifier; synthetic arrays are never native evidence.
+
+Run python3 -B -S scripts/test_siglip2_prototype_residual_evaluation.py.
+No native imports, real cache reads, fitting, quality jobs or GPU execution.
+"""
+if not __debug__:
+    raise SystemExit('Checks require assertions; optimized mode is forbidden')
+
+import ast
+import argparse
+import copy
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+
+
+def rejects(call, text=None):
+    try:
+        call()
+    except (ValueError, KeyError, TypeError, OSError, AssertionError) as error:
+        if text:
+            assert text in str(error), (text, str(error))
+        return
+    raise AssertionError('invalid input accepted: ' + str(text))
+
+
+def terminal(name):
+    return {'receipt': {'path': '/' + name + '/receipt.json', 'sha256': 'a' * 64},
+            'log': {'path': '/' + name + '/unit.log', 'sha256': 'b' * 64},
+            'unit': name, 'invocation_id': hashlib.md5(name.encode()).hexdigest(),
+            'service_seconds': 10., 'native_peak_rss_kib': 1000, 'both_locks_held': True}
+
+
+def fixture(d, panel='selection'):
+    return {'schema': d.AUTHORITY_SCHEMA, 'execution_sha256': 'd' * 64,
+            'training': {'root': '/fitter', 'execution_sha256': 'e' * 64,
+                         'code': {name: 'f' * 64 for name in d.TRAIN_FILES}},
+            'original_reference': copy.deepcopy(d.ORIGINAL_REFERENCE),
+            'original_evaluator': {'root': '/original-evaluator', 'execution_sha256': 'e' * 64,
+                                   'code': copy.deepcopy(d.EVALUATOR_PINS)},
+            'evaluation_reference': copy.deepcopy(d.EVALUATION_REFERENCE),
+            'partition': {'path': '/partition.json', 'sha256': d.PARTITION_SHA},
+            'source_selection': {'inventory': {'path': '/inventory.json', 'sha256': d.SOURCE_INVENTORY_SHA},
+                                 'terminal': copy.deepcopy(d.SOURCE_SCORE_TERMINAL)},
+            'panel': panel, 'endpoints': [
+                {'arm': arm, 'launch': {'path': '/' + arm + '/launch.json', 'sha256': 'a' * 64},
+                 'terminal': terminal(arm), 'checkpoint': {'path': '/' + arm + '/resume.pt', 'sha256': 'b' * 64},
+                 'terminal_state_sha256': 'c' * 64} for arm in d.ARMS],
+            'selection_go': terminal('selection-go') if panel == 'validation' else None,
+            'resource_policies': {p: d.policy(p) for p in ('cpu', 'score')},
+            'cost_policy': copy.deepcopy(d.COST_POLICY), 'both_locks_held': True,
+            'selection_previously_exposed': True, 'validation_previously_exposed': False}
+
+
+def quality(r1, ap):
+    return {'recall_at_1': sum(r1) / len(r1), 'map_at_r': sum(ap) / len(ap),
+            'per_query_r1': r1, 'per_query_ap': ap}
+
+
+def check(d):
+    args = SimpleNamespace(execution_sha256='d' * 64)
+    for panel in ('selection', 'validation'):
+        spec = fixture(d, panel); d.check_spec(spec, args)
+        for mutation in (
+            lambda s: s.update(seed=179069), lambda s: s.update(stage='full'),
+            lambda s: s.update(both_locks_held=False), lambda s: s.update(validation_previously_exposed=True),
+            lambda s: s['training']['code'].update(extra='f' * 64),
+            lambda s: s['original_evaluator']['code'].update(evaluate_siglip2_quadratic_readout='f' * 64),
+            lambda s: s['original_reference'].update(execution_sha256='0' * 64),
+            lambda s: s['source_selection']['terminal'].update(service_seconds=1.),
+            lambda s: s['endpoints'].reverse(), lambda s: s['endpoints'][0].update(seed=179061),
+            lambda s: s['endpoints'][0]['terminal'].update(service_seconds=float('nan')),
+            lambda s: s['resource_policies']['score'].update(seconds=301),
+            lambda s: s['cost_policy'].update(total_fit_core_ratio_max=1.51),
+        ):
+            bad = copy.deepcopy(spec); mutation(bad); rejects(lambda: d.check_spec(bad, args))
+    rejects(lambda: d.check_spec(dict(fixture(d, 'validation'), selection_go=None), args))
+    current, prior = fixture(d, 'validation'), fixture(d)
+    d.check_prior_binding(current, prior)
+    changed = copy.deepcopy(prior); changed['endpoints'][0]['checkpoint']['sha256'] = '0' * 64
+    rejects(lambda: d.check_prior_binding(current, changed))
+
+    count = 1734
+    source = quality([1.] * (count - 10) + [0.] * 10, [.8] * count)
+    linear = quality([1.] * (count - 20) + [0.] * 20, [.79] * count)
+    quadratic = copy.deepcopy(source)
+    arms = {'linear': linear, 'quadratic': quadratic}
+    deltas = d.metric_deltas(arms, source, 'selection')
+    intervals = {m: {'mean_delta': sum(deltas['quadratic_minus_linear'][m]) / count,
+                     'product_lower95': .001, 'product_upper95': .1,
+                     'query_lower95': .001, 'query_upper95': .1} for m in d.METRICS}
+    costs = {'linear': {'service_seconds': 10., 'total_fit_core_seconds': 4.},
+             'quadratic': {'service_seconds': 15., 'total_fit_core_seconds': 6.}}
+    cost = d.paired_cost(costs)
+    result = d.decide(arms, source, 'selection', intervals, cost)
+    assert result['decision'] == 'GO' and result['selection_go_admits_validation_only']
+    assert not result['global_production_goal_met'] and not result['quadratic_source_gain_both']
+    assert set(result['deltas']) == {'quadratic_minus_linear', 'quadratic_minus_source', 'linear_minus_source'}
+    assert all(x == 0 for x in result['deltas']['quadratic_minus_source']['per_query_r1'])
+    assert d.immediate_quality_pass(arms, source, 'selection')
+    rejects(lambda: d.replay_equal(source, dict(source, map_at_r=.8000000001)))
+    changed = copy.deepcopy(source); changed['per_query_ap'][0] += 1e-12
+    rejects(lambda: d.replay_equal(source, changed))
+    for changed in (dict(arms, quadratic=linear), dict(arms, quadratic=quality(source['per_query_r1'], [.78] * count))):
+        assert not d.immediate_quality_pass(changed, source, 'selection')
+        assert d.decide(changed, source, 'selection', {}, cost)['decision'] == 'KILL'
+    # Beating a degraded linear arm is insufficient when quadratic is below source.
+    below_source = {'linear': quality(linear['per_query_r1'], [.78] * count),
+                    'quadratic': quality(source['per_query_r1'], [.79] * count)}
+    assert not d.immediate_quality_pass(below_source, source, 'selection')
+    assert not d.decide(below_source, source, 'selection', {}, cost)['source_floor_pass']
+    bad_ci = copy.deepcopy(intervals); bad_ci['per_query_ap']['product_lower95'] = 0
+    assert d.decide(arms, source, 'selection', bad_ci, cost)['decision'] == 'KILL'
+    bad_ci = copy.deepcopy(intervals); bad_ci['per_query_ap']['mean_delta'] = .02
+    rejects(lambda: d.decide(arms, source, 'selection', bad_ci, cost))
+    for key in ('service_seconds', 'total_fit_core_seconds'):
+        bad = copy.deepcopy(costs); bad['quadratic'][key] *= 1.000001
+        assert not d.paired_cost(bad)['pass']
+        assert d.decide(arms, source, 'selection', intervals, d.paired_cost(bad))['decision'] == 'KILL'
+        bad['linear'][key] = 0; rejects(lambda: d.paired_cost(bad))
+    assert d.policy('cpu')['seconds'] == 120 and d.policy('score')['seconds'] == 300
+    threshold = {'linear': quality([1.] * (count - 13) + [0.] * 13, [.79] * count), 'quadratic': quadratic}
+    tiny = d.metric_deltas(threshold, source, 'selection')['quadratic_minus_linear']
+    tiny_ci = {m: dict(intervals[m], mean_delta=sum(tiny[m]) / count) for m in d.METRICS}
+    assert d.decide(threshold, source, 'selection', tiny_ci, cost)['decision'] == 'KILL'
+    for bad in (dict(source, per_query_ap=source['per_query_ap'][:-1]),
+                dict(source, per_query_r1=[True] * count), dict(source, map_at_r=float('nan'))):
+        rejects(lambda: d.metric_deltas(dict(arms, quadratic=bad), source, 'selection'))
+
+    with TemporaryDirectory() as temporary:
+        path = Path(temporary) / 'bytes'; path.write_bytes(b'original')
+        digest = hashlib.sha256(path.read_bytes()).hexdigest(); guards = {}
+        d.bound_file(guards, path, digest); path.write_bytes(b'changed!')
+        rejects(lambda: d.bound_file(guards, path, digest), 'SHA256')
+        rejects(lambda: d.strict_json('{"same":1,"same":2}'), 'duplicate')
+        rejects(lambda: d.strict_json('{"bad":NaN}'), 'nonfinite')
+    assert not any(name.split('.')[0] in d.NATIVE for name in sys.modules)
+    sys.modules['torch'] = SimpleNamespace()
+    try:
+        rejects(lambda: d.authority(args), 'native imports preceded admission')
+    finally:
+        del sys.modules['torch']
+
+
+def rng_binding_check(d, source):
+    """Run the actual cross-unit and own-unit guards with synthetic payloads."""
+    authority = next(node for node in ast.parse(source).body
+                     if isinstance(node, ast.FunctionDef) and node.name == 'authority')
+    guards = [node for node in ast.walk(authority) if isinstance(node, ast.Expr) and
+              isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and
+              node.value.func.id == 'require' and any(
+                  isinstance(part, ast.Name) and part.id == 'new_cpu' or
+                  isinstance(part, ast.Subscript) and isinstance(part.value, ast.Name) and
+                  part.value.id == 'record' and isinstance(part.slice, ast.Constant) and
+                  part.slice.value == 'terminal_state_sha256' for part in ast.walk(node.value))]
+    assert len(guards) == 2, 'own-unit binding and CPU fitted comparison required'
+    function = ast.parse('def compare(accepted, record, endpoint, fitting, new_cpu):\n    pass').body[0]
+    function.body = guards
+    namespace = {'require': d.require, 'Path': Path}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[])),
+                 '<actual evaluator admission guards>', 'exec'), namespace)
+    compare = namespace['compare']
+
+    def digest(value):
+        return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+
+    def fact(payload):
+        output = digest(payload['output_witness'])
+        return {'identity': {'source': payload['source'], 'arm': 'linear',
+                            'frozen_sha256': digest(payload['source']),
+                            'fitted_sha256': digest(payload['A']), 'output_witness_sha256': output},
+                'fit_witness': payload['fit_witness'], 'output_witness_sha256': output,
+                'terminal_state_sha256': digest(payload)}
+
+    cpu_payload = {'source': {'sha256': 'a' * 64}, 'A': [1., 2.],
+                   'fit_witness': {'lambda': .03125}, 'output_witness': {'raw': [3., 4.]},
+                   'cpu_rng': [1, 2, 3]}
+    fit_payload = copy.deepcopy(cpu_payload); fit_payload['cpu_rng'] = [4, 5, 6]
+    cpu, fitted = fact(cpu_payload), fact(fit_payload)
+    assert cpu['terminal_state_sha256'] != fitted['terminal_state_sha256']
+    assert all(cpu[k] == fitted[k] for k in ('identity', 'fit_witness', 'output_witness_sha256'))
+    endpoint = fixture(d)['endpoints'][0]
+    endpoint['terminal_state_sha256'] = fitted['terminal_state_sha256']
+    launch = {'selected_cpu': terminal('cpu')}
+    namespace['launch'] = launch
+    record = {**fitted, 'launch': launch, 'authority': endpoint['launch'],
+              'authority_sha256': endpoint['launch']['sha256'], 'checkpoint': endpoint['checkpoint'],
+              'output': '/linear'}
+    fitting, new_cpu = {'launch': launch}, {'arms': {'linear': cpu}}
+    compare(copy.deepcopy(record), record, endpoint, fitting, new_cpu)
+    for key, value in (('A', [1., 3.]), ('source', {'sha256': 'b' * 64}),
+                       ('fit_witness', {'lambda': .0625}), ('output_witness', {'raw': [3., 5.]})):
+        changed = copy.deepcopy(fit_payload); changed[key] = value
+        bad = {**record, **fact(changed)}
+        own_endpoint = dict(endpoint, terminal_state_sha256=bad['terminal_state_sha256'])
+        rejects(lambda: compare(copy.deepcopy(bad), bad, own_endpoint, fitting, new_cpu),
+                'new CPU qualified exact fitted')
+    bad = copy.deepcopy(record); bad['output_witness_sha256'] = '0' * 64
+    rejects(lambda: compare(copy.deepcopy(bad), bad, endpoint, fitting, new_cpu), 'new CPU qualified exact fitted')
+    bad = dict(record, terminal_state_sha256=cpu['terminal_state_sha256'])
+    rejects(lambda: compare(copy.deepcopy(bad), bad, endpoint, fitting, new_cpu), 'original fit endpoint binding')
+    bad_endpoint = dict(endpoint, terminal_state_sha256='0' * 64)
+    rejects(lambda: compare(copy.deepcopy(record), record, bad_endpoint, fitting, new_cpu),
+            'original fit endpoint binding')
+    bad = dict(record, checkpoint=dict(record['checkpoint'], sha256='0' * 64))
+    rejects(lambda: compare(copy.deepcopy(bad), bad, endpoint, fitting, new_cpu), 'original fit endpoint binding')
+    rejects(lambda: compare(dict(record, terminal_state_sha256='0' * 64), record, endpoint, fitting, new_cpu),
+            'new CPU qualified exact fitted')
+
+
+def flow_check(d, source):
+    tree = ast.parse(source)
+    functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
+    forbidden = {'fresh', 'fit_prototype_residual', 'extract_solver', 'fit_ridge_stitch', 'transform'}
+    assert not any(isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in forbidden
+                   for node in ast.walk(tree)), 'evaluator must never refit or add the ridge intercept'
+    assert not any(isinstance(node, ast.Global) for node in ast.walk(tree)), 'immutable helpers cannot be rebound'
+    head = ast.get_source_segment(source, functions['head_values'])
+    assert 'fitter.raw_features(fitting, state, cache)' in head and 'target_mean' not in head
+    assert 'normalize' not in head, 'direct FIT must retain original normalization arithmetic'
+    authority = ast.get_source_segment(source, functions['authority'])
+    assert 'baseline.admit_source_selection(context)' in authority, 'full original source admission is mandatory'
+    assert 'fitter.admit_terminal(branch' in authority, 'new fitter terminal admission must remain active'
+    panel = ast.get_source_segment(source, functions['score_panel'])
+    assert panel.index("context['costs']['pass']") < panel.index('baseline.replay_archived_source')
+    assert panel.index('baseline.replay_archived_source') < panel.index('baseline.cache_rows') < panel.index('load_head(')
+    assert panel.index("context['selection_go']['decision']") < panel.index('baseline.cache_rows')
+    assert 'score_saved_wires' in panel and 'replay_equal(first, score_saved_wires' in panel
+    assert 'fixed.bootstrap_lower(delta, groups)' in panel and '-fixed.bootstrap_lower(-delta, groups)' in panel
+    run = ast.get_source_segment(source, functions['run'])
+    assert "args.phase == 'score' and context['costs']['pass']" in run
+    assert run.index('authority(args)') < run.index('native_start(context)') < run.index('qualify_heads(context)')
+    for name, digest in d.EVALUATOR_PINS.items():
+        assert hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() == digest
+    archive = Path(__file__).resolve().parents[1] / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/quadratic-readout-v1/train-source-v7'
+    for name, digest in d.ORIGINAL_PINS.items():
+        assert hashlib.sha256((archive / name).read_bytes()).hexdigest() == digest, name
+    assert hashlib.sha256((archive / 'execution.json').read_bytes()).hexdigest() == d.ORIGINAL_REFERENCE['execution_sha256']
+
+
+def fitter_check(path):
+    """Optional exact API check; reads only the sibling's new stdlib module."""
+    spec = importlib.util.spec_from_file_location('_test_prototype_fitter_api', path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module; spec.loader.exec_module(module)
+    witness = {'rows': 6355, 'classes': 1008, 'coefficients': 4096, 'arm': 'linear',
+               'feature_energy': 10., 'lambda': .03125, 'stationarity_numerator': .00001,
+               'stationarity_denominator': 1., 'normalized_stationarity': .00001, 'A_nonzero': True,
+               'target': 'raw member-inclusive prototypes', 'intercept': False}
+    module.check_fit_witness(witness, 'linear')
+    rejects(lambda: module.check_fit_witness(dict(witness, intercept=True), 'linear'))
+    rejects(lambda: module.check_fit_witness(dict(witness, normalized_stationarity=.000011), 'linear'))
+    tree = ast.parse(path.read_text())
+    functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
+    for name in ('prepare_native', 'reload', 'reconstruct'):
+        assert not any(isinstance(node, ast.Call) and (
+            isinstance(node.func, ast.Name) and node.func.id in {'fresh', 'fit_prototype_residual', 'extract_solver'} or
+            isinstance(node.func, ast.Attribute) and node.func.attr in {'fit_ridge_stitch', 'transform'})
+            for node in ast.walk(functions[name])), 'no-refit API contains a solver call'
+
+
+def main():
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument('--fitter-root', type=Path)
+    args = parser.parse_args()
+    path = Path(__file__).with_name('evaluate_siglip2_prototype_residual.py')
+    assert path.is_file(), 'prototype residual evaluator is not implemented'
+    spec = importlib.util.spec_from_file_location('_test_prototype_evaluator', path)
+    d = importlib.util.module_from_spec(spec); spec.loader.exec_module(d)
+    check(d)
+    rng_binding_check(d, path.read_text())
+    flow_check(d, path.read_text())
+    if args.fitter_root is not None:
+        fitter_check(args.fitter_root / 'fit_siglip2_prototype_residual.py')
+    for name in (path, Path(__file__)):
+        ast.parse(name.read_text())
+        for option in ('-O', '-OO'):
+            run = subprocess.run([sys.executable, '-B', '-S', option, str(name), '--help'], capture_output=True, text=True)
+            assert run.returncode != 0 and 'optimized mode is forbidden' in run.stderr
+    help_run = subprocess.run([sys.executable, '-B', '-S', str(path), '--help'], capture_output=True, text=True)
+    assert help_run.returncode == 0 and '--phase {cpu,score}' in help_run.stdout
+    print('prototype residual evaluator bounded stdlib check: PASS (native UNRUN)')
+
+
+if __name__ == '__main__':
+    main()
