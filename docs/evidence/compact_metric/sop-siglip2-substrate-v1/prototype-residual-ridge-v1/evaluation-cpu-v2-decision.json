@@ -1,0 +1,10 @@
+{
+  "status": "FAIL_MISSING_ARCHIVED_LOG_BEFORE_NATIVE",
+  "session": 20300,
+  "unit": "sfora-so400-prototype-residual-evaluation-cpu-v2",
+  "invocation_id": "236bbcfa6c35407fa1c1da2bdc991cff",
+  "service_seconds": 104.072,
+  "quality_read": false,
+  "log_sha256": "d94dde2dbc4b2e254a5fb85cdf47d1d64be74efb447eebd93f5b742cafc77c13",
+  "correction": "restore committed original first-score.log unchanged at frozen path; SHA b74fd184eeafe42fe15b0aaf1af4d4226bf3c2847f7d61436e2e64348ee66650"
+}
