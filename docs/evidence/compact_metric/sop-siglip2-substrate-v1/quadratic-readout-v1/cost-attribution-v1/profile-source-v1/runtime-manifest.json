@@ -1,0 +1,50 @@
+{
+  "schema": "quadratic-profile-once-v1",
+  "wrapper": {
+    "path": "/home/riomus/runs/sfora-so400-quadratic-readout-profile-source-v1/profile_once.py",
+    "sha256": "fb01a9f9ee1facd26ca4033ce228562a88995eedaaebc3ca803422df23aa0868"
+  },
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "stdlib": {
+    "cProfile.py": {
+      "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/cProfile.py",
+      "sha256": "7834ef85dff0d2563a968da9d1a61d9c36687820b47a557fcb8ad577b71aef52"
+    },
+    "profile.py": {
+      "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/profile.py",
+      "sha256": "20de245bd1ac2702ee67d064584ed9153b2ea6df8597fb696a02952e34173877"
+    }
+  },
+  "trainer": {
+    "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+    "sha256": "f5759274d4c8ba75d69f6728b9b309e0cafeaba80ed7127fce6393099730e17b"
+  },
+  "argv": [
+    "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5/train_siglip2_quadratic_readout.py",
+    "--execution-sha256",
+    "a12ac8fe3ec0363db2c89243e633666f2485a3097cd9c249b4ec27c9d5db86b3",
+    "--authority",
+    "/home/riomus/runs/sfora-so400-quadratic-readout-profile-source-v1/authority-mechanics-profile-control-179061-v1.json",
+    "--authority-sha256",
+    "eb87cdc10ca73d0418e0feb759c9204ffbcbcffa34c196a73891c6e94fccd05e",
+    "--phase",
+    "mechanics",
+    "--arm",
+    "control",
+    "--seed",
+    "179061",
+    "--output",
+    "/home/riomus/runs/sfora-so400-quadratic-readout-profile-control-179061-v1"
+  ],
+  "profile": "/home/riomus/runs/sfora-so400-quadratic-readout-profile-source-v1/control061.pstats",
+  "unit": "sfora-so400-quadratic-readout-profile-control-179061-v1",
+  "stdio": {
+    "stdout": "/home/riomus/runs/sfora-so400-quadratic-readout-profile-source-v1/profile-control-179061-v1.log",
+    "stderr": "/home/riomus/runs/sfora-so400-quadratic-readout-profile-source-v1/profile-control-179061-v1.log"
+  },
+  "qualification_eligible": false,
+  "state_reuse_eligible": false
+}
