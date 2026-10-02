@@ -1,0 +1,8 @@
+{
+  "changes": "CPU300 and exact resource checker policy composition only; score300/resources/science/reload unchanged",
+  "native": "UNRUN",
+  "root_stdlib": "PASS",
+  "status": "PROPOSAL_NOT_AUTHORIZED_NOT_APPLIED",
+  "stop_rule": "one prospective CPU300; any failed integrity/resource/full strict reload/exit closes qualification; no quality before accepted proof",
+  "worker_commit": "35e0d20e5c271b184f48f59d3382b097bc7bb3bf"
+}
