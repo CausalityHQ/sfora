@@ -1,0 +1,69 @@
+{
+  "schema": "siglip2-prototype-evaluator-rng-binding-contract-v1",
+  "repository_base": "2aaadec7524b4eda2571d3ea4308be36ea14d366",
+  "archived_evaluator_commit": "2f2af22d504a7b8d93e48427866e87a534411455",
+  "cherry_picked_evaluator_commit": "83cd06a347b8ff49f0cea168edae5ed134982788",
+  "correction_commit": "b1c38ef0a302862ea7cc68ea27c6362261a2f3db",
+  "files": [
+    "scripts/evaluate_siglip2_prototype_residual.py",
+    "scripts/test_siglip2_prototype_residual_evaluation.py"
+  ],
+  "source_sha256": {
+    "scripts/evaluate_siglip2_prototype_residual.py": "15c77ff55e45dbd62f9086868f9405699e12d3818881762f43e38723ab9312cd",
+    "scripts/test_siglip2_prototype_residual_evaluation.py": "1a27fd62b5c281b1689fd15b673d3cb88fa1122ee559a82be425cd4a8f822566"
+  },
+  "change": "Remove only terminal_state_sha256 equality across independent fitter CPU and fit units. Complete payload hashes include preserved process CPU RNG.",
+  "cross_unit_exact": [
+    "identity",
+    "fit_witness",
+    "output_witness_sha256"
+  ],
+  "retained": [
+    "accepted fit receipt equals independently read record",
+    "fit record terminal_state_sha256 equals its own endpoint authority",
+    "current checkpoint bytes SHA256",
+    "complete typed checkpoint payload SHA256 in unchanged fitter.reload",
+    "complete independent reload exact SHA256",
+    "full source/fitted/output identities and TRAIN/panel witnesses"
+  ],
+  "caller_trace": [
+    "run -> authority (same admission for cpu/score)",
+    "authority -> fitter.admit_terminal per endpoint",
+    "run -> qualify_heads -> load_head -> fitter.reload",
+    "score_panel -> load_head -> fitter.reload"
+  ],
+  "verification": {
+    "command": "python3 -B -S scripts/test_siglip2_prototype_residual_evaluation.py --fitter-root scripts",
+    "result": "PASS (native UNRUN)",
+    "regression": "Actual AST-extracted own-unit binding and cross-unit comparison accept synthetic payloads differing only in CPU RNG; coefficient/source/fit-witness/output changes reject; own terminal-state, checkpoint and accepted-record hash binding tamper reject.",
+    "red": "Before runtime edit, the RNG-only case raises ValueError: new CPU qualified exact fitted identity/state differs.",
+    "green": "After removing only the cross-unit full-state comparison, all bounded stdlib checks pass.",
+    "syntax": "PASS explicit compile of both files without bytecode",
+    "help_and_optimized_mode_rejection": "PASS in bounded check",
+    "diff_check": "PASS",
+    "commit_scope": "PASS exact two files; Roman author/committer; no AI attribution; clean worktree; parent is cherry-picked evaluator commit"
+  },
+  "constraints": {
+    "native": false,
+    "torch": false,
+    "ssh": false,
+    "gpu": false,
+    "quality": false,
+    "reviews": false,
+    "children": false,
+    "operator": false,
+    "merge": false,
+    "push": false
+  },
+  "fitter_lifecycle": "UNCHANGED; separate specialist and parent own native dependency correction.",
+  "protocol_changes": "None: no seed/reset RNG, math, quality, cost, source origin, cap or gate changes.",
+  "native_status": "UNRUN; parent owns prospective freeze/native gates/integration.",
+  "git_identity": "Roman Bartusiak <riomus@gmail.com>; no AI attribution trailers",
+  "root_integrated_original": "88be8593",
+  "root_integrated_correction": "36b53d00",
+  "root_bounded_check": {
+    "exit_status": 0,
+    "native": "UNRUN",
+    "command": "timeout 5s python3 -B -S scripts/test_siglip2_prototype_residual_evaluation.py --fitter-root scripts"
+  }
+}
