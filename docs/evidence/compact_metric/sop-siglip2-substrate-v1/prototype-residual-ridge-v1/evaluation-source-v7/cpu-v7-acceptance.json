@@ -1,0 +1,25 @@
+{
+  "decision": "GO_ENGINEERING_ONLY",
+  "quality_read": false,
+  "original_session": 58650,
+  "service_seconds": 249.204,
+  "baseline_service_seconds": 299.405,
+  "filesystem_input_blocks": 261752392,
+  "baseline_filesystem_input_blocks": 328618144,
+  "time_reduction_fraction": 0.16766921060102524,
+  "io_reduction_fraction": 0.20347553298822108,
+  "host_peak_bytes": 3194662912,
+  "swap_bytes": 0,
+  "memory_events_all_zero": true,
+  "head_train_facts_exact": true,
+  "retention": {
+    "access": "read-only",
+    "bytes": 1711945083,
+    "max_bytes": 2147483648,
+    "page_bytes": 4096,
+    "pages_populated": 417956,
+    "path": "/home/riomus/runs/sfora-native256-source-cpu-so400-v4/fresh_vision.pt",
+    "sha256": "5dade5510a57637019adcf3c37a2ef66af0828ba072d5c847e768c8de2d48189"
+  },
+  "next": "ONE separately cold selection-score-v3 CPU300; any failure or timeout closes retention intervention; no retries/hot-set expansion"
+}

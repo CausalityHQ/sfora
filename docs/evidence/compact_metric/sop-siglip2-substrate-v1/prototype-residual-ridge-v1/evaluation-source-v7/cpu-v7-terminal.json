@@ -1,0 +1,15 @@
+{
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-prototype-residual-evaluation-cpu-v7/receipt.json",
+    "sha256": "eab813fda9597acc612f97bc21015700794727649ed07baebe4e78295950a7e3"
+  },
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-prototype-residual-evaluation-source-v7/cpu-v7.log",
+    "sha256": "2162efc8dcacce22d020d118457fa76aff57b5a25e0b00fecb34f32278a5ca67"
+  },
+  "unit": "sfora-so400-prototype-residual-evaluation-cpu-v7",
+  "invocation_id": "e002b53bd83d475da8b97d43a4600f2b",
+  "service_seconds": 249.204,
+  "native_peak_rss_kib": 2864948,
+  "both_locks_held": true
+}
