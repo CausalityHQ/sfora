@@ -1,0 +1,37 @@
+{
+  "accepted": true,
+  "exit_code": 0,
+  "host_peak_bytes": 1371680768,
+  "host_swap_bytes": 0,
+  "invocation_id": "edabaa6e3b454b8da43d5e6a74c959ff",
+  "log_sha256": "2be364fa6239e8df23359967472f9f9ceb828b35540e40ca85a571b5584c00e4",
+  "native_peak_rss_kib": 1112500,
+  "phase": "cpu",
+  "public_encoder_qualified": false,
+  "quality_read": false,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-quadratic-readout-cpu-v4/receipt.json",
+    "sha256": "a4ea728a0dfb1b62a657f026fb4e8469cdb78584e14f3e93337519f2bd8004db"
+  },
+  "schema": "quadratic-readout-parent-terminal-v1",
+  "service_seconds": 92.404,
+  "session": 96169,
+  "stop_cgroup": {
+    "exit_code": "exited",
+    "exit_status": "0",
+    "invocation_id": "edabaa6e3b454b8da43d5e6a74c959ff",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-quadratic-readout-cpu-v4.service",
+    "service_result": "success",
+    "values": {
+      "memory.current": "613982208",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "1371680768",
+      "memory.stat": "anon 5292032\nfile 572182528\nkernel 34299904\nkernel_stack 0\npagetables 98304\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 24576\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5201920\ninactive_file 113643520\nactive_file 458539008\nunevictable 0\nslab_reclaimable 34138608\nslab_unreclaimable 29232\nslab 34167840\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 183470\npgmajfault 5179\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 171\nthp_collapse_alloc 2\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "unit": "sfora-so400-quadratic-readout-cpu-v4"
+}

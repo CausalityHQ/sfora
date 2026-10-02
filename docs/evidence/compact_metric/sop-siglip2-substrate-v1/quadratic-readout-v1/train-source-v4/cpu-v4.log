@@ -1,0 +1,90 @@
+Running as unit: sfora-so400-quadratic-readout-cpu-v4.service; invocation ID: edabaa6e3b454b8da43d5e6a74c959ff
+quadratic_encoder_frames.py: OK
+quadratic_readout.py: OK
+test_siglip2_quadratic_readout.py: OK
+train_siglip2_quadratic_readout.py: OK
+execution.json: OK
+authority-cpu-v4.json: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+{"event": "QUADRATIC_PHASE", "phase": "admission", "delta_seconds": 47.137683080043644, "cumulative_seconds": 47.137683080043644}
+{"event": "QUADRATIC_PHASE", "phase": "native_admission", "delta_seconds": 20.69828717596829, "cumulative_seconds": 20.69828717596829}
+{"event": "QUADRATIC_PHASE", "phase": "construction", "delta_seconds": 0.2693287651054561, "cumulative_seconds": 0.2693287651054561}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.0519777019508183, "cumulative_seconds": 0.0519777019508183}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04759075399488211, "cumulative_seconds": 0.09956845594570041}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04638021998107433, "cumulative_seconds": 0.14594867592677474}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.049271977972239256, "cumulative_seconds": 0.195220653899014}
+{"A_updated": true, "batch": [185, 419, 3802, 1536, 5675, 3633, 5030, 3737, 5622, 1070, 6090, 343, 1312, 4889, 5235, 1321, 3024, 669, 3387, 2180, 4276, 1577, 1393, 2469, 5116, 5843, 3925, 4775, 6105, 1374, 6211, 6342, 1670, 3789, 4878, 4751, 4682, 0, 5563, 1939, 1128, 1997, 1792, 5558, 5172, 1902, 2862, 3766, 5306, 2704, 2617, 5024, 4845, 2339, 3593, 1873, 5759, 2475, 1255, 1324, 292, 3595, 5093, 6215], "ce": 0.25864591309800744, "clean_bank_sha256": "437b51a272ebb0d295092767b161adc5f53588688a14bd66de24cb2634e5a1d3", "feature_rows_sha256": "9ff2ded0e0cf601c3a38d90b24f080c45d9714d90dd0e89932318c7eaae28a09", "gradient_norms": {"A": 24.281548993214294}, "loss": 0.5742817730642855, "mask_sha256": "fa87542a2e1d985fec14820e82093a86b814c5aee9081651b083d77c91b6ea47", "preclip_norm": 24.28154754638672, "rank": 0.03945448249578476, "scale": 128.0, "schedule_sha256": "662a9122d12c50930f6f7df42e83d0e593078af8e124af13cff261a59a942041", "seconds": 0.3022791938856244, "state_sha256": "3898ba72c9bf86e0f927ece33840d158fe9a1d061c2203cf900134a4b8ab6bb8", "step": 1}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.052488856948912144, "cumulative_seconds": 0.24770951084792614}
+{"event": "QUADRATIC_PHASE", "phase": "serialization", "delta_seconds": 0.10796388704329729, "cumulative_seconds": 0.10796388704329729}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.045336533803492785, "cumulative_seconds": 0.2930460446514189}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04643930681049824, "cumulative_seconds": 0.33948535146191716}
+{"A_updated": true, "batch": [2295, 6349, 470, 5135, 546, 506, 619, 6120, 3515, 3064, 2100, 2142, 2343, 207, 1006, 1025, 3003, 1757, 4085, 490, 5091, 4652, 3727, 2457, 902, 1527, 534, 173, 3200, 2047, 6089, 1889, 220, 5263, 5041, 1414, 3266, 3373, 5348, 2636, 5541, 2135, 6082, 3932, 5383, 5722, 69, 828, 1142, 1838, 3101, 3914, 5976, 2512, 4702, 4041, 2492, 566, 908, 4568, 5765, 5856, 689, 844], "ce": 0.2088815290480852, "clean_bank_sha256": "ba0379fce9aae1d1344d1d71f5f5b234e7200e0df14a15d66fcbd94491cda4f5", "feature_rows_sha256": "5d85fd289a658463816031a815aa4c40384dfb18019bd0a675ced845c9701825", "gradient_norms": {"A": 25.93867283024066}, "loss": 0.6378661710768938, "mask_sha256": "89a83d3ab108d3bda88ebcb4576d237d3438641287401ba0288b2174dc182de6", "preclip_norm": 25.93867301940918, "rank": 0.053623080253601074, "scale": 128.0, "schedule_sha256": "662a9122d12c50930f6f7df42e83d0e593078af8e124af13cff261a59a942041", "seconds": 0.21705453004688025, "state_sha256": "346130612fb9abd1c77e14a35693f74c5aa40f6964e38fb4cf3f1a5133e83a40", "step": 2}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04609624994918704, "cumulative_seconds": 0.3855816014111042}
+{"event": "QUADRATIC_PHASE", "phase": "construction", "delta_seconds": 0.14227470476180315, "cumulative_seconds": 0.41160346986725926}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04686302086338401, "cumulative_seconds": 0.4324446222744882}
+{"event": "QUADRATIC_PHASE", "phase": "reload", "delta_seconds": 0.5672515947371721, "cumulative_seconds": 0.5672515947371721}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04849174898117781, "cumulative_seconds": 0.480936371255666}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04655215609818697, "cumulative_seconds": 0.527488527353853}
+{"A_updated": true, "batch": [2295, 6349, 470, 5135, 546, 506, 619, 6120, 3515, 3064, 2100, 2142, 2343, 207, 1006, 1025, 3003, 1757, 4085, 490, 5091, 4652, 3727, 2457, 902, 1527, 534, 173, 3200, 2047, 6089, 1889, 220, 5263, 5041, 1414, 3266, 3373, 5348, 2636, 5541, 2135, 6082, 3932, 5383, 5722, 69, 828, 1142, 1838, 3101, 3914, 5976, 2512, 4702, 4041, 2492, 566, 908, 4568, 5765, 5856, 689, 844], "ce": 0.2088815290480852, "clean_bank_sha256": "ba0379fce9aae1d1344d1d71f5f5b234e7200e0df14a15d66fcbd94491cda4f5", "feature_rows_sha256": "5d85fd289a658463816031a815aa4c40384dfb18019bd0a675ced845c9701825", "gradient_norms": {"A": 25.93867283024066}, "loss": 0.6378661710768938, "mask_sha256": "89a83d3ab108d3bda88ebcb4576d237d3438641287401ba0288b2174dc182de6", "preclip_norm": 25.93867301940918, "rank": 0.053623080253601074, "scale": 128.0, "schedule_sha256": "662a9122d12c50930f6f7df42e83d0e593078af8e124af13cff261a59a942041", "seconds": 0.2127864439971745, "state_sha256": "346130612fb9abd1c77e14a35693f74c5aa40f6964e38fb4cf3f1a5133e83a40", "step": 2}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.05027345288544893, "cumulative_seconds": 0.5777619802393019}
+{"event": "QUADRATIC_PHASE", "phase": "construction", "delta_seconds": 0.14068776788190007, "cumulative_seconds": 0.5522912377491593}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.046466394793242216, "cumulative_seconds": 0.6242283750325441}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.047741265036165714, "cumulative_seconds": 0.6719696400687099}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04621904995292425, "cumulative_seconds": 0.7181886900216341}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.045401206240057945, "cumulative_seconds": 0.763589896261692}
+{"A_updated": true, "batch": [185, 419, 3802, 1536, 5675, 3633, 5030, 3737, 5622, 1070, 6090, 343, 1312, 4889, 5235, 1321, 3024, 669, 3387, 2180, 4276, 1577, 1393, 2469, 5116, 5843, 3925, 4775, 6105, 1374, 6211, 6342, 1670, 3789, 4878, 4751, 4682, 0, 5563, 1939, 1128, 1997, 1792, 5558, 5172, 1902, 2862, 3766, 5306, 2704, 2617, 5024, 4845, 2339, 3593, 1873, 5759, 2475, 1255, 1324, 292, 3595, 5093, 6215], "ce": 0.25864591309800744, "clean_bank_sha256": "437b51a272ebb0d295092767b161adc5f53588688a14bd66de24cb2634e5a1d3", "feature_rows_sha256": "9ff2ded0e0cf601c3a38d90b24f080c45d9714d90dd0e89932318c7eaae28a09", "gradient_norms": {"A": 43.079205116501406}, "loss": 0.5742817730642855, "mask_sha256": "fa87542a2e1d985fec14820e82093a86b814c5aee9081651b083d77c91b6ea47", "preclip_norm": 43.079200744628906, "rank": 0.03945448249578476, "scale": 128.0, "schedule_sha256": "662a9122d12c50930f6f7df42e83d0e593078af8e124af13cff261a59a942041", "seconds": 0.21801650011911988, "state_sha256": "63926e2a90c0973a265aa4ebab79cd96de1cd326a56c95ac9f80d2fc52eb1f62", "step": 1}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.046516651287674904, "cumulative_seconds": 0.810106547549367}
+{"event": "QUADRATIC_PHASE", "phase": "serialization", "delta_seconds": 0.11344130197539926, "cumulative_seconds": 0.22140518901869655}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04519960517063737, "cumulative_seconds": 0.8553061527200043}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04544810205698013, "cumulative_seconds": 0.9007542547769845}
+{"A_updated": true, "batch": [2295, 6349, 470, 5135, 546, 506, 619, 6120, 3515, 3064, 2100, 2142, 2343, 207, 1006, 1025, 3003, 1757, 4085, 490, 5091, 4652, 3727, 2457, 902, 1527, 534, 173, 3200, 2047, 6089, 1889, 220, 5263, 5041, 1414, 3266, 3373, 5348, 2636, 5541, 2135, 6082, 3932, 5383, 5722, 69, 828, 1142, 1838, 3101, 3914, 5976, 2512, 4702, 4041, 2492, 566, 908, 4568, 5765, 5856, 689, 844], "ce": 0.20927724055945873, "clean_bank_sha256": "bfdb2e67aa0f56139df9d7681b883ddb91ff5d60fb5cfffc98275e51dc9475a7", "feature_rows_sha256": "5d85fd289a658463816031a815aa4c40384dfb18019bd0a675ced845c9701825", "gradient_norms": {"A": 37.42707097504173}, "loss": 0.6383316200226545, "mask_sha256": "89a83d3ab108d3bda88ebcb4576d237d3438641287401ba0288b2174dc182de6", "preclip_norm": 37.42707443237305, "rank": 0.053631797432899475, "scale": 128.0, "schedule_sha256": "662a9122d12c50930f6f7df42e83d0e593078af8e124af13cff261a59a942041", "seconds": 0.2158689689822495, "state_sha256": "055fe621b14c13a442c32f413a05a5b43d16b33da22877629134c72f9c013ef7", "step": 2}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.048180386889725924, "cumulative_seconds": 0.9489346416667104}
+{"event": "QUADRATIC_PHASE", "phase": "construction", "delta_seconds": 0.13477226672694087, "cumulative_seconds": 0.6870635044761002}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.046856507658958435, "cumulative_seconds": 0.9957911493256688}
+{"event": "QUADRATIC_PHASE", "phase": "reload", "delta_seconds": 0.5642940001562238, "cumulative_seconds": 1.131545594893396}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04812630591914058, "cumulative_seconds": 1.0439174552448094}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04518370097503066, "cumulative_seconds": 1.08910115621984}
+{"A_updated": true, "batch": [2295, 6349, 470, 5135, 546, 506, 619, 6120, 3515, 3064, 2100, 2142, 2343, 207, 1006, 1025, 3003, 1757, 4085, 490, 5091, 4652, 3727, 2457, 902, 1527, 534, 173, 3200, 2047, 6089, 1889, 220, 5263, 5041, 1414, 3266, 3373, 5348, 2636, 5541, 2135, 6082, 3932, 5383, 5722, 69, 828, 1142, 1838, 3101, 3914, 5976, 2512, 4702, 4041, 2492, 566, 908, 4568, 5765, 5856, 689, 844], "ce": 0.20927724055945873, "clean_bank_sha256": "bfdb2e67aa0f56139df9d7681b883ddb91ff5d60fb5cfffc98275e51dc9475a7", "feature_rows_sha256": "5d85fd289a658463816031a815aa4c40384dfb18019bd0a675ced845c9701825", "gradient_norms": {"A": 37.42707097504173}, "loss": 0.6383316200226545, "mask_sha256": "89a83d3ab108d3bda88ebcb4576d237d3438641287401ba0288b2174dc182de6", "preclip_norm": 37.42707443237305, "rank": 0.053631797432899475, "scale": 128.0, "schedule_sha256": "662a9122d12c50930f6f7df42e83d0e593078af8e124af13cff261a59a942041", "seconds": 0.20744446339085698, "state_sha256": "055fe621b14c13a442c32f413a05a5b43d16b33da22877629134c72f9c013ef7", "step": 2}
+{"event": "QUADRATIC_PHASE", "phase": "integrity", "delta_seconds": 0.04626680910587311, "cumulative_seconds": 1.1353679653257132}
+{"event": "QUADRATIC_PHASE", "phase": "exit_rehash", "delta_seconds": 18.399354287888855, "cumulative_seconds": 18.399354287888855}
+{"schema": "siglip2-quadratic-readout-v1", "phase": "cpu", "output": "/home/riomus/runs/sfora-so400-quadratic-readout-cpu-v4"}
+quadratic_encoder_frames.py: OK
+quadratic_readout.py: OK
+test_siglip2_quadratic_readout.py: OK
+train_siglip2_quadratic_readout.py: OK
+execution.json: OK
+authority-cpu-v4.json: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+FINAL_CGROUP {"command_exit_status": 0, "invocation_id": "edabaa6e3b454b8da43d5e6a74c959ff", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-quadratic-readout-cpu-v4.service", "values": {"memory.current": "615116800", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "1371680768", "memory.stat": "anon 5861376\nfile 572182528\nkernel 34865152\nkernel_stack 65536\npagetables 479232\nsec_pagetables 0\npercpu 2112\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 40960\nfile_dirty 24576\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5722112\ninactive_file 113643520\nactive_file 458539008\nunevictable 0\nslab_reclaimable 34141704\nslab_unreclaimable 146920\nslab 34288624\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 181982\npgmajfault 5179\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 171\nthp_collapse_alloc 2\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+	Command being timed: "/bin/bash /home/riomus/runs/sfora-so400-quadratic-readout-source-v4/cpu-command.sh"
+	User time (seconds): 31.42
+	System time (seconds): 11.26
+	Percent of CPU this job got: 46%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:32.34
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1112500
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 5177
+	Minor (reclaiming a frame) page faults: 176638
+	Voluntary context switches: 268538
+	Involuntary context switches: 415
+	Swaps: 0
+	File system inputs: 94739272
+	File system outputs: 58952
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+STOP_CGROUP {"exit_code": "exited", "exit_status": "0", "invocation_id": "edabaa6e3b454b8da43d5e6a74c959ff", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-quadratic-readout-cpu-v4.service", "service_result": "success", "values": {"memory.current": "613982208", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "1371680768", "memory.stat": "anon 5292032\nfile 572182528\nkernel 34299904\nkernel_stack 0\npagetables 98304\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 24576\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5201920\ninactive_file 113643520\nactive_file 458539008\nunevictable 0\nslab_reclaimable 34138608\nslab_unreclaimable 29232\nslab 34167840\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 183470\npgmajfault 5179\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 171\nthp_collapse_alloc 2\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1min 32.404s
+CPU time consumed: 42.725s
+Memory peak: 1.2G
+Memory swap peak: 0B
