@@ -21,6 +21,7 @@ import time
 UNIT_STARTED = time.perf_counter()
 
 import argparse
+import ast
 import gc
 import hashlib
 import importlib.util
@@ -30,6 +31,7 @@ import os
 import re
 import statistics
 import sys
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -48,6 +50,10 @@ ORIGINAL_PINS = {
 EVALUATOR_PINS = {
     'evaluate_siglip2_quadratic_readout.py': '7bfaabeb855abecbfa87664c4dfc9381c1213196ffc5a40fc1bf60b2caacc1f8',
     'test_siglip2_quadratic_readout_evaluation.py': '1ea5312edddfc162bedf94859839e3b02d50433b67a7a250fa054e442b9155d9'}
+TERMINAL_SOURCE_SHA = 'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543'
+TERMINAL_AST_SHA = 'ad9a5202986c9f3a80c992b6f7e40ef95bd81afbee98512b693dc48917f838d2'
+FIT_TERMINAL_AST_SHA = 'a94f81cadd4bd046c25a5279f0db7a3e28339f01c787b7b788f8d75a1186b78b'
+
 COST_POLICY = {'whole_service_ratio_max': 1.50, 'total_fit_core_ratio_max': 1.50,
                'shared_export_seconds': 283.636, 'shared_export_in_fit_ratios': False}
 SPEC_KEYS = {'schema', 'execution_sha256', 'training', 'original_reference', 'original_evaluator',
@@ -414,6 +420,75 @@ def merge_guards(target, values):
         require(target.setdefault(path, digest) == digest, 'conflicting admitted file authority: ' + path)
 
 
+def runtime_components(value):
+    """Original seconds spelling plus the observed integer minutes/milliseconds."""
+    match = re.fullmatch(r'(?:(\d+)min )?(\d+(?:\.\d+)?)s', value)
+    if match is not None:
+        return match.groups()
+    match = re.fullmatch(r'(\d+)min (\d+)ms', value)
+    require(match is not None, 'original service runtime format differs')
+    minutes, milliseconds = match.groups()
+    return minutes, str(Decimal(milliseconds) / 1000)
+
+
+def terminal_ast(module, digest, ast_digest, guards, owner=None):
+    """Authenticate the actual context module and its live function against full bytes."""
+    path = Path(module.__file__)
+    require(module.__spec__ is not None and Path(module.__spec__.origin) == path,
+            'terminal source origin differs')
+    raw = bound_file(guards, path, digest).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == digest, 'terminal source changed before compilation')
+    tree = ast.parse(raw, filename=str(path))
+    code = compile(raw, str(path), 'exec')
+    scope, live = tree.body, module
+    if owner is not None:
+        scope = next(n for n in scope if isinstance(n, ast.ClassDef) and n.name == owner).body
+        code = next(c for c in code.co_consts if getattr(c, 'co_name', None) == owner)
+        live = getattr(module, owner)
+    node = next(n for n in scope if isinstance(n, ast.FunctionDef) and n.name == 'admit_terminal')
+    code = next(c for c in code.co_consts if getattr(c, 'co_name', None) == node.name)
+    function = live.admit_terminal
+    require(function.__globals__ is vars(module) and function.__code__ == code and
+            hashlib.sha256(ast.dump(node, include_attributes=False).encode()).hexdigest() == ast_digest,
+            'actual terminal function/body differs')
+    return node
+
+
+def fit_terminal_adapter(fitter, context):
+    """Own ASTs change only duration parsing and the fitter's external log reader call."""
+    original, admission = context['legacy']['original'], context['legacy']['admission']
+    require(context['guards'].get(original.__file__) == TERMINAL_SOURCE_SHA and
+            type(admission) is original.FlatAdmission and
+            admission.admit_terminal.__func__ is original.FlatAdmission.admit_terminal,
+            'actual original terminal source/reader required')
+    node = terminal_ast(original, TERMINAL_SOURCE_SHA, TERMINAL_AST_SHA, context['guards'], 'FlatAdmission')
+    index = next(i for i, n in enumerate(node.body) if isinstance(n, ast.Assign) and
+                 isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'match')
+    # Retain the original Decimal total, exact numeric binding and normalization guard.
+    node.body[index:index + 3] = ast.parse('minutes, native_seconds = runtime_components(runtimes[0])').body
+    namespace = {name: getattr(original, name) for name in ('require', 're', 'Decimal', 'strict_json')}
+    namespace['runtime_components'] = runtime_components
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
+                 '<prototype evaluator fit log reader>', 'exec'), namespace)
+    reader = namespace['admit_terminal']
+    reader.__terminal_ast__ = node
+    node = terminal_ast(fitter, context['code']['fit_siglip2_prototype_residual.py'],
+                        FIT_TERMINAL_AST_SHA, context['guards'])
+    index = next(i for i, n in enumerate(node.body) if isinstance(n, ast.Assign) and
+                 isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'final')
+    call = node.body[index].value
+    call.args.insert(0, call.func.value)
+    call.func = ast.Name(id='_fit_log_terminal', ctx=ast.Load())
+    namespace = {name: getattr(fitter, name) for name in (
+        'check_unit', 'read_json', 'check_terminal_record', 'require', 'cli', 'policy', 'bound_file', 'Path')}
+    namespace['_fit_log_terminal'] = reader
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
+                 '<prototype evaluator fit terminal admission>', 'exec'), namespace)
+    adapted = namespace['admit_terminal']
+    adapted.__terminal_ast__ = node
+    return adapted
+
+
 def authority(args):
     require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native imports preceded admission')
     root, guards = Path(__file__).absolute().parent, {}
@@ -456,6 +531,7 @@ def authority(args):
             partition['original_cache']['sha256'] == FIT_SHA, 'original partition/direct-FIT cache differs')
     bound_file(fitting['guards'], partition['original_cache']['path'], FIT_SHA)
     new_cpu = fitting['terminals']['cpu:linear']
+    fit_terminal = fit_terminal_adapter(fitter, fitting)
     records, branches = {}, []
     for endpoint in spec['endpoints']:
         launch = read_json(endpoint['launch'], guards)
@@ -473,7 +549,7 @@ def authority(args):
                   'terminal_cgroups': dict(selected['terminal_cgroups'])}
         branch = {**fitting, 'legacy': legacy, 'guards': dict(fitting['guards']),
                   'terminals': dict(fitting['terminals']), 'terminal_cgroups': dict(fitting['terminal_cgroups'])}
-        accepted = fitter.admit_terminal(branch, endpoint['terminal'], 'fit', endpoint['arm'])
+        accepted = fit_terminal(branch, endpoint['terminal'], 'fit', endpoint['arm'])
         # Complete payload hashes include preserved CPU RNG from independent units.
         require(accepted == record and all(record[k] == new_cpu['arms'][endpoint['arm']][k] for k in
                 ('identity', 'fit_witness', 'output_witness_sha256')),
