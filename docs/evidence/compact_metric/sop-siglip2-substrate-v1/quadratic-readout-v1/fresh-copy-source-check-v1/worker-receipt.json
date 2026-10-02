@@ -1,0 +1,120 @@
+{
+  "schema": "sfora-quadratic-fresh-copy-worker-receipt-v1",
+  "worktree": "/home/rb/worktrees/sfora-quadratic-fresh-copy-20261002",
+  "base": "6567520d53571be4f0ff8345f9e39ac65cd62de9",
+  "commit": "f9f11e74d3489d08ce1a2d990194c884bd0cd963",
+  "parent_commit": "6567520d53571be4f0ff8345f9e39ac65cd62de9",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "exact_committed_files": [
+    "scripts/quadratic_encoder_frames.py",
+    "scripts/test_siglip2_quadratic_readout.py"
+  ],
+  "clean_after_commit": true,
+  "contract": "/tmp/sfora-quadratic-fresh-copy-contract.txt",
+  "source_sha256": {
+    "scripts/train_siglip2_quadratic_readout.py": "f5759274d4c8ba75d69f6728b9b309e0cafeaba80ed7127fce6393099730e17b",
+    "scripts/test_siglip2_quadratic_readout.py": "c248f9cc98b49e3c5c3ae17daac7cd9696c3f2fb3943fe0c0bfdbb58c0069b87",
+    "scripts/quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+    "scripts/quadratic_encoder_frames.py": "50f6529a99c4010976c595c6cd7668a670f8834645ef9a8a1d27567062b0899d",
+    "scripts/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/quadratic-readout-v1/completed-fresh-copy-cost-plan.md": "d6bf0d1468f5c31e5346fcf6d1ddc72b8407ebd1325616a194cc1c59af52588d",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/quadratic-readout-v1/cost-attribution-v1/profile-result-v1/decision.md": "23776a5bab996bbbcf34a4f8566e91acaa36345429f1794cbcd4ec4612687a01",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/quadratic-readout-v1/cost-attribution-v1/profile-result-v1/repeated-integrity-callers.json": "2c7f5a50c1b9a74e7c9e891f800d1642e4942d51a9d25e9b26b571f693e5baa5"
+  },
+  "checks": [
+    {
+      "command": "rtk proxy git merge --ff-only 6567520d53571be4f0ff8345f9e39ac65cd62de9",
+      "exit": 0,
+      "result": "clean stale f860e061 advanced before edits"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_fingerprint_batches_fresh_cuda_bytes",
+      "phase": "test setup",
+      "exit": 1,
+      "result": "fixed constructor default name lookup (cpu)"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_fingerprint_batches_fresh_cuda_bytes",
+      "phase": "required RED",
+      "exit": 1,
+      "test_seconds": 0.092,
+      "result": "original path CUDA0 copies7/CUDA1 copies2/CUDA2 empty copy1; desired one/nonempty device"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_fingerprint_batches_fresh_cuda_bytes",
+      "phase": "implementation debugging",
+      "exit": 1,
+      "result": "fixed raw AST selector to match tensor numpy assignment rather than frame raw assignment"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_fingerprint_batches_fresh_cuda_bytes",
+      "phase": "GREEN",
+      "exit": 0,
+      "test_seconds": 0.335,
+      "test_cap_seconds": 5,
+      "result": "original complete typed hashes; mixed CPU/CUDA devices/dtypes, empty/scalar/strides/views/aliases, typed containers/keys; transfer counts; consumed fallback/order; ownership; .data freshness; offsets/order/combined SHA/stale snapshot mutants rejected"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_siglip2_quadratic_readout.py -v",
+      "exit": 0,
+      "tests_run": 20,
+      "failures": 0,
+      "skips": 0,
+      "test_seconds": 39.496,
+      "existing_per_test_caps_unchanged": true
+    },
+    {
+      "command": "rtk proxy git diff --check; Python compile(read_bytes(), filename, exec) for both owned files; pinned original SHA assertion",
+      "exit": 0,
+      "result": "syntax and diff pass; original a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543 unchanged"
+    },
+    {
+      "command": "stdlib AST comparison of all19 existing test methods against git show 6567520d53571be4f0ff8345f9e39ac65cd62de9; exact two-file diff; trainer/primitive/original byte comparison",
+      "exit": 0,
+      "result": "all19 existing test ASTs unchanged; trainer, primitive and original pinned serializer byte-identical to base"
+    },
+    {
+      "command": "git diff --check 6567520d53571be4f0ff8345f9e39ac65cd62de9 f9f11e74d3489d08ce1a2d990194c884bd0cd963; commit parent/files/author/trailers/status assertions",
+      "exit": 0,
+      "result": "exact two-file commit, Roman identity, no AI attribution, clean isolated worktree"
+    }
+  ],
+  "native_imports_or_model_execution": false,
+  "consultations_or_children_started": false,
+  "merged_or_pushed": false,
+  "remaining_native_limits": {
+    "status": "UNRUN; parent-owned",
+    "differential": {
+      "body_seconds_max": 10,
+      "whole_service_seconds_max": 300,
+      "alternating_pairs": 8,
+      "paired_workload": [
+        "complement fingerprint",
+        "complement fingerprint",
+        "complete-state fingerprint"
+      ],
+      "requires_exact_digests": true,
+      "requires_lower_paired_median": true,
+      "strided_tensor_and_data_mutation_checks": true,
+      "both_locks_held": true,
+      "host_bytes_max": 8589934592,
+      "swap_bytes": 0,
+      "memory_events": 0,
+      "cuda_allocated_bytes_exclusive": 10000000000,
+      "qualification_eligible": false,
+      "state_reuse_eligible": false
+    },
+    "follow_up": [
+      "fresh CPU120",
+      "fresh control mechanics300",
+      "fresh candidate mechanics300",
+      "fresh control061 TRAIN1000/300",
+      "candidate061 only after accepted control completion"
+    ],
+    "full_original_admission_exit_reload_replay_predicates_unchanged": true,
+    "native_parity_and_cost": "UNRUN",
+    "runtime_fit_claim": false,
+    "qualification_claim": false,
+    "full_goal_unchanged": true
+  }
+}

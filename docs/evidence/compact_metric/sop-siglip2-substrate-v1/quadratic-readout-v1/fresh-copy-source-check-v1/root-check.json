@@ -1,0 +1,19 @@
+{
+  "schema": "quadratic-fresh-copy-root-source-check-v1",
+  "commit": "4ac5722a235cef9958740bb3ba426d7d9a845d95",
+  "existing_test_asts_unchanged": 19,
+  "worker_full_stdlib_tests_passed": 20,
+  "worker_full_seconds": 39.496,
+  "root_focused_command": "timeout 5s python3 -B -S scripts/test_siglip2_quadratic_readout.py ContractTests.test_fingerprint_batches_fresh_cuda_bytes",
+  "root_focused_exit": 0,
+  "root_focused_seconds": 0.228,
+  "source_hashes": {
+    "quadratic_encoder_frames.py": "50f6529a99c4010976c595c6cd7668a670f8834645ef9a8a1d27567062b0899d",
+    "test_siglip2_quadratic_readout.py": "c248f9cc98b49e3c5c3ae17daac7cd9696c3f2fb3943fe0c0bfdbb58c0069b87",
+    "train_siglip2_quadratic_readout.py": "f5759274d4c8ba75d69f6728b9b309e0cafeaba80ed7127fce6393099730e17b",
+    "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6"
+  },
+  "native_parity_cost_and_qualification": "UNRUN",
+  "critique_group": "26f48ab76c7441fc",
+  "critique_status": "pending"
+}
