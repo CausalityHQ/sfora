@@ -1,0 +1,32 @@
+{
+  "schema": "prototype-paired-native-cost-v1",
+  "dataset": "InShop TRAIN6355/1008 cached canonical vectors",
+  "decision": "PASS_NATIVE_AND_PAIRED_COST_EXTERNAL_CONSUMER_COMPATIBILITY_PENDING",
+  "linear": {
+    "service_seconds": 180.745,
+    "fit_core_seconds": [
+      0.1510761883109808,
+      0.0978354630060494
+    ],
+    "total_fit_core_seconds": 0.2489116513170302,
+    "native_peak_rss_kib": 1148552
+  },
+  "quadratic": {
+    "service_seconds": 203.548,
+    "fit_core_seconds": [
+      0.220228326972574,
+      0.08393501210957766
+    ],
+    "total_fit_core_seconds": 0.30416333908215165,
+    "native_peak_rss_kib": 1149488
+  },
+  "quadratic_over_linear_ratios": {
+    "whole_service": 1.1261611662839912,
+    "total_fit_core": 1.2219730875303594
+  },
+  "frozen_ratio_max": 1.5,
+  "quality_read": false,
+  "quality_metrics": "UNMEASURED",
+  "public_latency": "UNMEASURED",
+  "next": "correct and qualify evaluator-only original milliseconds duration admission; then actual source replay/matched packed quality gate"
+}

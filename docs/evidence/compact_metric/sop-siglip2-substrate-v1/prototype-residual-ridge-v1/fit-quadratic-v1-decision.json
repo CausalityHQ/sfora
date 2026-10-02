@@ -1,0 +1,27 @@
+{
+  "schema": "prototype-fit-native-decision-v1",
+  "arm": "quadratic",
+  "decision": "PASS_NATIVE_FIT",
+  "session": 48977,
+  "unit": "sfora-so400-prototype-residual-fit-quadratic-v1",
+  "invocation_id": "55d6a4a6b9cd44a487130a6785cf4d18",
+  "service_seconds": 203.548,
+  "native_peak_rss_kib": 1149488,
+  "host_peak_bytes": 1420013568,
+  "swap_bytes": 0,
+  "events": 0,
+  "checkpoint": {
+    "path": "/home/riomus/runs/sfora-so400-prototype-residual-fit-quadratic-v1/resume.pt",
+    "sha256": "743daeed58fd2a5a5bfad3abe8ddf3a539402154de37fb5a11bfbbf5ce0596b7"
+  },
+  "terminal_state_sha256": "6af6a52ec793f903592d05997c80d20d2559cb18098650cd9452d1ff2e6eff81",
+  "fit_core_seconds": [
+    0.220228326972574,
+    0.08393501210957766
+  ],
+  "total_fit_core_seconds": 0.30416333908215165,
+  "receipt_sha256": "f31f4bbd485b6ca3bc8541077064e5eb20de3490f867e82086b01bc25d060175",
+  "log_sha256": "95f3e56896dc9851792ec3160e5f51409f51d8b52dbd635c9f9b05684562a33b",
+  "quality_read": false,
+  "root_terminal_record_and_original_footers": "PASS"
+}
