@@ -12,7 +12,7 @@ import os
 import pickle
 import signal
 import time
-from collections import Counter
+from collections import Counter, namedtuple
 from contextlib import redirect_stdout
 import json
 from pathlib import Path
@@ -28,7 +28,7 @@ PATH = Path(__file__).resolve().with_name('train_siglip2_quadratic_readout.py')
 
 class FrameTensor:
     """Pickleable stdlib tensor stand-in; reads expose current bytes."""
-    dtype, shape, _version = 'torch.float32', (1,), 0
+    dtype, shape, _version, is_cuda = 'torch.float32', (1,), 0, False
     def __init__(self, rows=None): self.raw, self.reads, self.rows = bytearray(b'abcd'), 0, rows
     def data_ptr(self): return 1234
     def detach(self): return self
@@ -820,6 +820,182 @@ class ContractTests(unittest.TestCase):
         tree = self.partition_baseline(ast.parse(PATH.read_bytes()))
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
                          'b76baa8e40c280438de4abfad3353e479bfdbd4e5e10e8b5bb8e1db743fe7c88')
+
+    def test_fingerprint_batches_fresh_cuda_bytes(self):
+        """Catch changed typed hashes, per-leaf transfers and retained CUDA bytes."""
+        started = time.monotonic()
+        def deadline(*unused):
+            raise AssertionError('fresh CUDA bytes falsifier exceeded 5 seconds')
+        old_handler = signal.signal(signal.SIGALRM, deadline)
+        signal.setitimer(signal.ITIMER_REAL, 5)
+        self.addCleanup(signal.signal, signal.SIGALRM, old_handler)
+        self.addCleanup(signal.setitimer, signal.ITIMER_REAL, 0)
+        def load(name):
+            spec = importlib.util.spec_from_file_location('_fresh_' + name, PATH.with_name(name + '.py'))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        original, frames = load('train_siglip2_substrate_adaptation'), load('quadratic_encoder_frames')
+        globals_before = dict(vars(original))
+        self.assertEqual(hashlib.sha256(Path(original.__file__).read_bytes()).hexdigest(), frames.ORIGINAL_SHA256)
+        Device = namedtuple('Device', 'type index')
+        cpu, cuda0, cuda1, cuda2 = Device('cpu', None), Device('cuda', 0), Device('cuda', 1), Device('cuda', 2)
+        copies, reads, cats = [], [], []
+        sizes = {'torch.float32': 4, 'torch.float16': 2, 'torch.float64': 8,
+                 'torch.int64': 8, 'torch.uint8': 1, 'torch.bool': 1}
+        class Tensor(FrameTensor):
+            def __init__(self, raw, device=None, dtype='torch.uint8', shape=None, indices=None, label='leaf'):
+                if device is None: device = cpu
+                self.raw = raw if isinstance(raw, bytearray) else bytearray(raw)
+                self.device, self.dtype, self.label = device, dtype, label
+                self.indices = tuple(range(len(self.raw) // sizes[dtype])) if indices is None else tuple(indices)
+                self.shape = (len(self.indices),) if shape is None else shape
+                count = 1
+                for dim in self.shape: count *= dim
+                assert count == len(self.indices)
+                assert all(0 <= i < len(self.raw) // sizes[dtype] for i in self.indices)
+            @property
+            def is_cuda(self): return self.device.type == 'cuda'
+            def data_ptr(self): return id(self.raw)
+            def numel(self): return len(self.indices)
+            def cpu(self):
+                if not self.is_cuda: return self
+                copies.append(self.device)
+                return Tensor(bytes(self.raw), cpu, self.dtype, self.shape, self.indices, self.label)
+            def contiguous(self):
+                width = sizes[self.dtype]
+                raw = b''.join(self.raw[i * width:(i + 1) * width] for i in self.indices)
+                return Tensor(raw, self.device, self.dtype, self.shape, label=self.label)
+            def reshape(self, *args):
+                assert args == (-1,)
+                assert self.indices == tuple(range(self.numel()))
+                return Tensor(self.raw, self.device, self.dtype, (self.numel(),), label=self.label)
+            def view(self, dtype):
+                assert dtype == 'torch.uint8'
+                assert self.indices == tuple(range(self.numel()))
+                return Tensor(self.raw, self.device, dtype, label=self.label)
+            def numpy(self):
+                assert not self.is_cuda and self.dtype == 'torch.uint8'
+                assert self.indices == tuple(range(self.numel()))
+                reads.append((self.label, bytes(self.raw)))
+                return self.raw
+        def cat(parts):
+            assert parts and all(p.device == parts[0].device and p.dtype == 'torch.uint8' for p in parts)
+            assert all(p.shape == (p.numel(),) for p in parts)
+            cats.append(parts[0].device)
+            return Tensor(b''.join(p.raw for p in parts), parts[0].device, label='batch')
+        fake_torch = SimpleNamespace(Tensor=Tensor, uint8='torch.uint8', cat=cat)
+        encoder = {'typed': {0: ('row', 1), '0': ['row', 1]}, 'bytes': b'ab', 'none': None}
+        partition = {'panels': {'train': [1, 2]}, 'schema': 'partition'}
+        capsules, fingerprint, check = frames.seal(original.fingerprint, encoder, partition)
+        (foreign_encoder, foreign_partition), _, _ = frames.seal(original.fingerprint, encoder, partition)
+        alias = Tensor(b'abcdef', cuda0, 'torch.float16', (3,))
+        storage = bytearray(b'0123456789abcdef')
+        strides = [Tensor(storage, cuda0, indices=indices, shape=(4,))
+                   for indices in ((0, 2, 4, 6), (1, 3, 5, 7))]
+        scalar = Tensor(b'12345678', cuda1, 'torch.float64', ())
+        host = Tensor(b'CPU!', cpu, 'torch.float32', (1,), label='CPU')
+        ordinary = {'z': [alias, host, scalar, Tensor(b'', cuda0), *strides, alias],
+                    'a': (Tensor(b'WXYZ', cuda1, 'torch.float32', (1,)),
+                          Tensor(b'abcdefgh', cuda0, 'torch.int64', (1,)),
+                          Tensor(b'\x00\x01\x00', cuda0, 'torch.bool', (3,))),
+                    0: (True, None, b'bytes'), '0': ['string', 1.5],
+                    'empty_device': Tensor(b'', cuda2), 'encoder': encoder, 'partition': partition}
+        adapted = {**ordinary, 'encoder': capsules[0], 'partition': capsules[1]}
+        def reset(): copies.clear(); reads.clear(); cats.clear()
+        def compare(function, value=adapted, baseline=ordinary):
+            reset()
+            expected = original.fingerprint(baseline)
+            cpu_reads = [r for r in reads if r[0] == 'CPU']
+            reset()
+            actual = function(value)
+            self.assertEqual(actual, expected, 'complete typed digest')
+            self.assertEqual(Counter(copies), Counter({cuda0: 1, cuda1: 1}))
+            self.assertEqual(Counter(cats), Counter({cuda0: 1, cuda1: 1}))
+            self.assertEqual([r for r in reads if r[0] == 'CPU'], cpu_reads)
+            return actual
+        with patch.dict(sys.modules, torch=fake_torch):
+            baseline = compare(fingerprint)
+            self.assertEqual(compare(fingerprint), baseline)
+            for value in (Tensor(b'', cuda2), [Tensor(b'', cuda0), Tensor(b'', cuda1)], host):
+                reset()
+                self.assertEqual(fingerprint(value), original.fingerprint(value))
+                # Baseline empty CUDA copies are deliberately separate from the proposed call.
+                reset(); fingerprint(value)
+                self.assertEqual(copies, [])
+                self.assertEqual(cats, [])
+            for left, right in (((alias, scalar), [alias, scalar]), ({0: alias}, {'0': alias})):
+                for value in (left, right):
+                    self.assertEqual(fingerprint(value), original.fingerprint(value))
+                self.assertNotEqual(fingerprint(left), fingerprint(right))
+            consumed, original_consumed = [], []
+            reset()
+            expected = original.fingerprint(ordinary, consumed=original_consumed.append)
+            expected_copies, expected_reads = copies[:], reads[:]
+            reset()
+            self.assertEqual(fingerprint(adapted, consumed=consumed.append), expected)
+            self.assertEqual(consumed, original_consumed)
+            self.assertEqual(copies, expected_copies)
+            self.assertEqual(reads, expected_reads)
+            self.assertEqual(cats, [])
+            with self.assertRaises(TypeError): fingerprint(adapted, frozen={})
+            for slot, foreign in enumerate((foreign_encoder, foreign_partition)):
+                capsule = capsules[slot]
+                for bad in (foreign, frames.EncoderFrames(tuple(capsule)),
+                            frames.EncoderFrames((b'conflict', tuple.__getitem__(capsule, 1)))):
+                    with self.assertRaises(ValueError): check(slot, bad)
+                    for consumer in (None, consumed.append):
+                        with self.assertRaises(ValueError): fingerprint([alias, bad], consumed=consumer)
+                with self.assertRaises(ValueError): check(1 - slot, capsule)
+                for bad_slot in (-1, 2, True, '0'):
+                    with self.assertRaises(ValueError): check(bad_slot, capsule)
+            # Both consecutive boundaries must take fresh snapshots, including .data aliases.
+            for current in (alias, *strides, scalar):
+                before = compare(fingerprint)
+                self.assertEqual(compare(fingerprint), before)
+                pointer, version = current.data_ptr(), current._version
+                offset = current.indices[0] * sizes[current.dtype]
+                for _ in range(2):
+                    current.data.raw[offset] ^= 1
+                    self.assertEqual((current.data_ptr(), current._version), (pointer, version))
+                    after = compare(fingerprint)
+                    self.assertNotEqual(after, before)
+                    before = after
+            # Mutate the real adapter, keeping the untouched pinned serializer as oracle.
+            source = Path(frames.__file__).read_text()
+            slice_expression = 'buffers[device][start:end]'
+            self.assertIn(slice_expression, source)
+            mutants = {
+                'wrong offsets': source.replace(slice_expression, 'buffers[device][0:end-start]', 1),
+                'wrong occurrence order': source.replace('in occurrences]', 'in reversed(occurrences)]', 1),
+                'single concatenated SHA': source.replace(slice_expression, 'buffers[device]', 1),
+            }
+            for name, text in mutants.items():
+                self.assertNotEqual(text, source, name)
+                module = ModuleType('_mutant'); module.__file__ = frames.__file__
+                exec(compile(text, frames.__file__, 'exec'), vars(module))
+                owned, mutant, _ = module.seal(original.fingerprint, encoder, partition)
+                value = {**adapted, 'encoder': owned[0], 'partition': owned[1]}
+                with self.assertRaisesRegex(AssertionError, 'complete typed digest', msg=name):
+                    compare(mutant, value)
+            stale = source.replace('    def fingerprint(value, consumed=None):',
+                '    retained = None\n    def fingerprint(value, consumed=None):\n        nonlocal retained', 1)
+            stale = stale.replace('        return batched(value, _cuda_bytes=iter(snapshots))',
+                '        if retained is None: retained = snapshots\n'
+                '        snapshots = retained\n        return batched(value, _cuda_bytes=iter(snapshots))', 1)
+            self.assertNotEqual(stale, source)
+            module = ModuleType('_stale'); module.__file__ = frames.__file__
+            exec(compile(stale, frames.__file__, 'exec'), vars(module))
+            owned, mutant, _ = module.seal(original.fingerprint, encoder, partition)
+            value = {**adapted, 'encoder': owned[0], 'partition': owned[1]}
+            compare(mutant, value)
+            alias.data.raw[0] ^= 1
+            with self.assertRaisesRegex(AssertionError, 'complete typed digest'):
+                compare(mutant, value)
+            alias.data.raw[0] ^= 1
+        self.assertEqual(vars(original), globals_before)
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertNotIn('torch', sys.modules)
 
     def test_immutable_encoder_differential_falsifier(self):
         """Full production admission plus old/new typed streams; no native libraries."""

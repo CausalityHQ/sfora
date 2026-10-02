@@ -92,8 +92,47 @@ def seal(original, *roots):
 ''').body
     adapted = compile_adapter(node, _EncoderFrames=EncoderFrames, _encoder_frames=frames)
 
+    # Change only the byte source; the pinned individual SHA and typed frames stay literal.
+    batched_node = copy.deepcopy(node)
+    batched_node.args.kwonlyargs.append(ast.arg(arg='_cuda_bytes'))
+    batched_node.args.kw_defaults.append(ast.Constant(value=None))
+    raw = next(n for n in ast.walk(batched_node) if isinstance(n, ast.Assign) and
+               isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Attribute) and
+               n.value.func.attr == 'numpy' and
+               any(isinstance(t, ast.Name) and t.id == 'raw' for t in n.targets))
+    raw.value = ast.IfExp(test=ast.parse('_cuda_bytes is not None and item.is_cuda', mode='eval').body,
+                          body=ast.parse('next(_cuda_bytes)', mode='eval').body, orelse=raw.value)
+    batched = compile_adapter(batched_node, _EncoderFrames=EncoderFrames, _encoder_frames=frames)
+
     def fingerprint(value, consumed=None):
         # Never carry tensor facts across calls, including same-boundary calls.
-        return adapted(value, consumed=consumed)
+        if consumed is not None:
+            return adapted(value, consumed=consumed)
+        import torch
+        parts, sizes, occurrences = {}, {}, []
+        def gather(item):
+            if isinstance(item, EncoderFrames):
+                frames(item)
+            elif isinstance(item, torch.Tensor):
+                if item.is_cuda:
+                    view = item.detach().contiguous().reshape(-1).view(torch.uint8)
+                    device, size = item.device, view.numel()
+                    start = sizes.get(device, 0)
+                    parts.setdefault(device, []).append(view)
+                    sizes[device] = start + size
+                    occurrences.append((device, start, start + size))
+            elif isinstance(item, dict):
+                for key in sorted(item, key=repr):
+                    gather(key); gather(item[key])
+            elif isinstance(item, (tuple, list)):
+                for child in item:
+                    gather(child)
+        gather(value)
+        if not occurrences:
+            return adapted(value)
+        buffers = {device: memoryview(torch.cat(views).cpu().numpy()) if sizes[device] else memoryview(b'')
+                   for device, views in parts.items()}
+        snapshots = [buffers[device][start:end] for device, start, end in occurrences]
+        return batched(value, _cuda_bytes=iter(snapshots))
 
     return capsules, fingerprint, check_owned
