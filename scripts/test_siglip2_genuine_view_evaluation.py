@@ -14,9 +14,11 @@ import ast
 import builtins
 import hashlib
 import importlib.util
+import io
 import json
 import subprocess
 import sys
+from contextlib import redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -262,6 +264,85 @@ def origin_checks(driver):
         rejects(lambda: driver.qualified_origins({**context, 'origin_records': changed}))
 
 
+def preexit_checks(driver, path):
+    """Execute the actual pre-exit path/guards with only in-memory file IO."""
+    functions = {n.name: n for n in ast.parse(path.read_bytes()).body if isinstance(n, ast.FunctionDef)}
+    body = functions['run'].body
+    start = next(i + 1 for i, n in enumerate(body) if any(
+        isinstance(v, ast.Constant) and v.value == 'whole-unit RNG/flags/CUDA differs' for v in ast.walk(n)))
+    end = next(i for i in range(start, len(body)) if any(
+        isinstance(v, ast.Constant) and v.value == 'exit separate evaluator/trainer/reference closure differs'
+        for v in ast.walk(body[i])))
+    preexit = ast.parse("def preexit(context):\n    source = context['selected']['source_driver']\n    return origins\n").body[0]
+    preexit.body[1:1] = body[start:end]
+    events, memory = [], {}
+
+    class MemoryStream(io.BytesIO):
+        def fileno(self):
+            return 0
+
+    class MemoryPath(str):
+        def is_absolute(self):
+            return self.startswith('/')
+        def resolve(self):
+            return self
+        def is_file(self):
+            return self in memory
+        def open(self, mode):
+            assert mode == 'rb'
+            events.append(('read', str(self)))
+            return MemoryStream(memory[self])
+
+    namespace = {'Path': MemoryPath, 'hashlib': hashlib, 're': driver.re,
+                 'os': SimpleNamespace(posix_fadvise=lambda *args: None, POSIX_FADV_DONTNEED=0),
+                 'json': json, 'time': driver.time, 'UNIT_STARTED': driver.UNIT_STARTED}
+    tree = ast.Module(body=[functions[n] for n in (
+        'require', 'bound_file', 'qualified_origins', 'check_origins', 'exit_rehash')] + [preexit], type_ignores=[])
+    exec(compile(ast.fix_missing_locations(tree), str(path), 'exec'), namespace)
+    packages = {'torch': {'root': '/qualified/torch'}}
+    for fault in (None, 'foreign', 'conflicting', 'qualified-conflict', 'mutation'):
+        events.clear()
+        memory.update({'/qualified/base.so': b'original', '/authority.json': b'authority'})
+        guards = {p: hashlib.sha256(raw).hexdigest() for p, raw in memory.items()}
+        actual = {'packages': packages, 'files': {'/qualified/base.so': guards['/qualified/base.so']}}
+        records = [{'origins': copy.deepcopy(actual), 'input_guards': guards.copy()}]
+        if fault in ('foreign', 'conflicting'):
+            actual['files']['/foreign/extra.so' if fault == 'foreign' else '/qualified/base.so'] = 'c' * 64
+        if fault == 'qualified-conflict':
+            records.append({'origins': {'packages': packages, 'files': {'/qualified/base.so': 'c' * 64}},
+                            'input_guards': {'/qualified/base.so': 'c' * 64}})
+
+        def scan(extract, admitted):
+            assert extract == 'fixture' and admitted == packages
+            events.append('scan')
+            return copy.deepcopy(actual)
+
+        def rehash(genuine):
+            assert genuine == 'fixture'
+            events.append('rehash')
+            if fault == 'mutation':
+                changed = b'changed!'
+                assert len(changed) == len(memory['/qualified/base.so'])
+                memory['/qualified/base.so'] = changed
+
+        context = {'selected': {'packages': packages, 'extract': 'fixture', 'genuine': 'fixture',
+                               'source_driver': SimpleNamespace(imported_origins=scan),
+                               'exporter': SimpleNamespace(rehash=rehash)},
+                   'origin_records': records, 'guards': guards.copy()}
+        with redirect_stdout(io.StringIO()):
+            if fault is None:
+                assert namespace['preexit'](context) == actual
+                assert events == ['scan', 'rehash', *[('read', p) for p in guards]], events
+            elif fault == 'mutation':
+                rejects(lambda: namespace['preexit'](context), 'file SHA256 differs')
+                assert events == ['scan', 'rehash', ('read', '/qualified/base.so')], events
+            else:
+                rejects(lambda: namespace['preexit'](context),
+                        'conflicting qualified origin' if fault == 'qualified-conflict' else 'outside admitted qualified union')
+                assert events == ['scan'], events
+        assert context['guards'] == guards and records[0]['input_guards'] == guards
+
+
 def write_json(path, value):
     path.write_text(json.dumps(value, allow_nan=False))
     return file_ref(path)
@@ -470,6 +551,7 @@ def main():
     initializer = load('_initializer_fixture', root / 'initialize_siglip2_substrate_fit.py')
     helper = load('_held_helpers_fixture', root / 'export_siglip2_substrate_adaptation.py')
     authority_checks(driver); metric_checks(driver); origin_checks(driver)
+    preexit_checks(driver, path)
     records, selected = endpoint_checks(driver, trainer)
     trainer_test.trainer_metadata_checks(trainer)
     with TemporaryDirectory() as directory:
@@ -488,7 +570,7 @@ def main():
     assert result.returncode == 0 and all('--' + n in result.stdout for n in
         ('execution-sha256', 'authority-sha256', 'phase', 'output', 'prerequisite-sha256'))
     assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
-    print('PASS: authority/complete-payload/partition/panel/early-stop/terminal/replay/cost/preparation/origins/tamper/roles/wire/exclusive-output/syntax/help/-O/-OO; native/resource/quality UNRUN')
+    print('PASS: authority/complete-payload/partition/panel/early-stop/terminal/replay/cost/preparation/origins/preexit/tamper/roles/wire/exclusive-output/syntax/help/-O/-OO; native/resource/quality UNRUN')
 
 
 if __name__ == '__main__':

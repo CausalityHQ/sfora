@@ -747,7 +747,9 @@ def qualify_heads(context):
     cache = context['features']['canonical'][:64]  # Exact new TRAIN cache normalization, never historical FIT rows.
     witnesses, facts = {}, {}
     for endpoint in context['spec']['endpoints']:
+        print(json.dumps({'progress': 'qualification_load_first_start', 'endpoint': label(endpoint), 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
         head, digest = load_head(context, endpoint)
+        print(json.dumps({'progress': 'qualification_load_first_end', 'endpoint': label(endpoint), 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
         key = label(endpoint)
         values = context['legacy'].head_values(context, head, cache)
         witnesses[key] = {name: source.tensor_fact(value) for name, value in
@@ -756,7 +758,9 @@ def qualify_heads(context):
         require(original.fingerprint(dict(head.state_dict())) == digest, 'TRAIN witness changed head')
         del head
         gc.collect()
+        print(json.dumps({'progress': 'qualification_load_second_start', 'endpoint': key, 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
         head, second_digest = load_head(context, endpoint)
+        print(json.dumps({'progress': 'qualification_load_second_end', 'endpoint': key, 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
         second = context['legacy'].head_values(context, head, cache)
         context['helper'].exact(values, second)
         require(original.fingerprint(values) == original.fingerprint(second), 'TRAIN raw/unit/packed bytes differ')
@@ -870,9 +874,13 @@ def run(args):
     prior = None if args.prerequisite is None else {'path': str(args.prerequisite), 'sha256': args.prerequisite_sha256}
     require(sys.argv == cli_argv(args.authority, args.authority_sha256, args.execution_sha256, args.phase, args.output, prior),
             'fixed canonical CLI order required')
+    print(json.dumps({'progress': 'authority_start', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
     context = authority(args)
+    print(json.dumps({'progress': 'authority_end', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
     cpu = prerequisites(context)
+    print(json.dumps({'progress': 'native_admission_start', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
     before = native_start(context)
+    print(json.dumps({'progress': 'native_admission_end', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
     import torch
     source = context['selected']['source_driver']
     rng, flags = torch.random.get_rng_state().clone(), source.numerical_flags()
@@ -883,11 +891,9 @@ def run(args):
     result = score_panel(context, cpu) if args.phase == 'score' else {'quality_read': False, 'files': {}}
     require(torch.equal(rng, torch.random.get_rng_state()) and source.numerical_flags() == flags and not torch.cuda.is_initialized(),
             'whole-unit RNG/flags/CUDA differs')
-    # Reject new foreign/conflicting origins before the original uncached exit reader registers anything.
-    origins = source.imported_origins(context['selected']['extract'],
-                                     context['selected']['packages'])
-    check_origins(context, origins)
+    print(json.dumps({'progress': 'exit_rehash_start', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
     origins = exit_rehash(context)
+    print(json.dumps({'progress': 'exit_rehash_end', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
     check_origins(context, origins)
     require(closure(context['root'], args.execution_sha256, FILES, {}) == context['code'] and
             closure(Path(context['spec']['training']['root']), context['spec']['training']['execution_sha256'], TRAIN_FILES, {}) == context['spec']['training']['code'] and
