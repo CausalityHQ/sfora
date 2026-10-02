@@ -16,12 +16,14 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 import subprocess
 import sys
 from contextlib import redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest.mock import patch
 
 
 def load(name, path):
@@ -491,6 +493,97 @@ def file_checks(driver, root):
     rejects(lambda: driver.closure(root, ref['sha256'], driver.FILES, {}), 'exact execution closure')
 
 
+def endpoint_admission_checks(driver, trainer, original, initializer, helper, path, root):
+    """Run the actual authority endpoint loop with real receipts and byte admission."""
+    authority = next(n for n in ast.parse(path.read_bytes()).body
+                     if isinstance(n, ast.FunctionDef) and n.name == 'authority')
+    loop = next(n for n in authority.body if isinstance(n, ast.For) and
+                ast.unparse(n.iter) == "spec['endpoints']")
+    function = ast.parse('def admit(spec, selected, admission):\n    records, terminals = {}, []\n    return records, terminals\n').body[0]
+    function.body.insert(1, loop)
+    namespace = {**vars(driver), 'trainer': trainer, 'helper': helper, 'train_root': root, 'required': {}}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[])), str(path), 'exec'), namespace)
+    shared = root / 'shared'; shared.write_bytes(b'original')
+    shared_ref = file_ref(shared)
+    spec = spec_fixture(driver, 'first'); spec['training']['execution_sha256'] = 'e' * 64
+    fixtures, inventories = [], {}
+    for seed, arm in driver.endpoint_order('first'):
+        endpoint, record, selected = record_fixture(driver, trainer, seed, arm)
+        context = {'args': SimpleNamespace(execution_sha256='d' * 64, authority=root / 'authority.json',
+                                          authority_sha256='a' * 64), 'spec': spec, 'selected': selected, 'code': {}}
+        output = root / arm
+        terminal, cpu = terminal_fixture(driver, context, output, 'cpu')
+        checkpoint = output / 'resume.pt'; checkpoint.write_bytes(b'checkpoint')
+        endpoint.update(launch=write_json(output / 'launch.json', record['launch']),
+                        checkpoint=file_ref(checkpoint), terminal=terminal)
+        record.update({k: cpu[k] for k in ('invocation', 'process_peak_rss_kib', 'cgroup_before', 'cgroup_after')})
+        record['invocation'].update(cuda_visible_devices='0', cublas_workspace_config=':4096:8',
+            argv=[str(root / 'train_siglip2_genuine_views.py'), '--execution-sha256', 'e' * 64,
+                  '--authority', endpoint['launch']['path'], '--authority-sha256', endpoint['launch']['sha256'],
+                  '--phase', 'train', '--arm', arm, '--seed', str(seed), '--output', str(output)])
+        inventory = {str(shared): shared_ref['sha256'], str(checkpoint): endpoint['checkpoint']['sha256']}
+        record.update(authority=endpoint['launch'], authority_sha256=endpoint['launch']['sha256'],
+                      execution_sha256='e' * 64, checkpoint=endpoint['checkpoint'], input_guards=inventory.copy())
+        inventories[seed, arm] = inventory
+        with Path(terminal['log']['path']).open('a') as stream:
+            stream.write(''.join(json.dumps(row) + '\n' for row in record['steps']))
+        terminal.update(log=file_ref(Path(terminal['log']['path'])),
+                        receipt=write_json(Path(terminal['receipt']['path']), record))
+        fixtures.append((endpoint, record))
+    spec['endpoints'] = [e for e, _ in fixtures]
+    selected['guards'] = {}
+    selected['source_cpu']['invocation'] = {k: cpu['invocation'][k] for k in ('python', 'python_sha256', 'python_version')}
+    admission = original.FlatAdmission(); admission.init = initializer
+    assert not admission.verified
+    reads, real_open = [], Path.open
+    tracked = {str(shared), *(e['checkpoint']['path'] for e in spec['endpoints'])}
+    def recording_open(file, mode='r', *args, **kwargs):
+        if str(file) in tracked and mode == 'rb':
+            reads.append(str(file))
+        return real_open(file, mode, *args, **kwargs)
+    with patch.object(Path, 'open', recording_open):
+        records, terminals = namespace['admit'](spec, selected, admission)
+        assert reads.count(str(shared)) == 1, ('duplicate endpoint inventory hash reads', reads)
+        assert all(reads.count(e['checkpoint']['path']) == 1 for e in spec['endpoints'])
+        assert len(terminals) == 2 and {k: r['input_guards'] for k, r in records.items()} == inventories
+        assert all(selected['guards'][p] == h for inventory in inventories.values() for p, h in inventory.items())
+        endpoint, record = fixtures[-1]
+        changed = copy.deepcopy(record); changed['input_guards'][str(shared)] = 'f' * 64
+        endpoint['terminal']['receipt'] = write_json(Path(endpoint['terminal']['receipt']['path']), changed)
+        selected['guards'] = {}
+        rejects(lambda: namespace['admit'](spec, selected, admission), 'conflicting file SHA256/size authority')
+        endpoint['terminal']['receipt'] = write_json(Path(endpoint['terminal']['receipt']['path']), record)
+        rejects(lambda: admission.bound_file({}, shared, shared_ref['sha256'], size=9), 'bound file size differs')
+        shared.write_bytes(b'longer original')
+        selected['guards'] = {}
+        rejects(lambda: namespace['admit'](spec, selected, admission), 'conflicting file SHA256/size authority')
+        shared.write_bytes(b'original')
+        altered = copy.deepcopy(spec); changed = copy.deepcopy(record)
+        altered['endpoints'][-1]['checkpoint']['sha256'] = 'f' * 64
+        changed['checkpoint'] = altered['endpoints'][-1]['checkpoint']
+        del changed['input_guards'][changed['checkpoint']['path']]
+        altered['endpoints'][-1]['terminal']['receipt'] = write_json(Path(endpoint['terminal']['receipt']['path']), changed)
+        fresh = original.FlatAdmission(); fresh.init = initializer
+        selected['guards'] = {}
+        rejects(lambda: namespace['admit'](altered, selected, fresh), 'file SHA256 differs')
+        endpoint['terminal']['receipt'] = write_json(Path(endpoint['terminal']['receipt']['path']), record)
+        selected['guards'] = {}
+        namespace['admit'](spec, selected, admission)
+        stat = shared.stat()
+        shared.write_bytes(b'mutated!'); os.utime(shared, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+        assert shared.stat().st_size == stat.st_size and shared.stat().st_mtime_ns == stat.st_mtime_ns
+        before = reads.count(str(shared))
+        admission.bound_file(selected['guards'], shared, shared_ref['sha256'])
+        assert reads.count(str(shared)) == before
+        origins, events = {'packages': {}, 'files': {}}, []
+        selected.update(packages={}, extract=None, genuine={},
+                        source_driver=SimpleNamespace(imported_origins=lambda *args: origins),
+                        exporter=SimpleNamespace(rehash=lambda genuine: events.append('exporter-rehash')))
+        rejects(lambda: driver.exit_rehash({'selected': selected, 'guards': selected['guards'],
+                                           'origin_records': []}), 'file SHA256 differs')
+        assert events == ['exporter-rehash'] and reads.count(str(shared)) == before + 1
+
+
 def output_wire_checks(driver, root):
     assert callable(getattr(driver, 'check_output', None)), 'exclusive output boundary is missing'
     assert callable(getattr(driver, 'packed_readback', None)), 'packed readback boundary is missing'
@@ -515,6 +608,18 @@ def output_wire_checks(driver, root):
 def source_checks(driver, path):
     tree = ast.parse(path.read_bytes())
     functions = {n.name: ast.unparse(n) for n in tree.body if isinstance(n, ast.FunctionDef)}
+    nodes = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    # Only historical endpoint inventories/checkpoints use the invocation-local reader.
+    cached = [ast.unparse(n) for n in ast.walk(nodes['authority']) if isinstance(n, ast.Call)
+              and isinstance(n.func, ast.Attribute) and n.func.attr == 'bound_file']
+    assert set(cached) == {"admission.bound_file(selected['guards'], path, digest)",
+                          "admission.bound_file(selected['guards'], endpoint['checkpoint']['path'], endpoint['checkpoint']['sha256'])"}
+    assert len(cached) == 2 and "admission = selected['original'].FlatAdmission()" in functions['authority']
+    assert not any(isinstance(n, ast.Attribute) and n.attr in ('verified', 'entries', 'json_bytes')
+                   for n in ast.walk(nodes['authority']))
+    assert "bound_file(context['guards'], endpoint['checkpoint']['path'], endpoint['checkpoint']['sha256'])" in functions['load_head']
+    assert "bound_file(context['guards'], proof['checkpoint']['path'], proof['checkpoint']['sha256'])" in functions['load_head']
+    assert 'bound_file({}, path, digest)' in functions['exit_rehash']
     assert "head_from('control', tensors=saved['head'])" in functions['load_head']
     assert functions['load_head'].index('trainer.check_payload(saved, ident, 1000)') < functions['load_head'].index("head_from('control', tensors=saved['head'])")
     assert "context['features']['canonical'][:64]" in functions['qualify_heads']
@@ -559,6 +664,8 @@ def main():
     with TemporaryDirectory() as directory:
         file_checks(driver, Path(directory))
     with TemporaryDirectory() as directory:
+        endpoint_admission_checks(driver, trainer, original, initializer, helper, path, Path(directory))
+    with TemporaryDirectory() as directory:
         output_wire_checks(driver, Path(directory))
     source_checks(driver, path)
     for file in (path, Path(__file__).resolve()):
@@ -570,7 +677,7 @@ def main():
     assert result.returncode == 0 and all('--' + n in result.stdout for n in
         ('execution-sha256', 'authority-sha256', 'phase', 'output', 'prerequisite-sha256'))
     assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
-    print('PASS: authority/complete-payload/partition/panel/early-stop/terminal/replay/cost/preparation/origins/preexit/tamper/roles/wire/exclusive-output/syntax/help/-O/-OO; native/resource/quality UNRUN')
+    print('PASS: authority/endpoint-admission/complete-payload/partition/panel/early-stop/terminal/replay/cost/preparation/origins/preexit/tamper/roles/wire/exclusive-output/syntax/help/-O/-OO; native/resource/quality UNRUN')
 
 
 if __name__ == '__main__':

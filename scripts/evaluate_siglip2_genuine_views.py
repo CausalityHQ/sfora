@@ -537,8 +537,8 @@ def authority(args):
             helper.zero_events(value)
         helper.logged_steps(Path(terminal['log']['path']), record['steps'])
         for path, digest in record['input_guards'].items():
-            bound_file(selected['guards'], path, digest)
-        bound_file(selected['guards'], endpoint['checkpoint']['path'], endpoint['checkpoint']['sha256'])
+            admission.bound_file(selected['guards'], path, digest)
+        admission.bound_file(selected['guards'], endpoint['checkpoint']['path'], endpoint['checkpoint']['sha256'])
         records[endpoint['seed'], endpoint['arm']] = {**record, 'service_seconds': terminal['service_seconds']}
         terminals.append(terminal)
     for path, digest in guards.items():
