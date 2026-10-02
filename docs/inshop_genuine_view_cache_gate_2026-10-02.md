@@ -22,3 +22,5 @@ Survivor path: NEW full InShop TRAIN25882/3997 canonical+augmented caches, fresh
 
 Implement paired-view exporter/test first, then trainer/test and evaluator/test against concrete source contracts. Root owns freezes/native/protocol/decisions/integration; one independent implementation child at a time by default. No new research, closed-hypothesis probe sequence or competing DGX jobs.
 
+
+Current convergence row (verified engineering; quality/speed unmeasured): InShop TRAIN6355/1008, future selection1734query/1715gallery/498products | matched control/candidate R1 and mAP@R: unmeasured | shared paired preparation283.636s; fresh CPU95.933s; discarded control/candidate mechanics97.926/103.920s, exact17vs8+9/reload/exit PASS, noSwap/events | public latency unmeasured; production quality+speed gaps remain | next decisive test fresh C061 then A0611000 updates and frozen first selection rejection gate. Both mechanics terminal receipts are collected; candidate/control secondseed commands are frozen but unused until first CONTINUE. Root owns this protocol decision/freeze; no new implementation or research slice.
