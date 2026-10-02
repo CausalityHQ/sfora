@@ -1,0 +1,15 @@
+{
+  "cpu_seconds": 300,
+  "encoder_bytes": 1711945083,
+  "historical_failures_preserved": true,
+  "host_bytes": 8589934592,
+  "native_unrun": true,
+  "retention_max_bytes": 2147483648,
+  "schema": "prototype-encoder-retention-falsifier-v1",
+  "score_seconds": 300,
+  "source_commit": "f1aadf96",
+  "stdlib_check": "PASS",
+  "stop_rule": "ONE cold CPU: full original native admission/integrity/reload/parity/exit/resources PASS and exact CPUv6 head/TRAIN witnesses; service_seconds<299.405 AND whole-command filesystem_input_blocks<328618144. Only then ONE separately cold score300; any failure/no improvement/score timeout closes retention, no retry or hot-set expansion.",
+  "swap_bytes": 0,
+  "worker_commit": "bb1b0682131fe428fbc5a5f060a49ac40dd0127f"
+}
