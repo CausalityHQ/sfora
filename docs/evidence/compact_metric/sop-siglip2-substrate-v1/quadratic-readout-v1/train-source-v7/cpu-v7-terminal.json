@@ -1,0 +1,17 @@
+{
+  "schema": "quadratic-cpu-v7-parent-terminal-v1",
+  "pass": true,
+  "invocation_id": "13291ef2bdd946e7a76f82f862248234",
+  "unit": "sfora-so400-quadratic-readout-cpu-v7",
+  "service_seconds": 94.629,
+  "native_peak_rss_kib": 1146616,
+  "host_peak_bytes": 1404653568,
+  "receipt_sha256": "7e8566c24cae41e71b67f42bb68eda0717b8a7351a7ae9e5c145a35ab0bfa78f",
+  "log_sha256": "3bf689314d9d7ad4b111223417ae9ca41785fa75b2cef1cf0642a072d452c373",
+  "cuda_bytes": 0,
+  "events": 0,
+  "swap_bytes": 0,
+  "both_locks_held": true,
+  "production_terminal_record_check": true,
+  "quality_read": false
+}
