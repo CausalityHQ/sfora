@@ -471,9 +471,13 @@ def audit_origins(context, initial=False):
     if initial:
         require(all(expected['modules'].get(n) == p for n, p in origins['modules'].items()) and
                 all(expected['files'].get(p) == h for p, h in origins['files'].items()), 'original CPU import origin differs')
-    known = {**expected['files'], **context['warm_record']['origins']['files']}
+    for kind in ('files', 'modules'):
+        known = {}
+        for proof in (expected, context['warm_record']['origins']):
+            for name, value in proof[kind].items():
+                require(known.setdefault(name, value) == value, 'conflicting original native origin authority')
+        require(all(known.get(n) == v for n, v in origins[kind].items()), 'unknown or changed native origin')
     for path, digest in origins['files'].items():
-        require(path not in known or known[path] == digest, 'known native source changed')
         bound_file(context['guards'], path, digest)
         require(prior['guards'].setdefault(path, digest) == digest, 'original native origin changed')
     context['origins'] = origins

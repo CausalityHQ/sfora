@@ -239,6 +239,64 @@ class Contract(unittest.TestCase):
         with self.assertRaises(ValueError):
             driver.check_complement(context, model, excluded=())
 
+    def test_native_origins_require_authenticated_file_and_module_union(self):
+        cases = ('cpu_subset', 'late_warm', 'unknown_file', 'unknown_module', 'changed_sha',
+                 'changed_module_path', 'file_union_conflict', 'module_union_conflict', 'original_guard_conflict')
+        for initial in (True, False):
+            for case in cases:
+                with self.subTest(initial=initial, case=case), tempfile.TemporaryDirectory() as directory:
+                    paths, hashes = {}, {}
+                    for name in ('cpu', 'spare', 'warm', 'unknown'):
+                        path = Path(directory) / (name + '.py')
+                        raw = name.encode()
+                        path.write_bytes(raw)
+                        paths[name] = str(path)
+                        hashes[name] = hashlib.sha256(raw).hexdigest()
+                    cpu = {'packages': {}, 'modules': {'torch': paths['cpu'], 'torch.spare': paths['spare']},
+                           'native_files': [], 'files': {paths[n]: hashes[n] for n in ('cpu', 'spare')}}
+                    warm = copy.deepcopy(cpu)
+                    warm['modules']['torch.warm'] = paths['warm']
+                    warm['files'][paths['warm']] = hashes['warm']
+                    actual = {'packages': {}, 'modules': {'torch': paths['cpu']}, 'native_files': [],
+                              'files': {paths['cpu']: hashes['cpu']}}
+                    context = {'source_driver': SimpleNamespace(imported_origins=lambda extract, packages: actual),
+                               'extract': None, 'selected': {'packages': {}, 'source_cpu': {'origins': cpu}},
+                               'warm_record': {'origins': warm}, 'guards': dict(cpu['files']),
+                               'prior': {'guards': dict(cpu['files'])}}
+                    if case == 'late_warm':
+                        actual['modules']['torch.warm'] = paths['warm']
+                        actual['files'][paths['warm']] = hashes['warm']
+                    elif case == 'unknown_file':
+                        actual['native_files'] = [paths['unknown']]
+                        actual['files'][paths['unknown']] = hashes['unknown']
+                        context['guards'][paths['unknown']] = hashes['unknown']
+                    elif case == 'unknown_module':
+                        actual['modules']['torch.alias'] = paths['cpu']
+                    elif case == 'changed_sha':
+                        Path(paths['cpu']).write_bytes(b'changed')
+                        actual['files'][paths['cpu']] = hashlib.sha256(b'changed').hexdigest()
+                    elif case == 'changed_module_path':
+                        actual['modules']['torch'] = paths['spare']
+                        actual['files'][paths['spare']] = hashes['spare']
+                    elif case == 'file_union_conflict':
+                        warm['files'][paths['spare']] = '0' * 64
+                    elif case == 'module_union_conflict':
+                        warm['modules']['torch.spare'] = paths['warm']
+                    elif case == 'original_guard_conflict':
+                        context['prior']['guards'][paths['cpu']] = '0' * 64
+                    before = copy.deepcopy((context['guards'], context['prior']['guards']))
+                    if case == 'cpu_subset' or case == 'late_warm' and not initial:
+                        driver.audit_origins(context, initial=initial)
+                        self.assertEqual(context['origins'], actual)
+                        for path, digest in actual['files'].items():
+                            self.assertEqual(context['guards'][path], digest)
+                            self.assertEqual(context['prior']['guards'][path], digest)
+                    else:
+                        with self.assertRaises(ValueError):
+                            driver.audit_origins(context, initial=initial)
+                        self.assertEqual((context['guards'], context['prior']['guards']), before)
+                        self.assertNotIn('origins', context)
+
     def test_native_imports_are_lazy_and_forbidden_paths_absent(self):
         tree = ast.parse(PATH.read_text())
         for node in tree.body:
