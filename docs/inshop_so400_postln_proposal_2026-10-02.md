@@ -1,6 +1,6 @@
 # Prospective So400 post-layernorm adaptation
 
-Status: read-only plan completed; review pending. No native launch authorized by this artifact alone. Root retains protocol/resource/quality authority under the SAME active full production goal.
+Status: completed reviews reconciled; actual CPU qualification v1 failed its 120-second envelope. No mechanics or TRAIN is admitted. Root retains protocol/resource/quality authority under the SAME active full production goal.
 
 ## Root protocol clarifications pending final review
 
@@ -69,3 +69,11 @@ The cached negatives establish failure of those recipes; they do not identify a 
    Risks are insufficient plasticity, ineffective gradients through the frozen pool, harmful channel reweighting, bank staleness and lifecycle overhead. Any failure closes this allocation without a rate, site, budget or precision rescue. Preserve full2000 and all valid Pareto points. Native256 adds no serving operations, but speed remains unmeasured: root still owes strongest protocol-matched SOP/InShop quality, public B1/B32 parity and matched end-to-end speed, including the required10,000 paired calls and p99 uncertainty.
 
 Read-only planning completed at `90a5b2b5`; no files edited, jobs launched, consultations started or quality data reopened.
+
+## Original CPU v1 terminal decision
+
+The original frozen source2 execution `8954a1ab95169297899da760ea4d4d9a168870ff1e7ace34b47c20bf295de2af` timed out at **120.298 seconds**, unit `sfora-so400-postln-cpu-v1`, invocation `05d3f19317634216be97f34f9de621db`. Whole-unit host peak **7,715,340,288 bytes**, swap peak **0 bytes**, all disallowed memory events **0**. Original session40222 collected exit1/service timeout/TERM. Raw terminal/log are in `postln-v1/train-source-v1/cpu-v1-terminal.json` and `cpu-v1.log`. No accepted proof exists. A discarded control delta file was written (12,362,846 bytes, SHA `8dc3c6827b141616a7703152ca5b84d2b0bc9493341af177fe61b43b19b9de21`); its existence establishes progress through control serialization, not a completed strict reload or qualification. It is never a reusable training endpoint. Phase timings were retained only in memory, so the terminal log cannot locate the exact timeout stage.
+
+| Dataset/split | Matched quality | Training cost / public latency | Gap / next decisive test |
+|---|---|---|---|
+| InShop TRAIN6355/1008; selection1734q/1715g/498 sealed for this method | New control/candidate R1 and mAP@R **unmeasured**. Prior genuine-view control R1 **96.3091%**, mAP@R **80.5723%** is a historical selection anchor only. | No new TRAIN or public latency measurement. CPU v1 **FAIL120.298s**, host **7.715GB**, swap0/events0. | Joint SOP/InShop external quality and matched serving speed remain unmet. One read-only lifecycle audit `22be9f89b01c41b7` must identify a concrete reducible cause or precise missing phase evidence before any prospective source correction. Preserve v1 FAIL; no cap rescue or GPU launch. |
