@@ -34,9 +34,9 @@ class ContractTests(unittest.TestCase):
         cls.driver = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.driver)
 
-    def test_exact_own_three_file_closure_and_fixed_resources(self):
+    def test_exact_own_four_file_closure_and_fixed_resources(self):
         d = self.driver
-        self.assertEqual(d.FILES, {PATH.name, Path(__file__).name, 'quadratic_readout.py'})
+        self.assertEqual(d.FILES, {PATH.name, Path(__file__).name, 'quadratic_readout.py', 'quadratic_encoder_frames.py'})
         self.assertEqual(d.RECIPE['steps'], 1000)
         self.assertEqual(d.parameter_names('candidate'), ['A'])
         self.assertEqual(d.parameter_names('control'), ['A'])
@@ -327,8 +327,9 @@ class ContractTests(unittest.TestCase):
                      encoder='encoder', config={}, buffers={}, means={'linear': 'mean', 'quadratic': 'mean2'},
                      features='canonical', **{k: {} for k in d.STATIC_KEYS})
         def digest(tree): return hashlib.sha256(repr(tree).encode()).hexdigest()
-        context = dict(original=SimpleNamespace(fingerprint=digest))
-        ident = dict(frozen_sha256=digest(d.frozen_tree(state)))
+        context = dict(encoder='encoder', encoder_check=lambda value: d.require(value == 'encoder', 'encoder differs') or value,
+                       encoder_fingerprint=digest)
+        ident = dict(frozen_sha256=digest(d.frozen_tree(context, state)))
         d.check_complement(context, state, ident)
         value.data = 'same-version-tamper'
         with self.assertRaises(ValueError): d.check_complement(context, state, ident)
@@ -348,7 +349,7 @@ class ContractTests(unittest.TestCase):
             sha = hashlib.sha256(raw).hexdigest()
             guards = {}
             self.assertEqual(d.closure(root, sha, d.FILES, guards), code)
-            self.assertEqual(len(guards), 4)
+            self.assertEqual(len(guards), 5)
             target = root / 'quadratic_readout.py'
             stat = target.stat(); target.write_bytes(b'tampered')
             import os
@@ -397,7 +398,7 @@ class ContractTests(unittest.TestCase):
         d = self.driver
         original = PATH.with_name('train_siglip2_substrate_adaptation.py')
         if not original.is_file():
-            # The frozen own3 test closure does not contain the external genuine math closure.
+            # The frozen own4 test closure does not contain the external genuine math closure.
             return
         tree = ast.parse(original.read_text())
         node = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'FlatAdmission')
@@ -453,14 +454,14 @@ class ContractTests(unittest.TestCase):
         source = load('_exit_source', PATH.with_name('qualify_siglip2_substrate_cpu.py'))
         reference = load('_exit_reference', PATH.with_name('export_siglip2_substrate_fit.py'))
         exporter = load('_exit_exporter', PATH.with_name('export_siglip2_genuine_views.py'))
-        # Pin every other original module node, including math, typed state, use
-        # boundaries, reload/ownership/RNG, source448/config and resource admission.
+        # Pin the prospective trainer closure, including typed state and boundaries.
+        # The separate base-AST check preserves original math/schedule/RNG/exit.
         tree = ast.parse(PATH.read_bytes())
         tree.body = [n for n in tree.body if not isinstance(n, ast.FunctionDef) or
                      n.name not in ('audit_origins', 'exit_rehash')]
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
-                         '5a46018cd5c2e25d8662ad8e0a02b1a4de1e7b4b4b2e5c67f62f8d979fbf6f14')
-        # Revert only the reviewed caller argument to prove every other node is unchanged.
+                         'c99a92431f4a4c27caef0df2e6bd4d6b391a1d35dce2ad1de4a17775b4c45bfd')
+        # Pin the existing device correction within this amended closure too.
         integrity = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'integrity')
         boundary = next(n.value for n in integrity.body if isinstance(n, ast.Expr) and
                         isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Attribute) and
@@ -468,7 +469,7 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(ast.dump(boundary.args[1]), ast.dump(ast.parse("state['A'].device", mode='eval').body))
         boundary.args[1] = ast.parse("state['device']", mode='eval').body
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
-                         'f5ca80d12a65e66f947a98b70959b9ae17d93effce821b74043444ffaf2ad7c7')
+                         '48e6cceabd516c4db3baefbe3d1bfac5e5755b3333e05e618978d8f65687e846')
         origin_node = next(n for n in ast.parse(PATH.read_bytes()).body
                            if isinstance(n, ast.FunctionDef) and n.name == 'audit_origins')
         origin_node.args.args.pop(); origin_node.args.defaults.pop()
@@ -717,6 +718,214 @@ class ContractTests(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 30)
         self.assertNotIn('torch', sys.modules)
 
+    def test_original_math_schedule_rng_and_exit_ast_stay_pinned(self):
+        # Base 7f7eb1cf, allowing only the explicit capsule reads/hash adapter in
+        # these mathematical/reload routines. Admission amendments are pinned
+        # separately by the complete trainer AST in the exit falsifier.
+        tree = ast.parse(PATH.read_bytes())
+        excluded = {'authority', 'composition', 'encoder_metadata', 'frozen_tree', 'identity', 'payload',
+                    'check_payload', 'check_complement', 'integrity', 'save', 'owned_encoder'}
+        tree.body = [n for n in tree.body[1:] if not (isinstance(n, ast.FunctionDef) and n.name in excluded)
+                     and not (isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'FILES'
+                                                               for t in n.targets))]
+        class OriginalCalls(ast.NodeTransformer):
+            def visit_FunctionDef(self, node):
+                self.name = node.name
+                return self.generic_visit(node)
+            def visit_Call(self, node):
+                self.generic_visit(node)
+                if ast.unparse(node.func) == "context['encoder_fingerprint']":
+                    target = "context['original'].fingerprint" if self.name == 'restore' else 'original.fingerprint'
+                    node.func = ast.parse(target, mode='eval').body
+                if isinstance(node.func, ast.Name) and node.func.id == 'payload':
+                    assert ast.unparse(node.args[0]) == 'context'
+                    node.args.pop(0)
+                if isinstance(node.func, ast.Name) and node.func.id == 'owned_encoder':
+                    assert self.name == 'fresh' and len(node.args) == 1
+                    return ast.parse("clone_tree(context['encoder'])", mode='eval').body
+                return node
+        tree = OriginalCalls().visit(tree)
+        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+                         'cd91be85cabc2618976cd4567c63b5d4d6a9b48aaef70b934c77c2cb9875dc8e')
+
+    def test_immutable_encoder_differential_falsifier(self):
+        """Full production admission plus old/new typed streams; no native libraries."""
+        d, started = self.driver, time.monotonic()
+        def deadline(*unused):
+            raise AssertionError('immutable encoder falsifier exceeded 30 seconds')
+        old_handler = signal.signal(signal.SIGALRM, deadline)
+        signal.setitimer(signal.ITIMER_REAL, 30)
+        self.addCleanup(signal.signal, signal.SIGALRM, old_handler)
+        self.addCleanup(signal.setitimer, signal.ITIMER_REAL, 0)
+        def load(name):
+            path = PATH.with_name(name + '.py')
+            spec = importlib.util.spec_from_file_location('_frames_' + name, path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        if not PATH.with_name('train_siglip2_substrate_adaptation.py').is_file():
+            self.skipTest('original pinned serializer source required for differential falsifier')
+        original = load('train_siglip2_substrate_adaptation')
+        frames = load('quadratic_encoder_frames')
+        globals_before = dict(vars(original))
+        self.assertEqual(hashlib.sha256(Path(original.__file__).read_bytes()).hexdigest(), frames.ORIGINAL_SHA256)
+        class Tensor:
+            dtype, shape, _version = 'torch.float32', (1,), 0
+            def __init__(self): self.raw, self.reads = bytearray(b'abcd'), 0
+            def data_ptr(self): return 1234
+            def detach(self): return self
+            def cpu(self): return self
+            def contiguous(self): return self
+            def reshape(self, *args): return self
+            def view(self, *args): return self
+            def numpy(self):
+                self.reads += 1
+                return self.raw
+            @property
+            def data(self): return self
+        class Scalar(int): pass
+        class Text(str): pass
+        class Sequence(list): pass
+        class Tuple(tuple): pass
+        fake_torch = SimpleNamespace(Tensor=Tensor, uint8='uint8')
+        fixture_bytes = 0
+        with tempfile.TemporaryDirectory() as temporary:
+            checkpoint = Path(temporary) / 'vision.pt'; checkpoint.write_bytes(b'structural fixture only')
+            def context():
+                encoder = self.encoder()
+                encoder['checkpoint']['path'] = str(checkpoint)
+                proof, exported = encoder['source_proof'], encoder['export_runtime']
+                # Typed metadata is legal even though presentation config is JSON.
+                proof['typed_witness'] = {0: ('x', 1), '0': ['x', 1], 'bytes': b'ab', 'none': None}
+                proof['input_guards'] = {str(checkpoint): encoder['checkpoint']['sha256']}
+                prior = dict(expected={n: v['shape'] for n, v in proof['runtime']['vision'].items()},
+                             mapping=copy.deepcopy(proof['runtime']['vision']), guards=dict(proof['input_guards']))
+                binding = copy.deepcopy(encoder['export_binding'])
+                record = dict(source_checkpoint=copy.deepcopy(encoder['checkpoint']), binding=binding,
+                    source_runtime=exported, strict_independent_reload_exact=True, constructor_and_view_rng_preserved=True,
+                    caches={'canonical': {'sha256': d.CANONICAL_SHA}})
+                selected = dict(source_cpu=proof, export_record=record,
+                    genuine=dict(reference=SimpleNamespace(binding=lambda prior: copy.deepcopy(encoder['source_binding']))),
+                    exporter=SimpleNamespace(binding=lambda genuine: copy.deepcopy(encoder['export_binding'])),
+                    launch=dict(selected_export=encoder['export_terminal']),
+                    source=dict(source_checkpoint=copy.deepcopy(encoder['checkpoint']), caches=copy.deepcopy(record['caches'])),
+                    guards=dict(proof['input_guards']))
+                return dict(selected=selected, prior=prior, guards=dict(proof['input_guards']),
+                            admission=original.FlatAdmission(), original=original, frames=frames)
+            ctx = context()
+            ctx['encoder'] = d.composition(ctx)  # The genuine full production sealing path.
+            capsule, fingerprint, check = ctx['encoder'], ctx['encoder_fingerprint'], ctx['encoder_check']
+            materialized = capsule.materialize()
+            d.check_encoder(materialized)
+            fixture_bytes += len(repr(materialized).encode()) + len(tuple.__getitem__(capsule, 0))
+            self.assertNotIn('torch', sys.modules)
+            def immutable(value):
+                self.assertIn(type(value), (tuple, str, bytes, int, float, bool, type(None)))
+                if type(value) is tuple:
+                    for child in value: immutable(child)
+            for child in tuple.__iter__(capsule): immutable(child)
+            with self.assertRaises((AttributeError, TypeError)): capsule.frames = b'conflict'
+            with self.assertRaises(TypeError): capsule[0] = b'conflict'
+            # Returned values and source aliases cannot change the sealed proof.
+            capsule['inventory'][0]['shape'][0] = 999
+            ctx['selected']['source_cpu']['runtime']['vision'].clear()
+            self.assertEqual(capsule.materialize(), materialized)
+            with patch.dict(sys.modules, torch=fake_torch):
+                tensor = Tensor()
+                ordinary = dict(encoder=materialized, optimizer={'state': {0: {'exp_avg': tensor}},
+                    'param_groups': [{'params': [0], 'betas': (.9, .999)}]}, repeated=[materialized, materialized],
+                    keys={0: 'integer', '0': 'string'}, rng=tensor)
+                adapted = {**ordinary, 'encoder': capsule, 'repeated': [capsule, capsule]}
+                self.assertEqual(fingerprint(adapted), original.fingerprint(ordinary))
+                self.assertEqual(fingerprint(capsule), original.fingerprint(materialized))
+                self.assertNotEqual(fingerprint((1, 2)), fingerprint([1, 2]))
+                self.assertNotEqual(fingerprint({0: 'x'}), fingerprint({'0': 'x'}))
+                consumed = []
+                self.assertEqual(fingerprint(adapted, consumed=consumed.append), original.fingerprint(ordinary))
+                self.assertEqual(consumed, [tensor, tensor])
+                with self.assertRaises(TypeError): fingerprint(adapted, frozen={})
+                foreign, _, _ = frames.seal(original.fingerprint, materialized)
+                conflicting = frames.EncoderFrames((b'wrong', tuple.__getitem__(capsule, 1)))
+                replacement = frames.EncoderFrames(tuple(capsule))
+                for bad in (foreign, conflicting, replacement, materialized):
+                    with self.assertRaises(ValueError): check(bad)
+                    with self.assertRaises(ValueError): d.owned_encoder(ctx, {'encoder': bad})
+                    with patch.dict(ctx, encoder=bad), self.assertRaises(ValueError): d.owned_encoder(ctx)
+                    if type(bad) is frames.EncoderFrames:
+                        with self.assertRaises(ValueError): fingerprint({'encoder': bad})
+                # Full live payload admission uses ownership; saved dictionaries use all original checks.
+                saved, ident = self.fake_payload(step=1)
+                saved['encoder'] = capsule
+                d.check_payload(saved, ident, 1, check)
+                for bad in (foreign, conflicting, replacement, materialized):
+                    with patch.dict(saved, encoder=bad), self.assertRaises(ValueError):
+                        d.check_payload(saved, ident, 1, check)
+                saved['encoder'] = materialized
+                d.check_payload(saved, ident, 1)
+                # Execute the real save boundary's projection and equality assertion.
+                save = next(n for n in ast.parse(PATH.read_bytes()).body
+                            if isinstance(n, ast.FunctionDef) and n.name == 'save')
+                start = next(i for i, n in enumerate(save.body) if isinstance(n, ast.Assign)
+                             and ast.unparse(n.targets[0]) == 'digest')
+                boundary = compile(ast.Module(body=save.body[start:start + 3], type_ignores=[]), str(PATH), 'exec')
+                persisted = {k: v for k, v in adapted.items() if k != 'repeated'}
+                environment = dict(vars(d), context=ctx, state={'encoder': capsule}, saved=persisted)
+                exec(boundary, environment)
+                self.assertIs(type(persisted['encoder']), dict)
+                self.assertEqual(persisted['encoder'], materialized)
+                self.assertEqual(original.fingerprint(persisted), environment['digest'])
+                state = dict(encoder=capsule, head=SimpleNamespace(state_dict=lambda: {'weight': tensor}),
+                    classifier=tensor, config={}, buffers={}, means={}, features=tensor,
+                    **{k: {} for k in d.STATIC_KEYS})
+                identity = {'frozen_sha256': fingerprint(d.frozen_tree(ctx, state))}
+                for via_data in (False, True):
+                    d.check_complement(ctx, state, identity)
+                    before = tensor.reads
+                    target = tensor.data if via_data else tensor
+                    target.raw[0] ^= 1  # Same pointer AND version, after a successful same-boundary read.
+                    self.assertEqual((tensor.data_ptr(), tensor._version), (1234, 0))
+                    with self.assertRaises(ValueError): d.check_complement(ctx, state, identity)
+                    self.assertGreater(tensor.reads, before)
+                    target.raw[0] ^= 1
+                    d.check_complement(ctx, state, identity)
+                state['partition']['mutated'] = True
+                with self.assertRaises(ValueError): d.check_complement(ctx, state, identity)
+            # Every original encoder witness is injected through production source/export inputs.
+            mutations = [lambda c: c['selected']['export_record']['source_runtime']['roles'].pop(),
+                lambda c: c['selected']['export_record']['source_runtime']['roles'][0].update(role='trainable'),
+                lambda c: c['selected']['source_cpu'].update(reload_exact=False),
+                lambda c: c['selected']['source_cpu']['runtime']['vision'].pop('tensor.0'),
+                lambda c: c['selected']['export_record']['source_runtime']['config'].update(hidden_size=1024),
+                lambda c: c['selected']['export_record']['source_runtime']['processor'].update(backend='pil'),
+                lambda c: c['selected']['export_record']['source_runtime']['buffers']['embeddings.position_ids'].update(persistent=True),
+                lambda c: c['selected']['export_record']['binding']['source']['source_cpu']['proof'].update(sha256='0' * 64),
+                lambda c: c['selected']['source_cpu']['checkpoint'].update(sha256='0' * 64),
+                lambda c: c['selected']['export_record'].update(strict_independent_reload_exact=False),
+                lambda c: c['selected']['export_record'].update(constructor_and_view_rng_preserved=False),
+                lambda c: c['selected']['export_record']['caches']['canonical'].update(sha256='0' * 64),
+                lambda c: c['selected']['source']['source_checkpoint'].update(sha256='0' * 64),
+                lambda c: c['prior']['expected'].pop('tensor.0'),
+                lambda c: c['prior']['mapping']['tensor.0'].update(sha256='0' * 64),
+                lambda c: c['selected']['source']['caches'].clear(),
+                lambda c: c['guards'].update({str(checkpoint): '0' * 64}),
+                lambda c: c['selected']['source_cpu']['input_guards'].update(missing='0' * 64)]
+            for bad in (object(), bytearray(b'x'), set(), Scalar(1), Text('x'), Sequence([1]), Tuple((1,)), Tensor()):
+                mutations.append(lambda c, bad=bad: c['selected']['source_cpu'].update(unknown=bad))
+            for bad in (Scalar(1), Text('x')):
+                mutations.append(lambda c, bad=bad: c['selected']['source_cpu'].update(unknown={bad: 1}))
+            for mutate in mutations:
+                bad_context = context(); mutate(bad_context)
+                with self.assertRaises((ValueError, KeyError, TypeError)):
+                    bad_context['encoder'] = d.composition(bad_context)
+                self.assertNotIn('encoder', bad_context)
+                self.assertNotIn('encoder_check', bad_context)
+                self.assertNotIn('encoder_fingerprint', bad_context)
+                with self.assertRaises(KeyError): d.owned_encoder(bad_context)
+        self.assertEqual(vars(original), globals_before)  # No original-global rebinding.
+        self.assertLessEqual(fixture_bytes, 4 * 1024**2)
+        self.assertLess(time.monotonic() - started, 30)
+        self.assertNotIn('torch', sys.modules)
+
     def test_original_fingerprint_keeps_tuple_and_integer_key_types(self):
         original = PATH.with_name('train_siglip2_substrate_adaptation.py')
         if not original.is_file():
@@ -755,7 +964,7 @@ class ContractTests(unittest.TestCase):
         assert has('cpu_witnesses', 'restore(context, path, sha1, digest1, ident, 1)')
         assert has('cpu_witnesses', 'update(context, state, ident, 2)')
         assert has('cpu_witnesses', 'diagnostic(resumed2) == diagnostic(step2)')
-        assert has('cpu_witnesses', 'original.fingerprint(payload(state, ident)) == expected_digest')
+        assert has('cpu_witnesses', "context['encoder_fingerprint'](payload(context, state, ident)) == expected_digest")
         assert has('cpu_witnesses', 'original.fingerprint(calibration(context, state)) == expected_witness')
         assert has('prepare_native', "genuine.check_payload(disk, disk['identity'], 1000)")
         assert has('prepare_native', 'context[\'original\'].fingerprint(disk, consumed=pages.consume) == WARM_STATE_SHA')

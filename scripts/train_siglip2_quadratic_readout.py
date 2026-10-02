@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fixed-basis quadratic cached readout, composed with the qualified immutable encoder.
 
-Freeze exactly FILES in execution.json (trainer, test, copied primitive).
+Freeze exactly FILES in execution.json (trainer, test, primitive, frame helper).
 CLI (fixed order): python -B ROOT/train_siglip2_quadratic_readout.py
  --execution-sha256 SHA --authority FILE --authority-sha256 SHA
  --phase cpu|mechanics|train --arm control|candidate --seed 179061|179069
@@ -53,7 +53,7 @@ import weakref
 
 SCHEMA = 'siglip2-quadratic-readout-v1'
 AUTHORITY_SCHEMA = 'siglip2-quadratic-readout-launch-v1'
-FILES = {'train_siglip2_quadratic_readout.py', 'test_siglip2_quadratic_readout.py', 'quadratic_readout.py'}
+FILES = {'train_siglip2_quadratic_readout.py', 'test_siglip2_quadratic_readout.py', 'quadratic_readout.py', 'quadratic_encoder_frames.py'}
 NATIVE = {'torch', 'numpy', 'PIL', 'transformers', 'safetensors', 'torchvision', 'sfora'}
 GENUINE_REFERENCE = {'root': '/home/riomus/runs/sfora-so400-genuine-view-train-source-v1',
                      'execution_sha256': '2003e9a6adba30c8f90fa17f6437cbba1f4b6cd2d12e75906195d16229846e08'}
@@ -292,10 +292,12 @@ def authority(args):
                'invocations': {selected['source_cpu']['invocation']['invocation_id']},
                'terminals': {}, 'terminal_cgroups': {}, 'phase_seconds': {}}
     context['quadratic'] = genuine.load_helper('_quadratic_primitive', root / 'quadratic_readout.py', code['quadratic_readout.py'], guards)
+    context['frames'] = genuine.load_helper('_quadratic_encoder_frames', root / 'quadratic_encoder_frames.py',
+                                             code['quadratic_encoder_frames.py'], guards)
     context['encoder'] = composition(context)
     context['source'] = {'genuine_reference': GENUINE_REFERENCE, 'warm_start': launch['warm_start'],
                          'native_source': selected['genuine']['reference'].binding(context['prior']),
-                         'warm_source': selected['source'], 'partition_sha256': PARTITION_SHA, 'encoder_composition_sha256': selected['exporter'].object_sha(context['encoder'])}
+                         'warm_source': selected['source'], 'partition_sha256': PARTITION_SHA, 'encoder_composition_sha256': selected['exporter'].object_sha(owned_encoder(context).materialize())}
     context['terminal_cgroups']['warm'] = admit_unit(context, record, launch['warm_start']['terminal'], 'train')
     required_guards = dict(guards)
     wanted = [] if args.phase == 'cpu' else [('cpu', 'control', launch['selected_cpu'])]
@@ -572,7 +574,16 @@ def composition(context):
     require(all(context['guards'].get(p) == h for p, h in proof['input_guards'].items()) and
             context['guards'].get(encoder['checkpoint']['path']) == encoder['checkpoint']['sha256'],
             'complete immutable source ownership missing')
-    return encoder
+    capsule, fingerprint, check_owned = context['frames'].seal(context['original'].fingerprint, encoder)
+    context['encoder_fingerprint'], context['encoder_check'] = fingerprint, check_owned
+    return capsule
+
+
+def owned_encoder(context, state=None):
+    capsule = context['encoder_check'](context['encoder'])
+    if state is not None:
+        context['encoder_check'](state['encoder'])
+    return capsule
 
 
 def parameter_names(arm):
@@ -625,15 +636,16 @@ def claim_model(context, model):
 def encoder_metadata(context):
     """Read typed config/nonpersistent buffers from qualified bytes; no vision factory."""
     import torch
-    fact = context['encoder']['checkpoint']
+    encoder = owned_encoder(context)
+    fact = encoder['checkpoint']
     path = admitted_file(context, fact['path'], fact['sha256'])
     disk = torch.load(path, map_location='cpu', weights_only=True, mmap=True)
     require(disk.keys() == {'vision', 'buffers', 'config', 'runtime', 'cpu_rng'} and
-            disk['runtime'] == context['encoder']['source_proof']['runtime'] and
+            disk['runtime'] == encoder['source_proof']['runtime'] and
             json_form(disk['config']) == disk['runtime']['config'] and
             disk['vision'].keys() == disk['runtime']['vision'].keys() and
             disk['buffers'].keys() == disk['runtime']['buffers'].keys() and
-            context['source_driver'].tensor_fact(disk['cpu_rng']) == context['encoder']['source_proof']['cpu_rng'],
+            context['source_driver'].tensor_fact(disk['cpu_rng']) == encoder['source_proof']['cpu_rng'],
             'complete immutable encoder checkpoint metadata differs')
     for name, value in disk['vision'].items():
         require(list(value.shape) == disk['runtime']['vision'][name]['shape'] and
@@ -734,8 +746,8 @@ def frozen_members(state):
     return [('compact_head.' + n, p) for n, p in state['head'].named_parameters()] + [('classifier', state['classifier'])]
 
 
-def frozen_tree(state):
-    return {'encoder': state['encoder'], 'config': state['config'], 'buffers': state['buffers'],
+def frozen_tree(context, state):
+    return {'encoder': owned_encoder(context, state), 'config': state['config'], 'buffers': state['buffers'],
             'head': dict(state['head'].state_dict()), 'classifier': state['classifier'], 'means': state['means'],
             'features': state['features'], **{k: state[k] for k in STATIC_KEYS}}
 
@@ -765,7 +777,7 @@ def fresh(context, arm, seed, device):
     pairs, optimizer = optimizer_state(A, arm, [*head.parameters(), classifier])
     config, buffers = encoder_metadata(context)
     state = {'head': head, 'classifier': classifier, 'A': A, 'means': clone_tree(means, device),
-             'encoder': clone_tree(context['encoder']), 'config': config, 'buffers': buffers,
+             'encoder': owned_encoder(context), 'config': config, 'buffers': buffers,
              'features': features.to(device, copy=True).detach(),
              'bank': initial['bank'].to(device, copy=True).detach(), 'arm': arm, 'seed': seed, 'device': device,
              'params': pairs, 'optimizer': optimizer, 'counter': 0,
@@ -788,12 +800,12 @@ def identity(context, state):
     original = context['original']
     return json_form({'method': method(context['launch']), 'source': context['source'], 'arm': state['arm'],
         'seed': state['seed'], 'device': state['device'], 'parameter_names': parameter_names(state['arm']),
-        'config': state['config'], 'native_inventory': state['encoder']['inventory'],
-        'encoder_sha256': original.fingerprint(state['encoder']),
+        'config': state['config'], 'native_inventory': owned_encoder(context, state)['inventory'],
+        'encoder_sha256': context['encoder_fingerprint'](owned_encoder(context, state)),
         'complement_sha256': original.fingerprint({'head': dict(state['head'].state_dict()), 'classifier': state['classifier']}),
         'buffers_sha256': original.fingerprint(state['buffers']), 'means_sha256': original.fingerprint(state['means']),
         'head_buffers_sha256': original.fingerprint(dict(state['head'].named_buffers())),
-        'frozen_sha256': original.fingerprint(frozen_tree(state)),
+        'frozen_sha256': context['encoder_fingerprint'](frozen_tree(context, state)),
         'features_sha256': original.fingerprint(state['features']),
         'static_sha256': context['static_sha256'], 'warm_members_sha256': context['warm_members_sha256'],
         'optimizer_defaults': state['optimizer'].defaults.copy(),
@@ -805,9 +817,9 @@ def identity(context, state):
         'numerical_flags': context['flags']})
 
 
-def payload(state, ident):
+def payload(context, state, ident):
     import torch
-    return {'schema': SCHEMA, 'identity': ident, 'source': ident['source'], 'encoder': state['encoder'],
+    return {'schema': SCHEMA, 'identity': ident, 'source': ident['source'], 'encoder': owned_encoder(context, state),
             'config': state['config'], 'buffers': state['buffers'],
             'head': dict(state['head'].state_dict()), 'classifier': state['classifier'].detach(),
             'A': state['A'].detach(), 'means': state['means'], 'bank': state['bank'],
@@ -818,16 +830,21 @@ def payload(state, ident):
             'counter': state['counter'], 'seed': state['seed'], 'numerical_flags': ident['numerical_flags']}
 
 
-def check_payload(saved, ident, step):
+def check_payload(saved, ident, step, encoder_check=None):
     check_optimizer_identity(ident)
     require(saved.keys() == PAYLOAD_KEYS and saved['schema'] == SCHEMA and saved['identity'] == ident and
             saved['source'] == ident['source'] and json_form(saved['config']) == ident['config'] and
             saved['numerical_flags'] == ident['numerical_flags'] and json_form(saved['optimizer_defaults']) == ident['optimizer_defaults'] and
             type(step) is int and type(saved['counter']) is int and saved['counter'] == step and 0 <= step <= 1000 and
             type(saved['seed']) is int and saved['seed'] == ident['seed'], 'complete typed payload identity differs')
-    check_encoder(saved['encoder'])
+    if encoder_check is None:
+        check_encoder(saved['encoder'])
+        encoder_config = saved['encoder']['export_runtime']['config']
+    else:
+        encoder_check(saved['encoder'])
+        encoder_config = saved['encoder'].member('export_runtime', 'config')
     require(saved['encoder']['inventory'] == ident['native_inventory'] and
-            json_form(saved['config']) == saved['encoder']['export_runtime']['config'], 'complete encoder/config mapping differs')
+            json_form(saved['config']) == encoder_config, 'complete encoder/config mapping differs')
     def tensor(value, shape, dtype='torch.float32'):
         require(tuple(value.shape) == tuple(shape) and str(value.dtype) == dtype, 'complete payload tensor layout differs')
     require(saved['head'].keys() == HEAD_LAYOUT.keys() and saved['means'].keys() == {'linear', 'quadratic'} and
@@ -871,7 +888,7 @@ def check_payload(saved, ident, step):
 
 
 def check_complement(context, state, ident):
-    require(context['original'].fingerprint(frozen_tree(state)) == ident['frozen_sha256'],
+    require(context['encoder_fingerprint'](frozen_tree(context, state)) == ident['frozen_sha256'],
             'fresh frozen complement/means/source bytes differ')
 
 
@@ -879,9 +896,9 @@ def integrity(context, state, ident, fresh_bytes=False):
     import torch
     tick = time.perf_counter()
     original = context['original']
-    check_encoder(state['encoder'])
-    require(state['encoder'] == context['encoder'] and state['encoder']['inventory'] == ident['native_inventory'] and
-            original.fingerprint(state['encoder']) == ident['encoder_sha256'] and
+    encoder = owned_encoder(context, state)
+    require(encoder['inventory'] == ident['native_inventory'] and
+            context['encoder_fingerprint'](owned_encoder(context, state)) == ident['encoder_sha256'] and
             json_form(state['config']) == ident['config'], 'complete immutable encoder448/config differs')
     context['quadratic']._check_base(state['head'], state['A'].device)
     require(all(m.training and not m._forward_hooks and not m._forward_pre_hooks and not m._backward_hooks
@@ -905,15 +922,15 @@ def integrity(context, state, ident, fresh_bytes=False):
             state['bank'].device.type == ident['device'] and torch.isfinite(state['bank']).all().item() and
             not state['features'].requires_grad and state['features'].grad is None and tuple(state['features'].shape) == (6355, 1152),
             'optimizer/canonical features/bank differs')
-    saved = payload(state, ident)
-    check_payload(saved, ident, state['counter'])
+    saved = payload(context, state, ident)
+    check_payload(saved, ident, state['counter'], context['encoder_check'])
     finite_tree(saved['optimizer'])
     require(context['source_driver'].numerical_flags() == ident['numerical_flags'], 'numerical flags changed')
     # Read actual bytes at EVERY use boundary: .data writes bypass version counters.
     check_complement(context, state, ident)
     if fresh_bytes:
         for path, digest in ((WARM_CHECKPOINT['path'], WARM_CHECKPOINT['sha256']),
-                             (state['encoder']['checkpoint']['path'], state['encoder']['checkpoint']['sha256'])):
+                             (encoder['checkpoint']['path'], encoder['checkpoint']['sha256'])):
             admitted_file(context, path, digest)
     add_seconds(context, 'integrity', tick)
 
@@ -932,8 +949,10 @@ def save(context, state, ident, path):
     state['optimizer'].zero_grad(set_to_none=True)
     integrity(context, state, ident, fresh_bytes=True)
     tick = time.perf_counter()
-    saved = payload(state, ident)
-    digest = context['original'].fingerprint(saved)
+    saved = payload(context, state, ident)
+    digest = context['encoder_fingerprint'](saved)
+    saved['encoder'] = owned_encoder(context, state).materialize()
+    require(context['original'].fingerprint(saved) == digest, 'persisted original typed fingerprint differs')
     with context['extract'].exclusive(path) as stream:
         writer = context['original'].CheckpointWriter(stream)
         torch.save(saved, writer); writer.flush()
@@ -956,9 +975,9 @@ def restore(context, path, sha, digest, ident, step):
         finite_tree(disk)
         state = fresh(context, ident['arm'], ident['seed'], ident['device'])
         require(identity(context, state) == ident, 'independent complete source/means/static reconstruction differs')
-        recreated = payload(state, ident)
+        recreated = payload(context, state, ident)
         immutable = ('encoder', 'config', 'buffers', 'head', 'classifier', 'means', *STATIC_KEYS)
-        require(context['original'].fingerprint({k: recreated[k] for k in immutable}) ==
+        require(context['encoder_fingerprint']({k: recreated[k] for k in immutable}) ==
                 context['original'].fingerprint({k: disk[k] for k in immutable}), 'independent frozen typed state differs')
         with torch.no_grad():
             state['A'].copy_(disk['A'])
@@ -974,7 +993,7 @@ def restore(context, path, sha, digest, ident, step):
     del disk, optimizer, recreated
     gc.collect()
     integrity(context, state, ident, fresh_bytes=True)
-    require(context['original'].fingerprint(payload(state, ident)) == digest, 'complete independent updated restored state differs')
+    require(context['encoder_fingerprint'](payload(context, state, ident)) == digest, 'complete independent updated restored state differs')
     add_seconds(context, 'reload', tick)
     return state
 
@@ -1053,7 +1072,7 @@ def update(context, state, ident, step):
            'mask_sha256': original.fingerprint(masks[step - 1]), 'clean_bank_sha256': clean_sha,
            'ce': ce_sum, 'rank': rank_sum, 'loss': ce_sum + 8 * rank_sum, 'scale': scaler.get_scale(),
            'preclip_norm': float(norm), 'gradient_norms': gradients, 'A_updated': True,
-           'state_sha256': original.fingerprint(payload(state, ident))}
+           'state_sha256': context['encoder_fingerprint'](payload(context, state, ident))}
     if device == 'cuda':
         torch.cuda.synchronize()
     row['seconds'] = time.perf_counter() - started
@@ -1114,14 +1133,14 @@ def cpu_witnesses(context):
                 source = packed_outputs(context, state['head'](state['features'][batch]))
             require(original.fingerprint(source) == witness, 'initial learned-source/arm raw/unit/packed/inverse bits differ')
             bypass_rejected = bypass_version_witness(context, state, ident)
-            initial_digest = original.fingerprint(payload(state, ident))
+            initial_digest = context['encoder_fingerprint'](payload(context, state, ident))
             step1 = update(context, state, ident, 1)
             require(step1['gradient_norms']['A'] > 0 and step1['A_updated'], 'actual first B64/micro16 DATA update missing')
             path = Path(directory) / (arm + '-step1.pt')
             sha1, digest1 = save(context, state, ident, path)
             require(digest1 != initial_digest, 'updated step1 full state must differ from step0')
             step2 = update(context, state, ident, 2)
-            expected_digest = original.fingerprint(payload(state, ident))
+            expected_digest = context['encoder_fingerprint'](payload(context, state, ident))
             expected_witness = original.fingerprint(calibration(context, state))
             integrity(context, state, ident, fresh_bytes=True)
             del source
@@ -1129,7 +1148,7 @@ def cpu_witnesses(context):
             state = restore(context, path, sha1, digest1, ident, 1)
             resumed2 = update(context, state, ident, 2)
             require(diagnostic(resumed2) == diagnostic(step2) and
-                    original.fingerprint(payload(state, ident)) == expected_digest and
+                    context['encoder_fingerprint'](payload(context, state, ident)) == expected_digest and
                     original.fingerprint(calibration(context, state)) == expected_witness,
                     'uninterrupted2 vs independent UPDATED1->2 typed/raw/unit/packed/inverse bits differ')
             integrity(context, state, ident, fresh_bytes=True)
@@ -1165,7 +1184,7 @@ def gpu_run(context):
                      'full_schedule_sha256': original.fingerprint(state['schedules'][str(args.seed)])},
             'CUDA cached-readout composition differs from CPU-qualified identity')
     integrity(context, state, ident, fresh_bytes=True)
-    start_digest = original.fingerprint(payload(state, ident))
+    start_digest = context['encoder_fingerprint'](payload(context, state, ident))
     start_witness = original.fingerprint(calibration(context, state))
     cuda_rng = [v.clone() for v in torch.cuda.get_rng_state_all()]
     rows, resumed = [], []
@@ -1194,7 +1213,7 @@ def gpu_run(context):
             state = restore(context, temporary / 'step8.pt', sha8, digest8, ident, 8)
             resumed = [update(context, state, ident, step) for step in range(9, 18)]
             require([diagnostic(r) for r in resumed] == [diagnostic(r) for r in rows[8:]] and
-                    original.fingerprint(payload(state, ident)) == digest and
+                    context['encoder_fingerprint'](payload(context, state, ident)) == digest and
                     original.fingerprint(calibration(context, state)) == witness, 'full17 vs independent8+9 typed state/output differs')
             integrity(context, state, ident, fresh_bytes=True)
             release(context, state)

@@ -1,0 +1,97 @@
+"""Owned tensor-free encoder frames; the original serializer remains provenance."""
+import ast
+import copy
+import hashlib
+import io
+from pathlib import Path
+from types import SimpleNamespace
+
+ORIGINAL_SHA256 = 'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543'
+
+
+def freeze(value):
+    kind = type(value)
+    if kind is dict:
+        return ('dict', tuple((freeze(k), freeze(v)) for k, v in value.items()))
+    if kind in (tuple, list):
+        return (kind.__name__, tuple(freeze(v) for v in value))
+    if kind not in (str, bytes, int, float, bool, type(None)):
+        raise ValueError('encoder requires exact tensor-free builtin values')
+    return ('scalar', value)
+
+
+def thaw(node):
+    kind, value = node
+    if kind == 'dict':
+        return {thaw(k): thaw(v) for k, v in value}
+    if kind in ('tuple', 'list'):
+        values = (thaw(v) for v in value)
+        return tuple(values) if kind == 'tuple' else list(values)
+    return value
+
+
+class EncoderFrames(tuple):
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        return self.member(key)
+
+    def member(self, *keys):
+        node = tuple.__getitem__(self, 1)
+        for key in keys:
+            node = next(value for name, value in node[1] if thaw(name) == key)
+        return thaw(node)
+
+    def materialize(self):
+        return thaw(tuple.__getitem__(self, 1))
+
+
+def seal(original, encoder):
+    """Called only after full production composition admission, never with tensors."""
+    tree = freeze(encoder)
+    if type(encoder) is not dict:
+        raise ValueError('complete encoder dictionary required')
+    path = Path(original.__code__.co_filename)
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != ORIGINAL_SHA256:
+        raise ValueError('original serializer provenance differs')
+    node = next(n for n in ast.parse(raw).body if isinstance(n, ast.FunctionDef) and n.name == 'fingerprint')
+
+    def compile_adapter(function, **bindings):
+        namespace = dict(original.__globals__, **bindings)
+        code = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
+        exec(compile(code, __file__, 'exec'), namespace)
+        return namespace['fingerprint']
+
+    class Stream(io.BytesIO):
+        update = io.BytesIO.write
+        hexdigest = io.BytesIO.getvalue
+
+    # The original traversal emits the frames; only its digest sink and the
+    # impossible tensor branch change here. No native import during admission.
+    metadata = copy.deepcopy(node)
+    metadata.body = [n for n in metadata.body if not isinstance(n, ast.Import)]
+    collect = compile_adapter(metadata, torch=SimpleNamespace(Tensor=()),
+                              hashlib=SimpleNamespace(sha256=Stream))
+    capsule = EncoderFrames((collect(thaw(tree)), tree))
+
+    def check_owned(value):
+        if type(value) is not EncoderFrames or value is not capsule:
+            raise ValueError('replacement, foreign or conflicting encoder frames')
+        return value
+
+    def frames(value):
+        return tuple.__getitem__(check_owned(value), 0)
+
+    visit = next(n for n in node.body if isinstance(n, ast.FunctionDef) and n.name == 'visit')
+    visit.body[:0] = ast.parse('''if isinstance(item, _EncoderFrames):
+    digest.update(_encoder_frames(item))
+    return
+''').body
+    adapted = compile_adapter(node, _EncoderFrames=EncoderFrames, _encoder_frames=frames)
+
+    def fingerprint(value, consumed=None):
+        # Never carry tensor facts across calls, including same-boundary calls.
+        return adapted(value, consumed=consumed)
+
+    return capsule, fingerprint, check_owned
