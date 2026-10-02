@@ -1,0 +1,204 @@
+{
+  "completed_phase_events": [
+    {
+      "cumulative_seconds": 45.80458101723343,
+      "delta_seconds": 45.80458101723343,
+      "event": "POSTLN_PHASE",
+      "phase": "admission"
+    },
+    {
+      "cumulative_seconds": 21.550368499942124,
+      "delta_seconds": 21.550368499942124,
+      "event": "POSTLN_PHASE",
+      "phase": "native_admission"
+    },
+    {
+      "cumulative_seconds": 12.295259535778314,
+      "delta_seconds": 12.295259535778314,
+      "event": "POSTLN_PHASE",
+      "phase": "construction"
+    },
+    {
+      "cumulative_seconds": 1.9460378517396748,
+      "delta_seconds": 1.9460378517396748,
+      "event": "POSTLN_PHASE",
+      "phase": "integrity"
+    },
+    {
+      "cumulative_seconds": 0.03169232467189431,
+      "delta_seconds": 0.03169232467189431,
+      "event": "POSTLN_PHASE",
+      "phase": "decode_preprocess"
+    },
+    {
+      "cumulative_seconds": 1.4110257648862898,
+      "delta_seconds": 1.4110257648862898,
+      "event": "POSTLN_PHASE",
+      "phase": "witness_forward_pack"
+    },
+    {
+      "cumulative_seconds": 0.038162956945598125,
+      "delta_seconds": 0.0064706322737038136,
+      "event": "POSTLN_PHASE",
+      "phase": "decode_preprocess"
+    },
+    {
+      "cumulative_seconds": 1.2872015330940485,
+      "delta_seconds": 1.2872015330940485,
+      "event": "POSTLN_PHASE",
+      "phase": "cpu_forward_backward_witness"
+    },
+    {
+      "cumulative_seconds": 3.770656338427216,
+      "delta_seconds": 1.824618486687541,
+      "event": "POSTLN_PHASE",
+      "phase": "integrity"
+    },
+    {
+      "cumulative_seconds": 0.062078002374619246,
+      "delta_seconds": 0.062078002374619246,
+      "event": "POSTLN_PHASE",
+      "phase": "serialization"
+    },
+    {
+      "cumulative_seconds": 0.11003174493089318,
+      "delta_seconds": 0.11003174493089318,
+      "event": "POSTLN_PHASE",
+      "phase": "reload"
+    },
+    {
+      "cumulative_seconds": 21.006204458419234,
+      "delta_seconds": 8.71094492264092,
+      "event": "POSTLN_PHASE",
+      "phase": "construction"
+    },
+    {
+      "cumulative_seconds": 0.2616360131651163,
+      "delta_seconds": 0.15160426823422313,
+      "event": "POSTLN_PHASE",
+      "phase": "reload"
+    },
+    {
+      "cumulative_seconds": 5.7920779986307025,
+      "delta_seconds": 2.0214216602034867,
+      "event": "POSTLN_PHASE",
+      "phase": "integrity"
+    },
+    {
+      "cumulative_seconds": 0.282362918369472,
+      "delta_seconds": 0.020726905204355717,
+      "event": "POSTLN_PHASE",
+      "phase": "reload"
+    },
+    {
+      "cumulative_seconds": 0.05171897308900952,
+      "delta_seconds": 0.013556016143411398,
+      "event": "POSTLN_PHASE",
+      "phase": "decode_preprocess"
+    },
+    {
+      "cumulative_seconds": 2.553950991947204,
+      "delta_seconds": 1.142925227060914,
+      "event": "POSTLN_PHASE",
+      "phase": "witness_forward_pack"
+    },
+    {
+      "cumulative_seconds": 7.735849279444665,
+      "delta_seconds": 1.9437712808139622,
+      "event": "POSTLN_PHASE",
+      "phase": "integrity"
+    },
+    {
+      "cumulative_seconds": 29.43895055539906,
+      "delta_seconds": 8.432746096979827,
+      "event": "POSTLN_PHASE",
+      "phase": "construction"
+    },
+    {
+      "cumulative_seconds": 9.670817677397281,
+      "delta_seconds": 1.9349683979526162,
+      "event": "POSTLN_PHASE",
+      "phase": "integrity"
+    },
+    {
+      "cumulative_seconds": 0.06509253894910216,
+      "delta_seconds": 0.01337356586009264,
+      "event": "POSTLN_PHASE",
+      "phase": "decode_preprocess"
+    },
+    {
+      "cumulative_seconds": 3.731358520220965,
+      "delta_seconds": 1.1774075282737613,
+      "event": "POSTLN_PHASE",
+      "phase": "witness_forward_pack"
+    },
+    {
+      "cumulative_seconds": 0.0692642331123352,
+      "delta_seconds": 0.004171694163233042,
+      "event": "POSTLN_PHASE",
+      "phase": "decode_preprocess"
+    },
+    {
+      "cumulative_seconds": 4.419173439964652,
+      "delta_seconds": 3.1319719068706036,
+      "event": "POSTLN_PHASE",
+      "phase": "cpu_forward_backward_witness"
+    },
+    {
+      "cumulative_seconds": 11.6748748854734,
+      "delta_seconds": 2.0040572080761194,
+      "event": "POSTLN_PHASE",
+      "phase": "integrity"
+    },
+    {
+      "cumulative_seconds": 0.12260122923180461,
+      "delta_seconds": 0.060523226857185364,
+      "event": "POSTLN_PHASE",
+      "phase": "serialization"
+    }
+  ],
+  "exit_status": "TERM",
+  "host_peak_bytes": 7970770944,
+  "invocation_id": "62895400ed1b4aff8c81a957f3d97af4",
+  "latest_phase_cumulative_seconds": {
+    "admission": 45.80458101723343,
+    "construction": 29.43895055539906,
+    "cpu_forward_backward_witness": 4.419173439964652,
+    "decode_preprocess": 0.0692642331123352,
+    "integrity": 11.6748748854734,
+    "native_admission": 21.550368499942124,
+    "reload": 0.282362918369472,
+    "serialization": 0.12260122923180461,
+    "witness_forward_pack": 3.731358520220965
+  },
+  "log_sha256": "df6754181585cb73cf31353d2b4e2a7f28808e16ae3e0ea0fa42a76828a85171",
+  "original_session": 21424,
+  "phase_timings_overlap": true,
+  "procedure_closed": true,
+  "qualification_pass": false,
+  "quality_read": false,
+  "schema": "postln-native-cpu-terminal-v2",
+  "service_result": "timeout",
+  "service_seconds": 120.23,
+  "status": "FAIL",
+  "stop_cgroup": {
+    "exit_code": "killed",
+    "exit_status": "TERM",
+    "invocation_id": "62895400ed1b4aff8c81a957f3d97af4",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-postln-cpu-v2.service",
+    "service_result": "timeout",
+    "values": {
+      "memory.current": "2900582400",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "7970770944",
+      "memory.stat": "anon 421519360\nfile 2400813056\nkernel 65404928\nkernel_stack 49152\npagetables 4034560\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 378974208\nfile_dirty 16384\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 431255552\ninactive_file 215740416\nactive_file 2185072640\nunevictable 0\nslab_reclaimable 60443680\nslab_unreclaimable 876432\nslab 61320112\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 5658895\npgmajfault 7072\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1533\nthp_collapse_alloc 1\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "swap_peak_bytes": 0,
+  "training_admitted": false,
+  "unit": "sfora-so400-postln-cpu-v2"
+}
