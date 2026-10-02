@@ -1,0 +1,9 @@
+{
+  "native": "UNRUN",
+  "source": {
+    "evaluate_siglip2_prototype_residual.py": "5631ad4faba2a79f632eb67656ca238ce0f94954e4671f29d174c706fcfee4d5",
+    "test_siglip2_prototype_residual_evaluation.py": "6187cda67a605a2371d335211880e41a676a056b4f6a735755cfe45f50eb2ea9"
+  },
+  "stdlib_check": "PASS",
+  "worker_commit": "fbf92df672917188d8b347df49da4afc62fe9710"
+}

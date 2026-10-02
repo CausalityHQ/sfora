@@ -1,0 +1,134 @@
+{
+  "both_locks_held": true,
+  "cost_policy": {
+    "shared_export_in_fit_ratios": false,
+    "shared_export_seconds": 283.636,
+    "total_fit_core_ratio_max": 1.5,
+    "whole_service_ratio_max": 1.5
+  },
+  "endpoints": [
+    {
+      "arm": "linear",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-prototype-residual-fit-linear-v1/resume.pt",
+        "sha256": "2fb2a7be38ac08013b6f7091df93b795dfa5961e00c3fa64d8868ca15a263d55"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-prototype-residual-source-v3/authority-fit-linear-v1.json",
+        "sha256": "3405b72d92ab289ac36373ab192fd74872a0083f1e2a0d91247a8c9e159cf597"
+      },
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "cb784c2e110c458e852ba1eaa14e6c61",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-prototype-residual-source-v3/fit-linear-v1.log",
+          "sha256": "0a02d3eb758e7de6a930bc2908937890ff1b26c388cf8d26ed3d72895788dc44"
+        },
+        "native_peak_rss_kib": 1148552,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-prototype-residual-fit-linear-v1/receipt.json",
+          "sha256": "2a861afc762d92018b93eaf4f3b5a566a7be095d71b6da3fabfba6d8c4cada09"
+        },
+        "service_seconds": 180.745,
+        "unit": "sfora-so400-prototype-residual-fit-linear-v1"
+      },
+      "terminal_state_sha256": "ba736044b0fdd46239943d426591617f58b24f97025e5005488502ec1ed0770a"
+    },
+    {
+      "arm": "quadratic",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-prototype-residual-fit-quadratic-v1/resume.pt",
+        "sha256": "743daeed58fd2a5a5bfad3abe8ddf3a539402154de37fb5a11bfbbf5ce0596b7"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-prototype-residual-source-v3/authority-fit-quadratic-v1.json",
+        "sha256": "e080da166344aec525151b0d654ace841195333b96241ac6292b18a8f4f288fd"
+      },
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "55d6a4a6b9cd44a487130a6785cf4d18",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-prototype-residual-source-v3/fit-quadratic-v1.log",
+          "sha256": "95f3e56896dc9851792ec3160e5f51409f51d8b52dbd635c9f9b05684562a33b"
+        },
+        "native_peak_rss_kib": 1149488,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-prototype-residual-fit-quadratic-v1/receipt.json",
+          "sha256": "f31f4bbd485b6ca3bc8541077064e5eb20de3490f867e82086b01bc25d060175"
+        },
+        "service_seconds": 203.548,
+        "unit": "sfora-so400-prototype-residual-fit-quadratic-v1"
+      },
+      "terminal_state_sha256": "6af6a52ec793f903592d05997c80d20d2559cb18098650cd9452d1ff2e6eff81"
+    }
+  ],
+  "evaluation_reference": {
+    "execution_sha256": "aec32dd2f9dfecdcc9aa1de22d466503373d84fcac9cd8306969f8cbd54853c6",
+    "root": "/home/riomus/runs/sfora-so400-cached-readout-evaluation-source-v3"
+  },
+  "execution_sha256": "f2e584abcaa3d50cdfbf4e4e7f6a01736f3ed31645d3f2775ac8607d0ddb9cc0",
+  "original_evaluator": {
+    "code": {
+      "evaluate_siglip2_quadratic_readout.py": "7bfaabeb855abecbfa87664c4dfc9381c1213196ffc5a40fc1bf60b2caacc1f8",
+      "test_siglip2_quadratic_readout_evaluation.py": "1ea5312edddfc162bedf94859839e3b02d50433b67a7a250fa054e442b9155d9"
+    },
+    "execution_sha256": "5bedd27b10020846ef2374835808d6654a559852ce79629d8abeff2029856e9e",
+    "root": "/home/riomus/runs/sfora-so400-prototype-original-evaluator-source-v1"
+  },
+  "original_reference": {
+    "execution_sha256": "84414302a6749842cae20e2608e932066334916218df68f91f10fd3c589ca382",
+    "root": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v7"
+  },
+  "panel": "selection",
+  "partition": {
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "resource_policies": {
+    "cpu": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 120,
+      "swap_bytes": 0
+    },
+    "score": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 300,
+      "swap_bytes": 0
+    }
+  },
+  "schema": "siglip2-prototype-residual-evaluation-authority-v1",
+  "selection_go": null,
+  "selection_previously_exposed": true,
+  "source_selection": {
+    "inventory": {
+      "path": "/home/riomus/runs/sfora-so400-prototype-residual-evaluation-source-v2/source-selection-inventory.json",
+      "sha256": "ed0cd43dbbf7f84066e3ab31a28cf249bd0798cf083e6939fe662e7fa8eb8985"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "f8a6278997014c35b274021dcf1f438e",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/first-score.log",
+        "sha256": "b74fd184eeafe42fe15b0aaf1af4d4226bf3c2847f7d61436e2e64348ee66650"
+      },
+      "native_peak_rss_kib": 996056,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-genuine-view-evaluation-first-score-v1/receipt.json",
+        "sha256": "914f7a082570da853a404e8dd1960f41bbbdd634e92c01c9dd92aac8abd3f06d"
+      },
+      "service_seconds": 120.835,
+      "unit": "sfora-so400-genuine-view-evaluation-first-score-v1"
+    }
+  },
+  "training": {
+    "code": {
+      "fit_siglip2_prototype_residual.py": "cc3ffb6d63a78448e3bff0535304b50b30eb451b0617c15c4b8cf1727bed7d2d",
+      "test_siglip2_prototype_residual.py": "4f5b5ba1947e57c9adb93da512a5a7aed87528104f0c9acd873be9398d5e3c27"
+    },
+    "execution_sha256": "9c726ec7e9c8e339a82d9284fd41495bf9feb2b39ba76df10eda75a05684fef2",
+    "root": "/home/riomus/runs/sfora-so400-prototype-residual-source-v3"
+  },
+  "validation_previously_exposed": false
+}
