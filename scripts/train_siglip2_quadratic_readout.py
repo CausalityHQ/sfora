@@ -883,7 +883,7 @@ def integrity(context, state, ident, fresh_bytes=False):
     require(state['encoder'] == context['encoder'] and state['encoder']['inventory'] == ident['native_inventory'] and
             original.fingerprint(state['encoder']) == ident['encoder_sha256'] and
             json_form(state['config']) == ident['config'], 'complete immutable encoder448/config differs')
-    context['quadratic']._check_base(state['head'], state['device'])
+    context['quadratic']._check_base(state['head'], state['A'].device)
     require(all(m.training and not m._forward_hooks and not m._forward_pre_hooks and not m._backward_hooks
                 for m in state['head'].modules()), 'original head modes/hooks differ')
     actual = [('A', state['A'])]

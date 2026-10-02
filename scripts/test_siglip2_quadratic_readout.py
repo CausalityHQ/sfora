@@ -168,6 +168,50 @@ class ContractTests(unittest.TestCase):
                     d.check_membership([('A', A)], [[A]], arm, frozen)
                 setattr(frozen[0], field, False if field == 'requires_grad' else None)
 
+    def test_integrity_head_uses_actual_A_device_and_retains_exact_tensor_checks(self):
+        primitive = PATH.with_name('quadratic_readout.py')
+        tree = ast.parse(primitive.read_bytes())
+        namespace = dict(Path=Path)
+        nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and
+                 n.name in ('_require', '_check_tensor', '_check_base')]
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), str(primitive), 'exec'), namespace)
+        # Only factory provenance is synthetic; tensor validation is the genuine primitive.
+        factory = '''def head_from(arm):
+    class Residual:
+        def forward(self): pass
+        def residual(self): return arm
+        def named_parameters(self): return self.params.items()
+        def named_buffers(self): return self.buffers.items()
+    return Residual()
+'''
+        exec(compile(factory, 'train_siglip2_cached_readout.py', 'exec'), namespace)
+        integrity = next(n for n in ast.parse(PATH.read_bytes()).body
+                         if isinstance(n, ast.FunctionDef) and n.name == 'integrity')
+        calls = [n for n in integrity.body if isinstance(n, ast.Expr) and
+                 isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Attribute) and
+                 n.value.func.attr == '_check_base']
+        self.assertEqual(len(calls), 1)
+        boundary = compile(ast.Module(body=calls, type_ignores=[]), str(PATH), 'exec')
+        for device in ('cpu', 'cuda:0'):
+            head = namespace['head_from']('control')
+            tensors = {name: self.tensor(shape, device=device, layout='torch.strided')
+                       for name, shape in self.driver.HEAD_LAYOUT.items()}
+            head.params = {name: tensors[name] for name in self.driver.HEAD_LAYOUT if name.endswith(('weight', 'bias'))}
+            head.buffers = {name: tensors[name] for name in ('center', 'preactivation_std')}
+            state = dict(head=head, A=self.tensor((128, 32), device=device), device=device.split(':')[0])
+            environment = dict(context={'quadratic': SimpleNamespace(**namespace)}, state=state)
+            exec(boundary, environment)
+            for tensor in tensors.values():
+                for field, value in (('device', 'cuda:1'), ('dtype', 'torch.float16'),
+                                     ('layout', 'torch.sparse_coo'), ('shape', (1,)),
+                                     ('requires_grad', True), ('grad_fn', object())):
+                    previous = getattr(tensor, field)
+                    setattr(tensor, field, value)
+                    with self.subTest(device=device, field=field), self.assertRaises(ValueError):
+                        exec(boundary, environment)
+                    setattr(tensor, field, previous)
+        self.assertNotIn('torch', sys.modules)
+
     def fake_payload(self, arm='control', step=0):
         d, t = self.driver, self.tensor
         launch, _ = self.launch()
@@ -414,6 +458,15 @@ class ContractTests(unittest.TestCase):
         tree = ast.parse(PATH.read_bytes())
         tree.body = [n for n in tree.body if not isinstance(n, ast.FunctionDef) or
                      n.name not in ('audit_origins', 'exit_rehash')]
+        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+                         '5a46018cd5c2e25d8662ad8e0a02b1a4de1e7b4b4b2e5c67f62f8d979fbf6f14')
+        # Revert only the reviewed caller argument to prove every other node is unchanged.
+        integrity = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'integrity')
+        boundary = next(n.value for n in integrity.body if isinstance(n, ast.Expr) and
+                        isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Attribute) and
+                        n.value.func.attr == '_check_base')
+        self.assertEqual(ast.dump(boundary.args[1]), ast.dump(ast.parse("state['A'].device", mode='eval').body))
+        boundary.args[1] = ast.parse("state['device']", mode='eval').body
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
                          'f5ca80d12a65e66f947a98b70959b9ae17d93effce821b74043444ffaf2ad7c7')
         origin_node = next(n for n in ast.parse(PATH.read_bytes()).body
@@ -688,6 +741,7 @@ class ContractTests(unittest.TestCase):
         assert has('fresh', "context['selected']['cached'].head_from('control', tensors=initial['head']).requires_grad_(False).train()")
         assert has('fresh', "context['quadratic'].fit_means(raw, head)")
         assert has('canonical_features', "context['genuine'].normalize_nonzero(raw)")
+        assert has('integrity', "context['quadratic']._check_base(state['head'], state['A'].device)")
         assert has('update', "context['quadratic'].raw_features(state['features'][index], state['head'], state['A'], state['means'], state['arm'])")
         assert has('update', '(ce + 8 * rank) * .25')
         assert has('update', 'range(0, 64, 16)')
@@ -743,6 +797,7 @@ class ContractTests(unittest.TestCase):
                          ('scaler.unscale_(optimizer)', 'scaler.get_scale()'),
                          ('restore(context, path, sha1, digest1, ident, 1)', 'restore(context, path, sha1, digest1, ident, 0)'),
                          ('raw, raw, torch.tensor(positions', 'raw, state[\'A\'], torch.tensor(positions'),
+                         ("_check_base(state['head'], state['A'].device)", "_check_base(state['head'], state['device'])"),
                          ('admission.bound_file({}, path, digest)', 'admitted_file(context, path, digest)')):
             with self.assertRaises(AssertionError, msg=old): self.scope_checks(ast.parse(text.replace(old, new)))
         self.assertNotIn('torch', sys.modules)
