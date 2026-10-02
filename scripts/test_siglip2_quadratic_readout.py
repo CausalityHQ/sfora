@@ -7,12 +7,19 @@ import ast
 import copy
 import hashlib
 import importlib.util
+import io
+import os
+import signal
+import time
+from collections import Counter
+from contextlib import redirect_stdout
 import json
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
+from unittest.mock import patch
 import unittest
 
 PATH = Path(__file__).resolve().with_name('train_siglip2_quadratic_readout.py')
@@ -373,6 +380,290 @@ class ContractTests(unittest.TestCase):
             path.write_bytes(b'tampered')
             with self.assertRaises(ValueError): d.bound_file({}, path, sha)
 
+    def test_exit_only_differential_falsifier(self):
+        """Catch lost nested predicates, expected-only seeding and repeated bulk reads."""
+        d = self.driver
+        started = time.monotonic()
+        def deadline(*unused):
+            raise AssertionError('exit falsifier exceeded 30 seconds')
+        old_handler = signal.signal(signal.SIGALRM, deadline)
+        signal.setitimer(signal.ITIMER_REAL, 30)
+        self.addCleanup(signal.signal, signal.SIGALRM, old_handler)
+        self.addCleanup(signal.setitimer, signal.ITIMER_REAL, 0)
+        pins = {
+            'train_siglip2_substrate_adaptation.py': 'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543',
+            'qualify_siglip2_substrate_cpu.py': 'eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38',
+            'export_siglip2_substrate_fit.py': '163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8',
+            'export_siglip2_genuine_views.py': 'e5e98f9bc85680cab013d53752e7fa140da9d5e7f7ecd4537413b29b1047f65e',
+            'extract_siglip2_vision_source.py': 'a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d'}
+        if not all((PATH.parent / name).is_file() for name in pins):
+            self.skipTest('external pinned stdlib source closures required for differential falsifier')
+        def load(name, path):
+            spec = importlib.util.spec_from_file_location(name, path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        for name, pin in pins.items():
+            self.assertEqual(hashlib.sha256((PATH.parent / name).read_bytes()).hexdigest(), pin, name)
+        original = load('_exit_original', PATH.with_name('train_siglip2_substrate_adaptation.py'))
+        source = load('_exit_source', PATH.with_name('qualify_siglip2_substrate_cpu.py'))
+        reference = load('_exit_reference', PATH.with_name('export_siglip2_substrate_fit.py'))
+        exporter = load('_exit_exporter', PATH.with_name('export_siglip2_genuine_views.py'))
+        # Pin every other original module node, including math, typed state, use
+        # boundaries, reload/ownership/RNG, source448/config and resource admission.
+        tree = ast.parse(PATH.read_bytes())
+        tree.body = [n for n in tree.body if not isinstance(n, ast.FunctionDef) or
+                     n.name not in ('audit_origins', 'exit_rehash')]
+        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+                         'f5ca80d12a65e66f947a98b70959b9ae17d93effce821b74043444ffaf2ad7c7')
+        origin_node = next(n for n in ast.parse(PATH.read_bytes()).body
+                           if isinstance(n, ast.FunctionDef) and n.name == 'audit_origins')
+        origin_node.args.args.pop(); origin_node.args.defaults.pop()
+        loop = next(n for n in origin_node.body if isinstance(n, ast.For) and
+                    ast.unparse(n.iter) == "origins['files'].items()")
+        loop.body[:1] = loop.body[0].body
+        self.assertEqual(hashlib.sha256(ast.dump(origin_node, include_attributes=False).encode()).hexdigest(),
+                         'e7ab66d946b7d92bf53fc6b4fddc045681f41d519f999e3dfe0461cf7fb7ac1b')
+        flat_node = next(n for n in ast.parse(PATH.with_name('train_siglip2_substrate_adaptation.py').read_bytes()).body
+                         if isinstance(n, ast.ClassDef) and n.name == 'FlatAdmission')
+        flat_images = next(n for n in flat_node.body if isinstance(n, ast.FunctionDef) and n.name == 'all_fit_images')
+        original_images = next(n for n in ast.parse(PATH.with_name('export_siglip2_substrate_fit.py').read_bytes()).body
+                             if isinstance(n, ast.FunctionDef) and n.name == 'all_fit_images')
+        self.assertEqual([ast.dump(n) for n in flat_images.body[:6]],
+                         [ast.dump(n) for n in original_images.body[:6]])
+        # Differential rejections use the exact original nested stage validator,
+        # avoiding repeated irrelevant prefixes of the full 13,283-image oracle.
+        evidence = PATH.parent.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
+        fit = json.loads((evidence / 'late-dense-v1/native256-fit-manifest-v1.json').read_bytes())
+        partition = json.loads((evidence / 'identity-mix-v1/partition.json').read_bytes())
+        with tempfile.TemporaryDirectory(dir='/dev/shm' if Path('/dev/shm').is_dir() else None) as temporary:
+            root = Path(temporary)
+            metadata = set()
+            def sha(file):
+                return hashlib.sha256(file.read_bytes()).hexdigest()
+            def json_file(file, value):
+                file.write_text(json.dumps(value, separators=(',', ':')))
+                metadata.add(str(file))
+                return dict(path=str(file), sha256=sha(file))
+            def frozen(name, names):
+                directory = root / name; directory.mkdir()
+                for file in names:
+                    (directory / file).write_bytes((PATH.parent / file).read_bytes()
+                        if file == 'extract_siglip2_vision_source.py' else b'# synthetic closure\n')
+                code = {file: sha(directory / file) for file in names}
+                descriptor = json_file(directory / 'execution.json', code)
+                metadata.update(str(directory / file) for file in names)
+                return directory, code, descriptor['sha256']
+            source_root, code, source_sha = frozen('source', source.FILES)
+            fit_root, fit_code, fit_sha = frozen('fit', reference.FILES)
+            genuine_root, genuine_code, genuine_sha = frozen('genuine', exporter.FILES)
+            own_root, own_code, own_sha = frozen('own', d.FILES)
+            extract = load('extract_siglip2_vision_source', source_root / 'extract_siglip2_vision_source.py')
+            dataset = root / 'images'; (dataset / 'Img/img').mkdir(parents=True)
+            fit['dataset_root'] = str(dataset)
+            images = []
+            for index, row in enumerate(fit['rows']):
+                row.update(relative_path=f'Img/img/{index}.jpg', image_sha256=hashlib.sha256(b'image').hexdigest())
+                image = dataset / row['relative_path']; image.write_bytes(b'image'); images.append(image)
+            part = json_file(root / 'partition.json', partition)
+            ast_path = root / 'ImageRows.py'
+            ast_path.write_text(ast.unparse(exporter.image_rows_node(PATH.with_name('train_sop_siglip2_compact.py'))))
+            metadata.add(str(ast_path))
+            payload = root / 'payload.pt'; payload.write_bytes(bytes(range(256)) * 4096 + b'tail')
+            package = root / 'package'; package.mkdir()
+            origin = package / 'origin.py'; origin.write_bytes(b'# actual loaded origin\n')
+            warm_origin = package / 'warm.py'; warm_origin.write_bytes(b'# warm loaded origin\n')
+            unknown = package / 'unknown.py'; unknown.write_bytes(b'# unknown origin\n')
+            library = root / 'mapped.so'; library.write_bytes(b'mapped library')
+            packages = {'_exit_fixture': {'root': str(package)}}
+            def module(name, file):
+                value = ModuleType(name); value.__file__ = str(file); return value
+            loaded = {'extract_siglip2_vision_source': extract,
+                      '_exit_fixture.origin': module('_exit_fixture.origin', origin)}
+            maps = f'0-1 r-xp 00000000 00:00 1 {library}\n'
+            real_text, real_open = Path.read_text, Path.open
+            def maps_text(file, *args, **kwargs):
+                return maps if str(file) == '/proc/self/maps' else real_text(file, *args, **kwargs)
+            streamed, opened = Counter(), Counter()
+            failed = None
+            class Stream:
+                def __init__(self, stream, file): self.stream, self.file = stream, str(file)
+                def __enter__(self): return self
+                def __exit__(self, *args): return self.stream.__exit__(*args)
+                def __getattr__(self, name): return getattr(self.stream, name)
+                def read(self, size=-1):
+                    if self.file == failed and self.stream.tell(): raise OSError('synthetic mid-read failure')
+                    raw = self.stream.read(size); streamed[self.file] += len(raw); return raw
+                def readinto(self, buffer):
+                    if self.file == failed: raise OSError('synthetic read failure')
+                    count = self.stream.readinto(buffer); streamed[self.file] += count; return count
+            def recording_open(file, mode='r', *args, **kwargs):
+                stream = real_open(file, mode, *args, **kwargs)
+                if mode == 'rb':
+                    opened[str(file)] += 1
+                    return Stream(stream, file)
+                return stream
+            with patch.object(Path, 'read_text', maps_text), patch.dict(sys.modules, loaded), redirect_stdout(io.StringIO()):
+                expected = source.imported_origins(extract, packages)
+                warm = copy.deepcopy(expected)
+                warm['modules']['_exit_fixture.warm'] = str(warm_origin)
+                warm['files'][str(warm_origin)] = sha(warm_origin)
+                prior = dict(source_driver=source, extract=extract, fit=fit, images=images[:2], all_images=images,
+                    root=source_root, code=code, args=SimpleNamespace(execution_sha256=source_sha),
+                    own_root=fit_root, own_code=fit_code, export_args=SimpleNamespace(execution_sha256=fit_sha))
+                manifest = exporter.selected_manifest(partition, fit)
+                manifest['resolved_paths'] = [str(images[r]) for r in manifest['original_rows']]
+                genuine = dict(prior=prior, reference=reference, root=genuine_root, code=genuine_code,
+                    args=SimpleNamespace(execution_sha256=genuine_sha), selected=manifest,
+                    launch=dict(partition=part, image_rows=dict(path=str(ast_path), sha256=sha(ast_path))))
+                prior['guards'] = {str(file): sha(file) for file in (*images, payload, origin, library, warm_origin)}
+                genuine['guards'] = {file: sha(Path(file)) for file in metadata}
+                guards = {**prior['guards'], **genuine['guards']}
+                selected = dict(source_driver=source, exporter=exporter, genuine=genuine, packages=packages,
+                                source_cpu=dict(origins=copy.deepcopy(expected)))
+                context = dict(original=original, source_driver=source, extract=extract, prior=prior, selected=selected,
+                    warm_record=dict(origins=warm), guards=guards, root=own_root, code=own_code,
+                    args=SimpleNamespace(execution_sha256=own_sha, phase='cpu'))
+                # A deliberately warm startup cache is never exit authority.
+                context['admission'] = original.FlatAdmission()
+                for file, digest in guards.items():
+                    context['admission'].verified.add(str(context['admission'].register({}, file, digest)))
+                inventories = [prior['guards'], genuine['guards'], guards]
+                before = [dict(value) for value in inventories]
+                def old_exit():
+                    d.require_no_model(context)
+                    d.audit_origins(context)
+                    exporter.rehash(genuine)
+                    for file, digest in guards.items(): d.bound_file({}, file, digest)
+                    d.require(d.closure(own_root, own_sha, d.FILES, {}) == own_code, 'exit code changed')
+                def new_exit(): d.exit_rehash(context)
+                bulk = guards.keys() - metadata
+                with patch.object(Path, 'open', recording_open):
+                    old_exit()
+                self.assertEqual(opened[str(images[-1])], 3)
+                self.assertEqual(opened[str(origin)], 4)
+                self.assertEqual(context['origins'], expected)
+                self.assertEqual(inventories, before)
+                for _ in range(2):
+                    opened.clear(); streamed.clear()
+                    with patch.object(Path, 'open', recording_open): new_exit()
+                    self.assertEqual(context['origins'], expected)
+                    self.assertEqual(inventories, before)
+                    for file in bulk:
+                        self.assertEqual(opened[file], 1, file)
+                        self.assertEqual(streamed[file], Path(file).stat().st_size, file)
+                def reject(label, old_check=None, composed_check=None):
+                    if old_check is None: old_check = lambda: d.audit_origins(context)
+                    for traversal in (old_check, composed_check or new_exit):
+                        with self.assertRaises((ValueError, OSError), msg=label): traversal()
+                def change(mapping, key, value, label, old_check=None, composed_check=None):
+                    with patch.dict(mapping, {key: value}): reject(label, old_check, composed_check)
+                def old_paths():
+                    d.require(reference.all_fit_images(prior) == prior['all_images'], 'FIT image resolution changed')
+                # Extract only whole genuine metadata statements from the new
+                # exit for late mutants; full entrypoints were exercised above.
+                # No validator/cardinality/hash implementation is mocked.
+                function = next(n for n in ast.parse(PATH.read_bytes()).body
+                                if isinstance(n, ast.FunctionDef) and n.name == 'exit_rehash')
+                selected_nodes = []
+                for node in function.body:
+                    if (any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and
+                           n.func.attr in ('bootstrap', 'closure', 'selected_manifest', 'image_rows_node')
+                           for n in ast.walk(node)) or any(isinstance(n, ast.Call) and
+                           isinstance(n.func, ast.Name) and n.func.id == 'closure' for n in ast.walk(node)) or
+                       isinstance(node, ast.Assign) and any(isinstance(n, ast.Subscript) and
+                           ast.unparse(n) == "selected['resolved_paths']" for n in node.targets) or
+                       isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and
+                       node.value.func.id == 'require' and 'exit TRAIN mapping changed' in ast.unparse(node)):
+                        selected_nodes.append(node)
+                metadata_code = compile(ast.Module(body=selected_nodes, type_ignores=[]), str(PATH), 'exec')
+                def new_metadata():
+                    namespace = dict(vars(d), context=context, prior=prior, source=source,
+                                     genuine=genuine, exporter=exporter)
+                    exec(metadata_code, namespace)
+                def old_first_two():
+                    d.require(source.fit_rows(extract, fit) == prior['images'], 'FIT image resolution changed')
+                def old_mapping():
+                    value = exporter.selected_manifest(exporter.file_json(part, {}), fit)
+                    value['resolved_paths'] = [str(prior['all_images'][r]) for r in value['original_rows']]
+                    d.require(value == genuine['selected'], 'exit TRAIN mapping changed')
+                def flip(file):
+                    stat = file.stat()
+                    with real_open(file, 'r+b') as stream:
+                        stream.seek(stat.st_size - 1); byte = stream.read(1)
+                        stream.seek(stat.st_size - 1); stream.write(bytes([byte[0] ^ 1]))
+                    os.utime(file, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+                    self.assertEqual((file.stat().st_size, file.stat().st_mtime_ns), (stat.st_size, stat.st_mtime_ns))
+                    def restore():
+                        with real_open(file, 'r+b') as stream:
+                            stream.seek(stat.st_size - 1); stream.write(byte)
+                        os.utime(file, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+                    return restore
+                for file in (payload, images[-1], origin):
+                    restore = flip(file)
+                    try: reject('same-size restored-mtime tail: ' + file.name, lambda: d.bound_file({}, file, guards[str(file)]))
+                    finally: restore()
+                change(genuine['guards'], str(payload), '0' * 64, 'cross-stage guard conflict',
+                       lambda: d.bound_file({}, payload, genuine['guards'][str(payload)]))
+                change(warm['files'], str(origin), '0' * 64, 'conflicting file origin authority')
+                change(warm['modules'], '_exit_fixture.origin', str(warm_origin), 'conflicting module origin authority')
+                with patch.dict(sys.modules, {'_exit_fixture.alias': module('_exit_fixture.alias', origin)}):
+                    reject('unknown module with known file')
+                with patch.dict(sys.modules, {'_exit_fixture.origin': module('_exit_fixture.origin', unknown)}):
+                    reject('unknown file and changed module path')
+                with patch.dict(sys.modules, {'_exit_fixture.warm': module('_exit_fixture.warm', warm_origin)}):
+                    d.audit_origins(context, admission=original.FlatAdmission())
+                    self.assertEqual(context['origins']['files'][str(warm_origin)], warm['files'][str(warm_origin)])
+                old_maps = maps; maps += f'0-1 r-xp 00000000 00:00 1 {unknown}.so\n'
+                unknown_so = Path(str(unknown) + '.so'); unknown_so.write_bytes(b'unknown library')
+                try: reject('unknown mapped file with unchanged modules')
+                finally: maps = old_maps
+                for target in (unknown, images[-2]):
+                    image = images[-1]; image.unlink(); image.symlink_to(target)
+                    try: reject('escaped image' if target == unknown else 'aliased image', old_paths)
+                    finally: image.unlink(); image.write_bytes(b'image')
+                change(prior, 'images', list(reversed(images[:2])), 'first-two order', old_first_two)
+                change(prior, 'all_images', images[:-2] + list(reversed(images[-2:])), 'full ordered paths', old_paths)
+                changed = fit['rows'].copy(); changed[-2:] = reversed(changed[-2:])
+                targets = fit['targets'].copy(); targets[-2:] = reversed(targets[-2:])
+                with patch.dict(fit, rows=changed, targets=targets): reject('reordered FIT rows', old_paths)
+                bad_manifest = copy.deepcopy(manifest); bad_manifest['resolved_paths'][-2:] = reversed(bad_manifest['resolved_paths'][-2:])
+                change(genuine, 'selected', bad_manifest, 'resolved TRAIN mapping', old_mapping, new_metadata)
+                change(fit, 'quality_read', True, 'FIT metadata', lambda: source.fit_rows(extract, fit))
+                # Authenticated changes still have to pass the fresh semantic predicates.
+                for file, value, label in ((Path(part['path']), {**partition, 'partition_seeds': [0, 1]}, 'partition'),
+                                          (ast_path, 'class ImageRows: pass\n', 'ImageRows AST')):
+                    raw = file.read_bytes()
+                    if isinstance(value, dict): file.write_text(json.dumps(value, separators=(',', ':')))
+                    else: file.write_text(value)
+                    digest = sha(file)
+                    descriptor = part if isinstance(value, dict) else genuine['launch']['image_rows']
+                    try:
+                        with patch.dict(descriptor, sha256=digest), patch.dict(genuine['guards'], {str(file): digest}), patch.dict(guards, {str(file): digest}):
+                            reject(label, old_mapping if isinstance(value, dict) else lambda: exporter.image_rows_node(ast_path), new_metadata)
+                    finally: file.write_bytes(raw)
+                for mapping, key, read_code in (
+                    (prior, 'code', lambda: source.bootstrap(source_root, source_sha)[1]),
+                    (prior, 'own_code', lambda: reference.bootstrap(fit_root, fit_sha)),
+                    (genuine, 'code', lambda: exporter.closure(genuine_root, genuine_sha, exporter.FILES, {})),
+                    (context, 'code', lambda: d.closure(own_root, own_sha, d.FILES, {}))):
+                    change(mapping, key, {}, 'closure equality: ' + key,
+                           lambda: d.require(read_code() == mapping[key], 'closure differs'), new_metadata)
+                with patch.object(extract, '__file__', str(unknown)):
+                    reject('actual extractor loaded origin', lambda: source.bootstrap(source_root, source_sha), new_metadata)
+                with patch.object(extract.__spec__, 'origin', str(unknown)):
+                    reject('actual extractor spec origin', lambda: source.bootstrap(source_root, source_sha), new_metadata)
+                failed = str(payload)
+                with patch.object(Path, 'open', recording_open):
+                    reject('bulk read failure', lambda: d.bound_file({}, payload, guards[str(payload)]),
+                           lambda: original.FlatAdmission().bound_file({}, payload, guards[str(payload)]))
+                failed = str(origin)
+                with patch.object(Path, 'open', recording_open): reject('genuine imported origin read failure')
+                failed = None
+            self.assertLessEqual(sum(file.stat().st_size for file in root.rglob('*') if file.is_file()), 4 * 1024**2)
+        self.assertLess(time.monotonic() - started, 30)
+        self.assertNotIn('torch', sys.modules)
+
     def test_original_fingerprint_keeps_tuple_and_integer_key_types(self):
         original = PATH.with_name('train_siglip2_substrate_adaptation.py')
         if not original.is_file():
@@ -419,7 +710,10 @@ class ContractTests(unittest.TestCase):
         assert has('gpu_run', 'range(9, 18)')
         assert has('gpu_run', '17 if args.phase == \'mechanics\' else 1000')
         assert has('gpu_run', "diagnostic(row) == diagnostic(mechanics['steps'][step - 1])")
-        assert has('exit_rehash', 'bound_file({}, path, digest)')
+        assert has('exit_rehash', 'admission.bound_file({}, path, digest)')
+        assert has('exit_rehash', "context['original'].FlatAdmission()")
+        assert has('exit_rehash', 'audit_origins(context, admission=admission)')
+        assert has('exit_rehash', 'admission.all_fit_images(prior)')
         for name in ('update', 'cpu_witnesses', 'gpu_run'):
             body = functions[name].body
             # Each independent restore follows explicit destruction of the preceding owner.
@@ -449,7 +743,7 @@ class ContractTests(unittest.TestCase):
                          ('scaler.unscale_(optimizer)', 'scaler.get_scale()'),
                          ('restore(context, path, sha1, digest1, ident, 1)', 'restore(context, path, sha1, digest1, ident, 0)'),
                          ('raw, raw, torch.tensor(positions', 'raw, state[\'A\'], torch.tensor(positions'),
-                         ('bound_file({}, path, digest)', 'admitted_file(context, path, digest)')):
+                         ('admission.bound_file({}, path, digest)', 'admitted_file(context, path, digest)')):
             with self.assertRaises(AssertionError, msg=old): self.scope_checks(ast.parse(text.replace(old, new)))
         self.assertNotIn('torch', sys.modules)
 

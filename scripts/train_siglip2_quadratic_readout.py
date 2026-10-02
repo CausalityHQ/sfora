@@ -347,7 +347,7 @@ def finite_tree(tree):
             finite_tree(value)
 
 
-def audit_origins(context, initial=False):
+def audit_origins(context, initial=False, admission=None):
     source, prior = context['source_driver'], context['prior']
     origins = source.imported_origins(context['extract'], context['selected']['packages'])
     expected = context['selected']['source_cpu']['origins']
@@ -361,7 +361,12 @@ def audit_origins(context, initial=False):
                 require(known.setdefault(name, value) == value, 'conflicting original native origin authority')
         require(all(known.get(n) == v for n, v in origins[kind].items()), 'unknown or changed native origin')
     for path, digest in origins['files'].items():
-        bound_file(context['guards'], path, digest)
+        if admission is None:
+            bound_file(context['guards'], path, digest)
+        else:
+            # imported_origins genuinely hashed these bytes in this exit, and
+            # both exact module/file authority checks above have passed.
+            admission.verified.add(str(admission.register(context['guards'], path, digest)))
         require(prior['guards'].setdefault(path, digest) == digest, 'original native origin changed')
     context['origins'] = origins
 
@@ -393,10 +398,30 @@ def diagnostic(row):
 def exit_rehash(context):
     tick = time.perf_counter()
     require_no_model(context)
-    audit_origins(context)
-    context['selected']['exporter'].rehash(context['selected']['genuine'])
+    # This reader is empty and exit-owned; startup admission is never reused.
+    admission = context['original'].FlatAdmission()
+    audit_origins(context, admission=admission)
+    exporter, genuine = context['selected']['exporter'], context['selected']['genuine']
+    prior, source = genuine['prior'], genuine['prior']['source_driver']
+    require(admission.all_fit_images(prior) == prior['all_images'], 'FIT image resolution changed')
+    require(source.fit_rows(prior['extract'], prior['fit']) == prior['images'], 'FIT image resolution changed')
+    for path, digest in prior['guards'].items():
+        admission.bound_file({}, path, digest)
+    # Keep the small authenticated rereads and live extractor-origin bootstrap.
+    require(source.bootstrap(prior['root'], prior['args'].execution_sha256)[1] == prior['code'],
+            'exit closure differs')
+    require(genuine['reference'].bootstrap(prior['own_root'], prior['export_args'].execution_sha256) == prior['own_code'],
+            'exit exporter closure differs')
+    for path, digest in genuine['guards'].items():
+        admission.bound_file({}, path, digest)
+    require(exporter.closure(genuine['root'], genuine['args'].execution_sha256, exporter.FILES, {}) == genuine['code'],
+            'exit genuine closure differs')
+    selected = exporter.selected_manifest(exporter.file_json(genuine['launch']['partition'], {}), prior['fit'])
+    selected['resolved_paths'] = [str(prior['all_images'][r]) for r in selected['original_rows']]
+    require(selected == genuine['selected'], 'exit TRAIN mapping changed')
+    exporter.image_rows_node(genuine['launch']['image_rows']['path'])
     for path, digest in context['guards'].items():
-        bound_file({}, path, digest)  # Deliberately uncached even if stat/version is unchanged.
+        admission.bound_file({}, path, digest)
     require(closure(context['root'], context['args'].execution_sha256, FILES, {}) == context['code'], 'exit code changed')
     add_seconds(context, 'exit_rehash', tick)
 
