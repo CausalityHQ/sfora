@@ -1,0 +1,165 @@
+{
+  "schema": "quadratic-fresh-copy-native-worker-receipt-v1",
+  "base": "6567520d53571be4f0ff8345f9e39ac65cd62de9",
+  "commit": "687406b1d34f6f2f4cf74530839e1a6787bb8c1a",
+  "worktree": "/home/rb/worktrees/sfora-quadratic-fresh-copy-native-20261002",
+  "owned_files": [
+    "scripts/compare_quadratic_fresh_copy.py",
+    "scripts/test_compare_quadratic_fresh_copy.py"
+  ],
+  "source_sha256": {
+    "scripts/compare_quadratic_fresh_copy.py": "d0b4e3228ec33d332e3d61cb31f616f4bc003b416a21245f3e3a951631a8b885",
+    "scripts/test_compare_quadratic_fresh_copy.py": "9d30b37530019fdb6966eec2004af2ef8adc4979944918a1cbde9260226e407c"
+  },
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "clean_worktree": true,
+  "exact_two_file_commit": true,
+  "no_attribution": true,
+  "commands": [
+    {
+      "command": "rtk git merge --ff-only 6567520d53571be4f0ff8345f9e39ac65cd62de9",
+      "exit": 0,
+      "note": "initial stale f860 tree was clean"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_compare_quadratic_fresh_copy.py",
+      "exit": 1,
+      "note": "expected initial missing-driver red; subsequent preflight seam caught/fixed context loader references"
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_compare_quadratic_fresh_copy.py",
+      "exit": 0,
+      "wall_seconds": 0.900516,
+      "test_alarm_seconds": 5,
+      "note": "final stdlib gate, no actual Torch/native import or execution"
+    },
+    {
+      "command": "rtk proxy python3 -B - [compile both owned source files in memory]",
+      "exit": 0
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/compare_quadratic_fresh_copy.py --help",
+      "exit": 0
+    },
+    {
+      "command": "python3 -O -B scripts/compare_quadratic_fresh_copy.py --help",
+      "exit": 1,
+      "note": "expected optimized rejection, executed inside stdlib gate"
+    },
+    {
+      "command": "stdlib SHA256 comparison of all four original source-v5 files",
+      "exit": 0
+    },
+    {
+      "command": "rtk git diff --cached --check",
+      "exit": 0
+    },
+    {
+      "command": "rtk proxy git diff HEAD^ HEAD --check",
+      "exit": 0
+    },
+    {
+      "command": "git status / exact owned files / operator author / no-attribution checks",
+      "exit": 0
+    },
+    {
+      "command": "rtk proxy python3 -B scripts/test_compare_quadratic_fresh_copy.py",
+      "exit": 0,
+      "wall_seconds": 0.128586,
+      "test_alarm_seconds": 5,
+      "note": "one post-correction run including narrow AST/source regression, native UNRUN"
+    }
+  ],
+  "coverage": [
+    "exact authority/flags/resource/schema rejection",
+    "own two-file and baseline four-file closure admission",
+    "copied authority + proposed helper hash rejection before source execution",
+    "same-size/same-mtime file tampering",
+    "duplicate/nonfinite JSON",
+    "exclusive canonical output and receipt publication",
+    "eight alternating paired samples and synchronization",
+    "ordinary live-state reference, pair and consecutive digest equality",
+    "10-second body cap",
+    "no median improvement",
+    "precise two capsule replacements",
+    "primary error retained through cleanup; remaining cleanup continues",
+    "no old.run/update/save/restore/train calls",
+    "optimized rejection and lazy CLI help"
+  ],
+  "contract": "/tmp/sfora-quadratic-fresh-copy-native-contract.json",
+  "native_execution": "UNRUN",
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "quality_read": false,
+  "native_limits": {
+    "whole_service_seconds": 300,
+    "body_seconds_max": 10,
+    "pairs": 8,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "cgroup_events": 0,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "locks": "both original locks, acquired and authenticated by parent"
+  },
+  "remaining_parent_work": [
+    "independently inspect/integrate this commit",
+    "freeze proposed helper FILE/SHA and exact own-two-file execution/authority/output/unit",
+    "dual review and ONE native discarded diagnostic under original Python/flags/full prerequisites",
+    "original footer/terminal/RSS/runtime/locks verification",
+    "CPU/mechanics/TRAIN/quality qualification remains separate and unrun here"
+  ],
+  "restrictions_observed": [
+    "no control-file edit",
+    "no actual Torch/native import/execution",
+    "no SSH/GPU/train/eval/quality",
+    "no consultation/review/children/operator contact",
+    "no master merge or push",
+    "original four-file bytes unchanged"
+  ],
+  "instructions": "No AGENTS.md exists in checkout or ancestors; provided AGENTS instructions and exact opening brief applied.",
+  "completion_handoff": {
+    "status": "unconfirmed",
+    "agent_complete": "devbox control-plane unavailable: timed out",
+    "agent_output": "devbox control-plane unavailable: timed out",
+    "parent_tell": "delivered immediate-1790939632439775319-1014484",
+    "archive_verified": false,
+    "agent_complete_attempts": 2,
+    "final_result": "control-plane unavailable: timed out; parent notified, archive unconfirmed",
+    "parent_requested_no_duplicate_completion": true
+  },
+  "parent_proposed_helper": {
+    "FILE": {
+      "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v6/quadratic_encoder_frames.py",
+      "sha256": "50f6529a99c4010976c595c6cd7668a670f8834645ef9a8a1d27567062b0899d"
+    },
+    "worker_commit": "f9f11e74d3489d08ce1a2d990194c884bd0cd963",
+    "root_integration_commit": "4ac5722a",
+    "local_committed_blob_sha_verified": true,
+    "staged_or_native_qualified": false,
+    "required_runtime_binding": true,
+    "usable": false,
+    "status": "blocked_pending_lifetime_cleanup",
+    "replacement_sha_required_from_parent": true
+  },
+  "commit_chain": [
+    "b8132cb1ef8e4ef11c91af27e7a97a4ac81d675f",
+    "687406b1d34f6f2f4cf74530839e1a6787bb8c1a"
+  ],
+  "narrow_correction": {
+    "request_id": "1790939922942360099-1014484",
+    "commit": "687406b1d34f6f2f4cf74530839e1a6787bb8c1a",
+    "nonzero_offset_shared_storage_fp32_cpu_cuda": true,
+    "repeated_alias_cases_preserved": true,
+    "scalar_restored_via_data_finally": true,
+    "unchanged_version_and_exact_digest_recovery_required": true,
+    "stdlib_source_regression": true,
+    "check_runs": 1,
+    "check_exit": 0,
+    "check_wall_seconds": 0.128586,
+    "test_alarm_seconds": 5,
+    "syntax_original_v5_hashes_diff_checks_exit": 0,
+    "native_execution": "UNRUN",
+    "same_instance_branch": true
+  },
+  "correction_parent_commit": "b8132cb1ef8e4ef11c91af27e7a97a4ac81d675f"
+}

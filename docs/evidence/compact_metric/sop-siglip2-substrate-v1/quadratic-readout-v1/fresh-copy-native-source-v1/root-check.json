@@ -1,0 +1,19 @@
+{
+  "schema": "fresh-copy-native-source-root-check-v1",
+  "worker_commits": [
+    "b8132cb1ef8e4ef11c91af27e7a97a4ac81d675f",
+    "687406b1d34f6f2f4cf74530839e1a6787bb8c1a"
+  ],
+  "root_integrations": [
+    "609b09ca",
+    "fe1320c7"
+  ],
+  "stdlib_five_second_gate_exit": 0,
+  "source_review": "original admission/device identity predicates match productiongpu_run; probe nonzerooffset/sharedstorage/_version/.datarestore/digest guards inspected",
+  "actual_proposed_helper_sha256": "3ab43bea68a86cd30e5c41bebd35623e4796c9fd46e9800bc23d9ec8d244e132",
+  "native_unit": "sfora-so400-quadratic-fresh-copy-control-179061-v1",
+  "invocation_id": "699cb4c455db4a21924bb7eac2bd2c65",
+  "native_state": "running at source check; collect original terminal receipt",
+  "quality": "UNMEASURED",
+  "state_reuse_eligible": false
+}

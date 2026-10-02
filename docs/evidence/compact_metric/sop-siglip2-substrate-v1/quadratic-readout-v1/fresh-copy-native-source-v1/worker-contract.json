@@ -1,0 +1,121 @@
+{
+  "schema": "quadratic-fresh-copy-native-contract-v1",
+  "base": "6567520d53571be4f0ff8345f9e39ac65cd62de9",
+  "owned_files": [
+    "compare_quadratic_fresh_copy.py",
+    "test_compare_quadratic_fresh_copy.py"
+  ],
+  "cli": [
+    "python",
+    "-B",
+    "DRIVER_ROOT/compare_quadratic_fresh_copy.py",
+    "--execution-sha256",
+    "OWN_TWO_FILE_EXECUTION_SHA",
+    "--authority",
+    "AUTHORITY_FILE",
+    "--authority-sha256",
+    "AUTHORITY_SHA",
+    "--output",
+    "NEW_ABSOLUTE_OUTPUT"
+  ],
+  "authority_keys": [
+    "schema",
+    "execution_sha256",
+    "python",
+    "baseline",
+    "original_authority",
+    "proposed_helper",
+    "output",
+    "unit",
+    "both_locks_held",
+    "resource_policy",
+    "qualification_eligible",
+    "state_reuse_eligible",
+    "quality_read"
+  ],
+  "authority_schema": "quadratic-fresh-copy-native-launch-v1",
+  "FILE": {
+    "path": "canonical absolute file",
+    "sha256": "lowercase SHA256"
+  },
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "baseline": {
+    "root": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v5",
+    "execution_sha256": "a12ac8fe3ec0363db2c89243e633666f2485a3097cd9c249b4ec27c9d5db86b3"
+  },
+  "original_authority_sha256": "eb87cdc10ca73d0418e0feb759c9204ffbcbcffa34c196a73891c6e94fccd05e",
+  "parent_supplies": [
+    "proposed_helper FILE",
+    "own two-file execution SHA",
+    "driver authority FILE/SHA",
+    "output",
+    "unit"
+  ],
+  "resource_policy": {
+    "seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "cuda_allocated_bytes_exclusive": 10000000000
+  },
+  "locks": [
+    "/home/riomus/runs/.sfora-siglip2-gpu.lock",
+    "/home/riomus/.sfora-siglip2-gpu.lock"
+  ],
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "quality_read": false,
+  "body": {
+    "pairs": 8,
+    "seconds_max": 10,
+    "order": "baseline/proposed on even pairs, proposed/baseline on odd pairs",
+    "workload": "two frozen complement hashes and one complete payload hash; same live tensors; separately owned encoder/partition capsules",
+    "pass": "all exact digests equal untouched original live-state hashes, strictly negative median(proposed_seconds-baseline_seconds), and proposed median < baseline median"
+  },
+  "execution": "unchanged old.authority(mechanics/control/179061/original authority/new output), prepare_native, fresh(control,179061,cuda), identity/integrity; separate seal; original bare authenticated helper loader; full RNG/live byte/version/optimizer/counter preservation; release and original fresh exit even body failure",
+  "receipt": "NEW_OUTPUT/receipt.json, exclusive/fsynced, original guards/origins/invocation/resources plus pairs/body/wall/errors; parent owns original footer/terminal/locks/whole-unit validation",
+  "native_execution": "UNRUN; parent-owned",
+  "worker_commit": "687406b1d34f6f2f4cf74530839e1a6787bb8c1a",
+  "driver_source_sha256": {
+    "scripts/compare_quadratic_fresh_copy.py": "d0b4e3228ec33d332e3d61cb31f616f4bc003b416a21245f3e3a951631a8b885",
+    "scripts/test_compare_quadratic_fresh_copy.py": "9d30b37530019fdb6966eec2004af2ef8adc4979944918a1cbde9260226e407c"
+  },
+  "receipt_schema": "quadratic-fresh-copy-native-receipt-v1",
+  "integration_ready": true,
+  "parent_proposed_helper": {
+    "FILE": {
+      "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v6/quadratic_encoder_frames.py",
+      "sha256": "50f6529a99c4010976c595c6cd7668a670f8834645ef9a8a1d27567062b0899d"
+    },
+    "worker_commit": "f9f11e74d3489d08ce1a2d990194c884bd0cd963",
+    "root_integration_commit": "4ac5722a",
+    "local_committed_blob_sha_verified": true,
+    "staged_or_native_qualified": false,
+    "required_runtime_binding": true,
+    "usable": false,
+    "status": "blocked_pending_lifetime_cleanup",
+    "replacement_sha_required_from_parent": true
+  },
+  "commit_chain": [
+    "b8132cb1ef8e4ef11c91af27e7a97a4ac81d675f",
+    "687406b1d34f6f2f4cf74530839e1a6787bb8c1a"
+  ],
+  "narrow_correction": {
+    "request_id": "1790939922942360099-1014484",
+    "commit": "687406b1d34f6f2f4cf74530839e1a6787bb8c1a",
+    "nonzero_offset_shared_storage_fp32_cpu_cuda": true,
+    "repeated_alias_cases_preserved": true,
+    "scalar_restored_via_data_finally": true,
+    "unchanged_version_and_exact_digest_recovery_required": true,
+    "stdlib_source_regression": true,
+    "check_runs": 1,
+    "check_exit": 0,
+    "check_wall_seconds": 0.128586,
+    "test_alarm_seconds": 5,
+    "syntax_original_v5_hashes_diff_checks_exit": 0,
+    "native_execution": "UNRUN",
+    "same_instance_branch": true
+  }
+}
