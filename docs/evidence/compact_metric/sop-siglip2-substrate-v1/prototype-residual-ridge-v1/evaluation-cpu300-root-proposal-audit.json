@@ -1,0 +1,18 @@
+{
+  "status": "VERIFIED_SOURCE_PROPOSAL_NOT_APPLIED_NATIVE_UNRUN",
+  "candidate_commit": "35e0d20e5c271b184f48f59d3382b097bc7bb3bf",
+  "root_bounded_stdlib": "PASS",
+  "existing_changed_functions": [
+    "policy",
+    "authority",
+    "run"
+  ],
+  "new_function": "resources_adapter",
+  "all_other_functions_ast_identical": true,
+  "cpu_policy_only_seconds_120_to_300": true,
+  "score_policy_exact_unchanged": true,
+  "resource_checker_fullfile_and_entire_ast_pinned": true,
+  "cost_and_quality_thresholds_unchanged": true,
+  "operator_request_sent_once": true,
+  "approval_received": false
+}
