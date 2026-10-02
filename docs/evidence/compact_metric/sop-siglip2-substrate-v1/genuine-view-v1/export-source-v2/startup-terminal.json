@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "0764908a1daf4945afb3824e48096b51",
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/startup.log",
+    "sha256": "43faad6250b92e147a874523f190b2bbff04b55bdd6a0f1184372cad75708d72"
+  },
+  "native_peak_rss_kib": 62176,
+  "proof": {
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-startup-v2/proof.json",
+    "sha256": "b891f3b8e2043a15d4abfe965480f724042070d96de4a44a7cecd7f70af25fec"
+  },
+  "service_seconds": 41.954,
+  "unit": "sfora-so400-genuine-view-startup-v2"
+}
