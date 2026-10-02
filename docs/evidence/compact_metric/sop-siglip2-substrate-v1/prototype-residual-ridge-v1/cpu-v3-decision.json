@@ -1,0 +1,45 @@
+{
+  "schema": "prototype-residual-cpu-engineering-decision-v1",
+  "decision": "PASS_ENGINEERING_QUALIFICATION_ONLY",
+  "approval_message": "immediate-1790972391853538497-1312788",
+  "session": 47560,
+  "unit": "sfora-so400-prototype-residual-cpu-v3",
+  "invocation_id": "ca317b2d59be4ba4bcca7057466ac339",
+  "observed_exec_exit": 0,
+  "service_seconds": 258.272,
+  "native_peak_rss_kib": 1154456,
+  "host_peak_bytes": 1435975680,
+  "swap_bytes": 0,
+  "memory_events": 0,
+  "quality_read": false,
+  "accepted_fitted_endpoints": false,
+  "historical_failures": "unchanged",
+  "root_terminal_record_validation": "actual fitter.check_terminal_record PASS",
+  "root_footer_and_launch_validation": "both original footers invocation/exit/resources exact; full launch/source/authority matches; before/after file hash checks allPASS",
+  "total_qualification_fit_core_seconds": 0.4323612190783024,
+  "qualification_arms": {
+    "linear": {
+      "independent_full_fits": 2,
+      "strict_reload_exact": true,
+      "tamper_rejected": true,
+      "core_seconds": [
+        0.15401635691523552,
+        0.10222074808552861
+      ],
+      "stationarity": 1.606589695376081e-08
+    },
+    "quadratic": {
+      "independent_full_fits": 2,
+      "strict_reload_exact": true,
+      "tamper_rejected": true,
+      "core_seconds": [
+        0.09010302415117621,
+        0.08602108992636204
+      ],
+      "stationarity": 1.730240743272787e-08
+    }
+  },
+  "receipt_sha256": "2d47534476aa5e23be5d1202ae8282982968d537397dd9d01a7557f05587ebe9",
+  "log_sha256": "66c9b000d3c57b73baca93c7adb306b8ec441b0ef1601899a7f29d74fb0dc456",
+  "next": "report paired qualification decision; prospectively freeze independent linear then quadratic fit endpoints before their cost/quality gates"
+}
