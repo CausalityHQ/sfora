@@ -1,0 +1,13 @@
+{
+  "status": "FAIL_ARCHIVED_SOURCE_LOG_DURATION_BEFORE_NATIVE",
+  "session": 29053,
+  "unit": "sfora-so400-prototype-residual-evaluation-cpu-v3",
+  "invocation_id": "153b85dffc914e82bb72e8f48630af33",
+  "service_seconds": 97.816,
+  "quality_read": false,
+  "peak_host_bytes": 305606656,
+  "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "swap_bytes": 0,
+  "log_sha256": "3dc29ab34d5b6fa5a58a4493d7e3b9c5295cab57a427f29866a765816b63d42d",
+  "root_cause": "source selection original FlatAdmission reader rejects original 2min 835ms; fit-only adapter did not cover source path"
+}
