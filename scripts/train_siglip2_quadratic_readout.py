@@ -796,7 +796,7 @@ def fresh(context, arm, seed, device):
     config, buffers = encoder_metadata(context)
     state = {'head': head, 'classifier': classifier, 'A': A, 'means': clone_tree(means, device),
              'encoder': owned_encoder(context), 'config': config, 'buffers': buffers,
-             'features': features.to(device, copy=True).detach(),
+             'features': features.detach(),
              'bank': initial['bank'].to(device, copy=True).detach(), 'arm': arm, 'seed': seed, 'device': device,
              'params': pairs, 'optimizer': optimizer, 'counter': 0,
              'scaler': torch.amp.GradScaler(device, init_scale=128),
@@ -808,6 +808,10 @@ def fresh(context, arm, seed, device):
             context['warm_members_sha256'] and not bool(A.detach().count_nonzero()), 'fresh learned members/zero A differ')
     add_seconds(context, 'construction', tick)
     return state
+
+
+def feature_rows(state, rows):
+    return state['features'][rows].to(device=state['A'].device)
 
 
 def payload_member(state, key):
@@ -942,7 +946,8 @@ def integrity(context, state, ident, fresh_bytes=False):
             json_form([{k: v for k, v in g.items() if k != 'params'} for g in state['optimizer'].param_groups]) == ident['optimizer_groups'] and
             not state['bank'].requires_grad and state['bank'].grad is None and tuple(state['bank'].shape) == (6355, 128) and
             state['bank'].device.type == ident['device'] and torch.isfinite(state['bank']).all().item() and
-            not state['features'].requires_grad and state['features'].grad is None and tuple(state['features'].shape) == (6355, 1152),
+            not state['features'].requires_grad and state['features'].grad is None and tuple(state['features'].shape) == (6355, 1152) and
+            state['features'].device.type == 'cpu' and state['features'].dtype == torch.float32,
             'optimizer/canonical features/bank differs')
     saved = payload(context, state, ident)
     check_payload(saved, ident, state['counter'], context['encoder_check'], context['partition_check'])
@@ -1023,7 +1028,7 @@ def restore(context, path, sha, digest, ident, step):
 
 def calibration(context, state):
     batch = state['schedules'][str(state['seed'])][0].tolist()
-    raw = context['quadratic'].raw_features(state['features'][batch], state['head'], state['A'], state['means'], state['arm'])
+    raw = context['quadratic'].raw_features(feature_rows(state, batch), state['head'], state['A'], state['means'], state['arm'])
     return packed_outputs(context, raw)
 
 
@@ -1064,7 +1069,7 @@ def update(context, state, ident, step):
     raw_rows = []
     for start in range(0, 64, 16):
         index = torch.tensor(batch[start:start + 16], device=device)
-        raw = context['quadratic'].raw_features(state['features'][index], state['head'], state['A'], state['means'], state['arm'])
+        raw = context['quadratic'].raw_features(feature_rows(state, batch[start:start + 16]), state['head'], state['A'], state['means'], state['arm'])
         raw_rows.append(raw.detach())
         with torch.autocast(device_type=device, enabled=False):
             ce, rank = terms(context, state, raw, index)
@@ -1153,7 +1158,7 @@ def cpu_witnesses(context):
             witness = original.fingerprint(calibration(context, state))
             with torch.no_grad():
                 batch = state['schedules'][str(SEEDS[0])][0].tolist()
-                source = packed_outputs(context, state['head'](state['features'][batch]))
+                source = packed_outputs(context, state['head'](feature_rows(state, batch)))
             require(original.fingerprint(source) == witness, 'initial learned-source/arm raw/unit/packed/inverse bits differ')
             bypass_rejected = bypass_version_witness(context, state, ident)
             initial_digest = context['encoder_fingerprint'](payload(context, state, ident))
@@ -1207,6 +1212,26 @@ def gpu_run(context):
                      'full_schedule_sha256': original.fingerprint(state['schedules'][str(args.seed)])},
             'CUDA cached-readout composition differs from CPU-qualified identity')
     integrity(context, state, ident, fresh_bytes=True)
+    feature_upload_witness = None
+    if args.phase == 'mechanics':
+        with torch.no_grad():
+            mirror = state['features'].to(device=state['A'].device)
+            for step in range(17):
+                batch = state['schedules'][str(state['seed'])][step].tolist()
+                for start in range(0, 64, 16):
+                    rows = batch[start:start + 16]
+                    uploaded = feature_rows(state, rows)
+                    expected = mirror[torch.tensor(rows, device=state['A'].device)]
+                    require(uploaded.device == expected.device == state['A'].device and
+                            uploaded.dtype == expected.dtype == torch.float32 and
+                            tuple(uploaded.shape) == tuple(expected.shape) == (16, 1152) and
+                            uploaded.stride() == expected.stride() == (1152, 1) and
+                            uploaded.is_contiguous() and expected.is_contiguous() and
+                            original.fingerprint(uploaded) == original.fingerprint(expected),
+                            'mechanics canonical row upload differs from ordinary CUDA gather')
+            del mirror, uploaded, expected
+        torch.cuda.synchronize()
+        feature_upload_witness = {'pass': True, 'rows': 17, 'microbatches': 68}
     start_digest = context['encoder_fingerprint'](payload(context, state, ident))
     start_witness = original.fingerprint(calibration(context, state))
     cuda_rng = [v.clone() for v in torch.cuda.get_rng_state_all()]
@@ -1254,7 +1279,8 @@ def gpu_run(context):
             'steps': rows, 'resumed_steps': resumed, 'replay_exact': args.phase == 'mechanics',
             'training_state_discarded': args.phase == 'mechanics', 'training_wall_seconds': training_seconds,
             'median_update_seconds': statistics.median(r['seconds'] for r in rows[2:]),
-            'peak_cuda_allocated_bytes': torch.cuda.max_memory_allocated()}
+            'peak_cuda_allocated_bytes': torch.cuda.max_memory_allocated(),
+            **({'feature_upload_witness': feature_upload_witness} if args.phase == 'mechanics' else {})}
 
 
 def check_identity_record(ident, launch, arm, seed, device):
@@ -1324,6 +1350,8 @@ def check_terminal_record(record, launch, phase, arm):
                 'new exact step/CPU/state bindings differ')
         check_steps(record['steps'], 1, count, arm)
         if phase == 'mechanics':
+            require(record.get('feature_upload_witness') == {'pass': True, 'rows': 17, 'microbatches': 68},
+                    'mechanics canonical row upload witness missing')
             require(record['checkpoint'] is None and record['training_state_discarded'] is True and record['replay_exact'] is True and
                     [diagnostic(r) for r in record['steps'][8:]] == [diagnostic(r) for r in record['resumed_steps']],
                     'discarded full17/independent8+9 replay differs')

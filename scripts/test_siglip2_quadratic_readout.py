@@ -360,6 +360,271 @@ class ContractTests(unittest.TestCase):
         state['means']['quadratic'] = 'tampered-mean'
         with self.assertRaises(ValueError): d.check_complement(context, state, ident)
 
+    def test_cpu_feature_residency_preserves_fresh_bytes_and_rows(self):
+        """Catch full CUDA uploads, reordered rows, stale bytes and shared reload storage."""
+        d, started = self.driver, time.monotonic()
+        def deadline(*unused):
+            raise AssertionError('CPU feature residency falsifier exceeded 5 seconds')
+        old_handler = signal.signal(signal.SIGALRM, deadline)
+        signal.setitimer(signal.ITIMER_REAL, 5)
+        self.addCleanup(signal.signal, signal.SIGALRM, old_handler)
+        self.addCleanup(signal.setitimer, signal.ITIMER_REAL, 0)
+        import struct
+        from contextlib import ExitStack, nullcontext
+        spec = importlib.util.spec_from_file_location('_residency_original',
+            PATH.with_name('train_siglip2_substrate_adaptation.py'))
+        original = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(original)
+        Device = namedtuple('Device', 'type index')
+        cpu, cuda = Device('cpu', None), Device('cuda', 2)
+        uploads, reads, inputs, loss_indices = [], [], [], []
+        batch = [9, 2, 9, 0, 5, 1, 3, 8, 4, 7, 6, 5, 2, 0, 8, 1,
+                 1, 8, 0, 2, 5, 6, 7, 4, 8, 3, 1, 5, 0, 9, 2, 9,
+                 4, 4, 3, 1, 9, 9, 0, 6, 2, 8, 5, 7, 1, 3, 6, 2,
+                 8, 7, 6, 5, 4, 3, 2, 1, 0, 8, 8, 9, 1, 5, 3, 0]
+        schedule_batches = [batch] + [[(row + step) % 31 for row in batch] for step in range(1, 17)]
+        mirror_allowed = False
+        feature_bytes = b''.join(struct.pack('<f', i + 1) * 1152 for i in range(6355))
+        def device_of(value): return cpu if value == 'cpu' else cuda if value == 'cuda' else value
+        class Tensor(FrameTensor):
+            requires_grad, grad, grad_fn, is_leaf = False, None, None, True
+            def __init__(self, raw=b'\0' * 4, shape=(1,), dtype='torch.float32', device=None, label='other'):
+                self.raw, self.shape, self.dtype = bytearray(raw), shape, dtype
+                self.device, self.label, self.reads, self._version = cpu if device is None else device, label, 0, 0
+            def data_ptr(self): return id(self.raw)
+            def stride(self): return getattr(self, 'layout_stride', (1152, 1))
+            def is_contiguous(self): return getattr(self, 'contiguous_flag', True)
+            def to(self, device, copy=False):
+                if self.label == 'features' and self.shape != (6355, 1152):
+                    assert device == cuda, 'row upload must name the exact A device'
+                device = device_of(device)
+                if device.type == 'cuda':
+                    assert self.shape != (6355, 1152) or mirror_allowed, 'full canonical matrix uploaded to CUDA'
+                    uploads.append((self.shape, self.dtype, device, bytes(self.raw)))
+                return Tensor(self.raw, self.shape, self.dtype, device, self.label)
+            def cpu(self):
+                return self if self.device == cpu else Tensor(self.raw, self.shape, self.dtype, cpu, self.label)
+            def numpy(self):
+                reads.append(self.label)
+                return self.raw
+            def clone(self): return Tensor(self.raw, self.shape, self.dtype, self.device, self.label)
+            def __getitem__(self, rows):
+                if isinstance(rows, Tensor):
+                    assert self.device == rows.device, 'CPU features indexed with CUDA loss indices'
+                    rows = rows.tolist()
+                if isinstance(rows, int):
+                    return self[[rows]].reshape_row()
+                width = (8 if self.dtype == 'torch.int64' else 4) * self.shape[1]
+                return Tensor(b''.join(self.raw[i * width:(i + 1) * width] for i in rows),
+                    (len(rows), self.shape[1]), self.dtype, self.device, self.label)
+            def reshape_row(self):
+                self.shape = self.shape[1:]
+                return self
+            def __setitem__(self, rows, value):
+                width = self.shape[1] * 4
+                for j, i in enumerate(rows.tolist()):
+                    self.raw[i * width:(i + 1) * width] = value.raw[j * width:(j + 1) * width]
+                self._version += 1
+            def tolist(self): return list(struct.unpack('<' + 'q' * (len(self.raw) // 8), self.raw))
+            def count_nonzero(self): return any(self.raw)
+            def copy_(self, other): self.raw[:] = other.raw; self._version += 1
+            def expand(self, *args): return Tensor(self.raw, (1, len(self.raw) // 8), self.dtype, self.device)
+            def unsqueeze(self, *args): return self
+            def double(self): return self
+            def norm(self): return 1.
+            def __float__(self): return 1.
+            def __add__(self, other): return self
+            def __mul__(self, other): return self
+            __rmul__ = __mul__
+            def backward(self): pass
+        def indices(rows, device='cpu'):
+            return Tensor(struct.pack('<' + 'q' * len(rows), *rows), (len(rows),),
+                          'torch.int64', device_of(device))
+        class Head:
+            training, _forward_hooks, _forward_pre_hooks, _backward_hooks = True, {}, {}, {}
+            def requires_grad_(self, value): return self
+            def train(self): return self
+            def to(self, device): return self
+            def parameters(self): return []
+            def named_parameters(self): return []
+            def named_buffers(self): return []
+            def state_dict(self): return {}
+            def modules(self): return [self]
+            def __call__(self, rows): return raw_features(rows)
+        def raw_features(rows, *args):
+            self.assertEqual((rows.dtype, rows.device), ('torch.float32', cuda))
+            inputs.append(bytes(rows.raw))
+            return Tensor(b''.join(rows.raw[i * 4608:i * 4608 + 512] for i in range(rows.shape[0])),
+                          (rows.shape[0], 128), device=cuda)
+        class Optimizer:
+            defaults = {}
+            def __init__(self, A): self.A, self.param_groups = A, [dict(params=[A])]
+            def zero_grad(self, **kwargs): self.A.grad = None
+            def state_dict(self): return dict(state={}, param_groups=[dict(params=[0])])
+            def load_state_dict(self, value): pass
+        class Scaler:
+            def __init__(self, *args, **kwargs): pass
+            def scale(self, value): return value
+            def unscale_(self, optimizer): optimizer.A.grad = Tensor(shape=(128, 32))
+            def get_scale(self): return 128
+            def step(self, optimizer): optimizer.A.raw[0] += 1; optimizer.A._version += 1
+            def update(self): pass
+            def state_dict(self): return {}
+            def load_state_dict(self, value): pass
+        def parameter(value, requires_grad): value.requires_grad = requires_grad; return value
+        def weight(device):
+            return parameter(Tensor(b'\0' * (128 * 32 * 4), (128, 32), device=device_of(device)), True)
+        def loss(raw, classifier, target, columns, **kwargs):
+            start = len(loss_indices) * 16
+            self.assertEqual((target.device, target.tolist()), (cuda, batch[start:start + 16]))
+            return Tensor()
+        def rank(ref, raw, bank, head, positive, index):
+            start = len(loss_indices) * 16
+            loss_indices.append(index)
+            self.assertEqual((positive.device, index.device, index.tolist()), (cuda, cuda, batch[start:start + 16]))
+            return Tensor()
+        finite = SimpleNamespace(all=lambda: SimpleNamespace(item=lambda: True), item=lambda: True)
+        fake_torch = SimpleNamespace(Tensor=Tensor, float32='torch.float32', uint8='torch.uint8',
+            tensor=indices, equal=lambda a, b: a.raw == b.raw, isfinite=lambda value: finite,
+            arange=lambda count, **kwargs: indices(list(range(count)), **kwargs),
+            cat=lambda parts: Tensor(b''.join(p.raw for p in parts), (64, 128), device=cuda),
+            autocast=lambda **kwargs: nullcontext(), no_grad=nullcontext,
+            nn=SimpleNamespace(Parameter=parameter, utils=SimpleNamespace(clip_grad_norm_=lambda *a, **k: 1.)),
+            amp=SimpleNamespace(GradScaler=Scaler),
+            cuda=SimpleNamespace(is_initialized=lambda: False, synchronize=lambda: None,
+                max_memory_allocated=lambda: 1, get_rng_state_all=lambda: [], set_rng_state_all=lambda value: None),
+            random=SimpleNamespace(get_rng_state=lambda: Tensor(), set_rng_state=lambda value: None))
+        initial = {key: {} for key in d.STATIC_KEYS}
+        initial.update(head={}, classifier=Tensor(), bank=Tensor(b'\0' * (6355 * 128 * 4), (6355, 128)),
+            target=Tensor(struct.pack('<' + 'q' * 6355, *range(6355)), (6355, 1), 'torch.int64'),
+            positive=Tensor(b'\0' * (6355 * 110 * 8), (6355, 110), 'torch.int64'),
+            schedules={str(seed): Tensor(b''.join(struct.pack('<' + 'q' * 64, *rows) for rows in schedule_batches),
+                (17, 64), 'torch.int64') for seed in d.SEEDS},
+            masks={str(seed): Tensor(b'\0' * 256, (1, 64)) for seed in d.SEEDS})
+        launch, _ = self.launch()
+        ctx = dict(initial=initial, original=original, args=SimpleNamespace(phase='mechanics'),
+            encoder={'inventory': [], 'checkpoint': {'path': '/fake/source', 'sha256': 'a' * 64}},
+            encoder_check=lambda value: value, partition={}, partition_check=lambda value: value,
+            encoder_fingerprint=original.fingerprint, flags={}, source={}, launch=launch,
+            selected={'cached': SimpleNamespace(head_from=lambda *a, **k: Head())},
+            quadratic=SimpleNamespace(_check_base=lambda *a: None, fit_means=lambda *a: {'linear': Tensor(), 'quadratic': Tensor()},
+                new_weight=weight, raw_features=raw_features), source_driver=SimpleNamespace(numerical_flags=lambda: {}),
+            ref=SimpleNamespace(sharded_mask_arcface_loss=loss,
+                member_bank_refresh_rows=lambda rows: ([rows[0]], [0]),
+                member_bank_refresh_values=lambda raw, *a, **k: raw[[0]]))
+        with ExitStack() as stack:
+            stack.enter_context(patch.dict(sys.modules, {'torch': fake_torch}))
+            for name, replacement in (
+                ('canonical_features', lambda context: (Tensor(), Tensor(feature_bytes, (6355, 1152), label='features'))),
+                ('optimizer_state', lambda A, *args: ([('A', A)], Optimizer(A))),
+                ('encoder_metadata', lambda context: ({}, {'embeddings.position_ids': indices(list(range(256))).expand(1, -1)})),
+                ('check_payload', lambda *args: None), ('admitted_file', lambda *args: None),
+                ('packed_outputs', lambda context, raw: raw)):
+                stack.enter_context(patch.object(d, name, replacement))
+            stack.enter_context(patch.object(original, 'valid_rank', rank))
+            ctx['warm_members_sha256'] = original.fingerprint({k: initial[k] for k in ('head', 'classifier', 'bank')})
+            ctx['static_sha256'] = original.fingerprint({k: initial[k] for k in d.STATIC_KEYS})
+            state = d.fresh(ctx, 'control', d.SEEDS[0], 'cuda')
+            features = state['features']
+            self.assertEqual((features.device, features.dtype, bytes(features.raw)), (cpu, 'torch.float32', feature_bytes))
+            self.assertIn(('features', features), d.frozen_tensors(state))
+            ident = d.identity(ctx, state)
+            self.assertEqual(ident['features_sha256'], original.fingerprint(Tensor(feature_bytes, features.shape, device=cuda)))
+            d.integrity(ctx, state, ident)
+            gpu = next(n for n in ast.parse(PATH.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name == 'gpu_run')
+            upload_blocks = [n for n in gpu.body if isinstance(n, ast.If) and
+                             any(isinstance(a, ast.Name) and a.id == 'mirror' for a in ast.walk(n))]
+            self.assertEqual(len(upload_blocks), 1, 'mechanics must compare all first17 uploaded microbatches')
+            upload_block = upload_blocks[0]
+            self.assertEqual(ast.unparse(upload_block.test), "args.phase == 'mechanics'")
+            witness_code = compile(ast.Module(body=[upload_block], type_ignores=[]), str(PATH), 'exec')
+            uploads.clear()
+            mirror_allowed = True  # Only the separately discarded native-witness mirror is permitted.
+            environment = dict(vars(d), state=state, original=original, torch=fake_torch,
+                args=SimpleNamespace(phase='mechanics'), feature_upload_witness=None)
+            exec(witness_code, environment)
+            self.assertEqual(environment['feature_upload_witness'], {'pass': True, 'rows': 17, 'microbatches': 68})
+            self.assertFalse({'mirror', 'uploaded', 'expected'} & environment.keys())
+            expected_uploads = [((16, 1152), 'torch.float32', cuda,
+                b''.join(struct.pack('<f', i + 1) * 1152 for i in rows[start:start + 16]))
+                for rows in schedule_batches for start in range(0, 64, 16)]
+            self.assertEqual([entry for entry in uploads if entry[0] == (16, 1152)], expected_uploads)
+            self.assertEqual(sum(entry[0] == (6355, 1152) for entry in uploads), 1)
+            environment.update(args=SimpleNamespace(phase='train'), feature_upload_witness=None)
+            uploads.clear(); exec(witness_code, environment)
+            self.assertEqual(uploads, [])
+            real_rows = d.feature_rows
+            def bad_rows(state, rows):
+                uploaded = real_rows(state, rows); uploaded.data.raw[-1] ^= 1
+                return uploaded
+            environment.update(args=SimpleNamespace(phase='mechanics'), feature_rows=bad_rows)
+            with self.assertRaisesRegex(ValueError, 'canonical row upload'): exec(witness_code, environment)
+            for stride, contiguous in (((1, 16), True), ((1152, 1), False)):
+                def bad_layout(state, rows):
+                    uploaded = real_rows(state, rows)
+                    uploaded.layout_stride, uploaded.contiguous_flag = stride, contiguous
+                    return uploaded
+                environment['feature_rows'] = bad_layout
+                with self.assertRaisesRegex(ValueError, 'canonical row upload'): exec(witness_code, environment)
+            terminal = next(n for n in ast.parse(PATH.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name == 'check_terminal_record')
+            admission = next(n for n in ast.walk(terminal) if isinstance(n, ast.Expr) and
+                             'mechanics canonical row upload witness missing' in ast.unparse(n))
+            admission_code = compile(ast.Module(body=[admission], type_ignores=[]), str(PATH), 'exec')
+            proof = {'pass': True, 'rows': 17, 'microbatches': 68}
+            exec(admission_code, dict(vars(d), record={'feature_upload_witness': proof}))
+            for bad in (None, {**proof, 'pass': False}, {**proof, 'rows': 16}, {**proof, 'microbatches': 67}):
+                with self.assertRaises(ValueError):
+                    exec(admission_code, dict(vars(d), record={'feature_upload_witness': bad}))
+            mirror_allowed = False
+            expected = b''.join(struct.pack('<f', i + 1) * 1152 for i in batch)
+            uploads.clear(); inputs.clear()
+            d.calibration(ctx, state)
+            # Execute the production initial source-comparison block as well.
+            witness = next(n for n in ast.walk(ast.parse(PATH.read_bytes())) if isinstance(n, ast.FunctionDef) and n.name == 'cpu_witnesses')
+            source_block = next(n for n in ast.walk(witness) if isinstance(n, ast.With) and
+                                ast.unparse(n.items[0].context_expr) == 'torch.no_grad()')
+            exec(compile(ast.Module(body=[source_block], type_ignores=[]), str(PATH), 'exec'),
+                 dict(vars(d), context=ctx, state=state, torch=fake_torch))
+            self.assertEqual(inputs, [expected, expected])
+            uploads.clear(); inputs.clear(); reads.clear()
+            with redirect_stdout(io.StringIO()): row = d.update(ctx, state, ident, 1)
+            expected_micro = [expected[i * 4608:(i + 16) * 4608] for i in range(0, 64, 16)]
+            self.assertEqual(inputs, expected_micro)
+            self.assertEqual([entry for entry in uploads if entry[0] == (16, 1152)],
+                             [((16, 1152), 'torch.float32', cuda, raw) for raw in expected_micro])
+            self.assertEqual(len(loss_indices), 4)
+            self.assertEqual(reads.count('features'), 3)  # Both full boundaries plus the original diagnostic gather.
+            self.assertEqual(row['feature_rows_sha256'], original.fingerprint(features[batch]))
+            pointer_version = features.data_ptr(), features._version
+            features.data.raw[-1] ^= 1
+            self.assertEqual((features.data_ptr(), features._version), pointer_version)
+            before = reads.count('features')
+            with self.assertRaisesRegex(ValueError, 'fresh frozen complement'): d.integrity(ctx, state, ident)
+            self.assertGreater(reads.count('features'), before)
+            features.data.raw[-1] ^= 1
+            for field, invalid in (('device', cuda), ('dtype', 'torch.float16')):
+                previous = getattr(features, field); setattr(features, field, invalid)
+                with self.assertRaisesRegex(ValueError, 'optimizer/canonical features/bank'): d.integrity(ctx, state, ident)
+                setattr(features, field, previous)
+            disk = d.payload(ctx, state, ident)
+            digest = original.fingerprint(disk)
+            d.release(ctx, state)
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / 'checkpoint'; path.write_bytes(b'fake IO only')
+                fake_torch.load = lambda *a, **k: disk
+                pages = SimpleNamespace(consume=lambda value: None, copy=lambda value, device='cpu': value.to(device, copy=True))
+                stack.enter_context(patch.object(original, 'CheckpointPages', lambda stream: pages))
+                stack.enter_context(patch.object(d, 'bound_file', lambda *args: path))
+                restored = d.restore(ctx, path, 'a' * 64, digest, ident, 1)
+            self.assertEqual((restored['features'].device, restored['features'].dtype), (cpu, 'torch.float32'))
+            self.assertNotEqual(restored['features'].data_ptr(), features.data_ptr())
+            self.assertNotIn('features', ctx)
+            features.data.raw[-1] ^= 1
+            d.integrity(ctx, restored, ident)
+            self.assertEqual(bytes(restored['features'].raw), feature_bytes)
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertNotIn('torch', sys.modules)
+
     def test_closure_and_fresh_exit_detect_same_size_same_mtime_tamper(self):
         d = self.driver
         with tempfile.TemporaryDirectory() as temporary:
@@ -483,7 +748,7 @@ class ContractTests(unittest.TestCase):
         tree.body = [n for n in tree.body if not isinstance(n, ast.FunctionDef) or
                      n.name not in ('audit_origins', 'exit_rehash')]
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
-                         'c99a92431f4a4c27caef0df2e6bd4d6b391a1d35dce2ad1de4a17775b4c45bfd')
+                         '8a6635ebec61d6b994e9555f41536b06c6f24b501892b7e619681969ccf4bbd3')
         # Pin the existing device correction within this amended closure too.
         integrity = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'integrity')
         boundary = next(n.value for n in integrity.body if isinstance(n, ast.Expr) and
@@ -492,7 +757,7 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(ast.dump(boundary.args[1]), ast.dump(ast.parse("state['A'].device", mode='eval').body))
         boundary.args[1] = ast.parse("state['device']", mode='eval').body
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
-                         '48e6cceabd516c4db3baefbe3d1bfac5e5755b3333e05e618978d8f65687e846')
+                         'a233e88d37fc5adbf0efa2b1e1e9ac8ee5837ce22199500817cf16bd352ece54')
         origin_node = next(n for n in ast.parse(PATH.read_bytes()).body
                            if isinstance(n, ast.FunctionDef) and n.name == 'audit_origins')
         origin_node.args.args.pop(); origin_node.args.defaults.pop()
@@ -742,9 +1007,9 @@ class ContractTests(unittest.TestCase):
         self.assertNotIn('torch', sys.modules)
 
     def test_original_math_schedule_rng_and_exit_ast_stay_pinned(self):
-        # Base 7f7eb1cf, allowing only the explicit capsule reads/hash adapter in
-        # these mathematical/reload routines. Admission amendments are pinned
-        # separately by the complete trainer AST in the exit falsifier.
+        # Pin math/reload/RNG/exit with CPU row gathering and the mechanics upload
+        # witness. Capsule reads are reversed below; admission is pinned separately
+        # by the complete trainer AST in the exit falsifier.
         tree = self.partition_baseline(ast.parse(PATH.read_bytes()))
         excluded = {'authority', 'composition', 'encoder_metadata', 'frozen_tree', 'identity', 'payload',
                     'check_payload', 'check_complement', 'integrity', 'save', 'owned_encoder'}
@@ -769,7 +1034,7 @@ class ContractTests(unittest.TestCase):
                 return node
         tree = OriginalCalls().visit(tree)
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
-                         'cd91be85cabc2618976cd4567c63b5d4d6a9b48aaef70b934c77c2cb9875dc8e')
+                         'efa204db7d324d15648754fb6a9c8c10da3acd0ea80b2c155fea759334d0269f')
 
     @staticmethod
     def partition_baseline(tree):
@@ -818,10 +1083,10 @@ class ContractTests(unittest.TestCase):
         return ReverseInterface().visit(tree)
 
     def test_partition_interface_preserves_complete_baseline_ast(self):
-        # Exact baseline bytes: 3493ac6027b00d52106cb9814a77d6efe5616b957253da99cce375ba8b722091.
+        # Pin CPU residency and the mechanics witness with the partition interface reversed.
         tree = self.partition_baseline(ast.parse(PATH.read_bytes()))
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
-                         'b76baa8e40c280438de4abfad3353e479bfdbd4e5e10e8b5bb8e1db743fe7c88')
+                         '96871499965d85e6a9d3c22d0bd1aebd5b7c4baaef632f8c628c9b84b287a22f')
 
     def test_fingerprint_batches_fresh_cuda_bytes(self):
         """Catch changed typed hashes, per-leaf transfers and retained CUDA bytes."""
@@ -1457,7 +1722,7 @@ class ContractTests(unittest.TestCase):
         assert has('fresh', "context['quadratic'].fit_means(raw, head)")
         assert has('canonical_features', "context['genuine'].normalize_nonzero(raw)")
         assert has('integrity', "context['quadratic']._check_base(state['head'], state['A'].device)")
-        assert has('update', "context['quadratic'].raw_features(state['features'][index], state['head'], state['A'], state['means'], state['arm'])")
+        assert has('update', "context['quadratic'].raw_features(feature_rows(state, batch[start:start + 16]), state['head'], state['A'], state['means'], state['arm'])")
         assert has('update', '(ce + 8 * rank) * .25')
         assert has('update', 'range(0, 64, 16)')
         assert has('update', 'scaler.unscale_(optimizer)')
