@@ -1,0 +1,15 @@
+{
+  "authority_sha256": "4a9f2ff3c51e68cf737133908e192a67663c007ca9d646b8938df7a5f9f005d7",
+  "cpu_command_sha256": "6689bf93414a5e998d02cf4b33e2a1a01f1b6463f623e566890449496dab844b",
+  "execution_sha256": "2003e9a6adba30c8f90fa17f6437cbba1f4b6cd2d12e75906195d16229846e08",
+  "files": {
+    "authority-cpu-v1.json": "4a9f2ff3c51e68cf737133908e192a67663c007ca9d646b8938df7a5f9f005d7",
+    "execution.json": "2003e9a6adba30c8f90fa17f6437cbba1f4b6cd2d12e75906195d16229846e08",
+    "test_siglip2_genuine_view_training.py": "1effe6e87b9d667d29bc7b8904023634e7913f53c4b0a17e360728f83e1cd77b",
+    "train_siglip2_genuine_views.py": "788d672bca384c478881fc8f0b59090efbaf6f84e1c9f27469828bc951b7ec96"
+  },
+  "native_run": false,
+  "qualified_preparation_service_seconds": 283.636,
+  "remote_root": "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1",
+  "source_commit": "f0e90dcf"
+}
