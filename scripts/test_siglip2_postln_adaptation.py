@@ -197,6 +197,41 @@ class Contract(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     driver.check_payload(bad, bad_ident, step)
 
+    def test_config_json_boundary_preserves_typed_payload_and_rejects_mutations(self):
+        tree = ast.parse(PATH.read_text())
+        integrity = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'integrity')
+        guard = next(n.value for n in integrity.body if isinstance(n, ast.Expr) and
+                     isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Name) and n.value.func.id == 'require')
+        # Execute the actual live-config guard without importing native libraries.
+        code = compile(ast.Expression(guard), str(PATH), 'eval')
+        for arm in driver.ARMS:
+            saved, ident = self.fake_payload(arm, 0)
+            config = {'id2label': {0: 'class'}, 'input_shape': (256, 1152)}
+            saved['config'] = config
+            ident['config'] = driver.json_form(config)
+            self.assertEqual(ident['config'], {'id2label': {'0': 'class'}, 'input_shape': [256, 1152]})
+            ident.update(native_inventory=[{} for _ in range(448)], runtime={})
+            model = SimpleNamespace(config=SimpleNamespace(to_dict=lambda: config, _attn_implementation='sdpa'),
+                                    parameters=lambda: [])
+            environment = {'require': driver.require, 'json_form': driver.json_form, 'ident': ident, 'model': model,
+                           'native_inventory': lambda model: ident['native_inventory'], 'runtime': lambda context, state: {},
+                           'context': {}, 'state': {}, 'torch': SimpleNamespace(float32='torch.float32')}
+            checks = {'payload': lambda: driver.check_payload(saved, ident, 0),
+                      'integrity': lambda: eval(code, environment)}
+            for path, check in checks.items():
+                with self.subTest(arm=arm, path=path, mutation=None):
+                    check()
+                    self.assertEqual(saved['config'], {'id2label': {0: 'class'}, 'input_shape': (256, 1152)})
+                for key, changed in [('id2label', {0: 'changed'}), ('input_shape', (256, 1153))]:
+                    with self.subTest(arm=arm, path=path, mutation=key):
+                        before = config[key]
+                        config[key] = changed
+                        try:
+                            with self.assertRaisesRegex(ValueError, 'payload identity|roles/config/runtime'):
+                                check()
+                        finally:
+                            config[key] = before
+
     def test_native_inventory_rejects_original_205_roles(self):
         launch, _ = self.launch()
         _, ident = self.fake_payload('candidate', 0)

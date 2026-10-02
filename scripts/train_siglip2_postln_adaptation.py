@@ -588,7 +588,7 @@ def payload(state, ident):
 def check_payload(saved, ident, step):
     check_optimizer_identity(ident)
     require(saved.keys() == PAYLOAD_KEYS and saved['schema'] == SCHEMA and saved['identity'] == ident and
-            saved['source'] == ident['source'] and saved['config'] == ident['config'] and
+            saved['source'] == ident['source'] and json_form(saved['config']) == ident['config'] and
             saved['numerical_flags'] == ident['numerical_flags'] and json_form(saved['optimizer_defaults']) == ident['optimizer_defaults'] and
             type(saved['counter']) is int and saved['counter'] == step and 0 <= step <= 100 and
             saved['seed'] == ident['seed'] and ident['parameter_names'] == parameter_names(ident['arm']),
@@ -640,7 +640,7 @@ def integrity(context, state, ident, fresh_bytes=False):
     tick = time.perf_counter()
     model, original = state['model'], context['original']
     require(native_inventory(model) == ident['native_inventory'] and len(ident['native_inventory']) == 448 and
-            model.config.to_dict() == ident['config'] and runtime(context, state) == ident['runtime'] and
+            json_form(model.config.to_dict()) == ident['config'] and runtime(context, state) == ident['runtime'] and
             model.config._attn_implementation == 'sdpa' and all(p.dtype == torch.float32 and p.device.type == ident['device']
                 for p in model.parameters()), 'complete native448 roles/config/runtime differs')
     require(all(m.training and not m._forward_hooks and not m._forward_pre_hooks and not m._backward_hooks and
