@@ -1,0 +1,47 @@
+{
+  "bootstrap_draws": 0,
+  "candidate": {
+    "map_at_r": 0.7995571225383152,
+    "recall_at_1": 0.9602076124567474
+  },
+  "confidence_intervals": "not computed at frozen first-seed early-stop gate",
+  "control": {
+    "map_at_r": 0.8057229533585297,
+    "recall_at_1": 0.9630911188004614
+  },
+  "cost_pass": true,
+  "dataset": "InShop",
+  "decision": "KILL",
+  "delta_pp": {
+    "per_query_ap": -0.6165830820214515,
+    "per_query_r1": -0.28835063437139563
+  },
+  "fit_images": 6355,
+  "fit_products": 1008,
+  "gallery": 1715,
+  "independent_scalar_reduction_pass": true,
+  "invocation_id": "9a83d1fa561841c1a6bd93291ccd1ac2",
+  "log_sha256": "72e9a71575cb9e269b19468e29a45842b0ee4040d784ed5701d2db7d57fda5e6",
+  "median_update_ratio": 1.072778010700222,
+  "official_read": false,
+  "production_goal_met": false,
+  "products": 498,
+  "public_latency_measured": false,
+  "quality_verified": true,
+  "queries": 1734,
+  "receipt_sha256": "ffcb1d2675cc37e1ab877403003ff83ead450ba1dc4dfff834225be70f884e45",
+  "score_cuda_initialized": false,
+  "score_host_peak_bytes": 1221419008,
+  "score_service_seconds": 117.822,
+  "score_swap_bytes": 0,
+  "sealed_validation_read": false,
+  "second_seed_executed": false,
+  "seed": 179061,
+  "split": "prospective class-disjoint selection",
+  "unit": "sfora-so400-identity-mix-evaluation-first-score-v1",
+  "whole_ratio": 1.0157382191314497,
+  "whole_training_seconds": {
+    "candidate": 167.093,
+    "control": 164.504
+  }
+}
