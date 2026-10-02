@@ -1,0 +1,24 @@
+{
+  "decision": "FAIL_ENGINEERING_TIMEOUT",
+  "quality_decision": null,
+  "quality_verified": false,
+  "job_session": 30535,
+  "unit": "sfora-so400-prototype-residual-evaluation-selection-score-v2",
+  "invocation_id": "75c1ba3d72f1421193b1477a3a2e646f",
+  "service_seconds": 300.17,
+  "authority_seconds": 112.15806069970131,
+  "cost_pass": true,
+  "host_peak_bytes": 1566273536,
+  "swap_peak_bytes": 0,
+  "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "log_sha256": "445140a3dd60281b0eef718b6d4b4bf46e34996330ac29545c2bbcc041124c30",
+  "partial_wires": [
+    "source",
+    "linear",
+    "quadratic"
+  ],
+  "terminal_receipt": false,
+  "prior_failures_preserved": true,
+  "model_quality_kill": false,
+  "same_goal_active": true
+}
