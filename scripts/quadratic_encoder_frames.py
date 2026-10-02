@@ -1,4 +1,4 @@
-"""Owned tensor-free encoder frames; the original serializer remains provenance."""
+"""Owned tensor-free metadata frames; the original serializer remains provenance."""
 import ast
 import copy
 import hashlib
@@ -46,11 +46,11 @@ class EncoderFrames(tuple):
         return thaw(tuple.__getitem__(self, 1))
 
 
-def seal(original, encoder):
+def seal(original, *roots):
     """Called only after full production composition admission, never with tensors."""
-    tree = freeze(encoder)
-    if type(encoder) is not dict:
-        raise ValueError('complete encoder dictionary required')
+    if not roots or any(type(root) is not dict for root in roots):
+        raise ValueError('complete metadata dictionaries required')
+    trees = tuple(freeze(root) for root in roots)
     path = Path(original.__code__.co_filename)
     raw = path.read_bytes()
     if hashlib.sha256(raw).hexdigest() != ORIGINAL_SHA256:
@@ -73,15 +73,17 @@ def seal(original, encoder):
     metadata.body = [n for n in metadata.body if not isinstance(n, ast.Import)]
     collect = compile_adapter(metadata, torch=SimpleNamespace(Tensor=()),
                               hashlib=SimpleNamespace(sha256=Stream))
-    capsule = EncoderFrames((collect(thaw(tree)), tree))
+    capsules = tuple(EncoderFrames((collect(thaw(tree)), tree)) for tree in trees)
 
-    def check_owned(value):
-        if type(value) is not EncoderFrames or value is not capsule:
-            raise ValueError('replacement, foreign or conflicting encoder frames')
+    def check_owned(slot, value):
+        if (type(slot) is not int or not 0 <= slot < len(capsules) or
+                type(value) is not EncoderFrames or value is not capsules[slot]):
+            raise ValueError('wrong slot, replacement, foreign or conflicting metadata frames')
         return value
 
     def frames(value):
-        return tuple.__getitem__(check_owned(value), 0)
+        slot = next((i for i, capsule in enumerate(capsules) if value is capsule), -1)
+        return tuple.__getitem__(check_owned(slot, value), 0)
 
     visit = next(n for n in node.body if isinstance(n, ast.FunctionDef) and n.name == 'visit')
     visit.body[:0] = ast.parse('''if isinstance(item, _EncoderFrames):
@@ -94,4 +96,4 @@ def seal(original, encoder):
         # Never carry tensor facts across calls, including same-boundary calls.
         return adapted(value, consumed=consumed)
 
-    return capsule, fingerprint, check_owned
+    return capsules, fingerprint, check_owned

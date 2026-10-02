@@ -9,6 +9,7 @@ import hashlib
 import importlib.util
 import io
 import os
+import pickle
 import signal
 import time
 from collections import Counter
@@ -23,6 +24,25 @@ from unittest.mock import patch
 import unittest
 
 PATH = Path(__file__).resolve().with_name('train_siglip2_quadratic_readout.py')
+
+
+class FrameTensor:
+    """Pickleable stdlib tensor stand-in; reads expose current bytes."""
+    dtype, shape, _version = 'torch.float32', (1,), 0
+    def __init__(self, rows=None): self.raw, self.reads, self.rows = bytearray(b'abcd'), 0, rows
+    def data_ptr(self): return 1234
+    def detach(self): return self
+    def cpu(self): return self
+    def contiguous(self): return self
+    def reshape(self, *args): return self
+    def view(self, *args): return self
+    def to(self, *args, **kwargs): return copy.deepcopy(self)
+    def tolist(self): return self.rows
+    def numpy(self):
+        self.reads += 1
+        return self.raw
+    @property
+    def data(self): return self
 
 
 class ContractTests(unittest.TestCase):
@@ -328,7 +348,8 @@ class ContractTests(unittest.TestCase):
                      features='canonical', **{k: {} for k in d.STATIC_KEYS})
         def digest(tree): return hashlib.sha256(repr(tree).encode()).hexdigest()
         context = dict(encoder='encoder', encoder_check=lambda value: d.require(value == 'encoder', 'encoder differs') or value,
-                       encoder_fingerprint=digest)
+                       encoder_fingerprint=digest, partition=state['partition'], initial={'partition': state['partition']},
+                       partition_check=lambda value: value)
         ident = dict(frozen_sha256=digest(d.frozen_tree(context, state)))
         d.check_complement(context, state, ident)
         value.data = 'same-version-tamper'
@@ -456,7 +477,7 @@ class ContractTests(unittest.TestCase):
         exporter = load('_exit_exporter', PATH.with_name('export_siglip2_genuine_views.py'))
         # Pin the prospective trainer closure, including typed state and boundaries.
         # The separate base-AST check preserves original math/schedule/RNG/exit.
-        tree = ast.parse(PATH.read_bytes())
+        tree = self.partition_baseline(ast.parse(PATH.read_bytes()))
         tree.body = [n for n in tree.body if not isinstance(n, ast.FunctionDef) or
                      n.name not in ('audit_origins', 'exit_rehash')]
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
@@ -722,7 +743,7 @@ class ContractTests(unittest.TestCase):
         # Base 7f7eb1cf, allowing only the explicit capsule reads/hash adapter in
         # these mathematical/reload routines. Admission amendments are pinned
         # separately by the complete trainer AST in the exit falsifier.
-        tree = ast.parse(PATH.read_bytes())
+        tree = self.partition_baseline(ast.parse(PATH.read_bytes()))
         excluded = {'authority', 'composition', 'encoder_metadata', 'frozen_tree', 'identity', 'payload',
                     'check_payload', 'check_complement', 'integrity', 'save', 'owned_encoder'}
         tree.body = [n for n in tree.body[1:] if not (isinstance(n, ast.FunctionDef) and n.name in excluded)
@@ -748,6 +769,58 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
                          'cd91be85cabc2618976cd4567c63b5d4d6a9b48aaef70b934c77c2cb9875dc8e')
 
+    @staticmethod
+    def partition_baseline(tree):
+        """Reverse only the owned-partition interface; pin every remaining AST node."""
+        changes = [
+            ("(capsule,), fingerprint, check_owned = context['frames'].seal(context['original'].fingerprint, encoder)",
+             "capsule, fingerprint, check_owned = context['frames'].seal(context['original'].fingerprint, encoder)"),
+            ("context['encoder_fingerprint'], context['encoder_check'] = fingerprint, lambda value: check_owned(0, value)",
+             "context['encoder_fingerprint'], context['encoder_check'] = fingerprint, check_owned"),
+            ("static_sha = context['original'].fingerprint({k: initial[k] for k in STATIC_KEYS})",
+             "context['static_sha256'] = context['original'].fingerprint({k: initial[k] for k in STATIC_KEYS})"),
+            ("(encoder, partition), fingerprint, check_owned = context['frames'].seal(context['original'].fingerprint, owned_encoder(context).materialize(), initial['partition'])", None),
+            ("context['encoder'], context['partition'], initial['partition'] = encoder, partition, partition", None),
+            ("context['encoder_fingerprint'] = fingerprint", None),
+            ("context['encoder_check'] = lambda value: check_owned(0, value)", None),
+            ("context['partition_check'] = lambda value: check_owned(1, value)", None),
+            ("sealed_static_sha = fingerprint({k: partition if k == 'partition' else initial[k] for k in STATIC_KEYS})", None),
+            ("require(sealed_static_sha == static_sha, 'admitted original typed static fingerprint differs')", None),
+            ("context['static_sha256'] = sealed_static_sha", None),
+            ("if partition_check is not None:\n    partition_check(saved['partition'])", None),
+            ("check_payload(saved, ident, state['counter'], context['encoder_check'], context['partition_check'])",
+             "check_payload(saved, ident, state['counter'], context['encoder_check'])"),
+            ("saved['partition'] = owned_partition(context, state).materialize()", None),
+            ('''def owned_partition(context, state=None):
+    capsule = context['partition_check'](context['partition'])
+    context['partition_check'](context['initial']['partition'])
+    if state is not None:
+        context['partition_check'](state['partition'])
+    return capsule''', None)]
+        replacements = {ast.dump(ast.parse(new).body[0]): None if old is None else ast.parse(old).body[0]
+                        for new, old in changes}
+        expressions = [
+            ("context['encoder_fingerprint']({k: owned_partition(context, state) if k == 'partition' else state[k] for k in STATIC_KEYS})",
+             "original.fingerprint({k: state[k] for k in STATIC_KEYS})"),
+            ("owned_partition(context, state) if k == 'partition' else state[k]", "state[k]"),
+            ("owned_partition(context) if k == 'partition' else clone_tree(initial[k])", "clone_tree(initial[k])")]
+        replacements.update({ast.dump(ast.parse(new, mode='eval').body): ast.parse(old, mode='eval').body
+                             for new, old in expressions})
+        new_args = ast.parse('def check_payload(saved, ident, step, encoder_check=None, partition_check=None): pass').body[0].args
+        old_args = ast.parse('def check_payload(saved, ident, step, encoder_check=None): pass').body[0].args
+        replacements[ast.dump(new_args)] = old_args
+        class ReverseInterface(ast.NodeTransformer):
+            def visit(self, node):
+                key = ast.dump(node)
+                return copy.deepcopy(replacements[key]) if key in replacements else super().visit(node)
+        return ReverseInterface().visit(tree)
+
+    def test_partition_interface_preserves_complete_baseline_ast(self):
+        # Exact baseline bytes: 3493ac6027b00d52106cb9814a77d6efe5616b957253da99cce375ba8b722091.
+        tree = self.partition_baseline(ast.parse(PATH.read_bytes()))
+        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+                         'b76baa8e40c280438de4abfad3353e479bfdbd4e5e10e8b5bb8e1db743fe7c88')
+
     def test_immutable_encoder_differential_falsifier(self):
         """Full production admission plus old/new typed streams; no native libraries."""
         d, started = self.driver, time.monotonic()
@@ -769,25 +842,56 @@ class ContractTests(unittest.TestCase):
         frames = load('quadratic_encoder_frames')
         globals_before = dict(vars(original))
         self.assertEqual(hashlib.sha256(Path(original.__file__).read_bytes()).hexdigest(), frames.ORIGINAL_SHA256)
-        class Tensor:
-            dtype, shape, _version = 'torch.float32', (1,), 0
-            def __init__(self): self.raw, self.reads = bytearray(b'abcd'), 0
-            def data_ptr(self): return 1234
-            def detach(self): return self
-            def cpu(self): return self
-            def contiguous(self): return self
-            def reshape(self, *args): return self
-            def view(self, *args): return self
-            def numpy(self):
-                self.reads += 1
-                return self.raw
-            @property
-            def data(self): return self
+        partition = {'schema': 'partition', 'panels': {0: ('row', 1), '0': ['row', 1]}}
+        capsules, fingerprint, check = frames.seal(original.fingerprint, self.encoder(), partition)
+        self.assertIs(type(capsules), tuple)
+        self.assertEqual(len(capsules), 2)
+        for slot, capsule in enumerate(capsules):
+            self.assertIs(check(slot, capsule), capsule)
+            with self.assertRaises(ValueError): check(1 - slot, capsule)
+        Tensor = FrameTensor
         class Scalar(int): pass
         class Text(str): pass
         class Sequence(list): pass
         class Tuple(tuple): pass
+        class Mapping(dict): pass
+        class Bytes(bytes): pass
+        class Capsule(frames.EncoderFrames): pass
         fake_torch = SimpleNamespace(Tensor=Tensor, uint8='uint8')
+        # Run the unchanged warm digest/static admission and the real final sealing
+        # block. Native loading/origin checks remain pinned by the complete AST.
+        prepare = next(n for n in ast.parse(PATH.read_bytes()).body
+                       if isinstance(n, ast.FunctionDef) and n.name == 'prepare_native')
+        warm = next(n for n in prepare.body if isinstance(n, ast.With))
+        guards = [n for n in warm.body if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+                  and isinstance(n.value.func, ast.Name) and n.value.func.id == 'require'][:2]
+        start = next(i for i, n in enumerate(prepare.body) if isinstance(n, ast.Assign)
+                     and ast.unparse(n.targets[0]) == 'initial')
+        admission = compile(ast.Module(body=guards + prepare.body[start:-1], type_ignores=[]), str(PATH), 'exec')
+        full_schedule = [[(i + j) % 6355 for j in range(64)] for i in range(1000)]
+        def warm_disk(ctx):
+            disk = dict(head={'center': Tensor(), 'preactivation_std': Tensor()}, classifier=Tensor(), bank=Tensor(),
+                pca={'mean': Tensor(), 'components': Tensor()}, target=Tensor([0, 1]), positive=Tensor(),
+                schedules={str(seed): Tensor(full_schedule) for seed in d.SEEDS},
+                masks={str(seed): Tensor() for seed in d.SEEDS}, original_rows=Tensor([1, 2]),
+                partition={'schema': 'partition', 'panels': {'train': {'original_rows': [1, 2]}},
+                           'typed_witness': {0: ('row', 1), '0': ['row', 1], 'bytes': b'ab'}},
+                views={}, initializer={'unchanged': True})
+            keys = tuple(k for k in d.STATIC_KEYS if k != 'warm_start') + ('initializer',)
+            disk['identity'] = dict(static_sha256=original.fingerprint({k: disk[k] for k in keys}),
+                                   buffers_sha256=original.fingerprint(disk['head']))
+            ctx['selected'].update(target=[0, 1], partition=copy.deepcopy(disk['partition']))
+            ctx['warm_record'] = {'identity': d.json_form(disk['identity'])}
+            ctx['launch'] = {'warm_start': self.launch()[0]['warm_start']}
+            return disk, keys, original.fingerprint(disk)
+        def admit(ctx, disk, keys, digest):
+            ctx['initial'] = {k: d.clone_tree(disk[k]) for k in
+                              ('head', 'classifier', 'bank', 'pca', 'target', 'positive',
+                               'schedules', 'masks', 'original_rows', 'partition', 'views')}
+            environment = dict(vars(d), context=ctx, disk=disk, selected=ctx['selected'],
+                genuine=SimpleNamespace(STATIC_KEYS=keys), pages=SimpleNamespace(consume=lambda value: None),
+                WARM_STATE_SHA=digest)
+            exec(admission, environment)
         fixture_bytes = 0
         with tempfile.TemporaryDirectory() as temporary:
             checkpoint = Path(temporary) / 'vision.pt'; checkpoint.write_bytes(b'structural fixture only')
@@ -814,7 +918,18 @@ class ContractTests(unittest.TestCase):
                             admission=original.FlatAdmission(), original=original, frames=frames)
             ctx = context()
             ctx['encoder'] = d.composition(ctx)  # The genuine full production sealing path.
+            cold = ctx['encoder']
+            self.assertIs(d.owned_encoder(ctx), cold)
+            with self.assertRaises(KeyError): d.owned_partition(ctx)
+            with patch.dict(sys.modules, torch=fake_torch):
+                disk, keys, digest = warm_disk(ctx)
+                admit(ctx, disk, keys, digest)
             capsule, fingerprint, check = ctx['encoder'], ctx['encoder_fingerprint'], ctx['encoder_check']
+            partition_capsule, partition_check = ctx['partition'], ctx['partition_check']
+            partition_dict = partition_capsule.materialize()
+            self.assertIs(d.owned_partition(ctx), partition_capsule)
+            with self.assertRaises(ValueError): check(cold)
+            fixture_bytes += len(repr(full_schedule).encode()) + len(repr(partition_dict).encode())
             materialized = capsule.materialize()
             d.check_encoder(materialized)
             fixture_bytes += len(repr(materialized).encode()) + len(tuple.__getitem__(capsule, 0))
@@ -823,73 +938,201 @@ class ContractTests(unittest.TestCase):
                 self.assertIn(type(value), (tuple, str, bytes, int, float, bool, type(None)))
                 if type(value) is tuple:
                     for child in value: immutable(child)
-            for child in tuple.__iter__(capsule): immutable(child)
+            for owned in (capsule, partition_capsule):
+                for child in tuple.__iter__(owned): immutable(child)
             with self.assertRaises((AttributeError, TypeError)): capsule.frames = b'conflict'
             with self.assertRaises(TypeError): capsule[0] = b'conflict'
             # Returned values and source aliases cannot change the sealed proof.
             capsule['inventory'][0]['shape'][0] = 999
             ctx['selected']['source_cpu']['runtime']['vision'].clear()
+            partition_capsule['panels']['train']['original_rows'].clear()
+            disk['partition']['typed_witness'].clear()
+            ctx['selected']['partition'].clear()
             self.assertEqual(capsule.materialize(), materialized)
+            self.assertEqual(partition_capsule.materialize(), partition_dict)
             with patch.dict(sys.modules, torch=fake_torch):
                 tensor = Tensor()
-                ordinary = dict(encoder=materialized, optimizer={'state': {0: {'exp_avg': tensor}},
-                    'param_groups': [{'params': [0], 'betas': (.9, .999)}]}, repeated=[materialized, materialized],
-                    keys={0: 'integer', '0': 'string'}, rng=tensor)
-                adapted = {**ordinary, 'encoder': capsule, 'repeated': [capsule, capsule]}
+                def fake_tensors(value):
+                    if isinstance(value, SimpleNamespace) and hasattr(value, 'shape'):
+                        result = Tensor(); result.shape, result.dtype = value.shape, value.dtype
+                        return result
+                    if type(value) is dict:
+                        return {k: fake_tensors(v) for k, v in value.items()}
+                    if type(value) in (tuple, list):
+                        return type(value)(fake_tensors(v) for v in value)
+                    return value
+                ordinary = fake_tensors(self.fake_payload()[0])
+                ordinary.update(encoder=materialized, partition=partition_dict,
+                    repeated=[materialized, materialized], keys={0: 'integer', '0': 'string'}, rng=tensor)
+                adapted = {**ordinary, 'encoder': capsule, 'partition': partition_capsule,
+                           'repeated': [capsule, capsule]}
                 self.assertEqual(fingerprint(adapted), original.fingerprint(ordinary))
                 self.assertEqual(fingerprint(capsule), original.fingerprint(materialized))
                 self.assertNotEqual(fingerprint((1, 2)), fingerprint([1, 2]))
                 self.assertNotEqual(fingerprint({0: 'x'}), fingerprint({'0': 'x'}))
-                consumed = []
-                self.assertEqual(fingerprint(adapted, consumed=consumed.append), original.fingerprint(ordinary))
-                self.assertEqual(consumed, [tensor, tensor])
+                consumed, original_consumed = [], []
+                self.assertEqual(fingerprint(adapted, consumed=consumed.append),
+                                 original.fingerprint(ordinary, consumed=original_consumed.append))
+                self.assertEqual(consumed, original_consumed)
                 with self.assertRaises(TypeError): fingerprint(adapted, frozen={})
-                foreign, _, _ = frames.seal(original.fingerprint, materialized)
+                (foreign, foreign_partition), _, foreign_check = frames.seal(original.fingerprint, materialized, partition_dict)
                 conflicting = frames.EncoderFrames((b'wrong', tuple.__getitem__(capsule, 1)))
                 replacement = frames.EncoderFrames(tuple(capsule))
-                for bad in (foreign, conflicting, replacement, materialized):
+                for bad in (foreign, conflicting, replacement, materialized, partition_capsule, Capsule(tuple(capsule))):
                     with self.assertRaises(ValueError): check(bad)
                     with self.assertRaises(ValueError): d.owned_encoder(ctx, {'encoder': bad})
                     with patch.dict(ctx, encoder=bad), self.assertRaises(ValueError): d.owned_encoder(ctx)
-                    if type(bad) is frames.EncoderFrames:
+                    if bad is not partition_capsule and isinstance(bad, frames.EncoderFrames):
                         with self.assertRaises(ValueError): fingerprint({'encoder': bad})
+                partition_bad = (foreign_partition, capsule, frames.EncoderFrames((b'wrong', tuple.__getitem__(partition_capsule, 1))),
+                                 frames.EncoderFrames(tuple(partition_capsule)), partition_dict, Capsule(tuple(partition_capsule)))
+                for bad in partition_bad:
+                    with self.assertRaises(ValueError): partition_check(bad)
+                    with self.assertRaises(ValueError): d.owned_partition(ctx, {'partition': bad})
+                    with patch.dict(ctx, partition=bad), self.assertRaises(ValueError): d.owned_partition(ctx)
+                    with patch.dict(ctx['initial'], partition=bad), self.assertRaises(ValueError): d.owned_partition(ctx)
+                    if bad is not capsule and isinstance(bad, frames.EncoderFrames):
+                        with self.assertRaises(ValueError): fingerprint({'partition': bad})
+                for slot in (-1, 2, True, '0'):
+                    with self.assertRaises(ValueError): foreign_check(slot, foreign)
                 # Full live payload admission uses ownership; saved dictionaries use all original checks.
                 saved, ident = self.fake_payload(step=1)
-                saved['encoder'] = capsule
-                d.check_payload(saved, ident, 1, check)
-                for bad in (foreign, conflicting, replacement, materialized):
+                saved['encoder'], saved['partition'] = capsule, partition_capsule
+                d.check_payload(saved, ident, 1, check, partition_check)
+                for bad in (foreign, conflicting, replacement, materialized, partition_capsule):
                     with patch.dict(saved, encoder=bad), self.assertRaises(ValueError):
-                        d.check_payload(saved, ident, 1, check)
-                saved['encoder'] = materialized
+                        d.check_payload(saved, ident, 1, check, partition_check)
+                for bad in partition_bad:
+                    with patch.dict(saved, partition=bad), self.assertRaises(ValueError):
+                        d.check_payload(saved, ident, 1, check, partition_check)
+                for key in d.PAYLOAD_KEYS:
+                    bad = saved.copy(); del bad[key]
+                    with self.assertRaises((ValueError, KeyError)):
+                        d.check_payload(bad, ident, 1, check, partition_check)
+                saved['encoder'], saved['partition'] = materialized, partition_dict
                 d.check_payload(saved, ident, 1)
-                # Execute the real save boundary's projection and equality assertion.
-                save = next(n for n in ast.parse(PATH.read_bytes()).body
-                            if isinstance(n, ast.FunctionDef) and n.name == 'save')
-                start = next(i for i, n in enumerate(save.body) if isinstance(n, ast.Assign)
-                             and ast.unparse(n.targets[0]) == 'digest')
-                boundary = compile(ast.Module(body=save.body[start:start + 3], type_ignores=[]), str(PATH), 'exec')
-                persisted = {k: v for k, v in adapted.items() if k != 'repeated'}
-                environment = dict(vars(d), context=ctx, state={'encoder': capsule}, saved=persisted)
-                exec(boundary, environment)
-                self.assertIs(type(persisted['encoder']), dict)
-                self.assertEqual(persisted['encoder'], materialized)
-                self.assertEqual(original.fingerprint(persisted), environment['digest'])
-                state = dict(encoder=capsule, head=SimpleNamespace(state_dict=lambda: {'weight': tensor}),
-                    classifier=tensor, config={}, buffers={}, means={}, features=tensor,
-                    **{k: {} for k in d.STATIC_KEYS})
-                identity = {'frozen_sha256': fingerprint(d.frozen_tree(ctx, state))}
-                for via_data in (False, True):
+                head_buffers = {'center': Tensor(), 'preactivation_std': Tensor()}
+                state = {k: d.clone_tree(ctx['initial'][k]) for k in d.STATIC_KEYS if k != 'partition'}
+                state.update(encoder=capsule, partition=partition_capsule,
+                    head=SimpleNamespace(state_dict=lambda: {'weight': tensor, **head_buffers},
+                                         named_buffers=lambda: head_buffers.items()),
+                    classifier=Tensor(), config={}, buffers={'embeddings.position_ids': Tensor()},
+                    means={'linear': Tensor(), 'quadratic': Tensor()}, features=Tensor())
+                ctx['static_sha256'] = fingerprint({k: state[k] for k in d.STATIC_KEYS})
+                ctx['means_sha256'] = original.fingerprint(state['means'])
+                identity = dict(frozen_sha256=fingerprint(d.frozen_tree(ctx, state)),
+                    static_sha256=ctx['static_sha256'], means_sha256=ctx['means_sha256'],
+                    buffers_sha256=original.fingerprint(state['buffers']),
+                    head_buffers_sha256=original.fingerprint(head_buffers))
+                integrity = next(n for n in ast.parse(PATH.read_bytes()).body
+                                 if isinstance(n, ast.FunctionDef) and n.name == 'integrity')
+                static_guard = next(n for n in integrity.body if isinstance(n, ast.Expr) and
+                                    'complete static/head/means/nonpersistent buffers differ' in ast.unparse(n))
+                live_static = compile(ast.Module(body=[static_guard], type_ignores=[]), str(PATH), 'exec')
+                fake_torch.arange = lambda *args: SimpleNamespace(expand=lambda *args: Tensor())
+                fake_torch.equal = lambda a, b: a.raw == b.raw
+                def boundary():
+                    exec(live_static, dict(vars(d), context=ctx, state=state, ident=identity,
+                                           original=original, torch=fake_torch))
                     d.check_complement(ctx, state, identity)
-                    before = tensor.reads
-                    target = tensor.data if via_data else tensor
-                    target.raw[0] ^= 1  # Same pointer AND version, after a successful same-boundary read.
-                    self.assertEqual((tensor.data_ptr(), tensor._version), (1234, 0))
+                def tensors(value):
+                    if isinstance(value, Tensor): return [value]
+                    if type(value) is dict:
+                        return [t for v in value.values() for t in tensors(v)]
+                    return []
+                for current in [tensor, *head_buffers.values(), *tensors(state)]:
+                    for via_data in (False, True):
+                        boundary(); boundary()  # Successful repeated same-boundary reads.
+                        before = current.reads
+                        target = current.data if via_data else current
+                        target.raw[0] ^= 1
+                        self.assertEqual((current.data_ptr(), current._version), (1234, 0))
+                        with self.assertRaises(ValueError): boundary()
+                        self.assertGreater(current.reads, before)
+                        target.raw[0] ^= 1
+                        boundary()
+                for key in d.STATIC_KEYS:
+                    previous = state[key]
+                    state[key] = {**partition_dict, 'mutated': True} if key == 'partition' else {'mutated': True}
                     with self.assertRaises(ValueError): d.check_complement(ctx, state, identity)
-                    self.assertGreater(tensor.reads, before)
-                    target.raw[0] ^= 1
-                    d.check_complement(ctx, state, identity)
-                state['partition']['mutated'] = True
-                with self.assertRaises(ValueError): d.check_complement(ctx, state, identity)
+                    state[key] = previous
+                baseline = original.fingerprint(ordinary)
+                for key in d.PAYLOAD_KEYS:
+                    changed = {**ordinary, key: {'tampered': True}}
+                    self.assertNotEqual(original.fingerprint(changed), baseline, key)
+                    adapted_changed = {**changed, 'encoder': capsule, 'partition': partition_capsule}
+                    if key == 'encoder': adapted_changed['encoder'] = changed['encoder']
+                    if key == 'partition': adapted_changed['partition'] = changed['partition']
+                    self.assertEqual(fingerprint(adapted_changed), original.fingerprint(changed), key)
+                # The real save function writes ordinary roots; reload the actual
+                # file and compare with the untouched serializer, with no native IO.
+                checkpoint_state = {k: ordinary[k] for k in
+                    ('config', 'buffers', 'classifier', 'A', 'means', 'bank', 'counter', 'seed', *d.STATIC_KEYS)}
+                checkpoint_state.update(encoder=capsule, partition=partition_capsule, device='cpu',
+                    head=SimpleNamespace(state_dict=lambda: ordinary['head']),
+                    optimizer=SimpleNamespace(defaults=ordinary['optimizer_defaults'],
+                        state_dict=lambda: ordinary['optimizer'], zero_grad=lambda **kwargs: None),
+                    scaler=SimpleNamespace(state_dict=lambda: ordinary['scaler']))
+                fake_torch.random = SimpleNamespace(get_rng_state=lambda: ordinary['cpu_rng'])
+                checkpoint_payload = d.payload(ctx, checkpoint_state, ordinary['identity'])
+                d.check_payload(checkpoint_payload, checkpoint_payload['identity'], 0, check, partition_check)
+                for bad in partition_bad:
+                    with patch.dict(checkpoint_state, partition=bad), self.assertRaises(ValueError):
+                        d.payload(ctx, checkpoint_state, ordinary['identity'])
+                ctx['extract'] = SimpleNamespace(exclusive=lambda path: path.open('xb'),
+                    sha=lambda path: hashlib.sha256(path.read_bytes()).hexdigest())
+                ctx['args'] = SimpleNamespace(phase='mechanics')
+                fake_torch.save = lambda value, stream: pickle.dump(value, stream)
+                with patch.object(d, 'integrity', side_effect=lambda *args, **kwargs: boundary()):
+                    output = Path(temporary) / 'saved.pt'
+                    sha, saved_digest = d.save(ctx, checkpoint_state, ordinary['identity'], output)
+                with output.open('rb') as stream: reloaded = pickle.load(stream)
+                self.assertEqual(hashlib.sha256(output.read_bytes()).hexdigest(), sha)
+                self.assertIs(type(reloaded['encoder']), dict)
+                self.assertIs(type(reloaded['partition']), dict)
+                self.assertEqual(reloaded['encoder'], materialized)
+                self.assertEqual(reloaded['partition'], partition_dict)
+                self.assertEqual(original.fingerprint(reloaded), saved_digest)
+                d.check_payload(reloaded, reloaded['identity'], 0)
+                fixture_bytes += output.stat().st_size
+                # Failed full warm/partition/STATIC admission cannot expose an
+                # owned partition, even though cold composition already succeeded.
+                failures = [lambda c, disk: c['selected']['partition'].update(schema='foreign'),
+                    lambda c, disk: disk['partition']['panels']['train']['original_rows'].reverse(),
+                    lambda c, disk: disk['target'].rows.reverse(),
+                    lambda c, disk: disk['original_rows'].rows.reverse(),
+                    lambda c, disk: disk['head']['center'].raw.__setitem__(0, 0),
+                    lambda c, disk: disk['head']['preactivation_std'].raw.__setitem__(0, 0)]
+                for key in keys:
+                    failures.append(lambda c, disk, key=key: disk.__setitem__(key, {'tampered': True}))
+                for bad in (Mapping(), Scalar(1), Text('x'), Sequence(), Tuple(), Bytes(b'x'), Tensor()):
+                    failures.append(lambda c, disk, bad=bad: c['initial']['partition'].update(unknown=bad))
+                for mutate in failures:
+                    failed = context(); failed['encoder'] = d.composition(failed)
+                    failed_disk, static_keys, warm_digest = warm_disk(failed)
+                    failed['initial'] = {k: d.clone_tree(failed_disk[k]) for k in
+                        ('head', 'classifier', 'bank', 'pca', 'target', 'positive',
+                         'schedules', 'masks', 'original_rows', 'partition', 'views')}
+                    mutate(failed, failed_disk)
+                    environment = dict(vars(d), context=failed, disk=failed_disk, selected=failed['selected'],
+                        genuine=SimpleNamespace(STATIC_KEYS=static_keys), pages=SimpleNamespace(consume=lambda value: None),
+                        WARM_STATE_SHA=warm_digest)
+                    with self.assertRaises((ValueError, KeyError, TypeError, AttributeError)):
+                        exec(admission, environment)
+                    self.assertNotIn('partition_check', failed)
+                    self.assertNotIn('partition', failed)
+                    with self.assertRaises(KeyError): d.owned_partition(failed)
+                failed = context(); failed['encoder'] = d.composition(failed)
+                failed_disk, static_keys, warm_digest = warm_disk(failed)
+                real_seal = frames.seal
+                def corrupt_digest(*args):
+                    capsules, fingerprint, check = real_seal(*args)
+                    return capsules, lambda *args, **kwargs: '0' * 64, check
+                with patch.object(frames, 'seal', side_effect=corrupt_digest), self.assertRaises(ValueError):
+                    admit(failed, failed_disk, static_keys, warm_digest)
+                self.assertFalse('partition_check' in failed)
+                self.assertFalse('partition' in failed)
+                with self.assertRaises(KeyError): d.owned_partition(failed)
             # Every original encoder witness is injected through production source/export inputs.
             mutations = [lambda c: c['selected']['export_record']['source_runtime']['roles'].pop(),
                 lambda c: c['selected']['export_record']['source_runtime']['roles'][0].update(role='trainable'),

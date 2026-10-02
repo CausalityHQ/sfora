@@ -574,8 +574,8 @@ def composition(context):
     require(all(context['guards'].get(p) == h for p, h in proof['input_guards'].items()) and
             context['guards'].get(encoder['checkpoint']['path']) == encoder['checkpoint']['sha256'],
             'complete immutable source ownership missing')
-    capsule, fingerprint, check_owned = context['frames'].seal(context['original'].fingerprint, encoder)
-    context['encoder_fingerprint'], context['encoder_check'] = fingerprint, check_owned
+    (capsule,), fingerprint, check_owned = context['frames'].seal(context['original'].fingerprint, encoder)
+    context['encoder_fingerprint'], context['encoder_check'] = fingerprint, lambda value: check_owned(0, value)
     return capsule
 
 
@@ -583,6 +583,14 @@ def owned_encoder(context, state=None):
     capsule = context['encoder_check'](context['encoder'])
     if state is not None:
         context['encoder_check'](state['encoder'])
+    return capsule
+
+
+def owned_partition(context, state=None):
+    capsule = context['partition_check'](context['partition'])
+    context['partition_check'](context['initial']['partition'])
+    if state is not None:
+        context['partition_check'](state['partition'])
     return capsule
 
 
@@ -708,7 +716,16 @@ def prepare_native(context):
     initial['warm_start'] = {'endpoint': context['launch']['warm_start'], 'warm_source_updates': 1000,
                             'local_initial_counter': 0, 'bank_context': 'original canonical B32'}
     context['warm_members_sha256'] = context['original'].fingerprint({k: initial[k] for k in ('head', 'classifier', 'bank')})
-    context['static_sha256'] = context['original'].fingerprint({k: initial[k] for k in STATIC_KEYS})
+    static_sha = context['original'].fingerprint({k: initial[k] for k in STATIC_KEYS})
+    (encoder, partition), fingerprint, check_owned = context['frames'].seal(
+        context['original'].fingerprint, owned_encoder(context).materialize(), initial['partition'])
+    sealed_static_sha = fingerprint({k: partition if k == 'partition' else initial[k] for k in STATIC_KEYS})
+    require(sealed_static_sha == static_sha, 'admitted original typed static fingerprint differs')
+    context['encoder'], context['partition'], initial['partition'] = encoder, partition, partition
+    context['encoder_fingerprint'] = fingerprint
+    context['encoder_check'] = lambda value: check_owned(0, value)
+    context['partition_check'] = lambda value: check_owned(1, value)
+    context['static_sha256'] = sealed_static_sha
     audit_origins(context)
 
 
@@ -749,7 +766,8 @@ def frozen_members(state):
 def frozen_tree(context, state):
     return {'encoder': owned_encoder(context, state), 'config': state['config'], 'buffers': state['buffers'],
             'head': dict(state['head'].state_dict()), 'classifier': state['classifier'], 'means': state['means'],
-            'features': state['features'], **{k: state[k] for k in STATIC_KEYS}}
+            'features': state['features'],
+            **{k: owned_partition(context, state) if k == 'partition' else state[k] for k in STATIC_KEYS}}
 
 
 def frozen_tensors(state):
@@ -782,7 +800,7 @@ def fresh(context, arm, seed, device):
              'bank': initial['bank'].to(device, copy=True).detach(), 'arm': arm, 'seed': seed, 'device': device,
              'params': pairs, 'optimizer': optimizer, 'counter': 0,
              'scaler': torch.amp.GradScaler(device, init_scale=128),
-             **{k: clone_tree(initial[k]) for k in STATIC_KEYS}}
+             **{k: owned_partition(context) if k == 'partition' else clone_tree(initial[k]) for k in STATIC_KEYS}}
     state['target'] = state['target'].to(device)
     state['positive'] = state['positive'].to(device)
     state['frozen_versions'] = [(n, p.data_ptr(), p._version) for n, p in frozen_tensors(state)]
@@ -823,14 +841,15 @@ def payload(context, state, ident):
             'config': state['config'], 'buffers': state['buffers'],
             'head': dict(state['head'].state_dict()), 'classifier': state['classifier'].detach(),
             'A': state['A'].detach(), 'means': state['means'], 'bank': state['bank'],
-            **{k: state[k] for k in STATIC_KEYS}, 'optimizer': state['optimizer'].state_dict(),
+            **{k: owned_partition(context, state) if k == 'partition' else state[k] for k in STATIC_KEYS},
+            'optimizer': state['optimizer'].state_dict(),
             'optimizer_defaults': state['optimizer'].defaults.copy(), 'scaler': state['scaler'].state_dict(),
             'cpu_rng': torch.random.get_rng_state(),
             'cuda_rng': torch.cuda.get_rng_state_all() if state['device'] == 'cuda' else [],
             'counter': state['counter'], 'seed': state['seed'], 'numerical_flags': ident['numerical_flags']}
 
 
-def check_payload(saved, ident, step, encoder_check=None):
+def check_payload(saved, ident, step, encoder_check=None, partition_check=None):
     check_optimizer_identity(ident)
     require(saved.keys() == PAYLOAD_KEYS and saved['schema'] == SCHEMA and saved['identity'] == ident and
             saved['source'] == ident['source'] and json_form(saved['config']) == ident['config'] and
@@ -843,6 +862,8 @@ def check_payload(saved, ident, step, encoder_check=None):
     else:
         encoder_check(saved['encoder'])
         encoder_config = saved['encoder'].member('export_runtime', 'config')
+    if partition_check is not None:
+        partition_check(saved['partition'])
     require(saved['encoder']['inventory'] == ident['native_inventory'] and
             json_form(saved['config']) == encoder_config, 'complete encoder/config mapping differs')
     def tensor(value, shape, dtype='torch.float32'):
@@ -914,7 +935,8 @@ def integrity(context, state, ident, fresh_bytes=False):
             torch.equal(state['buffers']['embeddings.position_ids'], torch.arange(256).expand(1, -1)) and
             original.fingerprint(dict(state['head'].named_buffers())) == ident['head_buffers_sha256'] and
             original.fingerprint(state['means']) == ident['means_sha256'] == context['means_sha256'] and
-            original.fingerprint({k: state[k] for k in STATIC_KEYS}) == ident['static_sha256'] == context['static_sha256'],
+            context['encoder_fingerprint']({k: owned_partition(context, state) if k == 'partition' else state[k]
+                                            for k in STATIC_KEYS}) == ident['static_sha256'] == context['static_sha256'],
             'complete static/head/means/nonpersistent buffers differ')
     require(json_form(state['optimizer'].defaults) == ident['optimizer_defaults'] and
             json_form([{k: v for k, v in g.items() if k != 'params'} for g in state['optimizer'].param_groups]) == ident['optimizer_groups'] and
@@ -923,7 +945,7 @@ def integrity(context, state, ident, fresh_bytes=False):
             not state['features'].requires_grad and state['features'].grad is None and tuple(state['features'].shape) == (6355, 1152),
             'optimizer/canonical features/bank differs')
     saved = payload(context, state, ident)
-    check_payload(saved, ident, state['counter'], context['encoder_check'])
+    check_payload(saved, ident, state['counter'], context['encoder_check'], context['partition_check'])
     finite_tree(saved['optimizer'])
     require(context['source_driver'].numerical_flags() == ident['numerical_flags'], 'numerical flags changed')
     # Read actual bytes at EVERY use boundary: .data writes bypass version counters.
@@ -952,6 +974,7 @@ def save(context, state, ident, path):
     saved = payload(context, state, ident)
     digest = context['encoder_fingerprint'](saved)
     saved['encoder'] = owned_encoder(context, state).materialize()
+    saved['partition'] = owned_partition(context, state).materialize()
     require(context['original'].fingerprint(saved) == digest, 'persisted original typed fingerprint differs')
     with context['extract'].exclusive(path) as stream:
         writer = context['original'].CheckpointWriter(stream)
