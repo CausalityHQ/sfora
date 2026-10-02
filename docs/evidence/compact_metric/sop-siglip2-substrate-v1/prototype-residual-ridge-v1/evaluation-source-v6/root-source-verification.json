@@ -1,0 +1,9 @@
+{
+  "cpu_seconds": 300,
+  "historical_failures_preserved": true,
+  "native_unrun": true,
+  "schema": "prototype-evaluator-source-verification-v1",
+  "score_seconds": 300,
+  "source_commit": "787af488",
+  "stdlib_check": "PASS"
+}
