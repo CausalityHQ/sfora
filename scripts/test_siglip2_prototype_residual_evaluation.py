@@ -148,6 +148,72 @@ def check(d):
         del sys.modules['torch']
 
 
+def rng_binding_check(d, source):
+    """Run the actual cross-unit and own-unit guards with synthetic payloads."""
+    authority = next(node for node in ast.parse(source).body
+                     if isinstance(node, ast.FunctionDef) and node.name == 'authority')
+    guards = [node for node in ast.walk(authority) if isinstance(node, ast.Expr) and
+              isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and
+              node.value.func.id == 'require' and any(
+                  isinstance(part, ast.Name) and part.id == 'new_cpu' or
+                  isinstance(part, ast.Subscript) and isinstance(part.value, ast.Name) and
+                  part.value.id == 'record' and isinstance(part.slice, ast.Constant) and
+                  part.slice.value == 'terminal_state_sha256' for part in ast.walk(node.value))]
+    assert len(guards) == 2, 'own-unit binding and CPU fitted comparison required'
+    function = ast.parse('def compare(accepted, record, endpoint, fitting, new_cpu):\n    pass').body[0]
+    function.body = guards
+    namespace = {'require': d.require, 'Path': Path}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[])),
+                 '<actual evaluator admission guards>', 'exec'), namespace)
+    compare = namespace['compare']
+
+    def digest(value):
+        return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+
+    def fact(payload):
+        output = digest(payload['output_witness'])
+        return {'identity': {'source': payload['source'], 'arm': 'linear',
+                            'frozen_sha256': digest(payload['source']),
+                            'fitted_sha256': digest(payload['A']), 'output_witness_sha256': output},
+                'fit_witness': payload['fit_witness'], 'output_witness_sha256': output,
+                'terminal_state_sha256': digest(payload)}
+
+    cpu_payload = {'source': {'sha256': 'a' * 64}, 'A': [1., 2.],
+                   'fit_witness': {'lambda': .03125}, 'output_witness': {'raw': [3., 4.]},
+                   'cpu_rng': [1, 2, 3]}
+    fit_payload = copy.deepcopy(cpu_payload); fit_payload['cpu_rng'] = [4, 5, 6]
+    cpu, fitted = fact(cpu_payload), fact(fit_payload)
+    assert cpu['terminal_state_sha256'] != fitted['terminal_state_sha256']
+    assert all(cpu[k] == fitted[k] for k in ('identity', 'fit_witness', 'output_witness_sha256'))
+    endpoint = fixture(d)['endpoints'][0]
+    endpoint['terminal_state_sha256'] = fitted['terminal_state_sha256']
+    launch = {'selected_cpu': terminal('cpu')}
+    namespace['launch'] = launch
+    record = {**fitted, 'launch': launch, 'authority': endpoint['launch'],
+              'authority_sha256': endpoint['launch']['sha256'], 'checkpoint': endpoint['checkpoint'],
+              'output': '/linear'}
+    fitting, new_cpu = {'launch': launch}, {'arms': {'linear': cpu}}
+    compare(copy.deepcopy(record), record, endpoint, fitting, new_cpu)
+    for key, value in (('A', [1., 3.]), ('source', {'sha256': 'b' * 64}),
+                       ('fit_witness', {'lambda': .0625}), ('output_witness', {'raw': [3., 5.]})):
+        changed = copy.deepcopy(fit_payload); changed[key] = value
+        bad = {**record, **fact(changed)}
+        own_endpoint = dict(endpoint, terminal_state_sha256=bad['terminal_state_sha256'])
+        rejects(lambda: compare(copy.deepcopy(bad), bad, own_endpoint, fitting, new_cpu),
+                'new CPU qualified exact fitted')
+    bad = copy.deepcopy(record); bad['output_witness_sha256'] = '0' * 64
+    rejects(lambda: compare(copy.deepcopy(bad), bad, endpoint, fitting, new_cpu), 'new CPU qualified exact fitted')
+    bad = dict(record, terminal_state_sha256=cpu['terminal_state_sha256'])
+    rejects(lambda: compare(copy.deepcopy(bad), bad, endpoint, fitting, new_cpu), 'original fit endpoint binding')
+    bad_endpoint = dict(endpoint, terminal_state_sha256='0' * 64)
+    rejects(lambda: compare(copy.deepcopy(record), record, bad_endpoint, fitting, new_cpu),
+            'original fit endpoint binding')
+    bad = dict(record, checkpoint=dict(record['checkpoint'], sha256='0' * 64))
+    rejects(lambda: compare(copy.deepcopy(bad), bad, endpoint, fitting, new_cpu), 'original fit endpoint binding')
+    rejects(lambda: compare(dict(record, terminal_state_sha256='0' * 64), record, endpoint, fitting, new_cpu),
+            'new CPU qualified exact fitted')
+
+
 def flow_check(d, source):
     tree = ast.parse(source)
     functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
@@ -208,6 +274,7 @@ def main():
     spec = importlib.util.spec_from_file_location('_test_prototype_evaluator', path)
     d = importlib.util.module_from_spec(spec); spec.loader.exec_module(d)
     check(d)
+    rng_binding_check(d, path.read_text())
     flow_check(d, path.read_text())
     if args.fitter_root is not None:
         fitter_check(args.fitter_root / 'fit_siglip2_prototype_residual.py')

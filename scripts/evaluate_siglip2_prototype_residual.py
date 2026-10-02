@@ -474,8 +474,9 @@ def authority(args):
         branch = {**fitting, 'legacy': legacy, 'guards': dict(fitting['guards']),
                   'terminals': dict(fitting['terminals']), 'terminal_cgroups': dict(fitting['terminal_cgroups'])}
         accepted = fitter.admit_terminal(branch, endpoint['terminal'], 'fit', endpoint['arm'])
+        # Complete payload hashes include preserved CPU RNG from independent units.
         require(accepted == record and all(record[k] == new_cpu['arms'][endpoint['arm']][k] for k in
-                ('identity', 'fit_witness', 'terminal_state_sha256', 'output_witness_sha256')),
+                ('identity', 'fit_witness', 'output_witness_sha256')),
                 'new CPU qualified exact fitted identity/state differs')
         cores = record['fit_core_seconds']
         require(type(cores) is list and len(cores) == 2 and
