@@ -1,0 +1,25 @@
+{
+  "schema": "prototype-approved-engineering-envelope-v1",
+  "approval_message": "immediate-1790972391853538497-1312788",
+  "scope": "ONE prospective CPU qualification only",
+  "source_commit": "0ad909a3",
+  "own2": {
+    "fit_siglip2_prototype_residual.py": "cc3ffb6d63a78448e3bff0535304b50b30eb451b0617c15c4b8cf1727bed7d2d",
+    "test_siglip2_prototype_residual.py": "4f5b5ba1947e57c9adb93da512a5a7aed87528104f0c9acd873be9398d5e3c27"
+  },
+  "execution_sha256": "9c726ec7e9c8e339a82d9284fd41495bf9feb2b39ba76df10eda75a05684fef2",
+  "authority_sha256": "64b2492079cdd9adb0f3bf8660f5a775949050d32cbbe0a101682e6cfbf6f06b",
+  "command_sha256": "6aa063e316883842f4f7c9940b7def781cc74aae15e32f2bbe2d4502e3c47a5d",
+  "launch_sha256": "f1d4bebfb11aaf885a2af46c90e27f02feefb4220500a7f43ecd0f4578b7c58d",
+  "root_narrow_check_exit": 0,
+  "native": "UNRUN",
+  "previous_verdicts": "v1 helper failure and v2 timeout unchanged",
+  "limits": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "scientific_and_source_gates": "UNCHANGED",
+  "stop_rule": "one original terminal result; no fitted endpoints/quality admission unless all full CPU/refit/reload/integrity/resources pass"
+}
