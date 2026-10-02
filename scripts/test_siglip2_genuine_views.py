@@ -61,6 +61,72 @@ class CPUState:
             self.value = saved
 
 
+def cpu_witness_checks(d, path):
+    """Execute the real nested calls; missing CPU transfer or altered bytes fails."""
+    class Tensor:
+        def __init__(self, shape, raw, device='cuda', detached=False):
+            self.shape, self.raw = shape, raw
+            self.dtype, self.device = 'torch.float32', SimpleNamespace(type=device)
+            self.detached = detached
+
+        def detach(self):
+            return Tensor(self.shape, self.raw, self.device.type, True)
+
+        def cpu(self):
+            return Tensor(self.shape, self.raw, 'cpu', self.detached)
+
+        def float(self):
+            return self
+
+        def norm(self, *, dim):
+            check(dim == 1, 'calibration norm dimension')
+            return self
+
+        def __gt__(self, other):
+            return SimpleNamespace(all=lambda: SimpleNamespace(item=lambda: True))
+
+    def fact(value):
+        d.require(value.device.type == 'cpu', 'CPU finite tensor required')
+        check(value.detached, 'witness must detach before CPU fact')
+        return {'dtype': value.dtype, 'shape': list(value.shape),
+                'sha256': hashlib.sha256(value.raw).hexdigest()}
+
+    tree = ast.parse(path.read_text())
+    export_node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'export')
+    functions = [n for n in export_node.body if isinstance(n, ast.FunctionDef) and
+                 n.name not in ('pixels_for', 'infer')]
+    namespace = {'source': SimpleNamespace(tensor_fact=fact), 'require': d.require,
+                 'torch': SimpleNamespace(isfinite=lambda _: SimpleNamespace(all=lambda: SimpleNamespace(item=lambda: True))),
+                 'F': SimpleNamespace(cosine_similarity=lambda *args, **kwargs:
+                     SimpleNamespace(cpu=lambda: SimpleNamespace(tolist=lambda: [1.0] * 4)))}
+    exec(compile(ast.Module(body=functions, type_ignores=[]), str(path), 'exec'), namespace)
+    for view in d.VIEWS:
+        for count in (4, d.BATCH, d.ROWS % d.BATCH):
+            # Tiny shapes, exact F32 bits including signed zero and a subnormal.
+            pixels = Tensor((count, 3, 2, 2), bytes.fromhex('0000008001000000') * (count * 6))
+            fp32 = Tensor((count, 2), bytes.fromhex('0000803f000000c0') * count)
+            raw = Tensor((count, 2), bytes.fromhex('0000803f0000803f') * count)
+            unit = Tensor((count, 2), bytes.fromhex('f304353ff304353f') * count)
+            images = [{'view': view, 'ordinal': i} for i in range(count)]
+            namespace.update(pixels_for=lambda *args: (pixels, images),
+                             model=lambda **kwargs: SimpleNamespace(pooler_output=fp32),
+                             infer=lambda _: (raw, unit))
+            if count == 4:
+                calibration = namespace['calibrate'](view)
+                check(calibration == {'images': images,
+                    'fp32': {'dtype': 'torch.float32', 'shape': [4, 2], 'sha256': hashlib.sha256(fp32.raw).hexdigest()},
+                    'fp16': {'dtype': 'torch.float32', 'shape': [4, 2], 'sha256': hashlib.sha256(raw.raw).hexdigest()},
+                    'cosines': [1.0] * 4}, 'calibration CPU facts preserve exact dtype/shape/bytes')
+            expected = {'images': images, **{name: {'dtype': 'torch.float32', 'shape': list(value.shape),
+                        'sha256': hashlib.sha256(value.raw).hexdigest()}
+                        for name, value in (('pixels', pixels), ('raw', raw), ('unit', unit))}}
+            check(namespace['witness'](pixels, images, raw, unit) == expected,
+                  'batch/tail CPU witnesses preserve exact dtype/shape/bytes')
+            check(all(value.device.type == 'cuda' and not value.detached for value in (pixels, fp32, raw, unit)),
+                  'witness copies leave inference tensors unchanged')
+    rejects(lambda: fact(Tensor((1,), b'\0' * 4)), 'CUDA fact without transfer')
+
+
 def main():
     scripts = Path(__file__).absolute().parent
     path = scripts / 'export_siglip2_genuine_views.py'
@@ -68,6 +134,7 @@ def main():
     spec = importlib.util.spec_from_file_location('genuine_views', path)
     d = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(d)
+    cpu_witness_checks(d, path)
     check(d.FILES == {'export_siglip2_genuine_views.py', 'test_siglip2_genuine_views.py'}, 'exact two-file closure')
     evidence = scripts.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
     fit_path = evidence / 'late-dense-v1/native256-fit-manifest-v1.json'

@@ -503,6 +503,10 @@ def export(context, started):
                 torch.isfinite(raw).all().item() and (raw.norm(dim=1) > 0).all().item(), 'native raw source outputs differ')
         return raw, F.normalize(raw, dim=1)
 
+    def cpu_fact(value):
+        # Only the bounded first4/B32/tail19 witnesses cross this device boundary.
+        return source.tensor_fact(value.detach().cpu())
+
     def calibrate(view):
         pixels, facts = pixels_for(0, 4, view)
         fp32 = model(pixel_values=pixels).pooler_output.float()
@@ -510,10 +514,10 @@ def export(context, started):
         require(torch.isfinite(fp32).all().item() and (fp32.norm(dim=1) > 0).all().item(), 'FP32 calibration differs')
         cosines = F.cosine_similarity(fp32, raw, dim=1).cpu().tolist()
         require(min(cosines) >= .999, 'first4 FP32/autocast cosine below.999')
-        return {'images': facts, 'fp32': source.tensor_fact(fp32), 'fp16': source.tensor_fact(raw), 'cosines': cosines}
+        return {'images': facts, 'fp32': cpu_fact(fp32), 'fp16': cpu_fact(raw), 'cosines': cosines}
 
     def witness(pixels, facts, raw, unit):
-        return {'images': facts, 'pixels': source.tensor_fact(pixels), 'raw': source.tensor_fact(raw), 'unit': source.tensor_fact(unit)}
+        return {'images': facts, 'pixels': cpu_fact(pixels), 'raw': cpu_fact(raw), 'unit': cpu_fact(unit)}
 
     with torch.no_grad():
         for view in VIEWS:
