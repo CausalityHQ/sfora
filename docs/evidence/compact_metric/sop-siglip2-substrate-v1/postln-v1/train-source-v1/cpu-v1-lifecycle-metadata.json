@@ -1,0 +1,81 @@
+{
+  "discarded_control": {
+    "mtime_ns": 1790915514368993271,
+    "never_accepted": true,
+    "path": "/home/riomus/runs/sfora-so400-postln-cpu-v1/discard-cpu-t523xw0b/control.pt",
+    "size_bytes": 12362846
+  },
+  "journal": [
+    {
+      "MESSAGE": "Started sfora-so400-postln-cpu-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /bin/bash /home/riomus/runs/sfora-so400-postln-source-v1/cpu-command.sh.",
+      "__REALTIME_TIMESTAMP": "1790915400300844"
+    },
+    {
+      "MESSAGE": "sfora-so400-postln-cpu-v1.service: Service reached runtime time limit. Stopping.",
+      "__REALTIME_TIMESTAMP": "1790915520518402"
+    },
+    {
+      "MESSAGE": "sfora-so400-postln-cpu-v1.service: Failed with result 'timeout'.",
+      "__REALTIME_TIMESTAMP": "1790915520599490"
+    },
+    {
+      "MESSAGE": "sfora-so400-postln-cpu-v1.service: Consumed 1min 16.884s CPU time, 7.1G memory peak, 0B memory swap peak.",
+      "__REALTIME_TIMESTAMP": "1790915520599691"
+    }
+  ],
+  "largest_guard_files": [
+    [
+      1711945083,
+      "/home/riomus/runs/sfora-native256-source-cpu-so400-v4/fresh_vision.pt"
+    ],
+    [
+      1711601328,
+      "/home/riomus/runs/sfora-native256-source-extraction-v1/so400/vision.safetensors"
+    ],
+    [
+      629945952,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcublasLt.so.13"
+    ],
+    [
+      472992264,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/triton/_C/libtriton.so"
+    ],
+    [
+      423376097,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cuda.so"
+    ],
+    [
+      299909640,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9"
+    ],
+    [
+      283285752,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcufft.so.12"
+    ],
+    [
+      274143825,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cusparselt/lib/libcusparseLt.so.0"
+    ],
+    [
+      256136105,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cpu.so"
+    ],
+    [
+      237975080,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/nccl/lib/libnccl.so.2"
+    ],
+    [
+      174842648,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcusparse.so.12"
+    ],
+    [
+      153574032,
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcusolver.so.12"
+    ]
+  ],
+  "phase_timings_measured": false,
+  "schema": "postln-v1-lifecycle-metadata-only",
+  "warm_guard_count": 15114,
+  "warm_guard_total_bytes": 8079774651,
+  "warm_receipt_sha256": "a85d7ef29909d677a12510bdafce2e1edbcd8e62d768918af572bdd3cfa87a5f"
+}
