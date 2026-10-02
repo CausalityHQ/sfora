@@ -1,0 +1,17 @@
+{
+  "code": {
+    "fit_siglip2_prototype_residual.py": "6929334fa05a915fb6e7bad85af35fc50059f6f1d020d1394d1535bf5a077238",
+    "test_siglip2_prototype_residual.py": "52e8df6c406f1af94a0f5596659038275f8e14c91944ab2ecca7885d0971f01c"
+  },
+  "native": "UNRUN",
+  "original_guard_actual_predicate_full_pass": true,
+  "original_guard_actual_predicate_missing_rejected": true,
+  "original_guard_actual_predicate_wrong_rejected": true,
+  "reload_source_no_fit_verified": true,
+  "review_native_admission": false,
+  "reviews_group": "6272a38d847743e9",
+  "root_bounded_stdlib_exit": 0,
+  "root_bounded_stdlib_seconds": 0.068092969,
+  "root_integrated_commit": "b568645f990aece063de6ecbaa2a6c689acf2308",
+  "worker_commit": "bfa9a14abfbc138c63d6f720b9148e45103e0e0d"
+}

@@ -21,3 +21,5 @@ Selection1734q/1715g/498 must first replay the archived source R1 96.30911188004
 | Dataset/split | Matched baseline/candidate R1+mAP@R | Cost | Public latency | Remaining gap | Next decisive test |
 | --- | --- | --- | --- | --- | --- |
 | InShop TRAIN selection1734q/1715g/498 | Archived source06196.3091%/80.5723%; new linear/quadratic unmeasured | Unmeasured new deterministic fit | Unmeasured | Actual learned quality, public speed, official confirmation | Review/freeze, native independent fit/reload then one matched packed quality falsifier |
+
+Final fitter bfa9a14 integrated as b568645f; root narrow stdlib check passed in0.068093s and original-guard missing/wrong-binding negatives passed. Freeze own2 execution c9931cdc193580c8ccd85a058e2001bdb344f0a9c07f82c560c7690634d72801 and CPU authority9dd2f30def2d8bea836e3687a2d661cbb4b88a3c253ad77ee6c0eeb2a04fc555 before one CPU120 native qualification. Any terminal/resource/integrity/refit/reload failure closes this frozen qualification; no fit or quality read is admitted by fixtures.
