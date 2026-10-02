@@ -1,0 +1,55 @@
+{
+  "schema": "siglip2-prototype-repeat-prepare-contract-v1",
+  "status": "committed exact2; stdlib verification PASS; corrected native remains UNRUN; parent integration/refreeze required",
+  "base": "91957a55cb05b5dfb4cb320c11563180b6586cbe",
+  "files": [
+    "scripts/fit_siglip2_prototype_residual.py",
+    "scripts/test_siglip2_prototype_residual.py"
+  ],
+  "actual_native_failure": {
+    "unit": "sfora-so400-prototype-residual-cpu-v1",
+    "invocation_id": "554177d0f1bc4a668b2faa299e0d9dff",
+    "exit_status": 1,
+    "service_seconds": 103.808,
+    "native_peak_rss_kib": 1079720,
+    "host_peak_bytes": 1338810368,
+    "error": "helper already loaded: _siglip2_pinned_adaptation_rank",
+    "log": "/tmp/sfora-so400-prototype-residual-cpu-v1.log"
+  },
+  "root_cause": "reconstruct calls own prepare_native on every refit/reload; immutable source-v7 prepare_native calls original.reference_math (load_bare fixed rank namespace), then genuine.load_helper fixed packing namespace; both original loaders forbid second load",
+  "correction": "First preparation executes genuine source-v7 unchanged. Repeats execute byte-authenticated original prepare_native AST in a separate namespace, omitting only ref and packing initialization assignments. Exact source bytes/retained AST, adapter function/code/globals, original helper module/spec/loader objects, file/spec origins, original/reference function/code/globals identity, and full rank/packing/reference source bytes plus genuine selected_ast admissions rechecked each reuse. All retained original data predicates execute: fresh warm disk reload, full typed fingerprint/schedules/static checks, fresh encoder/partition seal and original origin audit. Own warm read, fresh full encoder/config/buffers/head/classifier/targets/input reconstruction, full hashes, no-refit updated reload and exit unchanged.",
+  "constraints": {
+    "python": "python3 -B -S",
+    "native": false,
+    "torch": false,
+    "remote": false,
+    "quality": false,
+    "consultations": false,
+    "children": false,
+    "operator": false,
+    "merge_or_push_master": false
+  },
+  "parent_owns": "original native closure/failure/refreeze and later evaluator correction",
+  "verification": {
+    "red": "Observed ValueError helper already loaded: _siglip2_pinned_adaptation_rank on second genuine prepare prefix before production edit",
+    "green": "python3 -B -S scripts/test_siglip2_prototype_residual.py exit0",
+    "regression": "One stdlib check: executes genuine pinned preparation/helper-loading prefix, then repeat adapter reaches original fresh warm-load boundary; both genuine duplicate loaders still reject; partial initialization, replaced helper modules/origins/functions/code/globals, reference functions, adapter replacement/code, same-size same-mtime helper/reference source mutations rejected; independent retained AST correspondence equals original minus only statements11,13",
+    "test_limit": "No Torch/native checkpoint I/O or native tensor reconstruction executed; fixture stops at native warm load. All original .data-sensitive full warm/encoder/static typed hashes remain present by retained AST correspondence; existing typed reload byte-mutation check passes.",
+    "syntax": "Both exact files explicitly compile from bytes; no bytecode written",
+    "help": "Fitter --help exit0 unchanged CLI",
+    "diff": "git diff --check PASS; exact2 files only",
+    "native": "Original v1 remains frozen FAIL; no new native jobs, remote mutations, fit or quality",
+    "git_identity": "Roman Bartusiak <riomus@gmail.com>; no AI attribution",
+    "commit": "exact2 commit with Roman author/committer identity and no trailers; working tree clean"
+  },
+  "commit": "241d329adc70d8da150d8e3dfa0457b8cc5c0280",
+  "source_sha256": {
+    "scripts/fit_siglip2_prototype_residual.py": "1c35db02971b6b82e2469048fb531d76b9923d157285506700d3cab1f2233a4a",
+    "scripts/test_siglip2_prototype_residual.py": "4f5b5ba1947e57c9adb93da512a5a7aed87528104f0c9acd873be9398d5e3c27"
+  },
+  "parent_notification": "Early agent_send rejected because parent already has20 queued instructions; same durable contract updated; completion archives final summary.",
+  "root_integrated": "8916b7be",
+  "root_narrow_check_exit": 0,
+  "native": "UNRUN",
+  "v1_verdict": "FAIL preserved"
+}
