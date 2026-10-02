@@ -4,15 +4,17 @@ if not __debug__:
     raise SystemExit('Qualification requires assertions; optimized mode is forbidden')
 
 import ast
+import builtins
 import copy
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import struct
 import sys
 from tempfile import TemporaryDirectory
-from types import SimpleNamespace
+from types import FunctionType, SimpleNamespace
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -124,6 +126,169 @@ def typed_hash(value):
     return hashlib.sha256(frames(value)).hexdigest()
 
 
+def check_repeat_preparation(evidence):
+    """Real pinned loader/preparation prefix; stop before native checkpoint I/O."""
+    def extracted(path, names, namespace):
+        tree = ast.parse(path.read_bytes())
+        nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names]
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), str(path), 'exec'), namespace)
+        return namespace
+
+    class NativeBoundary(Exception):
+        pass
+
+    def stop(*args, **kwargs):
+        raise NativeBoundary
+
+    def native_import(name, *args, **kwargs):
+        if name == 'torch':
+            return SimpleNamespace(cuda=SimpleNamespace(is_initialized=lambda: False),
+                set_num_threads=lambda n: None, get_num_interop_threads=lambda: 1)
+        return builtins.__import__(name, *args, **kwargs)
+
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        rank, packing = root / 'rank.py', root / 'packing.py'
+        rank.write_text('def smooth_ap_bank_loss(): return 1\n')
+        packing.write_text('def pack_int8_unit_embeddings(): return 2\n')
+        digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+        namespace = dict(Path=Path, sys=sys, ast=ast, hashlib=hashlib, importlib=__import__('importlib'),
+                         require=fit.require, bound_file=fit.bound_file)
+        original = SimpleNamespace(**extracted(HERE / 'train_siglip2_substrate_adaptation.py',
+            {'load_bare'}, dict(namespace)))
+        # Preserve the actual reference_math body; its imports are the native
+        # boundary. Tiny references exercise the original selected-AST loader.
+        reference = root / 'reference.py'
+        reference.write_text('def member_bank_positive_ordinals(): return 3\n')
+        reference_tree = ast.parse(reference.read_bytes())
+        original.REFERENCES = {'reference.py': {'source': digest(reference),
+            'ast': hashlib.sha256(ast.dump(reference_tree, include_attributes=False).encode()).hexdigest(),
+            'names': ('member_bank_positive_ordinals',)}}
+        original.RANK_SHA256 = digest(rank)
+        (root / 'deployed_code_rank.py').write_bytes(rank.read_bytes())
+        import __future__
+        reference_namespace = dict(namespace, __future__=__future__)
+        extracted(HERE / 'train_siglip2_substrate_adaptation.py', {'selected_ast'}, reference_namespace)
+        original.selected_ast = reference_namespace['selected_ast']
+        reference_namespace.update(load_bare=original.load_bare, RANK_SHA256=original.RANK_SHA256,
+            REFERENCES=original.REFERENCES, SimpleNamespace=SimpleNamespace,
+            torch=None, np=None, F=None, nn=None, math=None, Dataset=object,
+            transforms=None, Image=None, selected_ast=reference_namespace['selected_ast'])
+        node = next(n for n in ast.parse((HERE / 'train_siglip2_substrate_adaptation.py').read_bytes()).body
+                    if isinstance(n, ast.FunctionDef) and n.name == 'reference_math')
+        node.body = [n for n in node.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
+        exec(compile(ast.Module(body=[node], type_ignores=[]), 'reference_math.py', 'exec'), reference_namespace)
+        original.reference_math = reference_namespace['reference_math']
+        genuine = SimpleNamespace(**extracted(HERE / 'train_siglip2_genuine_views.py',
+            {'load_helper'}, dict(namespace)))
+        flags = {'threads': 1, 'interop_threads': 1}
+        legacy = dict(genuine=genuine, original=original, guards={}, prior={},
+            selected={'source_cpu': {'numerical_flags': flags}, 'packages': {},
+                'math_context': {'root': root}, 'launch': {'helpers': {'packing':
+                {'path': str(packing), 'sha256': digest(packing)}}},
+                'source': {'caches': {'canonical': {'path': str(rank), 'sha256': digest(rank)}}}},
+            source_driver=SimpleNamespace(numerical_flags=lambda: flags))
+        old_namespace = dict(namespace, __builtins__=dict(vars(builtins), __import__=native_import),
+            audit_origins=lambda *a, **k: None, admitted_file=stop,
+            WARM_CHECKPOINT={'path': str(rank), 'sha256': digest(rank)})
+        path = evidence / 'train_siglip2_quadratic_readout.py'
+        # Execute the genuine lifecycle up to the fresh warm-load boundary.
+        # First preparation completes only this stdlib prefix in this fixture;
+        # repeat executes the production adapter's full retained function.
+        node = next(n for n in ast.parse(path.read_bytes()).body
+                    if isinstance(n, ast.FunctionDef) and n.name == 'prepare_native')
+        node.body = node.body[:14]
+        exec(compile(ast.Module(body=[node], type_ignores=[]), str(path), 'exec'), old_namespace)
+        old = SimpleNamespace(**old_namespace, __file__=str(path),
+            require_no_model=lambda c: None, owned_encoder=lambda c: {'checkpoint':
+            {'path': str(rank), 'sha256': digest(rank)}})
+        context = dict(old=old, legacy=legacy, guards={})
+        driver = dict(vars(fit), __builtins__=dict(vars(builtins), __import__=lambda name, *a, **k:
+            stop() if name == 'torch' else builtins.__import__(name, *a, **k)))
+        extracted(HERE / 'fit_siglip2_prototype_residual.py', {'prepare_native'}, driver)
+        def reaches_warm():
+            try:
+                driver['prepare_native'](context)
+            except NativeBoundary:
+                return
+            raise AssertionError('native boundary was not reached')
+        partial = dict(context, legacy=dict(legacy, ref=object()))
+        rejects(lambda: driver['prepare_native'](partial), 'partial original preparation')
+        reaches_warm()
+        ref, pack = legacy['ref'], legacy['packing']
+        reaches_warm()  # RED: genuine rank loader rejects the second load.
+        assert legacy['ref'] is ref and legacy['packing'] is pack
+        # Independently enumerate the two removed statements in source-v7:
+        # all other ASTs, including every nested require/data check, survive.
+        original_node = next(n for n in ast.parse(path.read_bytes()).body
+            if isinstance(n, ast.FunctionDef) and n.name == 'prepare_native')
+        original_node.body = [n for i, n in enumerate(original_node.body) if i not in (11, 13)]
+        assert context['original_preparation']['ast'] == ast.dump(
+            ast.Module(body=[original_node], type_ignores=[]), include_attributes=False)
+        rank_module = sys.modules['_siglip2_pinned_adaptation_rank']
+        for name, module in (('_siglip2_pinned_adaptation_rank', rank_module), ('_quadratic_packing', pack)):
+            sys.modules[name] = SimpleNamespace(__file__=module.__file__, __spec__=module.__spec__)
+            try:
+                rejects(lambda: driver['prepare_native'](context), 'helper object/origin')
+            finally:
+                sys.modules[name] = module
+        origin = pack.__spec__.origin
+        pack.__spec__.origin = str(rank)
+        try:
+            rejects(lambda: driver['prepare_native'](context), 'helper object/origin')
+        finally:
+            pack.__spec__.origin = origin
+        function = rank_module.smooth_ap_bank_loss
+        rank_module.smooth_ap_bank_loss = lambda: 9
+        try:
+            rejects(lambda: driver['prepare_native'](context), 'helper function/code')
+        finally:
+            rank_module.smooth_ap_bank_loss = function
+        code = function.__code__
+        function.__code__ = (lambda: 9).__code__
+        try:
+            rejects(lambda: driver['prepare_native'](context), 'helper function/code')
+        finally:
+            function.__code__ = code
+        values = original.reference_math.__globals__
+        loader = values['load_bare']
+        values['load_bare'] = lambda *args: None
+        try:
+            rejects(lambda: driver['prepare_native'](context), 'helper globals')
+        finally:
+            values['load_bare'] = loader
+        reference_function = ref.member_bank_positive_ordinals
+        ref.member_bank_positive_ordinals = lambda: 9
+        try:
+            rejects(lambda: driver['prepare_native'](context), 'reference metadata')
+        finally:
+            ref.member_bank_positive_ordinals = reference_function
+        adapter = context['original_preparation']['prepare']
+        context['original_preparation']['prepare'] = FunctionType(adapter.__code__, dict(adapter.__globals__))
+        try:
+            rejects(lambda: driver['prepare_native'](context), 'preparation AST/code')
+        finally:
+            context['original_preparation']['prepare'] = adapter
+        code = adapter.__code__
+        adapter.__code__ = (lambda c: None).__code__
+        try:
+            rejects(lambda: driver['prepare_native'](context), 'preparation AST/code')
+        finally:
+            adapter.__code__ = code
+        for victim in (root / 'deployed_code_rank.py', packing, reference):
+            raw, stat = victim.read_bytes(), victim.stat()
+            victim.write_bytes(raw.replace(b'return', b'Return', 1))
+            os.utime(victim, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+            try:
+                rejects(lambda: driver['prepare_native'](context), 'SHA256')
+            finally:
+                victim.write_bytes(raw)
+        reaches_warm()
+        rejects(lambda: original.reference_math({'root': root}), 'helper already loaded')
+        rejects(lambda: genuine.load_helper('_quadratic_packing', str(packing), digest(packing), {}),
+                'helper already loaded')
+
+
 def check():
     assert not any(n.split('.')[0] in fit.NATIVE for n in sys.modules)
     evidence = ROOT / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/quadratic-readout-v1/train-source-v7'
@@ -132,6 +297,7 @@ def check():
     assert hashlib.sha256((evidence / 'execution.json').read_bytes()).hexdigest() == fit.ORIGINAL_REFERENCE['execution_sha256']
     assert hashlib.sha256((evidence / 'authority-cpu-v7.json').read_bytes()).hexdigest() == fit.ORIGINAL_CPU['authority']['sha256']
     assert hashlib.sha256((evidence / 'cpu-v7-receipt.json').read_bytes()).hexdigest() == fit.ORIGINAL_CPU['terminal']['receipt']['sha256']
+    check_repeat_preparation(evidence)
     original_launch = json.loads((evidence / 'authority-cpu-v7.json').read_bytes())
     launch = dict(schema=fit.AUTHORITY_SCHEMA, execution_sha256='a' * 64, phase='cpu', arm='linear',
                   original_reference=copy.deepcopy(fit.ORIGINAL_REFERENCE), original_cpu=copy.deepcopy(fit.ORIGINAL_CPU),
@@ -254,7 +420,7 @@ def check():
         bad[key] = value
         rejects(lambda: fit.verify_digest(typed_hash, bad, digest, 'reload/current bytes changed'))
     assert typed_hash({'label': 1}) != typed_hash({'label': 1.})
-    print('PASS: authenticated solver algebra/no-intercept, exact authority/admission, uncached bytes and typed reload mutation; native UNRUN')
+    print('PASS: repeat genuine preparation/helper integrity, authenticated solver/no-intercept, authority, uncached bytes and typed reload mutation; native UNRUN')
 
 
 if __name__ == '__main__':

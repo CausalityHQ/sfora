@@ -27,7 +27,7 @@ import re
 import resource
 import sys
 import time
-from types import ModuleType, SimpleNamespace
+from types import FunctionType, ModuleType, SimpleNamespace
 
 SCHEMA = 'siglip2-prototype-residual-ridge-v1'
 AUTHORITY_SCHEMA = 'siglip2-prototype-residual-launch-v1'
@@ -263,6 +263,85 @@ def extract_solver(path, sha, torch):
     return module.fit_ridge_stitch
 
 
+def prepare_original(context):
+    """Repeat fresh source preparation; retain only admitted immutable helpers."""
+    old, legacy = context['old'], context['legacy']
+    path = Path(old.__file__)
+    raw = bound_file(context['guards'], path, ORIGINAL_CODE[path.name]).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == ORIGINAL_CODE[path.name], 'original preparation changed')
+    # Byte-authenticated extraction retains every original data predicate.
+    node = next(n for n in ast.parse(raw).body
+                if isinstance(n, ast.FunctionDef) and n.name == 'prepare_native')
+    retained, removed = [], []
+    for statement in node.body:
+        if (isinstance(statement, ast.Assign) and len(statement.targets) == 1 and
+                isinstance(statement.targets[0], ast.Subscript) and
+                ast.dump(statement.targets[0].value) == ast.dump(ast.Name(id='context', ctx=ast.Load())) and
+                isinstance(statement.targets[0].slice, ast.Constant) and
+                statement.targets[0].slice.value in ('ref', 'packing')):
+            removed.append(statement.targets[0].slice.value)
+        else:
+            retained.append(statement)
+    require(removed == ['ref', 'packing'], 'exact original helper initialization required')
+    node.body = retained
+    retained_ast = ast.dump(ast.Module(body=[node], type_ignores=[]), include_attributes=False)
+    cached = context.get('original_preparation')
+    first = cached is None
+    if first:
+        require('ref' not in legacy and 'packing' not in legacy, 'partial original preparation is inadmissible')
+        old.prepare_native(legacy)
+        namespace = dict(vars(old))  # Never rebind any original module global.
+        exec(compile(ast.Module(body=[node], type_ignores=[]), str(path), 'exec'), namespace)
+        original, ref = legacy['original'], legacy['ref']
+        math_root = legacy['selected']['math_context']['root']
+        pack = legacy['selected']['launch']['helpers']['packing']
+        helpers = [('_siglip2_pinned_adaptation_rank', sys.modules['_siglip2_pinned_adaptation_rank'],
+                    Path(math_root) / 'deployed_code_rank.py', original.RANK_SHA256),
+                   ('_quadratic_packing', legacy['packing'], Path(pack['path']), pack['sha256'])]
+        helpers = [(*h, h[1].__spec__, h[1].__spec__.loader) for h in helpers]
+        require(ref.smooth_ap_bank_loss is helpers[0][1].smooth_ap_bank_loss,
+                'original reference/rank function differs')
+        functions = [(owner, name, fn, fn.__code__) for owner in
+                     (old, original, legacy['genuine'], ref, *(h[1] for h in helpers))
+                     for name, fn in vars(owner).items() if isinstance(fn, FunctionType)]
+        globals_by_id = {id(fn.__globals__): fn.__globals__ for _, _, fn, _ in functions}
+        globals_by_id[id(namespace)] = namespace
+        cached = {'prepare': namespace['prepare_native'], 'helpers': helpers, 'ref': ref,
+                  'prepare_code': namespace['prepare_native'].__code__,
+                  'prepare_globals': namespace,
+                  'reference_members': dict(vars(ref)), 'functions': functions,
+                  'globals': [(values, dict(values)) for values in globals_by_id.values()],
+                  'references': [(Path(math_root) / name, dict(pin)) for name, pin in original.REFERENCES.items()],
+                  'ast': retained_ast}
+        context['original_preparation'] = cached
+    require(cached['ast'] == retained_ast and
+            cached['prepare'] is cached['prepare_globals']['prepare_native'] and
+            cached['prepare'].__code__ is cached['prepare_code'] and
+            cached['prepare'].__globals__ is cached['prepare_globals'],
+            'original preparation AST/code differs')
+    for name, module, origin, sha, spec, loader in cached['helpers']:
+        require(sys.modules.get(name) is module and
+                module.__spec__ is spec and spec.loader is loader and loader is not None and
+                Path(module.__file__) == Path(spec.origin) == origin,
+                'original helper object/origin differs: ' + name)
+        bound_file(context['guards'], origin, sha)
+    require(legacy['ref'] is cached['ref'] and legacy['packing'] is cached['helpers'][1][1] and
+            vars(legacy['ref']).keys() == cached['reference_members'].keys() and
+            all(vars(legacy['ref'])[k] is v for k, v in cached['reference_members'].items()),
+            'original reference metadata differs')
+    for owner, name, fn, code in cached['functions']:
+        require(getattr(owner, name, None) is fn and fn.__code__ is code,
+                'original helper function/code differs: ' + name)
+    for values, members in cached['globals']:
+        require(values.keys() == members.keys() and all(values[k] is v for k, v in members.items()),
+                'original helper globals differ')
+    for source, pin in cached['references']:
+        bound_file(context['guards'], source, pin['source'])
+        legacy['original'].selected_ast(source, pin)  # Genuine full-file AND AST admission.
+    if not first:
+        cached['prepare'](legacy)
+
+
 def prepare_native(context):
     """Fresh original warm payload/complete immutable encoder, no new optimizer."""
     old, legacy = context['old'], context['legacy']
@@ -272,7 +351,7 @@ def prepare_native(context):
     for fact in (old.WARM_CHECKPOINT, old.owned_encoder(legacy)['checkpoint'],
                  legacy['selected']['source']['caches']['canonical']):
         bound_file(context['guards'], fact['path'], fact['sha256'])
-    old.prepare_native(legacy)
+    prepare_original(context)
     import torch
     require(not torch.cuda.is_initialized() and os.environ.get('CUDA_VISIBLE_DEVICES') == '', 'hidden CPU required')
     fact = old.WARM_CHECKPOINT
