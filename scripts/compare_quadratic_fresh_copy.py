@@ -239,8 +239,14 @@ def cleanup_steps(primary, steps, record):
 
 def native_probes(original, baseline, proposed, capsules, ordinary_capsules):
     import torch
-    cpu = torch.arange(24, dtype=torch.float32).reshape(4, 6).T[::2]
-    cuda = torch.arange(24, dtype=torch.float32, device='cuda').reshape(4, 6).T[::2]
+    cpu_base = torch.arange(24, dtype=torch.float32).reshape(4, 6)
+    cuda_base = torch.arange(24, dtype=torch.float32, device='cuda').reshape(4, 6)
+    cpu = cpu_base.T[1::2, 1:]
+    cuda = cuda_base.T[1::2, 1:]
+    require(all(view.storage_offset() > 0 and not view.is_contiguous() and
+                view.untyped_storage().data_ptr() == base.untyped_storage().data_ptr()
+                for view, base in ((cpu, cpu_base), (cuda, cuda_base))),
+            'nonzero-offset shared-storage strided probes required')
     scalar = torch.tensor(3., dtype=torch.float64, device='cuda')
     cpu_scalar = torch.tensor(2, dtype=torch.int16)
     dtypes = [torch.bool, torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64,
@@ -260,15 +266,24 @@ def native_probes(original, baseline, proposed, capsules, ordinary_capsules):
         require(fingerprint(value, consumed=lambda t: order.append(id(t))) == expected and order == consumed,
                 'native consumed fallback/order differs')
     version = cuda._version
-    cuda.data[0, 0] += 7
-    require(cuda._version == version, 'isolated .data probe unexpectedly changed version')
-    changed = original(ordinary)
-    require(changed != expected and baseline(old_value) == proposed(new_value) == changed and
-            baseline(old_value) == proposed(new_value), 'fresh unchanged-version .data mutation missed')
+    saved = cuda[0, 0].item()
+    try:
+        cuda.data[0, 0] += 7
+        require(cuda._version == version, 'isolated .data probe unexpectedly changed version')
+        changed = original(ordinary)
+        require(changed != expected and baseline(old_value) == proposed(new_value) == changed and
+                baseline(old_value) == proposed(new_value), 'fresh unchanged-version .data mutation missed')
+    finally:
+        cuda.data[0, 0] = saved
+    restored = original(ordinary)
+    require(cuda._version == version and restored == baseline(old_value) == proposed(new_value) == expected,
+            'unchanged-version .data restoration/digest recovery failed')
     return {'ordinary_baseline_proposed_exact': True, 'mixed_cpu_cuda_dtypes': True,
             'scalar_empty_strided_repeated_alias_exact': True, 'consumed_fallback_order_exact': True,
-            'unchanged_version_data_mutation_detected': True, 'isolated_probe_only': True,
-            'original_digest': expected, 'mutated_digest': changed}
+            'nonzero_offset_shared_storage_strided_exact': True,
+            'unchanged_version_data_mutation_detected': True, 'unchanged_version_data_restoration_exact': True,
+            'isolated_probe_only': True, 'original_digest': expected, 'mutated_digest': changed,
+            'restored_digest': restored}
 
 
 def live_snapshot(old, context, state, ident, capsules, metadata):

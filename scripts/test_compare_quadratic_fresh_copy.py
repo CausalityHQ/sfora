@@ -213,6 +213,27 @@ def load_helper(name, path, digest, guards):
     assert not any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and
         isinstance(n.func.value, ast.Name) and n.func.value.id == 'old' and n.func.attr in banned
         for n in ast.walk(tree))
+    probe = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'native_probes')
+    assignments = {n.targets[0].id: n.value for n in probe.body if isinstance(n, ast.Assign)
+                   and isinstance(n.targets[0], ast.Name)}
+    for name in ('cpu', 'cuda'):
+        view = assignments[name]
+        assert isinstance(view, ast.Subscript) and ast.unparse(view.value) == name + '_base.T'
+        slices = view.slice.elts
+        assert [s.lower.value for s in slices] == [1, 1] and slices[0].step.value == 2
+    guard = next(n for n in probe.body if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+                 and 'nonzero-offset' in ast.unparse(n))
+    assert all(text in ast.unparse(guard) for text in (
+        'view.storage_offset() > 0', 'not view.is_contiguous()',
+        'view.untyped_storage().data_ptr() == base.untyped_storage().data_ptr()'))
+    assert ast.unparse(assignments['saved']) == 'cuda[0, 0].item()'
+    mutation = next(n for n in probe.body if isinstance(n, ast.Try))
+    assert ast.unparse(mutation.body[0]) == 'cuda.data[0, 0] += 7'
+    assert len(mutation.finalbody) == 1 and ast.unparse(mutation.finalbody[0]) == 'cuda.data[0, 0] = saved'
+    after = probe.body[probe.body.index(mutation) + 1:]
+    assert ast.unparse(after[0]) == 'restored = original(ordinary)'
+    assert 'cuda._version == version and restored == baseline(old_value) == proposed(new_value) == expected' \
+        in ast.unparse(after[1])
     for flags in (['-B', '--help'], ['-O', '-B', '--help']):
         run = subprocess.run([sys.executable, *flags[:-1], str(PATH), flags[-1]],
                              capture_output=True, text=True, timeout=2)
