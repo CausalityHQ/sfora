@@ -184,7 +184,7 @@ def closure(root, expected, names, guards):
     root = Path(root)
     require(root.is_absolute() and root.resolve() == root and root.is_dir(), 'canonical closure root required')
     code = read_json({'path': str(root / 'execution.json'), 'sha256': expected}, guards)
-    require(code.keys() == names, 'exact execution closure required')
+    require(code.keys() == set(names), 'exact execution closure required')
     for name, digest in code.items():
         bound_file(guards, root / name, digest)
     return code

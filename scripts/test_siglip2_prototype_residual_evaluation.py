@@ -148,6 +148,38 @@ def check(d):
         del sys.modules['torch']
 
 
+def closure_check(d):
+    """Pin mappings must admit exact keys while still authenticating all bytes."""
+    with TemporaryDirectory() as temporary:
+        root = Path(temporary).resolve()
+        code = {}
+        for name, raw in (('first.py', b'first source'), ('second.py', b'second source')):
+            (root / name).write_bytes(raw)
+            code[name] = hashlib.sha256(raw).hexdigest()
+        manifest = root / 'execution.json'
+
+        def write_manifest(value):
+            raw = json.dumps(value, sort_keys=True).encode()
+            manifest.write_bytes(raw)
+            return hashlib.sha256(raw).hexdigest()
+
+        digest = write_manifest(code)
+        for names in (code, set(code), code.keys()):
+            guards = {}
+            assert d.closure(root, digest, names, guards) == code
+            assert guards == {str(manifest): digest, **{str(root / k): v for k, v in code.items()}}
+        rejects(lambda: d.closure(root, '0' * 64, code, {}), 'file SHA256')
+        for changed in ({'first.py': code['first.py']}, dict(code, extra='0' * 64)):
+            changed_digest = write_manifest(changed)
+            rejects(lambda: d.closure(root, changed_digest, code, {}), 'exact execution closure')
+        changed_digest = write_manifest(dict(code, **{'first.py': '0' * 64}))
+        rejects(lambda: d.closure(root, changed_digest, code, {}), 'file SHA256')
+        digest = write_manifest(code)
+        (root / 'first.py').write_bytes(b'changed source')
+        rejects(lambda: d.closure(root, digest, code, {}), 'file SHA256')
+    assert not any(name.split('.')[0] in d.NATIVE for name in sys.modules)
+
+
 def rng_binding_check(d, source):
     """Run the actual cross-unit and own-unit guards with synthetic payloads."""
     authority = next(node for node in ast.parse(source).body
@@ -479,6 +511,7 @@ def main():
     spec = importlib.util.spec_from_file_location('_test_prototype_evaluator', path)
     d = importlib.util.module_from_spec(spec); spec.loader.exec_module(d)
     check(d)
+    closure_check(d)
     terminal_adapter_check(d)
     rng_binding_check(d, path.read_text())
     flow_check(d, path.read_text())
