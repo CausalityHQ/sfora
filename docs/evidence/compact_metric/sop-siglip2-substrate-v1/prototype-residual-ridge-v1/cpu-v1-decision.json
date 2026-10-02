@@ -1,0 +1,21 @@
+{
+  "schema": "prototype-residual-cpu-engineering-decision-v1",
+  "decision": "FAIL_NATIVE_HELPER_LIFECYCLE",
+  "quality_read": false,
+  "accepted_checkpoint": false,
+  "session": 79821,
+  "unit": "sfora-so400-prototype-residual-cpu-v1",
+  "invocation_id": "554177d0f1bc4a668b2faa299e0d9dff",
+  "exit_status": 1,
+  "service_seconds": 103.808,
+  "native_peak_rss_kib": 1079720,
+  "host_peak_bytes": 1338810368,
+  "swap_bytes": 0,
+  "memory_events": 0,
+  "failure": "helper already loaded: _siglip2_pinned_adaptation_rank",
+  "execution_sha256": "c9931cdc193580c8ccd85a058e2001bdb344f0a9c07f82c560c7690634d72801",
+  "authority_sha256": "9dd2f30def2d8bea836e3687a2d661cbb4b88a3c253ad77ee6c0eeb2a04fc555",
+  "log_sha256": "7085706b28422c013b4eb92eb96538f33de9583d17c1b8782a5f904db3255f6c",
+  "scope": "engineering failure; no model-quality verdict; frozen v1 remains failed",
+  "next": "bounded repeat-preparation source correction; independently verify and prospectively refreeze before any new native gate"
+}
