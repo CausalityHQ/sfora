@@ -1,0 +1,45 @@
+{
+  "schema": "prototype-fit-sequential-freeze-v1",
+  "execution_sha256": "9c726ec7e9c8e339a82d9284fd41495bf9feb2b39ba76df10eda75a05684fef2",
+  "selected_cpu": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-prototype-residual-cpu-v3/receipt.json",
+      "sha256": "2d47534476aa5e23be5d1202ae8282982968d537397dd9d01a7557f05587ebe9"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-prototype-residual-source-v3/cpu-v3.log",
+      "sha256": "66c9b000d3c57b73baca93c7adb306b8ec441b0ef1601899a7f29d74fb0dc456"
+    },
+    "unit": "sfora-so400-prototype-residual-cpu-v3",
+    "invocation_id": "ca317b2d59be4ba4bcca7057466ac339",
+    "service_seconds": 258.272,
+    "native_peak_rss_kib": 1154456,
+    "both_locks_held": true
+  },
+  "arms": {
+    "linear": {
+      "authority_sha256": "3405b72d92ab289ac36373ab192fd74872a0083f1e2a0d91247a8c9e159cf597",
+      "command_sha256": "b687cbd281defeef96693c8c2a94a085326c90f8e908d13932434e7c0678dc01",
+      "launch_sha256": "0abeee498c19782809cb59355067099af5b6e62530ff619606cc45f75a8b2ffb",
+      "output": "/home/riomus/runs/sfora-so400-prototype-residual-fit-linear-v1"
+    },
+    "quadratic": {
+      "authority_sha256": "e080da166344aec525151b0d654ace841195333b96241ac6292b18a8f4f288fd",
+      "command_sha256": "033db34f625fe21930fed1865ffd3c77aa9aa631298fb1d9388aca405ebc0656",
+      "launch_sha256": "9e4db04df19e8b10e46dfb34b829d2f275b86a8bdaf33f171f7466218059432f",
+      "output": "/home/riomus/runs/sfora-so400-prototype-residual-fit-quadratic-v1"
+    }
+  },
+  "order": [
+    "linear",
+    "quadratic"
+  ],
+  "limits": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "quality_read": false,
+  "stop_rule": "each fresh original whole-unit <=300s/8GiB/noSwap/zeroevents/fullindependent2fits/reload/sourcegate pass; cost whole+sumfitcore quadratic/linear<=1.50 before quality; preserve original negative receipts"
+}
