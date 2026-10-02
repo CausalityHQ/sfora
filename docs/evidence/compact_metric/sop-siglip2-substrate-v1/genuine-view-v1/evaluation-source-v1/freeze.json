@@ -1,0 +1,14 @@
+{
+  "code": {
+    "evaluate_siglip2_genuine_views.py": "afe1b5de4135309b4099840aad77d644c0af90182cfe6c77b9ca265ad0742878",
+    "test_siglip2_genuine_view_evaluation.py": "3e5c9de6efb016aade362ac5900e41cac7603f4719bfdabfc5be6a0398d89d58"
+  },
+  "endpoint_authority": "not yet emitted; requires actual complete matched TRAIN receipts/checkpoints",
+  "execution_sha256": "0ef4f638e5a44ea287b2dd7b61dd265ee41f3bdd550f76ddb02b596ba1eb04db",
+  "native_run": false,
+  "quality_read": false,
+  "remote_root": "/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v1",
+  "schema": "genuine-view-evaluation-source-freeze-v1",
+  "source_commit": "3ad50480",
+  "training_execution_sha256": "2003e9a6adba30c8f90fa17f6437cbba1f4b6cd2d12e75906195d16229846e08"
+}
