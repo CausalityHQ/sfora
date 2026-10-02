@@ -20,7 +20,7 @@ Selection1734q/1715g/498 must first replay the archived source R1 96.30911188004
 
 | Dataset/split | Matched baseline/candidate R1+mAP@R | Cost | Public latency | Remaining gap | Next decisive test |
 | --- | --- | --- | --- | --- | --- |
-| InShop TRAIN selection1734q/1715g/498 | Archived verified source061 R1 96.3091% / mAP@R 80.5723%; new linear/quadratic unmeasured | CPUv1 engineering failure103.808s; fit-core/unadmitted fit costs unmeasured | Unmeasured | Native qualification, actual learned quality, public speed, official confirmation | Correct duplicate helper preparation, prospectively qualify source; then paired independent fits and matched packed quality gate |
+| InShop TRAIN selection1734q/1715g/498 | Archived verified source061 R1 96.3091% / mAP@R 80.5723%; fitted linear/quadratic quality unmeasured | Native linear180.745s/quad203.548s; sum2-fit cores0.248912s/0.304163s; ratios1.126161/1.221973 pass<=1.50 | Unmeasured | Consumer duration compatibility/native qualification, learned quality, public speed, official confirmation | Qualify corrected evaluator reader, source replay and one matched packed selection quality gate |
 
 Final fitter bfa9a14 integrated as b568645f; root narrow stdlib check passed in0.068093s and original-guard missing/wrong-binding negatives passed. Freeze own2 execution c9931cdc193580c8ccd85a058e2001bdb344f0a9c07f82c560c7690634d72801 and CPU authority9dd2f30def2d8bea836e3687a2d661cbb4b88a3c253ad77ee6c0eeb2a04fc555 before one CPU120 native qualification. Any terminal/resource/integrity/refit/reload failure closes this frozen qualification; no fit or quality read is admitted by fixtures.
 
