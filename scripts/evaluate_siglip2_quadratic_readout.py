@@ -2,12 +2,12 @@
 """Prospective fixed-basis quadratic cached readout evaluator; native gates UNRUN.
 
 Own execution.json contains exactly FILES. Parent pins the actual future
-trainer3 root/execution/code (exact TRAIN_FILES) in this hashed authority;
+trainer4 root/execution/code (exact TRAIN_FILES) in this hashed authority;
 there are no guessed future execution, endpoint, receipt or log hashes.
 Separate immutable evaluator6 reference is pinned REFERENCE_EXECUTION_SHA.
 
 Authority siglip2-quadratic-readout-evaluation-authority-v1 has exactly SPEC_KEYS:
-execution_sha256; training={root:absolute,execution_sha256:SHA,code:{three files:SHA}};
+execution_sha256; training={root:absolute,execution_sha256:SHA,code:{four files:SHA}};
 evaluation_reference={root:REFERENCE_ROOT,execution_sha256:REFERENCE_EXECUTION_SHA};
 partition=FILE pinned PARTITION_SHA; source_selection={inventory:FILE pinned
 SOURCE_INVENTORY_SHA,terminal:SOURCE_SCORE_TERMINAL}; stage=first|full;
@@ -78,7 +78,8 @@ from types import SimpleNamespace
 SCHEMA = 'siglip2-quadratic-readout-evaluation-v1'
 AUTHORITY_SCHEMA = 'siglip2-quadratic-readout-evaluation-authority-v1'
 FILES = {'evaluate_siglip2_quadratic_readout.py', 'test_siglip2_quadratic_readout_evaluation.py'}
-TRAIN_FILES = {'train_siglip2_quadratic_readout.py', 'test_siglip2_quadratic_readout.py', 'quadratic_readout.py'}
+TRAIN_FILES = {'train_siglip2_quadratic_readout.py', 'test_siglip2_quadratic_readout.py',
+               'quadratic_readout.py', 'quadratic_encoder_frames.py'}
 SOURCE_INVENTORY_SHA = 'ed0cd43dbbf7f84066e3ab31a28cf249bd0798cf083e6939fe662e7fa8eb8985'
 
 
@@ -309,7 +310,7 @@ def check_spec(spec, args):
             re.fullmatch('[0-9a-f]{64}', training['execution_sha256']) and
             training['code'].keys() == TRAIN_FILES and
             all(type(v) is str and re.fullmatch('[0-9a-f]{64}', v) for v in training['code'].values()),
-            'parent-frozen actual complete trainer3 closure required')
+            'parent-frozen actual complete trainer4 closure required')
     require(spec['evaluation_reference'] == {'root': REFERENCE_ROOT, 'execution_sha256': REFERENCE_EXECUTION_SHA},
             'original immutable evaluator6 required')
     check_file_descriptor(spec['partition'])
@@ -537,9 +538,9 @@ def authority(args):
     roots = (root, train_root, reference_root)
     require(all(not a.is_relative_to(b) and not b.is_relative_to(a) for i, a in enumerate(roots) for b in roots[i + 1:]) and
             all(not args.output.is_relative_to(p) and not p.is_relative_to(args.output) for p in roots),
-            'separate immutable evaluator2/trainer3/reference6 required')
+            'separate immutable evaluator2/trainer4/reference6 required')
     train_code = closure(train_root, spec['training']['execution_sha256'], TRAIN_FILES, guards)
-    require(train_code == spec['training']['code'], 'parent-frozen actual trainer3 differs')
+    require(train_code == spec['training']['code'], 'parent-frozen actual trainer4 differs')
     require(closure(reference_root, REFERENCE_EXECUTION_SHA, REFERENCE_PINS.keys(), guards) == REFERENCE_PINS,
             'pinned original evaluator reference differs')
     trainer = load_bare('_quadratic_evaluation_trainer', train_root / 'train_siglip2_quadratic_readout.py',
@@ -800,7 +801,7 @@ def check_saved_metadata(context, saved, endpoint):
     record = context['records'][endpoint['seed'], endpoint['arm']]
     require(ident == record['identity'], 'typed payload identity/receipt differs')
     trainer.check_payload(saved, ident, 1000)
-    require(saved['encoder'] == selected['encoder'] and
+    require(saved['encoder'] == trainer.owned_encoder(selected).materialize() and
             saved['partition'] == context['partition'] and
             original.fingerprint({k: saved[k] for k in trainer.STATIC_KEYS}) == ident['static_sha256'] == selected['static_sha256'] and
             original.fingerprint({k: saved[k] for k in ('head', 'classifier')}) == ident['complement_sha256'] ==
@@ -1128,6 +1129,17 @@ def exit_rehash(context):
             'files': {path: union[path] for path in sorted(origin_paths)}}
 
 
+def check_exit_encoder(context):
+    trainer, selected = context['trainer'], context['selected']
+    original = selected['original']
+    encoder = trainer.owned_encoder(selected).materialize()
+    # Composition seals a new owner; keep its writes out of the live context.
+    fresh = {**selected, 'guards': dict(selected['guards']), 'admission': original.FlatAdmission()}
+    admitted = trainer.composition(fresh).materialize()
+    require(admitted == encoder and original.fingerprint(admitted) == original.fingerprint(encoder),
+            'exit encoder composition differs')
+
+
 def run(args):
     prior = None if args.prerequisite is None else {'path': str(args.prerequisite), 'sha256': args.prerequisite_sha256}
     require(sys.argv == cli_argv(args.authority, args.authority_sha256, args.execution_sha256, args.phase, args.output, prior),
@@ -1149,7 +1161,7 @@ def run(args):
     context['trainer'].require_no_model(context['selected'])
     print(json.dumps({'progress': 'exit_rehash_start', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)
     origins = exit_rehash(context); check_origins(context, origins)
-    require(context['trainer'].composition(context['selected']) == context['selected']['encoder'], 'exit encoder composition differs')
+    check_exit_encoder(context)
     require(closure(context['root'], args.execution_sha256, FILES, {}) == context['code'] and
             closure(Path(context['spec']['training']['root']), context['spec']['training']['execution_sha256'], TRAIN_FILES, {}) == context['spec']['training']['code'] and
             closure(Path(REFERENCE_ROOT), REFERENCE_EXECUTION_SHA, REFERENCE_PINS.keys(), {}) == REFERENCE_PINS,

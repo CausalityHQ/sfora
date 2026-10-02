@@ -52,8 +52,9 @@ def terminal(prefix):
 
 def spec_fixture(d, stage='first', panel='selection'):
     return {'schema': d.AUTHORITY_SCHEMA, 'execution_sha256': 'd' * 64,
-            'training': {'root': '/immutable/quadratic-trainer3', 'execution_sha256': 'e' * 64,
-                         'code': {name: 'f' * 64 for name in d.TRAIN_FILES}},
+            'training': {'root': '/immutable/quadratic-trainer4', 'execution_sha256': 'e' * 64,
+                         'code': {name: 'f' * 64 for name in ('train_siglip2_quadratic_readout.py',
+                             'test_siglip2_quadratic_readout.py', 'quadratic_readout.py', 'quadratic_encoder_frames.py')}},
             'evaluation_reference': {'root': d.REFERENCE_ROOT, 'execution_sha256': d.REFERENCE_EXECUTION_SHA},
             'partition': {'path': '/immutable/partition.json', 'sha256': d.PARTITION_SHA},
             'source_selection': {'inventory': {'path': '/immutable/source-selection-inventory.json',
@@ -85,6 +86,7 @@ def authority_checks(d):
             lambda x: x['resource_policies']['score'].update(host_bytes=9 * 1024**3),
             lambda x: x['cost_policy'].update(median_update_ratio_max=1.51),
             lambda x: x['training']['code'].pop('quadratic_readout.py'),
+            lambda x: x['training']['code'].pop('quadratic_encoder_frames.py'),
             lambda x: x['training']['code'].update({'unexpected.py': 'f' * 64}),
             lambda x: x['training'].update(execution_sha256='future'),
             lambda x: x['training'].update(root='relative'),
@@ -189,12 +191,14 @@ def file_checks(d, root):
     rejects(lambda: d.strict_json('{"x":NaN}'))
     closure = root / 'closure'; closure.mkdir()
     code = {}
-    for name in d.TRAIN_FILES:
+    for name in ('train_siglip2_quadratic_readout.py', 'test_siglip2_quadratic_readout.py',
+                 'quadratic_readout.py', 'quadratic_encoder_frames.py'):
         member = closure / name; member.write_bytes(name.encode()); code[name] = file_ref(member)['sha256']
     execution = closure / 'execution.json'; execution.write_text(json.dumps(code))
     assert d.closure(closure, file_ref(execution)['sha256'], d.TRAIN_FILES, {}) == code
-    incomplete = dict(code); incomplete.pop('quadratic_readout.py'); execution.write_text(json.dumps(incomplete))
-    rejects(lambda: d.closure(closure, file_ref(execution)['sha256'], d.TRAIN_FILES, {}))
+    for name in code:
+        incomplete = dict(code); incomplete.pop(name); execution.write_text(json.dumps(incomplete))
+        rejects(lambda: d.closure(closure, file_ref(execution)['sha256'], d.TRAIN_FILES, {}))
     d.check_output(root / 'new-output')
     rejects(lambda: d.check_output(path))
 
@@ -411,6 +415,8 @@ def saved_checks(d, trainer_root):
     fixture_module = load('_quadratic_trainer_fixture_check', trainer_root / 'test_siglip2_quadratic_readout.py')
     fixture_module.ContractTests.driver = t
     fixture = fixture_module.ContractTests()
+    original = load('_quadratic_original_check', trainer_root / 'train_siglip2_substrate_adaptation.py')
+    frames = load('_quadratic_frames_check', trainer_root / 'quadratic_encoder_frames.py')
     for arm in d.ARMS:
         saved, ident = fixture.fake_payload(arm, 1000)
         ident['device'] = 'cuda'; saved['cuda_rng'] = [fixture.tensor((5000,), 'torch.uint8')]
@@ -424,10 +430,12 @@ def saved_checks(d, trainer_root):
         frozen = {k: saved[k] for k in ('encoder', 'config', 'buffers', 'head', 'classifier', 'means', *t.STATIC_KEYS)}
         frozen['features'] = features; ident['frozen_sha256'] = typed_digest(frozen)
         endpoint = {'seed': 179061, 'arm': arm}
-        selected = {'original': SimpleNamespace(fingerprint=typed_digest), 'encoder': copy.deepcopy(saved['encoder']),
+        selected = {'original': SimpleNamespace(fingerprint=typed_digest),
                     'initial': copy.deepcopy({k: saved[k] for k in ('head', 'classifier')}),
                     'static_sha256': ident['static_sha256'], 'terminals': {'cpu:control': {'arms': {
                         arm: {'identity': {'means_sha256': ident['means_sha256']}}}}}}
+        selected['encoder'], selected['encoder_fingerprint'], selected['encoder_check'] = frames.seal(
+            original.fingerprint, saved['encoder'])
         context = {'trainer': t, 'selected': selected, 'records': {(179061, arm): {'identity': copy.deepcopy(ident)}},
                    'partition': copy.deepcopy(saved['partition']), 'features': features,
                    'feature_state_sha256': typed_digest(features),
@@ -435,6 +443,10 @@ def saved_checks(d, trainer_root):
         d.check_saved_metadata(context, saved, endpoint)
         endpoint['terminal_state_sha256'] = typed_digest(saved)
         d.check_complete_payload(context, saved, endpoint)
+        assert type(saved['encoder']) is dict and saved['encoder'] == t.owned_encoder(selected).materialize()
+        foreign, _, _ = frames.seal(original.fingerprint, saved['encoder'])
+        rejects(lambda: d.check_saved_metadata({**context, 'selected': {**selected, 'encoder': foreign}}, saved, endpoint),
+                'foreign')
         for key in ('A', 'bank', 'cpu_rng', 'cuda_rng'):
             changed = copy.deepcopy(saved)
             value = changed[key][0] if key == 'cuda_rng' else changed[key]
@@ -462,6 +474,68 @@ def saved_checks(d, trainer_root):
         config = {**context, 'typed_encoder': ({'changed': ()}, context['typed_encoder'][1])}
         rejects(lambda: d.check_saved_metadata(config, saved, endpoint), 'typed config')
     endpoint_checks(d, t, fixture)
+    encoder_checks(d, t, fixture, original, frames)
+
+
+def encoder_checks(d, t, fixture, original, frames):
+    # Execute the original metadata serializer with only its native import removed.
+    # No tensors enter this check; production fingerprints remain untouched.
+    node = next(n for n in ast.parse(Path(original.__file__).read_bytes()).body
+                if isinstance(n, ast.FunctionDef) and n.name == 'fingerprint')
+    node.body = [n for n in node.body if not isinstance(n, ast.Import)]
+    namespace = dict(vars(original), torch=SimpleNamespace(Tensor=()))
+    exec(compile(ast.Module(body=[node], type_ignores=[]), original.__file__, 'exec'), namespace)
+    metadata = SimpleNamespace(fingerprint=namespace['fingerprint'], FlatAdmission=original.FlatAdmission)
+    with TemporaryDirectory() as temporary:
+        checkpoint = Path(temporary) / 'vision.pt'; checkpoint.write_bytes(b'structural fixture only')
+        def selected_fixture():
+            encoder = fixture.encoder()
+            encoder['checkpoint']['path'] = str(checkpoint)
+            proof = encoder['source_proof']
+            proof['typed_witness'] = {0: ('x', 1), '0': ['x', 1]}
+            proof['input_guards'] = {str(checkpoint): encoder['checkpoint']['sha256']}
+            prior = dict(expected={n: v['shape'] for n, v in proof['runtime']['vision'].items()},
+                         mapping=copy.deepcopy(proof['runtime']['vision']), guards=dict(proof['input_guards']))
+            record = dict(source_checkpoint=copy.deepcopy(encoder['checkpoint']), binding=encoder['export_binding'],
+                source_runtime=encoder['export_runtime'], strict_independent_reload_exact=True,
+                constructor_and_view_rng_preserved=True, caches={'canonical': {'sha256': t.CANONICAL_SHA}})
+            selected = dict(source_cpu=proof, export_record=record,
+                genuine=dict(reference=SimpleNamespace(binding=lambda prior: copy.deepcopy(encoder['source_binding']))),
+                exporter=SimpleNamespace(binding=lambda genuine: copy.deepcopy(encoder['export_binding'])),
+                launch=dict(selected_export=encoder['export_terminal']),
+                source=dict(source_checkpoint=copy.deepcopy(encoder['checkpoint']), caches=copy.deepcopy(record['caches'])),
+                guards=dict(proof['input_guards']))
+            context = dict(selected=selected, prior=prior, guards=dict(proof['input_guards']),
+                           admission=original.FlatAdmission(), original=metadata, frames=frames)
+            context['encoder'] = t.composition(context)
+            return context
+        selected = selected_fixture()
+        extra = Path(temporary) / 'extra'; extra.write_bytes(b'new structural guard')
+        selected['selected']['guards'][str(extra)] = file_ref(extra)['sha256']
+        capsule, check, fingerprint = (selected[k] for k in ('encoder', 'encoder_check', 'encoder_fingerprint'))
+        guards, admission = copy.deepcopy(selected['guards']), copy.deepcopy(vars(selected['admission']))
+        d.check_exit_encoder({'trainer': t, 'selected': selected})
+        assert t.owned_encoder(selected) is capsule and selected['encoder_check'] is check
+        assert selected['encoder_fingerprint'] is fingerprint and selected['guards'] == guards
+        assert vars(selected['admission']) == admission
+        foreign, _, _ = frames.seal(original.fingerprint, capsule.materialize())
+        rejects(lambda: d.check_exit_encoder({'trainer': t, 'selected': {**selected, 'encoder': foreign}}), 'foreign')
+        # Equal Python values with different types must still fail the full typed hash.
+        selected['selected']['source_cpu']['typed_witness'][0] = ('x', True)
+        assert selected['selected']['source_cpu'] == capsule.materialize()['source_proof']
+        rejects(lambda: d.check_exit_encoder({'trainer': t, 'selected': selected}), 'exit encoder composition')
+        for mutate in (
+            lambda c: c['selected']['export_record']['source_runtime']['roles'].pop(),
+            lambda c: c['selected']['source_cpu'].update(reload_exact=False),
+            lambda c: c['selected']['export_record'].update(strict_independent_reload_exact=False),
+            lambda c: c['selected']['export_record']['caches']['canonical'].update(sha256='0' * 64),
+            lambda c: c['prior']['expected'].pop('tensor.0'),
+            lambda c: c['prior']['mapping']['tensor.0'].update(sha256='0' * 64),
+            lambda c: c['guards'].update({str(checkpoint): '0' * 64}),
+            lambda c: c['selected']['source_cpu']['input_guards'].update(missing='0' * 64)):
+            changed = selected_fixture(); owned = t.owned_encoder(changed); mutate(changed)
+            rejects(lambda: d.check_exit_encoder({'trainer': t, 'selected': changed}))
+            assert t.owned_encoder(changed) is owned
 
 
 def endpoint_checks(d, t, fixture):
@@ -543,7 +617,7 @@ def main():
     assert p.returncode == 0 and '--prerequisite-sha256' in p.stdout
     assert not any(name.split('.')[0] in d.NATIVE for name in sys.modules)
     print('PASS: authority/order/prior-GO/source-floor/per-query-replay/metrics/cost/source-closure/omission/tamper/wire/optimized/help/syntax; '
-          + f'separate trainer typed-state/endpoint checks={trainer_checked}; native/resource/quality UNRUN')
+          + f'separate trainer typed-state/endpoint/encoder-ownership checks={trainer_checked}; native/resource/quality UNRUN')
 
 
 if __name__ == '__main__':
