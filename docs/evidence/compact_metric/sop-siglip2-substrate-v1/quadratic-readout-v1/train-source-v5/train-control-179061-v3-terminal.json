@@ -1,0 +1,23 @@
+{
+  "accepted_endpoint": false,
+  "candidate_launched": false,
+  "completed_logged_updates": 705,
+  "completed_update_median_after_first2_seconds": 0.298526540864259,
+  "completed_update_sum_seconds": 216.41016559349373,
+  "decision": "NO-GO frozen engineering gate; preserve original531/666 failures; no architecture-wide or model-quality KILL",
+  "events_zero": true,
+  "first17_exact_mechanics": true,
+  "harness_exit": 1,
+  "invocation_id": "593ad988553f432dbec7774c915e65ab",
+  "log_sha256": "ab64d1e5ff1701d0e58dfb30b84ed9086b5e76f984f4a66188387073d7321da9",
+  "quality_read": false,
+  "required_updates": 1000,
+  "schema": "quadratic-train-engineering-terminal-v1",
+  "service_result": "timeout",
+  "service_seconds": 300.1,
+  "session": 62744,
+  "swap_peak_bytes": 0,
+  "timing_scope": "interrupted cached updates; not full training cost, causal profiling or public latency",
+  "unit": "sfora-so400-quadratic-readout-train-control-179061-v3",
+  "whole_peak_bytes": 2694696960
+}
