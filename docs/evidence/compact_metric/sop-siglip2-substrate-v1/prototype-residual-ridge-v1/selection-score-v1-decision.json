@@ -1,0 +1,23 @@
+{
+  "status": "FAIL_SCORE300_TIMEOUT_NO_ACCEPTED_QUALITY",
+  "session": 98092,
+  "unit": "sfora-so400-prototype-residual-evaluation-selection-score-v1",
+  "invocation_id": "ad70ff18e63449e38d5a193a5ff24f10",
+  "service_seconds": 300.258,
+  "authority_end_seconds": 111.75311254803091,
+  "cost_pass": true,
+  "host_peak_bytes": 1560887296,
+  "events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "swap_bytes": 0,
+  "log_sha256": "40ed68755bc02adadda49ff1ae7a05d6c766f2f71e3312d3a10931c24ff4e83f",
+  "output_inventory": {
+    "source-179061.packed.bin": 448370,
+    "source-179061.raw.npy": 1766016,
+    "source-179061.unit.npy": 1766016
+  },
+  "candidate_wires_present": false,
+  "accepted_candidate_quality": false,
+  "candidate_quality_access_not_established": true,
+  "native_cpu_v5_pass_preserved": true,
+  "next": "combine duplicated score reload schedule preserving all twice-independent TRAIN64/full-panel predicates before any candidate quality; same caps"
+}
