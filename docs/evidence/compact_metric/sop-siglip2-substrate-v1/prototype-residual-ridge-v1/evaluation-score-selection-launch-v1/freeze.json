@@ -1,0 +1,15 @@
+{
+  "schema": "prototype-selection-score-launch-freeze-v1",
+  "source_execution_sha256": "5dacb69b400565a3b3d01953bcca8b3fe40339b4eaa04ec05ed435925a1da89f",
+  "authority_sha256": "dab6656c23bc4efcb54092773163a20ecda5b4ef4ad96388344107b088c56f5c",
+  "cpu_terminal_sha256": "b10f04363b112dd42759a57892efa505650be1431d9e15a028d15ad687ef90db",
+  "command_sha256": "70f03cf6093229755985661fd28adb6adef00e27a2024e95a5045c568343c601",
+  "launch_sha256": "4c3627899c0225a42cc0b2ed2ff14b528647179dba08b384709477ae29474bec",
+  "phase": "score",
+  "panel": "selection",
+  "runtime_seconds": 300,
+  "host_bytes": 8589934592,
+  "swap_bytes": 0,
+  "quality_stop_rule": "source per-query replay first; fixed source floors, paired gains and cost gates; selection GO only admits validation",
+  "one_original_job": true
+}

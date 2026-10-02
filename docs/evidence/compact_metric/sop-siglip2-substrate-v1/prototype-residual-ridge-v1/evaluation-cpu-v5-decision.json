@@ -1,0 +1,39 @@
+{
+  "status": "PASS_PROSPECTIVE_CPU300_NO_QUALITY",
+  "service_seconds": 289.441,
+  "native_rss_kib": 1191480,
+  "host_peak_bytes": 1484939264,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "authority_source_footer_invocation_resources_payload_identity_and_wire_facts": "PASS",
+  "terminal": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-prototype-residual-evaluation-cpu-v5/receipt.json",
+      "sha256": "f4d94aead049e359fd58dfa67ebcc1d1edf56feea00912fc9404c8533cec0f4b"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-prototype-residual-evaluation-source-v5/cpu-v5.log",
+      "sha256": "7d42b7de4d50ab7f521e4d56e19eb601fc44f5d72466544baf245a573645e323"
+    },
+    "unit": "sfora-so400-prototype-residual-evaluation-cpu-v5",
+    "invocation_id": "8e14a90e83264b1e96b2f2274d5e00fb",
+    "service_seconds": 289.441,
+    "native_peak_rss_kib": 1191480,
+    "both_locks_held": true
+  },
+  "quality_read": false,
+  "public_encoder_qualified": false,
+  "cost": {
+    "linear": {
+      "service_seconds": 180.745,
+      "total_fit_core_seconds": 0.2489116513170302
+    },
+    "pass": true,
+    "quadratic": {
+      "service_seconds": 203.548,
+      "total_fit_core_seconds": 0.30416333908215165
+    },
+    "total_fit_core_ratio": 1.2219730875303594,
+    "whole_service_ratio": 1.1261611662839912
+  }
+}
