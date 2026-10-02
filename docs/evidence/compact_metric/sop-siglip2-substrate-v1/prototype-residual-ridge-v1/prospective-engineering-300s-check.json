@@ -1,0 +1,20 @@
+{
+  "schema": "prototype-engineering-envelope-proposal-check-v1",
+  "status": "PENDING_OPERATOR_AUTHORIZATION_NOT_APPLIED",
+  "source_sha256": "1c35db02971b6b82e2469048fb531d76b9923d157285506700d3cab1f2233a4a",
+  "proposed_source_sha256": "cc3ffb6d63a78448e3bff0535304b50b30eb451b0617c15c4b8cf1727bed7d2d",
+  "changed_functions": [
+    "policy"
+  ],
+  "all_other_function_ast_exact": true,
+  "cpu_seconds_proposed": 300,
+  "fit_seconds_unchanged": 300,
+  "host_bytes_unchanged": 8589934592,
+  "swap_bytes_unchanged": 0,
+  "cuda_exclusive_bytes_unchanged": 10000000000,
+  "invalid_phase_rejected": true,
+  "native_execution": false,
+  "quality_read": false,
+  "runtime_fit_unproven": true,
+  "static_audit": "fitter CPU performs two full fits and one strict reconstruction/reload for each of two arms; exit additionally rehashes guards after unchanged original exit. These are source facts, not measured stage durations."
+}
