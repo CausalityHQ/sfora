@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Stdlib contract falsifiers only; native CPU/CUDA qualification is separate."""
 import ast
+from contextlib import redirect_stdout
 import copy
 import hashlib
 import importlib.util
+import io
 import os
 from pathlib import Path
 import subprocess
@@ -11,6 +13,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 PATH = Path(__file__).with_name('train_siglip2_postln_adaptation.py')
 spec = importlib.util.spec_from_file_location('postln_contract', PATH)
@@ -38,6 +41,116 @@ class Contract(unittest.TestCase):
             os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns))
             with self.assertRaisesRegex(ValueError, 'SHA256'):
                 driver.bound_file(guard, path, digest)
+
+    def test_current_admission_reuses_only_verified_guards_and_exit_is_uncached(self):
+        source = PATH.with_name('train_siglip2_substrate_adaptation.py')
+        raw = source.read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),
+                         'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543')
+        reader = dict(vars(driver))
+        nodes = [n for n in ast.parse(raw).body if isinstance(n, (ast.FunctionDef, ast.ClassDef)) and
+                 n.name in ('require', 'bound_file', 'FlatAdmission')]
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source), 'exec'), reader)
+        tree = ast.parse(PATH.read_text())
+        authority = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'authority')
+        start = next(i for i, n in enumerate(authority.body) if isinstance(n, ast.Expr) and
+                     isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Name) and
+                     n.value.func.id == 'check_warm_record') + 1
+        end = next(i for i, n in enumerate(authority.body) if isinstance(n, ast.Assign) and
+                   isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'context')
+        handoff = compile(ast.Module(body=authority.body[start:end], type_ignores=[]), str(PATH), 'exec')
+        loops = {}
+        for name in ('admit_unit', 'exit_rehash'):
+            function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
+            loop = next(n for n in function.body if isinstance(n, ast.For) and isinstance(n.target, ast.Tuple))
+            loops[name] = compile(ast.Module(body=[loop], type_ignores=[]), str(PATH), 'exec')
+        with tempfile.TemporaryDirectory() as directory:
+            inherited, fresh = (Path(directory) / name for name in ('inherited', 'fresh'))
+            inherited.write_bytes(b'warm')
+            fresh.write_bytes(b'checkpoint')
+            old_sha, new_sha = (hashlib.sha256(raw).hexdigest() for raw in (b'warm', b'checkpoint'))
+            current = {}
+            reader['bound_file'](current, inherited, old_sha)  # Successful current-call byte admission.
+            selected = {'guards': current, 'original': SimpleNamespace(FlatAdmission=reader['FlatAdmission']),
+                        'genuine': {'reference': object()}}
+            expected = {str(inherited): old_sha, str(fresh): new_sha}
+            record = {'input_guards': expected}
+            # A receipt-only claim also in the general guards must receive its own byte admission.
+            scope = {**vars(driver), 'selected': selected, 'record': record, 'guards': dict(expected)}
+            exec(handoff, scope)
+            admission = scope['admission']
+            seeded = set(admission.verified)
+            scope['context'] = {'admission': admission, 'guards': scope['guards']}
+            with patch.object(os, 'posix_fadvise') as reads:
+                exec(loops['admit_unit'], scope)
+            self.assertEqual([call.args[2] for call in reads.call_args_list], [10],
+                             'warm guard was hashed again instead of reusing current admission')
+            self.assertEqual(seeded, {str(inherited)})
+            self.assertEqual(admission.verified, set(expected))
+            self.assertEqual(scope['guards'], expected)
+            with patch.object(os, 'posix_fadvise') as reads:
+                exec(loops['exit_rehash'], scope)
+            self.assertEqual([call.args[2] for call in reads.call_args_list], [4, 10])
+            for case in ('digest_conflict', 'guard_conflict', 'size_conflict', 'path_alias', 'corrupt_new', 'bad_digest'):
+                with self.subTest(case=case):
+                    fresh.write_bytes(b'checkpoint')
+                    scope = {**vars(driver), 'selected': selected, 'guards': dict(expected)}
+                    exec(handoff, scope)
+                    admission = scope['admission']
+                    claims = dict(expected)
+                    if case == 'digest_conflict':
+                        claims[str(inherited)] = '0' * 64
+                    elif case == 'guard_conflict':
+                        scope['guards'][str(inherited)] = '0' * 64
+                    elif case == 'size_conflict':
+                        inherited.write_bytes(b'longer')
+                    elif case == 'path_alias':
+                        alias = Path(directory) / 'alias'
+                        alias.symlink_to(fresh)
+                        claims[str(alias)] = claims.pop(str(fresh))
+                    elif case == 'corrupt_new':
+                        fresh.write_bytes(b'corruption')
+                    else:
+                        claims[str(fresh)] = 'invalid'
+                    scope.update(context={'admission': admission, 'guards': scope['guards']},
+                                 record={'input_guards': claims})
+                    try:
+                        with self.assertRaises(ValueError):
+                            exec(loops['admit_unit'], scope)
+                        self.assertNotIn(str(fresh), admission.verified)
+                    finally:
+                        inherited.write_bytes(b'warm')
+            stat = inherited.stat()
+            inherited.write_bytes(b'cold')
+            os.utime(inherited, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+            self.assertEqual(inherited.stat().st_size, stat.st_size)
+            self.assertEqual(inherited.stat().st_mtime_ns, stat.st_mtime_ns)
+            scope.update(context={'admission': admission, 'guards': dict(expected)})
+            with self.assertRaisesRegex(ValueError, 'SHA256'):
+                exec(loops['exit_rehash'], scope)
+
+    def test_phase_seconds_emit_flushed_cpu_records_and_gpu_is_silent(self):
+        class Output(io.StringIO):
+            flushes = 0
+            def flush(self):
+                self.flushes += 1
+                super().flush()
+        for phase in ('cpu', 'mechanics', 'train'):
+            with self.subTest(phase=phase):
+                context = {'args': SimpleNamespace(phase=phase)}
+                output = Output()
+                with patch.object(driver.time, 'perf_counter', side_effect=[12., 13.]), redirect_stdout(output):
+                    driver.add_seconds(context, 'admission', 10.)
+                    driver.add_seconds(context, 'admission', 10.)
+                self.assertEqual(context['phase_seconds'], {'admission': 5.})
+                if phase == 'cpu':
+                    self.assertEqual([driver.strict_json(line) for line in output.getvalue().splitlines()], [
+                        {'event': 'POSTLN_PHASE', 'phase': 'admission', 'delta_seconds': 2., 'cumulative_seconds': 2.},
+                        {'event': 'POSTLN_PHASE', 'phase': 'admission', 'delta_seconds': 3., 'cumulative_seconds': 5.}])
+                    self.assertEqual(output.flushes, 2)
+                else:
+                    self.assertEqual(output.getvalue(), '')
+                    self.assertEqual(output.flushes, 0)
 
     def launch(self):
         unit = {'receipt': {'path': '/actual/receipt.json', 'sha256': 'a' * 64},

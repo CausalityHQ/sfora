@@ -218,7 +218,7 @@ def admit_unit(context, record, unit, phase):
     require(unit['invocation_id'] not in context['invocations'], 'duplicate unit invocation')
     context['invocations'].add(unit['invocation_id'])
     for path, digest in record['input_guards'].items():
-        bound_file(context['guards'], path, digest)
+        context['admission'].bound_file(context['guards'], path, digest)
     return final
 
 
@@ -296,6 +296,8 @@ def authority(args):
         require(guards.setdefault(p, h) == h, 'source guard conflict')
     admission = selected['original'].FlatAdmission()
     admission.init = selected['genuine']['reference']
+    for path, digest in selected['guards'].items():
+        admission.verified.add(str(admission.register(guards, path, digest)))
     context = {'args': args, 'root': root, 'code': code, 'launch': launch, 'guards': guards,
                'genuine': genuine, 'selected': selected, 'prior': selected['genuine']['prior'],
                'source_driver': selected['source_driver'], 'original': selected['original'],
@@ -677,7 +679,11 @@ def integrity(context, state, ident, fresh_bytes=False):
 
 def add_seconds(context, name, tick):
     timings = context.setdefault('phase_seconds', {})
-    timings[name] = timings.get(name, 0.) + time.perf_counter() - tick
+    delta = time.perf_counter() - tick
+    timings[name] = timings.get(name, 0.) + delta
+    if context['args'].phase == 'cpu':
+        print(json.dumps({'event': 'POSTLN_PHASE', 'phase': name, 'delta_seconds': delta,
+                          'cumulative_seconds': timings[name]}), flush=True)
 
 
 def release(context, state):
