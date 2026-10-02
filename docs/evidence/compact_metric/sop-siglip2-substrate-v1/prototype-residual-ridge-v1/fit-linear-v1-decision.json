@@ -1,0 +1,29 @@
+{
+  "schema": "prototype-fit-native-decision-v1",
+  "arm": "linear",
+  "decision": "PASS_NATIVE_FIT_EXTERNAL_READER_COMPATIBILITY_PENDING",
+  "session": 92988,
+  "unit": "sfora-so400-prototype-residual-fit-linear-v1",
+  "invocation_id": "cb784c2e110c458e852ba1eaa14e6c61",
+  "service_seconds": 180.745,
+  "native_peak_rss_kib": 1148552,
+  "host_peak_bytes": 1415540736,
+  "swap_bytes": 0,
+  "events": 0,
+  "checkpoint": {
+    "path": "/home/riomus/runs/sfora-so400-prototype-residual-fit-linear-v1/resume.pt",
+    "sha256": "2fb2a7be38ac08013b6f7091df93b795dfa5961e00c3fa64d8868ca15a263d55"
+  },
+  "terminal_state_sha256": "ba736044b0fdd46239943d426591617f58b24f97025e5005488502ec1ed0770a",
+  "fit_core_seconds": [
+    0.1510761883109808,
+    0.0978354630060494
+  ],
+  "total_fit_core_seconds": 0.2489116513170302,
+  "receipt_sha256": "2a861afc762d92018b93eaf4f3b5a566a7be095d71b6da3fabfba6d8c4cada09",
+  "log_sha256": "0a02d3eb758e7de6a930bc2908937890ff1b26c388cf8d26ed3d72895788dc44",
+  "quality_read": false,
+  "root_terminal_record_and_original_footers": "PASS",
+  "compatibility_blocker": "original evaluator FlatAdmission service runtime parser accepts seconds only; observed3min745ms binding180.745 must be added prospectively without altering original log or model source",
+  "next": "frozen quadratic fit sequentially; separate evaluator-reader compatibility fix before any scoring"
+}
