@@ -919,25 +919,50 @@ def score_panel(context, cpu):
     replay_equal(source_quality, score_saved_wires(context, 'source-179061', files, fixed, labels, panel, source_second))
     source_facts = baseline.value_facts(context, source_second)
     del source_first, source_second
-    quality, replay_facts = {}, {}
+    facts, witnesses, replay_facts, held = {}, {}, {}, {}
+    train_cache = context['features'][:64]
     for endpoint in spec['endpoints']:
         arm = endpoint['arm']
-        state, facts = load_head(context, endpoint)
-        require(facts == cpu['head_facts'][arm], 'CPU qualified complete scoring state differs')
+        state, facts[arm] = load_head(context, endpoint)
+        require(facts[arm] == cpu['head_facts'][arm], 'CPU qualified complete scoring state differs')
+        train = head_values(context, state, train_cache)
+        witnesses[arm] = baseline.value_facts(context, train)
+        require(witnesses[arm] == cpu['train_witnesses'][arm], 'CPU qualified TRAIN scoring witness differs')
+        require(readout_digest(context, state) == facts[arm]['readout_sha256'], 'TRAIN witness changed fitted readout')
         values = head_values(context, state, cache)
+        require(readout_digest(context, state) == facts[arm]['readout_sha256'], 'full panel changed fitted readout')
         files.update(baseline.write_wires(context, arm, values))
-        first = fixed.packed_quality(values[1].numpy(), labels, panel['query'], panel['gallery'], device=torch.device('cpu'))
         release_head(context, state)
         state, second_facts = load_head(context, endpoint)
+        require(second_facts == cpu['head_facts'][arm], 'CPU qualified complete scoring state differs')
+        second_train = head_values(context, state, train_cache)
+        require(baseline.value_facts(context, second_train) == cpu['train_witnesses'][arm],
+                'CPU qualified TRAIN scoring witness differs')
+        context['helper'].exact(train, second_train)
+        require(original.fingerprint(train) == original.fingerprint(second_train) and second_facts == facts[arm] and
+                readout_digest(context, state) == second_facts['readout_sha256'], 'independent TRAIN readout/wire bits differ')
         second = head_values(context, state, cache)
         context['helper'].exact(values, second)
-        require(original.fingerprint(values) == original.fingerprint(second) and second_facts == facts,
+        require(original.fingerprint(values) == original.fingerprint(second) and second_facts == facts[arm] and
+                readout_digest(context, state) == second_facts['readout_sha256'],
                 'independent full panel fitted state/wire bits differ')
         baseline.readback_wires(context, arm, files, second)
+        replay_facts[arm] = baseline.value_facts(context, second)
+        release_head(context, state)
+        # head_values uses no_grad; these detached CPU outputs own no source/model state.
+        held[arm] = (values, second)
+        del train, second_train, values, second
+        gc.collect()
+    require(facts == cpu['head_facts'] and witnesses == cpu['train_witnesses'], 'accepted evaluator CPU witnesses differ')
+    # All four independent TRAIN/full-panel witnesses and wire readbacks precede candidate quality.
+    quality = {}
+    for endpoint in spec['endpoints']:
+        arm = endpoint['arm']
+        values, second = held.pop(arm)
+        first = fixed.packed_quality(values[1].numpy(), labels, panel['query'], panel['gallery'], device=torch.device('cpu'))
         replay_equal(first, fixed.packed_quality(second[1].numpy(), labels, panel['query'], panel['gallery'], device=torch.device('cpu')))
         replay_equal(first, score_saved_wires(context, arm, files, fixed, labels, panel, second))
-        quality[arm], replay_facts[arm] = first, baseline.value_facts(context, second)
-        release_head(context, state)
+        quality[arm] = first
         del values, second
         gc.collect()
     pair = metric_deltas(quality, source_quality, spec['panel'])['quadratic_minus_linear']
@@ -950,7 +975,8 @@ def score_panel(context, cpu):
             intervals[metric][kind + '_lower95'] = fixed.bootstrap_lower(delta, groups)
             intervals[metric][kind + '_upper95'] = -fixed.bootstrap_lower(-delta, groups)
     decision = decide(quality, source_quality, spec['panel'], intervals, context['costs'])
-    return {**decision, 'quality': quality, 'source_quality': source_quality, 'source_quality_panel': spec['panel'],
+    return {**decision, 'head_facts': facts, 'train_witnesses': witnesses,
+            'quality': quality, 'source_quality': source_quality, 'source_quality_panel': spec['panel'],
             'source_selection_receipt': SOURCE_INVENTORY['receipt'],
             'source_checkpoint': SOURCE_INVENTORY['baseline_endpoint']['checkpoint'],
             'source_terminal_state_sha256': SOURCE_INVENTORY['baseline_endpoint']['terminal_state_sha256'],
@@ -1002,14 +1028,16 @@ def run(args):
     source = context['selected']['source_driver']
     rng, flags = torch.random.get_rng_state().clone(), source.numerical_flags()
     args.output.mkdir()
-    facts = qualify_heads(context)
-    if cpu is not None:
-        require(all(facts[k] == cpu[k] for k in facts), 'accepted evaluator CPU witnesses differ')
     result = {'decision': None if args.phase == 'cpu' else 'KILL', 'quality_pass': None,
               'quality_read': False, 'files': {}, 'validation_quality_exposed': False,
               'selection_go_admits_validation_only': False}
     if args.phase == 'score' and context['costs']['pass']:
         result = score_panel(context, cpu)
+        facts = {key: result[key] for key in ('head_facts', 'train_witnesses')}
+    else:
+        facts = qualify_heads(context)
+    if cpu is not None:
+        require(all(facts[k] == cpu[k] for k in facts), 'accepted evaluator CPU witnesses differ')
     require(torch.equal(rng, torch.random.get_rng_state()) and source.numerical_flags() == flags and
             not torch.cuda.is_initialized(), 'whole-unit RNG/flags/CUDA differs')
     print(json.dumps({'progress': 'exit_rehash_start', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)

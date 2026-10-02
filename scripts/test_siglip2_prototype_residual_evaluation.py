@@ -295,6 +295,214 @@ def flow_check(d, source):
 
 
 
+def score_schedule_check(d, source):
+    """Execute real scheduling/predicates with stdlib wires; never load native code."""
+    functions = {n.name: n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef)}
+    # Assigned f1b09857 CPU qualification and ownership paths stay byte/AST exact.
+    assert hashlib.sha256(ast.dump(functions['qualify_heads']).encode()).hexdigest() == (
+        '79c91b8c85af593fcc9602b675de57dca0140c4c518e0197adb7c68dfc2f5c38')
+    for name, digest in (
+        ('qualify_heads', '972dd523c79a82c31094b5726670a545652ea6ef816409c6b00fcd725a1c0432'),
+        ('head_values', '86f8e390ac50da999dbbe7dce25ed1c2b368df6e3fba7df3656c2f1a62500c3f'),
+        ('load_head', 'a4386afb2a2f1aff904ebd497d2a34085d6229f0fd19d3c1366614300deb3316'),
+        ('release_head', '34ec5cfb50ad41be4f3b2e66350bdd9653d23d8def6ccd56b2d1a120f12d62f3')):
+        assert hashlib.sha256(ast.get_source_segment(source, functions[name]).encode()).hexdigest() == digest
+
+    # Execute run's actual phase dispatch: score success must not also qualify_heads.
+    body = functions['run'].body
+    index = next(i for i, n in enumerate(body) if isinstance(n, ast.Assign) and
+                 isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'result')
+    dispatch = ast.parse('def dispatch(args, context, cpu):\n    pass').body[0]
+    dispatch.body = copy.deepcopy(body[index:index + 3]) + ast.parse('return facts, result').body
+    calls, fresh = [], {'head_facts': {'fresh': True}, 'train_witnesses': {'fresh': True}}
+
+    def qualify(context):
+        calls.append('qualify')
+        return copy.deepcopy(fresh)
+
+    def score(context, cpu):
+        calls.append('score')
+        return copy.deepcopy(fresh)
+
+    namespace = {'qualify_heads': qualify, 'score_panel': score, 'require': d.require}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[dispatch], type_ignores=[])), '<actual phase dispatch>', 'exec'), namespace)
+    for phase, cost, expected in (('cpu', True, 'qualify'), ('score', False, 'qualify'), ('score', True, 'score')):
+        calls.clear()
+        facts, result = namespace['dispatch'](SimpleNamespace(phase=phase), {'costs': {'pass': cost}},
+                                              None if phase == 'cpu' else copy.deepcopy(fresh))
+        assert calls == [expected] and facts == fresh
+        if expected == 'qualify':
+            assert result['files'] == {} and result['quality_read'] is False
+    rejects(lambda: namespace['dispatch'](SimpleNamespace(phase='score'), {'costs': {'pass': True}},
+        dict(fresh, train_witnesses={})), 'accepted evaluator CPU witnesses differ')
+
+    class Wire:
+        def __init__(self, arm, kind, suffix, load=0):
+            self.bits, self.load, self.extra_bits = (arm, kind, suffix), load, ''
+
+        def numpy(self):
+            return self
+
+    names = ('raw', 'unit', 'codes', 'inverse_norms')
+
+    def wires(arm, kind, load=0):
+        return tuple(Wire(arm, kind, name, load) for name in names)
+
+    def value_facts(context, values):
+        return {name: v.bits for name, v in zip(names, values, strict=True)}
+
+    def exercise(fault=None, target=4, component=0, function=d.score_panel, panel_name='selection', cost=True):
+        events, active, counts = [], [], {arm: 0 for arm in d.ARMS}
+        saved, readbacks, released, trained = {}, set(), [], []
+        cpu = {'head_facts': {a: {'payload_sha256': a, 'identity': {'arm': a}, 'readout_sha256': a}
+                              for a in d.ARMS},
+               'train_witnesses': {a: value_facts(None, wires(a, 'train')) for a in d.ARMS}}
+        cpu_before = copy.deepcopy(cpu)
+        # Two synthetic rows suffice to falsify scheduling; real panel counts are checked above.
+        panels = {name: (2, 1, 1, 1) for name in d.PANELS}
+        panel_count, query_count, _, products = panels[panel_name]
+        panel = {'original_rows': list(range(panel_count)), 'query': list(range(query_count)),
+                 'gallery': list(range(query_count, panel_count)), 'original_class_ids': list(range(products))}
+        expected_quality = quality([0.] * query_count, [0.] * query_count)
+
+        def load(context, endpoint):
+            assert not active, 'previous source state retained'
+            arm = endpoint['arm']; counts[arm] += 1
+            assert counts[arm] <= 2, 'redundant independent reload'
+            index = sum(counts.values())
+            state = {'arm': arm, 'load': index, 'readout': arm}
+            active.append(state); events.append(('load', index))
+            facts = copy.deepcopy(cpu['head_facts'][arm])
+            if fault == 'head' and index == target:
+                facts[('payload_sha256', 'identity', 'readout_sha256')[component]] = 'changed'
+            return state, facts
+
+        def values(context, state, cache):
+            assert active == [state]
+            index = state['load']; kind = 'train' if cache == context['features'][:64] else 'panel'
+            result = wires(state['arm'], kind, index); events.append((kind, index))
+            if kind == 'train':
+                trained.append(index)
+            if index == target:
+                if fault == kind:
+                    result[component].bits += ('changed',)
+                if fault == kind + '_fingerprint':
+                    result[component].extra_bits = 'changed'
+                if fault == kind + '_readout':
+                    state['readout'] = 'changed'
+            return result
+
+        def release(context, state):
+            assert active == [state]
+            released.append(state['load']); events.append(('release', state['load']))
+            state.clear(); active.clear()
+
+        def exact(first, second):
+            assert tuple(v.bits for v in first) == tuple(v.bits for v in second), 'wire equality'
+
+        def write(context, key, values):
+            saved[key] = values
+            return {key + suffix: 'sha' for suffix in ('.raw.npy', '.unit.npy', '.packed.bin')}
+
+        def readback(context, key, files, second):
+            if fault == 'readback' and key == d.ARMS[component]:
+                raise ValueError('saved-wire readback rejected')
+            exact(saved[key], second)
+            readbacks.add(key); events.append(('readback', key))
+
+        def packed_quality(value, *args, **kwargs):
+            arm = value.bits[0]
+            if arm != 'source':
+                assert not active and released == trained == [1, 2, 3, 4] and readbacks == {
+                    'source-179061', *d.ARMS}, 'candidate quality before all four witnesses/readbacks'
+            else:
+                assert ('archive', panel_name) in events, 'source archive must precede scoring'
+            events.append(('quality', arm, value.load))
+            if fault == 'second_quality' and value.load == target:
+                return dict(expected_quality, map_at_r=.1)
+            return copy.deepcopy(expected_quality)
+
+        def saved_quality(context, key, files, fixed, labels, panel, expected):
+            assert key in readbacks
+            result = packed_quality(Wire(expected[1].bits[0], 'panel', 'unit', -1))
+            if fault == 'persisted_quality' and key == d.ARMS[component]:
+                result['map_at_r'] = .1
+            return result
+
+        baseline = SimpleNamespace(scoring_math=lambda c: SimpleNamespace(packed_quality=packed_quality),
+            replay_archived_source=lambda c, f: events.append(('archive', panel_name)),
+            cache_rows=lambda c, rows: 'panel', source_values=lambda c, cache: wires('source', 'panel'),
+            archived_source_wires=lambda c: wires('source', 'panel'), value_facts=value_facts,
+            write_wires=write, readback_wires=readback)
+        context = {'spec': fixture(d, panel_name), 'baseline': baseline,
+            'selected': {'original': SimpleNamespace(fingerprint=lambda vals: tuple((v.bits, v.extra_bits) for v in vals))},
+            'partition': {'panels': {panel_name: panel}}, 'features': list(range(64)),
+            'fit': {'class_names': ['product'], 'targets': [0] * panel_count},
+            'helper': SimpleNamespace(exact=exact),
+            'selection_go': {'decision': 'GO', 'selection_go_admits_validation_only': fault != 'validation'},
+            'source_record': {'quality': {'179061': {'control': copy.deepcopy(expected_quality)}}}}
+        if fault == 'archive':
+            context['source_record']['quality']['179061']['control']['map_at_r'] = .1
+        context['costs'] = d.paired_cost({a: {'service_seconds': 1., 'total_fit_core_seconds': 1.} for a in d.ARMS})
+        context['costs']['pass'] = cost
+        namespace = {**function.__globals__, 'load_head': load, 'head_values': values, 'release_head': release,
+            'readout_digest': lambda c, s: s['readout'], 'score_saved_wires': saved_quality,
+            'preparation_costs': lambda c: {}, 'gc': SimpleNamespace(collect=lambda: None), 'PANELS': panels,
+            '__builtins__': {**vars(__import__('builtins')), '__import__': lambda name, *a, **k: {
+                'numpy': SimpleNamespace(), 'torch': SimpleNamespace(device=lambda v: v)}[name]}}
+        for name in ('metric_deltas', 'immediate_quality_pass', 'decide'):
+            namespace[name] = FunctionType(getattr(d, name).__code__, namespace)
+        try:
+            result = FunctionType(function.__code__, namespace)(context, cpu)
+        except (ValueError, AssertionError):
+            if fault not in ('second_quality', 'persisted_quality', 'early_quality'):
+                assert not any(e[:2] in (('quality', a) for a in d.ARMS) for e in events), events
+            raise
+        assert cpu == cpu_before
+        assert result['head_facts'] == cpu['head_facts'] and result['head_facts'] is not cpu['head_facts']
+        assert result['train_witnesses'] == cpu['train_witnesses'] and result['train_witnesses'] is not cpu['train_witnesses']
+        assert all(result['head_facts'][a] is not cpu['head_facts'][a] and
+                   result['train_witnesses'][a] is not cpu['train_witnesses'][a] for a in d.ARMS)
+        assert [e for e in events if e[0] == 'quality'] == [
+            ('quality', 'source', 0), ('quality', 'source', -1),
+            ('quality', 'linear', 1), ('quality', 'linear', 2), ('quality', 'linear', -1),
+            ('quality', 'quadratic', 3), ('quality', 'quadratic', 4), ('quality', 'quadratic', -1)]
+        assert counts == {'linear': 2, 'quadratic': 2} and not active
+        assert result['files'].keys() == d.file_names() and result['decision'] == 'KILL'
+        return result
+
+    exercise(); exercise(panel_name='validation')
+    for index in range(1, 5):
+        for component in range(3):
+            rejects(lambda: exercise('head', index, component), 'CPU qualified complete scoring state')
+        for component in range(4):
+            rejects(lambda: exercise('train', index, component), 'CPU qualified TRAIN scoring witness')
+            rejects(lambda: exercise('panel', index, component), 'wire equality')
+        for kind in ('train', 'panel'):
+            rejects(lambda: exercise(kind + '_readout', index),
+                    'readout' if kind == 'train' or index % 2 else 'state/wire bits differ')
+            rejects(lambda: exercise(kind + '_fingerprint', index), 'wire bits differ')
+    for component in range(2):
+        rejects(lambda: exercise('readback', component=component), 'saved-wire readback')
+        rejects(lambda: exercise('persisted_quality', component=component), 'per-query packed quality replay')
+    for index in (2, 4):
+        rejects(lambda: exercise('second_quality', index), 'per-query packed quality replay')
+    rejects(lambda: exercise('archive'), 'per-query packed quality replay')
+    rejects(lambda: exercise('validation', panel_name='validation'), 'selection GO')
+    rejects(lambda: exercise(cost=False), 'cost gate precedes panel access')
+    # The observer must fail if candidate quality is moved into the witness loop.
+    mutant = copy.deepcopy(functions['score_panel'])
+    loops = [n for n in mutant.body if isinstance(n, ast.For)]
+    scoring = next(n for n in loops[1].body if isinstance(n, ast.Assign) and
+                   isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'first')
+    index = next(i for i, n in enumerate(loops[0].body) if isinstance(n, ast.Delete))
+    loops[0].body.insert(index, copy.deepcopy(scoring))
+    namespace = dict(d.score_panel.__globals__)
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[mutant], type_ignores=[])), '<early quality mutant>', 'exec'), namespace)
+    rejects(lambda: exercise('early_quality', function=namespace['score_panel']), 'before all four witnesses')
+    assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
+
+
 def terminal_adapter_check(d):
     """Exercise authenticated original terminal predicates, without native work."""
     def load(name, filename):
@@ -652,6 +860,7 @@ def main():
     terminal_adapter_check(d)
     rng_binding_check(d, path.read_text())
     flow_check(d, path.read_text())
+    score_schedule_check(d, path.read_text())
     if args.fitter_root is not None:
         fitter_check(args.fitter_root / 'fit_siglip2_prototype_residual.py')
     for name in (path, Path(__file__)):
