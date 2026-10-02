@@ -1,0 +1,22 @@
+{
+  "schema": "prototype-residual-cpu-engineering-decision-v1",
+  "decision": "FAIL_RUNTIME_CAP",
+  "quality_read": false,
+  "accepted_checkpoint": false,
+  "session": 21421,
+  "unit": "sfora-so400-prototype-residual-cpu-v2",
+  "invocation_id": "1da12b019f6046aaadfacf18b53eb6b4",
+  "exit_status": "TERM",
+  "service_result": "timeout",
+  "observed_exec_exit": 1,
+  "service_seconds": 120.311,
+  "host_peak_bytes": 1339789312,
+  "swap_bytes": 0,
+  "memory_events": 0,
+  "output_inventory": "empty directory; no receipt or checkpoint",
+  "execution_sha256": "2b9016a6985b3b1e55c2d99dacead979043281c57dd768b9fc0f270e6e5c1ae5",
+  "authority_sha256": "6c15e58348f979fad05f3484db02dc3e1a6f0722161952097057571feed87be7",
+  "log_sha256": "c7655158dbe517b4bb9a82bbf5989a53c16447112e39795ecf2db4e61dee5134",
+  "footer_warning": "FINAL_CGROUP command_exit_status0 is trap status during TERM, not success; STOP_CGROUP service_result timeout is authoritative",
+  "scope": "Frozen v2 FAIL; no quality/architecture verdict; qualification remains unadmitted"
+}
