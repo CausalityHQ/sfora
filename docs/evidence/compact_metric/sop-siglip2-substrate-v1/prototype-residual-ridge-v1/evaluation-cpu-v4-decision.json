@@ -1,0 +1,17 @@
+{
+  "status": "FAIL_CPU120_TIMEOUT",
+  "session": 22853,
+  "unit": "sfora-so400-prototype-residual-evaluation-cpu-v4",
+  "invocation_id": "dd5adac54e78428584625e4b458e9615",
+  "service_seconds": 120.103,
+  "authority_end_seconds": 84.77494156733155,
+  "cost_pass": true,
+  "quality_read": false,
+  "accepted_cpu_proof": false,
+  "peak_host_bytes": 1241096192,
+  "events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "swap_peak_bytes": 0,
+  "log_sha256": "657861236780fa9ac6fcf5cf5e107952efecf815b59288664c085865c8512f77",
+  "final_trap_status_zero_is_success": false,
+  "next": "prepare exact prospective engineering CPU300 proposal; needs explicit operator authorization before source integration or native launch"
+}
