@@ -1,0 +1,6 @@
+{
+  "quadratic_encoder_frames.py": "83e835683d95e3feff653c63ca57b85b4be45f2dd0512a3057420a4ef8d1539a",
+  "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+  "test_siglip2_quadratic_readout.py": "62a4b94b81dd8dd10b4f76d8f105b18cfee1e6c72ee29ff6045bfd644ea0ff63",
+  "train_siglip2_quadratic_readout.py": "3493ac6027b00d52106cb9814a77d6efe5616b957253da99cce375ba8b722091"
+}

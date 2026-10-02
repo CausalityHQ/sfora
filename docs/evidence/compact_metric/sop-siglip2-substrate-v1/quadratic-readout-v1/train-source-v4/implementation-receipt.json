@@ -1,0 +1,79 @@
+{
+  "schema": "quadratic-immutable-encoder-engineering-receipt-v1",
+  "base": "7f7eb1cff0083475638e198c39966ca61ed3f5de",
+  "commit": "527155cb871fe92426d99619cc2e42b427eddee4",
+  "branch": "devbox/quadratic-immutable-proof-20261002",
+  "worktree": "/home/rb/worktrees/sfora-quadratic-immutable-proof-20261002",
+  "clean": true,
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "owned_files": [
+    "scripts/quadratic_encoder_frames.py",
+    "scripts/test_siglip2_quadratic_readout.py",
+    "scripts/train_siglip2_quadratic_readout.py"
+  ],
+  "file_sha256": {
+    "scripts/quadratic_encoder_frames.py": "83e835683d95e3feff653c63ca57b85b4be45f2dd0512a3057420a4ef8d1539a",
+    "scripts/test_siglip2_quadratic_readout.py": "62a4b94b81dd8dd10b4f76d8f105b18cfee1e6c72ee29ff6045bfd644ea0ff63",
+    "scripts/train_siglip2_quadratic_readout.py": "3493ac6027b00d52106cb9814a77d6efe5616b957253da99cce375ba8b722091",
+    "scripts/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+    "scripts/quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6"
+  },
+  "contract": "/tmp/sfora-quadratic-immutable-proof-contract-20261002.txt",
+  "checks": [
+    {
+      "command": "timeout 30s python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_immutable_encoder_differential_falsifier",
+      "exit": 0,
+      "tests": 1,
+      "seconds": 0.502,
+      "fixture_limit_bytes": 4194304,
+      "fixture_bound_asserted": true
+    },
+    {
+      "command": "timeout 55s python3 -B scripts/test_siglip2_quadratic_readout.py",
+      "exit": 0,
+      "tests": 18,
+      "seconds": 30.401
+    },
+    {
+      "command": "timeout 35s python3 -B scripts/test_siglip2_quadratic_readout.py ContractTests.test_exit_only_differential_falsifier",
+      "exit": 0,
+      "tests": 1,
+      "seconds": 28.063
+    },
+    {
+      "command": "stdlib compile of three owned files; git diff --check; original helper/primitive byte comparisons",
+      "exit": 0
+    }
+  ],
+  "earlier_attempt": {
+    "command": "timeout 30s python3 -B scripts/test_siglip2_quadratic_readout.py",
+    "exit": 124,
+    "reason": "outer whole-suite cutoff; existing exit falsifier separately passed and complete suite then passed under 55s"
+  },
+  "closure": [
+    "train_siglip2_quadratic_readout.py",
+    "test_siglip2_quadratic_readout.py",
+    "quadratic_readout.py",
+    "quadratic_encoder_frames.py"
+  ],
+  "preserved": [
+    "ordinary typed framing",
+    "complete original persisted encoder dictionary",
+    "original helper globals/provenance",
+    "fresh both-boundary frozen bytes and STATIC",
+    "source448/source205/export admission",
+    "math/schedules/RNG AST",
+    "full source/reload/parity/replay/uncached exit"
+  ],
+  "not_run": [
+    "native imports",
+    "CPU qualification",
+    "GPU/mechanics/TRAIN",
+    "quality or speed jobs",
+    "consultations",
+    "children"
+  ],
+  "runtime_fit_claim": false,
+  "gain_claim": false,
+  "integration_and_freeze_owner": "parent"
+}
