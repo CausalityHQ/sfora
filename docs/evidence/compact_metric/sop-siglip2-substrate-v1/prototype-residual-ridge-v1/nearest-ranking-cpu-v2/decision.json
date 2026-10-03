@@ -1,0 +1,20 @@
+{
+  "decision": "CPU qualification PASS; GPU mechanics not admitted pending complete 300-second budget",
+  "unit": "sfora-so400-nearest-ranking-cpu-v2",
+  "invocation_id": "40454893069448188876276f24cd6d9d",
+  "service_seconds": 273.791,
+  "native_wall_seconds": 271.88033208763227,
+  "peak_host_bytes": 8131125248,
+  "native_peak_rss_kib": 5805020,
+  "swap_bytes": 0,
+  "memory_events": 0,
+  "quality_read": false,
+  "receipt_sha256": "1573584a7ad4d0329c8d952e9d158b432cea92e998b6fa311b0fa7858da9915d",
+  "log_sha256": "db1e8e33575ee556597cbcf8eb4ba00c9376021fcb015b046bf63446081fabc3",
+  "checkpoint": {
+    "path": "/home/riomus/runs/sfora-so400-nearest-ranking-cpu-v2/initializer.pt",
+    "sha256": "3fa4225e84b409caa99a810659c339019cb628c2e430fad56efd5fa755ff7a0c"
+  },
+  "historical_failures_preserved": true,
+  "next": "Collect original read-only source-admission plan60f24431ef0d4d8a; remove repeated startup hashing without weakening trust boundaries, then predeclare next eligible gate."
+}
