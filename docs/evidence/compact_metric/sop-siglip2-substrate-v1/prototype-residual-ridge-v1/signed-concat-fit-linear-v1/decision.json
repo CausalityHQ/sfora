@@ -1,0 +1,21 @@
+{
+  "arm": "linear",
+  "checkpoint": {
+    "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-linear-v1/resume.pt",
+    "sha256": "8279cf16bd9ff4162e804ca38011ae0ad661daf7a18bf9d1076e8cbd684270fb"
+  },
+  "cost_gate": "pending candidate original endpoint",
+  "decision": "FIT_PASS",
+  "invocation_id": "653d0784bdbe4a768b4a2df17479a89e",
+  "log_sha256": "0d3bfc16198cebc76db43460675fc098ade2418f3f9d4cc6cab5f3743641acee",
+  "native_peak_rss_kib": 2860156,
+  "original_exit": 0,
+  "original_session": 88892,
+  "quality_read": false,
+  "receipt_sha256": "cc88228c956232dce08563b12189dd80f99d1e02c31c2da86925a74fa4bca6d2",
+  "schema": "signed-concat-fit-terminal-v1",
+  "service_seconds": 212.169,
+  "terminal_state_sha256": "28cd26bf98372bad4630b432d179f0976f85ee4a70c5cc18bbf7be467147d8bc",
+  "total_fit_core_seconds": 0.3493038951419294,
+  "unit": "sfora-so400-signed-concat-fit-linear-v1"
+}
