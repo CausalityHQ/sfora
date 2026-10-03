@@ -1,0 +1,35 @@
+cpu-launch.sh: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v1/cpu-command.sh: OK
+Running as unit: sfora-so400-signed-concat-evaluation-cpu-v1.service; invocation ID: 022c8bc1d0b245f7a0f9e2023efc63b6
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-first-score-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/first-score.log: OK
+/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json: OK
+/home/riomus/runs/sfora-so400-prototype-residual-evaluation-source-v7/source-selection-inventory.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v1/authority-selection-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v1/evaluate_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v1/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v1/test_siglip2_prototype_residual_evaluation.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-linear-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-linear-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-linear-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-linear-v1.log: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/test_siglip2_prototype_residual.py: OK
+{"progress": "authority_start", "seconds": 0.047225018963217735}
+{"progress": "authority_end", "cost_pass": true, "seconds": 144.25588005129248}
+STOP_CGROUP {"exit_code": "killed", "exit_status": "TERM", "invocation_id": "022c8bc1d0b245f7a0f9e2023efc63b6", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-signed-concat-evaluation-cpu-v1.service", "service_result": "timeout", "values": {"memory.current": "2418524160", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "3206475776", "memory.stat": "anon 163504128\nfile 2190348288\nkernel 45424640\nkernel_stack 49152\npagetables 6733824\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1713725440\nfile_dirty 8192\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 178282496\ninactive_file 133427200\nactive_file 2056921088\nunevictable 0\nslab_reclaimable 38191856\nslab_unreclaimable 438384\nslab 38630240\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 268743\npgmajfault 4331\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 252\nthp_collapse_alloc 8\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+FINAL_CGROUP {"command_exit_status": 0, "invocation_id": "022c8bc1d0b245f7a0f9e2023efc63b6", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-signed-concat-evaluation-cpu-v1.service", "values": {"memory.current": "2417758208", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "3206475776", "memory.stat": "anon 163504128\nfile 2190348288\nkernel 45424640\nkernel_stack 49152\npagetables 6733824\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1713725440\nfile_dirty 8192\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 178282496\ninactive_file 133427200\nactive_file 2056921088\nunevictable 0\nslab_reclaimable 38191856\nslab_unreclaimable 438384\nslab 38630240\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 268743\npgmajfault 4331\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 252\nthp_collapse_alloc 8\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: timeout
+Main processes terminated with: code=killed/status=TERM
+Service runtime: 5min 217ms
+CPU time consumed: 1min 55.995s
+Memory peak: 2.9G
+Memory swap peak: 0B

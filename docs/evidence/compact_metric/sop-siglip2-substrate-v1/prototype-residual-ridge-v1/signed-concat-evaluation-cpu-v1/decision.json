@@ -1,0 +1,17 @@
+{
+  "accepted_receipt": false,
+  "authority_end_seconds": 144.25588005129248,
+  "decision": "ENGINEERING_TIMEOUT",
+  "host_peak_bytes": 3206475776,
+  "host_swap_bytes": 0,
+  "invocation_id": "022c8bc1d0b245f7a0f9e2023efc63b6",
+  "log_sha256": "0f4d4dfc828ab30be26ae3aacab5db7dbc6fff1cf6f0628dee67ec200f684ec6",
+  "memory_events_all_zero": true,
+  "original_exit": 1,
+  "original_session": 87008,
+  "quality_read": false,
+  "schema": "signed-concat-evaluation-terminal-decision-v1",
+  "service_seconds": 300.217,
+  "stop_rule": "Frozen attempt closed; no partial state promotion, duplicate or cap rescue. Matched fit endpoints remain valid; global production goal unmet. Missing phase telemetry prevents identifying exact interrupted consumer stage.",
+  "unit": "sfora-so400-signed-concat-evaluation-cpu-v1"
+}
