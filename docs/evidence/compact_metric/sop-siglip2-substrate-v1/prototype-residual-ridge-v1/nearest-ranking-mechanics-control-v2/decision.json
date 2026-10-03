@@ -1,0 +1,28 @@
+{
+  "decision": "KILL_CURRENT_LAST_MLP_PROCEDURE_RESOURCE_QUALIFICATION",
+  "exit_code": 1,
+  "host_peak_bytes": 8589934592,
+  "invocation_id": "09724f62d5924f658adbaae6e896edeb",
+  "limitation": "Order of logged phases supports progress through replay/final reload; no complete terminal parity/inference/exit receipt exists, so none qualifies mechanics. Memory-limit events appear after the last pre-inference sample; precise first operation is not sampled. No candidate/TRAIN follows.",
+  "log_sha256": "88476ed9898d4371bd05af48e158cba4ca9b7cec589798f1ceed598d9604c898",
+  "memory_max_events": 378,
+  "native_receipt_exists": false,
+  "next": "Select one cheaper TRAIN ranking intervention acting on compact readout with fixed encoder using authenticated genuine TRAIN views; preserve validated byte scheduler and native authority/Pareto candidates. Full product goal remains mandatory.",
+  "observed_phase_evidence": {
+    "final_calibration_end_seconds": 276.4039705991745,
+    "final_restore_after_replay_end_seconds": 276.09758928231895,
+    "inference_reload_end_seconds": 287.0724575333297,
+    "initial17_completed_and_saved": true,
+    "last_sampled_pre_inference_memory_max_events": 0,
+    "last_sampled_pre_inference_peak_bytes": 7675940864,
+    "restore8_archive_deletion_end_seconds": 224.7650925461203
+  },
+  "oom_events": 0,
+  "original_session": 56823,
+  "quality_read": false,
+  "schema": "nearest-ranking-mechanics-terminal-decision-v2",
+  "service_seconds": 300.696,
+  "swap_bytes": 0,
+  "training_state_reuse_eligible": false,
+  "unit": "sfora-so400-nearest-ranking-mechanics-control-v2"
+}
