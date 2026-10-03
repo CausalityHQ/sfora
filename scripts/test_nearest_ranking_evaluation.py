@@ -2,6 +2,8 @@
 """Bounded stdlib falsifiers; no native imports or quality data."""
 import ast
 import copy
+from contextlib import redirect_stdout
+import io
 import json
 from types import SimpleNamespace
 import hashlib
@@ -10,6 +12,9 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+
+from test_siglip2_nearest_ranking import NativeAdmissionFixture, driver
 
 PATH = Path(__file__).with_name('evaluate_siglip2_nearest_ranking.py')
 if PATH.exists():
@@ -25,9 +30,106 @@ def quality(r1, ap):
             'per_query_r1': r1, 'per_query_ap': ap}
 
 
+def evaluator_exit_boundary(tree):
+    """Reverse only the owned audit dispatch; preserve the entire base AST."""
+    dump = lambda n: ast.dump(n, include_attributes=False)
+    before = ast.parse("trainer.native_source_api(t).audit_origins(t['legacy'])", mode='eval').body
+    after = ast.parse("t['old'].audit_origins(t['legacy'])", mode='eval').body
+    exit_node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'exit_rehash')
+    class Inverse(ast.NodeTransformer):
+        count = 0
+        def visit_Call(self, node):
+            if dump(node) == dump(before):
+                self.count += 1
+                return ast.copy_location(copy.deepcopy(after), node)
+            return self.generic_visit(node)
+    inverse = Inverse()
+    inverse.visit(exit_node)
+    evaluator.require(inverse.count == 1 and hashlib.sha256(dump(tree).encode()).hexdigest() ==
+        'b2780835cc8f588a69794e07d57d1abf4a965bd060b09412424a48555ef71e8b',
+        'only ordinary evaluator exit audit dispatch may change')
+
+
 class EvaluationTests(unittest.TestCase):
     def setUp(self):
         self.assertIsNotNone(evaluator, 'procedure-owned evaluator is required')
+
+    def test_exit_real_owned_api_and_failure_propagation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            f = NativeAdmissionFixture(root)
+            api = f.admit()
+            def descriptor(name, names):
+                destination = root / name; destination.mkdir()
+                for n in names:
+                    (destination / n).write_bytes(PATH.with_name(n).read_bytes())
+                code = {n: hashlib.sha256((destination / n).read_bytes()).hexdigest() for n in names}
+                manifest = destination / 'execution.json'; manifest.write_text(json.dumps(code))
+                return {'root': str(destination), 'code': code,
+                        'execution_sha256': hashlib.sha256(manifest.read_bytes()).hexdigest()}
+            own = descriptor('evaluator', evaluator.FILES)
+            training = descriptor('trainer', evaluator.TRAIN_FILES)
+            reference = descriptor('reference', evaluator.REFERENCE['code'])
+            f.context.update(root=Path(training['root']), code=training['code'],
+                             args=SimpleNamespace(execution_sha256=training['execution_sha256']))
+            context = {'trainer': driver, 'training_context': f.context, 'guards': {},
+                'root': Path(own['root']), 'args': SimpleNamespace(execution_sha256=own['execution_sha256']),
+                'code': own['code'], 'launch': {'training': training}}
+            def exit_call():
+                f.context['fit_context']['phase_seconds'].clear()
+                return evaluator.exit_rehash(context)
+            # No model was constructed: only its disconnected helper snapshot is stubbed.
+            with patch.object(driver, 'helper_guard'), patch.object(evaluator, 'REFERENCE', reference), \
+                    redirect_stdout(io.StringIO()):
+                with self.assertRaisesRegex(ValueError, 'unknown or changed'):
+                    f.old.audit_origins(f.legacy)
+                self.assertIs(exit_call(), f.legacy['origins'])
+                self.assertEqual(set(f.legacy['origins']['files']), set(f.files))
+                self.assertEqual(set(f.legacy['origins']['native_files']), set(f.files))
+                with patch.object(driver, 'native_source_api', None), self.assertRaises(TypeError):
+                    exit_call()
+                with self.assertRaisesRegex(ValueError, 'owned legacy'):
+                    api.audit_origins(dict(f.legacy))
+                private = next(c.cell_contents for c in api.audit_origins.__closure__ if
+                    isinstance(c.cell_contents, driver.FunctionType) and c.cell_contents.__name__ == 'audit_origins')
+                with patch.dict(private.__globals__, {'_nearest_supplement': {'files': {}, 'modules': {}}}), \
+                        self.assertRaisesRegex(ValueError, 'global binding changed'):
+                    exit_call()
+                with patch.dict(f.context['source'], {'native_authority': {}}), \
+                        self.assertRaisesRegex(ValueError, 'owned API/supplement changed'):
+                    exit_call()
+                f.set_origins({**f.files, f.bulk[0]['path']: f.bulk[0]['sha256']})
+                with self.assertRaisesRegex(ValueError, 'unknown or changed'):
+                    exit_call()
+                f.set_origins(f.files)
+                prior = f.legacy['selected']['genuine']['prior']
+                prior['images'] = ['fitter exit must reject this']
+                with self.assertRaisesRegex(ValueError, 'FIT image resolution'):
+                    exit_call()
+                prior['images'] = []
+                manifest = Path(own['root']) / 'execution.json'
+                raw = manifest.read_bytes(); manifest.write_bytes(raw + b' ')
+                with self.assertRaisesRegex(ValueError, 'SHA256'):
+                    exit_call()
+                manifest.write_bytes(raw)
+                f.unchanged_originals(self)
+
+    def test_exit_dispatch_inverse_rejects_retained_guard_mutations(self):
+        tree = ast.parse(PATH.read_bytes())
+        evaluator_exit_boundary(copy.deepcopy(tree))
+        for statement in ("trainer.exit_rehash(t)", "trainer.helper_guard(t)",
+                          "trainer.native_source_api(t).audit_origins(t['legacy'])"):
+            mutant = copy.deepcopy(tree)
+            node = next(n for n in mutant.body if isinstance(n, ast.FunctionDef) and n.name == 'exit_rehash')
+            target = ast.dump(ast.parse(statement).body[0], include_attributes=False)
+            node.body = [n for n in node.body if ast.dump(n, include_attributes=False) != target]
+            with self.subTest(statement=statement), self.assertRaises(ValueError):
+                evaluator_exit_boundary(mutant)
+        mutant = copy.deepcopy(tree)
+        node = next(n for n in mutant.body if isinstance(n, ast.FunctionDef) and n.name == 'exit_rehash')
+        node.body = [n for n in node.body if not isinstance(n, ast.For)]
+        with self.assertRaises(ValueError):
+            evaluator_exit_boundary(mutant)
 
     def test_cost_fresh_matched_core_and_whole_service(self):
         records = {'control': {'service_seconds': 100, 'total_training_core_seconds': 60},

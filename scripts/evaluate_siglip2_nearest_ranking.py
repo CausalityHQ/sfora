@@ -910,7 +910,7 @@ def exit_rehash(context):
         require(closure(descriptor['root'],descriptor['execution_sha256'],names,{}) == code,
                 'fresh complete source closure changed at exit')
     trainer.helper_guard(t)
-    t['old'].audit_origins(t['legacy'])
+    trainer.native_source_api(t).audit_origins(t['legacy'])
     return t['legacy']['origins']
 
 
