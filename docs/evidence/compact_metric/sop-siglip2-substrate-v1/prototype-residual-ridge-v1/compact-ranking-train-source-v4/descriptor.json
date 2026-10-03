@@ -1,0 +1,11 @@
+{
+  "authority_sha256": "6672f4f027830d2b12e43b800aae41aa61a1550b1e380f9cbe4798404beb4327",
+  "code": {
+    "test_siglip2_compact_ranking.py": "bdb0d03997e4e0747280d1d5a0c3d1bc55bd881ad98cc3aa2274ceedc1666134",
+    "train_siglip2_compact_ranking.py": "e17bec97da320e2c6bcd38ad5b720d8db8eb32d81e76893830a27e17dd8294e8"
+  },
+  "execution_sha256": "125c7942d25f71e355da8b169606a484e4f1be161d5e1ecca80cc77e783efddc",
+  "qualification_eligible": false,
+  "root": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4",
+  "stop_rule": "ONE fresh CPU500 full qualification; only complete PASS admits ONE discarded control061 mechanics300. Preserve all historical failures. Assess whole TRAIN128 feasibility before candidate/TRAIN; all scientific/resource/current-byte/parity gates unchanged."
+}
