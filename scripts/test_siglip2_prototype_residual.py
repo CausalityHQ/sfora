@@ -9,6 +9,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import mmap
 import os
 from pathlib import Path
 import struct
@@ -486,6 +487,277 @@ def check_terminal_reader():
         function.__code__ = code
 
 
+def check_retention_correspondence():
+    """Freeze all old predicates and the complete core timer, allowing only instrumentation/lifetime."""
+    frozen = ROOT / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/signed-concat-fit-source-v1'
+    pins = json.loads((frozen / 'execution.json').read_bytes())
+    for name in fit.FILES:
+        assert hashlib.sha256((frozen / name).read_bytes()).hexdigest() == pins[name]
+    assert pins['fit_siglip2_prototype_residual.py'] == '83e47dc0534d83e7e2848f453077109ec9f713a2efcba01a7f6e2e47f6a91ece'
+    original = ast.parse((frozen / 'fit_siglip2_prototype_residual.py').read_bytes())
+    current = ast.parse((HERE / 'fit_siglip2_prototype_residual.py').read_bytes())
+    funcs = {n.name: n for n in current.body if isinstance(n, ast.FunctionDef)}
+    old_funcs = {n.name: n for n in original.body if isinstance(n, ast.FunctionDef)}
+    assert funcs.keys() - old_funcs.keys() == {'retain_encoder', 'mark_phase', 'check_run_metadata'}
+
+    class Instrumentation(ast.NodeTransformer):
+        def visit_Expr(self, node):
+            if isinstance(node.value, ast.Call) and ast.unparse(node.value.func) in (
+                    'mark_phase', 'retain_encoder', 'check_run_metadata', 'context.update'):
+                return None
+            if (isinstance(node.value, ast.Call) and ast.unparse(node.value.func) == 'require' and
+                    isinstance(node.value.args[-1], ast.Constant) and
+                    node.value.args[-1].value == 'encoder cleanup included cap exceeded'):
+                return None
+            return self.generic_visit(node)
+
+        def visit_Assign(self, node):
+            if ast.unparse(node.targets[0]) == 'progress':
+                return None
+            return self.generic_visit(node)
+
+        def visit_Try(self, node):
+            assert not node.handlers and not node.orelse
+            assert ast.unparse(ast.Module(body=node.finalbody, type_ignores=[])) == (
+                "mapping = context.pop('_encoder_mapping', None)\nif mapping is not None:\n    mapping.close()")
+            return [n for item in node.body if (n := self.visit(item)) is not None]
+
+        def visit_Dict(self, node):
+            pairs = [(k, v) for k, v in zip(node.keys, node.values)
+                     if not (isinstance(k, ast.Constant) and k.value in ('encoder_retention', 'phase_seconds'))]
+            node.keys, node.values = [p[0] for p in pairs], [p[1] for p in pairs]
+            return self.generic_visit(node)
+
+    changed = {'run', 'fit_run', 'exit_rehash', 'check_terminal_record'}
+    for name, node in old_funcs.items():
+        candidate = copy.deepcopy(funcs[name])
+        if name in changed:
+            candidate = Instrumentation().visit(candidate)
+        assert ast.dump(candidate) == ast.dump(node), name
+    # Each marker brackets its original operation, never entering fresh()'s core timer.
+    loop = next(n for n in funcs['fit_run'].body if isinstance(n, ast.For))
+    operations = [(i, n) for i, n in enumerate(loop.body) if isinstance(n, ast.Assign) and
+                  isinstance(n.value, ast.Call) and ast.unparse(n.value.func) in ('fresh', 'reload')]
+    assert [ast.unparse(n.value.func) for _, n in operations] == ['fresh', 'fresh', 'reload']
+    for (index, _), label in zip(operations, ('fresh_fit1', 'fresh_fit2', 'reload')):
+        assert ast.unparse(loop.body[index - 1]) == "mark_phase(context, arm + '_" + label + "_begin')"
+        assert ast.unparse(loop.body[index + 1]) == "mark_phase(context, arm + '_" + label + "_end')"
+    # Existing constants, pins, imports, and entrypoint stay byte-for-byte AST identical.
+    additions = {'ENCODER_CHECKPOINT', 'ENCODER_CHECKPOINT_BYTES', 'ENCODER_RETENTION_MAX_BYTES'}
+    filtered = [n for n in current.body if not isinstance(n, ast.FunctionDef) and
+                not (isinstance(n, ast.Import) and ast.unparse(n) == 'import mmap') and
+                not (isinstance(n, ast.Assign) and ast.unparse(n.targets[0]) in additions)]
+    assert ast.dump(ast.Module(body=filtered, type_ignores=[])) == ast.dump(ast.Module(
+        body=[n for n in original.body if not isinstance(n, ast.FunctionDef)], type_ignores=[]))
+
+
+def check_encoder_retention():
+    """Real small readonly mappings: catch expanded hotset, stale SHA, partial touch and leaks."""
+    assert fit.ENCODER_CHECKPOINT == {
+        'path': '/home/riomus/runs/sfora-native256-source-cpu-so400-v4/fresh_vision.pt',
+        'sha256': '5dade5510a57637019adcf3c37a2ef66af0828ba072d5c847e768c8de2d48189'}
+    assert fit.ENCODER_CHECKPOINT_BYTES == 1711945083 and fit.ENCODER_RETENTION_MAX_BYTES == 2 * 1024**3
+    page = os.sysconf('SC_PAGESIZE'); size = 1024**2 + page + 1
+    with TemporaryDirectory() as temporary:
+        path = Path(temporary) / 'fresh_vision.pt'; raw = b'a' * size; path.write_bytes(raw)
+        fact = {'path': str(path), 'sha256': hashlib.sha256(raw).hexdigest()}
+        mappings, opened = [], []
+        fail_population = False
+
+        class Pages:
+            def __init__(self, fd, length, access):
+                assert Path(os.readlink('/proc/self/fd/' + str(fd))) == path
+                assert length == size and access == mmap.ACCESS_READ
+                self.real = mmap.mmap(fd, length, access=access); self.offsets = []
+                opened.append(fd); mappings.append(self)
+
+            def __getitem__(self, offset):
+                self.offsets.append(offset)
+                if fail_population and offset == page:
+                    raise OSError('population failed')
+                return self.real[offset]
+
+            def close(self):
+                self.real.close()
+
+        namespace = {**vars(fit), 'ENCODER_CHECKPOINT': fact, 'ENCODER_CHECKPOINT_BYTES': size,
+            'mmap': SimpleNamespace(mmap=Pages, ACCESS_READ=mmap.ACCESS_READ)}
+        retain = FunctionType(fit.retain_encoder.__code__, namespace)
+
+        def context(descriptor=fact):
+            legacy = {}
+            def owned(value):
+                assert value is legacy
+                return SimpleNamespace(materialize=lambda: {'checkpoint': copy.deepcopy(descriptor)})
+            return {'legacy': legacy, 'old': SimpleNamespace(owned_encoder=owned), 'guards': {}}
+
+        c = context(); retain(c); kept = c['_encoder_mapping']
+        assert mappings == [kept] and kept.offsets == list(range(0, size, page))
+        assert kept.real[-1] == ord('a') and c['guards'] == {str(path): fact['sha256']}
+        assert c['encoder_retention'] == {**fact, 'bytes': size, 'max_bytes': 2 * 1024**3,
+            'page_bytes': page, 'pages_populated': (size + page - 1) // page, 'access': 'read-only'}
+        rejects(lambda: os.fstat(opened[-1]))
+        try:
+            kept.real[0] = ord('b')
+        except TypeError:
+            pass
+        else:
+            raise AssertionError('retained encoder is writable')
+        rejects(lambda: retain(c), 'already retained')
+        # Same inode/size/restored mtime, including a byte beyond the first SHA chunk.
+        stat = path.stat()
+        for offset in (0, page + 7, size - 1):
+            with path.open('r+b') as stream:
+                stream.seek(offset); stream.write(b'b')
+            os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+            assert path.stat().st_mtime_ns == stat.st_mtime_ns
+            rejects(lambda: fit.bound_file(c['guards'], path, fact['sha256']), 'SHA256')
+            assert not kept.real.closed
+            path.write_bytes(raw)
+        kept.close()
+        for descriptor in (dict(fact, sha256='0' * 64), dict(fact, extra=True),
+                           dict(fact, path='fresh_vision.pt'), dict(fact, path=str(path.parent / 'warm.pt')),
+                           dict(fact, path=str(path.parent / 'resume.pt'))):
+            rejects(lambda: retain(context(descriptor)), 'original encoder checkpoint')
+        link = path.parent / 'alias.pt'; link.symlink_to(path)
+        rejects(lambda: retain(context(dict(fact, path=str(link)))), 'original encoder checkpoint')
+        actual = path.parent / 'actual.pt'; path.rename(actual); path.symlink_to(actual)
+        rejects(lambda: retain(context()), 'canonical file')
+        path.unlink(); actual.rename(path)
+        for actual_size in (0, size - 1, size + 1):
+            path.write_bytes(b'a' * actual_size)
+            descriptor = dict(fact, sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+            resized = FunctionType(retain.__code__, {**namespace, 'ENCODER_CHECKPOINT': descriptor})
+            rejects(lambda: resized(context(descriptor)), 'retention size')
+        path.write_bytes(raw)
+        limited = FunctionType(retain.__code__, {**namespace, 'ENCODER_RETENTION_MAX_BYTES': size - 1})
+        rejects(lambda: limited(context()), 'retention size')
+        path.write_bytes(b'b' * size)
+        rejects(lambda: retain(context()), 'SHA256')
+        path.write_bytes(raw)
+        assert len(mappings) == 1, 'rejection created an extra mapping'
+        fail_population = True
+        failed = context(); rejects(lambda: retain(failed), 'population failed')
+        assert mappings[-1].real.closed and '_encoder_mapping' not in failed
+        rejects(lambda: os.fstat(opened[-1]))
+        fail_population = False
+
+        def no_mapping(fd, length, access):
+            opened.append(fd)
+            raise OSError('mapping failed')
+        unavailable = FunctionType(retain.__code__, {**namespace,
+            'mmap': SimpleNamespace(mmap=no_mapping, ACCESS_READ=mmap.ACCESS_READ)})
+        failed = context(); rejects(lambda: unavailable(failed), 'mapping failed')
+        assert '_encoder_mapping' not in failed and len(mappings) == 2
+        rejects(lambda: os.fstat(opened[-1]))
+        check_retention_lifetime(namespace, retain, context, mappings, path)
+
+
+def check_retention_lifetime(namespace, retain, make_context, mappings, path):
+    """Execute real run/exit/phase orchestration with native boundaries stubbed; never qualification."""
+    phases = ['authority_begin', 'authority_end', 'encoder_retention_begin', 'encoder_retention_end']
+    for arm in ('linear', 'concat'):
+        for part in ('fresh_fit1', 'fresh_fit2', 'reload'):
+            phases += [arm + '_' + part + '_begin', arm + '_' + part + '_end']
+    phases += ['old_exit_begin', 'old_exit_end', 'own_union_begin', 'own_union_end', 'closure_begin', 'closure_end']
+    for failure in (None, 'authority', 'cgroup', 'interpreter', 'body', 'publish', 'peak'):
+        c = make_context(); events, messages = [], []
+        original_count = len(mappings)
+        args = SimpleNamespace(authority=path, authority_sha256='a' * 64, execution_sha256='b' * 64,
+            phase='cpu', arm='linear', output=path.parent / ('output-' + str(failure)))
+        prior = {'python': str(Path(sys.executable).resolve()), 'python_sha256': 'c' * 64, 'python_version': sys.version}
+
+        def boundary(name):
+            events.append(name)
+            if failure == name:
+                raise ValueError(name)
+
+        def live(name):
+            boundary(name)
+            assert not c['_encoder_mapping'].real.closed
+
+        def authority(value):
+            assert value is args
+            boundary('authority')
+            return c
+
+        def cgroup():
+            boundary('cgroup')
+            peak = '1' if failure == 'peak' and '_encoder_mapping' in c else '100'
+            return {'path': '/sys/fs/cgroup/test.service', 'values': {'memory.peak': peak}}
+
+        def interpreter(value):
+            boundary('interpreter')
+            return prior['python_sha256']
+
+        def body(value):
+            assert value is c
+            live('body')
+            for name in phases[4:-6]:
+                fit.mark_phase(c, name)
+            return {}
+
+        def publish(extract, target, receipt):
+            assert target == args.output / 'receipt.json'
+            live('publish')
+
+        c['legacy'].update(source_driver=SimpleNamespace(cgroup_memory=cgroup), guards={}, origins={}, terminal_cgroups={},
+            selected={'source_cpu': {'invocation': prior}}, invocations=set(), extract=SimpleNamespace(sha=interpreter),
+            admission=SimpleNamespace(init=SimpleNamespace(admit_cgroup=lambda *a: None, write_json=publish)))
+        c['old'].zero_events = lambda value: None
+        c['old'].exit_rehash = lambda value: live('old_exit')
+        c.update(args=args, root=path.parent, code={}, launch={}, source={}, flags={}, terminal_cgroups={})
+        fake_torch = SimpleNamespace(random=SimpleNamespace(get_rng_state=lambda: SimpleNamespace(clone=lambda: 1)),
+            equal=lambda *a: True, cuda=SimpleNamespace(is_initialized=lambda: False))
+        def native_boundary(name, *a, **kw):
+            return fake_torch if name == 'torch' else builtins.__import__(name, *a, **kw)
+        env = {'CUDA_VISIBLE_DEVICES': '', 'INVOCATION_ID': '1' * 32}
+        ns = {**namespace, 'authority': authority, 'cli': lambda *a: sys.argv, 'retain_encoder': retain,
+            'fit_run': body, 'os': SimpleNamespace(environ=env, getpid=os.getpid),
+            '__builtins__': {**vars(builtins), '__import__': native_boundary},
+            'prepare_readout': lambda value: live('readout'), 'original_terminal_reader': lambda value: live('reader'),
+            'closure': lambda *a: {}, 'print': lambda value, **kw: messages.append((json.loads(value), kw))}
+        ns['mark_phase'] = FunctionType(fit.mark_phase.__code__, ns)
+        # Body stub still uses the production emitter via its own isolated namespace.
+        ns['fit_run'] = FunctionType(body.__code__, {**body.__globals__, 'fit': SimpleNamespace(mark_phase=ns['mark_phase'])},
+                                     closure=body.__closure__)
+        ns['exit_rehash'] = FunctionType(fit.exit_rehash.__code__, ns)
+        validator = FunctionType(fit.check_run_metadata.__code__, ns)
+        ns['check_terminal_record'] = lambda record, launch, phase, arm: validator(record, phase, arm)
+        run = FunctionType(fit.run.__code__, ns)
+        if failure is None:
+            record = run(args)
+            assert list(record['phase_seconds']) == phases
+            assert [m['phase'] for m, kw in messages] == phases and all(kw == {'flush': True} for m, kw in messages)
+            assert all(m['event'] == 'PROTOTYPE_PHASE' for m, kw in messages)
+            assert [m['seconds'] for m, kw in messages] == list(record['phase_seconds'].values())
+            rejects(lambda: ns['mark_phase'](c, 'authority_begin'), 'duplicate phase')
+            validator(json.loads(json.dumps(record, sort_keys=True)), 'cpu', 'linear')
+            for mutate in (
+                lambda r: r['phase_seconds'].pop('old_exit_end'),
+                lambda r: r['phase_seconds'].update(unexpected=0.),
+                lambda r: r['phase_seconds'].update(authority_end=-1.),
+                lambda r: r['phase_seconds'].update(authority_end=float('nan')),
+                lambda r: r['phase_seconds'].update(closure_end=r['wall_seconds'] + 1),
+                lambda r: r['encoder_retention'].update(pages_populated=1),
+                lambda r: r['encoder_retention'].update(path='/warm.pt'),
+                lambda r: r['encoder_retention'].update(sha256='0' * 64),
+                lambda r: r['encoder_retention'].update(bytes=0),
+                lambda r: r['encoder_retention'].update(max_bytes=3 * 1024**3),
+                lambda r: r['encoder_retention'].update(access='write'),
+                lambda r: r['input_guards'].clear(),
+            ):
+                bad = copy.deepcopy(record); mutate(bad); rejects(lambda: validator(bad, 'cpu', 'linear'))
+        else:
+            rejects(lambda: run(args), 'resource cap' if failure == 'peak' else failure)
+        if failure in ('authority', 'cgroup', 'interpreter'):
+            assert len(mappings) == original_count
+        else:
+            assert len(mappings) == original_count + 1 and mappings[-1].real.closed
+            assert '_encoder_mapping' not in c
+    assert not any(n.split('.')[0] in fit.NATIVE for n in sys.modules)
+
+
 def check():
     assert not any(n.split('.')[0] in fit.NATIVE for n in sys.modules)
     evidence = ROOT / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/quadratic-readout-v1/train-source-v7'
@@ -497,6 +769,8 @@ def check():
     check_repeat_preparation(evidence)
     check_signed_readout()
     check_terminal_reader()
+    check_retention_correspondence()
+    check_encoder_retention()
     original_launch = json.loads((evidence / 'authority-cpu-v7.json').read_bytes())
     launch = dict(schema=fit.AUTHORITY_SCHEMA, execution_sha256='a' * 64, phase='cpu', arm='linear',
                   original_reference=copy.deepcopy(fit.ORIGINAL_REFERENCE), original_cpu=copy.deepcopy(fit.ORIGINAL_CPU),
@@ -639,7 +913,7 @@ def check():
         rejects(lambda: fit.verify_digest(typed_hash, bad, digest, 'reload/current bytes changed'))
     assert typed_hash({'label': 1}) != typed_hash({'label': 1.})
     check_adapter(solver_path, torch, source, target)
-    print('PASS: signed basis/width/schema/lambda/H0-byte/target-mean/adapter falsifiers, historical duration/predicates, helper integrity and original bounded checks; native FP32 UNRUN')
+    print('PASS: signed basis/width/schema/lambda/H0-byte/target-mean/adapter falsifiers, historical duration/predicates, helper integrity, readonly encoder retention/lifetime/phase metadata and frozen AST checks; native FP32 UNRUN')
 
 
 if __name__ == '__main__':

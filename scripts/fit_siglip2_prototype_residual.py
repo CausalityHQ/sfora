@@ -25,6 +25,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import mmap
 import os
 from pathlib import Path
 import re
@@ -103,6 +104,11 @@ PAYLOAD_KEYS = {'schema', 'identity', 'source', 'encoder', 'config', 'buffers', 
 FROZEN_KEYS = ('encoder', 'config', 'buffers', 'head', 'classifier', 'warm_payload', 'partition',
                'original_rows', 'target', 'features')
 FITTED_KEYS = tuple(sorted(FIT_KEYS))
+ENCODER_CHECKPOINT = {
+    'path': '/home/riomus/runs/sfora-native256-source-cpu-so400-v4/fresh_vision.pt',
+    'sha256': '5dade5510a57637019adcf3c37a2ef66af0828ba072d5c847e768c8de2d48189'}
+ENCODER_CHECKPOINT_BYTES = 1711945083
+ENCODER_RETENTION_MAX_BYTES = 2 * 1024**3
 
 
 def require(condition, message):
@@ -986,6 +992,7 @@ def check_identity_record(ident, launch, arm, source, flags):
 
 
 def check_terminal_record(record, launch, phase, arm):
+    check_run_metadata(record, phase, arm)
     require(record['schema'] == SCHEMA and record['phase'] == phase and record['arm'] == arm and
             method(record['launch']) == method(launch) and record['launch']['selected_cpu'] ==
             (None if phase == 'cpu' else launch['selected_cpu']) and
@@ -1073,7 +1080,9 @@ def fit_run(context):
     total_core, facts = 0., {}
     for arm in ARMS if args.phase == 'cpu' else (args.arm,):
         cores = []
+        mark_phase(context, arm + '_fresh_fit1_begin')
         state = fresh(context, arm)
+        mark_phase(context, arm + '_fresh_fit1_end')
         ident = identity(context, state)
         if args.phase == 'cpu' and arm == 'linear':
             historical_linear_parity(context, state)
@@ -1087,7 +1096,9 @@ def fit_run(context):
         release(context, state)
         # Second pass rereads warm/source/input bytes and refits before seeing
         # any first-pass fitted tensor, prototype or sufficient statistic.
+        mark_phase(context, arm + '_fresh_fit2_begin')
         state = fresh(context, arm)
+        mark_phase(context, arm + '_fresh_fit2_end')
         if args.phase == 'cpu' and arm == 'linear':
             require(state['head']._prototype_original_solver_exact is True,
                     'second original/adapted native linear parity failed')
@@ -1099,7 +1110,9 @@ def fit_run(context):
         sha, saved_digest = save(context, state, ident, path)
         require(saved_digest == digest, 'save changed complete fitted payload')
         release(context, state)
+        mark_phase(context, arm + '_reload_begin')
         state = reload(context, path, sha, digest, ident)
+        mark_phase(context, arm + '_reload_end')
         fact = {'identity': ident, 'fit_witness': state['fit_witness'], 'terminal_state_sha256': digest,
                 'output_witness_sha256': ident['output_witness_sha256'], 'strict_reload_exact': True,
                 'independent_refit_exact': True, 'bypass_version_tamper_rejected': tamper, 'fit_passes': 2,
@@ -1159,10 +1172,70 @@ def historical_linear_parity(context, state):
 def exit_rehash(context):
     prepare_readout(context)
     original_terminal_reader(context)
+    mark_phase(context, 'old_exit_begin')
     context['old'].exit_rehash(context['legacy'])
+    mark_phase(context, 'old_exit_end')
+    mark_phase(context, 'own_union_begin')
     for path, digest in {**context['legacy']['guards'], **context['guards']}.items():
         bound_file({}, path, digest)
+    mark_phase(context, 'own_union_end')
+    mark_phase(context, 'closure_begin')
     require(closure(context['root'], context['args'].execution_sha256, FILES, {}) == context['code'], 'new exit code changed')
+    mark_phase(context, 'closure_end')
+
+
+def retain_encoder(context):
+    """Retain only original encoder pages; all existing actual-byte SHA reads remain uncached."""
+    require('_encoder_mapping' not in context, 'encoder already retained')
+    checkpoint = context['old'].owned_encoder(context['legacy']).materialize()['checkpoint']
+    require(checkpoint == ENCODER_CHECKPOINT, 'exact original encoder checkpoint required')
+    path = bound_file(context['guards'], checkpoint['path'], checkpoint['sha256'])
+    with path.open('rb') as stream:
+        size, page = os.fstat(stream.fileno()).st_size, os.sysconf('SC_PAGESIZE')
+        require(size == ENCODER_CHECKPOINT_BYTES and 0 < size <= ENCODER_RETENTION_MAX_BYTES,
+                'fixed encoder retention size differs')
+        pages = mmap.mmap(stream.fileno(), size, access=mmap.ACCESS_READ)
+        context['_encoder_mapping'] = pages
+        try:
+            for offset in range(0, size, page):
+                _ = pages[offset]
+        except BaseException:
+            context.pop('_encoder_mapping').close()
+            raise
+    context['encoder_retention'] = {**checkpoint, 'bytes': size, 'max_bytes': ENCODER_RETENTION_MAX_BYTES,
+        'page_bytes': page, 'pages_populated': (size + page - 1) // page, 'access': 'read-only'}
+
+
+def mark_phase(context, name):
+    """Bounded cumulative diagnostics, outside the unchanged complete fit-core timer."""
+    require(name not in context['phase_seconds'], 'duplicate phase marker')
+    seconds = time.perf_counter() - context['unit_started']
+    context['phase_seconds'][name] = seconds
+    print(json.dumps({'event': 'PROTOTYPE_PHASE', 'phase': name, 'seconds': seconds}), flush=True)
+
+
+def check_run_metadata(record, phase, arm):
+    expected = ['authority_begin', 'authority_end', 'encoder_retention_begin', 'encoder_retention_end']
+    for fitted_arm in ARMS if phase == 'cpu' else (arm,):
+        for part in ('fresh_fit1', 'fresh_fit2', 'reload'):
+            expected.extend((fitted_arm + '_' + part + '_begin', fitted_arm + '_' + part + '_end'))
+    expected.extend(('old_exit_begin', 'old_exit_end', 'own_union_begin', 'own_union_end', 'closure_begin', 'closure_end'))
+    phases = record['phase_seconds']
+    require(isinstance(phases, dict) and phases.keys() == set(expected), 'complete phase marker counts differ')
+    seconds = [phases[name] for name in expected]
+    require(all(type(v) in (int, float) and math.isfinite(v) and 0 <= v <= record['wall_seconds'] for v in seconds) and
+            seconds == sorted(seconds), 'ordered whole-unit phase timestamps differ')
+    retained = record['encoder_retention']
+    require(isinstance(retained, dict) and retained.keys() ==
+            {'path', 'sha256', 'bytes', 'max_bytes', 'page_bytes', 'pages_populated', 'access'} and
+            {k: retained[k] for k in ENCODER_CHECKPOINT} == ENCODER_CHECKPOINT and
+            type(retained['bytes']) is int and retained['bytes'] == ENCODER_CHECKPOINT_BYTES and
+            type(retained['max_bytes']) is int and retained['max_bytes'] == ENCODER_RETENTION_MAX_BYTES and
+            0 < retained['bytes'] <= retained['max_bytes'] and retained['access'] == 'read-only' and
+            type(retained['page_bytes']) is int and retained['page_bytes'] > 0 and
+            type(retained['pages_populated']) is int and
+            retained['pages_populated'] == (retained['bytes'] + retained['page_bytes'] - 1) // retained['page_bytes'] and
+            record['input_guards'].get(retained['path']) == retained['sha256'], 'canonical encoder retention differs')
 
 
 def run(args):
@@ -1171,7 +1244,11 @@ def run(args):
             args.execution_sha256, args.phase, args.arm, args.output), 'fixed new canonical CLI order required')
     require(os.environ.get('CUDA_VISIBLE_DEVICES') == '' and
             re.fullmatch('[0-9a-f]{32}', os.environ.get('INVOCATION_ID', '')), 'hidden CPU original systemd launch required')
+    progress = {'unit_started': started, 'phase_seconds': {}}
+    mark_phase(progress, 'authority_begin')
     context = authority(args)
+    context.update(progress)
+    mark_phase(context, 'authority_end')
     old, legacy = context['old'], context['legacy']
     source, prior = legacy['source_driver'], legacy['selected']['source_cpu']['invocation']
     before = source.cgroup_memory()
@@ -1182,39 +1259,49 @@ def run(args):
     require(str(python) == prior['python'] and legacy['extract'].sha(python) == prior['python_sha256'] and
             sys.version == prior['python_version'] and os.environ['INVOCATION_ID'] not in legacy['invocations'],
             'original interpreter/fresh invocation differs')
-    import torch
-    cpu_rng = torch.random.get_rng_state().clone()
-    args.output.mkdir()
-    result = fit_run(context)
-    require(torch.equal(cpu_rng, torch.random.get_rng_state()) and not torch.cuda.is_initialized(), 'fit changed RNG/CUDA')
-    exit_rehash(context)
-    after = source.cgroup_memory()
-    old.zero_events(after)
-    legacy['admission'].init.admit_cgroup(after, unit)
-    wall, rss = time.perf_counter() - started, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    require(before['path'] == after['path'] and 0 < wall < policy(args.phase)['seconds'] and
-            0 < rss <= 8 * 1024**2 and int(after['values']['memory.peak']) >= int(before['values']['memory.peak']),
-            'new complete unit resource cap differs')
-    guards = {**legacy['guards'], **context['guards']}
-    receipt = {'schema': SCHEMA, 'phase': args.phase, 'arm': args.arm, 'output': str(args.output),
-        'launch': context['launch'], 'execution_sha256': args.execution_sha256, 'code': context['code'],
-        'authority': {'path': str(args.authority), 'sha256': args.authority_sha256}, 'authority_sha256': args.authority_sha256,
-        'source': context['source'], 'partition_sha256': PARTITION_SHA, 'numerical_flags': context['flags'],
-        'pass': True, 'quality_read': False, 'fit_qualified': args.phase == 'fit', 'public_encoder_qualified': False,
-        'strict_reload_exact': True, 'exit_rehash_pass': True, 'frozen_complement_exact': True,
-        'training_only_fit': True, 'zero_A_source_parity': True, 'bypass_version_tamper_rejected': True,
-        'sequential_model_ownership': True, 'cuda_initialized': False, 'peak_cuda_allocated_bytes': 0,
-        'resource_policy': policy(args.phase), 'wall_seconds': wall, 'process_peak_rss_kib': rss,
-        'cgroup_before': before, 'cgroup_after': after, 'origins': legacy['origins'], 'input_guards': guards,
-        'terminal_cgroups': {**legacy['terminal_cgroups'], **context['terminal_cgroups']},
-        'both_locks_held_in_parent_authority': True, 'terminal_exit_and_both_locks_require_parent_receipt': True,
-        **result, 'invocation': {'argv': sys.argv, 'python': str(python), 'python_sha256': prior['python_sha256'],
-            'python_version': sys.version, 'optimize': sys.flags.optimize, 'pid': os.getpid(),
-            'invocation_id': os.environ['INVOCATION_ID'], 'cuda_visible_devices': os.environ['CUDA_VISIBLE_DEVICES'],
-            'cublas_workspace_config': os.environ.get('CUBLAS_WORKSPACE_CONFIG')}}
-    check_terminal_record(receipt, context['launch'], args.phase, args.arm)
-    legacy['admission'].init.write_json(legacy['extract'], args.output / 'receipt.json', receipt)
-    require(time.perf_counter() - started < policy(args.phase)['seconds'], 'new receipt included cap exceeded')
+    try:
+        mark_phase(context, 'encoder_retention_begin')
+        retain_encoder(context)
+        mark_phase(context, 'encoder_retention_end')
+        import torch
+        cpu_rng = torch.random.get_rng_state().clone()
+        args.output.mkdir()
+        result = fit_run(context)
+        require(torch.equal(cpu_rng, torch.random.get_rng_state()) and not torch.cuda.is_initialized(), 'fit changed RNG/CUDA')
+        exit_rehash(context)
+        after = source.cgroup_memory()
+        old.zero_events(after)
+        legacy['admission'].init.admit_cgroup(after, unit)
+        wall, rss = time.perf_counter() - started, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        require(before['path'] == after['path'] and 0 < wall < policy(args.phase)['seconds'] and
+                0 < rss <= 8 * 1024**2 and int(after['values']['memory.peak']) >= int(before['values']['memory.peak']),
+                'new complete unit resource cap differs')
+        guards = {**legacy['guards'], **context['guards']}
+        receipt = {'schema': SCHEMA, 'phase': args.phase, 'arm': args.arm, 'output': str(args.output),
+            'launch': context['launch'], 'execution_sha256': args.execution_sha256, 'code': context['code'],
+            'authority': {'path': str(args.authority), 'sha256': args.authority_sha256}, 'authority_sha256': args.authority_sha256,
+            'source': context['source'], 'partition_sha256': PARTITION_SHA, 'numerical_flags': context['flags'],
+            'pass': True, 'quality_read': False, 'fit_qualified': args.phase == 'fit', 'public_encoder_qualified': False,
+            'strict_reload_exact': True, 'exit_rehash_pass': True, 'frozen_complement_exact': True,
+            'training_only_fit': True, 'zero_A_source_parity': True, 'bypass_version_tamper_rejected': True,
+            'sequential_model_ownership': True, 'cuda_initialized': False, 'peak_cuda_allocated_bytes': 0,
+            'resource_policy': policy(args.phase), 'wall_seconds': wall, 'process_peak_rss_kib': rss,
+            'cgroup_before': before, 'cgroup_after': after, 'origins': legacy['origins'], 'input_guards': guards,
+            'terminal_cgroups': {**legacy['terminal_cgroups'], **context['terminal_cgroups']},
+            'phase_seconds': context['phase_seconds'], 'encoder_retention': context['encoder_retention'],
+            'both_locks_held_in_parent_authority': True, 'terminal_exit_and_both_locks_require_parent_receipt': True,
+            **result, 'invocation': {'argv': sys.argv, 'python': str(python), 'python_sha256': prior['python_sha256'],
+                'python_version': sys.version, 'optimize': sys.flags.optimize, 'pid': os.getpid(),
+                'invocation_id': os.environ['INVOCATION_ID'], 'cuda_visible_devices': os.environ['CUDA_VISIBLE_DEVICES'],
+                'cublas_workspace_config': os.environ.get('CUBLAS_WORKSPACE_CONFIG')}}
+        check_terminal_record(receipt, context['launch'], args.phase, args.arm)
+        legacy['admission'].init.write_json(legacy['extract'], args.output / 'receipt.json', receipt)
+        require(time.perf_counter() - started < policy(args.phase)['seconds'], 'new receipt included cap exceeded')
+    finally:
+        mapping = context.pop('_encoder_mapping', None)
+        if mapping is not None:
+            mapping.close()
+    require(time.perf_counter() - started < policy(args.phase)['seconds'], 'encoder cleanup included cap exceeded')
     return receipt
 
 
