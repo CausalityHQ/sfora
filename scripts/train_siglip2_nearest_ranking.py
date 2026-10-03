@@ -118,8 +118,10 @@ def bound_file(guards, path, expected):
     return path
 
 
-def read_json(fact, guards):
+def read_json(fact, guards, *, admission=None):
     file_fact(fact)
+    if admission is not None:
+        return admission.descriptor_json(fact, guards)
     path = bound_file(guards, fact['path'], fact['sha256'])
     require(path.stat().st_size <= 64 * 1024**2, 'bounded JSON required')
     raw = path.read_bytes()
@@ -1232,13 +1234,35 @@ def check_terminal_record(record, launch, phase, arm):
 def admit_terminal(context, unit, phase, arm):
     check_unit(unit)
     guards, fitter, original, legacy = (context[k] for k in ('guards', 'fitter', 'fit_context', 'legacy'))
-    record = read_json(unit['receipt'], guards)
+    admission, reader_source = legacy['admission'], legacy['original']
+    require(type(admission) is reader_source.FlatAdmission and
+            reader_source.FlatAdmission.__module__ == reader_source.__name__ and
+            reader_source.FlatAdmission.__qualname__ == 'FlatAdmission' and
+            reader_source.__spec__ is not None and
+            Path(reader_source.__spec__.origin) == Path(reader_source.__file__) and
+            original['guards'].get(reader_source.__file__) == fitter.TERMINAL_SOURCE_SHA,
+            'actual original startup reader/source required')
+    raw = bound_file(guards, reader_source.__file__, fitter.TERMINAL_SOURCE_SHA).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == fitter.TERMINAL_SOURCE_SHA,
+            'original startup reader source changed before compilation')
+    source_code = compile(raw, reader_source.__file__, 'exec')
+    reader_code = next(c for c in source_code.co_consts if getattr(c, 'co_name', None) == 'FlatAdmission')
+    for name in ('__init__', 'canonical', 'digest_string', 'register', 'bound_file',
+                 'read_json', 'descriptor_json', 'admit_terminal'):
+        fn, bound = getattr(reader_source.FlatAdmission, name), getattr(admission, name)
+        expected = next(c for c in reader_code.co_consts if getattr(c, 'co_name', None) == name)
+        require(isinstance(fn, FunctionType) and fn.__globals__ is vars(reader_source) and
+                fn.__code__ == expected and fn.__code__.co_filename == reader_source.__file__ and
+                ((bound is fn) if name in ('canonical', 'digest_string') else
+                 (getattr(bound, '__self__', None) is admission and getattr(bound, '__func__', None) is fn)),
+                'original startup reader method changed: ' + name)
+    record = read_json(unit['receipt'], guards, admission=admission)
     check_terminal_record(record, context['launch'], phase, arm)
     prior = legacy['selected']['source_cpu']['invocation']
     require(record['code'] == context['code'] and record['source'] == context['source'] and
             record['execution_sha256'] == context['args'].execution_sha256 and
             record['numerical_flags'] == legacy['selected']['source_cpu']['numerical_flags'] and
-            read_json(record['authority'], guards) == record['launch'] and
+            read_json(record['authority'], guards, admission=admission) == record['launch'] and
             all(record['input_guards'].get(p) == h for p, h in context['required_guards'].items()) and
             all(record['invocation'][k] == prior[k] for k in ('python', 'python_sha256', 'python_version')) and
             record['invocation']['argv'] == cli(context['root'], record['authority']['path'], record['authority']['sha256'],
@@ -1252,7 +1276,7 @@ def admit_terminal(context, unit, phase, arm):
     context['terminals'][phase + ':' + arm] = record
     context['terminal_cgroups'][phase + ':' + arm] = final
     for p, h in record['input_guards'].items():
-        bound_file(guards, p, h)
+        admission.bound_file(guards, p, h)
     return record
 
 

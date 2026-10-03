@@ -402,6 +402,149 @@ class RestoreFixture:
             self.case.assertEqual(value.device.type, self.device)
 
 
+class StartupAdmissionFixture:
+    """Real pinned original reader/terminal adapter; only tiny on-disk facts."""
+    def __init__(self, root):
+        self.root, self.read_bytes = root, {}
+        self.fitter = self.module('fit_siglip2_prototype_residual.py', driver.FITTER['code']['fit_siglip2_prototype_residual.py'])
+        self.original = self.module('train_siglip2_substrate_adaptation.py', self.fitter.TERMINAL_SOURCE_SHA)
+        self.init = self.module('initialize_siglip2_substrate_fit.py')
+        self.old = self.module('train_siglip2_quadratic_readout.py', self.fitter.ORIGINAL_CODE['train_siglip2_quadratic_readout.py'])
+        self.admission = self.original.FlatAdmission()
+        self.admission.init = self.init
+        self.bulk = [self.write('bulk-' + str(i), b'bulk' * 1024) for i in range(2)]
+        self.historical = {}
+        self.context = {'root': root, 'args': SimpleNamespace(execution_sha256='d' * 64),
+            'guards': {}, 'code': {n: 'e' * 64 for n in driver.FILES}, 'source': {'fixture': 'source'},
+            'fitter': self.fitter, 'old': self.old, 'terminals': {}, 'terminal_cgroups': {},
+            'phase_seconds': {}, 'started': time.perf_counter()}
+        original_guards = {self.original.__file__: self.fitter.TERMINAL_SOURCE_SHA}
+        self.legacy = {'original': self.original, 'admission': self.admission, 'guards': original_guards,
+            'selected': {'source_cpu': {'invocation': {'python': '/python', 'python_sha256': 'f' * 64,
+                'python_version': 'fixture'}, 'numerical_flags': {'fixture': True}}}, 'invocations': set()}
+        self.context.update(legacy=self.legacy, fit_context={'legacy': self.legacy, 'guards': original_guards})
+        self.context['required_guards'] = {self.bulk[0]['path']: self.bulk[0]['sha256']}
+        self.cpu = self.terminal('cpu', 'control', 1)
+        self.context['launch'] = self.cpu[1]['launch']
+        self.mechanics = self.terminal('mechanics', 'control', 2)
+        self.context['launch'] = self.mechanics[1]['launch']
+
+    @staticmethod
+    def module(name, sha=None):
+        path = PATH.with_name(name)
+        raw = path.read_bytes()
+        if sha is not None:
+            driver.require(hashlib.sha256(raw).hexdigest() == sha, 'fixture source pin differs')
+        spec = importlib.util.spec_from_file_location('_startup_' + path.stem, path)
+        module = importlib.util.module_from_spec(spec)
+        exec(compile(raw, str(path), 'exec'), vars(module))
+        return module
+
+    def write(self, name, raw):
+        path = self.root / name
+        path.write_bytes(raw)
+        return {'path': str(path), 'sha256': hashlib.sha256(raw).hexdigest()}
+
+    def write_json(self, name, value):
+        return self.write(name, json.dumps(value, allow_nan=False).encode())
+
+    @staticmethod
+    def cgroup(unit, peak):
+        return {'path': '/sys/fs/cgroup/' + unit + '.service', 'values': {
+            'memory.max': str(8 * 1024**3), 'memory.current': '1', 'memory.peak': str(peak),
+            'memory.swap.current': '0', 'memory.swap.peak': '0', 'memory.swap.max': '0',
+            'memory.events': 'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0'}}
+
+    def terminal(self, phase, arm, ordinal):
+        unit = {'unit': 'fixture-' + str(ordinal), 'invocation_id': format(ordinal, '032x'),
+            'service_seconds': 4., 'native_peak_rss_kib': 2, 'both_locks_held': True}
+        selected = None if phase == 'cpu' else self.cpu[0]
+        launch = {'schema': driver.AUTHORITY_SCHEMA, 'execution_sha256': 'd' * 64, 'phase': phase,
+            'arm': arm, 'seed': driver.SEED, 'fitter': copy.deepcopy(driver.FITTER),
+            'accepted': copy.deepcopy(driver.ACCEPTED), 'recipe': copy.deepcopy(driver.RECIPE),
+            'resource_policy': driver.policy(phase), 'both_locks_held': True,
+            'selected_cpu': copy.deepcopy(selected), 'selected_mechanics': None}
+        authority = self.write_json('authority-' + str(ordinal), launch)
+        output = self.root / ('stage-' + str(ordinal))
+        output.mkdir()
+        final = {**self.cgroup(unit['unit'], 3), 'invocation_id': unit['invocation_id']}
+        log = [f"Running as unit: {unit['unit']}.service; invocation ID: {unit['invocation_id']}",
+            '\tExit status: 0', 'Finished with result: success', 'Main processes terminated with: code=exited/status=0',
+            '\tSwaps: 0', 'Memory swap peak: 0B', 'Service runtime: 4.0s',
+            '\tMaximum resident set size (kbytes): 2', 'FINAL_CGROUP ' + json.dumps(final)]
+        unit['log'] = self.write('log-' + str(ordinal), ('\n'.join(log) + '\n').encode())
+        flags = self.legacy['selected']['source_cpu']['numerical_flags']
+        record = {'schema': driver.SCHEMA, 'phase': phase, 'arm': arm, 'seed': driver.SEED,
+            'execution_sha256': 'd' * 64, 'launch': launch, 'resource_policy': driver.policy(phase),
+            'optimizer_members': 4, 'trainable_scalars': 9921872, 'quality_read': False,
+            'total_training_core_seconds': 1., 'wall_seconds': 3., 'process_peak_rss_kib': 1,
+            'code': self.context['code'], 'source': self.context['source'], 'authority': authority,
+            'authority_sha256': authority['sha256'], 'numerical_flags': flags,
+            'identity': {'method': driver.method(launch), 'parameter_names': driver.NAMES,
+                'source': self.context['source'], 'numerical_flags': flags},
+            'invocation': {**self.legacy['selected']['source_cpu']['invocation'], 'optimize': 0,
+                'invocation_id': unit['invocation_id'], 'cuda_visible_devices': '' if phase == 'cpu' else '0',
+                'cublas_workspace_config': ':4096:8', 'argv': driver.cli(self.root, authority['path'],
+                    authority['sha256'], 'd' * 64, phase, arm, output)},
+            'input_guards': {f['path']: f['sha256'] for f in self.bulk[:ordinal]},
+            'cgroup_before': self.cgroup(unit['unit'], 1), 'cgroup_after': self.cgroup(unit['unit'], 2),
+            'checkpoint': None, 'inference_checkpoint': None}
+        for name in ('pass', 'strict_reload_exact', 'exit_rehash_pass', 'sequential_model_ownership',
+            'forward_oracle_exact', 'native_training_inference_exact', 'both_locks_held_in_parent_authority'):
+            record[name] = True
+        if phase == 'cpu':
+            record.update(completed_step=0, cuda_initialized=False, peak_cuda_allocated_bytes=0)
+            for name in ('initial_arm_parity', 'cpu_serialization_exact', 'bypass_version_tamper_rejected',
+                'malformed_state_rejected', 'native_loss_reduction_exact', 'native_role_mutation_rejected'):
+                record[name] = True
+        else:
+            record.update(completed_step=17, cuda_initialized=True, peak_cuda_allocated_bytes=1,
+                source_substitution_rejected=True, inference_artifact_independent=True,
+                training_state_discarded=True, replay_exact=True)
+            record['steps'] = [{'step': i, 'batch': list(range(64)), 'images': [None] * 4,
+                'mined': [None] * 4, 'all_four_updated': True, 'gradient_norms': {n: 1. for n in driver.NAMES},
+                'scale': 128., 'core_seconds': .01, 'seconds': .02, 'mse': 0., 'rank': 0.,
+                'active_hinges': 1, 'ranking_gradient_norms': {n: 1. for n in driver.NAMES}} for i in range(1, 18)]
+            record['resumed_steps'] = copy.deepcopy(record['steps'][8:])
+        unit['receipt'] = self.write_json(str(output.relative_to(self.root) / 'receipt.json'), record)
+        return unit, record
+
+    def rewrite(self, unit, record):
+        unit['receipt'] = self.write_json(str(Path(unit['receipt']['path']).relative_to(self.root)), record)
+
+    def count_reads(self):
+        fixture, original_open = self, Path.open
+
+        class Stream:
+            def __init__(self, stream, path):
+                self.stream, self.path = stream, str(path)
+
+            def __getattr__(self, name):
+                return getattr(self.stream, name)
+
+            def __enter__(self):
+                self.stream.__enter__()
+                return self
+
+            def __exit__(self, *args):
+                return self.stream.__exit__(*args)
+
+            def read(self, *args):
+                raw = self.stream.read(*args)
+                fixture.read_bytes[self.path] = fixture.read_bytes.get(self.path, 0) + len(raw)
+                return raw
+
+            def readinto(self, buffer):
+                count = self.stream.readinto(buffer)
+                fixture.read_bytes[self.path] = fixture.read_bytes.get(self.path, 0) + count
+                return count
+
+        def opened(path, *args, **kwargs):
+            stream = original_open(path, *args, **kwargs)
+            return Stream(stream, path) if args and args[0] == 'rb' else stream
+        return patch.object(Path, 'open', opened)
+
+
 class NearestRankingTests(unittest.TestCase):
     def launch(self, phase='cpu', arm='control'):
         unit = {'receipt': {'path': '/receipt', 'sha256': 'a' * 64},
@@ -416,6 +559,364 @@ class NearestRankingTests(unittest.TestCase):
             'selected_cpu': None if phase == 'cpu' else unit,
             'selected_mechanics': {a: copy.deepcopy(unit) for a in driver.ARMS} if phase == 'train' else None}
         return launch, args
+
+    def test_startup_terminal_reuses_actual_sha_reads_and_separate_inventories(self):
+        started = time.perf_counter()
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            with fixture.count_reads():
+                fact = fixture.bulk[0]
+                fixture.admission.bound_file(fixture.historical, fact['path'], fact['sha256'])
+                first = driver.admit_terminal(fixture.context, fixture.cpu[0], 'cpu', 'control')
+                second = driver.admit_terminal(fixture.context, fixture.mechanics[0], 'mechanics', 'control')
+            for fact in fixture.bulk:
+                self.assertEqual(fixture.read_bytes[fact['path']], Path(fact['path']).stat().st_size,
+                                 'one actual SHA read per unique bulk path')
+            self.assertEqual(fixture.historical, {fixture.bulk[0]['path']: fixture.bulk[0]['sha256']})
+            self.assertEqual(first['input_guards'], fixture.context['required_guards'])
+            self.assertEqual(second['input_guards'], {f['path']: f['sha256'] for f in fixture.bulk})
+            for record in (first, second):
+                for p, h in record['input_guards'].items():
+                    self.assertEqual(fixture.context['guards'][p], h)
+            self.assertEqual(set(fixture.context['terminals']), {'cpu:control', 'mechanics:control'})
+            self.assertLess(sum(p.stat().st_size for p in Path(directory).rglob('*') if p.is_file()), 16 * 1024**2)
+        self.assertLess(time.perf_counter() - started, 5)
+
+    def test_startup_only_source_boundary_preserves_complete_other_ast(self):
+        tree = ast.parse(PATH.read_text())
+        tree.body = [n for n in tree.body if not (isinstance(n, ast.FunctionDef) and
+            n.name in {'read_json', 'admit_terminal'})]
+        # Entire 6e5b3f20 module: pins fresh/restore/diagnostics, native/runtime/exit,
+        # objectives, science, caps, globals and imports outside the two functions.
+        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+                         '2b749548e57aa010826665a38e4e145adaeefed9658a3d8a86f470134f312a72')
+
+    def test_startup_admission_preserves_default_json_and_all_terminal_predicates(self):
+        functions = {n.name: n for n in ast.parse(PATH.read_text()).body if isinstance(n, ast.FunctionDef)}
+        read = functions['read_json']
+        read.args.kwonlyargs, read.args.kw_defaults = [], []
+        del read.body[1]  # Remove only the explicit reader branch.
+        self.assertEqual(hashlib.sha256(ast.dump(read, include_attributes=False).encode()).hexdigest(),
+                         '1f56b8649a8138fddb3a4d73b98f7f3b896cdcfb90ef051527c0515f37601bb8')
+        terminal = functions['admit_terminal']
+        del terminal.body[2:9]  # Remove only the new original-reader authentication block.
+        for node in ast.walk(terminal):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'read_json':
+                node.keywords = [k for k in node.keywords if k.arg != 'admission']
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and \
+                    isinstance(node.func.value, ast.Name) and node.func.value.id == 'admission' and node.func.attr == 'bound_file':
+                node.func = ast.Name(id='bound_file', ctx=ast.Load())
+        self.assertEqual(hashlib.sha256(ast.dump(terminal, include_attributes=False).encode()).hexdigest(),
+                         'bb7c838ef29b56665a8d50e34ed2250ca16d2370211e3b49e40d4860741db7ac')
+
+    def test_startup_json_snapshot_strict_parse_caps_and_default_uncached_semantics(self):
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            fact = fixture.write('json', b'{"value":[1]}')
+            guards = {}
+            first = driver.read_json(fact, guards, admission=fixture.admission)
+            first['value'].append(2)
+            self.assertEqual(driver.read_json(fact, {}, admission=fixture.admission), {'value': [1]})
+            self.assertEqual(guards, {fact['path']: fact['sha256']})
+            stamp = Path(fact['path']).stat()
+            Path(fact['path']).write_bytes(b'{"value":[2]}')
+            os.utime(fact['path'], ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+            self.assertEqual(driver.read_json(fact, {}, admission=fixture.admission), {'value': [1]})
+            with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
+                driver.read_json(fact, {})
+            for i, raw in enumerate((b'{"a":1,"a":2}', b'{"a":NaN}', b'{"a":Infinity}', b'{"a":-Infinity}')):
+                bad = fixture.write('bad-json-' + str(i), raw)
+                with self.subTest(raw=raw), self.assertRaises(ValueError):
+                    driver.read_json(bad, {}, admission=fixture.admission)
+            wrong = fixture.write('wrong-json', b'{"value":1}')
+            with self.assertRaisesRegex(ValueError, 'JSON size/SHA256'):
+                driver.read_json({**wrong, 'sha256': '0' * 64}, {}, admission=fixture.admission)
+            self.assertNotIn(wrong['path'], fixture.admission.verified)
+            bounded = fixture.write('bounded-json', b'{"value":1}')
+            with self.assertRaisesRegex(ValueError, 'JSON size/SHA256'):
+                fixture.admission.read_json(bounded['path'], bounded['sha256'], {}, cap=4)
+            self.assertEqual(driver.read_json(bounded, {}, admission=fixture.admission), {'value': 1})
+            with self.assertRaisesRegex(ValueError, 'authority JSON too large'):
+                fixture.admission.read_json(bounded['path'], bounded['sha256'], {}, cap=4)
+            for bad in ({**fact, 'extra': 1}, {**fact, 'path': 'relative'}, {**fact, 'sha256': 'BAD'}, []):
+                with self.subTest(fact=bad), self.assertRaisesRegex(ValueError, 'exact FILE'):
+                    driver.read_json(bad, {}, admission=fixture.admission)
+
+    def test_startup_terminal_inventory_conflicts_and_first_wrong_bytes(self):
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            def reset():
+                fixture.admission = fixture.original.FlatAdmission()
+                fixture.admission.init = fixture.init
+                fixture.legacy['admission'] = fixture.admission
+                fixture.context['guards'] = {}
+                fixture.legacy['invocations'].clear()
+            fact = fixture.bulk[1]
+            for case in ('sha', 'size', 'stage', 'wrong-bytes', 'missing', 'noncanonical'):
+                reset()
+                unit, record = copy.deepcopy(fixture.mechanics)
+                guards = fixture.context['guards']
+                path = Path(fact['path'])
+                raw = b'bulk' * 1024
+                path.write_bytes(raw)
+                if case in ('sha', 'size'):
+                    fixture.admission.bound_file({}, path, fact['sha256'])
+                if case == 'sha':
+                    record['input_guards'][str(path)] = '0' * 64
+                elif case == 'size':
+                    path.write_bytes(raw + b'x')
+                elif case == 'stage':
+                    guards[str(path)] = '0' * 64
+                elif case == 'wrong-bytes':
+                    path.write_bytes(b'FAIL' * 1024)
+                elif case == 'missing':
+                    path.unlink()
+                elif case == 'noncanonical':
+                    link = fixture.root / 'link'
+                    link.symlink_to(path)
+                    record['input_guards'].pop(str(path))
+                    record['input_guards'][str(link)] = fact['sha256']
+                fixture.rewrite(unit, record)
+                with self.subTest(case=case), self.assertRaises(ValueError):
+                    driver.admit_terminal(fixture.context, unit, 'mechanics', 'control')
+                if case == 'wrong-bytes':
+                    self.assertNotIn(str(path), fixture.admission.verified)
+            # Supplied size and stage authorities remain independent of cached verification.
+            reset()
+            path.write_bytes(raw)
+            with self.assertRaisesRegex(ValueError, 'size differs'):
+                fixture.admission.bound_file({}, path, fact['sha256'], size=len(raw) + 1)
+            with self.assertRaisesRegex(ValueError, 'stage file authority'):
+                fixture.admission.bound_file({str(path): '0' * 64}, path, fact['sha256'])
+
+    def test_startup_reader_substitution_live_code_and_original_adapter_pins(self):
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            adapter = fixture.fitter.original_terminal_reader(fixture.context['fit_context'])
+            self.assertEqual(hashlib.sha256(ast.dump(adapter.__terminal_ast__, include_attributes=False).encode()).hexdigest(),
+                             fixture.fitter.ADAPTED_TERMINAL_AST_SHA)
+            for name in ('__init__', 'canonical', 'digest_string', 'register', 'bound_file',
+                         'read_json', 'descriptor_json', 'admit_terminal'):
+                original = getattr(fixture.original.FlatAdmission, name)
+                with self.subTest(instance=name), patch.object(fixture.admission, name, lambda *a: None):
+                    with self.assertRaisesRegex(ValueError, 'reader method changed'):
+                        driver.admit_terminal(fixture.context, fixture.cpu[0], 'cpu', 'control')
+                code = original.__code__
+                try:
+                    original.__code__ = (lambda *a: None).__code__
+                    with self.subTest(class_method=name), self.assertRaisesRegex(ValueError, 'reader method changed'):
+                        driver.admit_terminal(fixture.context, fixture.cpu[0], 'cpu', 'control')
+                finally:
+                    original.__code__ = code
+            # Same function bound to another reader, foreign globals, and a
+            # copied code object with the wrong filename must also be rejected.
+            other = fixture.original.FlatAdmission()
+            with patch.object(fixture.admission, 'bound_file', other.bound_file):
+                with self.assertRaisesRegex(ValueError, 'reader method changed'):
+                    driver.admit_terminal(fixture.context, fixture.cpu[0], 'cpu', 'control')
+            fn = fixture.original.FlatAdmission.register
+            replacement = type(fn)(fn.__code__, {'__name__': fixture.original.__name__})
+            with patch.object(fixture.original.FlatAdmission, 'register', replacement):
+                with self.assertRaisesRegex(ValueError, 'reader method changed'):
+                    driver.admit_terminal(fixture.context, fixture.cpu[0], 'cpu', 'control')
+            code = fn.__code__
+            try:
+                fn.__code__ = code.replace(co_filename='/substituted')
+                with self.assertRaisesRegex(ValueError, 'reader method changed'):
+                    driver.admit_terminal(fixture.context, fixture.cpu[0], 'cpu', 'control')
+            finally:
+                fn.__code__ = code
+            terminal = fixture.original.FlatAdmission.admit_terminal
+            code = terminal.__code__
+            try:
+                terminal.__code__ = (lambda *a: None).__code__
+                with self.assertRaises(ValueError):
+                    fixture.fitter.original_terminal_reader(fixture.context['fit_context'])
+            finally:
+                terminal.__code__ = code
+            class Substituted(fixture.original.FlatAdmission):
+                pass
+            for replacement in (Substituted(), SimpleNamespace(descriptor_json=lambda *a: {})):
+                with patch.dict(fixture.legacy, admission=replacement), self.assertRaisesRegex(ValueError, 'actual original'):
+                    driver.admit_terminal(fixture.context, fixture.cpu[0], 'cpu', 'control')
+            with patch.object(fixture.original.__spec__, 'origin', '/substituted'), self.assertRaisesRegex(ValueError, 'actual original'):
+                driver.admit_terminal(fixture.context, fixture.cpu[0], 'cpu', 'control')
+            with patch.dict(fixture.context['fit_context']['guards'], {fixture.original.__file__: '0' * 64}):
+                with self.assertRaisesRegex(ValueError, 'actual original'):
+                    driver.admit_terminal(fixture.context, fixture.cpu[0], 'cpu', 'control')
+
+    def test_startup_terminal_predicate_mutants_still_reject(self):
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            common = [('schema', 'wrong'), ('phase', 'train'), ('arm', 'candidate'), ('seed', 1),
+                ('optimizer_members', 3), ('trainable_scalars', 1), ('quality_read', True),
+                ('pass', False), ('strict_reload_exact', False), ('exit_rehash_pass', False),
+                ('sequential_model_ownership', False), ('forward_oracle_exact', False),
+                ('native_training_inference_exact', False), ('both_locks_held_in_parent_authority', False),
+                ('total_training_core_seconds', 0), ('wall_seconds', 500), ('process_peak_rss_kib', 8 * 1024**2 + 1),
+                ('resource_policy', {}), ('code', {}), ('source', {}), ('execution_sha256', '0' * 64),
+                ('numerical_flags', {}), ('authority_sha256', '0' * 64), ('input_guards', {})]
+            cpu = [('completed_step', 1), ('cuda_initialized', True), ('peak_cuda_allocated_bytes', 1),
+                ('initial_arm_parity', False), ('cpu_serialization_exact', False), ('bypass_version_tamper_rejected', False),
+                ('malformed_state_rejected', False), ('native_loss_reduction_exact', False), ('native_role_mutation_rejected', False)]
+            mechanics = [('completed_step', 16), ('cuda_initialized', False), ('peak_cuda_allocated_bytes', 10_000_000_000),
+                ('source_substitution_rejected', False), ('inference_artifact_independent', False),
+                ('training_state_discarded', False), ('replay_exact', False), ('steps', []), ('resumed_steps', [])]
+            cases = [('cpu', k, v) for k, v in common + cpu] + [('mechanics', k, v) for k, v in mechanics]
+            for phase, key, value in cases:
+                fixture.admission = fixture.original.FlatAdmission()
+                fixture.admission.init = fixture.init
+                fixture.legacy['admission'] = fixture.admission
+                fixture.legacy['invocations'].clear()
+                fixture.context['guards'] = {}
+                unit, record = copy.deepcopy(fixture.cpu if phase == 'cpu' else fixture.mechanics)
+                record[key] = value
+                fixture.rewrite(unit, record)
+                with self.subTest(phase=phase, key=key), self.assertRaises((ValueError, KeyError)):
+                    driver.admit_terminal(fixture.context, unit, phase, 'control')
+            nested = [('invocation', 'optimize', 1), ('invocation', 'python', '/other'),
+                ('invocation', 'python_sha256', '0' * 64), ('invocation', 'python_version', 'other'),
+                ('invocation', 'argv', []), ('invocation', 'invocation_id', '0' * 32),
+                ('invocation', 'cuda_visible_devices', '0'), ('identity', 'method', {}),
+                ('identity', 'parameter_names', []), ('identity', 'source', {}), ('identity', 'numerical_flags', {}),
+                ('launch', 'both_locks_held', False), ('launch', 'selected_cpu', fixture.cpu[0])]
+            for parent, key, value in nested:
+                fixture.legacy['admission'] = fixture.original.FlatAdmission()
+                fixture.legacy['admission'].init = fixture.init
+                fixture.legacy['invocations'].clear()
+                fixture.context['guards'] = {}
+                unit, record = copy.deepcopy(fixture.cpu)
+                record[parent][key] = value
+                fixture.rewrite(unit, record)
+                with self.subTest(parent=parent, key=key), self.assertRaises(ValueError):
+                    driver.admit_terminal(fixture.context, unit, 'cpu', 'control')
+            # Authenticated authority bytes must equal the receipt launch.
+            fixture.legacy['admission'] = fixture.original.FlatAdmission()
+            fixture.legacy['admission'].init = fixture.init
+            fixture.context['guards'] = {}
+            unit, record = copy.deepcopy(fixture.cpu)
+            record['authority'] = fixture.write_json('wrong-authority', {})
+            record['authority_sha256'] = record['authority']['sha256']
+            record['invocation']['argv'] = driver.cli(fixture.root, record['authority']['path'], record['authority']['sha256'],
+                'd' * 64, 'cpu', 'control', Path(unit['receipt']['path']).parent)
+            fixture.rewrite(unit, record)
+            with self.assertRaisesRegex(ValueError, 'source/CLI/complete guards'):
+                driver.admit_terminal(fixture.context, unit, 'cpu', 'control')
+
+    def test_startup_original_unit_log_cgroup_and_invocation_mutants(self):
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            baseline_log = Path(fixture.cpu[0]['log']['path']).read_text()
+            cases = ('locks', 'duration', 'rss', 'reused', 'missing-exit', 'duplicate-exit', 'runtime',
+                'footer-invocation', 'footer-peak', 'footer-count', 'cgroup-path', 'memory-cap',
+                'swap', 'event-low', 'event-high', 'event-max', 'peak-order')
+            for case in cases:
+                fixture.legacy['admission'] = fixture.original.FlatAdmission()
+                fixture.legacy['admission'].init = fixture.init
+                fixture.context['guards'] = {}
+                fixture.legacy['invocations'].clear()
+                unit, record = copy.deepcopy(fixture.cpu)
+                log = baseline_log
+                if case == 'locks':
+                    unit['both_locks_held'] = False
+                elif case == 'duration':
+                    unit['service_seconds'] = 501
+                elif case == 'rss':
+                    unit['native_peak_rss_kib'] = 8 * 1024**2 + 1
+                elif case == 'reused':
+                    fixture.legacy['invocations'].add(unit['invocation_id'])
+                elif case == 'missing-exit':
+                    log = log.replace('\tExit status: 0\n', '')
+                elif case == 'duplicate-exit':
+                    log += '\tExit status: 0\n'
+                elif case == 'runtime':
+                    log = log.replace('Service runtime: 4.0s', 'Service runtime: 3.0s')
+                elif case.startswith('footer-'):
+                    footer = json.loads(log.split('FINAL_CGROUP ')[1])
+                    if case == 'footer-invocation':
+                        footer['invocation_id'] = '0' * 32
+                    elif case == 'footer-peak':
+                        footer['values']['memory.peak'] = '1'
+                    log = log.split('FINAL_CGROUP ')[0] + 'FINAL_CGROUP ' + json.dumps(footer) + '\n'
+                    if case == 'footer-count':
+                        log += 'FINAL_CGROUP ' + json.dumps(footer) + '\n'
+                elif case == 'cgroup-path':
+                    record['cgroup_before']['path'] = '/other/fixture-1.service'
+                elif case == 'memory-cap':
+                    record['cgroup_before']['values']['memory.max'] = '1'
+                elif case == 'swap':
+                    record['cgroup_before']['values']['memory.swap.peak'] = '1'
+                elif case.startswith('event-'):
+                    event = case.removeprefix('event-')
+                    record['cgroup_before']['values']['memory.events'] = record['cgroup_before']['values']['memory.events'].replace(event + ' 0', event + ' 1')
+                elif case == 'peak-order':
+                    record['cgroup_before']['values']['memory.peak'] = '4'
+                unit['log'] = fixture.write('mutant-log', log.encode())
+                fixture.rewrite(unit, record)
+                with self.subTest(case=case), self.assertRaises(ValueError):
+                    driver.admit_terminal(fixture.context, unit, 'cpu', 'control')
+
+    def test_startup_reuse_does_not_reach_real_fresh_exit_byte_reads(self):
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            for fact in fixture.bulk:
+                fixture.admission.bound_file(fixture.context['guards'], fact['path'], fact['sha256'])
+            # Execute the original quadratic exit and nearest exit. Only large
+            # historical metadata/topology helpers are stand-ins; all byte readers,
+            # fresh reader construction and exit inventory loops run unchanged.
+            def closure(root, names):
+                root.mkdir(exist_ok=True)
+                code = {}
+                for name in names:
+                    raw = b'exit fixture\n'
+                    (root / name).write_bytes(raw)
+                    code[name] = hashlib.sha256(raw).hexdigest()
+                execution = fixture.write_json(str(root.relative_to(fixture.root) / 'execution.json'), code)
+                return code, execution['sha256']
+            old_root = fixture.root / 'old-exit'
+            old_code, old_sha = closure(old_root, fixture.old.FILES)
+            code, sha = closure(fixture.root, driver.FILES)
+            guards = {f['path']: f['sha256'] for f in fixture.bulk}
+            source = SimpleNamespace(fit_rows=lambda *a: [], bootstrap=lambda *a: (None, {}))
+            prior = {'guards': guards, 'all_images': [], 'images': [], 'source_driver': source,
+                'extract': None, 'fit': None, 'root': fixture.root, 'args': SimpleNamespace(execution_sha256='0' * 64),
+                'code': {}, 'own_root': fixture.root, 'export_args': SimpleNamespace(execution_sha256='0' * 64), 'own_code': {}}
+            reference = SimpleNamespace(bootstrap=lambda *a: {})
+            genuine = {'prior': prior, 'reference': reference, 'guards': dict(guards),
+                'root': fixture.root, 'args': SimpleNamespace(execution_sha256='0' * 64),
+                'code': {}, 'launch': {'partition': {}, 'image_rows': {'path': '/metadata'}},
+                'selected': {'original_rows': [], 'resolved_paths': []}}
+            exporter = SimpleNamespace(FILES=set(), closure=lambda *a: {}, file_json=lambda *a: {},
+                selected_manifest=lambda *a: {'original_rows': []}, image_rows_node=lambda *a: None)
+            old_context = {'original': fixture.original, 'selected': {'exporter': exporter, 'genuine': genuine},
+                'guards': dict(guards), 'root': old_root, 'args': SimpleNamespace(execution_sha256=old_sha, phase='mechanics'),
+                'code': old_code, 'phase_seconds': {}}
+            fixture.context.update(root=fixture.root, code=code, args=SimpleNamespace(execution_sha256=sha))
+            fixture.context['fitter'] = SimpleNamespace(exit_rehash=lambda c: fixture.old.exit_rehash(old_context))
+            with patch.object(driver, 'helper_guard', lambda c: None), \
+                 patch.object(fixture.old, 'audit_origins', lambda *a, **k: None), \
+                 patch.object(fixture.original.FlatAdmission, 'all_fit_images', lambda *a: []), redirect_stdout(io.StringIO()):
+                fixture.read_bytes.clear()
+                with fixture.count_reads():
+                    fixture.old.exit_rehash(old_context)
+                for fact in fixture.bulk:
+                    self.assertEqual(fixture.read_bytes[fact['path']], Path(fact['path']).stat().st_size)
+                fixture.read_bytes.clear()
+                with fixture.count_reads():
+                    driver.exit_rehash(fixture.context)
+                for fact in fixture.bulk:
+                    self.assertEqual(fixture.read_bytes[fact['path']], 2 * Path(fact['path']).stat().st_size)
+                fact = fixture.bulk[0]
+                path = Path(fact['path'])
+                stamp = path.stat()
+                path.write_bytes(b'FAIL' * 1024)
+                os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+                # The startup cache is a reuse window, not continuous byte checking.
+                fixture.admission.bound_file({}, path, fact['sha256'])
+                with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
+                    fixture.old.exit_rehash(old_context)
+                with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
+                    driver.exit_rehash(fixture.context)
 
     def test_exact_authority_and_phase_admission(self):
         for phase in ('cpu', 'mechanics', 'train'):
@@ -692,10 +1193,10 @@ class NearestRankingTests(unittest.TestCase):
     def test_restore_only_source_boundary_preserves_complete_other_ast(self):
         tree = ast.parse(PATH.read_text())
         tree.body = [node for node in tree.body if not (isinstance(node, ast.FunctionDef) and
-            node.name in {'fresh', 'restore', 'restore_memory_snapshot'})]
-        # Full committed 40426ca3 module AST, excluding only these lifecycle edits.
+            node.name in {'fresh', 'restore', 'restore_memory_snapshot', 'read_json', 'admit_terminal'})]
+        # Committed 40426ca3 AST, excluding lifecycle and startup admission edits.
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
-                         'f7031f46b323f65f2e77e35a2d51bf67b27786cb99d84f919651b2efc9a87eb6')
+                         'b3f24d66d4e381490efa83ed10e742b4b74616a2753e01c83003a2b25c13e362')
 
     def test_raw_memory_diagnostic_preserves_failure_events_and_propagates_load_error(self):
         with TemporaryDirectory() as directory:
