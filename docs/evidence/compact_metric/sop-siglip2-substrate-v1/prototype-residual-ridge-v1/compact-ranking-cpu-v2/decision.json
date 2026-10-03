@@ -1,0 +1,49 @@
+{
+  "verdict": "PASS_ENGINEERING_CPU_ONLY",
+  "session": 15599,
+  "terminal": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-cpu-v2/receipt.json",
+      "sha256": "6082653bba4f503a8b0d6ff413d59ff5c0ca5388a0cf8e1d728933c8a1a27ac7"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v2/cpu-v2.log",
+      "sha256": "674bb15b1ef49ca4506bb9a02a1212743dcce27af7d7f69d9c8cddd6df4ede52"
+    },
+    "unit": "sfora-so400-compact-ranking-cpu-v2",
+    "invocation_id": "be22b11215ec4d3a8292192a7f06a6fc",
+    "service_seconds": 268.727,
+    "native_peak_rss_kib": 5815444,
+    "both_locks_held": true
+  },
+  "host_peak_bytes": 8359440384,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "cuda_initialized": false,
+  "quality_read": false,
+  "gradients": [
+    {
+      "K": 63,
+      "active": 4,
+      "candidate_minus_control_equals_rank": true,
+      "control_gradient_norm": 6.545587600683856,
+      "micro16_global_reduction_exact": true,
+      "mse": 0.8572546243667603,
+      "rank": 0.0773954913020134,
+      "ranking_gradient_norm": 4.5276882950342845,
+      "seed": 179061
+    },
+    {
+      "K": 64,
+      "active": 4,
+      "candidate_minus_control_equals_rank": true,
+      "control_gradient_norm": 6.715418479202208,
+      "micro16_global_reduction_exact": true,
+      "mse": 0.903698205947876,
+      "rank": 0.028625531122088432,
+      "ranking_gradient_norm": 4.686025398570485,
+      "seed": 179069
+    }
+  ],
+  "next": "ONE control061 mechanics300 then candidate061 onlyifPASS"
+}
