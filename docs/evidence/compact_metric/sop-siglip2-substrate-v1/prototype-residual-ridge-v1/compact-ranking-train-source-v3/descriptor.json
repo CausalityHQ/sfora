@@ -1,0 +1,11 @@
+{
+  "authority_sha256": "d8cb59cb66b5f2af110509de61cfb7b776226b6d219f04d28e87d1114aef39a5",
+  "code": {
+    "test_siglip2_compact_ranking.py": "9cbc33d0e430a030758ec1ef91d0fea735f38da8522395c38d49474da1e9e95a",
+    "train_siglip2_compact_ranking.py": "657d5a2002d51bbb4cd3818cfebf779b3c09cd0b176a3907965a8529a88d40b0"
+  },
+  "execution_sha256": "3dbe2f406bc2fe1baceea453814293c696fa34cece8498aaec8e7859ca8b70ec",
+  "qualification_eligible": false,
+  "root": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v3",
+  "stop_rule": "ONE timing-only CPU500 then ONE discarded control061 mechanics300 onlyifCPUcompletePASS; all gates unchanged; collect original terminal before root usefulTRAIN feasibility decision"
+}
