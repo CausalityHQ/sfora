@@ -1,0 +1,86 @@
+{
+  "verdict": "KILL_CURRENT_PROCEDURE_RUNTIME",
+  "training_endpoint_accepted": false,
+  "session": 26166,
+  "unit": "sfora-so400-compact-ranking-train-control-179061-v1",
+  "invocation_id": "e93ab41d7f0f4a8a8f44fc6998f1479a",
+  "service_seconds": 300.29,
+  "terminal": "timeout/TERM",
+  "receipt_exists": false,
+  "log_sha256": "fd3c598a93f2168723fa58b54e6b9369b23c47befbb2680f6c1d408fe5fbf56e",
+  "completed_update_lines": 128,
+  "update_core_seconds": 41.98371584387496,
+  "update_seconds": 100.56166912382469,
+  "host_peak_bytes": 7268683776,
+  "swap_bytes": 0,
+  "events_zero": true,
+  "quality_read": false,
+  "last_phases": [
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_run_origin_audit",
+      "boundary": "end",
+      "delta_seconds": 6.22789815813303,
+      "seconds": 264.467530710157
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "origin_guard_promotion",
+      "boundary": "begin",
+      "seconds": 264.46758501417935
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "origin_guard_promotion",
+      "boundary": "end",
+      "delta_seconds": 0.03704944904893637,
+      "seconds": 264.50463500712067
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "source_exit_rehash",
+      "boundary": "begin",
+      "seconds": 264.50470291124657
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "source_exit_rehash",
+      "boundary": "end",
+      "delta_seconds": 25.802823374979198,
+      "seconds": 290.3075276464224
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "own_exit_rehash",
+      "boundary": "begin",
+      "seconds": 290.30754423700273
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "own_exit_rehash",
+      "boundary": "end",
+      "delta_seconds": 5.592019722331315,
+      "seconds": 295.8995661512017
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_exit_api_authentication",
+      "boundary": "begin",
+      "seconds": 295.90083060925826
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_exit_api_authentication",
+      "boundary": "end",
+      "delta_seconds": 0.5515631227754056,
+      "seconds": 296.452395348344
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_exit_origin_audit",
+      "boundary": "begin",
+      "seconds": 296.4524319721386
+    }
+  ],
+  "scope": "Closes frozen source-v5 TRAIN128/300 procedure; not quality or architecture KILL. No candidate training; no partial state reuse."
+}
