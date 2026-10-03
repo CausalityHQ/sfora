@@ -1,0 +1,43 @@
+{
+  "decision": "CPUv3 qualification PASS; mechanics300 budget still unproven",
+  "unit": "sfora-so400-nearest-ranking-cpu-v3",
+  "invocation_id": "fc858ec234b1481fb373cdc1c150ca0e",
+  "service_seconds": 217.62,
+  "native_wall_seconds": 215.89096992416307,
+  "peak_host_bytes": 8138866688,
+  "native_peak_rss_kib": 5802920,
+  "memory_events": 0,
+  "swap_bytes": 0,
+  "quality_read": false,
+  "receipt_sha256": "458cec9247c1ea6bf5cbeb234ee3c553cf9b3de6e7b54f6616c3099f8490949f",
+  "log_sha256": "5b4f3dbea1dd9549689eb4a7993468f3b0553e63066d0e9c7c6df270e742a623",
+  "checkpoint": {
+    "path": "/home/riomus/runs/sfora-so400-nearest-ranking-cpu-v3/initializer.pt",
+    "sha256": "49365fdcaf08165cd84b3e71aded524ec1e0daee4baf9edf7c3b864e332da8dc"
+  },
+  "phase_seconds": {
+    "accepted_payload_admission": 0.8673757868818939,
+    "authority": 47.84412273205817,
+    "calibration": 7.573571680113673,
+    "cpu_loss_fixtures": 0.14802320301532745,
+    "independent_reload": 17.42384954309091,
+    "own_exit_rehash": 16.065627567004412,
+    "preparation": 33.609796749893576,
+    "save": 7.802851954009384,
+    "source_construction": 27.188657178077847,
+    "source_exit_rehash": 32.15521192410961,
+    "target_construction": 4.786160775925964
+  },
+  "comparison": {
+    "baseline": "CPUv2 original cold launch",
+    "baseline_service_seconds": 273.791,
+    "service_reduction_seconds": 56.17099999999999,
+    "service_reduction_percent": 20.51601403990635,
+    "baseline_authority_seconds": 105.02694597700611,
+    "candidate_authority_seconds": 47.84412273205817,
+    "same_initial_model_and_raw_unit_packed": true,
+    "single_run_each_no_uncertainty_estimate": true
+  },
+  "next": "Assess complete300 GPU replay/reload budget from measured startup reduction; no quality/TRAIN before paired mechanics pass",
+  "historical_failures_preserved": true
+}
