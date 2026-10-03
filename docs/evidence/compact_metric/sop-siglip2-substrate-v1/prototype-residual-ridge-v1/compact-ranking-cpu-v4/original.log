@@ -1,0 +1,149 @@
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/cpu-command.sh: OK
+Running as unit: sfora-so400-compact-ranking-cpu-v4.service; invocation ID: c51dd1a1e87140c88676a4d807ceece9
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/native-authority.json: OK
+/home/riomus/runs/sfora-cudnn-wheel-provenance-v1/proof.json: OK
+/home/riomus/runs/sfora-cudnn-wheel-provenance-source-v1/decision.json: OK
+/home/riomus/runs/sfora-cudnn-wheel-provenance-source-v1/original.log: OK
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/authority-cpu-v5.json: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/execution.json: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/nearest_ranking_readout.py: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/test_siglip2_nearest_ranking.py: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/train_siglip2_nearest_ranking.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/test_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/train_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/test_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/execution.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/authority-cpu-v4.json: OK
+{"event": "COMPACT_PHASE", "phase": "shared_source_preparation", "boundary": "begin", "seconds": 59.9143763105385}
+{"event": "COMPACT_PHASE", "phase": "shared_source_preparation", "boundary": "end", "delta_seconds": 18.708189617376775, "seconds": 78.62256847182289}
+{"event": "COMPACT_PHASE", "phase": "cache_target_preparation", "boundary": "begin", "seconds": 78.6225993516855}
+{"event": "COMPACT_PHASE", "phase": "cache_target_preparation", "boundary": "end", "delta_seconds": 2.254562668967992, "seconds": 80.87716517271474}
+{"event": "COMPACT_PHASE", "phase": "cpu_loss_falsifier", "boundary": "begin", "seconds": 86.87760863360018}
+{"event": "COMPACT_PHASE", "phase": "cpu_loss_falsifier", "boundary": "end", "delta_seconds": 0.39633348025381565, "seconds": 87.27394494554028}
+{"event": "COMPACT_PHASE", "phase": "save", "boundary": "begin", "seconds": 88.49702372960746}
+{"event": "COMPACT_PHASE", "phase": "save", "boundary": "end", "delta_seconds": 0.3853330281563103, "seconds": 88.88235888583586}
+{"event": "COMPACT_PHASE", "phase": "independent_reload", "boundary": "begin", "seconds": 89.00410082470626}
+{"event": "COMPACT_PHASE", "phase": "independent_reload", "boundary": "end", "delta_seconds": 0.6942240349017084, "seconds": 89.69832724379376}
+{"event": "COMPACT_PHASE", "phase": "cpu_loss_falsifier", "boundary": "begin", "seconds": 90.27117749862373}
+{"event": "COMPACT_PHASE", "phase": "cpu_loss_falsifier", "boundary": "end", "delta_seconds": 0.33886921126395464, "seconds": 90.61004850175232}
+{"event": "COMPACT_PHASE", "phase": "save", "boundary": "begin", "seconds": 91.81596725387499}
+{"event": "COMPACT_PHASE", "phase": "save", "boundary": "end", "delta_seconds": 0.3796356050297618, "seconds": 92.19560493854806}
+{"event": "COMPACT_PHASE", "phase": "independent_reload", "boundary": "begin", "seconds": 92.26856531063095}
+{"event": "COMPACT_PHASE", "phase": "independent_reload", "boundary": "end", "delta_seconds": 0.6837435942143202, "seconds": 92.95231194468215}
+{"event": "COMPACT_PHASE", "phase": "shared_bundle_preparation", "boundary": "begin", "seconds": 93.30526235094294}
+{"event": "COMPACT_PHASE", "phase": "shared_bundle_preparation", "boundary": "end", "delta_seconds": 13.381111380644143, "seconds": 106.68637553974986}
+{"event": "COMPACT_PHASE", "phase": "cpu_bundle_qualification", "boundary": "begin", "seconds": 106.68643019488081}
+{"event": "COMPACT_PHASE", "phase": "bundle_image_loading", "boundary": "begin", "seconds": 106.6864772667177}
+{"event": "COMPACT_PHASE", "phase": "bundle_image_loading", "boundary": "end", "delta_seconds": 0.005264574196189642, "seconds": 106.69174276897684}
+{"event": "COMPACT_PHASE", "phase": "bundle_loader_authentication", "boundary": "begin", "seconds": 106.69176032068208}
+{"event": "COMPACT_PHASE", "phase": "bundle_loader_authentication", "boundary": "end", "delta_seconds": 8.84321400616318, "seconds": 115.53497751057148}
+{"event": "COMPACT_PHASE", "phase": "bundle_dependency_denial", "boundary": "begin", "seconds": 115.53502511093393}
+{"event": "COMPACT_PHASE", "phase": "bundle_loader", "boundary": "begin", "seconds": 115.85060741659254}
+{"event": "COMPACT_PHASE", "phase": "bundle_loader", "boundary": "end", "delta_seconds": 16.972372710239142, "seconds": 132.8229840947315}
+{"event": "COMPACT_PHASE", "phase": "bundle_native_forward", "boundary": "begin", "seconds": 132.82304711872712}
+{"event": "COMPACT_PHASE", "phase": "bundle_native_forward", "boundary": "end", "delta_seconds": 1.4572782721370459, "seconds": 134.2803280786611}
+{"event": "COMPACT_PHASE", "phase": "bundle_dependency_denial", "boundary": "end", "delta_seconds": 18.745392470620573, "seconds": 134.28041812591255}
+{"event": "COMPACT_PHASE", "phase": "bundle_oracle", "boundary": "begin", "seconds": 134.2804306219332}
+{"event": "COMPACT_PHASE", "phase": "bundle_oracle", "boundary": "end", "delta_seconds": 1.2688781078904867, "seconds": 135.5493107936345}
+{"event": "COMPACT_PHASE", "phase": "bundle_release", "boundary": "begin", "seconds": 135.5493471296504}
+{"event": "COMPACT_PHASE", "phase": "bundle_release", "boundary": "end", "delta_seconds": 0.12546700099483132, "seconds": 135.6748170265928}
+{"event": "COMPACT_PHASE", "phase": "bundle_loader_authentication", "boundary": "begin", "seconds": 135.67490283492953}
+{"event": "COMPACT_PHASE", "phase": "bundle_loader_authentication", "boundary": "end", "delta_seconds": 9.19455351261422, "seconds": 144.86945919599384}
+{"event": "COMPACT_PHASE", "phase": "bundle_dependency_denial", "boundary": "begin", "seconds": 144.86949521163478}
+{"event": "COMPACT_PHASE", "phase": "bundle_loader", "boundary": "begin", "seconds": 145.14953836472705}
+{"event": "COMPACT_PHASE", "phase": "bundle_loader", "boundary": "end", "delta_seconds": 16.220033248886466, "seconds": 161.3695745416917}
+{"event": "COMPACT_PHASE", "phase": "bundle_native_forward", "boundary": "begin", "seconds": 161.36963494075462}
+{"event": "COMPACT_PHASE", "phase": "bundle_native_forward", "boundary": "end", "delta_seconds": 1.3344878568314016, "seconds": 162.70412578992546}
+{"event": "COMPACT_PHASE", "phase": "bundle_dependency_denial", "boundary": "end", "delta_seconds": 17.83473384194076, "seconds": 162.70422982191667}
+{"event": "COMPACT_PHASE", "phase": "bundle_oracle", "boundary": "begin", "seconds": 162.70424230163917}
+{"event": "COMPACT_PHASE", "phase": "bundle_oracle", "boundary": "end", "delta_seconds": 1.3214510180987418, "seconds": 164.02569515956566}
+{"event": "COMPACT_PHASE", "phase": "bundle_release", "boundary": "begin", "seconds": 164.02573171956465}
+{"event": "COMPACT_PHASE", "phase": "bundle_release", "boundary": "end", "delta_seconds": 0.12883023917675018, "seconds": 164.15456480672583}
+{"event": "COMPACT_PHASE", "phase": "cpu_bundle_qualification", "boundary": "end", "delta_seconds": 57.46846035402268, "seconds": 164.15489154076204}
+{"event": "COMPACT_PHASE", "phase": "post_run_api_authentication", "boundary": "begin", "seconds": 164.15667050657794}
+{"event": "COMPACT_PHASE", "phase": "post_run_api_authentication", "boundary": "end", "delta_seconds": 0.741876311134547, "seconds": 164.89854888198897}
+{"event": "COMPACT_PHASE", "phase": "post_run_origin_audit", "boundary": "begin", "seconds": 164.8985773618333}
+{"event": "COMPACT_PHASE", "phase": "post_run_origin_audit", "boundary": "end", "delta_seconds": 7.23882875777781, "seconds": 172.13740834360942}
+{"event": "COMPACT_PHASE", "phase": "origin_guard_promotion", "boundary": "begin", "seconds": 172.13744707871228}
+{"event": "COMPACT_PHASE", "phase": "origin_guard_promotion", "boundary": "end", "delta_seconds": 5.662295205984265, "seconds": 177.7997445408255}
+{"event": "COMPACT_PHASE", "phase": "source_exit_rehash", "boundary": "begin", "seconds": 177.79978298861533}
+{"event": "PROTOTYPE_PHASE", "phase": "old_exit_begin", "seconds": 185.6615337189287}
+{"event": "QUADRATIC_PHASE", "phase": "exit_rehash", "delta_seconds": 15.283914802130312, "cumulative_seconds": 15.283914802130312}
+{"event": "PROTOTYPE_PHASE", "phase": "old_exit_end", "seconds": 200.94691171264276}
+{"event": "PROTOTYPE_PHASE", "phase": "own_union_begin", "seconds": 200.9469305286184}
+{"event": "PROTOTYPE_PHASE", "phase": "own_union_end", "seconds": 214.3869967176579}
+{"event": "PROTOTYPE_PHASE", "phase": "closure_begin", "seconds": 214.38702711788937}
+{"event": "PROTOTYPE_PHASE", "phase": "closure_end", "seconds": 214.3883048868738}
+{"event": "COMPACT_PHASE", "phase": "source_exit_rehash", "boundary": "end", "delta_seconds": 36.58853090601042, "seconds": 214.38831488694996}
+{"event": "COMPACT_PHASE", "phase": "own_exit_rehash", "boundary": "begin", "seconds": 214.38832845399156}
+{"event": "COMPACT_PHASE", "phase": "own_exit_rehash", "boundary": "end", "delta_seconds": 16.59703841386363, "seconds": 230.98536840360612}
+{"event": "COMPACT_PHASE", "phase": "post_exit_api_authentication", "boundary": "begin", "seconds": 230.9853960997425}
+{"event": "COMPACT_PHASE", "phase": "post_exit_api_authentication", "boundary": "end", "delta_seconds": 0.534701753873378, "seconds": 231.52009884594008}
+{"event": "COMPACT_PHASE", "phase": "post_exit_origin_audit", "boundary": "begin", "seconds": 231.52011505374685}
+{"event": "COMPACT_PHASE", "phase": "post_exit_origin_audit", "boundary": "end", "delta_seconds": 5.697702126111835, "seconds": 237.21781986765563}
+{"schema": "siglip2-compact-ranking-v1", "phase": "cpu", "output": "/home/riomus/runs/sfora-so400-compact-ranking-cpu-v4"}
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/native-authority.json: OK
+/home/riomus/runs/sfora-cudnn-wheel-provenance-v1/proof.json: OK
+/home/riomus/runs/sfora-cudnn-wheel-provenance-source-v1/decision.json: OK
+/home/riomus/runs/sfora-cudnn-wheel-provenance-source-v1/original.log: OK
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/authority-cpu-v5.json: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/execution.json: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/nearest_ranking_readout.py: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/test_siglip2_nearest_ranking.py: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/train_siglip2_nearest_ranking.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/test_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/train_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/test_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/execution.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/authority-cpu-v4.json: OK
+FINAL_CGROUP {"command_exit_status": 0, "invocation_id": "c51dd1a1e87140c88676a4d807ceece9", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-compact-ranking-cpu-v4.service", "values": {"memory.current": "933380096", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "8361676800", "memory.stat": "anon 6000640\nfile 825995264\nkernel 98906112\nkernel_stack 65536\npagetables 475136\nsec_pagetables 0\npercpu 2464\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 12288\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5824512\ninactive_file 313917440\nactive_file 512008192\nunevictable 0\nslab_reclaimable 98208552\nslab_unreclaimable 119632\nslab 98328184\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 3091105\npgmajfault 11588\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1421\nthp_collapse_alloc 8\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+	Command being timed: "/bin/bash -c set -e; sudo -n /bin/sync; sudo -n /bin/sh -c "echo 3 > /proc/sys/vm/drop_caches"; exec /bin/bash /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/cpu-command.sh"
+	User time (seconds): 111.05
+	System time (seconds): 21.13
+	Percent of CPU this job got: 55%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:58.96
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5814736
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 11588
+	Minor (reclaiming a frame) page faults: 3079352
+	Voluntary context switches: 654684
+	Involuntary context switches: 912
+	Swaps: 0
+	File system inputs: 244136712
+	File system outputs: 3621032
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+STOP_CGROUP {"exit_code": "exited", "exit_status": "0", "invocation_id": "c51dd1a1e87140c88676a4d807ceece9", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-compact-ranking-cpu-v4.service", "service_result": "success", "values": {"memory.current": "932151296", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "8361676800", "memory.stat": "anon 5406720\nfile 825995264\nkernel 98361344\nkernel_stack 0\npagetables 98304\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 12288\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5386240\ninactive_file 313987072\nactive_file 512008192\nunevictable 0\nslab_reclaimable 98213856\nslab_unreclaimable 25064\nslab 98238920\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 3092621\npgmajfault 11588\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1421\nthp_collapse_alloc 8\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 59.012s
+CPU time consumed: 2min 12.213s
+Memory peak: 7.7G
+Memory swap peak: 0B

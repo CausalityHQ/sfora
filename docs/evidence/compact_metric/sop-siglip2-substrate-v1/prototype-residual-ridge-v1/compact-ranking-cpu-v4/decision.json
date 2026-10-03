@@ -1,0 +1,49 @@
+{
+  "verdict": "PASS_ENGINEERING_CPU_ONLY",
+  "session": 12354,
+  "terminal": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-cpu-v4/receipt.json",
+      "sha256": "16c758a32be7ae1f75aa6d89d69068ddb60f9cf83f59dbb123196cb9aef6a0ab"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/cpu-v4.log",
+      "sha256": "01b8be98b32e7c7f7035bae199ca8e55b9d5f59d911d2a3fe66515381b662323"
+    },
+    "unit": "sfora-so400-compact-ranking-cpu-v4",
+    "invocation_id": "c51dd1a1e87140c88676a4d807ceece9",
+    "service_seconds": 239.012,
+    "native_peak_rss_kib": 5814736,
+    "both_locks_held": true
+  },
+  "host_peak_bytes": 8361676800,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "cuda_initialized": false,
+  "quality_read": false,
+  "phase_seconds": {
+    "authority": 57.89007329568267,
+    "bundle_dependency_denial": 36.58012631256133,
+    "bundle_image_loading": 0.005264574196189642,
+    "bundle_loader": 33.19240595912561,
+    "bundle_loader_authentication": 18.0377675187774,
+    "bundle_native_forward": 2.7917661289684474,
+    "bundle_oracle": 2.5903291259892285,
+    "bundle_release": 0.2542972401715815,
+    "cache_target_preparation": 2.254562668967992,
+    "cpu_bundle_qualification": 57.46846035402268,
+    "cpu_loss_falsifier": 0.7352026915177703,
+    "independent_reload": 1.3779676291160285,
+    "origin_guard_promotion": 5.662295205984265,
+    "own_exit_rehash": 16.59703841386363,
+    "post_exit_api_authentication": 0.534701753873378,
+    "post_exit_origin_audit": 5.697702126111835,
+    "post_run_api_authentication": 0.741876311134547,
+    "post_run_origin_audit": 7.23882875777781,
+    "save": 0.7649686331860721,
+    "shared_bundle_preparation": 13.381111380644143,
+    "shared_source_preparation": 18.708189617376775,
+    "source_exit_rehash": 36.58853090601042
+  },
+  "next": "ONE discarded control061 mechanics300 on exact source-v4; complete result and usefulTRAIN128 feasibility decision before candidate/TRAIN"
+}
