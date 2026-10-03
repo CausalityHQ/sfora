@@ -1,0 +1,29 @@
+{
+  "installed_library_provenance_qualified": false,
+  "response_sha256": "645599d8531c027e8285825afeb5cfe8608d5adae8a40984141a4ec42f1686e1",
+  "source_url": "https://pypi.org/pypi/nvidia-cudnn-cu13/9.20.0.48/json",
+  "wheel": {
+    "comment_text": "",
+    "core-metadata": {
+      "sha256": "905598a1f0fa9ec98b73133b7340bb60fb3666262eaaaf87f8fb8e3461261d38"
+    },
+    "digests": {
+      "blake2b_256": "56c583384d846b2fd17c44bd499b36c75a45ed4f095fbbb2252294e89cea5c5c",
+      "md5": "f8c7a4927f08495250e801b832e1fdbd",
+      "sha256": "e31454ae00094b0c55319d9d15b6fa2fc50a9e1c0f5c8c80fb75258234e731e1"
+    },
+    "downloads": -1,
+    "filename": "nvidia_cudnn_cu13-9.20.0.48-py3-none-manylinux_2_27_aarch64.whl",
+    "has_sig": false,
+    "md5_digest": "f8c7a4927f08495250e801b832e1fdbd",
+    "packagetype": "bdist_wheel",
+    "python_version": "py3",
+    "requires_python": ">=3",
+    "size": 444574296,
+    "upload_time": "2026-03-09T19:28:27",
+    "upload_time_iso_8601": "2026-03-09T19:28:27.751573Z",
+    "url": "https://files.pythonhosted.org/packages/56/c5/83384d846b2fd17c44bd499b36c75a45ed4f095fbbb2252294e89cea5c5c/nvidia_cudnn_cu13-9.20.0.48-py3-none-manylinux_2_27_aarch64.whl",
+    "yanked": false,
+    "yanked_reason": null
+  }
+}
