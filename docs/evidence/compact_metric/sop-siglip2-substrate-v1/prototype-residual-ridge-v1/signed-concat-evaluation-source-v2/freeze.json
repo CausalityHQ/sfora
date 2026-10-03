@@ -1,0 +1,12 @@
+{
+  "authority_sha256": "5ba809ccf300779fbb45b04df3da1fea1254ba3e225753f7878e4ab3aa447566",
+  "command_sha256": "5048ca29466d288d9720e60d6a34b43709de38327e66ad325ebe0b96401dec82",
+  "execution_sha256": "c456456c83472526313177fa289ca52228b04f9dff0edf44575933ab45f62970",
+  "launch_sha256": "7d9a2bf9ef4ab57d91da76835bfa238226deb6d9b7e132dd3934e274b8809c1b",
+  "operator_approval": "Direct user: Approved all - do not ask for approval do the work",
+  "output": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-cpu-v2",
+  "schema": "signed-concat-evaluator-cpu-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2",
+  "stop_rule": "Operator approved prospective ONEcoldCPU500; fullpass only ONEselectionscore500. Same8GiB/zeroSwap/events/CUDAhidden/bothlocks/alloriginalbyte/source/4reload/parity/bootstrap/cost/qualitygates. Anyfail closes new envelope; prior300FAIL preserved; noautomaticretry orpartialreuse.",
+  "unit": "sfora-so400-signed-concat-evaluation-cpu-v2"
+}
