@@ -1,0 +1,21 @@
+{
+  "baseline_median_seconds": 1.945490465965122,
+  "body_seconds": 16.117061207070947,
+  "candidate_median_seconds": 1.6358960699290037,
+  "candidate_to_baseline_ratio": 0.8408656318536446,
+  "cuda_peak_bytes": 1973163008,
+  "decision": "PASS_DISCARDED_NATIVE_COMPARISON_ONLY",
+  "events_zero": true,
+  "exit_code": 0,
+  "host_peak_bytes": 5318275072,
+  "invocation_id": "58ab48fd29154e44b6cee46a4f152353",
+  "log_sha256": "5de369a14b049803ef23b47a25db426571078ad8c1dfd9ad7a9c5bcf655fb9c2",
+  "next": "One sequential control full17 vs independent8+9/strict updated+inference reload/completeexit mechanics300; no training until both arms pass. OldFAIL unchanged; timings measure serializer only, not model/public speed.",
+  "original_session": 48894,
+  "quality_read": false,
+  "receipt_sha256": "856cde03ac1ff4467f534f6b38c967c1619ffca5cb704cd27d0f4d491a87e330",
+  "schema": "nearest-ranking-current-byte-native-decision-v1",
+  "service_seconds": 246.749,
+  "swap_bytes": 0,
+  "unit": "sfora-so400-nearest-ranking-current-bytes-native-v3"
+}
