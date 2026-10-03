@@ -1083,7 +1083,9 @@ def exit_rehash(context):
 
 def run(args):
     require(sys.argv == cli(args), 'fixed canonical CLI order required')
-    context=authority(args); before=native_start(context)
+    context=authority(args)
+    context['training_context']['fit_context']['unit_started']=UNIT_STARTED
+    before=native_start(context)
     import torch
     t=context['training_context']; source=t['legacy']['source_driver']; seed=args.seed or SEEDS[0]
     torch.random.default_generator.manual_seed(seed)
