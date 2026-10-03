@@ -1,0 +1,13 @@
+{
+  "verdict": "PASS_ENGINEERING_MECHANICS_ONLY",
+  "session": 18753,
+  "service_seconds": 236.595,
+  "invocation_id": "bd29c046855b42c8a5e138c61e33772b",
+  "host_peak_bytes": 7297986560,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "receipt_sha256": "545e31a8d00219e262975496d31154d33a5f68bbe0719850716f0597a554b21c",
+  "log_sha256": "9cb3531c634b7ef0f713be045a5c2b884f7da662a99046646fcdce5e9f9d0ebd",
+  "quality_read": false,
+  "next": "ONE candidate061 mechanics300; both gates required before fixed TRAIN128"
+}
