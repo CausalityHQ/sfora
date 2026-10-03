@@ -16,5 +16,34 @@
     "sha256": "3fa4225e84b409caa99a810659c339019cb628c2e430fad56efd5fa755ff7a0c"
   },
   "historical_failures_preserved": true,
-  "next": "Collect original read-only source-admission plan60f24431ef0d4d8a; remove repeated startup hashing without weakening trust boundaries, then predeclare next eligible gate."
+  "next": "Collect original read-only source-admission plan60f24431ef0d4d8a; remove repeated startup hashing without weakening trust boundaries, then predeclare next eligible gate.",
+  "mechanics_budget": {
+    "cap_seconds": 300,
+    "status": "unproven",
+    "historical_failed_restore_boundary_seconds": 284.523,
+    "historical_replay_updates_9_to_17_seconds": 26.529,
+    "historical_cpu_exit_scan_seconds": 41.059,
+    "estimate_before_remaining_reload_proof_seconds": 352.111,
+    "estimate_is_not_measurement": true,
+    "required_saving_lower_bound_seconds": 52.111,
+    "additional_remaining_reload_proof_unmeasured": true,
+    "new_cpu_pass_does_not_prove_cuda_restore_memory_or_budget": true
+  },
+  "convergence": {
+    "dataset_split": "InShop previously observed TRAIN selection: 1734 queries / 1715 gallery / 498 products",
+    "matched_control": "linear",
+    "candidate": "concat preserved endpoint",
+    "control_r1_percent": 96.42445213379469,
+    "control_map_at_r_percent": 81.56035338692806,
+    "candidate_r1_percent": 96.48212226066897,
+    "candidate_map_at_r_percent": 81.77754035543956,
+    "quality_status": "verified archived; gain procedure KILL",
+    "fresh_training_service_seconds": {
+      "linear": 212.169,
+      "concat": 234.821
+    },
+    "public_latency": "not measured for these heads",
+    "remaining_gap": "External protocol-matched SOP/InShop joint quality and deployed speed unproven",
+    "next_decisive_test": "Qualified nearest-ranking full GPU mechanics, then fresh matched32 and fixed held gate"
+  }
 }
