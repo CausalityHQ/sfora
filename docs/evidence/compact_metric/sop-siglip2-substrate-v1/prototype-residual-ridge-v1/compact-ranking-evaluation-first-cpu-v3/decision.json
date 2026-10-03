@@ -1,0 +1,17 @@
+{
+  "status": "FAIL_EXIT_LIFECYCLE_CONTEXT",
+  "session": 75064,
+  "invocation_id": "4d33bff42c384167812bc196e95bf7ad",
+  "service_seconds": 167.971,
+  "exit_code": 1,
+  "host_peak_bytes": 1577488384,
+  "events": 0,
+  "swap": 0,
+  "error": "KeyError unit_started",
+  "native_cpu_admission_completed": true,
+  "complete_qualification_pass": false,
+  "quality_read": false,
+  "log_sha256": "1340688a6f48897b30e865598a42a146623adaa9b05675816ec00f9e1e4d1e3e",
+  "accepted_training_pair_preserved": true,
+  "next": "Bind inherited fitter context to genuine evaluator whole-unit start and test actual exit lifecycle"
+}
