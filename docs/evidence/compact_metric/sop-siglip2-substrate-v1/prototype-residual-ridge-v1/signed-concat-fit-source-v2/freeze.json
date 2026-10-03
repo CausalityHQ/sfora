@@ -12,6 +12,7 @@
   "command_sha256": "e2813b859fc37f86f5cd36e754bfa8a75282e7f47c4759f3b67cd26946add31d",
   "execution_sha256": "a47933beafd8a1c0e2d541624328c8fe1d7b9a90f68977eee83c3c82223a56fe",
   "intervention": "Only pinned encoder readonly retention and bounded phase telemetry; no math/science/resource change; prior CPUv1 remains FAIL. Any failure closes this retention intervention without retry or hotset expansion.",
+  "launch_sha256": "54fcd5f00a0920b3ba964e948a8c4ebeda8d1e5d964855d8a70f90a6434da34b",
   "output": "/home/riomus/runs/sfora-so400-signed-concat-cpu-v2",
   "quality_read": false,
   "resource_policy": {
