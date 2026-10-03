@@ -213,6 +213,108 @@ def timed(context, name):
                           'delta_seconds': delta, 'seconds': time.perf_counter() - context['started']}), flush=True)
 
 
+def authenticate_startup_reader(context, fitter):
+    """Authenticate the genuine reader and its uncached SHA dependency at entry."""
+    guards, legacy = context['guards'], context['legacy']
+    admission, reader_source = legacy['admission'], legacy['original']
+    require(type(admission) is reader_source.FlatAdmission and
+            reader_source.FlatAdmission.__module__ == reader_source.__name__ and
+            reader_source.FlatAdmission.__qualname__ == 'FlatAdmission' and
+            reader_source.__spec__ is not None and
+            Path(reader_source.__spec__.origin) == Path(reader_source.__file__) and
+            guards.get(reader_source.__file__) == fitter.TERMINAL_SOURCE_SHA,
+            'actual original startup reader/source required')
+    raw = bound_file(guards, reader_source.__file__, fitter.TERMINAL_SOURCE_SHA).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == fitter.TERMINAL_SOURCE_SHA,
+            'original startup reader source changed before compilation')
+    source_code = compile(raw, reader_source.__file__, 'exec')
+    reader_code = next(c for c in source_code.co_consts if getattr(c, 'co_name', None) == 'FlatAdmission')
+    for name in ('__init__', 'canonical', 'digest_string', 'register', 'bound_file',
+                 'read_json', 'descriptor_json', 'admit_terminal'):
+        fn, bound = getattr(reader_source.FlatAdmission, name), getattr(admission, name)
+        expected = next(c for c in reader_code.co_consts if getattr(c, 'co_name', None) == name)
+        require(isinstance(fn, FunctionType) and fn.__globals__ is vars(reader_source) and
+                fn.__code__ == expected and fn.__code__.co_filename == reader_source.__file__ and
+                ((bound is fn) if name in ('canonical', 'digest_string') else
+                 (getattr(bound, '__self__', None) is admission and getattr(bound, '__func__', None) is fn)),
+                'original startup reader method changed: ' + name)
+    fn = reader_source.bound_file
+    expected = next(c for c in source_code.co_consts if getattr(c, 'co_name', None) == 'bound_file')
+    require(isinstance(fn, FunctionType) and fn.__globals__ is vars(reader_source) and
+            fn.__code__ == expected and fn.__code__.co_filename == reader_source.__file__,
+            'original startup reader global bound_file changed')
+
+
+def startup_admission_adapter(fitter, guards):
+    """Compile only the two pinned inventory reader substitutions, startup-owned."""
+    import ast
+    import copy
+    path = Path(fitter.__file__)
+    require(fitter.__spec__ is not None and Path(fitter.__spec__.origin) == path,
+            'startup fitter source origin differs')
+    sha = FITTER['code']['fit_siglip2_prototype_residual.py']
+    raw = bound_file(guards, path, sha).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == sha, 'startup fitter changed before compilation')
+    tree, source_code = ast.parse(raw, filename=str(path)), compile(raw, str(path), 'exec')
+    pins = {'authority': ('ad95ed5ddb58e40230e4ef2a942569bddfdf1da727bd00ed6311372ab5ac98d6',
+                          'ad95ed5ddb58e40230e4ef2a942569bddfdf1da727bd00ed6311372ab5ac98d6'),
+            'admit_historical_linear': ('3637f43dd31f4802fcd68fdf96ee233f1011472a89694a3da7731a0c3295db24',
+                                        '22293a825a9f8ad1c24e75abe41464b72c19aaa8e44c65b34ec35c4d247d05ec'),
+            'admit_terminal': ('1b13b0de9887d7ce3bb76eda0717d5ca7111ac12a10dc47f33ede08c34e8dc76',
+                               'c8722d6eed5469a76dce1a26a19036ff69a54da9f55d8b999f08d3e81b5302b0')}
+    dump = lambda node: ast.dump(node, include_attributes=False)
+    before = ast.parse('bound_file(guards, path, digest)', mode='eval').body
+    after = ast.parse("context['legacy']['admission'].bound_file(guards, path, digest)", mode='eval').body
+
+    class Substitute(ast.NodeTransformer):
+        def __init__(self, source, target):
+            self.source, self.target, self.count = source, target, 0
+
+        def visit_Call(self, node):
+            if dump(node) == dump(self.source):
+                self.count += 1
+                return ast.copy_location(copy.deepcopy(self.target), node)
+            return self.generic_visit(node)
+
+    nodes = {}
+    for name, (original_sha, adapted_sha) in pins.items():
+        matches = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name]
+        require(len(matches) == 1, 'exact startup fitter definition required: ' + name)
+        original = matches[0]
+        fn = getattr(fitter, name)
+        expected = next(c for c in source_code.co_consts if getattr(c, 'co_name', None) == name)
+        require(isinstance(fn, FunctionType) and fn.__globals__ is vars(fitter) and fn.__code__ == expected and
+                fn.__code__.co_filename == str(path) and
+                hashlib.sha256(dump(original).encode()).hexdigest() == original_sha,
+                'actual startup fitter function/body differs: ' + name)
+        node = copy.deepcopy(original)
+        if name != 'authority':
+            substitute = Substitute(before, after)
+            node = substitute.visit(node)
+            inverse = Substitute(after, before)
+            restored = inverse.visit(copy.deepcopy(node))
+            require(substitute.count == inverse.count == 1 and dump(restored) == dump(original),
+                    'startup adapter changed inventory predicates: ' + name)
+        require(hashlib.sha256(dump(node).encode()).hexdigest() == adapted_sha,
+                'adapted startup fitter AST differs: ' + name)
+        nodes[name] = node
+    namespace = dict(vars(fitter))
+    exec(compile(ast.fix_missing_locations(ast.Module(body=list(nodes.values()), type_ignores=[])),
+                 str(path), 'exec'), namespace)
+
+    def entry(function):
+        def admitted(context, *args):
+            authenticate_startup_reader(context, fitter)
+            return function(context, *args)
+        admitted.__startup_ast__ = nodes[function.__name__]
+        return admitted
+
+    for name in ('admit_historical_linear', 'admit_terminal'):
+        namespace[name] = entry(namespace[name])
+    namespace['authority'].__startup_ast__ = nodes['authority']
+    return SimpleNamespace(**{name: namespace[name] for name in nodes})
+
+
 def authority(args):
     require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native import preceded admission')
     root, guards = Path(__file__).absolute().parent, {}
@@ -228,10 +330,11 @@ def authority(args):
             'authenticated fitter3 required')
     fitter = load_authenticated('_nearest_fitter', oldroot / 'fit_siglip2_prototype_residual.py',
                                 FITTER['code']['fit_siglip2_prototype_residual.py'], guards)
-    original = fitter.authority(SimpleNamespace(execution_sha256=FITTER['execution_sha256'],
+    startup = startup_admission_adapter(fitter, guards)
+    original = startup.authority(SimpleNamespace(execution_sha256=FITTER['execution_sha256'],
         authority=Path(ACCEPTED['launch']['path']), authority_sha256=ACCEPTED['launch']['sha256'],
         phase='fit', arm='concat', output=output))
-    accepted_record = fitter.admit_terminal(original, ACCEPTED['terminal'], 'fit', 'concat')
+    accepted_record = startup.admit_terminal(original, ACCEPTED['terminal'], 'fit', 'concat')
     require(accepted_record['checkpoint'] == ACCEPTED['checkpoint'] and
             accepted_record['terminal_state_sha256'] == ACCEPTED['terminal_state_sha256'], 'accepted endpoint differs')
     for p, h in original['guards'].items():

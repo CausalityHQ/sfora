@@ -545,7 +545,443 @@ class StartupAdmissionFixture:
         return patch.object(Path, 'open', opened)
 
 
+def startup_source_boundary(tree):
+    """Invert only the authorized startup dispatch to retain the prior AST proof."""
+    added = {'authenticate_startup_reader', 'startup_admission_adapter'}
+    for name in added:
+        driver.require(sum(isinstance(n, ast.FunctionDef) and n.name == name for n in tree.body) == 1,
+                       'exact added startup definition required')
+    tree.body = [n for n in tree.body if not (isinstance(n, ast.FunctionDef) and
+        n.name in {'read_json', 'admit_terminal', *added})]
+    authority = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'authority')
+    dump = lambda node: ast.dump(node, include_attributes=False)
+    assignment = ast.parse('startup = startup_admission_adapter(fitter, guards)').body[0]
+    matches = [n for n in authority.body if dump(n) == dump(assignment)]
+    driver.require(len(matches) == 1, 'exact startup construction required')
+    authority.body.remove(matches[0])
+    counts = {'authority': 0, 'admit_terminal': 0}
+    for node in ast.walk(authority):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and \
+                isinstance(node.func.value, ast.Name) and node.func.value.id == 'startup':
+            driver.require(node.func.attr in counts, 'unexpected startup dispatch')
+            counts[node.func.attr] += 1
+            node.func.value.id = 'fitter'
+    driver.require(counts == {'authority': 1, 'admit_terminal': 1}, 'exact two startup dispatches required')
+    return hashlib.sha256(dump(tree).encode()).hexdigest()
+
+
+class FitterStartupFixture(StartupAdmissionFixture):
+    """Four real admission sweeps, with archived terminal metadata and tiny FILEs.
+
+    Only fixture locations/encoder byte size are retargeted in private globals;
+    every validator body, log parser and original FlatAdmission stays genuine.
+    """
+    def __init__(self, root):
+        super().__init__(root)
+        self.evidence = PATH.parent.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1'
+        self.adapter = driver.startup_admission_adapter(self.fitter, {})
+        self.namespace = self.adapter.authority.__globals__
+        self.original_members = dict(vars(self.fitter))
+        self.original_codes = {n: v.__code__ for n, v in self.original_members.items()
+                               if isinstance(v, driver.FunctionType)}
+        self.original_classes = {n: dict(vars(v)) for n, v in self.original_members.items()
+                                 if isinstance(v, type) and v.__module__ == self.fitter.__name__}
+        self.reader_members = dict(vars(self.original))
+        self.reader_methods = dict(vars(self.original.FlatAdmission))
+        training = {'root': str(root / 'historical'), 'code': {}}
+        Path(training['root']).mkdir()
+        for name, sha in self.fitter.HISTORICAL_LINEAR['training']['code'].items():
+            raw = (self.evidence / 'train-source-v3' / name).read_bytes()
+            driver.require(hashlib.sha256(raw).hexdigest() == sha, 'historical fixture source pin differs')
+            training['code'][name] = self.write('historical/' + name, raw)['sha256']
+        training['execution_sha256'] = self.write_json('historical/execution.json', training['code'])['sha256']
+        solver = self.write('solver.py', (self.evidence / 'solver-source-v1/foundation_adapter.py').read_bytes())
+        driver.require(solver['sha256'] == self.fitter.SOLVER_SHA, 'solver fixture pin differs')
+        self.context = {'args': SimpleNamespace(execution_sha256='d' * 64), 'root': root,
+            'code': copy.deepcopy(driver.FITTER['code']), 'legacy': self.legacy, 'old': self.old,
+            'source': {'fixture': 'source'}, 'guards': dict(self.legacy['guards']),
+            'original_required_guards': {self.bulk[0]['path']: self.bulk[0]['sha256']},
+            'terminals': {}, 'terminal_cgroups': {}, 'phase_seconds': {}, 'unit_started': time.perf_counter()}
+        self.context['guards'].update(self.context['original_required_guards'])
+        self.namespace['HISTORICAL_LINEAR'] = {'training': training, 'endpoint': {}}
+        self.records = {}
+        self.hist_cpu = self.fitter_terminal('cpu-v3-receipt.json', 'cpu', 'linear', 11, training, solver)
+        self.hist_fit = self.fitter_terminal('fit-linear-v1-receipt.json', 'fit', 'linear', 12, training, solver,
+                                              self.hist_cpu[0])
+        self.namespace['HISTORICAL_LINEAR']['endpoint'] = {'arm': 'linear', 'launch': self.hist_fit[1]['authority'],
+            'terminal': self.hist_fit[0], 'checkpoint': self.hist_fit[1]['checkpoint'],
+            'terminal_state_sha256': self.hist_fit[1]['terminal_state_sha256']}
+        # Clones retain every authenticated validation instruction. The fixture
+        # cannot materialize the real 1.7GB retained encoder within its 16MiB cap.
+        validators = dict(vars(self.fitter), HISTORICAL_LINEAR=self.namespace['HISTORICAL_LINEAR'],
+            ENCODER_CHECKPOINT=self.bulk[0], ENCODER_CHECKPOINT_BYTES=4096)
+        for name in ('check_launch', 'check_run_metadata', 'check_terminal_record'):
+            fn = getattr(self.fitter, name)
+            validators[name] = driver.FunctionType(fn.__code__, validators, name)
+        self.namespace['check_terminal_record'] = validators['check_terminal_record']
+        self.signed_cpu = self.fitter_terminal('signed-concat-cpu-v2/receipt.json', 'cpu', 'linear', 13,
+            {'root': str(root), 'execution_sha256': 'd' * 64, 'code': self.context['code']}, solver)
+        self.concat = self.fitter_terminal('signed-concat-fit-concat-v1/receipt.json', 'fit', 'concat', 14,
+            {'root': str(root), 'execution_sha256': 'd' * 64, 'code': self.context['code']}, solver, self.signed_cpu[0])
+        self.context['launch'] = self.concat[1]['launch']
+
+    def fitter_terminal(self, name, phase, arm, ordinal, training, solver, selected=None):
+        record = json.loads((self.evidence / name).read_text())
+        launch = record['launch']
+        launch.update(execution_sha256=training['execution_sha256'], selected_cpu=copy.deepcopy(selected), ridge_solver=solver)
+        signed = record['schema'] == self.fitter.SCHEMA
+        if signed:
+            launch['historical_linear'] = copy.deepcopy(self.namespace['HISTORICAL_LINEAR'])
+            if phase == 'cpu':
+                record['native_linear_parity']['historical_linear'] = copy.deepcopy(self.namespace['HISTORICAL_LINEAR'])
+        record.update(code=copy.deepcopy(training['code']), execution_sha256=training['execution_sha256'],
+                      source=self.context['source'], numerical_flags=self.legacy['selected']['source_cpu']['numerical_flags'])
+        output = self.root / ('fitter-stage-' + str(ordinal))
+        output.mkdir()
+        record['output'] = str(output)
+        record['authority'] = self.write_json('fitter-authority-' + str(ordinal), launch)
+        record['authority_sha256'] = record['authority']['sha256']
+        record['invocation'].update(self.legacy['selected']['source_cpu']['invocation'], optimize=0,
+            invocation_id=format(ordinal, '032x'), cuda_visible_devices='',
+            argv=self.fitter.cli(training['root'], record['authority']['path'], record['authority']['sha256'],
+                training['execution_sha256'], phase, arm, output))
+        facts = record['arms'] if phase == 'cpu' else {arm: record}
+        identity_method = {k: launch[k] for k in ('execution_sha256', 'original_reference', 'original_cpu',
+            'ridge_solver', 'warm_start', 'partition', 'recipe', *(['historical_linear'] if signed else []))}
+        for fact in facts.values():
+            fact['identity'].update(method=identity_method, source=self.context['source'],
+                numerical_flags=record['numerical_flags'])
+        inventory = {**self.context['original_required_guards'],
+            str(Path(training['root']) / 'execution.json'): training['execution_sha256'],
+            **{str(Path(training['root']) / n): h for n, h in training['code'].items()},
+            record['authority']['path']: record['authority']['sha256'], solver['path']: solver['sha256']}
+        if signed:
+            # Signed exact3 source FILEs are actual pinned bytes, also tiny.
+            for n, h in training['code'].items():
+                self.write(n, PATH.with_name(n).read_bytes())
+            self.write_json('execution.json', training['code'])
+            inventory.pop(str(self.root / 'execution.json'))  # No closure read in these two functions.
+            record['encoder_retention'].update(self.bulk[0], bytes=4096, pages_populated=1, page_bytes=4096)
+        record['input_guards'] = inventory
+        if ordinal == 14:
+            record['input_guards'][self.bulk[1]['path']] = self.bulk[1]['sha256']
+        if phase == 'fit':
+            record['checkpoint'] = self.write(str(output.relative_to(self.root) / 'resume.pt'), b'checkpoint')
+            record['input_guards'][record['checkpoint']['path']] = record['checkpoint']['sha256']
+        unit = {'unit': 'fitter-fixture-' + str(ordinal), 'invocation_id': format(ordinal, '032x'),
+            'service_seconds': math.ceil(record['wall_seconds']) + 1,
+            'native_peak_rss_kib': record['process_peak_rss_kib'] + 1, 'both_locks_held': True}
+        record['cgroup_before'], record['cgroup_after'] = self.cgroup(unit['unit'], 1), self.cgroup(unit['unit'], 2)
+        final = {**self.cgroup(unit['unit'], 3), 'invocation_id': unit['invocation_id']}
+        log = [f"Running as unit: {unit['unit']}.service; invocation ID: {unit['invocation_id']}",
+            '\tExit status: 0', 'Finished with result: success', 'Main processes terminated with: code=exited/status=0',
+            '\tSwaps: 0', 'Memory swap peak: 0B', f"Service runtime: {unit['service_seconds']}s",
+            f"\tMaximum resident set size (kbytes): {unit['native_peak_rss_kib']}", 'FINAL_CGROUP ' + json.dumps(final)]
+        unit['log'] = self.write('fitter-log-' + str(ordinal), ('\n'.join(log) + '\n').encode())
+        unit['receipt'] = self.write_json(str(output.relative_to(self.root) / 'receipt.json'), record)
+        self.records[ordinal] = (unit, record)
+        return unit, record
+
+    def run_historical(self):
+        self.adapter.admit_historical_linear(self.context)
+        self.context['required_guards'] = dict(self.context['guards'])
+        for unit, record in (self.signed_cpu, self.concat):
+            record['input_guards'].update(self.context['required_guards'])
+            self.rewrite(unit, record)
+        self.concat[1]['launch']['selected_cpu'] = copy.deepcopy(self.signed_cpu[0])
+        self.concat[1]['authority'] = self.write_json('fitter-authority-14', self.concat[1]['launch'])
+        self.concat[1]['authority_sha256'] = self.concat[1]['authority']['sha256']
+        self.concat[1]['input_guards'][self.concat[1]['authority']['path']] = self.concat[1]['authority']['sha256']
+        self.concat[1]['invocation']['argv'] = self.fitter.cli(self.root, self.concat[1]['authority']['path'],
+            self.concat[1]['authority']['sha256'], 'd' * 64, 'fit', 'concat', Path(self.concat[0]['receipt']['path']).parent)
+        self.rewrite(*self.concat)
+
+    def all_sweeps(self):
+        self.admission.bound_file(self.historical_guards, self.bulk[0]['path'], self.bulk[0]['sha256'])
+        self.run_historical()
+        self.adapter.admit_terminal(self.context, self.signed_cpu[0], 'cpu', 'linear')
+        self.adapter.admit_terminal(self.context, self.concat[0], 'fit', 'concat')
+
+    def quadratic_exit(self):
+        # Exercise the real fresh-reader/three-inventory exit implementation.
+        # Image resolution and unrelated source closures are bounded doubles.
+        source = SimpleNamespace(fit_rows=lambda *a: [], bootstrap=lambda *a: (None, {}))
+        prior = {'source_driver': source, 'extract': None, 'fit': {}, 'all_images': [], 'images': [],
+            'guards': {self.bulk[0]['path']: self.bulk[0]['sha256']}, 'root': self.root,
+            'args': SimpleNamespace(execution_sha256='d' * 64), 'code': {}, 'own_root': self.root,
+            'export_args': SimpleNamespace(execution_sha256='d' * 64), 'own_code': {}}
+        exporter = SimpleNamespace(FILES=set(), closure=lambda *a: {}, file_json=lambda *a: {},
+            selected_manifest=lambda *a: {'original_rows': []}, image_rows_node=lambda *a: None)
+        genuine = {'prior': prior, 'reference': SimpleNamespace(bootstrap=lambda *a: {}),
+            'guards': {self.bulk[1]['path']: self.bulk[1]['sha256']}, 'root': self.root,
+            'args': SimpleNamespace(execution_sha256='d' * 64), 'code': {},
+            'launch': {'partition': {}, 'image_rows': {'path': str(self.root / 'rows.py')}},
+            'selected': {'original_rows': [], 'resolved_paths': []}}
+        context = {'original': self.original, 'selected': {'exporter': exporter, 'genuine': genuine},
+            'guards': self.context['guards'], 'root': self.root,
+            'args': SimpleNamespace(phase='fit', execution_sha256='d' * 64),
+            'code': self.context['code'], 'phase_seconds': {}}
+        with patch.object(self.old, 'audit_origins'), patch.object(self.original.FlatAdmission, 'all_fit_images', return_value=[]), \
+                patch.object(self.old, 'closure', return_value=context['code']):
+            self.old.exit_rehash(context)
+
+    def unchanged(self, case):
+        case.assertEqual(vars(self.fitter).keys(), self.original_members.keys())
+        for name, value in self.original_members.items():
+            case.assertIs(vars(self.fitter)[name], value)
+        for name, code in self.original_codes.items():
+            case.assertIs(getattr(self.fitter, name).__code__, code)
+        for name, members in self.original_classes.items():
+            actual = vars(getattr(self.fitter, name))
+            case.assertEqual(actual.keys(), members.keys())
+            for key, value in members.items():
+                case.assertIs(actual[key], value)
+        case.assertEqual(vars(self.original).keys(), self.reader_members.keys())
+        for name, value in self.reader_members.items():
+            case.assertIs(vars(self.original)[name], value)
+        case.assertEqual(vars(self.original.FlatAdmission).keys(), self.reader_methods.keys())
+        for name, value in self.reader_methods.items():
+            case.assertIs(vars(self.original.FlatAdmission)[name], value)
+
+
 class NearestRankingTests(unittest.TestCase):
+    def test_fitter_startup_exact_ast_inverse_and_private_namespace(self):
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            before = dict(vars(fixture.fitter))
+            adapter = driver.startup_admission_adapter(fixture.fitter, {})
+            original = {n.name: n for n in ast.parse(Path(fixture.fitter.__file__).read_bytes()).body
+                        if isinstance(n, ast.FunctionDef)}
+            pins = {'authority': 'ad95ed5ddb58e40230e4ef2a942569bddfdf1da727bd00ed6311372ab5ac98d6',
+                'admit_historical_linear': '22293a825a9f8ad1c24e75abe41464b72c19aaa8e44c65b34ec35c4d247d05ec',
+                'admit_terminal': 'c8722d6eed5469a76dce1a26a19036ff69a54da9f55d8b999f08d3e81b5302b0'}
+            for name, pin in pins.items():
+                node = copy.deepcopy(getattr(adapter, name).__startup_ast__)
+                self.assertEqual(hashlib.sha256(ast.dump(node, include_attributes=False).encode()).hexdigest(), pin)
+                changed = 0
+                for call in ast.walk(node):
+                    if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and \
+                            ast.unparse(call.func) == "context['legacy']['admission'].bound_file":
+                        self.assertEqual(ast.unparse(call), "context['legacy']['admission'].bound_file(guards, path, digest)")
+                        call.func = ast.Name(id='bound_file', ctx=ast.Load())
+                        changed += 1
+                self.assertEqual(changed, 0 if name == 'authority' else 1)
+                self.assertEqual(ast.dump(node, include_attributes=False), ast.dump(original[name], include_attributes=False))
+            namespace = adapter.authority.__globals__
+            self.assertIsNot(namespace, vars(fixture.fitter))
+            for name, value in before.items():
+                self.assertIs(vars(fixture.fitter)[name], value)
+                if name not in pins:
+                    self.assertIs(namespace[name], value)
+
+    def test_fitter_startup_entry_rejects_reader_source_method_and_global_mutants(self):
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            adapter = driver.startup_admission_adapter(fixture.fitter, {})
+            calls = (lambda: adapter.admit_historical_linear(fixture.context['fit_context']),
+                     lambda: adapter.admit_terminal(fixture.context['fit_context'], {}, 'fit', 'concat'))
+            for call in calls:
+                for name in ('__init__', 'canonical', 'digest_string', 'register', 'bound_file',
+                             'read_json', 'descriptor_json', 'admit_terminal'):
+                    with self.subTest(entry=call, method=name), patch.object(fixture.admission, name, lambda *a: None):
+                        with self.assertRaisesRegex(ValueError, 'reader method changed'):
+                            call()
+                    method = getattr(fixture.original.FlatAdmission, name)
+                    foreign = driver.FunctionType(method.__code__, dict(vars(fixture.original)), name)
+                    if name in ('canonical', 'digest_string'):
+                        foreign = staticmethod(foreign)
+                    with patch.object(fixture.original.FlatAdmission, name, foreign):
+                        with self.assertRaisesRegex(ValueError, 'reader method changed'):
+                            call()
+                fn = fixture.original.bound_file
+                for replacement in (lambda *a: None, driver.FunctionType(fn.__code__, dict(vars(fixture.original)))):
+                    with patch.object(fixture.original, 'bound_file', replacement):
+                        with self.assertRaisesRegex(ValueError, 'global bound_file changed'):
+                            call()
+                code = fn.__code__
+                try:
+                    fn.__code__ = (lambda *a: None).__code__
+                    with self.assertRaisesRegex(ValueError, 'global bound_file changed'):
+                        call()
+                finally:
+                    fn.__code__ = code
+                with patch.object(fixture.original.__spec__, 'origin', str(fixture.root / 'wrong.py')):
+                    with self.assertRaisesRegex(ValueError, 'actual original startup'):
+                        call()
+                source = fixture.write('changed-reader.py', Path(fixture.original.__file__).read_bytes() + b'\n')
+                with patch.object(fixture.original, '__file__', source['path']), \
+                        patch.object(fixture.original.__spec__, 'origin', source['path']), \
+                        patch.dict(fixture.context['fit_context']['guards'], {source['path']: fixture.fitter.TERMINAL_SOURCE_SHA}):
+                    with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
+                        call()
+
+    def test_fitter_startup_constructor_rejects_full_source_and_live_function_mutants(self):
+        with TemporaryDirectory() as directory:
+            fixture = StartupAdmissionFixture(Path(directory))
+            for name in ('authority', 'admit_historical_linear', 'admit_terminal'):
+                fn = getattr(fixture.fitter, name)
+                for replacement in (lambda *a: None, driver.FunctionType(fn.__code__, dict(vars(fixture.fitter)))):
+                    with self.subTest(name=name), patch.object(fixture.fitter, name, replacement):
+                        with self.assertRaisesRegex(ValueError, 'actual startup fitter function/body differs'):
+                            driver.startup_admission_adapter(fixture.fitter, {})
+                code = fn.__code__
+                try:
+                    fn.__code__ = (lambda *a: None).__code__
+                    with self.assertRaisesRegex(ValueError, 'actual startup fitter function/body differs'):
+                        driver.startup_admission_adapter(fixture.fitter, {})
+                finally:
+                    fn.__code__ = code
+            source = fixture.write('changed-fitter.py', Path(fixture.fitter.__file__).read_bytes() + b'\n')
+            with patch.object(fixture.fitter, '__file__', source['path']), \
+                    patch.object(fixture.fitter.__spec__, 'origin', source['path']):
+                with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
+                    driver.startup_admission_adapter(fixture.fitter, {})
+            with patch.object(fixture.fitter.__spec__, 'origin', '/wrong'):
+                with self.assertRaisesRegex(ValueError, 'source origin differs'):
+                    driver.startup_admission_adapter(fixture.fitter, {})
+
+    def test_fitter_startup_inventory_terminal_and_invocation_mutants(self):
+        for stage in ('historical', 'signed'):
+            for mutation in ('sha', 'size', 'stage', 'unseen-bytes', 'required', 'terminal', 'duplicate', 'source'):
+                with self.subTest(stage=stage, mutation=mutation), TemporaryDirectory() as directory, patch.dict(sys.modules):
+                    fixture = FitterStartupFixture(Path(directory))
+                    if stage == 'signed':
+                        fixture.run_historical()
+                    unit, record = fixture.hist_fit if stage == 'historical' else fixture.concat
+                    fact = fixture.bulk[1]
+                    record['input_guards'][fact['path']] = fact['sha256']
+                    if mutation in ('sha', 'size'):
+                        fixture.admission.bound_file({}, fact['path'], fact['sha256'])
+                    if mutation == 'sha':
+                        record['input_guards'][fact['path']] = '0' * 64
+                    elif mutation == 'size':
+                        Path(fact['path']).write_bytes(b'bulk' * 1024 + b'x')
+                    elif mutation == 'stage':
+                        fixture.context['guards'][fact['path']] = '0' * 64
+                    elif mutation == 'unseen-bytes':
+                        Path(fact['path']).write_bytes(b'FAIL' * 1024)
+                    elif mutation == 'required':
+                        record['input_guards'].pop(fixture.bulk[0]['path'])
+                    elif mutation == 'terminal':
+                        record['pass'] = False
+                    elif mutation == 'duplicate':
+                        fixture.legacy['invocations'].add(unit['invocation_id'])
+                    elif mutation == 'source':
+                        record['source'] = {'fixture': 'substituted'}
+                    fixture.rewrite(unit, record)
+                    with self.assertRaises(ValueError):
+                        if stage == 'historical':
+                            fixture.adapter.admit_historical_linear(fixture.context)
+                        else:
+                            fixture.adapter.admit_terminal(fixture.context, unit, 'fit', 'concat')
+                    if mutation == 'unseen-bytes':
+                        self.assertNotIn(fact['path'], fixture.admission.verified)
+                    fixture.unchanged(self)
+
+    def test_startup_boundary_rejects_unrelated_predicate_and_extra_dispatch_mutants(self):
+        original_sha = '2b749548e57aa010826665a38e4e145adaeefed9658a3d8a86f470134f312a72'
+        for name in ('policy', 'check_launch', 'exit_rehash', 'restore', 'integrity'):
+            tree = ast.parse(PATH.read_text())
+            fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
+            fn.body.append(ast.parse('unrelated_predicate = False').body[0])
+            self.assertNotEqual(startup_source_boundary(tree), original_sha)
+        tree = ast.parse(PATH.read_text())
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'authority')
+        extra = next(n for n in fn.body if isinstance(n, ast.Assign) and isinstance(n.value, ast.Call) and
+                     ast.unparse(n.value.func) == 'startup.authority')
+        fn.body.append(copy.deepcopy(extra))
+        with self.assertRaisesRegex(ValueError, 'exact two startup dispatches'):
+            startup_source_boundary(tree)
+
+    def test_fitter_startup_four_sweeps_one_authentication_and_fresh_exit(self):
+        self.assertTrue(callable(getattr(driver, 'startup_admission_adapter', None)), 'startup adapter is missing')
+        started = time.perf_counter()
+        with TemporaryDirectory() as directory, patch.dict(sys.modules):
+            fixture = FitterStartupFixture(Path(directory))
+            initial = {**fixture.context, 'guards': dict(fixture.context['guards']),
+                       'terminals': {}, 'terminal_cgroups': {}, 'phase_seconds': {}}
+            adapted = {name: getattr(fixture.adapter, name) for name in ('admit_historical_linear', 'admit_terminal')}
+            # The same FILEs and predicates first run through the original
+            # pinned bodies, then a fresh invocation-owned reader runs the adapter.
+            for name in adapted:
+                setattr(fixture.adapter, name, driver.FunctionType(getattr(fixture.fitter, name).__code__,
+                                                                 fixture.namespace, name))
+            fixture.historical_guards = {}
+            with fixture.count_reads():
+                fixture.all_sweeps()
+            self.assertEqual(fixture.read_bytes[fixture.bulk[0]['path']], 5 * 4096)
+            self.assertEqual(fixture.read_bytes[fixture.bulk[1]['path']], 4096)
+            baseline_required, baseline_union = dict(fixture.context['required_guards']), dict(fixture.context['guards'])
+            fixture.unchanged(self)
+            fixture.context = initial
+            fixture.legacy['invocations'].clear()
+            fixture.admission = fixture.original.FlatAdmission()
+            fixture.admission.init = fixture.init
+            fixture.legacy['admission'] = fixture.admission
+            del sys.modules['_prototype_historical_linear']
+            for name, function in adapted.items():
+                setattr(fixture.adapter, name, function)
+            fixture.read_bytes.clear()
+            fixture.historical_guards = {}
+            with fixture.count_reads():
+                fixture.all_sweeps()
+            for fact in fixture.bulk:
+                self.assertEqual(fixture.read_bytes[fact['path']], 4096, 'one genuine SHA read per unique bulk path')
+            self.assertEqual(fixture.historical_guards, {fixture.bulk[0]['path']: fixture.bulk[0]['sha256']})
+            self.assertEqual(fixture.context['required_guards'], baseline_required)
+            self.assertEqual(fixture.context['guards'], baseline_union)
+            self.assertEqual(set(fixture.context['terminal_cgroups']),
+                             {'historical_linear:cpu', 'historical_linear:fit', 'cpu:linear', 'fit:concat'})
+            self.assertNotIn(fixture.bulk[1]['path'], fixture.context['required_guards'])
+            self.assertIn(fixture.bulk[1]['path'], fixture.context['guards'])
+            for unit, record in fixture.records.values():
+                for p, h in record['input_guards'].items():
+                    self.assertEqual(fixture.context['guards'][p], h)
+            fixture.unchanged(self)
+            # Run the genuine fitter union and nearest exit loops; isolate only
+            # unrelated native/source closure work, never their FILE readers.
+            fixture.read_bytes.clear()
+            with fixture.count_reads():
+                fixture.quadratic_exit()
+            for fact in fixture.bulk:
+                self.assertEqual(fixture.read_bytes[fact['path']], 4096, 'quadratic exit needs a fresh genuine reader')
+            fixture.read_bytes.clear()
+            with patch.object(fixture.fitter, 'prepare_readout'), patch.object(fixture.old, 'exit_rehash'), \
+                    patch.object(fixture.fitter, 'closure', return_value=fixture.context['code']), \
+                    fixture.count_reads(), redirect_stdout(io.StringIO()):
+                fixture.fitter.exit_rehash(fixture.context)
+            for fact in fixture.bulk:
+                self.assertEqual(fixture.read_bytes[fact['path']], 4096, 'fitter exit must reread bulk bytes')
+            nearest = {**fixture.context, 'fit_context': fixture.context, 'fitter': fixture.fitter, 'models': [],
+                       'started': time.perf_counter()}
+            fixture.read_bytes.clear()
+            with patch.object(driver, 'helper_guard'), patch.object(fixture.fitter, 'exit_rehash'), \
+                    patch.object(driver, 'closure', return_value=nearest['code']), \
+                    fixture.count_reads(), redirect_stdout(io.StringIO()):
+                driver.exit_rehash(nearest)
+            for fact in fixture.bulk:
+                self.assertEqual(fixture.read_bytes[fact['path']], 4096, 'nearest exit must reread bulk bytes')
+            fact = fixture.bulk[0]
+            stamp = Path(fact['path']).stat()
+            Path(fact['path']).write_bytes(b'FAIL' * 1024)
+            os.utime(fact['path'], ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+            fixture.admission.bound_file({}, fact['path'], fact['sha256'])  # Genuine startup snapshot.
+            with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
+                fixture.quadratic_exit()
+            with patch.object(fixture.fitter, 'prepare_readout'), patch.object(fixture.old, 'exit_rehash'), \
+                    patch.object(fixture.fitter, 'closure', return_value=fixture.context['code']), redirect_stdout(io.StringIO()):
+                # Reset diagnostic markers from the successful earlier audit.
+                fixture.context['phase_seconds'].clear()
+                with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
+                    fixture.fitter.exit_rehash(fixture.context)
+            with patch.object(driver, 'helper_guard'), patch.object(fixture.fitter, 'exit_rehash'), \
+                    patch.object(driver, 'closure', return_value=nearest['code']), redirect_stdout(io.StringIO()):
+                with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
+                    driver.exit_rehash(nearest)
+            fixture.unchanged(self)
+            self.assertLess(sum(p.stat().st_size for p in Path(directory).rglob('*') if p.is_file()), 16 * 1024**2)
+        self.assertLess(time.perf_counter() - started, 5)
+
     def launch(self, phase='cpu', arm='control'):
         unit = {'receipt': {'path': '/receipt', 'sha256': 'a' * 64},
                 'log': {'path': '/log', 'sha256': 'b' * 64}, 'unit': 'new-unit',
@@ -584,11 +1020,9 @@ class NearestRankingTests(unittest.TestCase):
 
     def test_startup_only_source_boundary_preserves_complete_other_ast(self):
         tree = ast.parse(PATH.read_text())
-        tree.body = [n for n in tree.body if not (isinstance(n, ast.FunctionDef) and
-            n.name in {'read_json', 'admit_terminal'})]
         # Entire 6e5b3f20 module: pins fresh/restore/diagnostics, native/runtime/exit,
-        # objectives, science, caps, globals and imports outside the two functions.
-        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+        # objectives, science, caps, globals and imports after exact startup inversion.
+        self.assertEqual(startup_source_boundary(tree),
                          '2b749548e57aa010826665a38e4e145adaeefed9658a3d8a86f470134f312a72')
 
     def test_startup_admission_preserves_default_json_and_all_terminal_predicates(self):
@@ -1195,7 +1629,7 @@ class NearestRankingTests(unittest.TestCase):
         tree.body = [node for node in tree.body if not (isinstance(node, ast.FunctionDef) and
             node.name in {'fresh', 'restore', 'restore_memory_snapshot', 'read_json', 'admit_terminal'})]
         # Committed 40426ca3 AST, excluding lifecycle and startup admission edits.
-        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+        self.assertEqual(startup_source_boundary(tree),
                          'b3f24d66d4e381490efa83ed10e742b4b74616a2753e01c83003a2b25c13e362')
 
     def test_raw_memory_diagnostic_preserves_failure_events_and_propagates_load_error(self):
