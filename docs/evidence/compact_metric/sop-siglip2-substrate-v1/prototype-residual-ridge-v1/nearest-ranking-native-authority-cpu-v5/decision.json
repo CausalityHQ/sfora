@@ -1,0 +1,19 @@
+{
+  "decision": "PASS_CPU_QUALIFICATION_ONLY",
+  "events_zero": true,
+  "exit_code": 0,
+  "host_peak_bytes": 8199041024,
+  "initial_model_and_outputs_match_cpu_v4": true,
+  "invocation_id": "1397204426ee409fb84ae21bd52ef6e3",
+  "log_sha256": "58e6b8a0eb2057a93734840277673a61625f11b68e91c91fca4a94e80edded5f",
+  "native_authority_bound": true,
+  "native_peak_rss_kib": 5806648,
+  "next": "ONE discarded complete native comparison300/body90; oldFAIL unchanged; no mechanics/train/quality eligibility yet",
+  "original_session": 8102,
+  "quality_read": false,
+  "receipt_sha256": "857ea3d7c7b39a1850d3073ccfcb58bb36470d0ef6bf6bf012725cdef62038b7",
+  "schema": "nearest-ranking-native-authority-cpu-decision-v1",
+  "service_seconds": 222.827,
+  "swap_bytes": 0,
+  "unit": "sfora-so400-nearest-ranking-cpu-v5"
+}
