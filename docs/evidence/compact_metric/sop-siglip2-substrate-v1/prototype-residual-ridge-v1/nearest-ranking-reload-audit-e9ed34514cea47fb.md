@@ -1,0 +1,28 @@
+# Read-only reload audit
+
+Actual GPT-6.1 Sol XHigh; consultation e9ed34514cea47fb; terminal exit0. Native memory and runtime fixes remain unqualified.
+
+**Preserve the original engineering FAIL. Recommend one correction: keep restored vision on CPU through source identity and strict trained-weight loading, then move it to CUDA and rebuild Adam’s parameter bindings. Memory improvement is plausible; completion within 300 seconds is unsupported.**
+
+- **Observed failure:** [original.log, line 92](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/nearest-ranking-mechanics-control-v1/original.log:92) records reload beginning at 257.295s, source construction ending at 270.961s, then rejection at 284.523s. Final peak was 8,589,934,592 bytes, `max=194`, OOM/swap=0; whole service 286.431s. Seventeen updates completed, but independent 8+9, final reloads and exit checks did not. Candidate/TRAIN/quality remain unadmitted; this supplies no architecture KILL.
+- **Concrete ownership path:** [restore, line 618](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_nearest_ranking.py:618) validates the mapped payload, hashes it with consumption, calls `fresh(initial=disk)`, checks initial identity, then loads trained vision. [fresh, line 427](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_nearest_ranking.py:427) moves the original model to CUDA **before** identity and trained loading. Static clones own independent storage; they do not consume mapped pages. Adam moments already use `pages.copy`, including independent CPU step scalars. Previous-model release is guarded.
+- **Comparison:** [original restore, line 1315](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:1315) constructs CPU vision, strictly loads trained weights with per-module consumption, then moves to CUDA and constructs its optimizer. [CheckpointPages, line 1240](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:1240) explicitly permits refaults; a live mmap alone does not imply resident archive bytes. Accepted nearest CPU uses the same source, with step0/no moments/no CUDA: 274.971s, peak 8,130,285,568 bytes, events0—only 459,649,024 bytes of headroom.
+
+**Cause versus uncertainty:** the source proves premature CUDA placement during mapped reload and additional CPU copies during CUDA identity hashing. Payload validation also reads mapped tensors before the consumption-enabled whole hash. The existing log cannot establish which interval first generated `max` events, nor apportion pressure among anonymous allocations, CUDA backing and file cache. The final footer follows process cleanup; it cannot reconstruct the peak.
+
+Verified local bytes match the accepted receipt’s contracts:
+
+| Source | SHA256 |
+|---|---|
+| Nearest driver | `bc86ee5a32ab899c881220348aa50503361e52a8574d9bfa55244b344e10f171` |
+| Original adaptation helper | `a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543` |
+| Genuine source factory | `eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38` |
+| Original clone helper | `17cf2dac93a45aae3ba929ad5c36e73f4c33576eae9bb5f9dec670c272a1731f` |
+
+1. **Single intervention:** add a restore-only deferral to nearest `fresh`’s model transfer. Preserve genuine `fresh_source`, complete `model_facts`, initial identity and saved-static cloning. Strict-load trained vision and nonpersistent buffers into CPU vision, consuming copied pages. Then transfer vision, rebuild the four parameter/Adam bindings from the transferred model, and restore saved moments/scaler/counter/RNG. Keep helpers unchanged. Retain complete typed/current-byte hashes, saved teachers, substitution/tamper rejection, parity and uncached exit checks.
+2. **Fast falsifier:** one stdlib-only execution test of real `fresh`/`restore` with tiny stand-ins, bounded to 5s/16MiB fixture data. Assert strict vision/buffer loading occurs before CUDA transfer; make transfer replace parameter objects and require restored Adam to bind those new objects, with independently owned CPU steps. Current source must fail ordering (**RED**); corrected source must pass (**GREEN**). Include CPU behavior and strict-load failure propagation. This verifies lifecycle ordering, not native memory fit.
+3. **Instrumentation and qualification stop rule:** record raw cgroup current/peak/events/swap and `memory.stat` around payload validation/hash, source construction, identity, strict loading, CUDA transfer/moment restoration and archive deletion. Never reset counters. Refreeze changed code and require fresh CPU500 qualification; the old CPU receipt cannot qualify changed execution bytes. Root should withhold mechanics until a credible complete lifecycle budget fits unchanged gates.
+
+Measured [timings, line 21](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/nearest-ranking-mechanics-control-v1/original.log:21): admission 122.321s; preparation 35.858s; initial17 through 235.616s; approximately 21.5s afterward through inference-save, including 18.059s inside the two save timers; failed reload 27.227s. Original updates9–17 consumed 26.529s. Reusing that duration for replay estimates **311.051s before remaining reloads/exit**; CPU exit rehash separately measured 41.059s. These are extrapolations, not corrected measurements. Memory correction alone offers no credible 300s admission yet.
+
+Any integrity, replay, resource or deadline failure stops qualification: no automatic retry, cap increase or scientific-policy change. Read-only audit completed; no files or jobs changed.
