@@ -1,0 +1,17 @@
+{
+  "schema": "compact-ranking-cpu-decision-v1",
+  "verdict": "FAIL",
+  "session": 8225,
+  "unit": "sfora-so400-compact-ranking-cpu-v1",
+  "invocation_id": "b7f4172fc69b4fba94b1f0e7fbc05b8e",
+  "service_seconds": 129.167,
+  "exit_status": 1,
+  "host_peak_bytes": 5114064896,
+  "memory_events": 0,
+  "swap_bytes": 0,
+  "receipt_published": false,
+  "root_cause": "portable dependency deny-list classified installed aiohappyeyeballs-2.6.2.dist-info/RECORD as training dependency",
+  "log_sha256": "cc4f1c88501d6bcc791a68eb1a21640c01eb6ccb3a58e6c79de4fecc9b9dbf66",
+  "quality_read": false,
+  "next": "source-only boundary correction; fresh frozen CPU qualification; no mechanics or training before PASS"
+}
