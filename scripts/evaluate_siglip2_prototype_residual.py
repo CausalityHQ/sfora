@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Prototype residual ridge evaluator; all native gates remain UNRUN.
 
-Own execution.json contains exactly FILES; parent supplies actual training2
+Own execution.json contains exactly FILES; parent supplies actual training3
 and original evaluator2 roots/execution hashes. Immutable original source-v7
 has exactly four files, and the pinned scoring reference has exactly six.
 Authority keys are SPEC_KEYS, with FILE/UNIT descriptors identical to the
 original complete original-service admission. Endpoint order is linear then
-quadratic; neither endpoint carries a seed, optimizer or update schedule.
+concat; neither endpoint carries a seed, optimizer or update schedule.
 Prospective CPU300 independently reloads each complete fitted payload twice without fitting.
 Score300 first authenticates engineering/paired costs, then replays every source
 selection query before scoring the authorized direct-FIT panel and its wires.
@@ -36,13 +36,14 @@ from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
-SCHEMA = 'siglip2-prototype-residual-evaluation-v1'
-AUTHORITY_SCHEMA = 'siglip2-prototype-residual-evaluation-authority-v1'
+SCHEMA = 'siglip2-prototype-residual-evaluation-v2'
+AUTHORITY_SCHEMA = 'siglip2-prototype-residual-evaluation-authority-v2'
 FILES = {'evaluate_siglip2_prototype_residual.py', 'test_siglip2_prototype_residual_evaluation.py'}
 ENCODER_CHECKPOINT_BYTES = 1711945083
 ENCODER_RETENTION_MAX_BYTES = 2 * 1024**3
-TRAIN_FILES = {'fit_siglip2_prototype_residual.py', 'test_siglip2_prototype_residual.py'}
-ARMS = ('linear', 'quadratic')
+TRAIN_FILES = {'fit_siglip2_prototype_residual.py', 'test_siglip2_prototype_residual.py',
+               'prototype_residual_readout.py'}
+ARMS = ('linear', 'concat')
 ORIGINAL_REFERENCE = {'root': '/home/riomus/runs/sfora-so400-quadratic-readout-source-v7',
                       'execution_sha256': '84414302a6749842cae20e2608e932066334916218df68f91f10fd3c589ca382'}
 ORIGINAL_PINS = {
@@ -55,7 +56,6 @@ EVALUATOR_PINS = {
     'test_siglip2_quadratic_readout_evaluation.py': '1ea5312edddfc162bedf94859839e3b02d50433b67a7a250fa054e442b9155d9'}
 TERMINAL_SOURCE_SHA = 'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543'
 TERMINAL_AST_SHA = 'ad9a5202986c9f3a80c992b6f7e40ef95bd81afbee98512b693dc48917f838d2'
-FIT_TERMINAL_AST_SHA = 'a94f81cadd4bd046c25a5279f0db7a3e28339f01c787b7b788f8d75a1186b78b'
 SOURCE_SELECTION_AST_SHA = '007cf3f693eef137769e158fb31fac6b8998f4a6b0323ac437276fab85fa034c'
 RESOURCES_AST_SHA = '9674922b63483fcc6a7d39697514da92655cf4a32f5ae5110b2d7ccd3a2d0838'
 
@@ -304,7 +304,7 @@ def check_spec(spec, args):
             source['terminal'] == SOURCE_SCORE_TERMINAL, 'original source selection differs')
     require(spec['panel'] in PANELS and (spec['selection_go'] is None) == (spec['panel'] == 'selection'),
             'validation requires original selection GO')
-    require([e['arm'] for e in spec['endpoints']] == list(ARMS), 'linear then quadratic endpoints required')
+    require([e['arm'] for e in spec['endpoints']] == list(ARMS), 'linear then concat endpoints required')
     for endpoint in spec['endpoints']:
         require(endpoint.keys() == {'arm', 'launch', 'terminal', 'checkpoint', 'terminal_state_sha256'} and
                 type(endpoint['terminal_state_sha256']) is str and
@@ -332,16 +332,16 @@ def metric_deltas(quality, source, panel):
         check_quality(value, count)
     return {name: {metric: [b - a for a, b in zip(left[metric], right[metric], strict=True)] for metric in METRICS}
             for name, left, right in (
-                ('quadratic_minus_linear', quality['linear'], quality['quadratic']),
-                ('quadratic_minus_source', source, quality['quadratic']),
+                ('concat_minus_linear', quality['linear'], quality['concat']),
+                ('concat_minus_source', source, quality['concat']),
                 ('linear_minus_source', source, quality['linear']))}
 
 
 def immediate_quality_pass(quality, source, panel):
     deltas = metric_deltas(quality, source, panel)
-    pair = deltas['quadratic_minus_linear']
+    pair = deltas['concat_minus_linear']
     return statistics.mean(pair[METRICS[0]]) > 0 and statistics.mean(pair[METRICS[1]]) >= 0 and all(
-        statistics.mean(quality['quadratic'][m]) >= statistics.mean(source[m]) for m in METRICS)
+        statistics.mean(quality['concat'][m]) >= statistics.mean(source[m]) for m in METRICS)
 
 
 def paired_cost(records):
@@ -350,7 +350,7 @@ def paired_cost(records):
         require(all(type(record[k]) in (int, float) and math.isfinite(record[k]) and record[k] > 0
                     for k in ('service_seconds', 'total_fit_core_seconds')) and
                 record['total_fit_core_seconds'] <= record['service_seconds'], 'positive complete original fit cost required')
-    ratios = {name: records['quadratic'][key] / records['linear'][key] for name, key in (
+    ratios = {name: records['concat'][key] / records['linear'][key] for name, key in (
         ('whole_service_ratio', 'service_seconds'), ('total_fit_core_ratio', 'total_fit_core_seconds'))}
     require(all(math.isfinite(v) and v > 0 for v in ratios.values()), 'finite paired cost ratios required')
     return {**ratios, 'pass': all(v <= 1.50 for v in ratios.values()),
@@ -366,14 +366,14 @@ def decide(quality, source, panel, intervals, costs):
         require(value.keys() == {'mean_delta', 'product_lower95', 'product_upper95', 'query_lower95', 'query_upper95'} and
                 all(type(v) in (int, float) and math.isfinite(v) and -1 <= v <= 1 for v in value.values()) and
                 all(value[k + '_lower95'] <= value[k + '_upper95'] for k in ('product', 'query')) and
-                math.isclose(value['mean_delta'], statistics.mean(deltas['quadratic_minus_linear'][metric]),
+                math.isclose(value['mean_delta'], statistics.mean(deltas['concat_minus_linear'][metric]),
                              rel_tol=0, abs_tol=1e-12), 'interval mean/finite bounds differ from per-query replay')
     require(costs == paired_cost({a: costs[a] for a in ARMS}), 'original paired cost decision differs')
     quality_pass = immediate and all(v['mean_delta'] >= .002 and v['product_lower95'] > 0 for v in intervals.values())
     return {'decision': 'GO' if quality_pass and costs['pass'] else 'KILL',
             'immediate_quality_pass': immediate, 'quality_pass': bool(quality_pass), 'cost_pass': costs['pass'],
-            'source_floor_pass': all(statistics.mean(quality['quadratic'][m]) >= statistics.mean(source[m]) for m in METRICS),
-            'quadratic_source_gain_both': all(statistics.mean(deltas['quadratic_minus_source'][m]) > 0 for m in METRICS),
+            'source_floor_pass': all(statistics.mean(quality['concat'][m]) >= statistics.mean(source[m]) for m in METRICS),
+            'concat_source_gain_both': all(statistics.mean(deltas['concat_minus_source'][m]) > 0 for m in METRICS),
             'deltas': deltas,
             'aggregate_deltas': {name: {m: statistics.mean(values[m]) for m in METRICS} for name, values in deltas.items()},
             'selection_go_admits_validation_only': panel == 'selection' and quality_pass and costs['pass'],
@@ -480,26 +480,6 @@ def original_terminal_reader(context):
     return reader
 
 
-def fit_terminal_adapter(fitter, context):
-    """Retain complete fitter admission, changing only its external log reader call."""
-    reader = original_terminal_reader(context)
-    node = terminal_ast(fitter, context['code']['fit_siglip2_prototype_residual.py'],
-                        FIT_TERMINAL_AST_SHA, context['guards'])
-    index = next(i for i, n in enumerate(node.body) if isinstance(n, ast.Assign) and
-                 isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'final')
-    call = node.body[index].value
-    call.args.insert(0, call.func.value)
-    call.func = ast.Name(id='_original_log_terminal', ctx=ast.Load())
-    namespace = {name: getattr(fitter, name) for name in (
-        'check_unit', 'read_json', 'check_terminal_record', 'require', 'cli', 'policy', 'bound_file', 'Path')}
-    namespace['_original_log_terminal'] = reader
-    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
-                 '<prototype evaluator fit terminal admission>', 'exec'), namespace)
-    adapted = namespace['admit_terminal']
-    adapted.__terminal_ast__ = node
-    return adapted
-
-
 def source_selection_adapter(baseline, context):
     """Retain pinned baseline admission, changing only its external log reader call."""
     reader = original_terminal_reader(context)
@@ -534,6 +514,17 @@ def resources_adapter(helper, guards):
     return adapted
 
 
+def check_fitter(fitter):
+    require(fitter.FILES == TRAIN_FILES and fitter.SCHEMA == 'siglip2-prototype-residual-ridge-v2' and
+            fitter.AUTHORITY_SCHEMA == 'siglip2-prototype-residual-launch-v2' and fitter.ARMS == ARMS and
+            fitter.ORIGINAL_REFERENCE == ORIGINAL_REFERENCE and
+            fitter.ORIGINAL_CODE == ORIGINAL_PINS and fitter.PARTITION_SHA == PARTITION_SHA and
+            fitter.RECIPE['feature_width'] == {'linear': 32, 'concat': 160} and
+            fitter.RECIPE['basis'] == {'linear': 'Z32', 'concat': '[Z32,H0raw128]'} and
+            fitter.RECIPE['intercept'] is False and fitter.RECIPE['fit_passes'] == 2,
+            'new deterministic prototype fitter profile differs')
+
+
 def authority(args):
     require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native imports preceded admission')
     root, guards = Path(__file__).absolute().parent, {}
@@ -544,7 +535,7 @@ def authority(args):
     roots = tuple(map(Path, (str(root), training['root'], old_evaluator['root'], ORIGINAL_REFERENCE['root'], REFERENCE_ROOT)))
     require(all(not a.is_relative_to(b) and not b.is_relative_to(a) for i, a in enumerate(roots) for b in roots[i + 1:]) and
             all(not args.output.is_relative_to(p) and not p.is_relative_to(args.output) for p in roots),
-            'separate immutable evaluator2/fitter2/original4/evaluator2/reference6 required')
+            'separate immutable evaluator2/fitter3/original4/evaluator2/reference6 required')
     for item, names, expected in (
         (training, TRAIN_FILES, training['code']), (old_evaluator, EVALUATOR_PINS, EVALUATOR_PINS),
         (ORIGINAL_REFERENCE, ORIGINAL_PINS, ORIGINAL_PINS), (EVALUATION_REFERENCE, REFERENCE_PINS, REFERENCE_PINS)):
@@ -552,11 +543,7 @@ def authority(args):
                 'complete actual pinned source closure differs')
     fitter = load_bare('_prototype_evaluation_fitter', Path(training['root']) / 'fit_siglip2_prototype_residual.py',
                        training['code']['fit_siglip2_prototype_residual.py'])
-    require(fitter.FILES == TRAIN_FILES and fitter.SCHEMA == 'siglip2-prototype-residual-ridge-v1' and
-            fitter.ARMS == ARMS and fitter.ORIGINAL_REFERENCE == ORIGINAL_REFERENCE and
-            fitter.ORIGINAL_CODE == ORIGINAL_PINS and fitter.PARTITION_SHA == PARTITION_SHA and
-            fitter.RECIPE['intercept'] is False and fitter.RECIPE['fit_passes'] == 2,
-            'new deterministic prototype fitter profile differs')
+    check_fitter(fitter)
     baseline = load_bare('_prototype_original_evaluator', Path(old_evaluator['root']) / 'evaluate_siglip2_quadratic_readout.py',
                          EVALUATOR_PINS['evaluate_siglip2_quadratic_readout.py'])
     require(baseline.REFERENCE_PINS == REFERENCE_PINS and baseline.SOURCE_INVENTORY == SOURCE_INVENTORY and
@@ -577,7 +564,6 @@ def authority(args):
             partition['original_cache']['sha256'] == FIT_SHA, 'original partition/direct-FIT cache differs')
     bound_file(fitting['guards'], partition['original_cache']['path'], FIT_SHA)
     new_cpu = fitting['terminals']['cpu:linear']
-    fit_terminal = fit_terminal_adapter(fitter, fitting)
     source_selection = source_selection_adapter(baseline, fitting)
     records, branches = {}, []
     for endpoint in spec['endpoints']:
@@ -596,7 +582,7 @@ def authority(args):
                   'terminal_cgroups': dict(selected['terminal_cgroups'])}
         branch = {**fitting, 'legacy': legacy, 'guards': dict(fitting['guards']),
                   'terminals': dict(fitting['terminals']), 'terminal_cgroups': dict(fitting['terminal_cgroups'])}
-        accepted = fit_terminal(branch, endpoint['terminal'], 'fit', endpoint['arm'])
+        accepted = fitter.admit_terminal(branch, endpoint['terminal'], 'fit', endpoint['arm'])
         # Complete payload hashes include preserved CPU RNG from independent units.
         require(accepted == record and all(record[k] == new_cpu['arms'][endpoint['arm']][k] for k in
                 ('identity', 'fit_witness', 'output_witness_sha256')),
@@ -608,7 +594,7 @@ def authority(args):
         bound_file(branch['guards'], endpoint['checkpoint']['path'], endpoint['checkpoint']['sha256'])
         records[endpoint['arm']] = {**record, 'service_seconds': endpoint['terminal']['service_seconds']}
         branches.append(branch)
-    require(all(records['linear']['identity'][k] == records['quadratic']['identity'][k] for k in
+    require(all(records['linear']['identity'][k] == records['concat']['identity'][k] for k in
                 ('source', 'method', 'device', 'native_inventory', 'numerical_flags',
                  'warm_payload_sha256', 'frozen_sha256', 'zero_source_sha256')),
             'matched complete frozen TRAIN/source inputs differ')
@@ -763,6 +749,84 @@ def qualify_heads(context):
     return {'head_facts': facts, 'train_witnesses': witnesses}
 
 
+def paired_intervals(fixed, pair, product_groups):
+    """Eight unchanged pinned calls; each resets the same 5000 draws/179019 seed."""
+    import numpy as np
+    intervals = {}
+    for metric in METRICS:
+        delta = np.asarray(pair[metric]); intervals[metric] = {'mean_delta': float(delta.mean())}
+        for kind, groups in (('product', np.asarray(product_groups)), ('query', np.arange(len(delta)))):
+            intervals[metric][kind + '_lower95'] = fixed.bootstrap_lower(delta, groups)
+            intervals[metric][kind + '_upper95'] = -fixed.bootstrap_lower(-delta, groups)
+    return intervals
+
+
+def json_digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
+def synthetic_inputs(panel):
+    """Only frozen cardinalities, never panel labels, source metrics or held values."""
+    count, products = PANELS[panel][1], PANELS[panel][3]
+    r1 = [(2 + i % 3) / 8 for i in range(count)]
+    return {'per_query_r1': r1, 'per_query_ap': [v / 2 for v in r1]}, [i % products for i in range(count)]
+
+
+def check_synthetic_bootstrap(record):
+    require(record.keys() == {'schema', 'seed', 'draws', 'calls', 'seconds', 'panels', 'sha256'} and
+            record['schema'] == 'siglip2-prototype-residual-synthetic-bootstrap-v1' and
+            record['seed'] == 179019 and record['draws'] == 5000 and record['calls'] == 16 and
+            record['panels'].keys() == PANELS.keys() and
+            record['sha256'] == json_digest({k: v for k, v in record.items() if k != 'sha256'}),
+            'complete synthetic survivor bootstrap receipt/digest required')
+    times = [record['seconds']]
+    for panel, proof in record['panels'].items():
+        pair, groups = synthetic_inputs(panel)
+        require(proof.keys() == {'query_images', 'products', 'calls', 'seconds', 'inputs_sha256',
+                                 'paired_intervals', 'shared_draws_exact'} and
+                proof['query_images'] == PANELS[panel][1] and proof['products'] == PANELS[panel][3] and
+                proof['calls'] == 8 and proof['shared_draws_exact'] is True and
+                proof['inputs_sha256'] == json_digest({'deltas': pair, 'product_groups': groups}) and
+                proof['paired_intervals'].keys() == set(METRICS), 'synthetic panel inputs/calls differ')
+        intervals = proof['paired_intervals']
+        for metric in METRICS:
+            fields = intervals[metric]
+            require(fields.keys() == {'mean_delta', 'product_lower95', 'product_upper95',
+                                      'query_lower95', 'query_upper95'} and
+                    all(type(v) in (int, float) and math.isfinite(v) and
+                        min(pair[metric]) <= v <= max(pair[metric]) for v in fields.values()) and
+                    fields['mean_delta'] == statistics.mean(pair[metric]) and
+                    all(fields[k + '_lower95'] < fields[k + '_upper95'] for k in ('product', 'query')),
+                    'synthetic exact mean/finite ordered interval invariants differ')
+        require(all(intervals['per_query_ap'][k] == v / 2 for k, v in intervals['per_query_r1'].items()),
+                'synthetic shared draws exact scaling differs')
+        times.append(proof['seconds'])
+    require(all(type(t) in (int, float) and math.isfinite(t) and 0 < t < policy('cpu')['seconds'] for t in times) and
+            sum(times[1:]) <= times[0], 'real bounded synthetic bootstrap timings required')
+
+
+def qualify_bootstrap(context):
+    """Native CPU300 survivor work on synthetic groups only, for both frozen panels."""
+    started = time.perf_counter()
+    fixed = context['baseline'].scoring_math(context)  # Authenticates unchanged source and bootstrap AST.
+    panels = {}
+    for panel in PANELS:
+        pair, groups = synthetic_inputs(panel)
+        panel_started = time.perf_counter()
+        intervals = paired_intervals(fixed, pair, groups)
+        panels[panel] = {'query_images': PANELS[panel][1], 'products': PANELS[panel][3], 'calls': 8,
+            'seconds': time.perf_counter() - panel_started,
+            'inputs_sha256': json_digest({'deltas': pair, 'product_groups': groups}),
+            'paired_intervals': intervals,
+            'shared_draws_exact': all(intervals['per_query_ap'][k] == v / 2
+                                      for k, v in intervals['per_query_r1'].items())}
+    proof = {'schema': 'siglip2-prototype-residual-synthetic-bootstrap-v1', 'seed': 179019,
+             'draws': 5000, 'calls': 16, 'seconds': time.perf_counter() - started, 'panels': panels}
+    proof['sha256'] = json_digest(proof)
+    check_synthetic_bootstrap(proof)
+    return proof
+
+
 def check_receipt(context, record, phase):
     spec, prior = context['spec'], context['selected']['selected']['source_cpu']
     require(all(record[k] == v for k, v in bind(context).items()) and record['schema'] == SCHEMA and
@@ -777,6 +841,7 @@ def check_receipt(context, record, phase):
             record['peak_cuda_allocated_bytes'] == 0 and
             record['certificate'] == 'updated cached readout composed with qualified immutable encoder',
             'accepted new evaluator integrity/resource/scope differs')
+    check_synthetic_bootstrap(record['synthetic_bootstrap'])
     invocation = record['invocation']
     require(record['numerical_flags'] == prior['numerical_flags'] and invocation['argv'] ==
             cli_argv(Path(record['authority']['path']), record['authority']['sha256'], record['execution_sha256'],
@@ -869,7 +934,8 @@ def accept_selection(context, terminal):
     cpu_terminal = read_json(accepted['prerequisite'], context['guards'])
     require(cpu_terminal == accepted['cpu_terminal'], 'original selection CPU terminal differs')
     cpu = accept_terminal(previous, cpu_terminal, 'cpu')
-    require(all(cpu[k] == accepted[k] for k in ('head_facts', 'train_witnesses')), 'selection CPU witnesses differ')
+    require(all(cpu[k] == accepted[k] for k in ('head_facts', 'train_witnesses', 'synthetic_bootstrap')),
+            'selection CPU witnesses differ')
     return accepted
 
 
@@ -992,15 +1058,9 @@ def score_panel(context, cpu):
         quality[arm] = first
         del values, second
         gc.collect()
-    pair = metric_deltas(quality, source_quality, spec['panel'])['quadratic_minus_linear']
-    intervals = {}
+    pair = metric_deltas(quality, source_quality, spec['panel'])['concat_minus_linear']
     immediate = immediate_quality_pass(quality, source_quality, spec['panel'])
-    for metric in METRICS if immediate else ():
-        delta = np.asarray(pair[metric]); intervals[metric] = {'mean_delta': float(delta.mean())}
-        for kind, groups in (('product', np.asarray(labels)[panel['query']]), ('query', np.arange(len(panel['query'])))):
-            # The pinned helper resets 179019 per call: identical 5000 draws for both metrics/signs.
-            intervals[metric][kind + '_lower95'] = fixed.bootstrap_lower(delta, groups)
-            intervals[metric][kind + '_upper95'] = -fixed.bootstrap_lower(-delta, groups)
+    intervals = paired_intervals(fixed, pair, np.asarray(labels)[panel['query']]) if immediate else {}
     decision = decide(quality, source_quality, spec['panel'], intervals, context['costs'])
     return {**decision, 'head_facts': facts, 'train_witnesses': witnesses,
             'quality': quality, 'source_quality': source_quality, 'source_quality_panel': spec['panel'],
@@ -1026,6 +1086,7 @@ def score_panel(context, cpu):
 
 def exit_rehash(context):
     """Use the unchanged complete source exit, with the new guard union included."""
+    context['fitter'].prepare_readout(context['fitting'])
     merge_guards(context['guards'], context['fitting']['guards'])
     merge_guards(context['guards'], context['fitting']['legacy']['guards'])
     context['trainer'].require_no_model(context['selected'])
@@ -1066,6 +1127,8 @@ def run(args):
             facts = qualify_heads(context)
         if cpu is not None:
             require(all(facts[k] == cpu[k] for k in facts), 'accepted evaluator CPU witnesses differ')
+        # Bootstrap is qualified once in CPU300. Variable timing never enters head comparisons.
+        result['synthetic_bootstrap'] = qualify_bootstrap(context) if args.phase == 'cpu' else cpu['synthetic_bootstrap']
         require(torch.equal(rng, torch.random.get_rng_state()) and source.numerical_flags() == flags and
                 not torch.cuda.is_initialized(), 'whole-unit RNG/flags/CUDA differs')
         print(json.dumps({'progress': 'exit_rehash_start', 'seconds': time.perf_counter() - UNIT_STARTED}), flush=True)

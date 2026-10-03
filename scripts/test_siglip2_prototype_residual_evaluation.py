@@ -66,10 +66,18 @@ def quality(r1, ap):
 
 
 def check(d):
+    assert d.SCHEMA == 'siglip2-prototype-residual-evaluation-v2'
+    assert d.AUTHORITY_SCHEMA == 'siglip2-prototype-residual-evaluation-authority-v2'
+    assert d.ARMS == ('linear', 'concat')
+    assert d.TRAIN_FILES == {'fit_siglip2_prototype_residual.py', 'test_siglip2_prototype_residual.py',
+                             'prototype_residual_readout.py'}
     args = SimpleNamespace(execution_sha256='d' * 64)
     for panel in ('selection', 'validation'):
         spec = fixture(d, panel); d.check_spec(spec, args)
         for mutation in (
+            lambda s: s.update(schema='siglip2-prototype-residual-evaluation-authority-v1'),
+            lambda s: s['training']['code'].pop('prototype_residual_readout.py'),
+            lambda s: s['endpoints'][1].update(arm='quadratic'),
             lambda s: s.update(seed=179069), lambda s: s.update(stage='full'),
             lambda s: s.update(both_locks_held=False), lambda s: s.update(validation_previously_exposed=True),
             lambda s: s['training']['code'].update(extra='f' * 64),
@@ -92,30 +100,30 @@ def check(d):
     count = 1734
     source = quality([1.] * (count - 10) + [0.] * 10, [.8] * count)
     linear = quality([1.] * (count - 20) + [0.] * 20, [.79] * count)
-    quadratic = copy.deepcopy(source)
-    arms = {'linear': linear, 'quadratic': quadratic}
+    concat = copy.deepcopy(source)
+    arms = {'linear': linear, 'concat': concat}
     deltas = d.metric_deltas(arms, source, 'selection')
-    intervals = {m: {'mean_delta': sum(deltas['quadratic_minus_linear'][m]) / count,
+    intervals = {m: {'mean_delta': sum(deltas['concat_minus_linear'][m]) / count,
                      'product_lower95': .001, 'product_upper95': .1,
                      'query_lower95': .001, 'query_upper95': .1} for m in d.METRICS}
     costs = {'linear': {'service_seconds': 10., 'total_fit_core_seconds': 4.},
-             'quadratic': {'service_seconds': 15., 'total_fit_core_seconds': 6.}}
+             'concat': {'service_seconds': 15., 'total_fit_core_seconds': 6.}}
     cost = d.paired_cost(costs)
     result = d.decide(arms, source, 'selection', intervals, cost)
     assert result['decision'] == 'GO' and result['selection_go_admits_validation_only']
-    assert not result['global_production_goal_met'] and not result['quadratic_source_gain_both']
-    assert set(result['deltas']) == {'quadratic_minus_linear', 'quadratic_minus_source', 'linear_minus_source'}
-    assert all(x == 0 for x in result['deltas']['quadratic_minus_source']['per_query_r1'])
+    assert not result['global_production_goal_met'] and not result['concat_source_gain_both']
+    assert set(result['deltas']) == {'concat_minus_linear', 'concat_minus_source', 'linear_minus_source'}
+    assert all(x == 0 for x in result['deltas']['concat_minus_source']['per_query_r1'])
     assert d.immediate_quality_pass(arms, source, 'selection')
     rejects(lambda: d.replay_equal(source, dict(source, map_at_r=.8000000001)))
     changed = copy.deepcopy(source); changed['per_query_ap'][0] += 1e-12
     rejects(lambda: d.replay_equal(source, changed))
-    for changed in (dict(arms, quadratic=linear), dict(arms, quadratic=quality(source['per_query_r1'], [.78] * count))):
+    for changed in (dict(arms, concat=linear), dict(arms, concat=quality(source['per_query_r1'], [.78] * count))):
         assert not d.immediate_quality_pass(changed, source, 'selection')
         assert d.decide(changed, source, 'selection', {}, cost)['decision'] == 'KILL'
-    # Beating a degraded linear arm is insufficient when quadratic is below source.
+    # Beating a degraded linear arm is insufficient when concat is below source.
     below_source = {'linear': quality(linear['per_query_r1'], [.78] * count),
-                    'quadratic': quality(source['per_query_r1'], [.79] * count)}
+                    'concat': quality(source['per_query_r1'], [.79] * count)}
     assert not d.immediate_quality_pass(below_source, source, 'selection')
     assert not d.decide(below_source, source, 'selection', {}, cost)['source_floor_pass']
     bad_ci = copy.deepcopy(intervals); bad_ci['per_query_ap']['product_lower95'] = 0
@@ -123,19 +131,19 @@ def check(d):
     bad_ci = copy.deepcopy(intervals); bad_ci['per_query_ap']['mean_delta'] = .02
     rejects(lambda: d.decide(arms, source, 'selection', bad_ci, cost))
     for key in ('service_seconds', 'total_fit_core_seconds'):
-        bad = copy.deepcopy(costs); bad['quadratic'][key] *= 1.000001
+        bad = copy.deepcopy(costs); bad['concat'][key] *= 1.000001
         assert not d.paired_cost(bad)['pass']
         assert d.decide(arms, source, 'selection', intervals, d.paired_cost(bad))['decision'] == 'KILL'
         bad['linear'][key] = 0; rejects(lambda: d.paired_cost(bad))
     assert d.policy('cpu') == d.policy('score') == {
         'seconds': 300, 'host_bytes': 8 * 1024**3, 'swap_bytes': 0, 'cuda_visible_devices': ''}
-    threshold = {'linear': quality([1.] * (count - 13) + [0.] * 13, [.79] * count), 'quadratic': quadratic}
-    tiny = d.metric_deltas(threshold, source, 'selection')['quadratic_minus_linear']
+    threshold = {'linear': quality([1.] * (count - 13) + [0.] * 13, [.79] * count), 'concat': concat}
+    tiny = d.metric_deltas(threshold, source, 'selection')['concat_minus_linear']
     tiny_ci = {m: dict(intervals[m], mean_delta=sum(tiny[m]) / count) for m in d.METRICS}
     assert d.decide(threshold, source, 'selection', tiny_ci, cost)['decision'] == 'KILL'
     for bad in (dict(source, per_query_ap=source['per_query_ap'][:-1]),
                 dict(source, per_query_r1=[True] * count), dict(source, map_at_r=float('nan'))):
-        rejects(lambda: d.metric_deltas(dict(arms, quadratic=bad), source, 'selection'))
+        rejects(lambda: d.metric_deltas(dict(arms, concat=bad), source, 'selection'))
 
     with TemporaryDirectory() as temporary:
         path = Path(temporary) / 'bytes'; path.write_bytes(b'original')
@@ -155,11 +163,6 @@ def check(d):
 def encoder_retention_check(d, source):
     """Catch a missing/extra/writable/partial retention or leaked mmap on rejection."""
     functions = [n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef)]
-    unchanged = [n for n in functions if n.name not in {'native_start', 'run', 'retain_encoder'}]
-    assert hashlib.sha256('\n'.join(ast.get_source_segment(source, n) for n in unchanged).encode()).hexdigest() == (
-        'c7af7fd6a10ed8b4551f07dcdc7f2affe676c10c696c2ebac4f0dec6f768f265')
-    assert hashlib.sha256('\n'.join(ast.dump(n, include_attributes=False) for n in unchanged).encode()).hexdigest() == (
-        '2093ca87ebb50e7432ff47825171e37cf67b6c01723e165d7cb0e642dca218e7')
     assert hasattr(d, 'retain_encoder'), 'missing owned encoder page retention'
     assert d.ENCODER_CHECKPOINT_BYTES == 1711945083 and d.ENCODER_RETENTION_MAX_BYTES == 2 * 1024**3
     native = copy.deepcopy(next(n for n in functions if n.name == 'native_start'))
@@ -167,15 +170,6 @@ def encoder_retention_check(d, source):
                    isinstance(n.value.func, ast.Name) and n.value.func.id == 'retain_encoder')]
     assert hashlib.sha256(ast.dump(native, include_attributes=False).encode()).hexdigest() == (
         'ff3daccc97a9294e0f9b5aa89232c335851636c92c9ee7459b97381d398dda06')
-    original_run = copy.deepcopy(next(n for n in functions if n.name == 'run'))
-    guard = next(n for n in original_run.body if isinstance(n, ast.Try))
-    original_run.body[original_run.body.index(guard):original_run.body.index(guard) + 1] = guard.body
-    receipt = next(n.value for n in guard.body if isinstance(n, ast.Assign) and
-                   isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'receipt')
-    index = next(i for i, key in enumerate(receipt.keys) if isinstance(key, ast.Constant) and key.value == 'encoder_retention')
-    del receipt.keys[index], receipt.values[index]
-    assert hashlib.sha256(ast.dump(original_run, include_attributes=False).encode()).hexdigest() == (
-        '2a0c92dbf7ca4c05187a5fe118465b9746f4b79c9324797fb7a4144f57c35b38')
     page = os.sysconf('SC_PAGESIZE'); size = 2 * page + 1
     with TemporaryDirectory() as temporary:
         path = Path(temporary) / 'fresh_vision.pt'; path.write_bytes(b'a' * size)
@@ -296,7 +290,7 @@ def encoder_retention_check(d, source):
         guarded.body = [n for n in guarded.body if not isinstance(n, (ast.Import, ast.ImportFrom))]
         args = SimpleNamespace(prerequisite=None, authority=path, authority_sha256=fact['sha256'],
             execution_sha256='f' * 64, phase='cpu', output=path.parent / 'output')
-        for failure in (None, 'native', 'heads', 'exit', 'resources', 'receipt', 'publish', 'cap'):
+        for failure in (None, 'native', 'heads', 'bootstrap', 'exit', 'resources', 'receipt', 'publish', 'cap'):
             mapping_count = len(mappings)
             c = context(); args.output = path.parent / ('output-' + str(failure))
             c.update(costs={'pass': True}, cpu_terminal=None,
@@ -316,7 +310,8 @@ def encoder_retention_check(d, source):
             c['resources'] = observe('resources', {})
             c['helper'] = SimpleNamespace(publish=observe('publish'))
             run_namespace = {**vars(d), 'authority': lambda value: c, 'prerequisites': lambda value: None,
-                'native_start': start, 'qualify_heads': observe('heads', {}), 'exit_rehash': observe('exit', {}),
+                'native_start': start, 'qualify_heads': observe('heads', {}),
+                'qualify_bootstrap': observe('bootstrap', {}), 'exit_rehash': observe('exit', {}),
                 'bind': lambda value: {}, 'check_receipt': observe('receipt'), 'preparation_costs': lambda value: {},
                 'torch': SimpleNamespace(random=SimpleNamespace(get_rng_state=lambda: SimpleNamespace(clone=lambda: 0)),
                     equal=lambda *values: True, cuda=SimpleNamespace(is_initialized=lambda: False)),
@@ -330,7 +325,7 @@ def encoder_retention_check(d, source):
             if failure is None:
                 record = run_namespace['run'](args)
                 assert record['encoder_retention'] == c['encoder_retention']
-                assert events == ['native', 'heads', 'exit', 'resources', 'receipt', 'publish', 'close']
+                assert events == ['native', 'heads', 'bootstrap', 'exit', 'resources', 'receipt', 'publish', 'close']
             else:
                 rejects(lambda: run_namespace['run'](args))
                 assert events[-1] == 'close'
@@ -344,7 +339,9 @@ def closure_check(d):
     with TemporaryDirectory() as temporary:
         root = Path(temporary).resolve()
         code = {}
-        for name, raw in (('first.py', b'first source'), ('second.py', b'second source')):
+        for name, raw in (('fit_siglip2_prototype_residual.py', b'fit source'),
+                          ('test_siglip2_prototype_residual.py', b'test source'),
+                          ('prototype_residual_readout.py', b'helper source')):
             (root / name).write_bytes(raw)
             code[name] = hashlib.sha256(raw).hexdigest()
         manifest = root / 'execution.json'
@@ -355,20 +352,119 @@ def closure_check(d):
             return hashlib.sha256(raw).hexdigest()
 
         digest = write_manifest(code)
+        assert code.keys() == d.TRAIN_FILES
         for names in (code, set(code), code.keys()):
             guards = {}
             assert d.closure(root, digest, names, guards) == code
             assert guards == {str(manifest): digest, **{str(root / k): v for k, v in code.items()}}
         rejects(lambda: d.closure(root, '0' * 64, code, {}), 'file SHA256')
-        for changed in ({'first.py': code['first.py']}, dict(code, extra='0' * 64)):
+        for changed in ({'prototype_residual_readout.py': code['prototype_residual_readout.py']}, dict(code, extra='0' * 64)):
             changed_digest = write_manifest(changed)
             rejects(lambda: d.closure(root, changed_digest, code, {}), 'exact execution closure')
-        changed_digest = write_manifest(dict(code, **{'first.py': '0' * 64}))
+        changed_digest = write_manifest(dict(code, **{'prototype_residual_readout.py': '0' * 64}))
         rejects(lambda: d.closure(root, changed_digest, code, {}), 'file SHA256')
         digest = write_manifest(code)
-        (root / 'first.py').write_bytes(b'changed source')
+        (root / 'prototype_residual_readout.py').write_bytes(b'changed source')
         rejects(lambda: d.closure(root, digest, code, {}), 'file SHA256')
     assert not any(name.split('.')[0] in d.NATIVE for name in sys.modules)
+
+
+def v2_fitter_check(d):
+    """A v1 module/payload profile cannot become a new endpoint by relabelling its arm."""
+    values = dict(FILES=set(d.TRAIN_FILES), SCHEMA='siglip2-prototype-residual-ridge-v2',
+        AUTHORITY_SCHEMA='siglip2-prototype-residual-launch-v2', ARMS=d.ARMS,
+        ORIGINAL_REFERENCE=d.ORIGINAL_REFERENCE, ORIGINAL_CODE=d.ORIGINAL_PINS, PARTITION_SHA=d.PARTITION_SHA,
+        RECIPE={'feature_width': {'linear': 32, 'concat': 160},
+                'basis': {'linear': 'Z32', 'concat': '[Z32,H0raw128]'}, 'intercept': False, 'fit_passes': 2})
+    d.check_fitter(SimpleNamespace(**values))
+    for mutation in (
+        lambda v: v.update(SCHEMA='siglip2-prototype-residual-ridge-v1'),
+        lambda v: v.update(AUTHORITY_SCHEMA='siglip2-prototype-residual-launch-v1'),
+        lambda v: v['FILES'].remove('prototype_residual_readout.py'),
+        lambda v: v['FILES'].add('unbound.py'),
+        lambda v: v.update(ARMS=('linear', 'quadratic')),
+        lambda v: v['RECIPE']['feature_width'].update(concat=32),
+        lambda v: v['RECIPE']['basis'].update(concat='[H0raw128,Z32]'),
+        lambda v: v['RECIPE'].update(intercept=True),
+    ):
+        changed = copy.deepcopy(values); mutation(changed)
+        rejects(lambda: d.check_fitter(SimpleNamespace(**changed)), 'prototype fitter profile')
+
+
+def synthetic_bootstrap_check(d, source):
+    """Exercise real dispatch/receipt predicates with stdlib arrays, never native evidence."""
+    calls = []
+
+    class Array(list):
+        def mean(self):
+            return sum(self) / len(self)
+
+        def __neg__(self):
+            return Array(-v for v in self)
+
+    def lower(delta, groups):
+        calls.append((tuple(delta), tuple(groups)))
+        return delta.mean() - (max(delta) - min(delta)) / 8
+
+    node = copy.deepcopy(next(n for n in ast.parse(source).body
+                             if isinstance(n, ast.FunctionDef) and n.name == 'paired_intervals'))
+    node.body = [n for n in node.body if not isinstance(n, ast.Import)]
+    namespace = {**vars(d), 'np': SimpleNamespace(asarray=Array, arange=lambda count: Array(range(count)))}
+    exec(compile(ast.Module(body=[node], type_ignores=[]), '<stdlib interval call schedule>', 'exec'), namespace)
+    ticks = iter(range(100))
+    qualified = FunctionType(d.qualify_bootstrap.__code__, {**vars(d),
+        'paired_intervals': namespace['paired_intervals'], 'time': SimpleNamespace(perf_counter=lambda: next(ticks))})
+    # No cache/labels/source_record/partition in context: CPU cannot consult held data.
+    context = {'baseline': SimpleNamespace(scoring_math=lambda context: SimpleNamespace(bootstrap_lower=lower))}
+    proof = qualified(context)
+    d.check_synthetic_bootstrap(proof)
+    assert proof['calls'] == len(calls) == 16 and proof['seconds'] == 5
+    assert proof['sha256'] == d.json_digest({k: v for k, v in proof.items() if k != 'sha256'})
+    for offset, panel in ((0, 'selection'), (8, 'validation')):
+        count, products = d.PANELS[panel][1], d.PANELS[panel][3]
+        pair, groups = d.synthetic_inputs(panel)
+        assert len(groups) == count and len(set(groups)) == products == 498
+        assert proof['panels'][panel]['seconds'] == 1
+        assert proof['panels'][panel]['inputs_sha256'] == d.json_digest({'deltas': pair, 'product_groups': groups})
+        for metric_index, metric in enumerate(d.METRICS):
+            for kind_index, expected_groups in enumerate((groups, list(range(count)))):
+                index = offset + 4 * metric_index + 2 * kind_index
+                assert calls[index] == (tuple(pair[metric]), tuple(expected_groups))
+                assert calls[index + 1] == (tuple(-v for v in pair[metric]), tuple(expected_groups))
+        fields = proof['panels'][panel]['paired_intervals']
+        assert all(fields['per_query_ap'][k] == v / 2 for k, v in fields['per_query_r1'].items())
+    for mutation in (
+        lambda v: v.update(schema='wrong'), lambda v: v.update(seed=179020),
+        lambda v: v.update(draws=4999), lambda v: v.update(calls=8),
+        lambda v: v.update(seconds=300), lambda v: v.update(seconds=0),
+        lambda v: v.update(seconds=True), lambda v: v['panels'].pop('validation'),
+        lambda v: v['panels']['selection'].update(query_images=1749),
+        lambda v: v['panels']['selection'].update(products=497),
+        lambda v: v['panels']['selection'].update(inputs_sha256='0' * 64),
+        lambda v: v['panels']['selection'].update(shared_draws_exact=False),
+        lambda v: v['panels']['selection']['paired_intervals']['per_query_ap'].update(product_lower95=.16),
+        lambda v: v['panels']['validation']['paired_intervals']['per_query_r1'].update(query_upper95=.25),
+        lambda v: v['panels']['validation']['paired_intervals']['per_query_ap'].update(mean_delta=.19),
+    ):
+        changed = copy.deepcopy(proof); mutation(changed)
+        changed['sha256'] = d.json_digest({k: v for k, v in changed.items() if k != 'sha256'})
+        rejects(lambda: d.check_synthetic_bootstrap(changed))
+    changed = copy.deepcopy(proof); changed['panels']['selection']['seconds'] += .5
+    rejects(lambda: d.check_synthetic_bootstrap(changed), 'digest')
+    # Timing is part of the proof but never rerun or compared as a fresh head fact on score.
+    functions = {n.name: n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef)}
+    run = ast.get_source_segment(source, functions['run'])
+    assert "result['synthetic_bootstrap'] = qualify_bootstrap(context) if args.phase == 'cpu' else cpu['synthetic_bootstrap']" in run
+    assert 'synthetic_bootstrap' not in ast.get_source_segment(source, functions['qualify_heads'])
+    assert "check_synthetic_bootstrap(record['synthetic_bootstrap'])" in ast.get_source_segment(source, functions['check_receipt'])
+    # The real native helper remains the pinned implementation, including seed/draw resets.
+    bootstrap_source = Path(__file__).with_name('score_inshop_crop_view_pair.py').read_text()
+    bootstrap = next(n for n in ast.parse(bootstrap_source).body
+                     if isinstance(n, ast.FunctionDef) and n.name == 'bootstrap_lower')
+    assert hashlib.sha256(ast.dump(ast.Module(body=[bootstrap], type_ignores=[]),
+                                  include_attributes=False).encode()).hexdigest() == (
+        '76971d1089c8494e16450d56057a5b2fa2c71e40cf360d4ede0562fc53d9c720')
+    assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
 
 
 def rng_binding_check(d, source):
@@ -450,15 +546,16 @@ def flow_check(d, source):
     authority = ast.get_source_segment(source, functions['authority'])
     assert 'source_selection_adapter(baseline, fitting)' in authority and 'source_selection(context)' in authority, (
         'full authenticated original source admission is mandatory')
-    assert 'fit_terminal_adapter(fitter, fitting)' in authority and (
-        "fit_terminal(branch, endpoint['terminal'], 'fit', endpoint['arm'])" in authority), 'fit adapter required'
-    assert authority.index('fitter.authority(') < authority.index('fit_terminal_adapter(')
+    assert "fitter.admit_terminal(branch, endpoint['terminal'], 'fit', endpoint['arm'])" in authority
+    assert authority.index('check_fitter(fitter)') < authority.index('fitter.authority(') < authority.index('fitter.admit_terminal(')
     assert "for endpoint in spec['endpoints']:" in authority
     accept = ast.get_source_segment(source, functions['accept_terminal'])
     assert "context['terminal_reader'](context['admission'], record, terminal" in accept, (
         'fresh prerequisite/validation terminals use the authenticated original reader')
-    assert not any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == 'admit_terminal'
-                   for n in ast.walk(tree)), 'evaluator-owned terminals must not bypass the adapter'
+    calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and
+             isinstance(n.func, ast.Attribute) and n.func.attr == 'admit_terminal']
+    assert len(calls) == 1 and isinstance(calls[0].func.value, ast.Name) and calls[0].func.value.id == 'fitter', (
+        'only fully authenticated v2 fitter terminals delegate directly; original readers keep their adapters')
     fitter_source = Path(__file__).with_name('fit_siglip2_prototype_residual.py').read_text()
     fitter_tree = ast.parse(fitter_source)
     fitter_authority = next(n for n in fitter_tree.body if isinstance(n, ast.FunctionDef) and n.name == 'authority')
@@ -469,7 +566,13 @@ def flow_check(d, source):
     assert panel.index('baseline.replay_archived_source') < panel.index('baseline.cache_rows') < panel.index('load_head(')
     assert panel.index("context['selection_go']['decision']") < panel.index('baseline.cache_rows')
     assert 'score_saved_wires' in panel and 'replay_equal(first, score_saved_wires' in panel
-    assert 'fixed.bootstrap_lower(delta, groups)' in panel and '-fixed.bootstrap_lower(-delta, groups)' in panel
+    assert 'paired_intervals(fixed, pair,' in panel
+    intervals = ast.get_source_segment(source, functions['paired_intervals'])
+    assert 'fixed.bootstrap_lower(delta, groups)' in intervals and '-fixed.bootstrap_lower(-delta, groups)' in intervals
+    synthetic = ast.get_source_segment(source, functions['qualify_bootstrap'])
+    assert 'paired_intervals(fixed, pair,' in synthetic
+    assert all(forbidden not in synthetic for forbidden in ('source_record', 'cache_rows', 'packed_quality', 'replay_archived_source'))
+    assert "context['fitter'].prepare_readout(context['fitting'])" in ast.get_source_segment(source, functions['exit_rehash'])
     run = ast.get_source_segment(source, functions['run'])
     assert "args.phase == 'score' and context['costs']['pass']" in run
     assert run.index('authority(args)') < run.index('native_start(context)') < run.index('qualify_heads(context)')
@@ -655,8 +758,8 @@ def score_schedule_check(d, source):
         assert [e for e in events if e[0] == 'quality'] == [
             ('quality', 'source', 0), ('quality', 'source', -1),
             ('quality', 'linear', 1), ('quality', 'linear', 2), ('quality', 'linear', -1),
-            ('quality', 'quadratic', 3), ('quality', 'quadratic', 4), ('quality', 'quadratic', -1)]
-        assert counts == {'linear': 2, 'quadratic': 2} and not active
+            ('quality', 'concat', 3), ('quality', 'concat', 4), ('quality', 'concat', -1)]
+        assert counts == {'linear': 2, 'concat': 2} and not active
         assert result['files'].keys() == d.file_names() and result['decision'] == 'KILL'
         return result
 
@@ -700,21 +803,16 @@ def terminal_adapter_check(d):
 
     original = load('_ms_original_admission', 'train_siglip2_substrate_adaptation.py')
     initializer = load('_ms_original_initializer', 'initialize_siglip2_substrate_fit.py')
-    fitter = load('_ms_original_fitter', 'fit_siglip2_prototype_residual.py')
     baseline = load('_ms_original_baseline', 'evaluate_siglip2_quadratic_readout.py')
     admission = original.FlatAdmission()
     admission.init = initializer
-    original_methods = (original.FlatAdmission.admit_terminal, fitter.admit_terminal, baseline.admit_source_selection)
+    original_methods = (original.FlatAdmission.admit_terminal, baseline.admit_source_selection)
     with TemporaryDirectory() as temporary:
         root = Path(temporary)
         guards = {original.__file__: hashlib.sha256(Path(original.__file__).read_bytes()).hexdigest()}
-        context = {'legacy': {'original': original, 'admission': admission}, 'guards': guards,
-                   'code': {Path(fitter.__file__).name: hashlib.sha256(Path(fitter.__file__).read_bytes()).hexdigest()}}
-        adapted = d.fit_terminal_adapter(fitter, context)
+        context = {'legacy': {'original': original, 'admission': admission}, 'guards': guards}
         source_selection = d.source_selection_adapter(baseline, context)
         reader = source_selection.__globals__['_original_log_terminal']
-        fit_reader = adapted.__globals__['_original_log_terminal']
-        assert ast.dump(reader.__terminal_ast__) == ast.dump(fit_reader.__terminal_ast__)
         archive = Path(__file__).resolve().parents[1] / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
         for relative, unit_name, duration, log_sha, receipt_sha in (
             ('prototype-residual-ridge-v1/fit-linear-v1', 'sfora-so400-prototype-residual-fit-linear-v1',
@@ -731,7 +829,7 @@ def terminal_adapter_check(d):
                 native_peak_rss_kib=archived_record['process_peak_rss_kib'])
             expected = json.loads(next(line.removeprefix('FINAL_CGROUP ') for line in archived_log.read_text().splitlines()
                                        if line.startswith('FINAL_CGROUP ')))
-            for archived_reader in (fit_reader, reader):
+            for archived_reader in (reader,):
                 archived_admission = original.FlatAdmission(); archived_admission.init = initializer
                 rejects(lambda: archived_admission.admit_terminal(archived_record, proof, 300, {}), 'runtime format')
                 assert archived_reader(archived_admission, archived_record, proof, 300, {}) == expected
@@ -804,93 +902,6 @@ def terminal_adapter_check(d):
         rejects(lambda: reader(admission, record, desc, 300, {str(log): '0' * 64}), 'conflicting')
         bad = copy.deepcopy(record); bad['invocation']['optimize'] = 1
         rejects(lambda: reader(admission, bad, desc, 300, {}), 'invocation')
-        # Execute the complete original fitter admission, including final guard rehash.
-        old = load('_ms_original_quadratic', 'train_siglip2_quadratic_readout.py')
-        def write_json(path, value):
-            path.write_text(json.dumps(value))
-            return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
-
-        inventory = write_json(root / 'source-inventory.json', {})
-        rejects(lambda: source_selection({'guards': {}, 'selected': {},
-            'spec': {'source_selection': {'inventory': inventory}}}), 'exact archived source selection inventory')
-
-        cpu = terminal('new-cpu')
-        common = {'schema': fitter.AUTHORITY_SCHEMA, 'execution_sha256': 'a' * 64, 'phase': 'fit',
-            'original_reference': copy.deepcopy(fitter.ORIGINAL_REFERENCE),
-            'original_cpu': copy.deepcopy(fitter.ORIGINAL_CPU),
-            'ridge_solver': {'path': '/solver.py', 'sha256': fitter.SOLVER_SHA},
-            'warm_start': {}, 'partition': {'path': '/partition.json', 'sha256': fitter.PARTITION_SHA},
-            'recipe': copy.deepcopy(fitter.RECIPE), 'resource_policy': fitter.policy('fit'),
-            'both_locks_held': True, 'selected_cpu': cpu}
-        flags, source = {'synthetic': True}, {'synthetic_source': 'a' * 64}
-        qualified_python = {'python': '/synthetic/python', 'python_sha256': 'a' * 64, 'python_version': 'synthetic'}
-        for arm in d.ARMS:
-            out = root / arm; out.mkdir()
-            launch = dict(common, arm=arm)
-            authority = write_json(out / 'authority.json', launch)
-            checkpoint = out / 'resume.pt'; checkpoint.write_bytes(b'synthetic checkpoint')
-            checkpoint = {'path': str(checkpoint), 'sha256': hashlib.sha256(checkpoint.read_bytes()).hexdigest()}
-            desc = descriptor()
-            inventory = [{'name': str(i), 'shape': [1], 'dtype': 'torch.float32', 'role': 'frozen'} for i in range(448)]
-            ident = {'method': fitter.method(launch), 'source': source, 'arm': arm, 'device': 'cpu',
-                'native_inventory': inventory, 'numerical_flags': flags,
-                'warm_payload_sha256': 'b78bd945256438bfd24873347e26d62c970bf9d85048663301d4fe1236ac35a9',
-                **{k: 'a' * 64 for k in ('frozen_sha256', 'fitted_sha256', 'output_witness_sha256', 'zero_source_sha256')}}
-            witness = {'rows': 6355, 'classes': 1008, 'coefficients': 4096, 'arm': arm,
-                'feature_energy': 4., 'lambda': .0125, 'stationarity_numerator': 0.,
-                'stationarity_denominator': 3., 'normalized_stationarity': 0., 'A_nonzero': True,
-                'target': 'raw member-inclusive prototypes', 'intercept': False}
-            code = {name: hashlib.sha256(Path(fitter.__file__).with_name(name).read_bytes()).hexdigest()
-                    for name in fitter.FILES}
-            inputs = {**context['guards'], authority['path']: authority['sha256'], checkpoint['path']: checkpoint['sha256']}
-            fitted = {**copy.deepcopy(record), 'schema': fitter.SCHEMA, 'phase': 'fit', 'arm': arm,
-                'launch': launch, 'resource_policy': fitter.policy('fit'), 'partition_sha256': fitter.PARTITION_SHA,
-                'cuda_initialized': False, 'peak_cuda_allocated_bytes': 0, 'quality_read': False,
-                'public_encoder_qualified': False, 'fit_qualified': True,
-                **{k: True for k in ('pass', 'strict_reload_exact', 'exit_rehash_pass', 'frozen_complement_exact',
-                    'training_only_fit', 'zero_A_source_parity', 'bypass_version_tamper_rejected',
-                    'sequential_model_ownership', 'both_locks_held_in_parent_authority', 'independent_refit_exact')},
-                'authority_sha256': authority['sha256'], 'authority': authority, 'code': code, 'source': source,
-                'execution_sha256': launch['execution_sha256'], 'numerical_flags': flags, 'total_fit_core_seconds': 2.,
-                'fit_core_seconds': [1., 1.], 'fit_passes': 2, 'identity': ident, 'fit_witness': witness,
-                'output_witness_sha256': ident['output_witness_sha256'], 'terminal_state_sha256': 'a' * 64,
-                'checkpoint': checkpoint, 'output': str(out), 'input_guards': inputs}
-            fitted['invocation'].update(qualified_python, cuda_visible_devices='',
-                argv=fitter.cli(Path(fitter.__file__).parent, authority['path'], authority['sha256'],
-                                launch['execution_sha256'], 'fit', arm, out))
-            desc['receipt'] = write_json(out / 'receipt.json', fitted)
-            def branch():
-                return {**context, 'old': old, 'launch': launch, 'source': source, 'code': code,
-                    'args': SimpleNamespace(execution_sha256=launch['execution_sha256']),
-                    'root': Path(fitter.__file__).parent, 'guards': dict(context['guards']),
-                    'required_guards': dict(context['guards']), 'terminals': {}, 'terminal_cgroups': {},
-                    'legacy': {**context['legacy'], 'admission': admission, 'invocations': set(),
-                        'selected': {'source_cpu': {'numerical_flags': flags, 'invocation': qualified_python}}}}
-            rejects(lambda: fitter.admit_terminal(branch(), desc, 'fit', arm), 'runtime format')
-            b = branch()
-            assert adapted(b, desc, 'fit', arm) == fitted
-            assert b['terminals']['fit:' + arm] == fitted and b['terminal_cgroups']['fit:' + arm] == footer
-            rejects(lambda: adapted(b, desc, 'fit', arm), 'duplicate new unit invocation')
-            for key, value, message in (
-                ('source', {'changed': True}, 'source/fitted identity'),
-                ('code', dict(code, extra='0' * 64), 'closure terminal'),
-                ('quality_read', True, 'deterministic fit terminal'),
-                ('input_guards', {}, 'checkpoint binding'),
-                ('identity', dict(ident, fitted_sha256='bad'), 'source/fitted identity')):
-                bad = dict(fitted, **{key: value})
-                bad_desc = dict(desc, receipt=write_json(out / 'mutant.json', bad))
-                rejects(lambda: adapted(branch(), bad_desc, 'fit', arm), message)
-            bad = copy.deepcopy(fitted)
-            bad['input_guards'].pop(str(Path(original.__file__)))
-            rejects(lambda: adapted(branch(), dict(desc, receipt=write_json(out / 'mutant.json', bad)), 'fit', arm),
-                    'input guards')
-            bad = copy.deepcopy(fitted); bad['invocation']['argv'][-1] = '/changed'
-            rejects(lambda: adapted(branch(), dict(desc, receipt=write_json(out / 'mutant.json', bad)), 'fit', arm),
-                    'authority/source/CLI')
-            # Changing a bound input after receipt creation must still fail the original final rehash.
-            Path(checkpoint['path']).write_bytes(b'changed checkpoint')
-            rejects(lambda: adapted(branch(), desc, 'fit', arm), 'current file SHA256')
-
         # Reverse only the deliberate substitutions: every remaining AST node must match.
         def definition(path, owner=None, name='admit_terminal'):
             tree = ast.parse(Path(path).read_bytes())
@@ -903,7 +914,7 @@ def terminal_adapter_check(d):
                      isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'match')
         after.body[index:index + 1] = copy.deepcopy(before.body[index:index + 3])
         assert ast.dump(after, include_attributes=False) == ast.dump(before, include_attributes=False)
-        for module, adapter, name in ((fitter, adapted, 'admit_terminal'), (baseline, source_selection, 'admit_source_selection')):
+        for module, adapter, name in ((baseline, source_selection, 'admit_source_selection'),):
             before = definition(module.__file__, name=name)
             after = copy.deepcopy(adapter.__terminal_ast__)
             index = next(i for i, n in enumerate(before.body) if isinstance(n, ast.Assign) and
@@ -915,11 +926,8 @@ def terminal_adapter_check(d):
                 'every original predicate and terminal argument must remain intact')
         for name in ('read_json', 'require', 'SOURCE_INVENTORY', 'check_source_record', 'SOURCE_SCORE_TERMINAL', 'SOURCE_INVENTORY_SHA'):
             assert source_selection.__globals__[name] is getattr(baseline, name)
-        assert original_methods == (original.FlatAdmission.admit_terminal, fitter.admit_terminal, baseline.admit_source_selection)
+        assert original_methods == (original.FlatAdmission.admit_terminal, baseline.admit_source_selection)
         assert admission.admit_terminal.__func__ is original_methods[0]
-        changed = dict(context, code={Path(fitter.__file__).name: '0' * 64})
-        rejects(lambda: d.fit_terminal_adapter(fitter, changed), 'SHA256')
-        rejects(lambda: d.fit_terminal_adapter(fitter, dict(context, guards={})), 'original terminal source')
         rejects(lambda: d.source_selection_adapter(baseline, dict(context, guards={})), 'original terminal source')
         rejects(lambda: d.terminal_ast(baseline, d.EVALUATOR_PINS['evaluate_siglip2_quadratic_readout.py'],
             '0' * 64, {}, name='admit_source_selection'), 'body differs')
@@ -1014,20 +1022,34 @@ def resources_adapter_check(d):
     assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
 
 
-def fitter_check(path):
+def fitter_check(d, path):
     """Optional exact API check; reads only the sibling's new stdlib module."""
     spec = importlib.util.spec_from_file_location('_test_prototype_fitter_api', path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module; spec.loader.exec_module(module)
-    witness = {'rows': 6355, 'classes': 1008, 'coefficients': 4096, 'arm': 'linear',
-               'feature_energy': 10., 'lambda': .03125, 'stationarity_numerator': .00001,
+    d.check_fitter(module)
+    witness = {'rows': 6355, 'classes': 1008, 'coefficients': 4096, 'feature_width': 32, 'arm': 'linear',
+               'reference_energy': 10., 'reference_scale': .3125, 'lambda_bits': '0000003d',
+               'actual_solve_checked': True, 'feature_energy': 10., 'lambda': .03125, 'stationarity_numerator': .00001,
                'stationarity_denominator': 1., 'normalized_stationarity': .00001, 'A_nonzero': True,
                'target': 'raw member-inclusive prototypes', 'intercept': False}
     module.check_fit_witness(witness, 'linear')
+    module.check_fit_witness(dict(witness, arm='concat', feature_width=160, coefficients=20480), 'concat')
+    rejects(lambda: module.check_fit_witness(dict(witness, arm='concat'), 'concat'))
     rejects(lambda: module.check_fit_witness(dict(witness, intercept=True), 'linear'))
     rejects(lambda: module.check_fit_witness(dict(witness, normalized_stationarity=.000011), 'linear'))
     tree = ast.parse(path.read_text())
     functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
+    # Execute the actual typed payload boundary before any native tensor validation.
+    boundary = next(n for n in functions['check_payload'].body if isinstance(n, ast.Expr) and
+                    isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Name) and n.value.func.id == 'require')
+    reject_old = ast.parse('def reject_old(saved, ident, context):\n    pass').body[0]
+    reject_old.body = [copy.deepcopy(boundary)]
+    namespace = dict(vars(module))
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[reject_old], type_ignores=[])),
+                 '<actual typed payload boundary>', 'exec'), namespace)
+    v1 = dict.fromkeys(module.PAYLOAD_KEYS); v1['schema'] = 'siglip2-prototype-residual-ridge-v1'
+    rejects(lambda: namespace['reject_old'](v1, {}, {}), 'complete new typed payload')
     for name in ('prepare_native', 'reload', 'reconstruct'):
         assert not any(isinstance(node, ast.Call) and (
             isinstance(node.func, ast.Name) and node.func.id in {'fresh', 'fit_prototype_residual', 'extract_solver'} or
@@ -1044,6 +1066,8 @@ def main():
     spec = importlib.util.spec_from_file_location('_test_prototype_evaluator', path)
     d = importlib.util.module_from_spec(spec); spec.loader.exec_module(d)
     check(d)
+    v2_fitter_check(d)
+    synthetic_bootstrap_check(d, path.read_text())
     encoder_retention_check(d, path.read_text())
     closure_check(d)
     resources_adapter_check(d)
@@ -1052,7 +1076,7 @@ def main():
     flow_check(d, path.read_text())
     score_schedule_check(d, path.read_text())
     if args.fitter_root is not None:
-        fitter_check(args.fitter_root / 'fit_siglip2_prototype_residual.py')
+        fitter_check(d, args.fitter_root / 'fit_siglip2_prototype_residual.py')
     for name in (path, Path(__file__)):
         ast.parse(name.read_text())
         for option in ('-O', '-OO'):
