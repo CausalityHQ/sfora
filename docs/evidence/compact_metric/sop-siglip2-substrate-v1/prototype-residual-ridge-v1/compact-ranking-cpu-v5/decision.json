@@ -1,0 +1,49 @@
+{
+  "verdict": "PASS_ENGINEERING_CPU_ONLY",
+  "session": 88167,
+  "terminal": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-cpu-v5/receipt.json",
+      "sha256": "a72b252f4bd07509225809af5e3e2acf20b5a5f8c61fcc8a3106e3144ce6154e"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v5/cpu-v5.log",
+      "sha256": "428aed152c63f7c623989d3c3409eacd163d65c2b518dce5b488881ffd342a0a"
+    },
+    "unit": "sfora-so400-compact-ranking-cpu-v5",
+    "invocation_id": "801f5acb18c648a7b7f60e33cf80da96",
+    "service_seconds": 184.895,
+    "native_peak_rss_kib": 5812412,
+    "both_locks_held": true
+  },
+  "host_peak_bytes": 8369029120,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "cuda_initialized": false,
+  "quality_read": false,
+  "phase_seconds": {
+    "authority": 51.05442782212049,
+    "bundle_dependency_denial": 36.74092007242143,
+    "bundle_image_loading": 0.0052591911517083645,
+    "bundle_loader": 33.32369476882741,
+    "bundle_loader_authentication": 2.520406809169799,
+    "bundle_native_forward": 2.8503720932640135,
+    "bundle_oracle": 2.7581658074632287,
+    "bundle_release": 0.23921232763677835,
+    "cache_target_preparation": 2.2394771077670157,
+    "cpu_bundle_qualification": 42.264536016155034,
+    "cpu_loss_falsifier": 0.8195387031883001,
+    "independent_reload": 1.422626475803554,
+    "origin_guard_promotion": 0.039273050148040056,
+    "own_exit_rehash": 2.4234059820882976,
+    "post_exit_api_authentication": 0.5358587629161775,
+    "post_exit_origin_audit": 7.198634787928313,
+    "post_run_api_authentication": 0.5464697708375752,
+    "post_run_origin_audit": 5.963060508016497,
+    "save": 0.8134013526141644,
+    "shared_bundle_preparation": 10.629547530785203,
+    "shared_source_preparation": 19.298782630823553,
+    "source_exit_rehash": 25.621551731135696
+  },
+  "next": "ONE discarded control061 mechanics300 on exact source-v5; only complete PASS admits candidate061 mechanics300; both pass before fixed TRAIN128/300"
+}
