@@ -1,0 +1,12 @@
+{
+  "status": "CAUSE_IDENTIFIED_ORIGINAL_LOG_RESTORED",
+  "session": 57277,
+  "invocation_id": "f132e1bee4324c72866119c3c30b4b07",
+  "service_seconds": 83.296,
+  "qualification_eligible": false,
+  "cause": "Original identical log stored as selection-score-v1.log; inherited terminal expects score-selection-v1.log",
+  "restored_sha256": "4e12d4a0507571941d10f6ee79a935c448b77bce5e976b8d05893a729aaafcf9",
+  "code_changed": false,
+  "model_changed": false,
+  "historical_failure_preserved": true
+}
