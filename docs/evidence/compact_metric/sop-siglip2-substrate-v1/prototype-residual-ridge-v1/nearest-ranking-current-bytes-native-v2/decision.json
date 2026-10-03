@@ -1,0 +1,46 @@
+{
+  "accepted": false,
+  "baseline_median_seconds": 1.9750123242847621,
+  "blocker": "Four lazy cuDNN engine libraries loaded by native encoder/calibration absent original CPU+cached-warm known union. No Python module changes/conflicts. Require prospective independently authenticated native-library authority; never retroactively admit v1/v2 or broaden original whitelist.",
+  "candidate_median_seconds": 1.654007005970925,
+  "candidate_to_baseline_ratio": 0.8374666758446244,
+  "cuda_peak_bytes": 1973163008,
+  "events_zero": true,
+  "exact_origin_differences": {
+    "files": [
+      {
+        "actual": "3b765736f63d724a0de67b7ce915b0d0a780154fe4a2d515ab14040224aa7db4",
+        "expected": null,
+        "name": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9"
+      },
+      {
+        "actual": "7b8f371a7718c29549317efdbdeb8d7c301874f9471762a04830846ac4e83510",
+        "expected": null,
+        "name": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_runtime_compiled.so.9"
+      },
+      {
+        "actual": "b601fddd333d84ced4a3d833e75bb412c204e39b21755d79cb890335dce660b8",
+        "expected": null,
+        "name": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_graph.so.9"
+      },
+      {
+        "actual": "368687b9b5c2c01b55c21f74bd930cb05d3654b4e901e998b7bfb33cebac6ae8",
+        "expected": null,
+        "name": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_heuristic.so.9"
+      }
+    ],
+    "modules": []
+  },
+  "host_peak_bytes": 5265911808,
+  "invocation_id": "a3b49425dfdc42469fdc718843c74b3b",
+  "log_sha256": "f0714aaf83029e0b01664ce46e62d49aed9a24c890f6c1814129fc6b1e7d89b5",
+  "observed_digest_pairs_exact": true,
+  "observed_state_preserved": true,
+  "quality_read": false,
+  "receipt_sha256": "419e000c809064eb1fa80a9eb71e19f1821344201d49cb0dc728f24e18e61bfd",
+  "schema": "nearest-current-byte-parent-decision-v2",
+  "service_seconds": 163.563,
+  "swap_bytes": 0,
+  "timing_qualified": false,
+  "verdict": "FAIL native cuDNN origin/exit authority"
+}
