@@ -1,0 +1,19 @@
+{
+  "concat_checkpoint": {
+    "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt",
+    "sha256": "b702e03847be88540ee9711b420279e3bc131fafc475f361eca3d57cf3b8bbcf"
+  },
+  "concat_core_seconds": 0.3224179521203041,
+  "concat_invocation": "94a84de4194f42f0842cee5b5c8f932a",
+  "concat_log_sha256": "93c2f7024116fc63d8e7cacc1a4e0106d2d57e9ca57d794c866e9bcc77311197",
+  "concat_receipt_sha256": "b4af0fecfa1d5f750f0ac9cc995198690baf4397fd970c8192727644135c7d5c",
+  "concat_rss_kib": 2854356,
+  "concat_service_seconds": 234.821,
+  "concat_terminal_state": "a118fd98cce0b8fafa51c897be70b2b6e2ec93ebb226b2382dd264721776b644",
+  "decision": "COST_PASS",
+  "linear_core_seconds": 0.3493038951419294,
+  "linear_service_seconds": 212.169,
+  "quality_read": false,
+  "total_fit_core_ratio": 0.9230299364090946,
+  "whole_service_ratio": 1.106763947607803
+}

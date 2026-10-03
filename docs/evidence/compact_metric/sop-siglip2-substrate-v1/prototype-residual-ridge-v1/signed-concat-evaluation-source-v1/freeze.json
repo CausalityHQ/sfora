@@ -1,0 +1,11 @@
+{
+  "authority_sha256": "dba7a472694f3e4d218c58ca27d3fbe4686b45913604ca997e1066e62c887012",
+  "command_sha256": "cc28616dbc4a43e23cdad435109ee45c7234aa3e5114c756d078c289a590f080",
+  "execution_sha256": "42d60a615811cfb76a9def2115f6a1c725d2ebc442a204a586a846395ee0c677",
+  "launch_sha256": "1b29cd2145f53326f08f7ecfc33124ae9bd5e0b16589ee1418252d14d7022619",
+  "output": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-cpu-v1",
+  "schema": "signed-concat-evaluator-cpu-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v1",
+  "stop_rule": "ONE CPU300/8GiB/zeroSwap/events/CUDAhidden/bothlocks; original full source and four independent TRAIN reloads plus synthetic shared bootstrap5000seed179019 both1734/1749 panels with no real quality values; any fail stops before scoring, no retry/cap rescue.",
+  "unit": "sfora-so400-signed-concat-evaluation-cpu-v1"
+}
