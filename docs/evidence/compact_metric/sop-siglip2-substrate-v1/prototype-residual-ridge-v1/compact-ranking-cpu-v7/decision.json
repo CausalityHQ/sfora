@@ -1,0 +1,49 @@
+{
+  "verdict": "PASS_ENGINEERING_CPU_ONLY",
+  "session": 73179,
+  "terminal": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-cpu-v7/receipt.json",
+      "sha256": "f1b98a6bbf6db693ecc2b7033b94ef4b0a37a77555769cc01f1676ac4a7237e7"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v6/cpu-v7.log",
+      "sha256": "aa0bf2e34138201f33b73049722b39746bebb5fb86ea2a705770052d556dc685"
+    },
+    "unit": "sfora-so400-compact-ranking-cpu-v7",
+    "invocation_id": "fd5802fc796e47c093d719b47e6045cd",
+    "service_seconds": 175.67,
+    "native_peak_rss_kib": 5819180,
+    "both_locks_held": true
+  },
+  "host_peak_bytes": 8373645312,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "cuda_initialized": false,
+  "quality_read": false,
+  "phase_seconds": {
+    "authority": 54.712758174631745,
+    "bundle_dependency_denial": 28.110139892436564,
+    "bundle_image_loading": 0.005341957323253155,
+    "bundle_loader": 24.53428357001394,
+    "bundle_loader_authentication": 2.563431639689952,
+    "bundle_native_forward": 2.997290264349431,
+    "bundle_oracle": 2.237372834701091,
+    "bundle_release": 0.2524077692069113,
+    "cache_target_preparation": 2.1698207571171224,
+    "cpu_bundle_qualification": 33.169289002195,
+    "cpu_loss_falsifier": 0.8341776882298291,
+    "independent_reload": 1.5828402042388916,
+    "origin_guard_promotion": 0.03810709388926625,
+    "own_exit_rehash": 2.4102652058936656,
+    "post_exit_api_authentication": 0.5371554340235889,
+    "post_exit_origin_audit": 5.709677699953318,
+    "post_run_api_authentication": 0.6070719547569752,
+    "post_run_origin_audit": 5.705059122759849,
+    "save": 0.9403846357017756,
+    "shared_bundle_preparation": 11.75865582190454,
+    "shared_source_preparation": 18.683016506955028,
+    "source_exit_rehash": 22.580680581275374
+  },
+  "next": "ONE discarded control061 mechanics300 on frozen source-v6, candidate only after full control pass; usefulTRAIN fit unproven"
+}
