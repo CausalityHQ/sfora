@@ -1,0 +1,15 @@
+{
+  "status": "FAIL_SOURCE_CONTEXT",
+  "original_session": 22934,
+  "invocation_id": "ce162fa4127048069bbb8bde0b60dad3",
+  "service_seconds": 84.789,
+  "exit_code": 1,
+  "host_peak_bytes": 564031488,
+  "swap": 0,
+  "error": "KeyError partition",
+  "native_model_work_started": false,
+  "quality_read": false,
+  "accepted_training_pair_preserved": true,
+  "log_sha256": "1dac230692e07cfaa15c7ce09e177782ef79257a21c7c178234c65608164548b",
+  "next": "Verify authenticated pre-native partition composition; evaluator-only correction"
+}
