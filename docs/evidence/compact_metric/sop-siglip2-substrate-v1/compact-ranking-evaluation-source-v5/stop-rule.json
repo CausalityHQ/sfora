@@ -1,0 +1,11 @@
+{
+  "schema": "compact-evaluator-runtime-fix-freeze-v1",
+  "phase": "cpu",
+  "seconds": 500,
+  "host_bytes": 8589934592,
+  "swap_bytes": 0,
+  "one_original_job": true,
+  "quality_read": false,
+  "prior_failures_preserved": true,
+  "next": "Only CPU PASS admits original control export; accepted TRAIN pair unchanged. Failure closes this invocation without output reuse."
+}
