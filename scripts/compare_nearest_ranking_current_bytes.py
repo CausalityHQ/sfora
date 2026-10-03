@@ -261,6 +261,23 @@ def cleanup_steps(primary, steps, record):
     return primary
 
 
+def collect_origin_diagnostics(legacy, record, stage):
+    """Observe the original CPU/warm union without admitting or binding origins."""
+    proof = {'actual': legacy['source_driver'].imported_origins(legacy['extract'], legacy['selected']['packages']),
+             'expected': {}, 'differences': {}, 'conflicts': {}}
+    record.setdefault('origin_diagnostics', {})[stage] = proof
+    for kind in ('files', 'modules'):
+        known, conflicts = {}, []
+        proof['expected'][kind], proof['conflicts'][kind] = known, conflicts
+        for authority in (legacy['selected']['source_cpu']['origins'], legacy['warm_record']['origins']):
+            for name, value in authority[kind].items():
+                expected = known.setdefault(name, value)
+                if expected != value:
+                    conflicts.append({'name': name, 'expected': expected, 'actual': value})
+        proof['differences'][kind] = [{'name': name, 'expected': known.get(name), 'actual': value}
+            for name, value in sorted(proof['actual'][kind].items()) if known.get(name) != value]
+
+
 def serializer_parity(original, proposed, value):
     expected = original(value)
     require(proposed(value) == expected, 'native complete typed serializer parity differs')
@@ -556,7 +573,10 @@ def run(args):
                 candidate.bound_file(context['guards'], path, digest)
         primary = cleanup_steps(primary, [('original_rng_flags', original_rng_flags),
             ('release', lambda: candidate.release(context, state) if state is not None else candidate.require_no_model(context)),
-            ('origins', origins), ('exit_rehash', lambda: candidate.exit_rehash(context))], record)
+            ('origin_diagnostics', lambda: collect_origin_diagnostics(legacy, record, 'origins')),
+            ('origins', origins),
+            ('exit_origin_diagnostics', lambda: collect_origin_diagnostics(legacy, record, 'exit_rehash')),
+            ('exit_rehash', lambda: candidate.exit_rehash(context))], record)
         def union_rehash():
             # Genuine exit_rehash has just freshly read this augmented union,
             # including driver/launch/interpreter guards. Check exact2 topology

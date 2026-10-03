@@ -33,6 +33,74 @@ def manifest(root, names):
     return code, hashlib.sha256(raw).hexdigest()
 
 
+def original_origin_audit(d):
+    # Verbatim source fixture keeps the frozen exact2 test standalone.
+    source = '''def audit_origins(context, initial=False, admission=None):
+    source, prior = context['source_driver'], context['prior']
+    origins = source.imported_origins(context['extract'], context['selected']['packages'])
+    expected = context['selected']['source_cpu']['origins']
+    if initial:
+        require(all(expected['modules'].get(n) == p for n, p in origins['modules'].items()) and
+                all(expected['files'].get(p) == h for p, h in origins['files'].items()), 'original CPU import origin differs')
+    for kind in ('files', 'modules'):
+        known = {}
+        for proof in (expected, context['warm_record']['origins']):
+            for name, value in proof[kind].items():
+                require(known.setdefault(name, value) == value, 'conflicting original native origin authority')
+        require(all(known.get(n) == v for n, v in origins[kind].items()), 'unknown or changed native origin')
+    for path, digest in origins['files'].items():
+        if admission is None:
+            bound_file(context['guards'], path, digest)
+        else:
+            # imported_origins genuinely hashed these bytes in this exit, and
+            # both exact module/file authority checks above have passed.
+            admission.verified.add(str(admission.register(context['guards'], path, digest)))
+        require(prior['guards'].setdefault(path, digest) == digest, 'original native origin changed')
+    context['origins'] = origins'''
+    assert hashlib.sha256(source.encode()).hexdigest() == '4c54374cf5f6b82404c1c153a732670df8048ebac6bc08c64b7a5300a9fce406'
+    namespace = {'require': d.require, 'bound_file': lambda guards, path, digest: None}
+    exec(compile(source, '<unchanged original audit>', 'exec'), namespace)
+    return namespace['audit_origins']
+
+
+def origin_checks(d):
+    audit = original_origin_audit(d)
+    cpu = dict(modules={'torch.cpu': '/cpu.py'}, files={'/cpu.py': 'a' * 64})
+    warm = dict(modules={'torch.warm': '/warm.so'}, files={'/warm.so': 'b' * 64})
+    known = {kind: {**cpu[kind], **warm[kind]} for kind in cpu}
+    for kind, name, actual, expected in [('modules', 'torch.unknown', '/unknown.so', None),
+            ('files', '/newly-mapped.so', 'c' * 64, None), ('files', '/warm.so', 'd' * 64, 'b' * 64),
+            ('modules', 'torch.warm', '/changed.so', '/warm.so')]:
+        current = {k: v.copy() for k, v in known.items()}
+        current[kind][name] = actual
+        legacy = dict(source_driver=SimpleNamespace(imported_origins=lambda extract, packages: current),
+            extract=object(), selected=dict(packages={}, source_cpu=dict(origins=cpu)),
+            warm_record=dict(origins=warm), prior=dict(guards={}), guards={})
+        frozen = json.dumps([cpu, warm, legacy['guards'], legacy['prior']['guards']], sort_keys=True)
+        record = {}
+        d.collect_origin_diagnostics(legacy, record, 'origins')
+        proof = record['origin_diagnostics']['origins']
+        assert proof['actual'] == current and proof['expected'] == known
+        assert proof['differences'][kind] == [{'name': name, 'expected': expected, 'actual': actual}]
+        assert proof['differences']['files' if kind == 'modules' else 'modules'] == []
+        assert proof['conflicts'] == {'files': [], 'modules': []}
+        assert json.dumps([cpu, warm, legacy['guards'], legacy['prior']['guards']], sort_keys=True) == frozen
+        rejected(lambda: audit(legacy), 'unknown or changed native origin')
+    legacy['source_driver'].imported_origins = lambda extract, packages: known
+    record = {}
+    d.collect_origin_diagnostics(legacy, record, 'origins')
+    assert record['origin_diagnostics']['origins']['differences'] == {'files': [], 'modules': []}
+    audit(legacy)
+    warm['files']['/cpu.py'] = 'e' * 64
+    warm['modules']['torch.cpu'] = '/conflict.py'
+    d.collect_origin_diagnostics(legacy, record, 'exit_rehash')
+    proof = record['origin_diagnostics']['exit_rehash']
+    assert proof['expected'] == known  # First authority remains authoritative.
+    assert proof['conflicts'] == {'files': [{'name': '/cpu.py', 'expected': 'a' * 64, 'actual': 'e' * 64}],
+        'modules': [{'name': 'torch.cpu', 'expected': '/cpu.py', 'actual': '/conflict.py'}]}
+    rejected(lambda: audit(legacy), 'conflicting original native origin authority')
+
+
 def startup_checks(d):
     # The stdlib source fixture owns its authority/terminal seam. It cannot
     # import native packages; real file authentication and driver predicates run.
@@ -158,7 +226,8 @@ def lifecycle_checks(d):
     class Model:
         def named_parameters(self): return [(str(i), object()) for i in range(448)]
     rng = RNG()
-    for failure in (None, 'integrity', 'fresh', 'exit', 'union'):
+    audit = original_origin_audit(d)
+    for failure in (None, 'integrity', 'fresh', 'exit', 'union', 'collector', 'origins'):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             output, input_file = root / 'out', root / 'input'
@@ -171,11 +240,25 @@ def lifecycle_checks(d):
                 'memory.events': 'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n'}
             group = dict(path='/sys/fs/cgroup/native-fixture.service', values=values)
             def cgroup(): events.append('resources'); return group
-            source = SimpleNamespace(cgroup_memory=cgroup, numerical_flags=lambda: flags)
+            actual_origins = dict(files={str(input_file): sha}, modules={})
+            def imported_origins(extract, packages):
+                events.append('collect')
+                if failure == 'collector' and events[-2:-1] != ['origins']:
+                    raise ValueError('collector failed')
+                return actual_origins
+            source = SimpleNamespace(cgroup_memory=cgroup, numerical_flags=lambda: flags,
+                imported_origins=imported_origins)
             reference = SimpleNamespace(admit_cgroup=lambda value, unit: d.require(unit == 'native-fixture', 'unit'))
-            old = SimpleNamespace(zero_events=lambda value: None, audit_origins=lambda legacy: events.append('origins'))
-            legacy = dict(source_driver=source, selected=dict(source_cpu=dict(numerical_flags=flags),
-                genuine=dict(reference=reference)), origins=dict(files={str(input_file): sha}))
+            def audit_origins(legacy):
+                events.append('origins')
+                audit(legacy)
+            old = SimpleNamespace(zero_events=lambda value: None, audit_origins=audit_origins)
+            legacy = dict(source_driver=source, selected=dict(source_cpu=dict(numerical_flags=flags,
+                origins=dict(files={str(input_file): sha}, modules={})), packages={},
+                genuine=dict(reference=reference)), origins=dict(files={str(input_file): sha}, modules={}),
+                extract=object(), warm_record=dict(origins=dict(files={}, modules={})),
+                prior=dict(guards={}), guards={})
+            if failure == 'origins': actual_origins['modules']['torch.unknown'] = '/unknown.so'
             launch = dict(unit='native-fixture', python=dict(path=str(Path(sys.executable).resolve()), sha256='a' * 64),
                 cpu_authority=dict(path=str(root / 'cpu.json'), sha256='b' * 64), selected_cpu={})
             args = SimpleNamespace(output=output, execution_sha256='c' * 64,
@@ -212,6 +295,7 @@ def lifecycle_checks(d):
                 events.append('release'); state.clear(); no_model()
             def exit_rehash(ctx):
                 events.append('exit'); no_model()
+                old.audit_origins(legacy)
                 if failure == 'exit': raise ValueError('exit failed')
                 if failure == 'union': input_file.write_bytes(b'tampered source')
                 for path, digest in ctx['guards'].items(): bound_file({}, path, digest)
@@ -237,10 +321,21 @@ def lifecycle_checks(d):
                     receipt = d.run(args)
                     assert receipt['pass'] and receipt['qualification_eligible'] is False and receipt['completed_step'] == 0
                 else:
-                    rejected(lambda: d.run(args), ('SHA256' if failure == 'union' else failure + ' failed'))
+                    rejected(lambda: d.run(args), ('SHA256' if failure == 'union' else
+                        'unknown or changed native origin' if failure == 'origins' else failure + ' failed'))
                 receipt = json.loads((output / 'receipt.json').read_bytes())
                 assert receipt['pass'] == (failure is None)
-                assert receipt['exit_rehash_pass'] == (failure not in ('exit', 'union'))
+                assert receipt['exit_rehash_pass'] == (failure not in ('exit', 'union', 'origins'))
+                assert receipt['origin_diagnostics_pass'] == (failure != 'collector')
+                assert receipt['exit_origin_diagnostics_pass'] == (failure != 'collector')
+                if failure == 'origins':
+                    for stage in ('origins', 'exit_rehash'):
+                        assert receipt['origin_diagnostics'][stage]['differences']['modules'] == [
+                            {'name': 'torch.unknown', 'expected': None, 'actual': '/unknown.so'}]
+                if failure == 'collector':
+                    assert not receipt['pass'] and receipt['origins_pass'] and receipt['exit_rehash_pass']
+                    assert [e['step'] for e in receipt['cleanup_errors']] == [
+                        'origin_diagnostics', 'exit_origin_diagnostics']
                 assert receipt['release_pass'] is True, 'tracebacks must not keep failed native models alive'
                 assert receipt['resources_pass'] is True
                 assert receipt['quality_read'] is False and receipt['state_reuse_eligible'] is False
@@ -257,6 +352,7 @@ def check():
     d = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(d)
     assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
+    origin_checks(d)
     startup_checks(d)
     lifecycle_checks(d)
     with tempfile.TemporaryDirectory() as directory:
@@ -436,7 +532,11 @@ def check():
                                 capture_output=True, text=True, timeout=2)
         assert (result.returncode == 0) == (len(flags) == 1), result.stderr
         assert '--authority-sha256' in result.stdout if len(flags) == 1 else 'optimized mode' in result.stderr
-    tree = ast.parse(PATH.read_bytes())
+    raw = PATH.read_text()
+    tree = ast.parse(raw)
+    calls = [ast.get_source_segment(raw, n) for n in ast.walk(tree) if isinstance(n, ast.Call)]
+    assert calls.count("context['old'].audit_origins(legacy)") == 1
+    assert calls.count('candidate.exit_rehash(context)') == 1
     assert not any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and
         (n.func.attr in {'reset_peak_memory_stats', 'reset_max_memory_allocated'} or
          isinstance(n.func.value, ast.Name) and n.func.value.id == 'candidate' and
@@ -444,7 +544,7 @@ def check():
         for n in ast.walk(tree))
     assert not any(isinstance(n, ast.With) and 'no_grad' in ast.unparse(n.items) for n in ast.walk(tree))
     assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
-    print('PASS: stdlib launch/closure/source/order/alias/datarestore/resources/cleanup/receipt; native UNRUN')
+    print('PASS: stdlib origins/union/conflicts/collector cleanup/original audits/launch/closure/source/order/alias/datarestore/resources/receipt; native UNRUN')
 
 
 if __name__ == '__main__':
