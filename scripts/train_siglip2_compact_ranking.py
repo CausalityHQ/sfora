@@ -903,7 +903,31 @@ def deny_training_dependencies(context, directory, environment):
     # Audit hooks cannot be removed; leave this bounded hook inert afterwards.
     # Only strings are retained, never teacher tensors or the training context.
     directory = Path(directory)
-    denied = {p for p in context['guards'] if not Path(p).is_relative_to(directory) and p not in environment['files']}
+    # Ownership preflight authenticates RECORDs outside the package code roots.
+    # Classify only its pinned inventory (and the vendor owner's metadata),
+    # never arbitrary guarded files under the installed site directory.
+    authority = read_json(context['launch']['native_authority'], context['guards'])
+    require(authority['proof']['sha256'] == context['nearest'].NATIVE_PROOF_PINS['proof'],
+            'original installed ownership proof differs')
+    proof = read_json(authority['proof'], context['guards'])
+    site = Path(proof['authority']['installed_site_root'])
+    require(site.is_absolute() and site.resolve() == site and
+            all(Path(v['root']).parent == site for v in environment['packages'].values()),
+            'runtime metadata installed site differs')
+    records = proof['installed_record_ownership']['records']
+    require(len(records) == len(set(records)) and all(Path(p).parent.parent == site and
+            Path(p).parent.name.endswith('.dist-info') and Path(p).name == 'RECORD' for p in records),
+            'runtime metadata RECORD boundary differs')
+    owners = {p for paths in proof['installed_record_ownership']['owners'].values() for p in paths}
+    require(owners <= set(records), 'runtime metadata owner differs')
+    metadata = set(records) | {str(Path(p).with_name(n)) for p in owners for n in ('METADATA', 'WHEEL')}
+    for path in metadata:
+        fact = proof['input_guards'][path]
+        require(context['guards'].get(path) == fact['sha256'], 'runtime metadata original guard differs')
+        bound_file({}, path, fact['sha256'])
+        require(Path(path).stat().st_size == fact['size_bytes'], 'runtime metadata size differs')
+    denied = {p for p in context['guards'] if not Path(p).is_relative_to(directory) and
+              p not in environment['files'] and p not in metadata}
     enabled = [True]
     def audit(event, args):
         if enabled[0] and event == 'open' and args and isinstance(args[0], (str, bytes, os.PathLike)):

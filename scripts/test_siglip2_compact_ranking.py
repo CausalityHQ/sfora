@@ -263,12 +263,85 @@ class ContractTests(unittest.TestCase):
                 admit(bundle, sha)
             warm = root / "warm.pt"
             warm.write_bytes(b"forbidden original state")
-            context = {"guards": {str(warm): hashlib.sha256(warm.read_bytes()).hexdigest()}}
+            # RECORD is outside every package root, but original native
+            # ownership admission authenticated this exact metadata inventory.
+            site = root / "installed"
+            record = site / "aiohappyeyeballs-2.6.2.dist-info" / "RECORD"
+            record.parent.mkdir()
+            record.write_text("aiohappyeyeballs/__init__.py,,\n")
+            owner_record = site / "nvidia_cudnn_cu13-9.20.0.48.dist-info" / "RECORD"
+            owner_record.parent.mkdir()
+            owner_record.write_text("nvidia/cudnn/lib/libcudnn.so,,\n")
+            metadata = [owner_record.parent / name for name in ("METADATA", "WHEEL")]
+            for path in metadata:
+                path.write_text("qualified vendor metadata\n")
+            # Neither a lookalike nor a training payload elsewhere in the
+            # installed tree becomes runtime metadata by its path alone.
+            lookalike = site / "training.dist-info" / "RECORD"
+            lookalike.parent.mkdir()
+            lookalike.write_text("original training input\n")
+            training = site / "optimizer.pt"
+            training.write_bytes(b"original optimizer")
+            runtime = [record, owner_record, *metadata]
+            guarded = [warm, lookalike, training, *runtime]
+            guards = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in guarded}
+            proof = {"authority": {"installed_site_root": str(site)},
+                     "installed_record_ownership": {"records": [str(record), str(owner_record)],
+                         "owners": {str(site / "nvidia/cudnn/lib/libcudnn.so"): [str(owner_record)]}},
+                     "input_guards": {str(p): {"sha256": guards[str(p)], "size_bytes": p.stat().st_size}
+                                      for p in runtime}}
+            proof_path = root / "native-proof.json"
+            proof_path.write_text(json.dumps(proof))
+            proof_sha = hashlib.sha256(proof_path.read_bytes()).hexdigest()
+            authority_path = root / "native-authority.json"
+            authority_path.write_text(json.dumps({"proof": {"path": str(proof_path), "sha256": proof_sha}}))
+            context = {"guards": guards,
+                       "nearest": SimpleNamespace(NATIVE_PROOF_PINS={"proof": proof_sha}),
+                       "launch": {"native_authority": {"path": str(authority_path),
+                           "sha256": hashlib.sha256(authority_path.read_bytes()).hexdigest()}}}
             with driver.deny_training_dependencies(context, bundle, environment):
-                with self.assertRaises(ValueError):
-                    warm.read_bytes()
+                self.assertEqual(record.read_text(), "aiohappyeyeballs/__init__.py,,\n")
+                for path in runtime:
+                    self.assertTrue(path.read_bytes())
+                for path in (warm, lookalike, training, authority_path, proof_path):
+                    with self.subTest(denied=path), self.assertRaises(ValueError):
+                        path.read_bytes()
                 self.assertEqual(constructor.read_text(), "# installed fixture")
             self.assertEqual(warm.read_bytes(), b"forbidden original state")
+            for path in (record, proof_path, authority_path):
+                original = path.read_bytes()
+                path.write_bytes(original + b"tamper")
+                with self.subTest(tamper=path), self.assertRaises(ValueError):
+                    with driver.deny_training_dependencies(context, bundle, environment):
+                        pass
+                path.write_bytes(original)
+            for bad_guard in (None, "0" * 64):
+                broken = {**context, "guards": dict(context["guards"])}
+                if bad_guard is None:
+                    broken["guards"].pop(str(record))
+                else:
+                    broken["guards"][str(record)] = bad_guard
+                with self.subTest(guard=bad_guard), self.assertRaises(ValueError):
+                    with driver.deny_training_dependencies(broken, bundle, environment):
+                        pass
+            broken = {**context, "nearest": SimpleNamespace(NATIVE_PROOF_PINS={"proof": "0" * 64})}
+            with self.assertRaises(ValueError):
+                with driver.deny_training_dependencies(broken, bundle, environment):
+                    pass
+            # A symlink/parent alias cannot inherit an authenticated allowance.
+            original = record.read_bytes()
+            record.unlink()
+            record.symlink_to(lookalike)
+            with self.assertRaises(ValueError):
+                with driver.deny_training_dependencies(context, bundle, environment):
+                    pass
+            record.unlink()
+            record.write_bytes(original)
+            wrong_environment = copy.deepcopy(environment)
+            wrong_environment["packages"]["torch"]["root"] = str(root / "other" / "torch")
+            with self.assertRaises(ValueError):
+                with driver.deny_training_dependencies(context, bundle, wrong_environment):
+                    pass
 
     def test_no_native_import_help_and_optimized_rejection(self):
         self.api("parser")
