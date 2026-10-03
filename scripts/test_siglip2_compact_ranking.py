@@ -39,6 +39,13 @@ def fresh_batch_source_boundary(tree):
     driver.require(len(imports) == len(helpers) == 1, 'exact fresh batch import/helper required')
     tree.body = [n for n in tree.body if n not in imports + helpers]
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    # Invert only the prospective non-CPU deadline; retain all historic AST pins.
+    prospective_policy = ast.parse("def policy(phase):\n"
+        "    require(phase in ('cpu', 'mechanics', 'train'), 'fixed phase required')\n"
+        "    return {'seconds': 500 if phase == 'cpu' else 600, 'host_bytes': 8 * 1024**3,\n"
+        "            'swap_bytes': 0, 'cuda_allocated_bytes_exclusive': 10_000_000_000}\n").body[0]
+    driver.require(dump(functions['policy']) == dump(prospective_policy), 'exact prospective runtime policy required')
+    functions['policy'].body[1].value.values[0].orelse.value = 300
     changes = [
         ('admit_bundle',
          "batch_bound_files(guards, ((directory / name, digest) for name, digest in {**value['code'], **value['files']}.items()))\n"
@@ -973,7 +980,8 @@ class ContractTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 check({**unit, key: bad})
         self.assertEqual(driver.policy("cpu")["seconds"], 500)
-        self.assertEqual(driver.policy("train")["seconds"], 300)
+        self.assertEqual(driver.policy("mechanics")["seconds"], 600)
+        self.assertEqual(driver.policy("train")["seconds"], 600)
         self.assertEqual(driver.policy("train")["host_bytes"], 8 * 1024**3)
         with self.assertRaises(ValueError):
             driver.policy("quality")

@@ -157,7 +157,7 @@ def load_authenticated(name, path, sha, guards):
 
 def policy(phase):
     require(phase in ('cpu', 'mechanics', 'train'), 'fixed phase required')
-    return {'seconds': 500 if phase == 'cpu' else 300, 'host_bytes': 8 * 1024**3,
+    return {'seconds': 500 if phase == 'cpu' else 600, 'host_bytes': 8 * 1024**3,
             'swap_bytes': 0, 'cuda_allocated_bytes_exclusive': 10_000_000_000}
 
 
