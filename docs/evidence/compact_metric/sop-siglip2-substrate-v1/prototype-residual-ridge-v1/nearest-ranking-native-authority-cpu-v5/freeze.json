@@ -1,0 +1,25 @@
+{
+  "authority_sha256": "3a50af8c634a2166ac010e8fc1df6a0dd1a575b63e1ad9c1d405f82f209ca522",
+  "code": {
+    "nearest_ranking_readout.py": "862d5db5a1831603d4fc3c1b645fa998c7ca66ff67c8141b20d7df74e92d9738",
+    "test_siglip2_nearest_ranking.py": "a2d0a6fff65c371c4dd50531766677db5464ee35918887b3d55935dbdf489eec",
+    "train_siglip2_nearest_ranking.py": "4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c"
+  },
+  "command_sha256": "286b6d3f2b51a401b9fccf95d4da870017e038fbfd0301222353b70694cfbace",
+  "execution_sha256": "0723deae5c550776b0a0493e296ce789cec76718cb7801f612b4fddc6201c311",
+  "launcher_sha256": "cf46996f70c89fb36673feedadc0f4ec947ecb5edb00e920b3b7fb2379a544d5",
+  "native_authority_sha256": "7c1c78ef3f2c784f217822690e93e52e3ef55b27d6a27d8f9daf9b9b19295f51",
+  "output": "/home/riomus/runs/sfora-so400-nearest-ranking-cpu-v5",
+  "parent_checks": "Original49564 exit0:44 tests24.415s and comparison stdlibPASS; diff check PASS",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "root": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5",
+  "schema": "nearest-ranking-native-authority-cpu-freeze-v1",
+  "source_commit": "d40fc4cc726ce892c70ed559628033f8c65c0c02",
+  "stop_rule": "ONE fresh CPU500 qualification; original fullsource/state/raw-unit-packed/teachers/gradient/resume/reload/tamper/uncachedexit+exact4proof admission; 8GiBzeroSwap/events/CUDAhidden/bothlocks; oldFAIL unchanged; no native/quality eligibility from CPU alone",
+  "unit": "sfora-so400-nearest-ranking-cpu-v5"
+}
