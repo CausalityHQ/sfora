@@ -1,0 +1,13 @@
+{
+  "verdict": "PASS_ENGINEERING_MECHANICS_ONLY",
+  "session": 87902,
+  "service_seconds": 223.667,
+  "invocation_id": "ffa47f44ce934b17abf0d4861799cb1e",
+  "host_peak_bytes": 7297712128,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "receipt_sha256": "12d63838515568839f68a0d1deb032dc99ad6345da2677d9c0e0004abc6abcd8",
+  "log_sha256": "8c29c62de32a82c7addf8d0504610ce3f6a7faeba66795da8dedcfab481f1be4",
+  "quality_read": false,
+  "next": "ONE fresh control061 TRAIN128/300 then candidate061; paired quality gate before seed069"
+}
