@@ -467,9 +467,11 @@ def authority(args):
         bound_file(guards,Path(archived['output'])/name,h)
     merge_guards(guards,t['guards'])
     s = {'args':args,'guards':guards,'spec':spec,'selected':legacy,'admission':legacy['admission'],
-        'helper':helper,'baseline':baseline,'fit':legacy['prior']['fit'],'partition':legacy['partition'],
+        'helper':helper,'baseline':baseline,'fit':legacy['prior']['fit'],'partition':legacy['selected']['partition'],
         'origin_records':[archived],'terminals':[native.CONCAT_TERMINAL]}
-    require(s['partition'] == read_json(spec['partition'],guards), 'original ordered panel partition differs')
+    require(s['partition'] == read_json(spec['partition'],guards) and
+        spec['partition'] == t['fit_context']['launch']['partition'] and
+        s['partition']['original_cache']['sha256'] == reference.FIT_SHA, 'original ordered panel partition differs')
     reference.source_selection_adapter(baseline,t['fit_context'])(s)
     source_record = s['source_record']
     require(source_record['source_code'] == launch['genuine_evaluator']['code'] and

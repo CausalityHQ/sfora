@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 import sys
 import tempfile
-from types import SimpleNamespace
+from types import FunctionType, SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -80,6 +80,100 @@ def intervals(q):
                'query_lower95':-.001,'query_upper95':.1} for m in e.METRICS}
 
 
+class SourceAdmissionFixture:
+    """Run the real context-composition block and pinned adapter, without native work.
+
+    The old authority's actual dictionary expression supplies the pre-native
+    context. Only external receipts/logs/wires are disconnected stand-ins.
+    """
+    def __init__(self, root):
+        def pinned(name, filename, digest):
+            if name not in sys.modules:
+                e.load_authenticated(name, PATH.with_name(filename), digest, {})
+            value=sys.modules[name]
+            e.bound_file({},value.__file__,digest)
+            return value
+        reference=pinned('_compact_context_reference_tests','evaluate_siglip2_prototype_residual.py',
+            e.REFERENCE['code']['evaluate_siglip2_prototype_residual.py'])
+        self.baseline=pinned('_compact_context_baseline_tests','evaluate_siglip2_quadratic_readout.py',
+            reference.EVALUATOR_PINS['evaluate_siglip2_quadratic_readout.py'])
+        b=self.baseline
+        self.partition={'original_cache':descriptor(root/'cache.npy',reference.FIT_SHA),
+            'panels':{'selection':{'original_rows':[8,3,5]},'validation':{'original_rows':[9,4]}}}
+        self.path=root/'partition.json';self.path.write_text(json.dumps(self.partition))
+        part=descriptor(self.path,hashlib.sha256(self.path.read_bytes()).hexdigest())
+        self.spec={'partition':part,'source_selection':{'inventory':descriptor(root/'inventory.json',b.SOURCE_INVENTORY_SHA)}}
+        fit={'class_names':['one','two'],'targets':[0,1]}
+        selected={'partition':copy.deepcopy(self.partition),'source':{'standin':'authenticated source'},
+            'genuine':{'prior':{'fit':fit}},'source_driver':None,'original':None,'extract':None,
+            'source_cpu':{'invocation':{'invocation_id':'0'*32}}}
+        self.calls=[]
+        def wire_file(guards,path,digest):
+            fact=next(v for v in b.SOURCE_INVENTORY['files'].values() if v['path']==str(path))
+            e.require(digest==fact['sha256'],'wire descriptor differs')
+            guards[str(path)]=digest;self.calls.append(('wire',str(path)))
+            return SimpleNamespace(stat=lambda:SimpleNamespace(st_size=fact['bytes']))
+        admission=SimpleNamespace(bound_file=wire_file)
+        # Evaluate the authenticated authority's REAL context expression: no
+        # synthetic top-level partition, initial state or ownership checks.
+        original=PATH.with_name('train_siglip2_quadratic_readout.py')
+        e.bound_file({},original,reference.ORIGINAL_PINS[original.name])
+        node=next(n for n in ast.parse(original.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='authority')
+        expression=next(n.value for n in node.body if isinstance(n,ast.Assign) and
+            any(isinstance(t,ast.Name) and t.id=='context' for t in n.targets))
+        self.legacy=eval(compile(ast.Expression(expression),str(original),'eval'),
+            {'args':None,'root':root,'code':{},'launch':{'partition':part},'guards':{},
+             'genuine':None,'selected':selected,'admission':admission,'record':{}})
+        self.training={'legacy':self.legacy,'fit_context':{'launch':{'partition':part},'guards':{}},'guards':{}}
+        self.archived={'cgroup_before':{},'cgroup_after':{},'input_guards':{},'files':{},'output':str(root)}
+        inventory=b.SOURCE_INVENTORY
+        self.record={'schema':'siglip2-genuine-view-evaluation-v1','phase':'score','pass':True,
+            'engineering_admission_pass':True,'source':selected['source'],
+            'spec':{'panel':'selection','stage':'first','endpoints':[inventory['baseline_endpoint']],
+                'partition':inventory['partition'],'evaluation_reference':{'root':b.REFERENCE_ROOT,
+                    'execution_sha256':b.REFERENCE_EXECUTION_SHA}},
+            'resource_policy':b.policy('score'),'query_images':1734,'gallery_images':1715,'panel_products':498,
+            'peak_cuda_allocated_bytes':0,'files':{n:v['sha256'] for n,v in inventory['files'].items()},
+            'output':str(Path(next(iter(inventory['files'].values()))['path']).parent),
+            'quality':{'179061':{'control':{'recall_at_1':inventory['control_quality']['recall_at_1'],
+                'map_at_r':inventory['control_quality']['map_at_r'],'per_query_r1':[1]*1670+[0]*64,
+                'per_query_ap':[inventory['control_quality']['map_at_r']]*1734}}},
+            'input_guards':{},'cgroup_before':{},'cgroup_after':{}}
+        for k in ('strict_independent_head_reload_exact','train_raw_unit_cpu_packed_exact','rng_flags_preserved',
+            'exit_rehash_pass','full_panel_raw_unit_packed_replay_exact','per_query_replay_exact'):self.record[k]=True
+        for k in ('official_read','public_latency_measured','global_production_goal_met','cuda_initialized'):self.record[k]=False
+        def reader(admitted,record,terminal,seconds,guards):
+            e.require(admitted is admission,'original admission object differs')
+            self.calls.append(('terminal',seconds));return {}
+        # Copy the adapter's namespace; ORIGINAL module globals stay untouched.
+        adapter_factory=FunctionType(reference.source_selection_adapter.__code__,
+            {**vars(reference),'original_terminal_reader':lambda _:reader})
+        def source_adapter(baseline,context):
+            adapted=adapter_factory(baseline,context)  # Full-byte/live-code/AST authentication stays real.
+            def receipt(value,guards):
+                self.calls.append(('source_json',value['path']))
+                if value==self.spec['source_selection']['inventory']:return inventory
+                e.require(value==inventory['receipt'],'source receipt descriptor differs')
+                return self.record
+            adapted.__globals__['read_json']=receipt
+            return adapted
+        self.reference=SimpleNamespace(FIT_SHA=reference.FIT_SHA,original_terminal_reader=lambda _:reader,
+            source_selection_adapter=source_adapter)
+        self.originals=[(m,dict(vars(m))) for m in (reference,b)]
+
+    def compose(self):
+        node=next(n for n in ast.parse(PATH.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='authority')
+        def assigns(n,name):
+            return isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id==name for t in n.targets)
+        start=next(i for i,n in enumerate(node.body) if assigns(n,'legacy'))
+        stop=next(i for i,n in enumerate(node.body) if assigns(n,'source_record'))+1
+        namespace={**vars(e),'t':self.training,'reference':self.reference,'spec':self.spec,'args':None,
+            'guards':{},'archived':self.archived,'baseline':self.baseline,
+            'helper':SimpleNamespace(zero_events=lambda _:None),'native':SimpleNamespace(CONCAT_TERMINAL=unit(99))}
+        exec(compile(ast.Module(body=node.body[start:stop],type_ignores=[]),str(PATH),'exec'),namespace)
+        return namespace['s']
+
+
 class EvaluationTests(unittest.TestCase):
     def test_exact_source_stage_seed_and_roles(self):
         for stage in ('first','full'):
@@ -102,6 +196,39 @@ class EvaluationTests(unittest.TestCase):
         with self.assertRaises(ValueError):e.check_launch(value,args)
         value,args=launch('full');value['first_selection']=value['endpoints'][0]['terminal']
         with self.assertRaises(ValueError):e.check_launch(value,args)
+
+    def test_pre_native_partition_and_pinned_source_adapter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            f=SourceAdmissionFixture(Path(directory))
+            self.assertTrue({'partition','partition_check','initial'}.isdisjoint(f.legacy))
+            s=f.compose()
+            self.assertEqual(s['partition']['panels']['selection']['original_rows'],[8,3,5])
+            self.assertIs(s['fit'],f.legacy['prior']['fit']);self.assertIs(s['selected'],f.legacy)
+            self.assertIs(s['source_record'],f.record);self.assertIs(s['origin_records'][-1],f.record)
+            self.assertEqual(s['terminals'][-1],f.baseline.SOURCE_SCORE_TERMINAL)
+            self.assertEqual(s['source_guards'][str(f.spec['source_selection']['inventory']['path'])],f.baseline.SOURCE_INVENTORY_SHA)
+            self.assertEqual(s['guards'][str(f.path)],f.spec['partition']['sha256'])
+            self.assertEqual([n for kind,n in f.calls if kind=='terminal'],[500,300])
+            self.assertEqual(sum(kind=='wire' for kind,_ in f.calls),3)
+            for module,values in f.originals:
+                self.assertEqual(vars(module).keys(),values.keys())
+                self.assertTrue(all(vars(module)[k] is v for k,v in values.items()))
+            self.assertFalse(any(n.split('.')[0] in e.NATIVE for n in sys.modules))
+
+    def test_partition_order_descriptor_cache_and_hash_rejected_before_source(self):
+        for mutation in ('order','descriptor','cache','hash'):
+            with self.subTest(mutation=mutation),tempfile.TemporaryDirectory() as directory:
+                f=SourceAdmissionFixture(Path(directory))
+                if mutation=='order':f.legacy['selected']['partition']['panels']['selection']['original_rows'].reverse()
+                elif mutation=='descriptor':f.training['fit_context']['launch']['partition']=descriptor(f.path,'0'*64)
+                elif mutation=='cache':
+                    f.partition['original_cache']['sha256']='0'*64
+                    f.path.write_text(json.dumps(f.partition))
+                    f.spec['partition']['sha256']=hashlib.sha256(f.path.read_bytes()).hexdigest()
+                    f.legacy['selected']['partition']=copy.deepcopy(f.partition)
+                else:f.path.write_text(json.dumps(f.partition)+' ')
+                with self.assertRaisesRegex(ValueError,'ordered panel partition|SHA256'):f.compose()
+                self.assertFalse(any(kind=='source_json' for kind,_ in f.calls))
 
     def test_first_screen_never_bootstraps(self):
         q,source,concat=panels('first');costs=e.paired_cost(controls('first'),'first')
