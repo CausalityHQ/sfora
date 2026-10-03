@@ -1,0 +1,156 @@
+{
+  "arm": "concat",
+  "both_locks_held": true,
+  "execution_sha256": "a47933beafd8a1c0e2d541624328c8fe1d7b9a90f68977eee83c3c82223a56fe",
+  "historical_linear": {
+    "endpoint": {
+      "arm": "linear",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-prototype-residual-fit-linear-v1/resume.pt",
+        "sha256": "2fb2a7be38ac08013b6f7091df93b795dfa5961e00c3fa64d8868ca15a263d55"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-prototype-residual-source-v3/authority-fit-linear-v1.json",
+        "sha256": "3405b72d92ab289ac36373ab192fd74872a0083f1e2a0d91247a8c9e159cf597"
+      },
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "cb784c2e110c458e852ba1eaa14e6c61",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-prototype-residual-source-v3/fit-linear-v1.log",
+          "sha256": "0a02d3eb758e7de6a930bc2908937890ff1b26c388cf8d26ed3d72895788dc44"
+        },
+        "native_peak_rss_kib": 1148552,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-prototype-residual-fit-linear-v1/receipt.json",
+          "sha256": "2a861afc762d92018b93eaf4f3b5a566a7be095d71b6da3fabfba6d8c4cada09"
+        },
+        "service_seconds": 180.745,
+        "unit": "sfora-so400-prototype-residual-fit-linear-v1"
+      },
+      "terminal_state_sha256": "ba736044b0fdd46239943d426591617f58b24f97025e5005488502ec1ed0770a"
+    },
+    "training": {
+      "code": {
+        "fit_siglip2_prototype_residual.py": "cc3ffb6d63a78448e3bff0535304b50b30eb451b0617c15c4b8cf1727bed7d2d",
+        "test_siglip2_prototype_residual.py": "4f5b5ba1947e57c9adb93da512a5a7aed87528104f0c9acd873be9398d5e3c27"
+      },
+      "execution_sha256": "9c726ec7e9c8e339a82d9284fd41495bf9feb2b39ba76df10eda75a05684fef2",
+      "root": "/home/riomus/runs/sfora-so400-prototype-residual-source-v3"
+    }
+  },
+  "original_cpu": {
+    "authority": {
+      "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v7/authority-cpu-v7.json",
+      "sha256": "d703e4c4b6a7be0fd287bb721cc2769dd4b958f196938a8182c1762cadcd4eb2"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "13291ef2bdd946e7a76f82f862248234",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v7/cpu-v7.log",
+        "sha256": "3bf689314d9d7ad4b111223417ae9ca41785fa75b2cef1cf0642a072d452c373"
+      },
+      "native_peak_rss_kib": 1146616,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-quadratic-readout-cpu-v7/receipt.json",
+        "sha256": "7e8566c24cae41e71b67f42bb68eda0717b8a7351a7ae9e5c145a35ab0bfa78f"
+      },
+      "service_seconds": 94.629,
+      "unit": "sfora-so400-quadratic-readout-cpu-v7"
+    }
+  },
+  "original_reference": {
+    "execution_sha256": "84414302a6749842cae20e2608e932066334916218df68f91f10fd3c589ca382",
+    "root": "/home/riomus/runs/sfora-so400-quadratic-readout-source-v7"
+  },
+  "partition": {
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "phase": "fit",
+  "recipe": {
+    "arithmetic": "CPU FP32; autocast disabled",
+    "basis": {
+      "concat": "[Z32,H0raw128]",
+      "linear": "Z32"
+    },
+    "classes": 1008,
+    "coefficients": {
+      "concat": 20480,
+      "linear": 4096
+    },
+    "correction_multiplier": 1,
+    "feature_width": {
+      "concat": 160,
+      "linear": 32
+    },
+    "fit_passes": 2,
+    "input": "raw canonical TRAIN; original CPU normalization then unchanged control head",
+    "intercept": false,
+    "means": "both fixed full TRAIN FP32 means",
+    "output_dim": 128,
+    "rank": 32,
+    "regularization": 0.1,
+    "ridge_scale": "common detached CPU FP32 trace(centeredZ.T@centeredZ)/32; lambda=0.1*reference_scale",
+    "rows": 6355,
+    "solver_adapter_ast_sha256": "5796b91abed9f97f8159ed7c85e9fdba1eb6b55f3a6b9b1135a5be0904d33075",
+    "stationarity": "||M@A.T-B||_F/(||M||_F*||A.T||_F+||B||_F); M=Phi.T@Phi+lambda*I; B=Phi.T@Y",
+    "stationarity_max": 1e-05,
+    "targets": "image-weighted raw class means including each member minus raw source head",
+    "terminal_adapter_ast_sha256": "51d6678a4c1aa7f4da9836720636b196b188d274205a608b779be8ee810430ce",
+    "width": 1152
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "ridge_solver": {
+    "path": "/home/riomus/runs/sfora-so400-prototype-residual-solver-v1/foundation_adapter.py",
+    "sha256": "854e7d92b5cea2ef78dd49cf5deaded13f0af651a6dfae73368ec78acb939e27"
+  },
+  "schema": "siglip2-prototype-residual-launch-v2",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "32cb889b3b734c79bfbb84d20a82faf0",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/cpu-v2.log",
+      "sha256": "035b7b39b876353d60a054a125ac5fd8ca76ef9ad268a06970f688288aa9fe32"
+    },
+    "native_peak_rss_kib": 2854984,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-cpu-v2/receipt.json",
+      "sha256": "fb25c54c9d61a681bedabd38b267575858a3cd3a926fedbb6d5698291559ba92"
+    },
+    "service_seconds": 268.001,
+    "unit": "sfora-so400-signed-concat-cpu-v2"
+  },
+  "warm_start": {
+    "checkpoint": {
+      "path": "/home/riomus/runs/sfora-so400-genuine-view-train-control-179061-v1/resume.pt",
+      "sha256": "97db53ab934edbef2656c6e9509e4518421eaba02d3864bdc336eedd7787c7d2"
+    },
+    "launch": {
+      "path": "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1/authority-train-control-179061-v1.json",
+      "sha256": "84ceaa5b819d9c9db89514bed13b140dab898e842ec6cbf85eb17dce123e6655"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "e76277bcc16c4a7b9b3c3643834cb840",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1/train-control-179061.log",
+        "sha256": "5c2c7ca41fe489d8ba56787c32ac6be5cc8b4fe5e842f223e6981c32de0b0bc8"
+      },
+      "native_peak_rss_kib": 2295028,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-genuine-view-train-control-179061-v1/receipt.json",
+        "sha256": "a85d7ef29909d677a12510bdafce2e1edbcd8e62d768918af572bdd3cfa87a5f"
+      },
+      "service_seconds": 182.39,
+      "unit": "sfora-so400-genuine-view-train-control-179061-v1"
+    },
+    "terminal_state_sha256": "b78bd945256438bfd24873347e26d62c970bf9d85048663301d4fe1236ac35a9"
+  }
+}

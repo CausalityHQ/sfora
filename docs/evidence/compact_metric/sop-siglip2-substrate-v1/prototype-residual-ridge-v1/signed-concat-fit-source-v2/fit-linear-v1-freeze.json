@@ -1,0 +1,33 @@
+{
+  "arm": "linear",
+  "authority_sha256": "a1998762b729be99f818ab9631a233bf88cb539007489985bc9fbe6d1e570609",
+  "command_sha256": "bf61f5bc91121bc6688b589d192b2d0b9aadc2f3c4b7500836d8078364fe498f",
+  "execution_sha256": "a47933beafd8a1c0e2d541624328c8fe1d7b9a90f68977eee83c3c82223a56fe",
+  "launch_sha256": "b9762be55359319fc46563b80403b1896960203183dec65ab365df3300c5a0f6",
+  "output": "/home/riomus/runs/sfora-so400-signed-concat-fit-linear-v1",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "signed-concat-matched-fit-freeze-v1",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "32cb889b3b734c79bfbb84d20a82faf0",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/cpu-v2.log",
+      "sha256": "035b7b39b876353d60a054a125ac5fd8ca76ef9ad268a06970f688288aa9fe32"
+    },
+    "native_peak_rss_kib": 2854984,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-cpu-v2/receipt.json",
+      "sha256": "fb25c54c9d61a681bedabd38b267575858a3cd3a926fedbb6d5698291559ba92"
+    },
+    "service_seconds": 268.001,
+    "unit": "sfora-so400-signed-concat-cpu-v2"
+  },
+  "source_root": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2",
+  "stop_rule": "ONE original cold matched fit per arm sequential; full original integrity/reload/source gates. Any terminal failure stops procedure before quality. Both whole-service and full two-fit core candidate/control ratios <=1.50 before quality. Prior failures unchanged.",
+  "unit": "sfora-so400-signed-concat-fit-linear-v1"
+}
