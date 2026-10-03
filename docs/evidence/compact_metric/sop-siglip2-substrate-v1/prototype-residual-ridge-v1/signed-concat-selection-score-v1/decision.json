@@ -1,0 +1,40 @@
+{
+  "decision": "KILL_SIGNED_CONCAT_PROCEDURE_ONLY",
+  "host_peak_bytes": 3295375360,
+  "log_sha256": "4e12d4a0507571941d10f6ee79a935c448b77bce5e976b8d05893a729aaafcf9",
+  "native_rss_kib": 2902116,
+  "paired_intervals_fraction": {
+    "per_query_ap": {
+      "mean_delta": 0.002171869685115011,
+      "product_lower95": 0.000863631049777665,
+      "product_upper95": 0.0036941780054599027,
+      "query_lower95": 0.0008874648756582844,
+      "query_upper95": 0.003724709262205621
+    },
+    "per_query_r1": {
+      "mean_delta": 0.0005767012687427913,
+      "product_lower95": 0.0,
+      "product_upper95": 0.001859917251118779,
+      "query_lower95": 0.0,
+      "query_upper95": 0.0017301038062283738
+    }
+  },
+  "preserve": "Both useful fitted heads; R1 gate failure does not universal architecture KILL or complete product goal.",
+  "quality_percent": {
+    "concat": {
+      "map_at_r": 81.77754035543956,
+      "recall_at_1": 96.48212226066897
+    },
+    "linear": {
+      "map_at_r": 81.56035338692806,
+      "recall_at_1": 96.42445213379469
+    }
+  },
+  "quality_scope": "InShop previously observed TRAINselection1734q1715g498products; conditional one frozen source; noVALofficial",
+  "receipt_sha256": "74af97389df8ecedde38dcdfbdc44b23c80e471a616ea1bcdcf33cb3c4abf5b5",
+  "service_seconds": 316.522,
+  "source_percent": {
+    "map_at_r": 80.57229533585297,
+    "recall_at_1": 96.30911188004615
+  }
+}
