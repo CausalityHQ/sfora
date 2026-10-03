@@ -1,0 +1,32 @@
+{
+  "accepted": true,
+  "cpu_v3_initial_model_and_outputs_exact": true,
+  "events_zero": true,
+  "execution_sha256": "6cac313b87956c8218288f158f535e584a7cf6a7f2a1a8911d1b37680f949a49",
+  "gpu_gain_measured": false,
+  "host_peak_bytes": 8141516800,
+  "invocation_id": "807d72beca4d4935b6779074365673ee",
+  "log_sha256": "b948232b13bfa3024e4d460d929782e724e0d02641cb94ebd7124631a733daa9",
+  "native_wall_seconds": 207.46809331327677,
+  "next_gate": "ONE engineering-only current-byte native comparison300/body90 after exact driver freeze; no updates or quality; no mechanics admission from this CPU proof",
+  "phase_seconds": {
+    "accepted_payload_admission": 0.8451962769031525,
+    "authority": 49.59123434405774,
+    "calibration": 6.2094437959603965,
+    "cpu_loss_fixtures": 0.1455532037653029,
+    "independent_reload": 17.149510317947716,
+    "own_exit_rehash": 15.71612670365721,
+    "preparation": 33.640187196433544,
+    "save": 6.619268100243062,
+    "source_construction": 26.368981511797756,
+    "source_exit_rehash": 30.697320508770645,
+    "target_construction": 4.789757304824889
+  },
+  "quality_gain_measured": false,
+  "receipt_sha256": "15112575fef41f3109225e0335272fb634f389bc21472a772c02a2471a2f4ebe",
+  "rss_kib": 5805652,
+  "schema": "nearest-ranking-cpu-v4-parent-decision-v1",
+  "service_seconds": 209.495,
+  "swap_bytes": 0,
+  "unit": "sfora-so400-nearest-ranking-cpu-v4"
+}
