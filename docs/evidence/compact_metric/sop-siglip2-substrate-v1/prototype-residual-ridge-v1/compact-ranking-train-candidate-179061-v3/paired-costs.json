@@ -1,0 +1,15 @@
+{
+  "179061": {
+    "whole_service_ratio": 0.993448147979466,
+    "total_training_core_ratio": 1.0176856042184572,
+    "pass": true,
+    "control": {
+      "service_seconds": 307.394,
+      "total_training_core_seconds": 46.17883895384148
+    },
+    "candidate": {
+      "service_seconds": 305.38,
+      "total_training_core_seconds": 46.99553962284699
+    }
+  }
+}
