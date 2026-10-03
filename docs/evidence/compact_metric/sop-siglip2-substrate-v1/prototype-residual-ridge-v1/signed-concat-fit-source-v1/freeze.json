@@ -1,0 +1,26 @@
+{
+  "authority_sha256": "d0dee86d2da0767ff87ad366fcf7e859a4ca5556761ee5fef78a3386f6c8df5a",
+  "both_lock_paths": [
+    "/home/riomus/runs/.sfora-siglip2-gpu.lock",
+    "/home/riomus/.sfora-siglip2-gpu.lock"
+  ],
+  "code": {
+    "fit_siglip2_prototype_residual.py": "83e47dc0534d83e7e2848f453077109ec9f713a2efcba01a7f6e2e47f6a91ece",
+    "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+    "test_siglip2_prototype_residual.py": "78b32ba8633bde2e853c4633680fabfeb9138d745347a8ae648c376dc88d5b2b"
+  },
+  "command_sha256": "54e93d2bd463086d9c179364b590ef54e285ab5b83ef4e97cc220b7fd46a3308",
+  "execution_sha256": "ced15941c69f674e79740449cc12a3b0a1716221d6fb7cc4bc794a5726430fd8",
+  "output": "/home/riomus/runs/sfora-so400-signed-concat-cpu-v1",
+  "quality_read": false,
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "signed-concat-cpu-launch-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v1",
+  "stop_rule": "ONE original cold CPU300; two independently fitted fullTRAIN states per arm; common actual lambda bits; original+archived learnedlinear numerical parity; strictcompleteupdatedreload/zero-source/currentbyte-tamper/uncachedexit/source/resource pass. Any failure terminal closes trial before fits/quality. Prior failures remain FAIL; no retry/cap rescue. Only pass admits freshmatchedlinear+concat cost endpoints.",
+  "unit": "sfora-so400-signed-concat-cpu-v1"
+}
