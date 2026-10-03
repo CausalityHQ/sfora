@@ -1,0 +1,19 @@
+{
+  "decision": "ENGINEERING_PASS",
+  "gain_claim": "none; old timeout is censored, not a completed matched speed baseline",
+  "host_peak_bytes": 3176611840,
+  "host_swap_bytes": 0,
+  "invocation_id": "32cb889b3b734c79bfbb84d20a82faf0",
+  "log_sha256": "035b7b39b876353d60a054a125ac5fd8ca76ef9ad268a06970f688288aa9fe32",
+  "memory_events_all_zero": true,
+  "native_wall_seconds": 266.65777379320934,
+  "next": "Fresh matched linear then concat fits; whole service and full core ratios <=1.50 before selection quality; no official/validation reads yet.",
+  "original_exit": 0,
+  "original_session": 77509,
+  "prior_cpu_v1": "FAIL timeout300.149; unchanged",
+  "quality_read": false,
+  "receipt_sha256": "fb25c54c9d61a681bedabd38b267575858a3cd3a926fedbb6d5698291559ba92",
+  "schema": "signed-concat-cpu-terminal-decision-v1",
+  "service_seconds": 268.001,
+  "unit": "sfora-so400-signed-concat-cpu-v2"
+}
