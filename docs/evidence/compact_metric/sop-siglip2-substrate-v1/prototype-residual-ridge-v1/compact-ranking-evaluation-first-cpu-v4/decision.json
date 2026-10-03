@@ -1,0 +1,24 @@
+{
+  "status": "PASS_ENGINEERING",
+  "CPU": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-first-cpu-v4/receipt.json",
+      "sha256": "eb6f0b95c4ea8b43f6b3c084b6abd0a7cd1da8aa1c456c1c174c0f59d7f6e2a0"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v4/first-cpu-v4.log",
+      "sha256": "fd37befd4a8fbaea83993f240495c70aa0d73cff39ec31d96bcc77bc2ba41157"
+    },
+    "unit": "sfora-so400-compact-ranking-evaluation-first-cpu-v4",
+    "invocation_id": "5577b5f77d0d401aa41040795169ddd2",
+    "service_seconds": 219.131,
+    "native_peak_rss_kib": 1148732,
+    "both_locks_held": true
+  },
+  "host_peak_bytes": 1576837120,
+  "events": 0,
+  "swap": 0,
+  "quality_read": false,
+  "actual_check_receipt_and_STOP_pass": true,
+  "next": "first-export-control-179061-v1"
+}
