@@ -23,7 +23,7 @@ import statistics
 import sys
 import time
 from tempfile import TemporaryDirectory
-from types import FunctionType, SimpleNamespace
+from types import FunctionType, SimpleNamespace, MappingProxyType
 import weakref
 
 UNIT_STARTED = time.perf_counter()
@@ -73,7 +73,13 @@ RECIPE = {'seed': SEED, 'rows': 6355, 'classes': 1008, 'singletons': 12,
           'images': 'original canonical native256; no augmentation',
           'core': 'target construction + mining + decode/preprocess + forward/backward + optimizer'}
 LAUNCH_KEYS = {'schema', 'execution_sha256', 'phase', 'arm', 'seed', 'fitter', 'accepted',
-               'recipe', 'resource_policy', 'both_locks_held', 'selected_cpu', 'selected_mechanics'}
+               'recipe', 'resource_policy', 'both_locks_held', 'selected_cpu', 'selected_mechanics', 'native_authority'}
+NATIVE_PROOF_PINS = {
+    'proof': '5910eaca2a004aacd68bf15975222c0dfa5ddf270aafe5f383608ca1c4c4f027',
+    'decision': '15a6e7d687d9eb1a1598a0961c87a1cf0374b76547b3cda1662b23c33b86f287',
+    'log': '223cdb698747af05ccbd7184a8501651ec7cee1aa50a4be80a0d722833447558'}
+NATIVE_MEMBERS = {'libcudnn_engines_precompiled.so.9', 'libcudnn_engines_runtime_compiled.so.9',
+                  'libcudnn_graph.so.9', 'libcudnn_heuristic.so.9'}
 STATIC_KEYS = ('provenance', 'config', 'buffers', 'processor', 'head', 'classifier', 'A', 'means',
                'partition', 'original_rows', 'target', 'schedule', 'teachers', 'panel')
 PAYLOAD_KEYS = {'schema', 'identity', 'source', 'vision', *STATIC_KEYS, 'optimizer', 'scaler',
@@ -178,6 +184,7 @@ def check_launch(launch, args):
             launch['fitter'] == FITTER and launch['accepted'] == ACCEPTED and launch['recipe'] == RECIPE and
             launch['resource_policy'] == policy(args.phase) and launch['both_locks_held'] is True,
             'frozen nearest-ranking launch differs')
+    file_fact(launch['native_authority'])
     require((args.phase != 'cpu' or args.arm == 'control') and
             (launch['selected_cpu'] is None) == (args.phase == 'cpu') and
             (launch['selected_mechanics'] is None) == (args.phase != 'train'), 'phase prerequisites differ')
@@ -315,6 +322,260 @@ def startup_admission_adapter(fitter, guards):
     return SimpleNamespace(**{name: namespace[name] for name in nodes})
 
 
+
+def bind_native_authority(context):
+    """Prospective FILE authority; accepted vendor bytes never become origins."""
+    import base64
+    import csv
+    from email.parser import Parser
+    guards = context['guards']
+    fact = context['launch']['native_authority']
+    authority = read_json(fact, guards)
+    require(authority.keys() == {'schema', 'proof', 'decision', 'log'} and
+            authority['schema'] == 'siglip2-nearest-native-source-v1', 'exact native authority required')
+    for name, digest in NATIVE_PROOF_PINS.items():
+        file_fact(authority[name])
+        require(authority[name]['sha256'] == digest, 'accepted vendor proof binding differs')
+    proof, decision = (read_json(authority[name], guards) for name in ('proof', 'decision'))
+    bound_file(guards, authority['log']['path'], authority['log']['sha256'])
+    require(proof['pass'] is True and proof['exit_rehash_pass'] is True and
+            proof['native_imported'] is False and proof['original_native_authority_modified'] is False and
+            decision['decision'] == 'PASS_VENDOR_BYTE_PROVENANCE_ONLY' and decision['exit_code'] == 0 and
+            decision['proof_sha256'] == authority['proof']['sha256'] and
+            decision['log_sha256'] == authority['log']['sha256'] and
+            decision['invocation_id'] == proof['invocation']['invocation_id'] and
+            decision['unit'] == proof['authority']['unit'] and decision['memory_events_zero'] is True and
+            decision['swap_bytes'] == 0 and 0 < decision['service_seconds'] < 300 and
+            proof['wheel']['sha256'] == proof['authority']['official_wheel']['sha256'] and
+            proof['wheel']['size_bytes'] == proof['authority']['official_wheel']['size_bytes'] and
+            proof['comparison']['selected_record_entries_equal'] is True,
+            'qualified vendor terminal/wheel proof required')
+    site = Path(proof['authority']['installed_site_root'])
+    require(site.is_absolute() and site.resolve() == site and site.is_dir(), 'canonical installed site required')
+    evidence = proof['authority']['installed_evidence']
+    read_json(evidence, guards)
+    members = proof['comparison']['selected_members']
+    require(len(members) == 4 and {Path(n).name for n in members} == NATIVE_MEMBERS and
+            all(str(Path('nvidia/cudnn/lib') / Path(n).name) == n for n in members), 'exact four vendor members required')
+    files = {str(site / name): value['sha256'] for name, value in members.items()}
+    record_paths = proof['installed_record_ownership']['records']
+    require(len(record_paths) == len(set(record_paths)) and
+            set(record_paths) == {str(p.resolve()) for p in site.glob('*.dist-info/RECORD')},
+            'installed ownership RECORD inventory differs')
+    owners = {p: [] for p in files}
+    for record in record_paths:
+        expected = proof['input_guards'][record]
+        path = bound_file(guards, record, expected['sha256'])
+        require(path.stat().st_size == expected['size_bytes'], 'RECORD size differs')
+        with path.open(newline='') as stream:
+            rows = list(csv.reader(stream))
+        for row in rows:
+            require(len(row) == 3, 'malformed installed RECORD')
+            target = str((site / row[0]).resolve())
+            if target in owners:
+                value = members[str(Path(target).relative_to(site))]
+                encoded = base64.urlsafe_b64encode(bytes.fromhex(value['sha256'])).decode().rstrip('=')
+                require(row[1:] == ['sha256=' + encoded, str(value['size_bytes'])], 'vendor RECORD hash/size differs')
+                owners[target].append(record)
+    require(owners == proof['installed_record_ownership']['owners'] and
+            all(len(value) == 1 for value in owners.values()) and
+            len({value[0] for value in owners.values()}) == 1, 'unique installed vendor ownership required')
+    owner = Path(next(iter(owners.values()))[0]).parent
+    for name in ('METADATA', 'WHEEL'):
+        path = str(owner / name)
+        expected = proof['input_guards'][path]
+        bound_file(guards, path, expected['sha256'])
+        require(Path(path).stat().st_size == expected['size_bytes'] and
+                proof['comparison']['metadata'][name]['bytes_equal'] is True and
+                proof['comparison']['metadata'][name]['installed_sha256'] == expected['sha256'] ==
+                proof['comparison']['metadata'][name]['wheel_sha256'], 'installed vendor metadata differs')
+    metadata = Parser().parsestr((owner / 'METADATA').read_text())
+    require(metadata['Name'] == 'nvidia-cudnn-cu13' and metadata['Version'] == '9.20.0.48',
+            'installed vendor distribution differs')
+    for name, value in members.items():
+        path = site / name
+        require(proof['input_guards'][str(path)] == value, 'vendor member FILE proof differs')
+        bound_file(guards, path, value['sha256'])
+        require(path.stat().st_size == value['size_bytes'], 'vendor library size differs')
+    context['source'] = {**context['source'], 'native_authority': dict(fact)}
+    paths = {fact['path'], *(authority[n]['path'] for n in NATIVE_PROOF_PINS), evidence['path'],
+             *record_paths, str(owner / 'METADATA'), str(owner / 'WHEEL'), *files}
+    return (MappingProxyType({'files': MappingProxyType(files), 'modules': MappingProxyType({})}),
+            tuple((p, guards[p], Path(p).stat().st_size) for p in sorted(paths)), tuple(sorted(record_paths)))
+
+
+def native_source_api(context, _owned={}):
+    """Owned exact-four audit and exit dispatch; authenticate before every call."""
+    import ast
+    import copy
+    existing = _owned.get(id(context))
+    if existing is not None:
+        owner, authenticate, api = existing
+        require(owner is context, 'owned native context identity changed')
+        authenticate()
+        return api
+    require('native_source_owned' not in context, 'untrusted native API snapshot')
+    cached = None
+    guards, legacy, old, fitter = (context[k] for k in ('guards', 'legacy', 'old', 'fitter'))
+    supplement, supplement_guards, records = bind_native_authority(context)
+    site = Path(records[0]).parent.parent
+    fit_context = context['fit_context']
+    context_dependencies = (legacy['original'], legacy['source_driver'], legacy['extract'])
+    trusted_sha256 = hashlib.sha256
+    source_fact = dict(context['source']['native_authority'])
+    supplemental_items = tuple(sorted(supplement['files'].items()))
+    functions, namespaces, modules, classes = [], [], [], []
+    trees = {}
+    # These indirect live dependencies were absent from the historical shallow guard.
+    for module in (old, fitter, legacy['original'], legacy['source_driver'], legacy['extract']):
+        path = Path(module.__file__)
+        require(module.__spec__ is not None and Path(module.__spec__.origin) == path and
+                path.is_absolute() and str(path) in guards, 'native dependency source origin differs')
+        digest = guards[str(path)]
+        raw = bound_file(guards, path, digest).read_bytes()
+        require(hashlib.sha256(raw).hexdigest() == digest, 'native dependency source changed before compilation')
+        tree, compiled = ast.parse(raw, filename=str(path)), compile(raw, str(path), 'exec')
+        trees[id(module)] = tree
+        modules.append((module, path, digest, module.__spec__, module.__spec__.loader))
+        namespaces.append((vars(module), dict(vars(module))))
+        def admit_function(owner, node, code):
+            fn = getattr(owner, node.name)
+            if isinstance(fn, property):
+                fn = fn.fget
+            require(isinstance(fn, FunctionType) and fn.__globals__ is vars(module) and
+                    fn.__code__ == code and fn.__code__.co_filename == str(path),
+                    'native live dependency code differs: ' + node.name)
+            default_node = copy.deepcopy(node)
+            default_node.decorator_list = []
+            defaults_namespace = dict(vars(module))
+            exec(compile(ast.Module(body=[default_node], type_ignores=[]), str(path), 'exec'), defaults_namespace)
+            expected = defaults_namespace[node.name]
+            require(fn.__defaults__ == expected.__defaults__ and fn.__kwdefaults__ == expected.__kwdefaults__,
+                    'native live dependency defaults differ: ' + node.name)
+            functions.append((owner, node.name, fn, fn.__code__, fn.__defaults__, copy.deepcopy(fn.__kwdefaults__), fn.__globals__))
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef):
+                code = next(c for c in compiled.co_consts if getattr(c, 'co_name', None) == node.name)
+                admit_function(module, node, code)
+            elif isinstance(node, ast.ClassDef) and node.name == 'FlatAdmission':
+                owner = getattr(module, node.name)
+                classes.append((owner, dict(vars(owner))))
+                code = next(c for c in compiled.co_consts if getattr(c, 'co_name', None) == node.name)
+                for member in node.body:
+                    if isinstance(member, ast.FunctionDef):
+                        method_code = next(c for c in code.co_consts if getattr(c, 'co_name', None) == member.name)
+                        admit_function(owner, member, method_code)
+    dump = lambda node: ast.dump(node, include_attributes=False)
+    def adapted(module, name, before=None, after=None):
+        original = next(n for n in trees[id(module)].body if isinstance(n, ast.FunctionDef) and n.name == name)
+        node = copy.deepcopy(original)
+        if before is not None:
+            class Substitute(ast.NodeTransformer):
+                def __init__(self, source, target):
+                    self.source, self.target, self.count = source, target, 0
+                def visit(self, node):
+                    if dump(node) == dump(self.source):
+                        self.count += 1
+                        return ast.copy_location(copy.deepcopy(self.target), node)
+                    return super().visit(node)
+            change = Substitute(ast.parse(before, mode='eval').body, ast.parse(after, mode='eval').body)
+            node = change.visit(node)
+            inverse = Substitute(ast.parse(after, mode='eval').body, ast.parse(before, mode='eval').body)
+            restored = inverse.visit(copy.deepcopy(node))
+            require(change.count == inverse.count == 1 and dump(restored) == dump(original),
+                    'native adapter changed retained predicates: ' + name)
+        else:
+            require(dump(node) == dump(original), 'native quadratic exit body changed')
+        namespace = dict(vars(module))
+        return node, namespace
+    audit_node, audit_ns = adapted(old, 'audit_origins',
+        "(expected, context['warm_record']['origins'])", "(expected, context['warm_record']['origins'], _nearest_supplement)")
+    audit_ns['_nearest_supplement'] = supplement
+    quadratic_node, quadratic_ns = adapted(old, 'exit_rehash')
+    fitter_node, fitter_ns = adapted(fitter, 'exit_rehash',
+        "context['old'].exit_rehash(context['legacy'])", "_nearest_quadratic_exit(context['legacy'])")
+    private_functions = []
+    for node, namespace, module in ((audit_node, audit_ns, old), (quadratic_node, quadratic_ns, old),
+                                    (fitter_node, fitter_ns, fitter)):
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), module.__file__, 'exec'), namespace)
+        private_functions.append(namespace[node.name])
+    private_audit, quadratic_exit, fitter_exit = private_functions
+    def audit_origins(value, initial=False, admission=None, *, require_exact=False):
+        authenticate()
+        require(value is legacy, 'owned legacy context required')
+        private_audit(value, initial=initial, admission=admission)
+        origins = value['origins']
+        observed = set(origins['files']) & set(supplement['files'])
+        require(observed <= set(origins['native_files']), 'supplemental origin missing native mapping')
+        if require_exact:
+            known = set(value['selected']['source_cpu']['origins']['files']) | set(value['warm_record']['origins']['files'])
+            require(set(origins['files']) - known == set(supplement['files']) and
+                    set(supplement['files']) <= set(origins['native_files']), 'observed native difference must be exact four')
+    quadratic_ns['audit_origins'] = audit_origins
+    fitter_ns['_nearest_quadratic_exit'] = quadratic_exit
+    def exit_rehash(value):
+        authenticate()
+        require(value is context['fit_context'], 'owned fitter context required')
+        return fitter_exit(value)
+    api = SimpleNamespace(audit_origins=audit_origins, exit_rehash=exit_rehash)
+    owned_namespaces = [(ns, dict(ns)) for ns in (audit_ns, quadratic_ns, fitter_ns)]
+    exported = dict(vars(api))
+    literal_globals = [(values, name, copy.deepcopy(value)) for values, _ in namespaces
+                       for name, value in values.items() if name != '__builtins__' and
+                       isinstance(value, (dict, list, tuple, set, frozenset))]
+    owned_functions = []
+    def authenticate():
+        require(hashlib.sha256 is trusted_sha256, 'native hash dependency changed')
+        require(context['old'] is old and context['fitter'] is fitter and context['fit_context'] is fit_context and
+                fit_context['legacy'] is legacy and fit_context['old'] is old and
+                all(legacy[n] is module for n, module in zip(('original', 'source_driver', 'extract'), context_dependencies)),
+                'native context dependency binding changed')
+        require(context.get('native_source_owned') is cached and cached['api'] is api and
+                cached['authenticate'] is authenticate and authenticate.__code__ is authentication_code and
+                context['source']['native_authority'] == source_fact and
+                tuple(sorted(supplement['files'].items())) == supplemental_items and not supplement['modules'] and
+                vars(api).keys() == exported.keys() and all(vars(api)[n] is fn for n, fn in exported.items()),
+                'native owned API/supplement changed')
+        for module, path, digest, spec, loader in modules:
+            require(module.__spec__ is spec and spec.loader is loader and
+                    Path(module.__file__) == Path(spec.origin) == path, 'native dependency origin changed')
+            bound_file({}, path, digest)
+        for values, members in (*namespaces, *owned_namespaces):
+            require(values.keys() == members.keys() and all(values[n] is v for n, v in members.items()),
+                    'native private/original global binding changed')
+        require(all(values[name] == value for values, name, value in literal_globals),
+                'native original global contents changed')
+        for owner, members in classes:
+            require(vars(owner).keys() == members.keys() and all(vars(owner)[n] is v for n, v in members.items()),
+                    'native fresh reader method binding changed')
+        for owner, name, fn, code, defaults, kwdefaults, values in functions:
+            actual = getattr(owner, name)
+            if isinstance(actual, property):
+                actual = actual.fget
+            require(actual is fn and fn.__code__ is code and fn.__defaults__ == defaults and
+                    fn.__kwdefaults__ == kwdefaults and fn.__globals__ is values,
+                    'native live dependency changed: ' + name)
+        for fn, code, defaults, kwdefaults, values, cells in owned_functions:
+            require(fn.__code__ is code and fn.__defaults__ == defaults and fn.__kwdefaults__ == kwdefaults and
+                    fn.__globals__ is values and len(fn.__closure__ or ()) == len(cells) and
+                    all(c.cell_contents is v for c, v in zip(fn.__closure__ or (), cells)), 'native private function changed')
+        # Reopen every supplemental FILE; neither startup nor exit reader caches qualify these bytes.
+        require(set(records) == {str(p.resolve()) for p in site.glob('*.dist-info/RECORD')},
+                'native ownership RECORD inventory changed')
+        for path, digest, size in supplement_guards:
+            bound_file({}, path, digest)
+            require(Path(path).stat().st_size == size, 'native supplemental FILE size changed')
+    authentication_code = authenticate.__code__
+    cached = {'api': api, 'authenticate': authenticate}
+    context['native_source_owned'] = cached
+    _owned[id(context)] = (context, authenticate, api)
+    owned_functions = [(fn, fn.__code__, fn.__defaults__, copy.deepcopy(fn.__kwdefaults__), fn.__globals__,
+                        tuple(cell.cell_contents for cell in fn.__closure__ or ()))
+                       for fn in (*private_functions, audit_origins, exit_rehash)]
+    authenticate()
+    return api
+
+
 def authority(args):
     require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native import preceded admission')
     root, guards = Path(__file__).absolute().parent, {}
@@ -343,8 +604,9 @@ def authority(args):
                                  code['nearest_ranking_readout.py'], guards)
     context = {'args': args, 'root': root, 'guards': guards, 'code': code, 'launch': launch,
                'fitter': fitter, 'fit_context': original, 'legacy': original['legacy'], 'old': original['old'],
-               'source': original['source'], 'accepted_record': accepted_record, 'readout': readout,
+               'source': dict(original['source']), 'accepted_record': accepted_record, 'readout': readout,
                'phase_seconds': {}, 'terminals': {}, 'terminal_cgroups': {}, 'started': UNIT_STARTED}
+    native_source_api(context)
     context['required_guards'] = {p: h for p, h in guards.items() if p != str(args.authority)}
     wanted = [] if args.phase == 'cpu' else [('cpu', 'control', launch['selected_cpu'])]
     if args.phase == 'train':
@@ -673,7 +935,7 @@ def prepare_native(context):
     context['initial'] = initial
     context['flags'] = legacy['flags']
     # Every original preparation check is reused unchanged, with procedure-owned context.
-    context['old'].audit_origins(legacy)
+    native_source_api(context).audit_origins(legacy)
     context['initial_static_sha256'] = fingerprint(context, initial)
     return initial
 
@@ -1595,7 +1857,7 @@ def exit_rehash(context):
     require_no_model(context)
     with timed(context, 'source_exit_rehash'):
         helper_guard(context)
-        context['fitter'].exit_rehash(context['fit_context'])
+        native_source_api(context).exit_rehash(context['fit_context'])
     with timed(context, 'own_exit_rehash'):
         for p, h in context['guards'].items():
             bound_file({}, p, h)
@@ -1639,7 +1901,7 @@ def run(args):
     result = cpu_witnesses(context) if args.phase == 'cpu' else gpu_run(context)
     require(torch.equal(rng, torch.random.get_rng_state()) and source.numerical_flags() == flags,
             'constructor/forward/update/reload RNG/flags changed')
-    context['old'].audit_origins(legacy)
+    native_source_api(context).audit_origins(legacy)
     origins = legacy['origins']
     for p, h in origins['files'].items():
         bound_file(context['guards'], p, h)

@@ -463,6 +463,7 @@ class StartupAdmissionFixture:
             'arm': arm, 'seed': driver.SEED, 'fitter': copy.deepcopy(driver.FITTER),
             'accepted': copy.deepcopy(driver.ACCEPTED), 'recipe': copy.deepcopy(driver.RECIPE),
             'resource_policy': driver.policy(phase), 'both_locks_held': True,
+            'native_authority': {'path': '/native-authority.json', 'sha256': 'a' * 64},
             'selected_cpu': copy.deepcopy(selected), 'selected_mechanics': None}
         authority = self.write_json('authority-' + str(ordinal), launch)
         output = self.root / ('stage-' + str(ordinal))
@@ -942,9 +943,55 @@ def current_byte_source_boundary(tree):
     return tree
 
 
+
+def native_source_boundary(tree):
+    """Invert only exact-four authority/dispatch edits; retain prior AST hashes."""
+    dump = lambda n: ast.dump(n, include_attributes=False)
+    added = {'bind_native_authority', 'native_source_api'}
+    for name in added:
+        driver.require(sum(isinstance(n, ast.FunctionDef) and n.name == name for n in tree.body) == 1,
+                       'exact native definition required')
+    tree.body = [n for n in tree.body if not (isinstance(n, ast.FunctionDef) and n.name in added) and
+                 not (isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and
+                      t.id in {'NATIVE_PROOF_PINS', 'NATIVE_MEMBERS'} for t in n.targets))]
+    for n in tree.body:
+        if isinstance(n, ast.ImportFrom) and n.module == 'types':
+            driver.require(sum(a.name == 'MappingProxyType' for a in n.names) == 1, 'exact native import required')
+            n.names = [a for a in n.names if a.name != 'MappingProxyType']
+        if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'LAUNCH_KEYS' for t in n.targets):
+            driver.require(sum(isinstance(v, ast.Constant) and v.value == 'native_authority' for v in n.value.elts) == 1,
+                           'exact native launch key required')
+            n.value.elts = [v for v in n.value.elts if not (isinstance(v, ast.Constant) and v.value == 'native_authority')]
+    functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    for name, statement in [('check_launch', "file_fact(launch['native_authority'])"),
+                            ('authority', 'native_source_api(context)')]:
+        node = functions[name]
+        matches = [n for n in node.body if dump(n) == dump(ast.parse(statement).body[0])]
+        driver.require(len(matches) == 1, 'exact native authority binding required')
+        node.body.remove(matches[0])
+    replacements = {
+        "dict(original['source'])": ("original['source']", 1),
+        'native_source_api(context).audit_origins(legacy)': ("context['old'].audit_origins(legacy)", 2),
+        "native_source_api(context).exit_rehash(context['fit_context'])":
+            ("context['fitter'].exit_rehash(context['fit_context'])", 1)}
+    class Inverse(ast.NodeTransformer):
+        def __init__(self): self.counts = dict.fromkeys(replacements, 0)
+        def visit_Call(self, node):
+            for before, (after, _) in replacements.items():
+                if dump(node) == dump(ast.parse(before, mode='eval').body):
+                    self.counts[before] += 1
+                    return ast.copy_location(ast.parse(after, mode='eval').body, node)
+            return self.generic_visit(node)
+    inverse = Inverse()
+    tree = inverse.visit(tree)
+    driver.require(all(inverse.counts[n] == count for n, (_, count) in replacements.items()),
+                   'exact native dispatch/source substitutions required')
+    return tree
+
+
 def startup_source_boundary(tree):
     """Invert only the authorized startup dispatch to retain the prior AST proof."""
-    tree = current_byte_source_boundary(tree)
+    tree = current_byte_source_boundary(native_source_boundary(tree))
     added = {'authenticate_startup_reader', 'startup_admission_adapter'}
     for name in added:
         driver.require(sum(isinstance(n, ast.FunctionDef) and n.name == name for n in tree.body) == 1,
@@ -1142,7 +1189,255 @@ class FitterStartupFixture(StartupAdmissionFixture):
             case.assertIs(vars(self.original.FlatAdmission)[name], value)
 
 
+
+class NativeAdmissionFixture(StartupAdmissionFixture):
+    """Actual pinned audit, quadratic exit, fitter exit and fresh reader; no Torch."""
+    def __init__(self, root):
+        super().__init__(root)
+        import base64
+        import csv
+        self.site = root / 'site'
+        owner = self.site / 'nvidia_cudnn_cu13-9.20.0.48.dist-info'
+        owner.mkdir(parents=True)
+        self.members = {}
+        rows = []
+        for i, name in enumerate(sorted(driver.NATIVE_MEMBERS)):
+            member = 'nvidia/cudnn/lib/' + name
+            path = self.site / member
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(('native' + str(i)).encode())
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            self.members[member] = {'sha256': digest, 'size_bytes': path.stat().st_size}
+            rows.append([member, 'sha256=' + base64.urlsafe_b64encode(bytes.fromhex(digest)).decode().rstrip('='), str(path.stat().st_size)])
+        (owner / 'METADATA').write_text('Name: nvidia-cudnn-cu13\nVersion: 9.20.0.48\n')
+        (owner / 'WHEEL').write_text('Wheel-Version: 1.0\nTag: py3-none-manylinux_2_27_aarch64\n')
+        with (owner / 'RECORD').open('w', newline='') as stream: csv.writer(stream).writerows(rows)
+        self.records = [str(owner / 'RECORD')]
+        inputs = {str(p): {'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'size_bytes': p.stat().st_size}
+                  for p in (*[self.site / n for n in self.members], owner / 'METADATA', owner / 'WHEEL', owner / 'RECORD')}
+        self.files = {str(self.site / n): v['sha256'] for n, v in self.members.items()}
+        wheel = {'sha256': 'a' * 64, 'size_bytes': 10}
+        self.proof = {'pass': True, 'exit_rehash_pass': True, 'native_imported': False,
+            'original_native_authority_modified': False, 'invocation': {'invocation_id': '1' * 32},
+            'authority': {'unit': 'vendor-test', 'installed_site_root': str(self.site), 'official_wheel': wheel,
+                          'installed_evidence': self.write_json('installed.json', {})},
+            'wheel': wheel, 'input_guards': inputs,
+            'comparison': {'selected_members': self.members, 'selected_record_entries_equal': True,
+                'metadata': {n: {'bytes_equal': True, 'installed_sha256': inputs[str(owner / n)]['sha256'],
+                                'wheel_sha256': inputs[str(owner / n)]['sha256']} for n in ('METADATA', 'WHEEL')}},
+            'installed_record_ownership': {'records': self.records, 'owners': {p: self.records.copy() for p in self.files}}}
+        log = self.write('vendor.log', b'accepted vendor terminal\n')
+        self.authority = {'schema': 'siglip2-nearest-native-source-v1', 'proof': self.write_json('vendor-proof.json', self.proof),
+            'log': log, 'decision': self.write_json('vendor-decision.json', {
+                'decision': 'PASS_VENDOR_BYTE_PROVENANCE_ONLY', 'exit_code': 0,
+                'proof_sha256': self.write_json('vendor-proof.json', self.proof)['sha256'], 'log_sha256': log['sha256'],
+                'unit': 'vendor-test', 'invocation_id': '1' * 32, 'memory_events_zero': True, 'swap_bytes': 0, 'service_seconds': 1.})}
+        self.pins = {n: self.authority[n]['sha256'] for n in driver.NATIVE_PROOF_PINS}
+        self.context['launch'] = {'native_authority': self.write_json('native-authority.json', self.authority)}
+        self.inventory = root / 'observed.json'
+        self.set_origins(self.files)
+        source_path = root / 'origin-source.py'
+        source_path.write_text('from pathlib import Path\nimport json\n'
+            f'INVENTORY = Path({str(self.inventory)!r})\n'
+            'def imported_origins(extract, packages):\n'
+            '    origins = json.loads(INVENTORY.read_text())\n'
+            '    origins["files"] = {p: extract.sha(p) for p in origins["files"]}\n'
+            '    return origins\n'
+            'def fit_rows(extract, fit): return []\n'
+            'def bootstrap(root, sha): return None, {}\n')
+        spec = importlib.util.spec_from_file_location('_native_fixture_source', source_path)
+        self.source = importlib.util.module_from_spec(spec)
+        exec(compile(source_path.read_bytes(), str(source_path), 'exec'), vars(self.source))
+        self.extract = self.module('extract_siglip2_vision_source.py')
+        guards = self.context['guards']
+        for module in (self.old, self.fitter, self.original, self.source, self.extract):
+            guards[module.__file__] = hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()
+        oldroot, fitroot = root / 'old', root / 'fit'
+        oldroot.mkdir(); fitroot.mkdir()
+        def code_closure(destination, names):
+            for name in names: (destination / name).write_bytes(PATH.with_name(name).read_bytes())
+            code = {n: hashlib.sha256((destination / n).read_bytes()).hexdigest() for n in names}
+            fact = self.write_json(str(destination.relative_to(root) / 'execution.json'), code)
+            return code, fact['sha256']
+        oldcode, oldsha = code_closure(oldroot, self.old.FILES)
+        fitcode, fitsha = code_closure(fitroot, self.fitter.FILES)
+        # 13283 distinct zero-byte image FILEs exercise the genuine FIT cardinality/reader predicate.
+        images = root / 'images'; images.mkdir()
+        paths = [images / str(i) for i in range(13283)]
+        for path in paths: path.touch()
+        prior = {'source_driver': self.source, 'extract': self.extract,
+            'fit': {'dataset_root': str(images), 'rows': [{'relative_path': p.name, 'image_sha256': hashlib.sha256(b'').hexdigest()} for p in paths]},
+            'all_images': paths, 'images': [], 'guards': {}, 'root': root, 'code': {}, 'args': SimpleNamespace(execution_sha256='a' * 64),
+            'own_root': root, 'own_code': {}, 'export_args': SimpleNamespace(execution_sha256='a' * 64)}
+        exporter = SimpleNamespace(FILES=set(), closure=lambda *a: {}, file_json=lambda *a: {},
+            selected_manifest=lambda *a: {'original_rows': []}, image_rows_node=lambda *a: None)
+        genuine = {'prior': prior, 'reference': SimpleNamespace(bootstrap=lambda *a: {}), 'guards': {},
+            'root': root, 'args': SimpleNamespace(execution_sha256='a' * 64), 'code': {},
+            'launch': {'partition': {}, 'image_rows': {'path': str(root / 'rows.json')}},
+            'selected': {'original_rows': [], 'resolved_paths': []}}
+        self.legacy.update(source_driver=self.source, extract=self.extract, prior=prior,
+            warm_record={'origins': {'files': {}, 'modules': {}}},
+            selected={'packages': {}, 'source_cpu': {'origins': {'files': {}, 'modules': {}}}, 'genuine': genuine, 'exporter': exporter},
+            root=oldroot, args=SimpleNamespace(phase='mechanics', execution_sha256=oldsha), code=oldcode, phase_seconds={})
+        self.context['fit_context'].update(legacy=self.legacy, old=self.old, root=fitroot, code=fitcode,
+            args=SimpleNamespace(phase='fit', execution_sha256=fitsha), phase_seconds={}, unit_started=time.perf_counter())
+        self.fitter.prepare_readout(self.context['fit_context'])
+        self.api = None
+        self.original_state = [(m, dict(vars(m))) for m in (self.old, self.fitter, self.original, self.source, self.extract)]
+    def set_origins(self, files, native=None, modules=None):
+        self.inventory.write_text(json.dumps({'files': files, 'native_files': list(files) if native is None else native,
+                                              'modules': modules or {}}))
+    def admit(self):
+        with patch.object(driver, 'NATIVE_PROOF_PINS', self.pins):
+            self.api = driver.native_source_api(self.context)
+        return self.api
+    def unchanged_originals(self, case):
+        for module, members in self.original_state:
+            case.assertEqual(vars(module).keys(), members.keys())
+            case.assertTrue(all(vars(module)[n] is v for n, v in members.items()))
+
+
 class NearestRankingTests(unittest.TestCase):
+
+    def test_native_actual_adapters_exact_four_and_exit_mutation_matrix(self):
+        started = time.perf_counter()
+        with TemporaryDirectory() as directory, patch.dict(sys.modules):
+            f = NativeAdmissionFixture(Path(directory))
+            archived_source = f.context['source']
+            with self.assertRaisesRegex(ValueError, 'unknown or changed'):
+                f.old.audit_origins(f.legacy)
+            api = f.admit()
+            self.assertIsNot(f.context['source'], archived_source)
+            self.assertNotIn('native_authority', archived_source)
+            api.audit_origins(f.legacy, require_exact=True)
+            with self.assertRaisesRegex(ValueError, 'original CPU'):
+                api.audit_origins(f.legacy, initial=True)
+            with redirect_stdout(io.StringIO()):
+                api.exit_rehash(f.context['fit_context'])
+            for files, native, modules, error in [
+                (f.files, [], {}, 'missing native'),
+                ({**f.files, f.bulk[0]['path']: f.bulk[0]['sha256']}, list(f.files), {}, 'unknown or changed'),
+                (dict(list(f.files.items())[:-1]), list(f.files), {}, 'exact four'),
+                (f.files, list(f.files), {'torch.unknown': '/unknown.py'}, 'unknown or changed')]:
+                f.set_origins(files, native, modules)
+                with self.assertRaisesRegex(ValueError, error): api.audit_origins(f.legacy, require_exact=True)
+                if error != 'exact four':
+                    f.context['fit_context']['phase_seconds'].clear()
+                    with self.assertRaisesRegex(ValueError, error): api.exit_rehash(f.context['fit_context'])
+            f.set_origins(f.files)
+            for owner, name in [(f.source, 'imported_origins'), (f.extract, 'sha'), (f.original.FlatAdmission, 'bound_file')]:
+                with patch.object(owner, name, lambda *a: {}):
+                    with self.assertRaisesRegex(ValueError, 'binding changed|dependency changed'):
+                        api.exit_rehash(f.context['fit_context'])
+            for name, replacement in [('source_driver', SimpleNamespace(imported_origins=lambda *a: {'files': {}, 'modules': {}, 'native_files': []})),
+                                      ('extract', SimpleNamespace(sha=f.extract.sha))]:
+                with patch.dict(f.legacy, {name: replacement}):
+                    with self.assertRaisesRegex(ValueError, 'context dependency binding changed'):
+                        api.audit_origins(f.legacy)
+            with patch.object(f.extract.hashlib, 'sha256', lambda *a: None):
+                with self.assertRaisesRegex(ValueError, 'hash dependency changed'): api.exit_rehash(f.context['fit_context'])
+            with patch.dict(f.fitter.ORIGINAL_CODE, {'extra.py': 'a' * 64}):
+                with self.assertRaisesRegex(ValueError, 'global contents changed'): api.exit_rehash(f.context['fit_context'])
+            fn = f.source.imported_origins
+            code = fn.__code__
+            try:
+                fn.__code__ = (lambda *a: {}).__code__
+                with self.assertRaisesRegex(ValueError, 'dependency changed'): api.audit_origins(f.legacy)
+            finally: fn.__code__ = code
+            # The dispatch dictionary is private; its exported closure still lets the falsifier tamper it.
+            fitter_exit = next(c.cell_contents for c in api.exit_rehash.__closure__ if
+                              isinstance(c.cell_contents, driver.FunctionType) and c.cell_contents.__name__ == 'exit_rehash')
+            private = fitter_exit.__globals__
+            with patch.dict(private, {'_nearest_quadratic_exit': lambda *a: None}):
+                with self.assertRaisesRegex(ValueError, 'global binding changed'): api.exit_rehash(f.context['fit_context'])
+            original_audit = private['_nearest_quadratic_exit'].__globals__['audit_origins']
+            with patch.dict(private['_nearest_quadratic_exit'].__globals__, {'audit_origins': lambda *a, **kw: None}):
+                with self.assertRaisesRegex(ValueError, 'global binding changed'): api.exit_rehash(f.context['fit_context'])
+            self.assertIs(private['_nearest_quadratic_exit'].__globals__['audit_origins'], original_audit)
+            for path in (Path(next(iter(f.files))), Path(f.authority['proof']['path']), Path(f.source.__file__)):
+                raw, saved = path.read_bytes(), path.stat()
+                try:
+                    path.write_bytes(b'x' * len(raw)); os.utime(path, ns=(saved.st_atime_ns, saved.st_mtime_ns))
+                    for action in (lambda: api.audit_origins(f.legacy), lambda: api.exit_rehash(f.context['fit_context'])):
+                        with self.assertRaisesRegex(ValueError, 'SHA256'): action()
+                finally: path.write_bytes(raw)
+            with patch.dict(f.context['native_source_owned'], {'authenticate': lambda: None}):
+                with self.assertRaisesRegex(ValueError, 'owned API/supplement changed'):
+                    driver.native_source_api(f.context)
+            with patch.object(api, 'audit_origins', lambda *a, **kw: None):
+                with self.assertRaisesRegex(ValueError, 'owned API/supplement changed'): api.exit_rehash(f.context['fit_context'])
+            original_kwdefaults = api.audit_origins.__kwdefaults__
+            try:
+                api.audit_origins.__kwdefaults__ = {'require_exact': True}
+                with self.assertRaisesRegex(ValueError, 'private function changed'): api.exit_rehash(f.context['fit_context'])
+            finally: api.audit_origins.__kwdefaults__ = original_kwdefaults
+            defaults = fitter_exit.__defaults__
+            try:
+                fitter_exit.__defaults__ = (object(),)
+                with self.assertRaisesRegex(ValueError, 'private function changed'): api.exit_rehash(f.context['fit_context'])
+            finally: fitter_exit.__defaults__ = defaults
+            private_audit = next(c.cell_contents for c in api.audit_origins.__closure__ if
+                                 isinstance(c.cell_contents, driver.FunctionType) and c.cell_contents.__name__ == 'audit_origins')
+            with patch.dict(private_audit.__globals__, {'_nearest_supplement': {'files': {}, 'modules': {}}}):
+                with self.assertRaisesRegex(ValueError, 'global binding changed'): api.exit_rehash(f.context['fit_context'])
+            prior = f.legacy['selected']['genuine']['prior']
+            f.context['fit_context']['phase_seconds'].clear()
+            prior['images'] = ['FIT failure']
+            with self.assertRaisesRegex(ValueError, 'FIT image resolution'):
+                api.exit_rehash(f.context['fit_context'])
+            prior['images'] = []
+            genuine = f.legacy['selected']['genuine']
+            f.context['fit_context']['phase_seconds'].clear()
+            genuine['selected']['original_rows'] = [0]
+            with self.assertRaisesRegex(ValueError, 'TRAIN mapping'):
+                api.exit_rehash(f.context['fit_context'])
+            genuine['selected']['original_rows'] = []
+            f.legacy['warm_record']['origins']['files'][next(iter(f.files))] = '0' * 64
+            with self.assertRaisesRegex(ValueError, 'conflicting original'):
+                api.audit_origins(f.legacy)
+            f.legacy['warm_record']['origins']['files'].clear()
+            f.unchanged_originals(self)
+            self.assertLess(sum(p.stat().st_size for p in Path(directory).rglob('*') if p.is_file()), 16 * 1024**2)
+        self.assertLess(time.perf_counter() - started, 15)
+
+
+    def test_native_vendor_record_metadata_semantics(self):
+        with TemporaryDirectory() as directory, patch.dict(sys.modules):
+            f = NativeAdmissionFixture(Path(directory))
+            baseline_proof = copy.deepcopy(f.proof)
+            record = Path(f.records[0]); metadata = record.with_name('METADATA')
+            record_raw, metadata_raw = record.read_bytes(), metadata.read_bytes()
+            base_source = dict(f.context['source'])
+            for kind, error in [('duplicate', 'unique installed'), ('hash', 'RECORD hash/size'),
+                                ('size', 'RECORD hash/size'), ('owner', 'unique installed'),
+                                ('version', 'distribution differs')]:
+                record.write_bytes(record_raw); metadata.write_bytes(metadata_raw)
+                proof = copy.deepcopy(baseline_proof)
+                if kind == 'duplicate': record.write_bytes(record_raw + record_raw.splitlines(keepends=True)[0])
+                elif kind == 'hash': record.write_bytes(record_raw.replace(b'sha256=', b'sha512=', 1))
+                elif kind == 'size': record.write_bytes(record_raw.replace(b',7', b',8', 1))
+                elif kind == 'owner': proof['installed_record_ownership']['owners'][next(iter(f.files))] = []
+                else:
+                    metadata.write_bytes(metadata_raw.replace(b'9.20.0.48', b'9.20.0.49'))
+                for path in (record, metadata):
+                    value = {'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'size_bytes': path.stat().st_size}
+                    proof['input_guards'][str(path)] = value
+                    if path == metadata:
+                        proof['comparison']['metadata']['METADATA'].update(installed_sha256=value['sha256'], wheel_sha256=value['sha256'])
+                authority = copy.deepcopy(f.authority)
+                authority['proof'] = f.write_json('vendor-proof.json', proof)
+                decision = json.loads(Path(authority['decision']['path']).read_text())
+                decision['proof_sha256'] = authority['proof']['sha256']
+                authority['decision'] = f.write_json('vendor-decision.json', decision)
+                launch = {'native_authority': f.write_json('native-authority.json', authority)}
+                context = {**f.context, 'guards': {}, 'source': base_source, 'launch': launch}
+                pins = {n: authority[n]['sha256'] for n in driver.NATIVE_PROOF_PINS}
+                with patch.object(driver, 'NATIVE_PROOF_PINS', pins), self.assertRaisesRegex(ValueError, error):
+                    driver.bind_native_authority(context)
+
+    def test_native_source_owned_api_exists(self):
+        self.assertTrue(callable(getattr(driver, "native_source_api", None)), "owned native API missing")
+
     def test_fitter_startup_exact_ast_inverse_and_private_namespace(self):
         with TemporaryDirectory() as directory:
             fixture = StartupAdmissionFixture(Path(directory))
@@ -1354,6 +1649,7 @@ class NearestRankingTests(unittest.TestCase):
                        'started': time.perf_counter()}
             fixture.read_bytes.clear()
             with patch.object(driver, 'helper_guard'), patch.object(fixture.fitter, 'exit_rehash'), \
+                    patch.object(driver, 'native_source_api', lambda c: fixture.fitter), \
                     patch.object(driver, 'closure', return_value=nearest['code']), \
                     fixture.count_reads(), redirect_stdout(io.StringIO()):
                 driver.exit_rehash(nearest)
@@ -1373,6 +1669,7 @@ class NearestRankingTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
                     fixture.fitter.exit_rehash(fixture.context)
             with patch.object(driver, 'helper_guard'), patch.object(fixture.fitter, 'exit_rehash'), \
+                    patch.object(driver, 'native_source_api', lambda c: fixture.fitter), \
                     patch.object(driver, 'closure', return_value=nearest['code']), redirect_stdout(io.StringIO()):
                 with self.assertRaisesRegex(ValueError, 'SHA256 differs'):
                     driver.exit_rehash(nearest)
@@ -1390,6 +1687,7 @@ class NearestRankingTests(unittest.TestCase):
             'phase': phase, 'arm': arm, 'seed': driver.SEED, 'fitter': copy.deepcopy(driver.FITTER),
             'accepted': copy.deepcopy(driver.ACCEPTED), 'recipe': copy.deepcopy(driver.RECIPE),
             'resource_policy': driver.policy(phase), 'both_locks_held': True,
+            'native_authority': {'path': '/native-authority.json', 'sha256': 'a' * 64},
             'selected_cpu': None if phase == 'cpu' else unit,
             'selected_mechanics': {a: copy.deepcopy(unit) for a in driver.ARMS} if phase == 'train' else None}
         return launch, args
@@ -1726,6 +2024,7 @@ class NearestRankingTests(unittest.TestCase):
             fixture.context.update(root=fixture.root, code=code, args=SimpleNamespace(execution_sha256=sha))
             fixture.context['fitter'] = SimpleNamespace(exit_rehash=lambda c: fixture.old.exit_rehash(old_context))
             with patch.object(driver, 'helper_guard', lambda c: None), \
+                 patch.object(driver, 'native_source_api', lambda c: c['fitter']), \
                  patch.object(fixture.old, 'audit_origins', lambda *a, **k: None), \
                  patch.object(fixture.original.FlatAdmission, 'all_fit_images', lambda *a: []), redirect_stdout(io.StringIO()):
                 fixture.read_bytes.clear()

@@ -299,7 +299,12 @@ def lifecycle_checks(d):
                 if failure == 'exit': raise ValueError('exit failed')
                 if failure == 'union': input_file.write_bytes(b'tampered source')
                 for path, digest in ctx['guards'].items(): bound_file({}, path, digest)
-            candidate = SimpleNamespace(cli=lambda *args: ['frozen', 'cpu', 'argv'], helper_guard=lambda ctx: events.append('helper'),
+            def owned_audit(value, *, require_exact=False):
+                assert require_exact is True and value is legacy  # Comparison's context retains phase='cpu'.
+                events.append('owned_exact_origins')
+                return old.audit_origins(value)
+            candidate = SimpleNamespace(native_source_api=lambda ctx: SimpleNamespace(audit_origins=owned_audit),
+                cli=lambda *args: ['frozen', 'cpu', 'argv'], helper_guard=lambda ctx: events.append('helper'),
                 prepare_native=lambda ctx: events.append('prepare'), fresh=fresh, identity=lambda ctx, state: ident,
                 frozen_vision=lambda state: {str(i): None for i in range(444)}, integrity=integrity,
                 calibration=lambda ctx, state, oracle: dict(oracle=oracle, raw=rng, unit=rng, codes=rng,
@@ -320,6 +325,9 @@ def lifecycle_checks(d):
                 if failure is None:
                     receipt = d.run(args)
                     assert receipt['pass'] and receipt['qualification_eligible'] is False and receipt['completed_step'] == 0
+                    assert receipt['post_calibration_native_authority_pass'] is True
+                    assert events.index('owned_exact_origins') < events.index('compare')
+                    assert events.count('owned_exact_origins') == 3
                 else:
                     rejected(lambda: d.run(args), ('SHA256' if failure == 'union' else
                         'unknown or changed native origin' if failure == 'origins' else failure + ' failed'))
@@ -535,7 +543,10 @@ def check():
     raw = PATH.read_text()
     tree = ast.parse(raw)
     calls = [ast.get_source_segment(raw, n) for n in ast.walk(tree) if isinstance(n, ast.Call)]
-    assert calls.count("context['old'].audit_origins(legacy)") == 1
+    assert calls.count('candidate.native_source_api(context).audit_origins(legacy, require_exact=True)') == 3
+    run = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'run')
+    body = ast.unparse(run)
+    assert body.index('candidate.calibration(') < body.index('candidate.native_source_api(context).audit_origins(') < body.index('compare_live(')
     assert calls.count('candidate.exit_rehash(context)') == 1
     assert not any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and
         (n.func.attr in {'reset_peak_memory_stats', 'reset_max_memory_allocated'} or

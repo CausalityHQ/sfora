@@ -544,6 +544,8 @@ def run(args):
             'payload_keys': sorted(witness),
             **{k: v for k, v in witness.items() if k not in {'raw', 'unit', 'codes', 'inverse_norms', 'wire'}}}
         del witness
+        candidate.native_source_api(context).audit_origins(legacy, require_exact=True)
+        record['post_calibration_native_authority_pass'] = True
         compare_live(candidate, context, state, ident, record)
     except BaseException as error:
         primary = error
@@ -568,15 +570,18 @@ def run(args):
                             zip(cuda_rng, torch.cuda.get_rng_state_all(), strict=True))),
                         'original constructor/calibration/comparison RNG or flags changed')
         def origins():
-            context['old'].audit_origins(legacy)
+            candidate.native_source_api(context).audit_origins(legacy, require_exact=True)
             for path, digest in legacy['origins']['files'].items():
                 candidate.bound_file(context['guards'], path, digest)
+        def exit_rehash():
+            candidate.exit_rehash(context)
+            candidate.native_source_api(context).audit_origins(legacy, require_exact=True)
         primary = cleanup_steps(primary, [('original_rng_flags', original_rng_flags),
             ('release', lambda: candidate.release(context, state) if state is not None else candidate.require_no_model(context)),
             ('origin_diagnostics', lambda: collect_origin_diagnostics(legacy, record, 'origins')),
             ('origins', origins),
             ('exit_origin_diagnostics', lambda: collect_origin_diagnostics(legacy, record, 'exit_rehash')),
-            ('exit_rehash', lambda: candidate.exit_rehash(context))], record)
+            ('exit_rehash', exit_rehash)], record)
         def union_rehash():
             # Genuine exit_rehash has just freshly read this augmented union,
             # including driver/launch/interpreter guards. Check exact2 topology
