@@ -12,6 +12,11 @@
   "observed_digest_pairs_exact": true,
   "observed_state_preserved": true,
   "quality_read": false,
+  "read_only_archived_origin_check": {
+    "failure_time_current_origins_not_recorded": true,
+    "recorded_preparation_files_and_modules_subset_of_original_union": true,
+    "source_cpu_and_original_warm_receipts_hash_authenticated": true
+  },
   "receipt_sha256": "7e304e6208a686deebc411d939fc260c60cb80077ba7e7a50544b6789f6acc4d",
   "schema": "nearest-current-byte-parent-decision-v1",
   "service_seconds": 141.277,
