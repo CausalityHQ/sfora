@@ -1,0 +1,22 @@
+{
+  "authority_sha256": "34c2ec8da9e6eb6c25b6bc95f8618f5d9a78adcd33d4e73fd650a1f661b14da8",
+  "code": {
+    "compare_nearest_ranking_current_bytes.py": "a078f30195c8bf9ab8d1dbf62bd79769a4a2825fc14b2843896abb32c6ca19a1",
+    "test_compare_nearest_ranking_current_bytes.py": "b61d48d9611473fa72c95f9f63017ed01eefc4bfe78fe1f50355b907bfbb58d5"
+  },
+  "command_sha256": "ceb27f465f268d845437721b7245bd13393b89dfa057c57b27f320439ee91bef",
+  "execution_sha256": "3f351cab471d16dfff0e50bafb207d9f39062b10c23e7c15a551209c3d366900",
+  "launcher_sha256": "9cf16b41daed8b5def8485f348b53cdb7408e54fdc942609aab4b1c9db782667",
+  "output": "/home/riomus/runs/sfora-so400-nearest-ranking-current-bytes-native-v3",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "root": "/home/riomus/runs/sfora-so400-nearest-ranking-current-bytes-native-source-v3",
+  "schema": "nearest-ranking-current-bytes-native-freeze-v1",
+  "source_commit": "6f4f49e0402752ed2a206529e5cc48619756c1a6",
+  "stop_rule": "ONE prospective discarded comparison with qualified vendor authority and freshCPUv5; exact current bytes/RNG/state/source/completeexit/postcalibration+exit EXACT4native membership; body90whole300/8GiB0swap/eventsCUDA10bothlocks; priorFAIL unchanged/no updates/quality/state reuse/mechanics eligibility",
+  "unit": "sfora-so400-nearest-ranking-current-bytes-native-v3"
+}

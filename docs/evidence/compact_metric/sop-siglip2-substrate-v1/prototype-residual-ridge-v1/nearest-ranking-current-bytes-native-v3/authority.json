@@ -1,0 +1,50 @@
+{
+  "both_locks_held": true,
+  "candidate": {
+    "code": {
+      "nearest_ranking_readout.py": "862d5db5a1831603d4fc3c1b645fa998c7ca66ff67c8141b20d7df74e92d9738",
+      "test_siglip2_nearest_ranking.py": "a2d0a6fff65c371c4dd50531766677db5464ee35918887b3d55935dbdf489eec",
+      "train_siglip2_nearest_ranking.py": "4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c"
+    },
+    "execution_sha256": "0723deae5c550776b0a0493e296ce789cec76718cb7801f612b4fddc6201c311",
+    "root": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5"
+  },
+  "comparison_seconds": 90,
+  "cpu_authority": {
+    "path": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/authority-cpu-v5.json",
+    "sha256": "3a50af8c634a2166ac010e8fc1df6a0dd1a575b63e1ad9c1d405f82f209ca522"
+  },
+  "execution_sha256": "3f351cab471d16dfff0e50bafb207d9f39062b10c23e7c15a551209c3d366900",
+  "output": "/home/riomus/runs/sfora-so400-nearest-ranking-current-bytes-native-v3",
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "python_version": "3.13.9 (main, Oct 14 2025, 21:26:54) [Clang 20.1.4 ]",
+  "qualification_eligible": false,
+  "quality_read": false,
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "nearest-ranking-current-bytes-native-launch-v1",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "1397204426ee409fb84ae21bd52ef6e3",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/cpu-v5.log",
+      "sha256": "58e6b8a0eb2057a93734840277673a61625f11b68e91c91fca4a94e80edded5f"
+    },
+    "native_peak_rss_kib": 5806648,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-nearest-ranking-cpu-v5/receipt.json",
+      "sha256": "857ea3d7c7b39a1850d3073ccfcb58bb36470d0ef6bf6bf012725cdef62038b7"
+    },
+    "service_seconds": 222.827,
+    "unit": "sfora-so400-nearest-ranking-cpu-v5"
+  },
+  "state_reuse_eligible": false,
+  "unit": "sfora-so400-nearest-ranking-current-bytes-native-v3"
+}
