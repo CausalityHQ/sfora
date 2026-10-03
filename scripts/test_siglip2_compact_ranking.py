@@ -13,7 +13,7 @@ import subprocess
 import shutil
 import sys
 from tempfile import TemporaryDirectory
-from contextlib import redirect_stdout
+from contextlib import contextmanager, redirect_stdout
 from types import FunctionType, SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -25,6 +25,228 @@ if PATH.exists():
     spec.loader.exec_module(driver)
 else:
     driver = SimpleNamespace()
+
+
+class FreshOriginAuditTests(unittest.TestCase):
+    """Genuine private audit, reader and collector over stdlib origin fixtures."""
+    @classmethod
+    def setUpClass(cls):
+        path = PATH.with_name('test_siglip2_nearest_ranking.py')
+        spec = importlib.util.spec_from_file_location('compact_origin_fixtures', path)
+        cls.fixtures = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.fixtures)
+
+    @contextmanager
+    def composition(self):
+        with TemporaryDirectory() as directory, patch.dict(sys.modules):
+            f = self.fixtures.NativeAdmissionFixture(Path(directory))
+            # Bind the genuine collector before the real API freezes dependencies.
+            f.source = f.module('qualify_siglip2_substrate_cpu.py')
+            f.legacy['source_driver'] = f.source
+            f.context['guards'][f.source.__file__] = hashlib.sha256(Path(f.source.__file__).read_bytes()).hexdigest()
+            f.legacy['prior']['source_driver'] = f.source
+            modules, cpu, warm = {}, {'files': {}, 'modules': {}}, {'files': {}, 'modules': {}}
+            for name, proof in (('cpu', cpu), ('warm', warm)):
+                path = Path(directory) / (name + '.py')
+                path.write_bytes(b'# original origin fixture\n')
+                alias = 'compact_origin_fixture.' + name
+                spec = importlib.util.spec_from_file_location(alias, path)
+                modules[alias] = importlib.util.module_from_spec(spec)
+                proof['files'][str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+                proof['modules'][alias] = str(path)
+            f.legacy['selected']['packages'] = {'compact_origin_fixture': {'root': directory}}
+            f.legacy['selected']['source_cpu']['origins'] = cpu
+            f.legacy['warm_record']['origins'] = warm
+            f.cpu, f.warm, f.loaded = cpu, warm, modules
+            f.observed = {**cpu['files'], **warm['files'], **f.files}
+            f.mapped = list(f.files)
+            f.readers, f.reads = [], []
+            f.original_state = [(m, dict(vars(m))) for m in (f.old, f.fitter, f.original, f.source, f.extract)]
+            read_text, open_file = Path.read_text, Path.open
+
+            def maps(path, *args, **kwargs):
+                if str(path) == '/proc/self/maps':
+                    return '\n'.join('0-1 r--p 0 00:00 0 ' + p for p in f.mapped)
+                return read_text(path, *args, **kwargs)
+
+            def observed_open(path, *args, **kwargs):
+                if str(path) in f.observed:
+                    code = sys._getframe(1).f_code
+                    if code is f.extract.sha.__code__:
+                        f.reads.append(('origin_sha', str(path)))
+                    elif code is f.old.bound_file.__code__:
+                        f.reads.append(('duplicate_sha', str(path)))
+                return open_file(path, *args, **kwargs)
+
+            def acquire(context):
+                api = self.fixtures.driver.native_source_api(context)
+
+                def audit(legacy, *args, **kwargs):
+                    f.readers.append(kwargs.get('admission'))
+                    return api.audit_origins(legacy, *args, **kwargs)
+
+                return SimpleNamespace(audit_origins=audit)
+
+            f.context.update(nearest=SimpleNamespace(native_source_api=acquire), args=SimpleNamespace(phase='mechanics'))
+            with patch.dict(sys.modules, modules), patch.object(Path, 'read_text', maps), patch.object(Path, 'open', observed_open):
+                f.api = f.admit()
+                yield f
+                f.unchanged_originals(self)
+                self.assertFalse(any(n.split('.')[0] in driver.NATIVE for n in sys.modules))
+
+    def boundaries(self, f):
+        # Execute each actual compact audit expression with the real private API.
+        # Whole-module correspondence below protects all surrounding operations.
+        result = []
+        for fn in ast.parse(PATH.read_text()).body:
+            if not isinstance(fn, ast.FunctionDef):
+                continue
+            calls = sorted((n for n in ast.walk(fn) if isinstance(n, ast.Call) and
+                            isinstance(n.func, ast.Attribute) and n.func.attr == 'audit_origins'),
+                           key=lambda n: n.lineno)
+            for call in calls:
+                code = compile(ast.Expression(body=call), str(PATH), 'eval')
+
+                def invoke(code=code):
+                    api = f.context['nearest'].native_source_api(f.context)
+                    return eval(code, vars(driver), {'context': f.context, 'legacy': f.legacy,
+                                'args': f.context['args'], 'api': api})
+
+                result.append((fn.name, invoke))
+        self.assertEqual([name for name, _ in result], ['prepare_native', 'gpu_run', 'exit_rehash', 'exit_rehash', 'run'])
+        return result
+
+    def test_fresh_original_reader_and_one_genuine_origin_hash_per_boundary(self):
+        with self.composition() as f:
+            legacy_guards, prior_guards = dict(f.legacy['guards']), dict(f.legacy['prior']['guards'])
+            f.api.audit_origins(f.legacy)
+            self.assertCountEqual(f.reads, [(kind, p) for p in f.observed
+                                           for kind in ('origin_sha', 'duplicate_sha')])
+            f.admission.verified.update(f.observed)  # Startup cache cannot qualify a later audit.
+            for phase in ('cpu', 'mechanics', 'train'):
+                f.context['args'].phase = phase
+                for name, invoke in self.boundaries(f):
+                    with self.subTest(phase=phase, boundary=name):
+                        f.reads.clear()
+                        invoke()
+                        reader = f.readers[-1]
+                        self.assertIs(type(reader), f.original.FlatAdmission)
+                        self.assertIsNot(reader, f.admission)
+                        self.assertTrue(all(reader is not old for old in f.readers[:-1]))
+                        self.assertEqual(reader.verified, set(f.observed))
+                        self.assertEqual(reader.entries, {p: (h, Path(p).stat().st_size) for p, h in f.observed.items()})
+                        self.assertEqual(reader.json_bytes, {})
+                        self.assertCountEqual(f.reads, [('origin_sha', p) for p in f.observed])
+                        self.assertEqual(f.legacy['guards'], {**legacy_guards, **f.observed})
+                        self.assertEqual(f.legacy['prior']['guards'], {**prior_guards, **f.observed})
+                        self.assertEqual(f.legacy['origins']['files'], f.observed)
+            self.assertEqual(len(f.readers), 15)
+
+    def test_private_audit_predicates_and_guard_correspondence(self):
+        with self.composition() as f:
+            unknown = Path(f.root) / 'unknown.so'
+            unknown.write_bytes(b'unknown')
+            supplemental = next(iter(f.files))
+            cases = [
+                ('accepted', {'require_exact': True}, None),
+                ('initial', {'initial': True}, 'original CPU'),
+                ('initial_accepted', {'initial': True}, None),
+                ('file_conflict', {}, 'conflicting original'),
+                ('module_conflict', {}, 'conflicting original'),
+                ('unknown_file', {}, 'unknown or changed'),
+                ('unknown_module', {}, 'unknown or changed'),
+                ('outside_package', {}, 'loaded native module origin differs'),
+                ('legacy_guard', {}, 'conflicting'),
+                ('supplement_guard', {}, 'conflicting'),
+                ('prior_guard', {}, 'original native origin changed'),
+                ('missing_one', {'require_exact': True}, 'exact four'),
+                ('cpu_subset', {'require_exact': False}, None),
+                ('missing_native', {}, 'missing native'),
+            ]
+            original_guards = dict(f.legacy['guards'])
+            for name, kwargs, error in cases:
+                outcomes = []
+                for admitted in (False, True):
+                    f.legacy['guards'] = dict(original_guards)
+                    f.legacy['prior']['guards'] = {}
+                    f.legacy['selected']['source_cpu']['origins'] = copy.deepcopy(f.cpu)
+                    f.legacy['warm_record']['origins'] = copy.deepcopy(f.warm)
+                    f.legacy.pop('origins', None)
+                    f.mapped = list(f.files)
+                    loaded = dict(f.loaded)
+                    if name == 'initial_accepted':
+                        f.legacy['selected']['source_cpu']['origins'] = {
+                            'files': dict(f.observed), 'modules': {**f.cpu['modules'], **f.warm['modules']}}
+                    elif name == 'file_conflict':
+                        f.legacy['warm_record']['origins']['files'].update({p: '0' * 64 for p in f.cpu['files']})
+                    elif name == 'module_conflict':
+                        f.legacy['warm_record']['origins']['modules'].update({n: '/conflict.py' for n in f.cpu['modules']})
+                    elif name == 'unknown_file':
+                        f.mapped.append(str(unknown))
+                    elif name == 'unknown_module':
+                        loaded['compact_origin_fixture.unknown'] = next(iter(f.loaded.values()))
+                    elif name == 'outside_package':
+                        loaded['compact_origin_fixture.unknown'] = SimpleNamespace(__file__=f.source.__file__)
+                    elif name == 'legacy_guard':
+                        f.legacy['guards'][next(iter(f.cpu['files']))] = '0' * 64
+                    elif name == 'supplement_guard':
+                        f.legacy['guards'][supplemental] = '0' * 64
+                    elif name == 'prior_guard':
+                        f.legacy['prior']['guards'][next(iter(f.cpu['files']))] = '0' * 64
+                    elif name in ('missing_one', 'cpu_subset', 'missing_native'):
+                        f.mapped.remove(supplemental)
+                        if name == 'missing_native':
+                            alias = 'compact_origin_fixture.supplemental'
+                            loaded[alias] = SimpleNamespace(__file__=supplemental)
+                            f.legacy['warm_record']['origins']['modules'][alias] = supplemental
+                    reader = f.original.FlatAdmission() if admitted else None
+                    with self.subTest(case=name, admitted=admitted), patch.dict(sys.modules, loaded):
+                        if error is None:
+                            f.api.audit_origins(f.legacy, admission=reader, **kwargs)
+                        else:
+                            with self.assertRaisesRegex(ValueError, error):
+                                f.api.audit_origins(f.legacy, admission=reader, **kwargs)
+                        outcomes.append((dict(f.legacy['guards']), dict(f.legacy['prior']['guards']),
+                                         copy.deepcopy(f.legacy.get('origins'))))
+                self.assertEqual(outcomes[0], outcomes[1], name)
+
+    def test_current_bytes_tamper_and_collector_failures_propagate(self):
+        with self.composition() as f:
+            path = Path(next(iter(f.cpu['files'])))
+            saved, stamp = path.read_bytes(), path.stat()
+            sentinel = ValueError('origin read failed')
+            real_open = Path.open
+            for name, invoke in self.boundaries(f):
+                with self.subTest(boundary=name):
+                    invoke()
+                    try:
+                        path.write_bytes(bytes([saved[0] ^ 1]) + saved[1:])
+                        os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+                        self.assertEqual(path.stat().st_size, len(saved))
+                        self.assertEqual(path.stat().st_mtime_ns, stamp.st_mtime_ns)
+                        with self.assertRaisesRegex(ValueError, 'unknown or changed'):
+                            invoke()
+                    finally:
+                        path.write_bytes(saved)
+
+                    def failed_open(value, *args, **kwargs):
+                        if value == path and sys._getframe(1).f_code is f.extract.sha.__code__:
+                            raise sentinel
+                        return real_open(value, *args, **kwargs)
+
+                    with patch.object(Path, 'open', failed_open), self.assertRaises(ValueError) as caught:
+                        invoke()
+                    self.assertIs(caught.exception, sentinel)
+
+                    def failed_dependency(value, *args, **kwargs):
+                        if str(value) == f.source.__file__:
+                            raise sentinel
+                        return real_open(value, *args, **kwargs)
+
+                    with patch.object(Path, 'open', failed_dependency), self.assertRaises(ValueError) as caught:
+                        invoke()
+                    self.assertIs(caught.exception, sentinel)
+                    invoke()
 
 
 class ContractTests(unittest.TestCase):
@@ -350,6 +572,42 @@ class ContractTests(unittest.TestCase):
     def test_completion_timing_preserves_checks(self):
         # Whole-module AST at fa2a8bb9; no general call/statement normalization.
         baseline = "d33ab2444ad0b66064c9f038524f4738544b6f03be932ff9df0bb897cbfd759f"
+        reader_calls = [
+            ('prepare_native', "context['nearest'].native_source_api(context).audit_origins(legacy)",
+             "legacy['original'].FlatAdmission()", 1),
+            ('gpu_run', "api.audit_origins(context['legacy'], require_exact=True)",
+             "context['legacy']['original'].FlatAdmission()", 1),
+            ('exit_rehash', "api.audit_origins(context['legacy'], require_exact=context['args'].phase != 'cpu')",
+             "context['legacy']['original'].FlatAdmission()", 2),
+            ('run', "api.audit_origins(legacy, require_exact=args.phase != 'cpu')",
+             "legacy['original'].FlatAdmission()", 1),
+        ]
+        allowed_readers = {}
+        for fn, text, reader, count in reader_calls:
+            original = ast.parse(text, mode='eval').body
+            changed = copy.deepcopy(original)
+            changed.keywords.insert(0, ast.keyword(arg='admission', value=ast.parse(reader, mode='eval').body))
+            allowed_readers[(fn, ast.dump(changed))] = (original, count)
+        restored_readers = {}
+
+        class RestoreAuditReaders(ast.NodeTransformer):
+            function = None
+
+            def visit_FunctionDef(self, node):
+                prior, self.function = self.function, node.name
+                result = self.generic_visit(node)
+                self.function = prior
+                return result
+
+            def visit_Call(self, node):
+                key = (self.function, ast.dump(node))
+                if key in allowed_readers:
+                    restored_readers[key] = restored_readers.get(key, 0) + 1
+                    return copy.deepcopy(allowed_readers[key][0])
+                return self.generic_visit(node)
+
+        original_calls = RestoreAuditReaders().visit(ast.parse(PATH.read_text()))
+        self.assertEqual(restored_readers, {key: count for key, (_, count) in allowed_readers.items()})
         phases = {
             "cpu_witnesses": {"cpu_bundle_qualification"},
             "gpu_run": {"gpu_bundle_qualification", "post_calibration_api_authentication",
@@ -398,7 +656,7 @@ class ContractTests(unittest.TestCase):
                 self.generic_visit(node)
                 return node.body
 
-        restored = StripTimers().visit(ast.parse(PATH.read_text()))
+        restored = StripTimers().visit(original_calls)
         self.assertEqual(seen, {(fn, name) for fn, names in phases.items() for name in names})
         reversed_splits = []
 
@@ -483,7 +741,7 @@ class ContractTests(unittest.TestCase):
                     trace.append(("authenticate",))
                     bound({}, *supplemental)
 
-                def audit(legacy, *, require_exact):
+                def audit(legacy, *, admission=None, require_exact):
                     self.assertIs(legacy, context["legacy"])
                     trace.append(("audit", require_exact))
                     authenticate()
@@ -522,7 +780,8 @@ class ContractTests(unittest.TestCase):
 
                 context = {"root": Path(own["root"]), "code": own["code"], "guards": dict(guards),
                            "args": SimpleNamespace(phase=phase, execution_sha256=own["execution_sha256"]),
-                           "legacy": {}, "fit_context": {}, "started": driver.time.perf_counter(),
+                           "legacy": {"original": SimpleNamespace(FlatAdmission=object)},
+                           "fit_context": {}, "started": driver.time.perf_counter(),
                            "phase_seconds": {}, "nearest": SimpleNamespace(native_source_api=acquire,
                                require_no_model=lambda value: trace.append(("no_model",)))}
                 error = None

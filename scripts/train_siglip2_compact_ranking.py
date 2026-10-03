@@ -352,7 +352,8 @@ def prepare_native(context):
         context['initial'] = initial
         context['initial_static_sha256'] = fingerprint(context, {k: initial[k] for k in STATIC_KEYS})
         context['initial_A_sha256'] = fingerprint(context, initial['A'])
-    context['nearest'].native_source_api(context).audit_origins(legacy)
+    # Fresh per audit: imported_origins hashes; the original reader registers those bytes.
+    context['nearest'].native_source_api(context).audit_origins(legacy, admission=legacy['original'].FlatAdmission())
 
 
 def require_no_training(context):
@@ -1238,7 +1239,7 @@ def gpu_run(context):
         with timed(context, 'post_calibration_api_authentication'):
             api = context['nearest'].native_source_api(context)
         with timed(context, 'post_calibration_origin_audit'):
-            api.audit_origins(context['legacy'], require_exact=True)
+            api.audit_origins(context['legacy'], admission=context['legacy']['original'].FlatAdmission(), require_exact=True)
         for path in list(context['guards']):
             if Path(path).is_relative_to(temporary):
                 context['guards'].pop(path)  # Discard only after full reload/parity qualification.
@@ -1367,7 +1368,7 @@ def exit_rehash(context):
     with timed(context, 'source_exit_rehash'):
         helper_guard(context)
         api = context['nearest'].native_source_api(context)
-        api.audit_origins(context['legacy'], require_exact=context['args'].phase != 'cpu')
+        api.audit_origins(context['legacy'], admission=context['legacy']['original'].FlatAdmission(), require_exact=context['args'].phase != 'cpu')
         api.exit_rehash(context['fit_context'])
     with timed(context, 'own_exit_rehash'):
         for p, h in context['guards'].items():
@@ -1379,7 +1380,7 @@ def exit_rehash(context):
     with timed(context, 'post_exit_api_authentication'):
         api = context['nearest'].native_source_api(context)
     with timed(context, 'post_exit_origin_audit'):
-        api.audit_origins(context['legacy'], require_exact=context['args'].phase != 'cpu')
+        api.audit_origins(context['legacy'], admission=context['legacy']['original'].FlatAdmission(), require_exact=context['args'].phase != 'cpu')
 
 
 def run(args):
@@ -1417,7 +1418,7 @@ def run(args):
     with timed(context, 'post_run_api_authentication'):
         api = context['nearest'].native_source_api(context)
     with timed(context, 'post_run_origin_audit'):
-        api.audit_origins(legacy, require_exact=args.phase != 'cpu')
+        api.audit_origins(legacy, admission=legacy['original'].FlatAdmission(), require_exact=args.phase != 'cpu')
     with timed(context, 'origin_guard_promotion'):
         for p, h in legacy['origins']['files'].items():
             bound_file(context['guards'], p, h)
