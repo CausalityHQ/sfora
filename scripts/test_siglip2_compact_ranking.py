@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Bounded stdlib admissions; native numerical witnesses run only in CPU phase."""
+import ast
 import copy
 import hashlib
 import importlib.util
+import io
 import json
 import math
 import os
@@ -11,8 +13,10 @@ import subprocess
 import shutil
 import sys
 from tempfile import TemporaryDirectory
-from types import SimpleNamespace
+from contextlib import redirect_stdout
+from types import FunctionType, SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 PATH = Path(__file__).with_name("train_siglip2_compact_ranking.py")
 if PATH.exists():
@@ -342,6 +346,250 @@ class ContractTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 with driver.deny_training_dependencies(context, bundle, wrong_environment):
                     pass
+
+    def test_completion_timing_preserves_checks(self):
+        # Whole-module AST at fa2a8bb9; no general call/statement normalization.
+        baseline = "d33ab2444ad0b66064c9f038524f4738544b6f03be932ff9df0bb897cbfd759f"
+        phases = {
+            "cpu_witnesses": {"cpu_bundle_qualification"},
+            "gpu_run": {"gpu_bundle_qualification", "post_calibration_api_authentication",
+                        "post_calibration_origin_audit"},
+            "qualify_bundle": {"bundle_image_loading", "bundle_loader_authentication",
+                               "bundle_dependency_denial", "bundle_loader", "bundle_native_forward",
+                               "bundle_oracle", "bundle_release"},
+            "run": {"post_run_api_authentication", "post_run_origin_audit", "origin_guard_promotion"},
+            "exit_rehash": {"post_exit_api_authentication", "post_exit_origin_audit"},
+        }
+        splits = {"post_calibration_api_authentication": "post_calibration_origin_audit",
+                  "post_run_api_authentication": "post_run_origin_audit",
+                  "post_exit_api_authentication": "post_exit_origin_audit"}
+        case = self
+        seen, acquisitions = set(), set()
+
+        class StripTimers(ast.NodeTransformer):
+            function = None
+
+            def visit_FunctionDef(self, node):
+                prior, self.function = self.function, node.name
+                result = self.generic_visit(node)
+                self.function = prior
+                return result
+
+            def visit_With(self, node):
+                call = node.items[0].context_expr
+                name = (call.args[1].value if isinstance(call, ast.Call) and
+                        isinstance(call.func, ast.Name) and call.func.id == "timed" and
+                        len(call.args) == 2 and isinstance(call.args[1], ast.Constant) else None)
+                if name not in set().union(*phases.values()):
+                    return self.generic_visit(node)
+                case.assertIn(name, phases.get(self.function, set()))
+                case.assertNotIn((self.function, name), seen)
+                seen.add((self.function, name))
+                case.assertEqual(len(node.items), 1)
+                case.assertIsNone(node.items[0].optional_vars)
+                case.assertEqual(ast.dump(call.args[0]), ast.dump(ast.Name(id="context", ctx=ast.Load())))
+                case.assertEqual(call.keywords, [])
+                if name in splits:
+                    case.assertEqual(len(node.body), 1)
+                    assignment = node.body[0]
+                    expected = ast.parse("api = context['nearest'].native_source_api(context)").body[0]
+                    case.assertEqual(ast.dump(assignment), ast.dump(expected))
+                    acquisitions.add(id(assignment))
+                self.generic_visit(node)
+                return node.body
+
+        restored = StripTimers().visit(ast.parse(PATH.read_text()))
+        self.assertEqual(seen, {(fn, name) for fn, names in phases.items() for name in names})
+        reversed_splits = []
+
+        def reverse_splits(node):
+            for field, value in ast.iter_fields(node):
+                if isinstance(value, ast.AST):
+                    reverse_splits(value)
+                elif isinstance(value, list):
+                    result = []
+                    index = 0
+                    while index < len(value):
+                        child = value[index]
+                        if isinstance(child, ast.AST):
+                            reverse_splits(child)
+                        if id(child) in acquisitions:
+                            audit = value[index + 1]
+                            case.assertIsInstance(audit, ast.Expr)
+                            case.assertEqual(ast.dump(audit.value.func),
+                                ast.dump(ast.parse("api.audit_origins").body[0].value))
+                            audit.value.func.value = child.value
+                            reversed_splits.append(child)
+                            result.append(audit)
+                            index += 2
+                        else:
+                            result.append(child)
+                            index += 1
+                    setattr(node, field, result)
+
+        reverse_splits(restored)
+        self.assertEqual(len(reversed_splits), 3)
+        self.assertEqual(hashlib.sha256(ast.dump(restored).encode()).hexdigest(), baseline)
+        original_exit = next(n for n in restored.body if isinstance(n, ast.FunctionDef) and n.name == "exit_rehash")
+        timed_exit = next(n for n in ast.parse(PATH.read_text()).body
+                          if isinstance(n, ast.FunctionDef) and n.name == "exit_rehash")
+
+        def compile_exit(node):
+            namespace = dict(vars(driver))
+            exec(compile(ast.fix_missing_locations(ast.Module(body=[copy.deepcopy(node)], type_ignores=[])),
+                         str(PATH), "exec"), namespace)
+            return namespace["exit_rehash"]
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+
+            def fixture(name):
+                path = root / name
+                path.write_bytes(name.encode())
+                return str(path), hashlib.sha256(path.read_bytes()).hexdigest()
+
+            guards = dict(fixture(name) for name in ("first-input", "second-input", "last-input"))
+            supplemental = fixture("supplemental-library")
+            origin = fixture("observed-origin")
+            fitter = fixture("fitter-union")
+            helper = fixture("helper")
+
+            def make_closure(name, names):
+                path = root / name
+                path.mkdir()
+                code = {}
+                for member in sorted(names):
+                    (path / member).write_bytes(member.encode())
+                    code[member] = hashlib.sha256((path / member).read_bytes()).hexdigest()
+                execution = path / "execution.json"
+                execution.write_text(json.dumps(code))
+                return {"root": str(path), "code": code,
+                        "execution_sha256": hashlib.sha256(execution.read_bytes()).hexdigest()}
+
+            own = make_closure("own", driver.FILES)
+            nearest = make_closure("nearest", driver.NEAREST["code"])
+            sentinel = ValueError("final native failure")
+            real_bound = driver.bound_file
+
+            def exercise(function, phase="mechanics", fail=None):
+                trace, captures = [], io.StringIO()
+                acquisitions_count = 0
+
+                def bound(values, path, sha):
+                    trace.append(("hash", str(path), sha))
+                    return real_bound(values, path, sha)
+
+                def authenticate():
+                    trace.append(("authenticate",))
+                    bound({}, *supplemental)
+
+                def audit(legacy, *, require_exact):
+                    self.assertIs(legacy, context["legacy"])
+                    trace.append(("audit", require_exact))
+                    authenticate()
+                    bound({}, *origin)
+                    if acquisitions_count == 2 and fail == "audit":
+                        raise sentinel
+
+                def exit_fitter(value):
+                    self.assertIs(value, context["fit_context"])
+                    trace.append(("fitter_exit",))
+                    authenticate()
+                    bound({}, *fitter)
+
+                def acquire(value):
+                    nonlocal acquisitions_count
+                    self.assertIs(value, context)
+                    acquisitions_count += 1
+                    trace.append(("api",))
+                    authenticate()
+                    if acquisitions_count == 2 and fail == "api":
+                        raise sentinel
+                    return SimpleNamespace(audit_origins=audit, exit_rehash=exit_fitter)
+
+                def helper_guard(value):
+                    self.assertIs(value, context)
+                    trace.append(("helper",))
+                    bound({}, *helper)
+
+                bindings = {**vars(driver), "bound_file": bound}
+                bindings["read_json"] = FunctionType(driver.read_json.__code__, bindings)
+                real_closure = FunctionType(driver.closure.__code__, bindings)
+
+                def closure(path, sha, names, values):
+                    trace.append(("closure", str(path)))
+                    return real_closure(path, sha, names, values)
+
+                context = {"root": Path(own["root"]), "code": own["code"], "guards": dict(guards),
+                           "args": SimpleNamespace(phase=phase, execution_sha256=own["execution_sha256"]),
+                           "legacy": {}, "fit_context": {}, "started": driver.time.perf_counter(),
+                           "phase_seconds": {}, "nearest": SimpleNamespace(native_source_api=acquire,
+                               require_no_model=lambda value: trace.append(("no_model",)))}
+                error = None
+                with patch.dict(function.__globals__, {"bound_file": bound, "closure": closure,
+                        "helper_guard": helper_guard, "NEAREST": nearest}), redirect_stdout(captures):
+                    try:
+                        function(context)
+                    except ValueError as caught:
+                        error = caught
+                events = [json.loads(line) for line in captures.getvalue().splitlines()]
+                return trace, error, events, context["phase_seconds"]
+
+            reference = compile_exit(original_exit)
+            for phase in ("cpu", "mechanics", "train"):
+                expected, error, _, _ = exercise(reference, phase)
+                self.assertIsNone(error)
+                actual, error, events, seconds = exercise(driver.exit_rehash, phase)
+                self.assertIsNone(error)
+                self.assertEqual(actual, expected)
+                self.assertEqual([row for row in actual if row[0] == "audit"],
+                                 [("audit", phase != "cpu")] * 2)
+                self.assertEqual([row[1] for row in actual if row[0] == "hash" and row[1] in guards], list(guards))
+                self.assertEqual([row for row in actual if row[0] == "api"], [("api",)] * 2)
+                self.assertEqual([row for row in actual if row[0] == "authenticate"], [("authenticate",)] * 5)
+                self.assertEqual([(e["phase"], e["boundary"]) for e in events], [
+                    ("source_exit_rehash", "begin"), ("source_exit_rehash", "end"),
+                    ("own_exit_rehash", "begin"), ("own_exit_rehash", "end"),
+                    ("post_exit_api_authentication", "begin"), ("post_exit_api_authentication", "end"),
+                    ("post_exit_origin_audit", "begin"), ("post_exit_origin_audit", "end")])
+                self.assertEqual(set(seconds), {"source_exit_rehash", "own_exit_rehash",
+                                               "post_exit_api_authentication", "post_exit_origin_audit"})
+            for failure in ("api", "audit"):
+                expected, error, _, _ = exercise(reference, fail=failure)
+                self.assertIs(error, sentinel)
+                actual, error, _, _ = exercise(driver.exit_rehash, fail=failure)
+                self.assertIs(error, sentinel)
+                self.assertEqual(actual, expected)
+            for path in guards:
+                member = Path(path)
+                saved, stamp = member.read_bytes(), member.stat()
+                try:
+                    member.write_bytes(bytes([saved[0] ^ 1]) + saved[1:])
+                    os.utime(member, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+                    self.assertEqual(member.stat().st_mtime_ns, stamp.st_mtime_ns)
+                    for function in (reference, driver.exit_rehash):
+                        with self.subTest(tamper=path):
+                            self.assertIsInstance(exercise(function)[1], ValueError)
+                finally:
+                    member.write_bytes(saved)
+
+            # These mutants must fail the same trace/failure contract.
+            omitted = copy.deepcopy(timed_exit)
+            own_timer = next(n for n in omitted.body if isinstance(n, ast.With) and
+                             n.items[0].context_expr.args[1].value == "own_exit_rehash")
+            own_timer.body[0].body = [ast.Pass()]
+            earlier = copy.deepcopy(timed_exit)
+            earlier.body[1:1] = earlier.body[-2:]
+            del earlier.body[-2:]
+            swallowed = copy.deepcopy(timed_exit)
+            swallowed.body[-1] = ast.Try(body=[swallowed.body[-1]], handlers=[ast.ExceptHandler(
+                type=ast.Name(id="ValueError", ctx=ast.Load()), body=[ast.Pass()])], orelse=[], finalbody=[])
+            expected = exercise(reference)[0]
+            for name, mutant in (("omit_hash", omitted), ("earlier_final_audit", earlier)):
+                with self.subTest(mutant=name), self.assertRaises(AssertionError):
+                    self.assertEqual(exercise(compile_exit(mutant))[0], expected)
+            with self.subTest(mutant="swallowed_failure"), self.assertRaises(AssertionError):
+                self.assertIs(exercise(compile_exit(swallowed), fail="audit")[1], sentinel)
 
     def test_no_native_import_help_and_optimized_rejection(self):
         self.api("parser")
