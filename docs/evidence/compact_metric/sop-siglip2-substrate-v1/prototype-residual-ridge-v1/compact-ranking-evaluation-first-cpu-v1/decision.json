@@ -1,0 +1,16 @@
+{
+  "status": "FAIL_ADMISSION",
+  "quality_read": false,
+  "native_model_work_started": false,
+  "original_session": 92363,
+  "unit": "sfora-so400-compact-ranking-evaluation-first-cpu-v1",
+  "invocation_id": "e60b7bb5ba084f51868c63480d7ec32e",
+  "service_seconds": 71.975,
+  "exit_code": 1,
+  "host_peak_bytes": 564113408,
+  "swap_bytes": 0,
+  "error": "canonical file required",
+  "log_sha256": "c6e362169b92401ac2593c089b5f253e462dcff5c9aa4a54a3eb8dfb75081d66",
+  "accepted_training_pair_preserved": true,
+  "next": "Trace computed inherited-helper path; qualify corrected evaluator without retraining."
+}
