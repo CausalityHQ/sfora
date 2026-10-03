@@ -7,8 +7,8 @@ has exactly four files, and the pinned scoring reference has exactly six.
 Authority keys are SPEC_KEYS, with FILE/UNIT descriptors identical to the
 original complete original-service admission. Endpoint order is linear then
 concat; neither endpoint carries a seed, optimizer or update schedule.
-Prospective CPU300 independently reloads each complete fitted payload twice without fitting.
-Score300 first authenticates engineering/paired costs, then replays every source
+Prospective CPU500 independently reloads each complete fitted payload twice without fitting.
+Score500 first authenticates engineering/paired costs, then replays every source
 selection query before scoring the authorized direct-FIT panel and its wires.
 GO permits sealed validation only; all inference is conditional on one frozen
 trained source. Image training throughput/public quality/speed remain unmet.
@@ -144,7 +144,7 @@ def require(condition, message):
 
 def policy(phase):
     require(phase in ('cpu', 'score'), 'fixed evaluation phase required')
-    return {'seconds': 300, 'host_bytes': 8 * 1024**3,
+    return {'seconds': 500, 'host_bytes': 8 * 1024**3,
             'swap_bytes': 0, 'cuda_visible_devices': ''}
 
 
@@ -1127,7 +1127,7 @@ def run(args):
             facts = qualify_heads(context)
         if cpu is not None:
             require(all(facts[k] == cpu[k] for k in facts), 'accepted evaluator CPU witnesses differ')
-        # Bootstrap is qualified once in CPU300. Variable timing never enters head comparisons.
+        # Bootstrap is qualified once in CPU500. Variable timing never enters head comparisons.
         result['synthetic_bootstrap'] = qualify_bootstrap(context) if args.phase == 'cpu' else cpu['synthetic_bootstrap']
         require(torch.equal(rng, torch.random.get_rng_state()) and source.numerical_flags() == flags and
                 not torch.cuda.is_initialized(), 'whole-unit RNG/flags/CUDA differs')
