@@ -12,6 +12,7 @@ from pathlib import Path
 import subprocess
 import shutil
 import sys
+import threading
 from tempfile import TemporaryDirectory
 from contextlib import contextmanager, redirect_stdout
 from types import FunctionType, SimpleNamespace
@@ -28,8 +29,239 @@ else:
     driver = SimpleNamespace()
 
 
+
+def fresh_batch_source_boundary(tree):
+    """Invert exactly the import/helper and two reviewed fresh-file sites."""
+    dump = lambda n: ast.dump(n, include_attributes=False)
+    imported = ast.parse('from concurrent.futures import ThreadPoolExecutor').body[0]
+    imports = [n for n in tree.body if dump(n) == dump(imported)]
+    helpers = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'batch_bound_files']
+    driver.require(len(imports) == len(helpers) == 1, 'exact fresh batch import/helper required')
+    tree.body = [n for n in tree.body if n not in imports + helpers]
+    functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    changes = [
+        ('admit_bundle',
+         "batch_bound_files(guards, ((directory / name, digest) for name, digest in {**value['code'], **value['files']}.items()))\n"
+         "for name, digest in {**value['code'], **value['files']}.items():\n"
+         "    require((directory / name).stat().st_nlink == 1, 'bundle regular single-link ownership required')",
+         "for name, digest in {**value['code'], **value['files']}.items():\n"
+         "    bound_file(guards, directory / name, digest)\n"
+         "    require((directory / name).stat().st_nlink == 1, 'bundle regular single-link ownership required')"),
+        ('admit_bundle', "batch_bound_files(guards, env['files'].items())",
+         "for path, digest in env['files'].items():\n    bound_file(guards, path, digest)"),
+    ]
+    for function, changed, original in changes:
+        before, after = ast.parse(changed).body, ast.parse(original).body
+        matches = []
+        for node in ast.walk(functions[function]):
+            for field, values in ast.iter_fields(node):
+                if isinstance(values, list):
+                    for i in range(len(values) - len(before) + 1):
+                        if all(isinstance(a, ast.AST) and dump(a) == dump(b)
+                               for a, b in zip(values[i:i + len(before)], before)):
+                            matches.append((values, i))
+        driver.require(len(matches) == 1, 'exact fresh batch site required: ' + function)
+        values, i = matches[0]
+        values[i:i + len(before)] = after
+    driver.require(not any(isinstance(n, ast.Name) and n.id == 'batch_bound_files' for n in ast.walk(tree)),
+                   'unexpected fresh batch site')
+    expected = {'bound_file': '3db94d649ee69a5e3247924c59b7880d2fc4004242122e53717965b4beff7467',
+                'admit_bundle': '22dadc6b2fc3933aad649e52cf208c33952c7a6c4a92dec8720c8f3499758b38',
+                'load_inference': 'ba11c1f4fb8007e07121b861debfcf2453a49edaad096ac2d50311cf9c5f9609',
+                'exit_rehash': 'd10e411cedd92f43f237a0271b8d0c193362e791ebd147c9910c2dc36c2206e8'}
+    for name, digest in expected.items():
+        driver.require(hashlib.sha256(dump(functions[name]).encode()).hexdigest() == digest,
+                       'fresh batch retained function differs: ' + name)
+    driver.require(hashlib.sha256(dump(tree).encode()).hexdigest() ==
+                   '5a61ce29339d88826210452667d3b46650570a4bd9ba48d4d865c89647da346a',
+                   'fresh batch changed retained module predicates')
+    return tree
+
+
+class FreshFileBatchTests(unittest.TestCase):
+    def fixture(self, root, name):
+        path = root / name
+        path.write_bytes((name.encode() + b'\0') * 8192)
+        return path, hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def test_serial_inventory_paths_errors_and_every_duplicate_read(self):
+        self.assertTrue(hasattr(driver, 'batch_bound_files'), 'missing batch_bound_files')
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            first, second = self.fixture(root, 'first'), self.fixture(root, 'second')
+            items = [first, second, first]
+            serial = {'existing': 'authority'}
+            paths = [driver.bound_file(serial, *item) for item in items]
+            guards, reads = {'existing': 'authority'}, []
+            real = driver.bound_file
+            def observe(private, path, digest):
+                self.assertEqual(private, {})
+                self.assertIsNot(private, guards)
+                result = real(private, path, digest)
+                reads.append(str(result))
+                return result
+            with patch.object(driver, 'bound_file', observe):
+                self.assertEqual(driver.batch_bound_files(guards, iter(items)), paths)
+            self.assertEqual(list(guards.items()), list(serial.items()))
+            self.assertCountEqual(reads, [str(p) for p, _ in items])
+            alias = root / 'alias'; alias.symlink_to(first[0])
+            fifo = root / 'fifo'; os.mkfifo(fifo)
+            cases = [([(alias, first[1])], {}), ([(fifo, first[1])], {}),
+                     ([(root / 'missing', first[1])], {}), ([(Path('relative'), first[1])], {}),
+                     ([(first[0], 'BAD')], {}), ([(first[0], '0' * 64)], {}),
+                     ([first, (first[0], second[1])], {}),
+                     ([second, first], {str(first[0]): '0' * 64})]
+            for entries, initial in cases:
+                def serial_check():
+                    values = dict(initial)
+                    return [real(values, *item) for item in entries]
+                with self.subTest(entries=entries):
+                    with self.assertRaises(ValueError) as old:
+                        serial_check()
+                    values = dict(initial)
+                    with self.assertRaises(ValueError) as new:
+                        driver.batch_bound_files(values, entries)
+                    self.assertEqual(str(new.exception), str(old.exception))
+                    self.assertEqual(values, initial)
+            self.assertEqual(driver.batch_bound_files(guards, []), [])
+            # Both conflicting authorities can individually match fresh bytes:
+            # the owner must still reject without publishing either result.
+            saved = first[0].read_bytes()
+            changed = b'x' + saved[1:]
+            next_digest = hashlib.sha256(changed).hexdigest()
+            first_done = threading.Event()
+            def mutate_duplicate(private, path, digest):
+                if digest == next_digest:
+                    self.assertTrue(first_done.wait(5))
+                    path.write_bytes(changed)
+                    return real(private, path, digest)
+                result = real(private, path, digest)
+                first_done.set()
+                return result
+            values = {'existing': 'authority'}
+            try:
+                with patch.object(driver, 'bound_file', mutate_duplicate), self.assertRaisesRegex(
+                        ValueError, 'conflicting FILE authority'):
+                    driver.batch_bound_files(values, [first, (first[0], next_digest)])
+                self.assertEqual(values, {'existing': 'authority'})
+            finally:
+                first[0].write_bytes(saved)
+
+    def test_fresh_same_size_restored_mtime_and_consumed_page_advice(self):
+        self.assertTrue(hasattr(driver, 'batch_bound_files'), 'missing batch_bound_files')
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'large'
+            raw = b'a' * (2 * 1024**2 + 31)
+            path.write_bytes(raw)
+            item = (path, hashlib.sha256(raw).hexdigest())
+            guards, advice = {}, []
+            real_advice = os.posix_fadvise
+            def observe(fd, offset, count, flag):
+                advice.append((offset, count, flag))
+                return real_advice(fd, offset, count, flag)
+            with patch.object(driver.os, 'posix_fadvise', observe):
+                for _ in range(2):
+                    self.assertEqual(driver.batch_bound_files(guards, [item]), [path])
+            self.assertEqual(advice, [(0, 1024**2, os.POSIX_FADV_DONTNEED),
+                (1024**2, 1024**2, os.POSIX_FADV_DONTNEED),
+                (2 * 1024**2, 31, os.POSIX_FADV_DONTNEED)] * 2)
+            stamp = path.stat()
+            path.write_bytes(b'b' + raw[1:])
+            os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+            self.assertEqual(path.stat().st_size, len(raw))
+            self.assertEqual(path.stat().st_mtime_ns, stamp.st_mtime_ns)
+            for _ in range(2):
+                with self.assertRaisesRegex(ValueError, 'current FILE bytes differ'):
+                    driver.batch_bound_files(guards, [item])
+            self.assertEqual(guards, {str(path): item[1]})
+
+    def test_four_workers_join_failure_no_publication_and_owner_order(self):
+        self.assertTrue(hasattr(driver, 'batch_bound_files'), 'missing batch_bound_files')
+        owner = threading.get_ident()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            items = [self.fixture(root, str(i)) for i in range(12)]
+            real = driver.bound_file
+            for failing in (False, True):
+                barrier, lock = threading.Barrier(4, timeout=5), threading.Lock()
+                active = peak = started = 0
+                finished, workers = [], set()
+                sentinel = ValueError('injected worker failure')
+                updates = []
+                class Guards(dict):
+                    def update(self, values):
+                        updates.append((threading.get_ident(), list(values.items())))
+                        super().update(values)
+                guards = Guards(existing='authority')
+                def observe(private, path, digest):
+                    nonlocal active, peak, started
+                    with lock:
+                        started += 1
+                        slot = started
+                        active += 1
+                        peak = max(peak, active)
+                        workers.add(threading.current_thread())
+                    try:
+                        self.assertIsNot(private, guards)
+                        self.assertEqual(private, {})
+                        if slot <= 4: barrier.wait()
+                        self.assertEqual(guards, {'existing': 'authority'})
+                        result = real(private, path, digest)
+                        if failing and path == items[0][0]: raise sentinel
+                        return result
+                    finally:
+                        with lock:
+                            active -= 1
+                            finished.append(path)
+                with patch.object(driver, 'bound_file', observe):
+                    if failing:
+                        with self.assertRaises(ValueError) as caught:
+                            driver.batch_bound_files(guards, items)
+                        self.assertIs(caught.exception, sentinel)
+                        self.assertEqual(guards, {'existing': 'authority'})
+                        self.assertEqual(updates, [])
+                    else:
+                        self.assertEqual(driver.batch_bound_files(guards, items), [p for p, _ in items])
+                        expected = [('existing', 'authority'), *[(str(p), h) for p, h in items]]
+                        self.assertEqual(list(guards.items()), expected)
+                        self.assertEqual(updates, [(owner, expected)])
+                self.assertEqual(peak, 4)
+                self.assertEqual(active, 0)
+                self.assertCountEqual(finished, [p for p, _ in items])
+                self.assertTrue(all(not worker.is_alive() for worker in workers))
+
+    def test_exact_two_sites_original_bytes_and_predicate_correspondence(self):
+        self.assertTrue(hasattr(driver, 'batch_bound_files'), 'missing batch_bound_files')
+        source = PATH.read_text()
+        tree = ast.parse(source)
+        bound = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'bound_file')
+        self.assertEqual(hashlib.sha256(ast.get_source_segment(source, bound).encode()).hexdigest(),
+                         '193c1b2f76f5b8d5c9e5486cc66514a234b3fda7acfa43dee4aa413de57af5f7')
+        exit_node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'exit_rehash')
+        self.assertEqual(hashlib.sha256(ast.get_source_segment(source, exit_node).encode()).hexdigest(),
+                         'ab782b58b66388b7cee066836931e3ef9a4f1713729a1dadad33e8b87fa28a99')
+        fresh_batch_source_boundary(copy.deepcopy(tree))
+        for name, statement in (
+                ('admit_bundle', "batch_bound_files(guards, env['files'].items())"),):
+            mutant = copy.deepcopy(tree)
+            target = ast.dump(ast.parse(statement).body[0])
+            class Omit(ast.NodeTransformer):
+                def visit_Expr(self, node):
+                    return ast.Pass() if ast.dump(node) == target else self.generic_visit(node)
+            with self.subTest(omitted=name), self.assertRaises(ValueError):
+                fresh_batch_source_boundary(Omit().visit(mutant))
+        mutant = ast.parse(source.replace('exit_reader.bound_file({}, p, h)', 'bound_file({}, p, h)'))
+        with self.subTest(mutant='replace_fresh_exit_reader'), self.assertRaises(ValueError):
+            fresh_batch_source_boundary(mutant)
+        for fragment in ("== 1, 'bundle regular single-link", "env['native_files'].get(p) == h"):
+            mutant = ast.parse(source.replace(fragment, fragment.replace('== 1', '>= 1').replace('== h', '!= h')))
+            with self.subTest(predicate=fragment), self.assertRaises(ValueError):
+                fresh_batch_source_boundary(mutant)
+
+
 def completion_source_boundary(tree):
     """Invert only the reviewed completion edits, with exact per-site counts."""
+    tree = fresh_batch_source_boundary(tree)
     dump = lambda n: ast.dump(n, include_attributes=False)
     added = {'exit_admission_adapter', 'authenticate_bundle_environment'}
     for name in added:

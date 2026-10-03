@@ -9,6 +9,7 @@ if not __debug__:
 
 import argparse
 from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor
 import gc
 import hashlib
 import importlib.util
@@ -104,6 +105,21 @@ def bound_file(guards, path, expected):
     require(digest.hexdigest() == expected, 'current FILE bytes differ: ' + str(path))
     require(guards.setdefault(str(path), expected) == expected, 'conflicting FILE authority')
     return path
+
+
+def batch_bound_files(guards, items):
+    """Fresh per occurrence; publish on the owner only after complete success."""
+    items = list(items)
+    for path, expected in items:
+        file_fact({'path': str(path), 'sha256': expected})
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(bound_file, {}, path, expected) for path, expected in items]
+        paths = [future.result() for future in futures]
+    staged = dict(guards)
+    for path, (_, expected) in zip(paths, items):
+        require(staged.setdefault(str(path), expected) == expected, 'conflicting FILE authority')
+    guards.update(staged)
+    return paths
 
 
 def read_json(fact, guards):
@@ -779,8 +795,8 @@ def admit_bundle(directory, sha):
             value['files'].keys() == {'vision.pt', 'endpoint.pt', 'processor.json'} and
             isinstance(value['endpoint_state_sha256'], str) and re.fullmatch('[0-9a-f]{64}', value['endpoint_state_sha256']),
             'portable bundle schema/owned serving closure differs')
+    batch_bound_files(guards, ((directory / name, digest) for name, digest in {**value['code'], **value['files']}.items()))
     for name, digest in {**value['code'], **value['files']}.items():
-        bound_file(guards, directory / name, digest)
         require((directory / name).stat().st_nlink == 1, 'bundle regular single-link ownership required')
     require(hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == value['code']['train_siglip2_compact_ranking.py'],
             'bundle loader current code differs')
@@ -792,8 +808,7 @@ def admit_bundle(directory, sha):
     roots = [Path(v['root']) for v in env['packages'].values()]
     require(all(any(Path(p).is_relative_to(r) for r in roots) or
                 env['native_files'].get(p) == h for p, h in env['files'].items()), 'serving environment contains non-package data')
-    for path, digest in env['files'].items():
-        bound_file(guards, path, digest)
+    batch_bound_files(guards, env['files'].items())
     return value, guards
 
 
