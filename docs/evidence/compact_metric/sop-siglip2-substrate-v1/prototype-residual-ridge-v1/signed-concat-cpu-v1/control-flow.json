@@ -1,0 +1,8 @@
+{
+  "diagnostic": "Unique authenticated old exit event occurs after fit_run returned and top-level RNG/CUDA check. Remaining tail includes union byte rehash, closure, resource checks and receipt publication. Exact interrupted operation and total phase elapsed are unmeasured. No accepted proof/receipt, no cost/quality admission, no partial-state reuse.",
+  "fitter_sha256": "83e47dc0534d83e7e2848f453077109ec9f713a2efcba01a7f6e2e47f6a91ece",
+  "original_driver_sha256": "17cf2dac93a45aae3ba929ad5c36e73f4c33576eae9bb5f9dec670c272a1731f",
+  "original_exit_rehash_logged_seconds": 16.152566988021135,
+  "schema": "signed-concat-timeout-control-flow-v1",
+  "stage_order_ast_verified": true
+}
