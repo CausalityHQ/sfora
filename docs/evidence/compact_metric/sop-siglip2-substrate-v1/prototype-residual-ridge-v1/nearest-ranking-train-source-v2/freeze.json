@@ -1,0 +1,22 @@
+{
+  "authority_sha256": "41b4f12d473ad034e50d90aa698bda0e617573c16515a8de45fd8648049ad01f",
+  "code": {
+    "nearest_ranking_readout.py": "862d5db5a1831603d4fc3c1b645fa998c7ca66ff67c8141b20d7df74e92d9738",
+    "test_siglip2_nearest_ranking.py": "87489e28cbdfdbaf5377cace36057490fa365ce383d39a9fe863449a30763d9a",
+    "train_siglip2_nearest_ranking.py": "674d77798c39886ce1bc43852bddbe1667f293bf09a0f1c9ae8fceb4b4689523"
+  },
+  "command_sha256": "a804fed7b90cd01c579a281cdae144b548088fb3e422426c0d9622ebda95ddb6",
+  "execution_sha256": "07229923e2e58e86d53e558889d2964cc6da82a8337eb15ebde8edd3654be6f9",
+  "launcher_sha256": "e23c84a5a3a94f1045d40f2da8f8c7da2dfe1b646d8d7ef59879c42af79ec1bc",
+  "output": "/home/riomus/runs/sfora-so400-nearest-ranking-cpu-v2",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "root": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v2",
+  "schema": "nearest-ranking-train-source-freeze-v2",
+  "stop_rule": "ONE fresh CPU500 qualification; original historical failures unchanged; full CPU proof does not admit mechanics until separate complete runtime budget is credible; no quality/TRAIN read",
+  "unit": "sfora-so400-nearest-ranking-cpu-v2"
+}
