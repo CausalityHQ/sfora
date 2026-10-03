@@ -1,0 +1,11 @@
+{
+  "authority_sha256": "4c8fef5830ad6044b6975708dc00d644cc8e10aadab65b57b64fa68524fd114d",
+  "code": {
+    "test_siglip2_compact_ranking.py": "c39b28662919f29a85d5e5019108be86eb5c7e9240ca018db6ea1c1537710e75",
+    "train_siglip2_compact_ranking.py": "6b1d7b05f3c830b79bb321bd4e1307a5811bde00a49734e0380510920c8f97bd"
+  },
+  "execution_sha256": "15b99c621ba3b7b234a756e8706c9a88ee2ea4611ee61f7491410bc612b61fc7",
+  "qualification_eligible": false,
+  "root": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v1",
+  "stop_rule": "ONE CPU500;8GiB;zero swap/events; complete gradient/oracle/reload/integrity pass required; failure closes this frozen gate"
+}
