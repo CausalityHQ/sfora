@@ -1,0 +1,9 @@
+Prospective proposal only; native execution NOT authorized.
+
+Exact worker commit 5d4f89db616e31c3a41c6009c8b8f0d82446ebee changes only the consumer CPU and scoring policy from 300 to 500 seconds, documentation, and boundary tests. Root independent narrow stdlib check PASS; full production AST is identical after reverting the single 500 constant to 300 and removing the module docstring. Every scientific/source/integrity/parity/cost predicate remains identical. Current master production source and historical remote sources remain unchanged.
+
+Request: ONE new cold consumer CPU qualification capped at 500 seconds. Only its full original terminal PASS admits ONE selection score capped at 500 seconds. Each retains 8 GiB host, zero swap/events, CUDA hidden, both lifetime locks, source/byte checks, four independent complete reloads, unchanged bootstrap5000/179019, original cost <=1.50 and quality gates. Any failure closes the new envelope; no automatic retry. No additional fitting/training or validation/official read is authorized by this request.
+
+Reason: original consumer timed out300.217s after admission144.255880s; downstream completion and exact interrupted stage unmeasured. Audit f72753147db84d42 found no defensible minimal source correction sufficient under300. The proposal allows measuring the existing scientifically fixed candidate, not claiming an optimization. Completion under500 is UNPROVEN; accepted fresh fit costs212.169/234.821s and ratios1.106764/.923030 remain valid.
+
+The standing operator instruction1790978409172812225-1312788 permits prospective CPU engineering gates only up to300s and excludes broader resource increases. This CPU+score500 proposal therefore requires explicit approval before integration/freeze/launch. Historical300 failure remains FAIL. Full production SOP+InShop joint quality/speed goal remains ACTIVE and unmet.

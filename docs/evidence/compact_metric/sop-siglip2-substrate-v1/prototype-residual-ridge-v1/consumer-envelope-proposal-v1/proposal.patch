@@ -1,0 +1,121 @@
+diff --git a/scripts/evaluate_siglip2_prototype_residual.py b/scripts/evaluate_siglip2_prototype_residual.py
+index e72697d6..fdc34370 100644
+--- a/scripts/evaluate_siglip2_prototype_residual.py
++++ b/scripts/evaluate_siglip2_prototype_residual.py
+@@ -7,8 +7,8 @@ has exactly four files, and the pinned scoring reference has exactly six.
+ Authority keys are SPEC_KEYS, with FILE/UNIT descriptors identical to the
+ original complete original-service admission. Endpoint order is linear then
+ concat; neither endpoint carries a seed, optimizer or update schedule.
+-Prospective CPU300 independently reloads each complete fitted payload twice without fitting.
+-Score300 first authenticates engineering/paired costs, then replays every source
++Prospective CPU500 independently reloads each complete fitted payload twice without fitting.
++Score500 first authenticates engineering/paired costs, then replays every source
+ selection query before scoring the authorized direct-FIT panel and its wires.
+ GO permits sealed validation only; all inference is conditional on one frozen
+ trained source. Image training throughput/public quality/speed remain unmet.
+@@ -144,7 +144,7 @@ def require(condition, message):
+ 
+ def policy(phase):
+     require(phase in ('cpu', 'score'), 'fixed evaluation phase required')
+-    return {'seconds': 300, 'host_bytes': 8 * 1024**3,
++    return {'seconds': 500, 'host_bytes': 8 * 1024**3,
+             'swap_bytes': 0, 'cuda_visible_devices': ''}
+ 
+ 
+@@ -1127,7 +1127,7 @@ def run(args):
+             facts = qualify_heads(context)
+         if cpu is not None:
+             require(all(facts[k] == cpu[k] for k in facts), 'accepted evaluator CPU witnesses differ')
+-        # Bootstrap is qualified once in CPU300. Variable timing never enters head comparisons.
++        # Bootstrap is qualified once in CPU500. Variable timing never enters head comparisons.
+         result['synthetic_bootstrap'] = qualify_bootstrap(context) if args.phase == 'cpu' else cpu['synthetic_bootstrap']
+         require(torch.equal(rng, torch.random.get_rng_state()) and source.numerical_flags() == flags and
+                 not torch.cuda.is_initialized(), 'whole-unit RNG/flags/CUDA differs')
+diff --git a/scripts/test_siglip2_prototype_residual_evaluation.py b/scripts/test_siglip2_prototype_residual_evaluation.py
+index e3005ea6..da32bab9 100644
+--- a/scripts/test_siglip2_prototype_residual_evaluation.py
++++ b/scripts/test_siglip2_prototype_residual_evaluation.py
+@@ -87,7 +87,11 @@ def check(d):
+             lambda s: s['endpoints'].reverse(), lambda s: s['endpoints'][0].update(seed=179061),
+             lambda s: s['endpoints'][0]['terminal'].update(service_seconds=float('nan')),
+             lambda s: s['resource_policies']['cpu'].update(seconds=120),
++            lambda s: s['resource_policies']['cpu'].update(seconds=300),
++            lambda s: s['resource_policies']['score'].update(seconds=300),
+             lambda s: s['resource_policies']['score'].update(seconds=301),
++            lambda s: s['resource_policies']['cpu'].update(seconds=501),
++            lambda s: s['resource_policies']['score'].update(seconds=501),
+             lambda s: s['cost_policy'].update(total_fit_core_ratio_max=1.51),
+         ):
+             bad = copy.deepcopy(spec); mutation(bad); rejects(lambda: d.check_spec(bad, args))
+@@ -136,7 +140,7 @@ def check(d):
+         assert d.decide(arms, source, 'selection', intervals, d.paired_cost(bad))['decision'] == 'KILL'
+         bad['linear'][key] = 0; rejects(lambda: d.paired_cost(bad))
+     assert d.policy('cpu') == d.policy('score') == {
+-        'seconds': 300, 'host_bytes': 8 * 1024**3, 'swap_bytes': 0, 'cuda_visible_devices': ''}
++        'seconds': 500, 'host_bytes': 8 * 1024**3, 'swap_bytes': 0, 'cuda_visible_devices': ''}
+     threshold = {'linear': quality([1.] * (count - 13) + [0.] * 13, [.79] * count), 'concat': concat}
+     tiny = d.metric_deltas(threshold, source, 'selection')['concat_minus_linear']
+     tiny_ci = {m: dict(intervals[m], mean_delta=sum(tiny[m]) / count) for m in d.METRICS}
+@@ -318,7 +322,7 @@ def encoder_retention_check(d, source):
+                 'sys': SimpleNamespace(argv=d.cli_argv(path, fact['sha256'], 'f' * 64, 'cpu', args.output, None),
+                     executable=sys.executable, version=sys.version, flags=SimpleNamespace(optimize=0)),
+                 'os': SimpleNamespace(getpid=os.getpid, environ={'INVOCATION_ID': '1' * 32, 'CUDA_VISIBLE_DEVICES': ''}),
+-                'time': SimpleNamespace(perf_counter=lambda: d.UNIT_STARTED + (301 if failure == 'cap' and 'publish' in events else 1)),
++                'time': SimpleNamespace(perf_counter=lambda: d.UNIT_STARTED + (d.policy('cpu')['seconds'] + 1 if failure == 'cap' and 'publish' in events else 1)),
+                 'print': lambda *values, **kwargs: None}
+             exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), '<run lifecycle>', 'exec'), run_namespace)
+             events.clear()
+@@ -436,7 +440,7 @@ def synthetic_bootstrap_check(d, source):
+     for mutation in (
+         lambda v: v.update(schema='wrong'), lambda v: v.update(seed=179020),
+         lambda v: v.update(draws=4999), lambda v: v.update(calls=8),
+-        lambda v: v.update(seconds=300), lambda v: v.update(seconds=0),
++        lambda v: v.update(seconds=500), lambda v: v.update(seconds=0),
+         lambda v: v.update(seconds=True), lambda v: v['panels'].pop('validation'),
+         lambda v: v['panels']['selection'].update(query_images=1749),
+         lambda v: v['panels']['selection'].update(products=497),
+@@ -945,7 +949,7 @@ def terminal_adapter_check(d):
+ 
+ 
+ def resources_adapter_check(d):
+-    """CPU300 is prospective; preserve the pinned checker and every resource gate."""
++    """CPU/score500 is prospective; preserve the pinned checker and every resource gate."""
+     path = Path(__file__).with_name('export_siglip2_substrate_adaptation.py').resolve()
+     helper = d.load_bare('_resources_original_helper', path, d.REFERENCE_PINS[path.name])
+     original_globals = dict(vars(helper))
+@@ -978,17 +982,22 @@ def resources_adapter_check(d):
+         return FunctionType(function.__code__, namespace)(context, phase, before)
+ 
+     for phase in ('cpu', 'score'):
+-        result = run(phase=phase, elapsed=299.)
+-        assert result == {'resource_policy': {'seconds': 300, 'host_bytes': 8 * 1024**3,
+-                'swap_bytes': 0, 'cuda_visible_devices': ''}, 'wall_seconds': 299.,
++        result = run(phase=phase, elapsed=499.)
++        assert result == {'resource_policy': {'seconds': 500, 'host_bytes': 8 * 1024**3,
++                'swap_bytes': 0, 'cuda_visible_devices': ''}, 'wall_seconds': 499.,
+             'process_peak_rss_kib': 1000, 'peak_cuda_allocated_bytes': 0,
+             'cgroup_before': before, 'cgroup_after': before, 'both_locks_held_in_parent_authority': True,
+             'terminal_exit_and_both_locks_require_parent_receipt': True}
+-        for elapsed in (300., 301.):
++        assert run(phase=phase, elapsed=300.)['wall_seconds'] == 300.
++        for elapsed in (500., 501.):
+             rejects(lambda: run(phase=phase, elapsed=elapsed), 'complete-unit resources')
+     rejects(lambda: run(helper.resources), 'complete-unit resources')  # Historical CPU120 still fails.
+     assert abs(run()['wall_seconds'] - 120.103) < 1e-12
+-    assert run(phase='score') == run(helper.resources, phase='score')
++    original_score = run(helper.resources, phase='score')
++    assert original_score['resource_policy'] == dict(d.policy('score'), seconds=300)
++    assert run(phase='score') == dict(original_score, resource_policy=d.policy('score'))
++    for elapsed in (300., 499.):
++        rejects(lambda: run(helper.resources, phase='score', elapsed=elapsed), 'complete-unit resources')
+     for rss in (0, 8 * 1024**2 + 1):
+         rejects(lambda: run(rss=rss), 'complete-unit resources')
+     rejects(lambda: run(swap=1), 'native swap')
+@@ -1019,6 +1028,7 @@ def resources_adapter_check(d):
+         alias = SimpleNamespace(**{**vars(helper), '__file__': str(changed), '__spec__': SimpleNamespace(origin=str(changed))})
+         rejects(lambda: d.resources_adapter(alias, {}), 'SHA256')
+     assert vars(helper) == original_globals and helper.policy('cpu')['seconds'] == 120
++    assert helper.policy('score')['seconds'] == 300
+     assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)
+ 
+ 

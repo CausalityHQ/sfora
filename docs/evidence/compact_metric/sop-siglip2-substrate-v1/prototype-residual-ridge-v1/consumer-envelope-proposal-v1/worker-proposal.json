@@ -1,0 +1,445 @@
+{
+  "ast_ledger": {
+    "scripts/evaluate_siglip2_prototype_residual.py": {
+      "all_unrelated_functions_identical": true,
+      "base_sha256": "64660923102e987cd4d16d9e063dc19260f1396fc86e9cb1a9ecb95e1a7d1c91",
+      "changed_functions": [
+        "policy"
+      ],
+      "functions": {
+        "accept_selection": {
+          "base_ast_sha256": "5d0ff585c9cc4d638116a773119d076a0b46eeccb66b5b964f31fbebff14b9ca",
+          "proposal_ast_sha256": "5d0ff585c9cc4d638116a773119d076a0b46eeccb66b5b964f31fbebff14b9ca"
+        },
+        "accept_terminal": {
+          "base_ast_sha256": "b0a1993c2fb7655a0249c0aff751f8c88d2518839be0df6ba50e72822f88f2e6",
+          "proposal_ast_sha256": "b0a1993c2fb7655a0249c0aff751f8c88d2518839be0df6ba50e72822f88f2e6"
+        },
+        "authority": {
+          "base_ast_sha256": "f2d8a7517b115cc99b4b10b60d77801942810487258afc4aa5194ad079fbf2fa",
+          "proposal_ast_sha256": "f2d8a7517b115cc99b4b10b60d77801942810487258afc4aa5194ad079fbf2fa"
+        },
+        "bind": {
+          "base_ast_sha256": "64a98a820a83404a714d2994b390c23548eb90d4ebd42f55b779b822fecc1db3",
+          "proposal_ast_sha256": "64a98a820a83404a714d2994b390c23548eb90d4ebd42f55b779b822fecc1db3"
+        },
+        "bound_file": {
+          "base_ast_sha256": "2ccd2c17b3cc5128c9a1dd5e3a3df7014bbe4ec465c698bfe754cf193ce5c071",
+          "proposal_ast_sha256": "2ccd2c17b3cc5128c9a1dd5e3a3df7014bbe4ec465c698bfe754cf193ce5c071"
+        },
+        "check_code_descriptor": {
+          "base_ast_sha256": "05eb3e19b8332b39d1948d56904a7bd7376e6203a466a772cd73b33425a35f41",
+          "proposal_ast_sha256": "05eb3e19b8332b39d1948d56904a7bd7376e6203a466a772cd73b33425a35f41"
+        },
+        "check_file_descriptor": {
+          "base_ast_sha256": "6c72ae683598862be971e5a45476e72ef3dfdae6fdd85e1e7b05ec29719f5c6f",
+          "proposal_ast_sha256": "6c72ae683598862be971e5a45476e72ef3dfdae6fdd85e1e7b05ec29719f5c6f"
+        },
+        "check_fitter": {
+          "base_ast_sha256": "4c999d1124f05f2f9defea261c9599c1e39def5628198673f193d337f5fe6182",
+          "proposal_ast_sha256": "4c999d1124f05f2f9defea261c9599c1e39def5628198673f193d337f5fe6182"
+        },
+        "check_output": {
+          "base_ast_sha256": "4811227dbc62f767722a867764c0b4d375d6a349949b0d397acb47997d0cfb8b",
+          "proposal_ast_sha256": "4811227dbc62f767722a867764c0b4d375d6a349949b0d397acb47997d0cfb8b"
+        },
+        "check_prior_binding": {
+          "base_ast_sha256": "616c45e89574490ac6a85952a201191139d2cc176257f6f7978f087249bcb673",
+          "proposal_ast_sha256": "616c45e89574490ac6a85952a201191139d2cc176257f6f7978f087249bcb673"
+        },
+        "check_quality": {
+          "base_ast_sha256": "bfdd43f711651a974f4b5311a541ed82689a7e563db23ce99d4e2d798111a7e4",
+          "proposal_ast_sha256": "bfdd43f711651a974f4b5311a541ed82689a7e563db23ce99d4e2d798111a7e4"
+        },
+        "check_receipt": {
+          "base_ast_sha256": "deab6229b0cdcbf7bf2cb0c26d2c2067b38fc1913d612a1052071d00a9e73b11",
+          "proposal_ast_sha256": "deab6229b0cdcbf7bf2cb0c26d2c2067b38fc1913d612a1052071d00a9e73b11"
+        },
+        "check_spec": {
+          "base_ast_sha256": "d1d1477101ac9db1cb1222f177eccab9a6649d62fb6f5843f1d4f053a16668ac",
+          "proposal_ast_sha256": "d1d1477101ac9db1cb1222f177eccab9a6649d62fb6f5843f1d4f053a16668ac"
+        },
+        "check_synthetic_bootstrap": {
+          "base_ast_sha256": "1f55816cffa7d0d33ad47310634be9300410dc421261eb1b746a8ddeff05f1c7",
+          "proposal_ast_sha256": "1f55816cffa7d0d33ad47310634be9300410dc421261eb1b746a8ddeff05f1c7"
+        },
+        "check_terminal_descriptor": {
+          "base_ast_sha256": "0463a6595f8dbd1814a63c9870c007b265828ff8eceeb0e16b247ff776e94141",
+          "proposal_ast_sha256": "0463a6595f8dbd1814a63c9870c007b265828ff8eceeb0e16b247ff776e94141"
+        },
+        "check_value_facts": {
+          "base_ast_sha256": "d9801d39fb990cbdf1fe557d9721e947195b3763cf6120ad0e8235c27f5ae2fc",
+          "proposal_ast_sha256": "d9801d39fb990cbdf1fe557d9721e947195b3763cf6120ad0e8235c27f5ae2fc"
+        },
+        "cli_argv": {
+          "base_ast_sha256": "352db9074f2ff80474acfb554ddab0c2283db416c86d9d874b346df63261fbe9",
+          "proposal_ast_sha256": "352db9074f2ff80474acfb554ddab0c2283db416c86d9d874b346df63261fbe9"
+        },
+        "closure": {
+          "base_ast_sha256": "bf3ce82db07615f4c42e3fbf08026253f8e4739ed0936680189e29f3e8f39f69",
+          "proposal_ast_sha256": "bf3ce82db07615f4c42e3fbf08026253f8e4739ed0936680189e29f3e8f39f69"
+        },
+        "decide": {
+          "base_ast_sha256": "a193c55504d0e88954e6dc1c0c7ddbf73db7c6e04798f93155f7bf324892916a",
+          "proposal_ast_sha256": "a193c55504d0e88954e6dc1c0c7ddbf73db7c6e04798f93155f7bf324892916a"
+        },
+        "exit_rehash": {
+          "base_ast_sha256": "9cfa56284251b8aa8eca2bc1add63fae83f88748295bcecb6476bf7c522147f7",
+          "proposal_ast_sha256": "9cfa56284251b8aa8eca2bc1add63fae83f88748295bcecb6476bf7c522147f7"
+        },
+        "file_names": {
+          "base_ast_sha256": "0fe8a3c2cc064bc80fc0f850a6a20d72cf7c2723db490185e72a91fb3af1d49d",
+          "proposal_ast_sha256": "0fe8a3c2cc064bc80fc0f850a6a20d72cf7c2723db490185e72a91fb3af1d49d"
+        },
+        "head_values": {
+          "base_ast_sha256": "bb100eaad77c621f4433cb3de8013021541464adb0c83e3ef6e4186e0f855bb2",
+          "proposal_ast_sha256": "bb100eaad77c621f4433cb3de8013021541464adb0c83e3ef6e4186e0f855bb2"
+        },
+        "immediate_quality_pass": {
+          "base_ast_sha256": "8e6ca067ae4f6e94fa1ce2985dc04d126cee2ed2c5a0f8c07558a3c5ecd91008",
+          "proposal_ast_sha256": "8e6ca067ae4f6e94fa1ce2985dc04d126cee2ed2c5a0f8c07558a3c5ecd91008"
+        },
+        "json_digest": {
+          "base_ast_sha256": "954c46ba45dc1f643d40079d29da71c0ed3be52c5fda32f908d2a91f5b7c7a62",
+          "proposal_ast_sha256": "954c46ba45dc1f643d40079d29da71c0ed3be52c5fda32f908d2a91f5b7c7a62"
+        },
+        "load_bare": {
+          "base_ast_sha256": "009ac01c0c65918134dc26438814c95a18707422a1223b033e962514ec5b70d5",
+          "proposal_ast_sha256": "009ac01c0c65918134dc26438814c95a18707422a1223b033e962514ec5b70d5"
+        },
+        "load_head": {
+          "base_ast_sha256": "9499086e8f670f3da92e3c0cc743219ac6459806522c926939577a6e5c2a2884",
+          "proposal_ast_sha256": "9499086e8f670f3da92e3c0cc743219ac6459806522c926939577a6e5c2a2884"
+        },
+        "main": {
+          "base_ast_sha256": "f0f4b26a709c066e1c19c2b2ff3665b7210938c248a969b77c18a703d29b7462",
+          "proposal_ast_sha256": "f0f4b26a709c066e1c19c2b2ff3665b7210938c248a969b77c18a703d29b7462"
+        },
+        "merge_guards": {
+          "base_ast_sha256": "605e410cb33c65bf480fb5dee47d744ed6b43c7d634bf7b671b6738e199faa73",
+          "proposal_ast_sha256": "605e410cb33c65bf480fb5dee47d744ed6b43c7d634bf7b671b6738e199faa73"
+        },
+        "metric_deltas": {
+          "base_ast_sha256": "b0fd7814efa3bf06d5ad95776c41ae710ac230688581fb703c95e02da81936a5",
+          "proposal_ast_sha256": "b0fd7814efa3bf06d5ad95776c41ae710ac230688581fb703c95e02da81936a5"
+        },
+        "native_start": {
+          "base_ast_sha256": "b9828b015cf58529ea1c91e36ef7e9d5751ddcca2f4f7202f8e80b221f2c7e5a",
+          "proposal_ast_sha256": "b9828b015cf58529ea1c91e36ef7e9d5751ddcca2f4f7202f8e80b221f2c7e5a"
+        },
+        "original_terminal_reader": {
+          "base_ast_sha256": "4ede65635874edc739c7812d082e81bc46c13152940eafa5be47ef86647d85e2",
+          "proposal_ast_sha256": "4ede65635874edc739c7812d082e81bc46c13152940eafa5be47ef86647d85e2"
+        },
+        "packed_readback": {
+          "base_ast_sha256": "6d2b66e2cc49d3e8ce9e03f96feb7937f50c75051bd4c5e0d63b5e18858d72ef",
+          "proposal_ast_sha256": "6d2b66e2cc49d3e8ce9e03f96feb7937f50c75051bd4c5e0d63b5e18858d72ef"
+        },
+        "paired_cost": {
+          "base_ast_sha256": "fe55718ecf53debef39b5a0114de8b6657042023c6ab9316786f657a1fadd499",
+          "proposal_ast_sha256": "fe55718ecf53debef39b5a0114de8b6657042023c6ab9316786f657a1fadd499"
+        },
+        "paired_intervals": {
+          "base_ast_sha256": "4139e2a44c38b55614fd6af112a8081c18287b06abb7cad212117b73334216c1",
+          "proposal_ast_sha256": "4139e2a44c38b55614fd6af112a8081c18287b06abb7cad212117b73334216c1"
+        },
+        "parser": {
+          "base_ast_sha256": "aac3044632225435b8563103ac46ab7b2f7e0f07bdf01e2f028613bfff371108",
+          "proposal_ast_sha256": "aac3044632225435b8563103ac46ab7b2f7e0f07bdf01e2f028613bfff371108"
+        },
+        "policy": {
+          "base_ast_sha256": "01cc0e0edccae878964fedc9f16c85a8461a064007d6b5e8402a712382abac54",
+          "proposal_ast_sha256": "0a823d6971fe7aeb67bd32e17452731e16f00735d61310982bbc240a2ba6232f"
+        },
+        "preparation_costs": {
+          "base_ast_sha256": "b22b08f67e7d92ebe9092eec31e7ad35143661caa015fefccf42adde3357e65b",
+          "proposal_ast_sha256": "b22b08f67e7d92ebe9092eec31e7ad35143661caa015fefccf42adde3357e65b"
+        },
+        "prerequisites": {
+          "base_ast_sha256": "c32e361e5ac504b2eb84b2cafc041c5e0dd9d5e3ae960ff3e9888faa85bf3b6a",
+          "proposal_ast_sha256": "c32e361e5ac504b2eb84b2cafc041c5e0dd9d5e3ae960ff3e9888faa85bf3b6a"
+        },
+        "qualify_bootstrap": {
+          "base_ast_sha256": "01fd0b88dc03f3e45ba8c353570a31b95d019acfcdcffb46279e3ff9dd3e2ddb",
+          "proposal_ast_sha256": "01fd0b88dc03f3e45ba8c353570a31b95d019acfcdcffb46279e3ff9dd3e2ddb"
+        },
+        "qualify_heads": {
+          "base_ast_sha256": "79c91b8c85af593fcc9602b675de57dca0140c4c518e0197adb7c68dfc2f5c38",
+          "proposal_ast_sha256": "79c91b8c85af593fcc9602b675de57dca0140c4c518e0197adb7c68dfc2f5c38"
+        },
+        "read_json": {
+          "base_ast_sha256": "b853f700387f0c948c3798bca55603830a83216b122df04c653321b7956e839b",
+          "proposal_ast_sha256": "b853f700387f0c948c3798bca55603830a83216b122df04c653321b7956e839b"
+        },
+        "readout_digest": {
+          "base_ast_sha256": "b8eac544d3622e2773694026f292e1e02e943eba5fd7d8708f710186a948c51d",
+          "proposal_ast_sha256": "b8eac544d3622e2773694026f292e1e02e943eba5fd7d8708f710186a948c51d"
+        },
+        "release_head": {
+          "base_ast_sha256": "4946891d6717d8b1b11927db37b8eb6a214e3c477422bb98a29755c9a9bf1329",
+          "proposal_ast_sha256": "4946891d6717d8b1b11927db37b8eb6a214e3c477422bb98a29755c9a9bf1329"
+        },
+        "replay_equal": {
+          "base_ast_sha256": "df70e306923e1b781463e2de841ffb10ee5582db3c7e544e88d208db500f77e4",
+          "proposal_ast_sha256": "df70e306923e1b781463e2de841ffb10ee5582db3c7e544e88d208db500f77e4"
+        },
+        "require": {
+          "base_ast_sha256": "3b218d97634fd91fd6595535193a2eb525911ab34ffd45793deaba58332ca99e",
+          "proposal_ast_sha256": "3b218d97634fd91fd6595535193a2eb525911ab34ffd45793deaba58332ca99e"
+        },
+        "resources_adapter": {
+          "base_ast_sha256": "d7aea5c7b0eeac8c375091164efd1d9e48b1b25b6c1aecfa783dd1fd2d174f61",
+          "proposal_ast_sha256": "d7aea5c7b0eeac8c375091164efd1d9e48b1b25b6c1aecfa783dd1fd2d174f61"
+        },
+        "retain_encoder": {
+          "base_ast_sha256": "7e1dd4d4e2d367274147d55e9a227f2568bdc344f5155b682ab976ba30b945b2",
+          "proposal_ast_sha256": "7e1dd4d4e2d367274147d55e9a227f2568bdc344f5155b682ab976ba30b945b2"
+        },
+        "run": {
+          "base_ast_sha256": "4cb91139f14a5f14bbbb74c019c4713b17d492c6b267fc766561ce6e293915cd",
+          "proposal_ast_sha256": "4cb91139f14a5f14bbbb74c019c4713b17d492c6b267fc766561ce6e293915cd"
+        },
+        "runtime_components": {
+          "base_ast_sha256": "7a71cf2340bfe6ffd926925e3314cea773e912933b8a09abb4240dd79f9b2f09",
+          "proposal_ast_sha256": "7a71cf2340bfe6ffd926925e3314cea773e912933b8a09abb4240dd79f9b2f09"
+        },
+        "score_panel": {
+          "base_ast_sha256": "7e5e09e7e1373cc6a467e1f8bce61a82fa9de4c56be55edb5d12c6f53477d33e",
+          "proposal_ast_sha256": "7e5e09e7e1373cc6a467e1f8bce61a82fa9de4c56be55edb5d12c6f53477d33e"
+        },
+        "score_saved_wires": {
+          "base_ast_sha256": "d6c137141f34047d2da5171da273afac541e7befded2728f89530ef3bcffd7dc",
+          "proposal_ast_sha256": "d6c137141f34047d2da5171da273afac541e7befded2728f89530ef3bcffd7dc"
+        },
+        "source_selection_adapter": {
+          "base_ast_sha256": "4c0be58a248a2c10acca4cc284aaddcdc627bb0ad6bbde21840dc84be062da4b",
+          "proposal_ast_sha256": "4c0be58a248a2c10acca4cc284aaddcdc627bb0ad6bbde21840dc84be062da4b"
+        },
+        "strict_json": {
+          "base_ast_sha256": "610821c5de5a62bf8a50d81958773c23fb45448128c9a817995da1e571646b19",
+          "proposal_ast_sha256": "610821c5de5a62bf8a50d81958773c23fb45448128c9a817995da1e571646b19"
+        },
+        "synthetic_inputs": {
+          "base_ast_sha256": "26fa952df7062991e04245c2b3618dc56368e568cfb2f374854722ed4c12d25c",
+          "proposal_ast_sha256": "26fa952df7062991e04245c2b3618dc56368e568cfb2f374854722ed4c12d25c"
+        },
+        "terminal_ast": {
+          "base_ast_sha256": "a13331066ae58e29c42a7ae5df5923f6528e65d84a4b7a183f877afe1bb505fa",
+          "proposal_ast_sha256": "a13331066ae58e29c42a7ae5df5923f6528e65d84a4b7a183f877afe1bb505fa"
+        },
+        "unique_terminals": {
+          "base_ast_sha256": "0e2334249ea9214ac4c16f42206d94fee0cbe6b61e7b6664d9e035e28486458e",
+          "proposal_ast_sha256": "0e2334249ea9214ac4c16f42206d94fee0cbe6b61e7b6664d9e035e28486458e"
+        }
+      },
+      "proposal_sha256": "e74b944dee26565029a4ec7e6ea2948d0f23e8564e5ee60ffd2f876453f529eb"
+    },
+    "scripts/test_siglip2_prototype_residual_evaluation.py": {
+      "all_unrelated_functions_identical": true,
+      "base_sha256": "19dbd915c749f3d70a20556e17756897669dc1da5817135fdede99e7eaab6ee7",
+      "changed_functions": [
+        "check",
+        "encoder_retention_check",
+        "resources_adapter_check",
+        "synthetic_bootstrap_check"
+      ],
+      "functions": {
+        "check": {
+          "base_ast_sha256": "d9ea4e55963fe7cf63b2869cb83f307a35bca441b95418e5fc1122382bc7ef06",
+          "proposal_ast_sha256": "41deb4be6cfadc2239efbeeb39cf51cb862ef740b507df13b0c79bcd832b50e9"
+        },
+        "closure_check": {
+          "base_ast_sha256": "cc2d3dbcb7b371a952e6127d05d2ce55136dfc9e0a964baf21311a18516444e9",
+          "proposal_ast_sha256": "cc2d3dbcb7b371a952e6127d05d2ce55136dfc9e0a964baf21311a18516444e9"
+        },
+        "encoder_retention_check": {
+          "base_ast_sha256": "67626b5f1e5840d2e6b4d52e974f1ad61281a059588ccbe82ed12767b982d85c",
+          "proposal_ast_sha256": "3854d2664aa8c8e1d4e9e06ff2c1f4b98dc2a70270e8e258bf300a505d0881c9"
+        },
+        "fitter_check": {
+          "base_ast_sha256": "5389b3934fa234b1bf3821667eaae14c05945409938e5f6286d1a6548643752c",
+          "proposal_ast_sha256": "5389b3934fa234b1bf3821667eaae14c05945409938e5f6286d1a6548643752c"
+        },
+        "fixture": {
+          "base_ast_sha256": "dfde82a1fa43e963964b4557f764b827afc126eae7e616e4cf96940d3e4c3c1e",
+          "proposal_ast_sha256": "dfde82a1fa43e963964b4557f764b827afc126eae7e616e4cf96940d3e4c3c1e"
+        },
+        "flow_check": {
+          "base_ast_sha256": "43c8fd7990164fe6c771d159dfa96ca54749fec68463729fcbd33eb3a47418fe",
+          "proposal_ast_sha256": "43c8fd7990164fe6c771d159dfa96ca54749fec68463729fcbd33eb3a47418fe"
+        },
+        "main": {
+          "base_ast_sha256": "27c49cbdbfb1a9a73400c4018945f8efc24d8b99769109a22f8c8da2d2230be5",
+          "proposal_ast_sha256": "27c49cbdbfb1a9a73400c4018945f8efc24d8b99769109a22f8c8da2d2230be5"
+        },
+        "quality": {
+          "base_ast_sha256": "e577cd3503a73de6d53d48157c92a7a98ebec8a9f763cd375dec29cce8229662",
+          "proposal_ast_sha256": "e577cd3503a73de6d53d48157c92a7a98ebec8a9f763cd375dec29cce8229662"
+        },
+        "rejects": {
+          "base_ast_sha256": "5730a0bc849276dcbaf3ee3f0dfa7cff373869f96d8709139cff273191753940",
+          "proposal_ast_sha256": "5730a0bc849276dcbaf3ee3f0dfa7cff373869f96d8709139cff273191753940"
+        },
+        "resources_adapter_check": {
+          "base_ast_sha256": "49667770b13c0d9e632da55d88b38b590131187c200407ec0535c082dc1f09e5",
+          "proposal_ast_sha256": "20a95959cbd6587fd264a5a58d665e64f356c4ea8edf0b7d8deddd30a6ca117f"
+        },
+        "rng_binding_check": {
+          "base_ast_sha256": "c36c59ab0f052f5c4ac2c5446687d1d3f1968af7e633a3b8a6af0459bd781cb3",
+          "proposal_ast_sha256": "c36c59ab0f052f5c4ac2c5446687d1d3f1968af7e633a3b8a6af0459bd781cb3"
+        },
+        "score_schedule_check": {
+          "base_ast_sha256": "f123620b45a85dbbc3bbf6489874f496014c91f9138eeda92dea58b00a199b68",
+          "proposal_ast_sha256": "f123620b45a85dbbc3bbf6489874f496014c91f9138eeda92dea58b00a199b68"
+        },
+        "synthetic_bootstrap_check": {
+          "base_ast_sha256": "bc78b35565fa95fe6bce935cf757c13b620e351c0d6c5d13c7a65a7054fbcfa6",
+          "proposal_ast_sha256": "32a9b757b27c2014bb2ad15b548fe3fe2e28a0c3900a8b8074964ce0d18304c9"
+        },
+        "terminal": {
+          "base_ast_sha256": "d8e4c0ce2a1533bbf086033ccab51eab719c6e0a77f1f9fbd762c87b585e8b0f",
+          "proposal_ast_sha256": "d8e4c0ce2a1533bbf086033ccab51eab719c6e0a77f1f9fbd762c87b585e8b0f"
+        },
+        "terminal_adapter_check": {
+          "base_ast_sha256": "4ef10904215e74ee0692e52559948ce22c21286fe7015c4a798e6679564b1a17",
+          "proposal_ast_sha256": "4ef10904215e74ee0692e52559948ce22c21286fe7015c4a798e6679564b1a17"
+        },
+        "v2_fitter_check": {
+          "base_ast_sha256": "7ae6a603a2ab2d2b781b15c9f897a94c78a5c25b1efcace0ec319e5c78892b6a",
+          "proposal_ast_sha256": "7ae6a603a2ab2d2b781b15c9f897a94c78a5c25b1efcace0ec319e5c78892b6a"
+        }
+      },
+      "proposal_sha256": "5c46839ec6a437387d1309dd72167411cfb8a815ceab837ea21dca81aa43dc49"
+    }
+  },
+  "author": {
+    "email": "riomus@gmail.com",
+    "name": "Roman Bartusiak"
+  },
+  "base_commit": "9e30237bf2322234e72309c0a7e23b38388d43ec",
+  "branch": "devbox/concat-envelope-proposal-20261003",
+  "clean_two_file_scope_verified_before_commit": true,
+  "clean_worktree": true,
+  "commit": "5d4f89db616e31c3a41c6009c8b8f0d82446ebee",
+  "commit_message": "Propose 500-second prototype residual evaluation envelope",
+  "commit_parent": "9e30237bf2322234e72309c0a7e23b38388d43ec",
+  "commit_tree": "e305b2be20653085828961a0305f2dc8e2811bd7",
+  "committed_exact_diff_verified": true,
+  "committer": {
+    "email": "riomus@gmail.com",
+    "name": "Roman Bartusiak"
+  },
+  "diff_sha256": "0cdf60bc3833299f5840b552f4adc6335b043de7b134e8ec3f51af8ed89f9075",
+  "evaluator_globals_and_pins_identical": true,
+  "evaluator_only_policy_seconds_changes": true,
+  "exact_diff": "diff --git a/scripts/evaluate_siglip2_prototype_residual.py b/scripts/evaluate_siglip2_prototype_residual.py\nindex e72697d6..fdc34370 100644\n--- a/scripts/evaluate_siglip2_prototype_residual.py\n+++ b/scripts/evaluate_siglip2_prototype_residual.py\n@@ -7,8 +7,8 @@ has exactly four files, and the pinned scoring reference has exactly six.\n Authority keys are SPEC_KEYS, with FILE/UNIT descriptors identical to the\n original complete original-service admission. Endpoint order is linear then\n concat; neither endpoint carries a seed, optimizer or update schedule.\n-Prospective CPU300 independently reloads each complete fitted payload twice without fitting.\n-Score300 first authenticates engineering/paired costs, then replays every source\n+Prospective CPU500 independently reloads each complete fitted payload twice without fitting.\n+Score500 first authenticates engineering/paired costs, then replays every source\n selection query before scoring the authorized direct-FIT panel and its wires.\n GO permits sealed validation only; all inference is conditional on one frozen\n trained source. Image training throughput/public quality/speed remain unmet.\n@@ -144,7 +144,7 @@ def require(condition, message):\n \n def policy(phase):\n     require(phase in ('cpu', 'score'), 'fixed evaluation phase required')\n-    return {'seconds': 300, 'host_bytes': 8 * 1024**3,\n+    return {'seconds': 500, 'host_bytes': 8 * 1024**3,\n             'swap_bytes': 0, 'cuda_visible_devices': ''}\n \n \n@@ -1127,7 +1127,7 @@ def run(args):\n             facts = qualify_heads(context)\n         if cpu is not None:\n             require(all(facts[k] == cpu[k] for k in facts), 'accepted evaluator CPU witnesses differ')\n-        # Bootstrap is qualified once in CPU300. Variable timing never enters head comparisons.\n+        # Bootstrap is qualified once in CPU500. Variable timing never enters head comparisons.\n         result['synthetic_bootstrap'] = qualify_bootstrap(context) if args.phase == 'cpu' else cpu['synthetic_bootstrap']\n         require(torch.equal(rng, torch.random.get_rng_state()) and source.numerical_flags() == flags and\n                 not torch.cuda.is_initialized(), 'whole-unit RNG/flags/CUDA differs')\ndiff --git a/scripts/test_siglip2_prototype_residual_evaluation.py b/scripts/test_siglip2_prototype_residual_evaluation.py\nindex e3005ea6..da32bab9 100644\n--- a/scripts/test_siglip2_prototype_residual_evaluation.py\n+++ b/scripts/test_siglip2_prototype_residual_evaluation.py\n@@ -87,7 +87,11 @@ def check(d):\n             lambda s: s['endpoints'].reverse(), lambda s: s['endpoints'][0].update(seed=179061),\n             lambda s: s['endpoints'][0]['terminal'].update(service_seconds=float('nan')),\n             lambda s: s['resource_policies']['cpu'].update(seconds=120),\n+            lambda s: s['resource_policies']['cpu'].update(seconds=300),\n+            lambda s: s['resource_policies']['score'].update(seconds=300),\n             lambda s: s['resource_policies']['score'].update(seconds=301),\n+            lambda s: s['resource_policies']['cpu'].update(seconds=501),\n+            lambda s: s['resource_policies']['score'].update(seconds=501),\n             lambda s: s['cost_policy'].update(total_fit_core_ratio_max=1.51),\n         ):\n             bad = copy.deepcopy(spec); mutation(bad); rejects(lambda: d.check_spec(bad, args))\n@@ -136,7 +140,7 @@ def check(d):\n         assert d.decide(arms, source, 'selection', intervals, d.paired_cost(bad))['decision'] == 'KILL'\n         bad['linear'][key] = 0; rejects(lambda: d.paired_cost(bad))\n     assert d.policy('cpu') == d.policy('score') == {\n-        'seconds': 300, 'host_bytes': 8 * 1024**3, 'swap_bytes': 0, 'cuda_visible_devices': ''}\n+        'seconds': 500, 'host_bytes': 8 * 1024**3, 'swap_bytes': 0, 'cuda_visible_devices': ''}\n     threshold = {'linear': quality([1.] * (count - 13) + [0.] * 13, [.79] * count), 'concat': concat}\n     tiny = d.metric_deltas(threshold, source, 'selection')['concat_minus_linear']\n     tiny_ci = {m: dict(intervals[m], mean_delta=sum(tiny[m]) / count) for m in d.METRICS}\n@@ -318,7 +322,7 @@ def encoder_retention_check(d, source):\n                 'sys': SimpleNamespace(argv=d.cli_argv(path, fact['sha256'], 'f' * 64, 'cpu', args.output, None),\n                     executable=sys.executable, version=sys.version, flags=SimpleNamespace(optimize=0)),\n                 'os': SimpleNamespace(getpid=os.getpid, environ={'INVOCATION_ID': '1' * 32, 'CUDA_VISIBLE_DEVICES': ''}),\n-                'time': SimpleNamespace(perf_counter=lambda: d.UNIT_STARTED + (301 if failure == 'cap' and 'publish' in events else 1)),\n+                'time': SimpleNamespace(perf_counter=lambda: d.UNIT_STARTED + (d.policy('cpu')['seconds'] + 1 if failure == 'cap' and 'publish' in events else 1)),\n                 'print': lambda *values, **kwargs: None}\n             exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), '<run lifecycle>', 'exec'), run_namespace)\n             events.clear()\n@@ -436,7 +440,7 @@ def synthetic_bootstrap_check(d, source):\n     for mutation in (\n         lambda v: v.update(schema='wrong'), lambda v: v.update(seed=179020),\n         lambda v: v.update(draws=4999), lambda v: v.update(calls=8),\n-        lambda v: v.update(seconds=300), lambda v: v.update(seconds=0),\n+        lambda v: v.update(seconds=500), lambda v: v.update(seconds=0),\n         lambda v: v.update(seconds=True), lambda v: v['panels'].pop('validation'),\n         lambda v: v['panels']['selection'].update(query_images=1749),\n         lambda v: v['panels']['selection'].update(products=497),\n@@ -945,7 +949,7 @@ def terminal_adapter_check(d):\n \n \n def resources_adapter_check(d):\n-    \"\"\"CPU300 is prospective; preserve the pinned checker and every resource gate.\"\"\"\n+    \"\"\"CPU/score500 is prospective; preserve the pinned checker and every resource gate.\"\"\"\n     path = Path(__file__).with_name('export_siglip2_substrate_adaptation.py').resolve()\n     helper = d.load_bare('_resources_original_helper', path, d.REFERENCE_PINS[path.name])\n     original_globals = dict(vars(helper))\n@@ -978,17 +982,22 @@ def resources_adapter_check(d):\n         return FunctionType(function.__code__, namespace)(context, phase, before)\n \n     for phase in ('cpu', 'score'):\n-        result = run(phase=phase, elapsed=299.)\n-        assert result == {'resource_policy': {'seconds': 300, 'host_bytes': 8 * 1024**3,\n-                'swap_bytes': 0, 'cuda_visible_devices': ''}, 'wall_seconds': 299.,\n+        result = run(phase=phase, elapsed=499.)\n+        assert result == {'resource_policy': {'seconds': 500, 'host_bytes': 8 * 1024**3,\n+                'swap_bytes': 0, 'cuda_visible_devices': ''}, 'wall_seconds': 499.,\n             'process_peak_rss_kib': 1000, 'peak_cuda_allocated_bytes': 0,\n             'cgroup_before': before, 'cgroup_after': before, 'both_locks_held_in_parent_authority': True,\n             'terminal_exit_and_both_locks_require_parent_receipt': True}\n-        for elapsed in (300., 301.):\n+        assert run(phase=phase, elapsed=300.)['wall_seconds'] == 300.\n+        for elapsed in (500., 501.):\n             rejects(lambda: run(phase=phase, elapsed=elapsed), 'complete-unit resources')\n     rejects(lambda: run(helper.resources), 'complete-unit resources')  # Historical CPU120 still fails.\n     assert abs(run()['wall_seconds'] - 120.103) < 1e-12\n-    assert run(phase='score') == run(helper.resources, phase='score')\n+    original_score = run(helper.resources, phase='score')\n+    assert original_score['resource_policy'] == dict(d.policy('score'), seconds=300)\n+    assert run(phase='score') == dict(original_score, resource_policy=d.policy('score'))\n+    for elapsed in (300., 499.):\n+        rejects(lambda: run(helper.resources, phase='score', elapsed=elapsed), 'complete-unit resources')\n     for rss in (0, 8 * 1024**2 + 1):\n         rejects(lambda: run(rss=rss), 'complete-unit resources')\n     rejects(lambda: run(swap=1), 'native swap')\n@@ -1019,6 +1028,7 @@ def resources_adapter_check(d):\n         alias = SimpleNamespace(**{**vars(helper), '__file__': str(changed), '__spec__': SimpleNamespace(origin=str(changed))})\n         rejects(lambda: d.resources_adapter(alias, {}), 'SHA256')\n     assert vars(helper) == original_globals and helper.policy('cpu')['seconds'] == 120\n+    assert helper.policy('score')['seconds'] == 300\n     assert not any(n.split('.')[0] in d.NATIVE for n in sys.modules)\n \n \n",
+  "exact_two_file_commit_verified": true,
+  "generated_utc": "2026-10-03T01:49:38.915318+00:00",
+  "goal": "unchanged full SOP+InShop production quality and speed goal",
+  "historical_status": {
+    "accepted_consumer_receipt": false,
+    "accepted_fit_concat_seconds": 234.821,
+    "accepted_fit_core_ratio": 0.92303,
+    "accepted_fit_linear_seconds": 212.169,
+    "accepted_fit_whole_service_ratio": 1.106764,
+    "candidate_quality_available": false,
+    "completed_audit_id": "f72753147db84d42",
+    "consumer_cpu_v1": "FAIL",
+    "consumer_cpu_v1_admission_seconds": 144.25588,
+    "consumer_cpu_v1_events": 0,
+    "consumer_cpu_v1_host_GB": 3.206,
+    "consumer_cpu_v1_seconds": 300.217,
+    "consumer_cpu_v1_swap": 0,
+    "fits_valid": true,
+    "global_goal_met": false
+  },
+  "integration_performed": false,
+  "limits": {
+    "old": {
+      "cpu_seconds": 300,
+      "score_seconds": 300
+    },
+    "prospective": {
+      "all_memory_events": 0,
+      "both_lifetime_locks_required": true,
+      "cpu_seconds": 500,
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "score_seconds": 500,
+      "swap_bytes": 0
+    },
+    "strict_elapsed_predicate": "0 < elapsed < policy seconds; exactly 500 seconds rejects"
+  },
+  "native_execution_performed": false,
+  "operator_approval_required_before_apply_freeze_launch": true,
+  "original_resource_helper": {
+    "edited": false,
+    "path": "scripts/export_siglip2_substrate_adaptation.py",
+    "pinned_and_actual_sha256": "89eed215795492d8237d736077b8ee0d0b821ba07dfd3535c65f6643533b9863"
+  },
+  "owned_files": [
+    "scripts/evaluate_siglip2_prototype_residual.py",
+    "scripts/test_siglip2_prototype_residual_evaluation.py"
+  ],
+  "preserved_checks": [
+    "full source admission",
+    "both lifetime locks",
+    "CUDA hidden",
+    "8 GiB/no swap/zero events",
+    "original predicates/globals/pins",
+    "whole-service and total-fit cost ratios <= 1.50",
+    "four independent payload reloads",
+    "parity and scoring math",
+    "synthetic 5000 draws and seed 179019",
+    "quality thresholds",
+    "encoder retention and cache/telemetry behavior"
+  ],
+  "proposal_only": true,
+  "pushed": false,
+  "schema": "sfora-concat-envelope-proposal-v1",
+  "stage": "final",
+  "stop_rule": {
+    "any_failure_closes_new_envelope": true,
+    "automatic_retry_allowed": false,
+    "cold_cpu_attempts_max": 1,
+    "cold_cpu_seconds": 500,
+    "operator_approval_first": true,
+    "retroactive_GO_allowed": false,
+    "score_allowed_only_after_full_cpu_pass": true,
+    "score_attempts_max": 1,
+    "score_seconds": 500
+  },
+  "tests": {
+    "allowed_runs": 2,
+    "authorization": {
+      "message": "immediate-1790992058001765997-1312788",
+      "parent": "sfora/emafactorial",
+      "scope": "ONE bounded rerun after test-only 301cap fixture correction; native500 UNAUTHORIZED"
+    },
+    "command": "python3 -B -S scripts/test_siglip2_prototype_residual_evaluation.py --fitter-root /home/rb/worktrees/sfora-positive-causality/scripts",
+    "full_suite_run": false,
+    "runs": [
+      {
+        "exit_code": 1,
+        "failure": "encoder_retention_check simulated old cap at 301s; corrected to own CPU policy seconds + 1",
+        "log": "/tmp/sfora-concat-envelope-proposal-test.log",
+        "log_sha256": "e588ba98db357dc0bfe57bfa797c678fc2f264a555ee5a744d2562eba3995402",
+        "wall_seconds": 0.5
+      },
+      {
+        "exit_code": 0,
+        "log": "/tmp/sfora-concat-envelope-proposal-test-rerun.log",
+        "log_sha256": "53f21b1d6821823d91efd1de42b8345441d325fbefecbbd65308c21925feb3b0",
+        "parent_authorized": true,
+        "result": "PASS (native UNRUN)",
+        "timeout_seconds": 55,
+        "wall_seconds": 1.8
+      }
+    ],
+    "status": "PASS on parent-authorized single rerun",
+    "syntax_and_diff_checks": "final committed bytes parse/compile PASS; git diff --check base..commit PASS",
+    "timeout_seconds": 55,
+    "total_runs": 2
+  },
+  "worktree": "/home/rb/worktrees/sfora-concat-envelope-proposal-20261003"
+}
