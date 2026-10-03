@@ -1,0 +1,46 @@
+{
+  "verdict": "PASS_ENGINEERING_CPU_ONLY",
+  "terminal": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-cpu-v8/receipt.json",
+      "sha256": "f01ea8340e70c59196cb279ee86a3148d82932bf87a5c90871ddaa73b710b9ba"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/cpu-v8.log",
+      "sha256": "9340a884d3707704eb9072e62222aabd7727abbfaa28f701d8172dea1095bef8"
+    },
+    "unit": "sfora-so400-compact-ranking-cpu-v8",
+    "invocation_id": "6b2fb25709dd496d9b63af5c66e5c2af",
+    "service_seconds": 186.702,
+    "native_peak_rss_kib": 5819032,
+    "both_locks_held": true
+  },
+  "host_peak_bytes": 8372355072,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "quality_read": false,
+  "phase_seconds": {
+    "authority": 58.216063872911036,
+    "bundle_dependency_denial": 29.823795090429485,
+    "bundle_image_loading": 0.006693759001791477,
+    "bundle_loader": 26.425640091765672,
+    "bundle_loader_authentication": 2.533852324821055,
+    "bundle_native_forward": 2.810825846157968,
+    "bundle_oracle": 2.5462987418286502,
+    "bundle_release": 0.22840610519051552,
+    "cache_target_preparation": 2.187450736761093,
+    "cpu_bundle_qualification": 35.139603845309466,
+    "cpu_loss_falsifier": 0.8109012544155121,
+    "independent_reload": 1.5547397285699844,
+    "origin_guard_promotion": 0.03827689727768302,
+    "own_exit_rehash": 2.820403821300715,
+    "post_exit_api_authentication": 0.7202612697146833,
+    "post_exit_origin_audit": 6.677366305142641,
+    "post_run_api_authentication": 0.5463779252022505,
+    "post_run_origin_audit": 6.616612360812724,
+    "save": 0.9161040643230081,
+    "shared_bundle_preparation": 12.269399002194405,
+    "shared_source_preparation": 18.713777362834662,
+    "source_exit_rehash": 25.17062673298642
+  }
+}
