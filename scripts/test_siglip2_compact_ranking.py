@@ -16,6 +16,7 @@ from tempfile import TemporaryDirectory
 from contextlib import contextmanager, redirect_stdout
 from types import FunctionType, SimpleNamespace
 import unittest
+import weakref
 from unittest.mock import patch
 
 PATH = Path(__file__).with_name("train_siglip2_compact_ranking.py")
@@ -25,6 +26,72 @@ if PATH.exists():
     spec.loader.exec_module(driver)
 else:
     driver = SimpleNamespace()
+
+
+def completion_source_boundary(tree):
+    """Invert only the reviewed completion edits, with exact per-site counts."""
+    dump = lambda n: ast.dump(n, include_attributes=False)
+    added = {'exit_admission_adapter', 'authenticate_bundle_environment'}
+    for name in added:
+        driver.require(sum(isinstance(n, ast.FunctionDef) and n.name == name for n in tree.body) == 1,
+                       'exact completion definition required: ' + name)
+    tree.body = [n for n in tree.body if not (isinstance(n, ast.FunctionDef) and n.name in added)]
+    removals = {
+        ('exit_rehash', "exit_reader = context['legacy']['original'].FlatAdmission()"): 1,
+        ('exit_rehash', 'del exit_reader'): 1,
+        ('run', "post_run_reader = legacy['original'].FlatAdmission()"): 1,
+        ('run', 'del post_run_reader'): 1,
+        ('qualify_bundle', "authenticate_bundle_environment(context, bundle['environment'])"): 1,
+    }
+    replacements = {
+        ('exit_rehash', "api.audit_origins(context['legacy'], admission=exit_reader, require_exact=context['args'].phase != 'cpu')"):
+            ("api.audit_origins(context['legacy'], admission=context['legacy']['original'].FlatAdmission(), require_exact=context['args'].phase != 'cpu')", 1),
+        ('exit_rehash', "exit_admission_adapter(context, api, exit_reader)(context['fit_context'])"):
+            ("api.exit_rehash(context['fit_context'])", 1),
+        ('exit_rehash', 'exit_reader.bound_file({}, p, h)'): ('bound_file({}, p, h)', 1),
+        ('run', "api.audit_origins(legacy, admission=post_run_reader, require_exact=args.phase != 'cpu')"):
+            ("api.audit_origins(legacy, admission=legacy['original'].FlatAdmission(), require_exact=args.phase != 'cpu')", 1),
+        ('run', "post_run_reader.bound_file(context['guards'], p, h)"):
+            ("bound_file(context['guards'], p, h)", 1),
+        ('qualify_bundle', "bundle = portable.read_json({'path': str(directory / 'bundle.json'), 'sha256': sha}, {})"):
+            ('bundle, _ = portable.admit_bundle(directory, sha)', 1),
+    }
+    removed, replaced = {}, {}
+
+    class Inverse(ast.NodeTransformer):
+        function = None
+
+        def visit_FunctionDef(self, node):
+            prior, self.function = self.function, node.name
+            result = self.generic_visit(node)
+            self.function = prior
+            return result
+
+        def visit(self, node):
+            if isinstance(node, ast.stmt):
+                for key in removals:
+                    if self.function == key[0] and dump(node) == dump(ast.parse(key[1]).body[0]):
+                        removed[key] = removed.get(key, 0) + 1
+                        return None
+            for key, (original, _) in replacements.items():
+                changed = ast.parse(key[1]).body[0]
+                if isinstance(changed, ast.Expr):
+                    changed = changed.value
+                    original = ast.parse(original, mode='eval').body
+                else:
+                    original = ast.parse(original).body[0]
+                if self.function == key[0] and dump(node) == dump(changed):
+                    replaced[key] = replaced.get(key, 0) + 1
+                    return ast.copy_location(original, node)
+            return super().visit(node)
+
+    tree = Inverse().visit(tree)
+    driver.require(removed == removals and replaced == {k: count for k, (_, count) in replacements.items()},
+                   'exact completion scheduling sites required')
+    driver.require(hashlib.sha256(dump(tree).encode()).hexdigest() ==
+                   '08bdc0910571d5638f9e49ba9b6fae585d47374ee1759020151b9cdd704ec2d2',
+                   'completion changed retained predicates')
+    return tree
 
 
 class FreshOriginAuditTests(unittest.TestCase):
@@ -109,8 +176,10 @@ class FreshOriginAuditTests(unittest.TestCase):
 
                 def invoke(code=code):
                     api = f.context['nearest'].native_source_api(f.context)
+                    reader = f.original.FlatAdmission()
                     return eval(code, vars(driver), {'context': f.context, 'legacy': f.legacy,
-                                'args': f.context['args'], 'api': api})
+                                'args': f.context['args'], 'api': api,
+                                'exit_reader': reader, 'post_run_reader': reader})
 
                 result.append((fn.name, invoke))
         self.assertEqual([name for name, _ in result], ['prepare_native', 'gpu_run', 'exit_rehash', 'exit_rehash', 'run'])
@@ -247,6 +316,299 @@ class FreshOriginAuditTests(unittest.TestCase):
                         invoke()
                     self.assertIs(caught.exception, sentinel)
                     invoke()
+
+
+    def test_nested_exit_reader_composition_and_fail_closed_mutations(self):
+        self.assertTrue(hasattr(driver, 'exit_admission_adapter'), 'missing reviewed exit reader adapter')
+        with self.composition() as f:
+            f.context['nearest'] = SimpleNamespace(native_source_api=self.fixtures.driver.native_source_api,
+                                                   require_no_model=self.fixtures.driver.require_no_model)
+            f.context.update(started=driver.time.perf_counter(), phase_seconds={})
+            prior = f.legacy['selected']['genuine']['prior']
+            # The real CPU collector also owns the FIT validator and bootstrap.
+            # Supply their complete stdlib inputs instead of replacing predicates.
+            image_root = Path(prior['fit']['dataset_root'])
+            image_directory = image_root / 'Img/img'; image_directory.mkdir(parents=True)
+            paths = [p.rename(image_directory / p.name) for p in prior['all_images']]
+            classes = ['class-' + str(i) for i in range(2004)]
+            prior['fit'].update(schema='native256-frozen-fit-manifest-v1', fit_images=13283,
+                fit_identities=2004, held_images_read=0, quality_read=False,
+                source_features_reused=False, teacher_state_reused=False,
+                targets=[i % 2004 for i in range(13283)], class_names=classes,
+                rows=[{'relative_path': 'Img/img/' + p.name, 'train_row': i, 'product': classes[i % 2004],
+                       'image_sha256': hashlib.sha256(b'').hexdigest()} for i, p in enumerate(paths)])
+            prior['all_images'] = paths
+            prior['images'] = f.source.fit_rows(f.extract, prior['fit'])
+            source_root = f.root / 'source'; source_root.mkdir()
+            for name in f.source.FILES: shutil.copyfile(PATH.with_name(name), source_root / name)
+            source_code = {n: hashlib.sha256((source_root / n).read_bytes()).hexdigest() for n in f.source.FILES}
+            source_execution = f.write_json('source/execution.json', source_code)
+            prior.update(root=source_root, code=source_code,
+                         args=SimpleNamespace(execution_sha256=source_execution['sha256']))
+            name = 'extract_siglip2_vision_source'
+            spec = importlib.util.spec_from_file_location(name, source_root / (name + '.py'))
+            extract = importlib.util.module_from_spec(spec); spec.loader.exec_module(extract)
+            sys.modules[name] = extract
+            # One non-origin path belongs to each of the four stage inventories.
+            shared = f.bulk[0]
+            for guards in (prior['guards'], f.legacy['selected']['genuine']['guards'],
+                           f.legacy['guards'], f.context['fit_context']['guards'], f.context['guards']):
+                guards[shared['path']] = shared['sha256']
+            inventories = [prior['guards'], f.legacy['selected']['genuine']['guards'],
+                           f.legacy['guards'], f.context['fit_context']['guards'], f.context['guards']]
+            reader = f.original.FlatAdmission()
+            f.api.audit_origins(f.legacy, admission=reader, require_exact=True)
+            initial_guards = [dict(g) for g in inventories]
+            admitted = driver.exit_admission_adapter(f.context, f.api, reader)
+            private_fit = next(c.cell_contents for c in admitted.__closure__ or ()
+                               if isinstance(c.cell_contents, FunctionType) and c.cell_contents.__name__ == 'exit_rehash')
+            private_quad = private_fit.__globals__['_compact_quadratic_exit']
+            self.assertIs(private_quad.__globals__['audit_origins'], f.api.audit_origins)
+            self.assertIs(private_quad.__globals__['_compact_exit_reader'], reader)
+            self.assertIs(private_fit.__globals__['_compact_exit_reader'], reader)
+            for module, private, substitutions in (
+                    (f.old, private_quad, [("context['original'].FlatAdmission()", '_compact_exit_reader')]),
+                    (f.fitter, private_fit, [("context['old'].exit_rehash(context['legacy'])", "_compact_quadratic_exit(context['legacy'])"),
+                                             ('bound_file({}, path, digest)', '_compact_exit_reader.bound_file({}, path, digest)')])):
+                self.assertIsNot(private.__globals__, vars(module))
+                node = next(n for n in ast.parse(Path(module.__file__).read_bytes()).body
+                            if isinstance(n, ast.FunctionDef) and n.name == 'exit_rehash')
+                original = copy.deepcopy(node)
+                dump = lambda n: ast.dump(n, include_attributes=False)
+                for before, after in substitutions:
+                    class Change(ast.NodeTransformer):
+                        count = 0
+                        def visit(self, n):
+                            if dump(n) == dump(ast.parse(before, mode='eval').body):
+                                self.count += 1
+                                return ast.copy_location(ast.parse(after, mode='eval').body, n)
+                            return super().visit(n)
+                    change = Change()
+                    node = change.visit(node)
+                    self.assertEqual(change.count, 1)
+                expected = compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), module.__file__, 'exec')
+                self.assertEqual(private.__code__, next(c for c in expected.co_consts if getattr(c, 'co_name', None) == 'exit_rehash'))
+                for before, after in reversed(substitutions):
+                    before, after = after, before
+                    change = Change()
+                    node = change.visit(node)
+                    self.assertEqual(change.count, 1)
+                self.assertEqual(dump(node), dump(original))
+
+            with redirect_stdout(io.StringIO()):
+                f.api.exit_rehash(f.context['fit_context'])
+            expected_guards = [dict(g) for g in inventories]
+            for guards, saved in zip(inventories, initial_guards):
+                guards.clear(); guards.update(saved)
+            f.context['fit_context']['phase_seconds'].clear()
+            f.reads.clear()
+            reads, real_open = [], Path.open
+            def count_open(path, *args, **kwargs):
+                if str(path) in f.observed and sys._getframe(1).f_code is f.extract.sha.__code__:
+                    f.reads.append(('origin_sha', str(path)))
+                if str(path) == shared['path']:
+                    reads.append(sys._getframe(1).f_code)
+                return real_open(path, *args, **kwargs)
+            with patch.object(Path, 'open', count_open), redirect_stdout(io.StringIO()):
+                admitted(f.context['fit_context'])
+                for path, digest in f.context['guards'].items():
+                    reader.bound_file({}, path, digest)
+            self.assertEqual(reads, [f.original.bound_file.__code__])
+            self.assertEqual([dict(g) for g in inventories], expected_guards)
+            self.assertEqual(reader.entries[shared['path']], (shared['sha256'], Path(shared['path']).stat().st_size))
+            # The nested collector still physically rereads each origin.
+            self.assertCountEqual([r for r in f.reads if r[0] == 'origin_sha'], [('origin_sha', p) for p in f.observed])
+            with self.assertRaises(ValueError): reader.bound_file({}, shared['path'], '0' * 64)
+            with self.assertRaises(ValueError): reader.bound_file({}, shared['path'], shared['sha256'], size=0)
+            with self.assertRaises(ValueError): reader.bound_file({shared['path']: '0' * 64}, shared['path'], shared['sha256'])
+            alias = f.root / 'alias'; alias.symlink_to(shared['path'])
+            with self.assertRaises(ValueError): reader.bound_file({}, alias, shared['sha256'])
+
+            # No garbage collection may rescue a successful boundary's lifetime.
+            reader_ref = weakref.ref(reader)
+            collecting = driver.gc.isenabled(); driver.gc.disable()
+            try:
+                del reader, admitted, private_fit, private_quad, private
+                self.assertIsNone(reader_ref(), 'successful private exit retained its reader')
+            finally:
+                if collecting: driver.gc.enable()
+
+            def candidate():
+                reader = f.original.FlatAdmission()
+                f.api.audit_origins(f.legacy, admission=reader, require_exact=True)
+                admitted = driver.exit_admission_adapter(f.context, f.api, reader)
+                fit = next(c.cell_contents for c in admitted.__closure__ or ()
+                           if isinstance(c.cell_contents, FunctionType) and c.cell_contents.__name__ == 'exit_rehash')
+                return reader, admitted, fit, fit.__globals__['_compact_quadratic_exit']
+
+            for owner, name in (('fit', '_compact_exit_reader'), ('fit', '_compact_quadratic_exit'), ('quad', 'audit_origins')):
+                reader, admitted, private_fit, private_quad = candidate()
+                values = (private_fit if owner == 'fit' else private_quad).__globals__
+                replacement = f.original.FlatAdmission() if name == '_compact_exit_reader' else lambda *a, **kw: None
+                with self.subTest(global_name=name), patch.dict(values, {name: replacement}), self.assertRaises(ValueError):
+                    admitted(f.context['fit_context'])
+                values.clear()  # patch.dict restores its snapshot after rejection.
+            for name in ('bound_file', 'register', 'all_fit_images'):
+                reader, admitted, private_fit, private_quad = candidate()
+                with self.subTest(shadow=name), patch.object(reader, name, lambda *a: None), self.assertRaises(ValueError):
+                    admitted(f.context['fit_context'])
+            for owner in ('fit', 'quad'):
+                for name, replacement in (('__code__', (lambda value: None).__code__),
+                                           ('__defaults__', (None,)), ('__kwdefaults__', {'unexpected': True})):
+                    reader, admitted, private_fit, private_quad = candidate()
+                    fn = private_fit if owner == 'fit' else private_quad
+                    saved = getattr(fn, name)
+                    try:
+                        setattr(fn, name, replacement)
+                        with self.subTest(function=owner, attribute=name), self.assertRaises(ValueError):
+                            admitted(f.context['fit_context'])
+                    finally: setattr(fn, name, saved)
+            reader, admitted, private_fit, private_quad = candidate()
+            cells = dict(zip(admitted.__code__.co_freevars, admitted.__closure__))
+            cell = cells['authenticate']; original_auth = cell.cell_contents
+            try:
+                cell.cell_contents = lambda: None
+                with self.assertRaises(ValueError): admitted(f.context['fit_context'])
+            finally: cell.cell_contents = original_auth
+            reader, admitted, private_fit, private_quad = candidate()
+            with patch.dict(f.fitter.ORIGINAL_CODE, {'unexpected': '0' * 64}), self.assertRaises(ValueError):
+                admitted(f.context['fit_context'])
+            unknown = f.root / 'unknown.so'; unknown.write_bytes(b'unknown')
+            reader, admitted, private_fit, private_quad = candidate()
+            f.mapped.append(str(unknown))
+            f.context['fit_context']['phase_seconds'].clear()
+            with redirect_stdout(io.StringIO()), self.assertRaisesRegex(ValueError, 'unknown or changed'):
+                admitted(f.context['fit_context'])
+            f.mapped.remove(str(unknown))
+            supplemental = next(iter(f.files)); f.mapped.remove(supplemental)
+            with self.assertRaisesRegex(ValueError, 'exact four'):
+                f.api.audit_origins(f.legacy, admission=f.original.FlatAdmission(), require_exact=True)
+            f.mapped.append(supplemental)
+            # The same stage predicates must fail before any union rescue.
+            for name, value in (('images', ['changed FIT']), ('all_images', [])):
+                reader, admitted, private_fit, private_quad = candidate()
+                with patch.dict(prior, {name: value}), redirect_stdout(io.StringIO()), self.assertRaisesRegex(ValueError, 'FIT image resolution'):
+                    f.context['fit_context']['phase_seconds'].clear()
+                    admitted(f.context['fit_context'])
+            f.context['fit_context']['phase_seconds'].clear()
+            with redirect_stdout(io.StringIO()):
+                f.api.exit_rehash(f.context['fit_context'])
+            self.assertEqual([dict(g) for g in inventories], expected_guards)
+            # A fresh exit cannot reuse startup bytes, even with restored mtime.
+            path = Path(shared['path']); saved, stamp = path.read_bytes(), path.stat()
+            try:
+                path.write_bytes(bytes([saved[0] ^ 1]) + saved[1:]); os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+                fresh = f.original.FlatAdmission()
+                f.api.audit_origins(f.legacy, admission=fresh, require_exact=True)
+                f.context['fit_context']['phase_seconds'].clear()
+                with redirect_stdout(io.StringIO()), self.assertRaises(ValueError):
+                    driver.exit_admission_adapter(f.context, f.api, fresh)(f.context['fit_context'])
+            finally: path.write_bytes(saved)
+            # Exercise the actual compact exit as well: its last independent
+            # boundary must start after disposal and still hash current origins.
+            def make_closure(name, members):
+                root = f.root / name; root.mkdir()
+                for member in members: shutil.copyfile(PATH.with_name(member), root / member)
+                code = {n: hashlib.sha256((root / n).read_bytes()).hexdigest() for n in members}
+                execution = f.write_json(name + '/execution.json', code)
+                return {'root': str(root), 'code': code, 'execution_sha256': execution['sha256']}
+            own = make_closure('compact', driver.FILES)
+            nearest = make_closure('nearest', driver.NEAREST['code'])
+            f.context.update(root=Path(own['root']), code=own['code'],
+                args=SimpleNamespace(phase='mechanics', execution_sha256=own['execution_sha256']))
+            adapter, timer = driver.exit_admission_adapter, driver.timed
+            native = Path(supplemental); saved, stamp = native.read_bytes(), native.stat()
+            for tamper in (False, True):
+                reader_refs = []
+                def track(context, api, reader):
+                    reader_refs.append(weakref.ref(reader))
+                    return adapter(context, api, reader)
+                @contextmanager
+                def phase(context, name):
+                    if name == 'post_exit_api_authentication':
+                        self.assertEqual(len(reader_refs), 1)
+                        self.assertIsNone(reader_refs[0](), 'exit reader survived into final audit')
+                        if tamper:
+                            native.write_bytes(bytes([saved[0] ^ 1]) + saved[1:])
+                            os.utime(native, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+                    with timer(context, name): yield
+                collecting = driver.gc.isenabled(); driver.gc.disable()
+                f.context['fit_context']['phase_seconds'].clear(); f.reads.clear()
+                try:
+                    with patch.object(driver, 'NEAREST', nearest), patch.object(driver, 'timed', phase), \
+                            patch.object(driver, 'exit_admission_adapter', track), \
+                            patch.object(driver, 'helper_guard', lambda c: f.fitter.prepare_readout(c['fit_context'])), \
+                            redirect_stdout(io.StringIO()):
+                        if tamper:
+                            with self.assertRaises(ValueError): driver.exit_rehash(f.context)
+                        else:
+                            driver.exit_rehash(f.context)
+                            self.assertCountEqual([r for r in f.reads if r[0] == 'origin_sha'],
+                                                  [('origin_sha', p) for p in f.observed] * 3)
+                finally:
+                    native.write_bytes(saved)
+                    if collecting: driver.gc.enable()
+            self.assertLessEqual(sum(p.stat().st_size for p in f.root.rglob('*') if p.is_file()), 16 * 1024**2)
+            path = Path(supplemental); saved, stamp = path.read_bytes(), path.stat()
+            try:
+                path.write_bytes(bytes([saved[0] ^ 1]) + saved[1:]); os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+                with self.assertRaises(ValueError):
+                    f.context['nearest'].native_source_api(f.context).audit_origins(f.legacy, admission=f.original.FlatAdmission())
+            finally: path.write_bytes(saved)
+
+
+    def test_exit_adapter_releases_private_reader_cycles_on_rejection(self):
+        with self.composition() as f:
+            f.context['nearest'] = SimpleNamespace(native_source_api=self.fixtures.driver.native_source_api)
+            reader = f.original.FlatAdmission()
+            f.api.audit_origins(f.legacy, admission=reader)
+            admitted = driver.exit_admission_adapter(f.context, f.api, reader)
+            reader_ref = weakref.ref(reader)
+            collecting = driver.gc.isenabled()
+            driver.gc.disable()
+            try:
+                with self.assertRaisesRegex(ValueError, 'owned exit fitter context'):
+                    admitted(object())
+                del reader, admitted
+                self.assertIsNone(reader_ref(), 'private exit cycles retained the boundary reader')
+            finally:
+                if collecting: driver.gc.enable()
+
+
+    def test_post_run_promotion_reuses_only_its_fresh_origin_reader(self):
+        with self.composition() as f:
+            f.context['nearest'] = SimpleNamespace(native_source_api=self.fixtures.driver.native_source_api)
+            f.admission.verified.update(f.observed)
+            fn = next(n for n in ast.parse(PATH.read_text()).body if isinstance(n, ast.FunctionDef) and n.name == 'run')
+            blocks = [n for n in fn.body if isinstance(n, ast.With) and
+                      n.items[0].context_expr.args[1].value in
+                      ('post_run_api_authentication', 'post_run_origin_audit', 'origin_guard_promotion')]
+            self.assertEqual(len(blocks), 3)
+            discard = next(n for n in fn.body if isinstance(n, ast.Delete) and
+                           ast.dump(n) == ast.dump(ast.parse('del post_run_reader').body[0]))
+            values = {'context': f.context, 'legacy': f.legacy, 'args': f.context['args']}
+            def execute(nodes):
+                exec(compile(ast.fix_missing_locations(ast.Module(body=copy.deepcopy(nodes), type_ignores=[])),
+                             str(PATH), 'exec'), vars(driver), values)
+            f.reads.clear()
+            with redirect_stdout(io.StringIO()): execute(blocks[:2])
+            reader = values['post_run_reader']
+            self.assertIs(type(reader), f.original.FlatAdmission)
+            self.assertIsNot(reader, f.admission)
+            self.assertEqual(reader.verified, set(f.observed))
+            with redirect_stdout(io.StringIO()): execute(blocks[2:])
+            self.assertCountEqual(f.reads, [('origin_sha', p) for p in f.observed])
+            self.assertTrue(all(f.context['guards'][p] == h for p, h in f.observed.items()))
+            reader_ref = weakref.ref(reader)
+            execute([discard]); del reader
+            self.assertIsNone(reader_ref())
+            path = Path(next(iter(f.cpu['files'])))
+            saved, stamp = path.read_bytes(), path.stat()
+            try:
+                path.write_bytes(bytes([saved[0] ^ 1]) + saved[1:]); os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+                with redirect_stdout(io.StringIO()), self.assertRaisesRegex(ValueError, 'unknown or changed'):
+                    execute(blocks[:2])
+            finally: path.write_bytes(saved)
 
 
 class ContractTests(unittest.TestCase):
@@ -452,6 +814,7 @@ class ContractTests(unittest.TestCase):
     def test_bundle_owned_files_and_forbidden_dependencies(self):
         admit = self.api("admit_bundle")
         self.api("deny_training_dependencies")
+        authenticate_environment = self.api('authenticate_bundle_environment')
         with TemporaryDirectory() as directory:
             root = Path(directory)
             bundle = root / "bundle"
@@ -522,9 +885,59 @@ class ContractTests(unittest.TestCase):
             authority_path = root / "native-authority.json"
             authority_path.write_text(json.dumps({"proof": {"path": str(proof_path), "sha256": proof_sha}}))
             context = {"guards": guards,
-                       "nearest": SimpleNamespace(NATIVE_PROOF_PINS={"proof": proof_sha}),
+                       "nearest": SimpleNamespace(NATIVE_PROOF_PINS={"proof": proof_sha}, NATIVE_MEMBERS={
+                           'libcudnn_engines_precompiled.so.9', 'libcudnn_engines_runtime_compiled.so.9',
+                           'libcudnn_graph.so.9', 'libcudnn_heuristic.so.9'}),
                        "launch": {"native_authority": {"path": str(authority_path),
                            "sha256": hashlib.sha256(authority_path.read_bytes()).hexdigest()}}}
+            context['guards'].update(environment['files'])
+            context['legacy'] = {'selected': {'packages': packages},
+                                 'origins': {'packages': packages, 'native_files': []},
+                                 'prior': {'sources': {'native_environment': {'vision_constructor': {'path': str(constructor)}}}}}
+            # Authenticate only the manifest, then bind its allowances to the
+            # already qualified source before installing the real deny hook.
+            preflight = driver.read_json({'path': str(bundle / 'bundle.json'), 'sha256': sha}, {})
+            authenticate_environment(context, preflight['environment'])
+            for changed in (
+                    {**environment, 'files': {**environment['files'], str(warm): guards[str(warm)]}},
+                    {**environment, 'files': {**environment['files'], str(training): guards[str(training)]},
+                     'native_files': {str(training): guards[str(training)]}},
+                    {**environment, 'files': {str(constructor): '0' * 64}},
+                    {**environment, 'vision_constructor': str(warm)}):
+                with self.subTest(environment=changed), self.assertRaises(ValueError):
+                    authenticate_environment(context, changed)
+            # Repair the earlier symlink; both public loads must independently
+            # reach their full admission while the hook is enabled. Corruption
+            # aborts before the native import, so these remain stdlib witnesses.
+            (bundle / 'vision.pt').unlink()
+            (bundle / 'vision.pt').write_bytes(b'tiny admission fixture')
+            context.update(code=code, started=driver.time.perf_counter(), phase_seconds={})
+            qualify = next(n for n in ast.parse(PATH.read_text()).body
+                           if isinstance(n, ast.FunctionDef) and n.name == 'qualify_bundle')
+            authentication = next(n for n in ast.walk(qualify) if isinstance(n, ast.With) and
+                                  n.items[0].context_expr.args[1].value == 'bundle_loader_authentication')
+            for _ in range(2):
+                values = {'context': context, 'directory': bundle, 'sha': sha}
+                with redirect_stdout(io.StringIO()):
+                    exec(compile(ast.fix_missing_locations(ast.Module(body=[copy.deepcopy(authentication)], type_ignores=[])),
+                                 str(PATH), 'exec'), vars(driver), values)
+                portable = values['portable']
+                self.assertEqual(values['bundle'], value)
+                with driver.deny_training_dependencies(context, bundle, values['bundle']['environment']):
+                    with self.assertRaisesRegex(ValueError, 'fixed inference device'):
+                        portable.load_inference(bundle, sha, 'invalid')
+                    for member in ('endpoint.pt', 'vision.pt', 'processor.json', 'prototype_residual_readout.py'):
+                        path = bundle / member
+                        original = path.read_bytes()
+                        try:
+                            path.write_bytes(bytes([original[0] ^ 1]) + original[1:])
+                            with self.subTest(corrupt=member), self.assertRaisesRegex(ValueError, 'current FILE bytes'):
+                                portable.load_inference(bundle, sha, 'cpu')
+                        finally: path.write_bytes(original)
+                    for path in (warm, lookalike, training):
+                        with self.assertRaisesRegex(ValueError, 'original training dependency'):
+                            path.read_bytes()
+                self.assertIs(sys.modules.pop(values['portable_name']), portable)
             with driver.deny_training_dependencies(context, bundle, environment):
                 self.assertEqual(record.read_text(), "aiohappyeyeballs/__init__.py,,\n")
                 for path in runtime:
@@ -606,7 +1019,8 @@ class ContractTests(unittest.TestCase):
                     return copy.deepcopy(allowed_readers[key][0])
                 return self.generic_visit(node)
 
-        original_calls = RestoreAuditReaders().visit(ast.parse(PATH.read_text()))
+        scheduled_inverse = completion_source_boundary(ast.parse(PATH.read_text()))
+        original_calls = RestoreAuditReaders().visit(copy.deepcopy(scheduled_inverse))
         self.assertEqual(restored_readers, {key: count for key, (_, count) in allowed_readers.items()})
         phases = {
             "cpu_witnesses": {"cpu_bundle_qualification"},
@@ -689,7 +1103,7 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(len(reversed_splits), 3)
         self.assertEqual(hashlib.sha256(ast.dump(restored).encode()).hexdigest(), baseline)
         original_exit = next(n for n in restored.body if isinstance(n, ast.FunctionDef) and n.name == "exit_rehash")
-        timed_exit = next(n for n in ast.parse(PATH.read_text()).body
+        timed_exit = next(n for n in scheduled_inverse.body
                           if isinstance(n, ast.FunctionDef) and n.name == "exit_rehash")
 
         def compile_exit(node):
@@ -795,10 +1209,11 @@ class ContractTests(unittest.TestCase):
                 return trace, error, events, context["phase_seconds"]
 
             reference = compile_exit(original_exit)
+            timed_reference = compile_exit(timed_exit)
             for phase in ("cpu", "mechanics", "train"):
                 expected, error, _, _ = exercise(reference, phase)
                 self.assertIsNone(error)
-                actual, error, events, seconds = exercise(driver.exit_rehash, phase)
+                actual, error, events, seconds = exercise(timed_reference, phase)
                 self.assertIsNone(error)
                 self.assertEqual(actual, expected)
                 self.assertEqual([row for row in actual if row[0] == "audit"],
@@ -816,7 +1231,7 @@ class ContractTests(unittest.TestCase):
             for failure in ("api", "audit"):
                 expected, error, _, _ = exercise(reference, fail=failure)
                 self.assertIs(error, sentinel)
-                actual, error, _, _ = exercise(driver.exit_rehash, fail=failure)
+                actual, error, _, _ = exercise(timed_reference, fail=failure)
                 self.assertIs(error, sentinel)
                 self.assertEqual(actual, expected)
             for path in guards:
@@ -826,7 +1241,7 @@ class ContractTests(unittest.TestCase):
                     member.write_bytes(bytes([saved[0] ^ 1]) + saved[1:])
                     os.utime(member, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
                     self.assertEqual(member.stat().st_mtime_ns, stamp.st_mtime_ns)
-                    for function in (reference, driver.exit_rehash):
+                    for function in (reference, timed_reference):
                         with self.subTest(tamper=path):
                             self.assertIsInstance(exercise(function)[1], ValueError)
                 finally:

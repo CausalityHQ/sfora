@@ -941,6 +941,24 @@ def deny_training_dependencies(context, directory, environment):
         enabled[0] = False
 
 
+def authenticate_bundle_environment(context, environment):
+    """Manifest allowances must equal the qualified source's serving inventory."""
+    legacy = context['legacy']
+    origins = legacy['origins']
+    packages = origins['packages']
+    require(packages == legacy['selected']['packages'] and
+            set(packages) == NATIVE - {'sfora'}, 'preflight qualified packages differ')
+    roots = [Path(v['root']) for v in packages.values()]
+    native_paths = set(origins['native_files']) | {p for p in context['guards']
+        if Path(p).name in context['nearest'].NATIVE_MEMBERS}
+    files = {p: h for p, h in context['guards'].items()
+             if any(Path(p).is_relative_to(r) for r in roots) or p in native_paths}
+    constructor = legacy['prior']['sources']['native_environment']['vision_constructor']['path']
+    require(constructor in files and environment == {'packages': packages, 'files': files,
+            'native_files': {p: files[p] for p in native_paths}, 'vision_constructor': constructor},
+            'preflight serving environment differs from qualified source')
+
+
 def qualify_bundle(context, directory, sha, device, witness):
     """Sequential fresh loads, same-image accepted-helper oracle and role drift."""
     import torch
@@ -964,7 +982,8 @@ def qualify_bundle(context, directory, sha, device, witness):
                 portable_name = '_compact_portable_entry_' + str(time.time_ns())
                 portable = load_authenticated(portable_name, directory / 'train_siglip2_compact_ranking.py',
                     context['code']['train_siglip2_compact_ranking.py'], {})
-                bundle, _ = portable.admit_bundle(directory, sha)
+                bundle = portable.read_json({'path': str(directory / 'bundle.json'), 'sha256': sha}, {})
+                authenticate_bundle_environment(context, bundle['environment'])
             with timed(context, 'bundle_dependency_denial'):
                 with deny_training_dependencies(context, directory, bundle['environment']):
                     with timed(context, 'bundle_loader'):
@@ -1363,20 +1382,123 @@ def admit_terminal(context, unit, phase, arm, seed):
     return record
 
 
+def exit_admission_adapter(context, api, reader):
+    """Private exact exit substitutions; one genuine reader in this boundary."""
+    import ast
+    import copy
+    nearest, legacy = context['nearest'], context['legacy']
+    require(nearest.native_source_api(context) is api, 'authenticated exit API required')
+    original = legacy['original']
+    require(type(reader) is original.FlatAdmission and reader is not legacy.get('admission') and
+            vars(reader).keys() == {'entries', 'verified', 'json_bytes'} and
+            reader.entries == {p: (h, Path(p).stat().st_size) for p, h in legacy['origins']['files'].items()} and
+            reader.verified == set(legacy['origins']['files']) and reader.json_bytes == {},
+            'fresh original exit reader required')
+    reader_members = dict(vars(reader))
+    dump = lambda node: ast.dump(node, include_attributes=False)
+
+    class Substitute(ast.NodeTransformer):
+        def __init__(self, before, after):
+            self.before, self.after, self.count = before, after, 0
+
+        def visit(self, node):
+            if dump(node) == dump(self.before):
+                self.count += 1
+                return ast.copy_location(copy.deepcopy(self.after), node)
+            return super().visit(node)
+
+    private_functions, namespaces = [], []
+    for module, changes in (
+            (context['old'], [("context['original'].FlatAdmission()", '_compact_exit_reader')]),
+            (context['fitter'], [("context['old'].exit_rehash(context['legacy'])", "_compact_quadratic_exit(context['legacy'])"),
+                                 ('bound_file({}, path, digest)', '_compact_exit_reader.bound_file({}, path, digest)')])):
+        path = Path(module.__file__)
+        digest = context['guards'][str(path)]
+        raw = bound_file({}, path, digest).read_bytes()
+        require(hashlib.sha256(raw).hexdigest() == digest, 'exit source changed before compilation')
+        tree = ast.parse(raw, filename=str(path))
+        matches = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'exit_rehash']
+        require(len(matches) == 1, 'exact original exit definition required')
+        source_node = matches[0]
+        node = copy.deepcopy(source_node)
+        for before, after in changes:
+            forward = Substitute(ast.parse(before, mode='eval').body, ast.parse(after, mode='eval').body)
+            node = forward.visit(node)
+            require(forward.count == 1, 'exact exit substitution required')
+        inverse_node = copy.deepcopy(node)
+        for before, after in reversed(changes):
+            inverse = Substitute(ast.parse(after, mode='eval').body, ast.parse(before, mode='eval').body)
+            inverse_node = inverse.visit(inverse_node)
+            require(inverse.count == 1, 'exact exit inverse substitution required')
+        require(dump(inverse_node) == dump(source_node), 'exit adapter changed retained predicates')
+        namespace = dict(vars(module))
+        require('_compact_exit_reader' not in namespace and '_compact_quadratic_exit' not in namespace,
+                'fresh private exit namespace required')
+        namespace['_compact_exit_reader'] = reader
+        if private_functions:
+            namespace['_compact_quadratic_exit'] = private_functions[0]
+        else:
+            namespace['audit_origins'] = api.audit_origins
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), str(path), 'exec'), namespace)
+        private_functions.append(namespace.pop('exit_rehash'))
+        namespaces.append((namespace, dict(namespace)))
+    fitter_exit = private_functions[1]
+    fit_context = context['fit_context']
+    owned_functions = []
+
+    def authenticate():
+        require(context['nearest'] is nearest and nearest.native_source_api(context) is api and
+                context['legacy'] is legacy and context['fit_context'] is fit_context and
+                type(reader) is original.FlatAdmission and vars(reader).keys() == reader_members.keys() and
+                all(vars(reader)[n] is v for n, v in reader_members.items()), 'exit reader/context binding changed')
+        for values, members in namespaces:
+            require(values.keys() == members.keys() and all(values[n] is v for n, v in members.items()),
+                    'exit private global binding changed')
+        for fn, code, defaults, kwdefaults, values, cells in owned_functions:
+            require(fn.__code__ is code and fn.__defaults__ == defaults and fn.__kwdefaults__ == kwdefaults and
+                    fn.__globals__ is values and len(fn.__closure__ or ()) == len(cells) and
+                    all(c.cell_contents is v for c, v in zip(fn.__closure__ or (), cells)),
+                    'exit private function/closure changed')
+
+    authentication_code = authenticate.__code__
+
+    def admitted(value):
+        try:
+            require(authenticate.__code__ is authentication_code, 'exit authenticator code changed')
+            authenticate()
+            require(value is fit_context, 'owned exit fitter context required')
+            return fitter_exit(value)
+        finally:
+            # This dispatcher is exit-local and used once. Break private
+            # function/namespace/snapshot cycles on both success and rejection.
+            for values, members in namespaces:
+                values.clear()
+                members.clear()
+            owned_functions.clear()
+            namespaces.clear()
+
+    owned_functions.extend((fn, fn.__code__, fn.__defaults__, copy.deepcopy(fn.__kwdefaults__), fn.__globals__,
+                            tuple(cell.cell_contents for cell in fn.__closure__ or ()))
+                           for fn in (*private_functions, authenticate, admitted))
+    return admitted
+
+
 def exit_rehash(context):
     require_no_training(context)
     with timed(context, 'source_exit_rehash'):
         helper_guard(context)
         api = context['nearest'].native_source_api(context)
-        api.audit_origins(context['legacy'], admission=context['legacy']['original'].FlatAdmission(), require_exact=context['args'].phase != 'cpu')
-        api.exit_rehash(context['fit_context'])
+        exit_reader = context['legacy']['original'].FlatAdmission()
+        api.audit_origins(context['legacy'], admission=exit_reader, require_exact=context['args'].phase != 'cpu')
+        exit_admission_adapter(context, api, exit_reader)(context['fit_context'])
     with timed(context, 'own_exit_rehash'):
         for p, h in context['guards'].items():
-            bound_file({}, p, h)
+            exit_reader.bound_file({}, p, h)
         require(closure(context['root'], context['args'].execution_sha256, FILES, {}) == context['code'],
                 'own exact2 exit closure differs')
         require(closure(NEAREST['root'], NEAREST['execution_sha256'], NEAREST['code'], {}) == NEAREST['code'],
                 'external exact3 exit closure differs')
+    del exit_reader
     with timed(context, 'post_exit_api_authentication'):
         api = context['nearest'].native_source_api(context)
     with timed(context, 'post_exit_origin_audit'):
@@ -1418,10 +1540,12 @@ def run(args):
     with timed(context, 'post_run_api_authentication'):
         api = context['nearest'].native_source_api(context)
     with timed(context, 'post_run_origin_audit'):
-        api.audit_origins(legacy, admission=legacy['original'].FlatAdmission(), require_exact=args.phase != 'cpu')
+        post_run_reader = legacy['original'].FlatAdmission()
+        api.audit_origins(legacy, admission=post_run_reader, require_exact=args.phase != 'cpu')
     with timed(context, 'origin_guard_promotion'):
         for p, h in legacy['origins']['files'].items():
-            bound_file(context['guards'], p, h)
+            post_run_reader.bound_file(context['guards'], p, h)
+    del post_run_reader
     exit_rehash(context)
     after = source.cgroup_memory()
     legacy['selected']['genuine']['reference'].admit_cgroup(after, unit)
