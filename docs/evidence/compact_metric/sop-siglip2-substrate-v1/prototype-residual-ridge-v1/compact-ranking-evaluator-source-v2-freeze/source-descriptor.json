@@ -1,0 +1,15 @@
+{
+  "root": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v2",
+  "execution_sha256": "7fc303dba423042a1a7907535b31a7125280f7b38dcca8cb95d13845efc7576c",
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "8830a32d71852afa8f81fb0a7a3f385fe29f20efd37de5dfacdc076bdde3fd8a",
+    "test_compact_ranking_evaluation.py": "bc7e06c3c542c5e5ba49a944090458f9808de7f4979b7e55c6984bac06cfd474"
+  },
+  "trainer_execution_sha256": "ee9f77da0bac2a90b09f87fdcd7e7935de9c8dd38b663d84ca8c57271f43ce26",
+  "fresh_unchanged_stdlib_tests": {
+    "count": 12,
+    "seconds": 5.061,
+    "session": 21303
+  },
+  "stop": "No evaluator CPU until complete matched TRAIN061 pair and core/whole-service <=1.50. No quality read until full admitted exports/replays/readbacks. First selection CONTINUE only admits second seed."
+}
