@@ -1,0 +1,17 @@
+{
+  "status": "FAIL_LAZY_RUNTIME_DEPENDENCY",
+  "session": 83809,
+  "invocation_id": "10a6399522fe4ad1ae3a03b192cecd04",
+  "service_seconds": 158.582,
+  "exit_code": 1,
+  "host_peak_bytes": 1563533312,
+  "events": 0,
+  "swap": 0,
+  "quality_read": false,
+  "image_inference_started": false,
+  "rejected_path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/packaging/__pycache__/__init__.cpython-313.pyc",
+  "existing_authenticated_record_sha256": "34a791dcc687723f1d7601aa68319f6d51aa00e44d85818995dd33a1b7c5a49c",
+  "accepted_cpu_and_training_preserved": true,
+  "log_sha256": "fd60473a086a2a60668d71156f58fb2445892eb42133ca230c2ed99d5e0648ef",
+  "next": "Admit exact authenticated transitive runtime bytes; retain deny of historical dependencies"
+}
