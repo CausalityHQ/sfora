@@ -358,7 +358,14 @@ class EvaluationTests(unittest.TestCase):
     def test_owned_native_api_exit_and_exact_membership(self):
         from test_siglip2_nearest_ranking import NativeAdmissionFixture,driver
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);f=NativeAdmissionFixture(root);api=f.admit()
+            root=Path(directory);f=NativeAdmissionFixture(root)
+            class ExitContext(dict):
+                def __getitem__(self,key):
+                    accessed.add(key);return super().__getitem__(key)
+            accessed=set()
+            fit=f.context['fit_context']=ExitContext(f.context['fit_context'])
+            phases=fit['phase_seconds'];fit.pop('unit_started')  # Authority does not supply the run clock.
+            api=f.admit()
             def code_descriptor(name,names):
                 target=root/name;target.mkdir()
                 for n in names:(target/n).write_bytes(PATH.with_name(n).read_bytes())
@@ -375,9 +382,63 @@ class EvaluationTests(unittest.TestCase):
                 'root':Path(own['root']),'code':own['code'],'guards':{},'launch':{'training':train,
                     'nearest_evaluator':refs[0],'genuine_evaluator':refs[1],'reference':refs[2],'endpoints':[]}}
             def action():
-                f.context['fit_context']['phase_seconds'].clear();return e.exit_rehash(context)
+                phases.clear();return e.exit_rehash(context)
             with patch.object(e,'guard_helpers'),patch.object(e,'NEAREST_EVALUATOR',refs[0]), \
                 patch.object(e,'GENUINE_PINS',refs[1]['code']),patch.object(e,'TRAIN_FILES',train['code']),redirect_stdout(io.StringIO()):
+                # Execute the actual run prefix through native_start, stopping
+                # before the Torch import. The fixture used to mask this bug
+                # by supplying its own unrelated fitter start timestamp.
+                run_node=next(n for n in ast.parse(PATH.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='run')
+                stop=next(i for i,n in enumerate(run_node.body) if isinstance(n,ast.Import) and
+                    any(a.name=='torch' for a in n.names))
+                prefix=copy.deepcopy(run_node);prefix.body=prefix.body[:stop]
+                def start(value):
+                    self.assertIs(value,context)
+                    self.assertIs(action(),f.legacy['origins'])
+                    self.assertIs(fit['unit_started'],e.UNIT_STARTED,'inherited exit must use the original evaluator start')
+                    self.assertIs(fit['phase_seconds'],phases)
+                def run_prefix(node):
+                    namespace={**vars(e),'cli':lambda _:sys.argv,'authority':lambda _:context,'native_start':start}
+                    exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),str(PATH),'exec'),namespace)
+                    namespace['run'](context['args'])
+                for phase in ('cpu','export','score'):
+                    context['args'].phase=phase;fit.pop('unit_started',None)
+                    before=e.time.perf_counter()-e.UNIT_STARTED
+                    run_prefix(prefix)
+                    after=e.time.perf_counter()-e.UNIT_STARTED
+                    self.assertEqual(list(phases),['old_exit_begin','old_exit_end','own_union_begin',
+                        'own_union_end','closure_begin','closure_end'])
+                    self.assertTrue(all(before<=v<=after for v in phases.values()))
+                    self.assertEqual(list(phases.values()),sorted(phases.values()))
+                required={'legacy','old','root','args','code','guards','readout','phase_seconds','unit_started'}
+                self.assertTrue(required<=accessed,'real private exit context fields were not exercised')
+                # Each inherited required field is consumed by the authentic
+                # private adapter; neither a gate nor a source predicate is stubbed.
+                for key in sorted(required):
+                    saved=fit.pop(key)
+                    try:
+                        phases.clear()
+                        with self.subTest(missing=key),self.assertRaises(KeyError) as error:action()
+                        self.assertEqual(error.exception.args,(key,))
+                    finally:fit[key]=saved
+                target=ast.parse("context['training_context']['fit_context']['unit_started']=None").body[0].targets[0]
+                for replacement in (None,'time.perf_counter()',"context['training_context']['nearest'].UNIT_STARTED"):
+                    class ChangeStart(ast.NodeTransformer):
+                        count=0
+                        def visit_Assign(self,node):
+                            if any(ast.dump(t,include_attributes=False)==ast.dump(target,include_attributes=False) for t in node.targets):
+                                self.count+=1
+                                if replacement is None:return None
+                                node.value=ast.parse(replacement,mode='eval').body
+                            return self.generic_visit(node)
+                    change=ChangeStart();mutant=change.visit(copy.deepcopy(prefix))
+                    self.assertEqual(change.count,1)
+                    fit.pop('unit_started',None)
+                    expected=KeyError if replacement is None else AssertionError
+                    with self.subTest(start=replacement),self.assertRaises(expected):run_prefix(mutant)
+                    if replacement is None:
+                        with self.assertRaisesRegex(KeyError,'unit_started'):action()
+                context['args'].phase='export';run_prefix(prefix)
                 self.assertIs(action(),f.legacy['origins'])
                 f.set_origins({p:h for i,(p,h) in enumerate(f.files.items()) if i})
                 with self.assertRaisesRegex(ValueError,'exact four'):action()
