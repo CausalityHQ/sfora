@@ -1,0 +1,31 @@
+{
+  "arm": "control",
+  "authority_sha256": "13b4c6bf2f6ffc837a2832756a4236c4d1fcd23dd11cf43ba6af1df78150a9a0",
+  "command_sha256": "93ace2692890c81b39118d1d34022dfa2b1fe21926995da808f1d1eddcf71c94",
+  "execution_sha256": "8678ae6f62df6d554728096c3442e06494f22db146ca502d3530876fee43026b",
+  "launcher_sha256": "f6d48274da82e75d594f9329671e36e867d7d31ce5567c7db3fcf1eb912f2860",
+  "phase": "mechanics",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "nearest-ranking-mechanics-launch-freeze-v1",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "df6a40cde08c456a85c6f43d2bc0dd9b",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v1/cpu-v1.log",
+      "sha256": "fbf9ab84122774fe9a08ea2da4c463c59e6013683f4c90bce0ac1eec8a69c59e"
+    },
+    "native_peak_rss_kib": 5804468,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-nearest-ranking-cpu-v1/receipt.json",
+      "sha256": "2e888839e3d38c343258db7deadd0f3048620dbddfb771234ec625d7fbdd0949"
+    },
+    "service_seconds": 274.971,
+    "unit": "sfora-so400-nearest-ranking-cpu-v1"
+  },
+  "stop_rule": "ONE discarded mechanics300; full17 versus independent8+9 and final strict updated reload required; failure closes arm; no TRAIN or quality before paired mechanics PASS"
+}
