@@ -2,7 +2,7 @@
 """Prospective deterministic TRAIN prototype residual ridge; native execution UNRUN.
 
 Freeze FILES in execution.json. CLI, in order: --execution-sha256 SHA
---authority FILE --authority-sha256 SHA --phase cpu|fit --arm linear|quadratic
+--authority FILE --authority-sha256 SHA --phase cpu|fit --arm linear|concat
 --output NEW_ABSOLUTE_DIRECTORY. CPU/linear qualifies BOTH full TRAIN fits.
 Fit independently reconstructs complete warm source and inputs twice, then
 saves/reloads the new complete payload. No seeds, updates, optimizer or search.
@@ -15,7 +15,11 @@ if not __debug__:
 
 import argparse
 import ast
+import copy
+import inspect
+import struct
 from dataclasses import dataclass
+from decimal import Decimal
 import gc
 import hashlib
 import importlib.util
@@ -29,10 +33,11 @@ import sys
 import time
 from types import FunctionType, ModuleType, SimpleNamespace
 
-SCHEMA = 'siglip2-prototype-residual-ridge-v1'
-AUTHORITY_SCHEMA = 'siglip2-prototype-residual-launch-v1'
-FILES = {'fit_siglip2_prototype_residual.py', 'test_siglip2_prototype_residual.py'}
-ARMS = ('linear', 'quadratic')
+SCHEMA = 'siglip2-prototype-residual-ridge-v2'
+AUTHORITY_SCHEMA = 'siglip2-prototype-residual-launch-v2'
+FILES = {'fit_siglip2_prototype_residual.py', 'test_siglip2_prototype_residual.py',
+         'prototype_residual_readout.py'}
+ARMS = ('linear', 'concat')
 NATIVE = {'torch', 'numpy', 'PIL', 'transformers', 'safetensors', 'torchvision', 'sfora'}
 ORIGINAL_REFERENCE = {'root': '/home/riomus/runs/sfora-so400-quadratic-readout-source-v7',
                       'execution_sha256': '84414302a6749842cae20e2608e932066334916218df68f91f10fd3c589ca382'}
@@ -51,21 +56,46 @@ ORIGINAL_CPU = {
                 'sha256': '3bf689314d9d7ad4b111223417ae9ca41785fa75b2cef1cf0642a072d452c373'},
         'unit': 'sfora-so400-quadratic-readout-cpu-v7', 'invocation_id': '13291ef2bdd946e7a76f82f862248234',
         'service_seconds': 94.629, 'native_peak_rss_kib': 1146616, 'both_locks_held': True}}
+TERMINAL_SOURCE_SHA = 'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543'
+TERMINAL_AST_SHA = 'ad9a5202986c9f3a80c992b6f7e40ef95bd81afbee98512b693dc48917f838d2'
 SOLVER_AST_SHA = '34644c570383257de53370db0c2bacadeeb8ac1232fd460986a82dbdd4b8fc9a'
 SOLVER_SHA = '854e7d92b5cea2ef78dd49cf5deaded13f0af651a6dfae73368ec78acb939e27'
 PARTITION_SHA = '702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c'
 CANONICAL_SHA = '55d37d063779e95d936d2e8392b6af44478356ce1ccd29d96cc5361d7966bdb8'
+HISTORICAL_LINEAR = {'training': {'root': '/home/riomus/runs/sfora-so400-prototype-residual-source-v3',
+              'execution_sha256': '9c726ec7e9c8e339a82d9284fd41495bf9feb2b39ba76df10eda75a05684fef2',
+              'code': {'fit_siglip2_prototype_residual.py': 'cc3ffb6d63a78448e3bff0535304b50b30eb451b0617c15c4b8cf1727bed7d2d',
+                       'test_siglip2_prototype_residual.py': '4f5b5ba1947e57c9adb93da512a5a7aed87528104f0c9acd873be9398d5e3c27'}},
+ 'endpoint': {'arm': 'linear',
+              'launch': {'path': '/home/riomus/runs/sfora-so400-prototype-residual-source-v3/authority-fit-linear-v1.json',
+                         'sha256': '3405b72d92ab289ac36373ab192fd74872a0083f1e2a0d91247a8c9e159cf597'},
+              'terminal': {'receipt': {'path': '/home/riomus/runs/sfora-so400-prototype-residual-fit-linear-v1/receipt.json',
+                                       'sha256': '2a861afc762d92018b93eaf4f3b5a566a7be095d71b6da3fabfba6d8c4cada09'},
+                           'log': {'path': '/home/riomus/runs/sfora-so400-prototype-residual-source-v3/fit-linear-v1.log',
+                                   'sha256': '0a02d3eb758e7de6a930bc2908937890ff1b26c388cf8d26ed3d72895788dc44'},
+                           'unit': 'sfora-so400-prototype-residual-fit-linear-v1',
+                           'invocation_id': 'cb784c2e110c458e852ba1eaa14e6c61',
+                           'service_seconds': 180.745,
+                           'native_peak_rss_kib': 1148552,
+                           'both_locks_held': True},
+              'checkpoint': {'path': '/home/riomus/runs/sfora-so400-prototype-residual-fit-linear-v1/resume.pt',
+                             'sha256': '2fb2a7be38ac08013b6f7091df93b795dfa5961e00c3fa64d8868ca15a263d55'},
+              'terminal_state_sha256': 'ba736044b0fdd46239943d426591617f58b24f97025e5005488502ec1ed0770a'}}
+ADAPTED_SOLVER_AST_SHA = '5796b91abed9f97f8159ed7c85e9fdba1eb6b55f3a6b9b1135a5be0904d33075'
+ADAPTED_TERMINAL_AST_SHA = '51d6678a4c1aa7f4da9836720636b196b188d274205a608b779be8ee810430ce'
 RECIPE = {
-    'rows': 6355, 'classes': 1008, 'width': 1152, 'output_dim': 128, 'rank': 32, 'coefficients': 4096,
+    'rows': 6355, 'classes': 1008, 'width': 1152, 'output_dim': 128, 'rank': 32, 'feature_width': {'linear': 32, 'concat': 160},
+    'coefficients': {'linear': 4096, 'concat': 20480},
     'input': 'raw canonical TRAIN; original CPU normalization then unchanged control head',
     'targets': 'image-weighted raw class means including each member minus raw source head',
-    'basis': {'linear': 'Z', 'quadratic': 'Z.square()'},
+    'basis': {'linear': 'Z32', 'concat': '[Z32,H0raw128]'},
     'means': 'both fixed full TRAIN FP32 means', 'regularization': 0.1,
-    'ridge_scale': 'trace(Phi.T@Phi)/32', 'correction_multiplier': 1, 'intercept': False,
+    'ridge_scale': 'common detached CPU FP32 trace(centeredZ.T@centeredZ)/32; lambda=0.1*reference_scale', 'correction_multiplier': 1, 'intercept': False,
     'stationarity': '||M@A.T-B||_F/(||M||_F*||A.T||_F+||B||_F); M=Phi.T@Phi+lambda*I; B=Phi.T@Y',
-    'stationarity_max': 1e-5, 'fit_passes': 2, 'arithmetic': 'CPU FP32; autocast disabled'}
+    'stationarity_max': 1e-5, 'fit_passes': 2, 'solver_adapter_ast_sha256': ADAPTED_SOLVER_AST_SHA,
+    'terminal_adapter_ast_sha256': ADAPTED_TERMINAL_AST_SHA, 'arithmetic': 'CPU FP32; autocast disabled'}
 LAUNCH_KEYS = {'schema', 'execution_sha256', 'phase', 'arm', 'original_reference', 'original_cpu',
-               'ridge_solver', 'warm_start', 'partition', 'recipe', 'resource_policy', 'both_locks_held', 'selected_cpu'}
+               'ridge_solver', 'warm_start', 'partition', 'recipe', 'resource_policy', 'both_locks_held', 'selected_cpu', 'historical_linear'}
 FIT_KEYS = {'A', 'means', 'source_mean', 'target_mean', 'prototypes', 'counts', 'fit_witness'}
 PAYLOAD_KEYS = {'schema', 'identity', 'source', 'encoder', 'config', 'buffers', 'head', 'classifier',
                 'warm_payload', 'partition', 'original_rows', 'target', 'features', *FIT_KEYS,
@@ -162,7 +192,8 @@ def check_launch(launch, args):
             launch['arm'] == args.arm and args.arm in ARMS and launch['recipe'] == RECIPE and
             launch['resource_policy'] == policy(args.phase) and launch['both_locks_held'] is True,
             'new prototype launch differs')
-    require(launch['original_reference'] == ORIGINAL_REFERENCE and launch['original_cpu'] == ORIGINAL_CPU,
+    require(launch['original_reference'] == ORIGINAL_REFERENCE and launch['original_cpu'] == ORIGINAL_CPU and
+            launch['historical_linear'] == HISTORICAL_LINEAR,
             'complete original source-v7/CPU pins required')
     require(launch['ridge_solver'].keys() == {'path', 'sha256'} and
             launch['ridge_solver']['sha256'] == SOLVER_SHA and
@@ -177,7 +208,7 @@ def check_launch(launch, args):
 
 def method(launch):
     return {k: launch[k] for k in ('execution_sha256', 'original_reference', 'original_cpu', 'ridge_solver',
-                                 'warm_start', 'partition', 'recipe')}
+                                 'warm_start', 'partition', 'recipe', 'historical_linear')}
 
 
 def cli(root, authority, sha, execution, phase, arm, output):
@@ -194,9 +225,13 @@ def authority(args):
     launch = read_json({'path': str(args.authority), 'sha256': args.authority_sha256}, guards)
     check_launch(launch, args)
     output, oldroot = args.output, Path(ORIGINAL_REFERENCE['root'])
+    historical_root = Path(HISTORICAL_LINEAR['training']['root'])
     require(output.is_absolute() and output.parent.resolve() == output.parent and not output.exists() and
             not output.is_symlink() and not output.is_relative_to(root) and not output.is_relative_to(oldroot) and
-            not root.is_relative_to(oldroot) and not oldroot.is_relative_to(root), 'exclusive separate output/source closure required')
+            not root.is_relative_to(oldroot) and not oldroot.is_relative_to(root) and
+            not output.is_relative_to(historical_root) and not historical_root.is_relative_to(output) and
+            not root.is_relative_to(historical_root) and not historical_root.is_relative_to(root),
+            'exclusive separate output/source closure required')
     require(closure(oldroot, ORIGINAL_REFERENCE['execution_sha256'], ORIGINAL_CODE, guards) == ORIGINAL_CODE,
             'complete original source-v7 exact4 differs')
     oldlaunch = read_json(ORIGINAL_CPU['authority'], guards)
@@ -235,23 +270,196 @@ def authority(args):
     context = {'args': args, 'root': root, 'code': code, 'launch': launch, 'guards': guards,
                'old': old, 'legacy': legacy, 'source': legacy['source'], 'terminals': {},
                'terminal_cgroups': {'original_cpu': original_final}, 'phase_seconds': {},
-               'required_guards': {p: h for p, h in guards.items() if p != str(args.authority)}}
+               'required_guards': {p: h for p, h in guards.items() if p != str(args.authority)},
+               'original_required_guards': original_required}
+    prepare_readout(context)
+    admit_historical_linear(context)
+    context['required_guards'] = {p: h for p, h in guards.items() if p != str(args.authority)}
     if args.phase == 'fit':
         admit_terminal(context, launch['selected_cpu'], 'cpu', 'linear')
     return context
 
 
-def extract_solver(path, sha, torch):
-    """Compile only the exact authenticated solver/model AST in a fresh namespace."""
-    raw = bound_file({}, path, sha).read_bytes()
-    require(sha == SOLVER_SHA and hashlib.sha256(raw).hexdigest() == sha, 'ridge solver provenance differs')
+def prepare_readout(context):
+    """Authenticate the exact3 helper and its live objects before every use."""
+    path = context['root'] / 'prototype_residual_readout.py'
+    sha = context['code'][path.name]
+    cached = context.get('readout_authentication')
+    if cached is None:
+        name = '_prototype_signed_readout'
+        module = load_authenticated(name, path, sha, context['guards'])
+        cached = {'name': name, 'module': module, 'spec': module.__spec__,
+                  'loader': module.__spec__.loader, 'members': dict(vars(module)),
+                  'functions': [(fn, fn.__code__, fn.__globals__) for fn in vars(module).values()
+                                if isinstance(fn, FunctionType)]}
+        context['readout_authentication'] = cached
+        context['readout'] = module
+    module, spec = cached['module'], cached['spec']
+    require(context['readout'] is module and sys.modules.get(cached['name']) is module and
+            module.__spec__ is spec and spec.loader is cached['loader'] and spec.loader is not None and
+            Path(module.__file__) == Path(spec.origin) == path,
+            'signed helper object/origin differs')
+    require(vars(module).keys() == cached['members'].keys() and
+            all(vars(module)[k] is v for k, v in cached['members'].items()), 'signed helper globals differ')
+    for fn, code, values in cached['functions']:
+        require(fn.__code__ is code and fn.__globals__ is values and values is vars(module),
+                'signed helper live function/code/globals differ')
+    bound_file(context['guards'], path, sha)
+    return module
+
+
+def runtime_components(value):
+    """Original seconds spelling plus the observed integer minutes/milliseconds."""
+    match = re.fullmatch('(?:(\\d+)min )?(\\d+(?:\\.\\d+)?)s', value)
+    if match is not None:
+        return match.groups()
+    match = re.fullmatch('(\\d+)min (\\d+)ms', value)
+    require(match is not None, 'original service runtime format differs')
+    minutes, milliseconds = match.groups()
+    return (minutes, str(Decimal(milliseconds) / 1000))
+
+def terminal_ast(module, digest, ast_digest, guards, owner=None, name='admit_terminal'):
+    """Authenticate the actual context module and its live function against full bytes."""
+    path = Path(module.__file__)
+    require(module.__spec__ is not None and Path(module.__spec__.origin) == path, 'terminal source origin differs')
+    raw = bound_file(guards, path, digest).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == digest, 'terminal source changed before compilation')
     tree = ast.parse(raw, filename=str(path))
+    code = compile(raw, str(path), 'exec')
+    scope, live = (tree.body, module)
+    if owner is not None:
+        scope = next((n for n in scope if isinstance(n, ast.ClassDef) and n.name == owner)).body
+        code = next((c for c in code.co_consts if getattr(c, 'co_name', None) == owner))
+        live = getattr(module, owner)
+    node = next((n for n in scope if isinstance(n, ast.FunctionDef) and n.name == name))
+    code = next((c for c in code.co_consts if getattr(c, 'co_name', None) == node.name))
+    function = getattr(live, name)
+    require(function.__globals__ is vars(module) and function.__code__ == code and (hashlib.sha256(ast.dump(node, include_attributes=False).encode()).hexdigest() == ast_digest), 'actual terminal function/body differs')
+    return node
+
+def original_terminal_reader(context):
+    """Compile the authenticated original reader with only duration parsing extended."""
+    original, admission = (context['legacy']['original'], context['legacy']['admission'])
+    require(context['guards'].get(original.__file__) == TERMINAL_SOURCE_SHA and type(admission) is original.FlatAdmission and (admission.admit_terminal.__func__ is original.FlatAdmission.admit_terminal), 'actual original terminal source/reader required')
+    node = terminal_ast(original, TERMINAL_SOURCE_SHA, TERMINAL_AST_SHA, context['guards'], 'FlatAdmission')
+    index = next((i for i, n in enumerate(node.body) if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name) and (n.targets[0].id == 'match')))
+    original_node = copy.deepcopy(node)
+    original_statements = copy.deepcopy(node.body[index:index + 3])
+    require(len(original_statements) == 3 and ast.unparse(original_statements[2]) == 'minutes, native_seconds = match.groups()',
+            'original runtime statements differ')
+    node.body[index:index + 3] = ast.parse('minutes, native_seconds = runtime_components(runtimes[0])').body
+    restored = copy.deepcopy(node)
+    restored.body[index:index + 1] = original_statements
+    require(ast.dump(restored, include_attributes=False) == ast.dump(original_node, include_attributes=False),
+            'terminal adapter changed original predicates')
+    require(hashlib.sha256(ast.dump(node, include_attributes=False).encode()).hexdigest() == ADAPTED_TERMINAL_AST_SHA,
+            'adapted terminal AST differs')
+    namespace = {name: getattr(original, name) for name in ('require', 're', 'Decimal', 'strict_json')}
+    namespace['runtime_components'] = runtime_components
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])), '<signed prototype original log reader>', 'exec'), namespace)
+    reader = namespace['admit_terminal']
+    reader.__terminal_ast__ = node
+    return reader
+
+
+def admit_historical_linear(context):
+    """Admit unchanged historical endpoint authority; never reinterpret its schema."""
+    fact = HISTORICAL_LINEAR
+    training, endpoint = fact['training'], fact['endpoint']
+    root, guards = Path(training['root']), context['guards']
+    require(closure(root, training['execution_sha256'], training['code'], guards) == training['code'],
+            'historical exact2 source differs')
+    historical = load_authenticated('_prototype_historical_linear', root / 'fit_siglip2_prototype_residual.py',
+                                   training['code']['fit_siglip2_prototype_residual.py'], guards)
+    require(historical.SCHEMA == 'siglip2-prototype-residual-ridge-v1' and
+            historical.AUTHORITY_SCHEMA == 'siglip2-prototype-residual-launch-v1' and
+            historical.ORIGINAL_REFERENCE == ORIGINAL_REFERENCE and historical.ORIGINAL_CODE == ORIGINAL_CODE and
+            historical.SOLVER_SHA == SOLVER_SHA and historical.PARTITION_SHA == PARTITION_SHA,
+            'unchanged historical fitter authority required')
+    launch = read_json(endpoint['launch'], guards)
+    historical.check_launch(launch, SimpleNamespace(execution_sha256=training['execution_sha256'],
+                                                   phase='fit', arm='linear'))
+    require(all(launch[k] == context['launch'][k] for k in
+                ('original_reference', 'original_cpu', 'ridge_solver', 'warm_start', 'partition')),
+            'historical original source/solver authority differs')
+    records = {}
+    for phase, unit in (('cpu', launch['selected_cpu']), ('fit', endpoint['terminal'])):
+        check_unit(unit)
+        record = read_json(unit['receipt'], guards)
+        historical.check_terminal_record(record, launch, phase, 'linear')
+        proof = read_json(record['authority'], guards)
+        require(proof == record['launch'] and record['execution_sha256'] == training['execution_sha256'] and
+                record['code'] == training['code'] and record['source'] == context['source'] and
+                record['numerical_flags'] == context['legacy']['selected']['source_cpu']['numerical_flags'] and
+                record['invocation']['argv'] == historical.cli(root, record['authority']['path'],
+                    record['authority']['sha256'], training['execution_sha256'], phase, 'linear',
+                    Path(unit['receipt']['path']).parent) and
+                all(record['invocation'][k] == context['legacy']['selected']['source_cpu']['invocation'][k]
+                    for k in ('python', 'python_sha256', 'python_version')),
+                'historical complete original source/launch/invocation differs')
+        required = {**context['original_required_guards'], str(root / 'execution.json'): training['execution_sha256'],
+                    **{str(root / n): h for n, h in training['code'].items()},
+                    str(record['authority']['path']): record['authority']['sha256'],
+                    str(launch['ridge_solver']['path']): SOLVER_SHA}
+        require(all(record['input_guards'].get(p) == h for p, h in required.items()),
+                'historical complete input guards differ')
+        final = original_terminal_reader(context)(context['legacy']['admission'], record, unit, policy(phase)['seconds'], guards)
+        for value in (record['cgroup_before'], record['cgroup_after'], final):
+            context['old'].zero_events(value)
+        require(unit['invocation_id'] not in context['legacy']['invocations'], 'duplicate historical invocation')
+        context['legacy']['invocations'].add(unit['invocation_id'])
+        context['terminal_cgroups']['historical_linear:' + phase] = final
+        for path, digest in record['input_guards'].items():
+            bound_file(guards, path, digest)
+        records[phase] = record
+    require(records['fit']['authority'] == endpoint['launch'] and
+            records['fit']['checkpoint'] == endpoint['checkpoint'] and
+            records['fit']['terminal_state_sha256'] == endpoint['terminal_state_sha256'],
+            'historical accepted checkpoint differs')
+    require(records['fit']['identity'] == records['cpu']['arms']['linear']['identity'] and
+            records['fit']['fit_witness'] == records['cpu']['arms']['linear']['fit_witness'] and
+            records['fit']['output_witness_sha256'] == records['cpu']['arms']['linear']['output_witness_sha256'],
+            'historical exact CPU qualified linear endpoint differs')
+    context['historical_linear'] = {'fitter': historical, 'launch': launch, 'record': records['fit']}
+
+
+def solver_definitions(raw, adapted=False):
+    tree = ast.parse(raw)
     names = {'RidgeStitchModel', 'fit_ridge_stitch'}
     selected = [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in names]
     require(len(selected) == 2 and {node.name for node in selected} == names, 'exact solver definitions required')
-    # No eager foundation_adapter import and no mutation of any source globals.
-    require(hashlib.sha256(ast.dump(ast.Module(body=selected, type_ignores=[]),
-            include_attributes=False).encode()).hexdigest() == SOLVER_AST_SHA, 'exact solver AST differs')
+    dump = lambda nodes: ast.dump(ast.Module(body=nodes, type_ignores=[]), include_attributes=False)
+    require(hashlib.sha256(dump(selected).encode()).hexdigest() == SOLVER_AST_SHA, 'exact solver AST differs')
+    if adapted:
+        original = copy.deepcopy(selected)
+        fn = next(n for n in selected if isinstance(n, ast.FunctionDef) and n.name == 'fit_ridge_stitch')
+        require([a.arg for a in fn.args.kwonlyargs] == ['regularization'] and fn.args.kw_defaults == [None],
+                'original solver keyword contract differs')
+        fn.args.kwonlyargs.append(ast.arg(arg='reference_scale'))
+        fn.args.kw_defaults.append(None)
+        assignments = [n for n in fn.body if isinstance(n, ast.Assign) and len(n.targets) == 1 and
+                       isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'scale']
+        require(len(assignments) == 1 and ast.unparse(assignments[0].value) == 'torch.trace(gram) / gram.shape[0]',
+                'original scale assignment differs')
+        assignments[0].value = ast.Name(id='reference_scale', ctx=ast.Load())
+        require(hashlib.sha256(dump(selected).encode()).hexdigest() == ADAPTED_SOLVER_AST_SHA,
+                'adapted solver AST differs')
+        # Reverse the two authorized edits and require full AST correspondence.
+        reversed_nodes = copy.deepcopy(selected)
+        reverted = next(n for n in reversed_nodes if isinstance(n, ast.FunctionDef))
+        reverted.args.kwonlyargs.pop()
+        reverted.args.kw_defaults.pop()
+        next(n for n in reverted.body if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name)
+             and n.targets[0].id == 'scale').value = ast.parse('torch.trace(gram) / gram.shape[0]', mode='eval').body
+        require(dump(reversed_nodes) == dump(original), 'adapter changed original arithmetic/validation/solve')
+    return selected
+
+
+def extract_solver(path, sha, torch, adapted=False):
+    """Compile only the exact authenticated solver/model AST in a fresh namespace."""
+    raw = bound_file({}, path, sha).read_bytes()
+    require(sha == SOLVER_SHA and hashlib.sha256(raw).hexdigest() == sha, 'ridge solver provenance differs')
+    selected = solver_definitions(raw, adapted)
     name = '_prototype_ridge_solver_' + str(len(sys.modules))
     require(name not in sys.modules, 'fresh solver namespace required')
     module = ModuleType(name)
@@ -261,6 +469,34 @@ def extract_solver(path, sha, torch):
     exec(compile(ast.fix_missing_locations(ast.Module(body=future + selected, type_ignores=[])),
                  str(path), 'exec'), vars(module))
     return module.fit_ridge_stitch
+
+
+def check_reference_scale(value, primitive, torch):
+    primitive._check_tensor(value, (), 'cpu', frozen=True)
+    require(torch.isfinite(value).item() and value.item() > 0, 'finite positive reference_scale required')
+
+
+def checked_solver(path, primitive, torch, audit):
+    """Observe the actual solve operands without changing the solver AST arithmetic."""
+    def observed_solve(matrix, rhs):
+        values = inspect.currentframe().f_back.f_locals
+        require({'gram', 'identity', 'regularization', 'scale', 'reference_scale', 'x', 'y'}.issubset(values),
+                'actual adapted solver frame required')
+        scale = values['reference_scale']
+        check_reference_scale(scale, primitive, torch)
+        require(values['scale'] is scale and values['regularization'] == 0.1, 'actual solver scale/penalty differs')
+        actual_lambda = values['regularization'] * values['scale']
+        require(torch.equal(matrix, values['gram'] + actual_lambda * values['identity']) and
+                torch.equal(rhs, values['x'].T @ values['y']), 'actual solve operands differ')
+        require(not audit, 'exactly one solve per fresh fit required')
+        audit.update(lambda_bits=struct.pack('<f', actual_lambda.item()).hex(),
+                     lambda_value=actual_lambda.item(), reference_scale=scale.item())
+        return torch.linalg.solve(matrix, rhs)
+    class SolverTorch:
+        linalg = SimpleNamespace(solve=observed_solve)
+        def __getattr__(self, name):
+            return getattr(torch, name)
+    return extract_solver(path, SOLVER_SHA, SolverTorch(), adapted=True)
 
 
 def prepare_original(context):
@@ -379,6 +615,10 @@ def fit_prototype_residual(raw_train, targets, base, arm):
     from torch.nn import functional as F
     require(type(arm) is str and arm in ARMS, 'fixed prototype arm required')
     primitive = getattr(base, '_prototype_primitive', None)
+    guard = getattr(base, '_prototype_readout_guard', None)
+    require(callable(guard), 'authenticated signed helper guard required')
+    readout = guard()
+    width = readout.feature_width(arm)
     solver = getattr(base, '_prototype_solver', None)
     require(primitive is not None and solver is not None, 'admitted source and solver required')
     primitive._check_features(raw_train, 'cpu', train=True)
@@ -399,28 +639,52 @@ def fit_prototype_residual(raw_train, targets, base, arm):
         require((counts > 0).all().item(), 'missing TRAIN class')
         prototypes = torch.stack([H[targets == c].mean(dim=0) for c in range(1008)])
         E = prototypes[targets] - H
-        means = primitive.fit_means(raw_train, base)
+        means = readout.fit_means(raw_train, base, primitive)
+        V = readout.basis(Z, H, arm)
         require(torch.equal(means['linear'], Z.mean(dim=0)) and
-                torch.equal(means['quadratic'], Z.square().mean(dim=0)), 'both original fixed TRAIN means differ')
-        V = Z if arm == 'linear' else Z.square()
-        model = solver(V, E, torch.arange(6355, dtype=torch.int64), regularization=0.1)
+                torch.equal(means['concat'], readout.basis(Z, H, 'concat').mean(dim=0)),
+                'both fixed signed TRAIN means differ')
+        Zc = Z - means['linear']
+        reference_energy = torch.trace(Zc.T @ Zc)
+        reference_scale = (reference_energy / 32).detach()
+        check_reference_scale(reference_scale, primitive, torch)
+        model = solver(V, E, torch.arange(6355, dtype=torch.int64), regularization=0.1,
+                       reference_scale=reference_scale)
+        audit = base._prototype_solve_audit
+        require(audit.keys() == {'lambda_bits', 'lambda_value', 'reference_scale'} and
+                audit['reference_scale'] == reference_scale.item() and
+                audit['lambda_bits'] == struct.pack('<f', (0.1 * reference_scale).item()).hex(),
+                'actual common solve lambda bits differ')
+        if getattr(base, '_prototype_native_parity', False) and arm == 'linear':
+            original_model = base._prototype_original_solver(V, E, torch.arange(6355, dtype=torch.int64),
+                                                             regularization=0.1)
+            require(all(torch.equal(getattr(original_model, k), getattr(model, k))
+                        for k in ('source_mean', 'target_mean', 'weight')),
+                    'original/adapted native FP32 linear solver parity failed')
+            fingerprint = base._prototype_fingerprint
+            require(fingerprint({k: getattr(original_model, k) for k in ('source_mean', 'target_mean', 'weight')}) ==
+                    fingerprint({k: getattr(model, k) for k in ('source_mean', 'target_mean', 'weight')}),
+                    'original/adapted native FP32 typed bytes differ')
+            base._prototype_original_solver_exact = True
         A = model.weight.T.contiguous().detach()
-        source_mean = model.source_mean.detach().reshape(32)
+        source_mean = model.source_mean.detach().reshape(width)
         target_mean = model.target_mean.detach().reshape(128)
         require(torch.equal(source_mean, means[arm]), 'solver/source fixed mean differs')
         Phi, Y = V - source_mean, E - target_mean
         G = Phi.T @ Phi
         feature_energy = torch.trace(G).item()
-        regularization = 0.1 * torch.trace(G) / 32
-        M = G + regularization * torch.eye(32, dtype=torch.float32)
+        regularization = 0.1 * reference_scale
+        require(regularization.item() == audit['lambda_value'], 'actual solve lambda differs from stationarity')
+        M = G + regularization * torch.eye(width, dtype=torch.float32)
         B = Phi.T @ Y
         numerator = torch.linalg.vector_norm(M @ A.T - B).item()
         denominator = (torch.linalg.vector_norm(M).item() * torch.linalg.vector_norm(A.T).item()
                        + torch.linalg.vector_norm(B).item())
         require(math.isfinite(denominator) and denominator > 0, 'stationarity denominator must be finite positive')
         stationarity = numerator / denominator
-        witness = {'rows': 6355, 'classes': 1008, 'coefficients': 4096, 'arm': arm,
-                   'feature_energy': feature_energy, 'lambda': regularization.item(),
+        witness = {'rows': 6355, 'classes': 1008, 'coefficients': 128 * width, 'feature_width': width, 'arm': arm,
+                   'reference_energy': reference_energy.item(), 'reference_scale': reference_scale.item(),
+                   'lambda_bits': audit['lambda_bits'], 'actual_solve_checked': True, 'feature_energy': feature_energy, 'lambda': regularization.item(),
                    'stationarity_numerator': numerator, 'stationarity_denominator': denominator,
                    'normalized_stationarity': stationarity, 'A_nonzero': bool(A.count_nonzero().item()),
                    'target': 'raw member-inclusive prototypes', 'intercept': False}
@@ -428,29 +692,38 @@ def fit_prototype_residual(raw_train, targets, base, arm):
         result = {'A': A, 'means': means, 'source_mean': source_mean, 'target_mean': target_mean,
                   'prototypes': prototypes.detach(), 'counts': counts.detach(), 'fit_witness': witness}
         primitive._finite(torch, [A, source_mean, target_mean, prototypes, *means.values()])
-        primitive._check_tensor(A, (128, 32), 'cpu', frozen=True)
+        primitive._check_tensor(A, (128, width), 'cpu', frozen=True)
     return result
 
 
 def check_fit_witness(witness, arm):
-    require(witness.keys() == {'rows', 'classes', 'coefficients', 'arm', 'feature_energy', 'lambda',
+    require(type(arm) is str and arm in ARMS, 'fixed witness arm required')
+    width = RECIPE['feature_width'][arm]
+    require(witness.keys() == {'rows', 'classes', 'coefficients', 'feature_width', 'arm',
+            'reference_energy', 'reference_scale', 'lambda_bits', 'actual_solve_checked', 'feature_energy', 'lambda',
             'stationarity_numerator', 'stationarity_denominator', 'normalized_stationarity', 'A_nonzero',
             'target', 'intercept'} and
-            (witness['rows'], witness['classes'], witness['coefficients'], witness['arm']) == (6355, 1008, 4096, arm) and
+            (witness['rows'], witness['classes'], witness['coefficients'], witness['feature_width'], witness['arm']) ==
+            (6355, 1008, 128 * width, width, arm) and witness['actual_solve_checked'] is True and
             witness['A_nonzero'] is True and witness['intercept'] is False and
             witness['target'] == 'raw member-inclusive prototypes', 'complete new fit witness differs')
     require(all(type(witness[k]) in (int, float) and math.isfinite(witness[k]) and witness[k] > 0
-                for k in ('feature_energy', 'lambda', 'stationarity_denominator')) and
-            type(witness['stationarity_numerator']) in (int, float) and
+                for k in ('feature_energy', 'reference_energy', 'reference_scale', 'lambda', 'stationarity_denominator')),
+            'finite positive common penalty/energy required')
+    fp32 = lambda value: struct.unpack('<f', struct.pack('<f', value))[0]
+    require(witness['reference_scale'] == fp32(witness['reference_energy'] / 32) and
+            witness['lambda'] == fp32(fp32(0.1) * witness['reference_scale']) and
+            witness['lambda_bits'] == struct.pack('<f', witness['lambda']).hex(), 'common lambda bits/scale differ')
+    require(type(witness['stationarity_numerator']) in (int, float) and
             math.isfinite(witness['stationarity_numerator']) and witness['stationarity_numerator'] >= 0 and
             type(witness['normalized_stationarity']) in (int, float) and
             witness['normalized_stationarity'] == witness['stationarity_numerator'] / witness['stationarity_denominator'] and
-            0 <= witness['normalized_stationarity'] <= 1e-5, 'normalized stationarity/feature energy failed')
+            0 <= witness['normalized_stationarity'] <= 1e-5, 'normalized stationarity failed')
 
 
 def raw_features(context, state, features):
-    return context['legacy']['quadratic'].raw_features(features, state['head'], state['A'], state['means'],
-                                                     'control' if state['arm'] == 'linear' else 'candidate')
+    return prepare_readout(context).raw_features(features, state['head'], state['A'], state['means'],
+                                                 state['arm'], context['legacy']['quadratic'])
 
 
 def reconstruct(context, arm, normalize=True):
@@ -470,6 +743,7 @@ def reconstruct(context, arm, normalize=True):
     initial = legacy['initial']
     head = legacy['selected']['cached'].head_from('control', tensors=initial['head']).requires_grad_(False).train()
     head._prototype_primitive = legacy['quadratic']
+    head._prototype_readout_guard = lambda: prepare_readout(context)
     legacy['quadratic']._check_base(head, 'cpu')
     old.claim_model(legacy, head)
     require(legacy['original'].fingerprint(dict(head.state_dict())) ==
@@ -495,9 +769,10 @@ def output_witness(context, state):
 def zero_source_witness(context, state):
     import torch
     legacy = context['legacy']
-    zero = torch.nn.Parameter(torch.zeros((128, 32), dtype=torch.float32))
-    zero_raw = legacy['quadratic'].raw_features(state['features'], state['head'], zero, state['means'],
-                                               'control' if state['arm'] == 'linear' else 'candidate')
+    readout = prepare_readout(context)
+    zero = torch.nn.Parameter(torch.zeros((128, readout.feature_width(state['arm'])), dtype=torch.float32))
+    zero_raw = readout.raw_features(state['features'], state['head'], zero, state['means'],
+                                    state['arm'], legacy['quadratic'])
     with torch.no_grad(), torch.autocast('cpu', enabled=False):
         source_raw = state['head'](state['features']).detach()
     require(torch.equal(zero_raw, source_raw), 'zero-A source parity failed')
@@ -509,7 +784,14 @@ def fresh(context, arm):
     import torch
     state = reconstruct(context, arm, normalize=False)
     legacy = context['legacy']
-    state['head']._prototype_solver = extract_solver(context['launch']['ridge_solver']['path'], SOLVER_SHA, torch)
+    state['head']._prototype_solve_audit = {}
+    state['head']._prototype_solver = checked_solver(context['launch']['ridge_solver']['path'], legacy['quadratic'],
+                                                     torch, state['head']._prototype_solve_audit)
+    state['head']._prototype_native_parity = context['args'].phase == 'cpu'
+    state['head']._prototype_fingerprint = legacy['original'].fingerprint
+    if context['args'].phase == 'cpu' and arm == 'linear':
+        state['head']._prototype_original_solver = extract_solver(context['launch']['ridge_solver']['path'],
+                                                                 SOLVER_SHA, torch)
     before = legacy['original'].fingerprint(state_tree(state, tuple(k for k in FROZEN_KEYS if k != 'features')))
     tick = time.perf_counter()
     state['features'] = legacy['genuine'].normalize_nonzero(state['raw_train']).detach()
@@ -568,14 +850,14 @@ def check_payload(context, saved, ident):
     require(saved['head'].keys() == old.HEAD_LAYOUT.keys() and saved['means'].keys() == set(ARMS), 'complete head/means required')
     for name, shape in old.HEAD_LAYOUT.items():
         primitive._check_tensor(saved['head'][name], shape, 'cpu', frozen=True)
-    shapes = {'A': (128, 32), 'source_mean': (32,), 'target_mean': (128,),
+    shapes = {'A': (128, RECIPE['feature_width'][ident['arm']]),
+              'source_mean': (RECIPE['feature_width'][ident['arm']],), 'target_mean': (128,),
               'prototypes': (1008, 128), 'classifier': (1008, 128), 'features': (6355, 1152)}
     for name, shape in shapes.items():
         primitive._check_tensor(saved[name], shape, 'cpu', frozen=True)
     for name, shape in {'counts': (1008,), 'target': (6355,), 'original_rows': (6355,)}.items():
         primitive._check_tensor(saved[name], shape, 'cpu', frozen=True, dtype='torch.int64')
-    for value in saved['means'].values():
-        primitive._check_tensor(value, (32,), 'cpu', frozen=True)
+    prepare_readout(context).check_means(saved['means'], 'cpu', primitive)
     primitive._check_tensor(saved['buffers']['embeddings.position_ids'], (1, 256), 'cpu', frozen=True, dtype='torch.int64')
     primitive._check_tensor(saved['cpu_rng'], tuple(saved['cpu_rng'].shape), 'cpu', frozen=True, dtype='torch.uint8')
     require(saved['cpu_rng'].ndim == 1 and saved['cpu_rng'].numel() > 0 and
@@ -600,7 +882,7 @@ def integrity(context, state, ident):
     old, legacy = context['old'], context['legacy']
     primitive = legacy['quadratic']
     primitive._check_base(state['head'], 'cpu')
-    primitive._check_weight(state['A'], 'cpu')
+    prepare_readout(context).check_weight(state['A'], 'cpu', state['arm'], primitive)
     require(all(m.training and not m._forward_hooks and not m._forward_pre_hooks and not m._backward_hooks
                 for m in state['head'].modules()) and
             all(p.grad is None for p in state['head'].parameters()) and state['A'].grad is None,
@@ -664,10 +946,18 @@ def reload(context, path, sha, digest, ident):
 def tamper_witness(context, state, ident):
     import torch
     # Neither .data write increments _version; rejection must use actual bytes.
-    for tensor in (state['A'], state['means'][state['arm']], state['target'], state['head'].primary.weight):
-        value, version = tensor.detach().clone(), tensor._version
-        tensor.data.reshape(-1)[0] = 1 if tensor.data.reshape(-1)[0].item() == 0 else 0
-        require(tensor._version == version, 'tamper must bypass version counters')
+    tensors = [(state['A'], (0, 0)), (state['means'][state['arm']], (0,)),
+               (state['target'], (0,)), (state['head'].primary.weight, (0, 0))]
+    if state['arm'] == 'concat':
+        tensors.append((state['A'], (0, 32)))  # Directly address the added H0 block, never flatten a strided view.
+        view = state['A'][:, 32:]
+        require(view.untyped_storage().data_ptr() == state['A'].untyped_storage().data_ptr() and
+                view.storage_offset() == state['A'].storage_offset() + 32, 'H0 block must share coefficient storage')
+    for tensor, index in tensors:
+        value, version = tensor.data[index].item(), tensor._version
+        tensor.data[index] = 1 if value == 0 else 0
+        require(tensor._version == version and tensor.data[index].item() != value,
+                'tamper must change actual bytes and bypass version counters')
         rejected = False
         try:
             integrity(context, state, ident)
@@ -675,7 +965,7 @@ def tamper_witness(context, state, ident):
             rejected = True
         finally:
             with torch.no_grad():
-                tensor.data.copy_(value)
+                tensor.data[index] = value
         require(rejected, 'unchanged-version current-byte tamper accepted')
         integrity(context, state, ident)
     return True
@@ -731,9 +1021,15 @@ def check_terminal_record(record, launch, phase, arm):
                 fact['strict_reload_exact'] is True and fact['bypass_version_tamper_rejected'] is True,
                 'new fitted/reload witness differs')
     if phase == 'cpu':
+        require(record['native_linear_parity'] == {'original_solver_exact': True, 'historical_members_exact': True,
+                'historical_linear': HISTORICAL_LINEAR} and
+                record['arms']['linear']['fit_witness']['lambda_bits'] == record['arms']['concat']['fit_witness']['lambda_bits'] and
+                record['arms']['linear']['fit_witness']['reference_energy'] == record['arms']['concat']['fit_witness']['reference_energy'] and
+                record['arms']['linear']['fit_witness']['reference_scale'] == record['arms']['concat']['fit_witness']['reference_scale'],
+                'native linear parity/common actual lambda proof differs')
         require(record['checkpoint'] is None and record['arms']['linear']['identity']['zero_source_sha256'] ==
-                record['arms']['quadratic']['identity']['zero_source_sha256'] and
-                record['arms']['linear']['identity']['frozen_sha256'] == record['arms']['quadratic']['identity']['frozen_sha256'],
+                record['arms']['concat']['identity']['zero_source_sha256'] and
+                record['arms']['linear']['identity']['frozen_sha256'] == record['arms']['concat']['identity']['frozen_sha256'],
                 'matched zero-A/full source arm parity failed')
     else:
         require(record['fit_passes'] == 2 and record['checkpoint'].keys() == {'path', 'sha256'} and
@@ -760,7 +1056,7 @@ def admit_terminal(context, unit, phase, arm):
     require(all(record['input_guards'].get(p) == h for p, h in context['required_guards'].items()) and
             record['input_guards'].get(record['authority']['path']) == record['authority']['sha256'],
             'new terminal complete original/new input guards differ')
-    final = legacy['admission'].admit_terminal(record, unit, policy(phase)['seconds'], guards)
+    final = original_terminal_reader(context)(legacy['admission'], record, unit, policy(phase)['seconds'], guards)
     for value in (record['cgroup_before'], record['cgroup_after'], final):
         old.zero_events(value)
     require(unit['invocation_id'] not in legacy['invocations'], 'duplicate new unit invocation')
@@ -779,6 +1075,8 @@ def fit_run(context):
         cores = []
         state = fresh(context, arm)
         ident = identity(context, state)
+        if args.phase == 'cpu' and arm == 'linear':
+            historical_linear_parity(context, state)
         if args.phase == 'fit':
             require(ident == context['terminals']['cpu:linear']['arms'][arm]['identity'],
                     'fit differs from actual fullTRAIN CPU qualification')
@@ -790,6 +1088,9 @@ def fit_run(context):
         # Second pass rereads warm/source/input bytes and refits before seeing
         # any first-pass fitted tensor, prototype or sufficient statistic.
         state = fresh(context, arm)
+        if args.phase == 'cpu' and arm == 'linear':
+            require(state['head']._prototype_original_solver_exact is True,
+                    'second original/adapted native linear parity failed')
         cores.append(state['core_seconds'])
         require(identity(context, state) == ident, 'independently refitted coefficients/means/typed state differ')
         verify_digest(legacy['original'].fingerprint, payload(context, state, ident), digest,
@@ -812,10 +1113,52 @@ def fit_run(context):
             context['guards'].pop(str(path))
         else:
             fact['checkpoint'] = {'path': str(path), 'sha256': sha}
-    return {'total_fit_core_seconds': total_core, **({'arms': facts, 'checkpoint': None} if args.phase == 'cpu' else facts[args.arm])}
+    if args.phase == 'cpu':
+        require(facts['linear']['fit_witness']['lambda_bits'] == facts['concat']['fit_witness']['lambda_bits'] and
+                facts['linear']['fit_witness']['reference_energy'] == facts['concat']['fit_witness']['reference_energy'] and
+                facts['linear']['fit_witness']['reference_scale'] == facts['concat']['fit_witness']['reference_scale'],
+                'actual lambda/reference bits differ between independent arms')
+    return {'total_fit_core_seconds': total_core, **({'arms': facts, 'checkpoint': None,
+        'native_linear_parity': {'original_solver_exact': True, 'historical_members_exact': True,
+                                'historical_linear': HISTORICAL_LINEAR}} if args.phase == 'cpu' else facts[args.arm])}
+
+
+def historical_linear_parity(context, state):
+    """Compare accepted historical numerical members, never v1/v2 payload hashes."""
+    import torch
+    require(state['arm'] == 'linear' and state['head']._prototype_original_solver_exact is True,
+            'original/adapted native linear parity required')
+    history = context['historical_linear']
+    endpoint = HISTORICAL_LINEAR['endpoint']
+    path = bound_file(context['guards'], **{'path': endpoint['checkpoint']['path'],
+                                          'expected': endpoint['checkpoint']['sha256']})
+    saved = torch.load(path, map_location='cpu', weights_only=True, mmap=True)
+    historical_context = {**context, 'launch': history['launch']}
+    with path.open('rb') as stream:
+        pages = context['legacy']['original'].CheckpointPages(stream)
+        history['fitter'].check_payload(historical_context, saved, history['record']['identity'])
+        require(context['legacy']['original'].fingerprint(saved, consumed=pages.consume) ==
+                endpoint['terminal_state_sha256'], 'complete historical typed payload differs')
+        require(all(torch.equal(state[k].detach(), saved[k]) for k in
+                    ('A', 'source_mean', 'target_mean', 'prototypes', 'counts')) and
+                torch.equal(state['means']['linear'], saved['means']['linear']),
+                'historical linear numerical members differ')
+        fingerprint = context['legacy']['original'].fingerprint
+        numerical = ('A', 'source_mean', 'target_mean', 'prototypes', 'counts')
+        require(fingerprint({**{k: state[k].detach() for k in numerical}, 'linear_mean': state['means']['linear']}) ==
+                fingerprint({**{k: saved[k] for k in numerical}, 'linear_mean': saved['means']['linear']}),
+                'historical linear numerical typed bytes differ')
+        require(fingerprint(state['output_witness']) == fingerprint(saved['output_witness']) and
+                fingerprint(state_tree(state, FROZEN_KEYS)) == saved['identity']['frozen_sha256'] and
+                state['zero_source_sha256'] == saved['identity']['zero_source_sha256'],
+                'historical linear raw/unit/packed/source witnesses differ')
+    del saved
+    gc.collect()
 
 
 def exit_rehash(context):
+    prepare_readout(context)
+    original_terminal_reader(context)
     context['old'].exit_rehash(context['legacy'])
     for path, digest in {**context['legacy']['guards'], **context['guards']}.items():
         bound_file({}, path, digest)

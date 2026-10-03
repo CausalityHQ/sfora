@@ -126,14 +126,15 @@ def typed_hash(value):
     return hashlib.sha256(frames(value)).hexdigest()
 
 
+def extracted(path, names, namespace):
+    tree = ast.parse(path.read_bytes())
+    nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names]
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(path), 'exec'), namespace)
+    return namespace
+
+
 def check_repeat_preparation(evidence):
     """Real pinned loader/preparation prefix; stop before native checkpoint I/O."""
-    def extracted(path, names, namespace):
-        tree = ast.parse(path.read_bytes())
-        nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names]
-        exec(compile(ast.Module(body=nodes, type_ignores=[]), str(path), 'exec'), namespace)
-        return namespace
-
     class NativeBoundary(Exception):
         pass
 
@@ -289,6 +290,202 @@ def check_repeat_preparation(evidence):
                 'helper already loaded')
 
 
+def check_signed_readout():
+    """Exercise the v2 helper with stdlib layout/algebra mocks, not native FP32."""
+    path = HERE / 'prototype_residual_readout.py'
+    context = {'root': HERE, 'code': {path.name: hashlib.sha256(path.read_bytes()).hexdigest()}, 'guards': {}}
+    helper = fit.prepare_readout(context)
+    fake = SimpleNamespace(cat=lambda blocks, dim: Matrix([a + b for a, b in
+                           zip(blocks[0].rows, blocks[1].rows, strict=True)]))
+    namespace = dict(vars(helper), __builtins__=dict(vars(builtins), __import__=lambda name, *args, **kw:
+                     fake if name == 'torch' else builtins.__import__(name, *args, **kw)))
+    extracted(path, {'basis'}, namespace)
+    Z = Matrix([[float(i) for i in range(32)], [-float(i) for i in range(32)]])
+    H0 = Matrix([[100. + i for i in range(128)], [200. + i for i in range(128)]])
+    V = namespace['basis'](Z, H0, 'concat')
+    assert V.rows == [z + h for z, h in zip(Z.rows, H0.rows, strict=True)]
+    assert namespace['basis'](Z, H0, 'linear') is Z
+    rejects(lambda: namespace['basis'](H0, Z, 'concat'), 'widths/order')
+    rejects(lambda: namespace['basis'](Z, H0, 'quadratic'), 'arm')
+    def verify_basis(value):
+        fit.require(value.rows == V.rows, 'concat block order differs')
+    rejects(lambda: verify_basis(Matrix([h + z for z, h in zip(Z.rows, H0.rows, strict=True)])), 'block order')
+    class Parameter:
+        requires_grad = is_leaf = True
+        grad_fn = None
+        def __init__(self, shape):
+            self.shape = shape
+    def check_tensor(value, shape, device, **kw):
+        fit.require(value.shape == shape, 'tensor shape differs')
+    primitive = SimpleNamespace(_check_tensor=check_tensor, _require=fit.require)
+    fake.nn = SimpleNamespace(Parameter=Parameter)
+    extracted(path, {'check_weight'}, namespace)
+    namespace['check_weight'](Parameter((128, 160)), 'cpu', 'concat', primitive)
+    rejects(lambda: namespace['check_weight'](Parameter((128, 32)), 'cpu', 'concat', primitive), 'shape')
+    rejects(lambda: namespace['check_weight'](Parameter((128, 160)), 'cpu', 'linear', primitive), 'shape')
+    bad_leaf = Parameter((128, 160)); bad_leaf.is_leaf = False
+    rejects(lambda: namespace['check_weight'](bad_leaf, 'cpu', 'concat', primitive), 'leaf')
+    coefficients = [struct.pack('<f', 1.) for _ in range(160)]
+    digest = typed_hash(coefficients)
+    coefficients[32] = struct.pack('<f', 9.)
+    rejects(lambda: fit.verify_digest(typed_hash, coefficients, digest, 'H0 coefficient changed'), 'H0')
+    # Execute the production mutation's indexed target against a standin whose
+    # reshape deliberately returns a copy, as the strided H0 view would do.
+    class Data:
+        def __init__(self):
+            self.values = [[0.] * 160]
+        def __getitem__(self, index):
+            return SimpleNamespace(item=lambda: self.values[index[0]][index[1]])
+        def __setitem__(self, index, value):
+            self.values[index[0]][index[1]] = value
+        def reshape(self, *shape):
+            return [v for row in self.values for v in row]
+    mutation = next(n for n in ast.walk(ast.parse((HERE / 'fit_siglip2_prototype_residual.py').read_bytes()))
+        if isinstance(n, ast.Assign) and ast.unparse(n.targets[0]) == 'tensor.data[index]' and
+        isinstance(n.value, ast.IfExp))
+    data = Data()
+    exec(compile(ast.Module(body=[mutation], type_ignores=[]), '<H0 direct mutation>', 'exec'),
+         {'tensor': SimpleNamespace(data=data), 'index': (0, 32), 'value': 0.})
+    assert data.values[0][32] == 1. and data.values[0][0] == 0.
+    functions = [(name, fn) for name, fn in vars(helper).items() if isinstance(fn, FunctionType)]
+    name, fn = functions[0]
+    code = fn.__code__
+    fn.__code__ = (lambda: None).__code__
+    try:
+        rejects(lambda: fit.prepare_readout(context), 'function/code')
+    finally:
+        fn.__code__ = code
+    vars(helper)[name] = lambda: None
+    try:
+        rejects(lambda: fit.prepare_readout(context), 'globals')
+    finally:
+        vars(helper)[name] = fn
+    spec = helper.__spec__
+    origin = spec.origin
+    spec.origin = str(HERE / 'fit_siglip2_prototype_residual.py')
+    try:
+        rejects(lambda: fit.prepare_readout(context), 'origin')
+    finally:
+        spec.origin = origin
+    fit.prepare_readout(context)
+    # Both actual consumer schema guards reject cross-version payloads before
+    # reaching native arithmetic or any fake metadata/layout validator.
+    historical = ROOT / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/train-source-v3/fit_siglip2_prototype_residual.py'
+    for source_path, consumer_schema, rejected_schema in (
+        (HERE / 'fit_siglip2_prototype_residual.py', fit.SCHEMA, 'siglip2-prototype-residual-ridge-v1'),
+        (historical, 'siglip2-prototype-residual-ridge-v1', fit.SCHEMA)):
+        node = next(n for n in ast.parse(source_path.read_bytes()).body
+                    if isinstance(n, ast.FunctionDef) and n.name == 'check_payload')
+        node.body = node.body[:3]  # Exact real schema admission prefix.
+        namespace = dict(vars(fit), SCHEMA=consumer_schema,
+            __builtins__=dict(vars(builtins), __import__=lambda name, *a, **kw:
+                fake if name == 'torch' else builtins.__import__(name, *a, **kw)))
+        exec(compile(ast.Module(body=[node], type_ignores=[]), str(source_path), 'exec'), namespace)
+        saved = {k: None for k in fit.PAYLOAD_KEYS}; saved['schema'] = rejected_schema
+        rejects(lambda: namespace['check_payload']({'old': None, 'legacy': None}, saved, {}), 'typed payload')
+
+
+def check_adapter(path, torch, source, target):
+    """Exact AST correspondence and double oracle; native audit stays root-owned."""
+    original = fit.solver_definitions(path.read_bytes())
+    adapted = fit.solver_definitions(path.read_bytes(), adapted=True)
+    fn = next(n for n in adapted if isinstance(n, ast.FunctionDef))
+    assert [a.arg for a in fn.args.kwonlyargs] == ['regularization', 'reference_scale']
+    assignment = next(n for n in fn.body if isinstance(n, ast.Assign) and
+                      isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'scale')
+    assert ast.unparse(assignment.value) == 'reference_scale'
+    fn.args.kwonlyargs.pop(); fn.args.kw_defaults.pop()
+    assignment.value = ast.parse('torch.trace(gram) / gram.shape[0]', mode='eval').body
+    assert ast.dump(ast.Module(body=adapted, type_ignores=[])) == ast.dump(ast.Module(body=original, type_ignores=[]))
+    changed = path.read_bytes().replace(b'x.T @ y)', b'x.T @ y + 1)', 1)
+    assert changed != path.read_bytes()
+    rejects(lambda: fit.solver_definitions(changed, adapted=True), 'solver AST')
+    x = source - source.mean(0)
+    reference = torch.trace(x.T @ x) / 2
+    adapted_solver = fit.extract_solver(path, fit.SOLVER_SHA, torch, adapted=True)
+    original_solver = fit.extract_solver(path, fit.SOLVER_SHA, torch)
+    left = original_solver(source, target, Index([0, 1, 2, 3]), regularization=.1)
+    right = adapted_solver(source, target, Index([0, 1, 2, 3]), regularization=.1, reference_scale=reference)
+    assert all(getattr(left, k).rows == getattr(right, k).rows for k in ('weight', 'source_mean', 'target_mean'))
+    wrong = adapted_solver(source, target, Index([0, 1, 2, 3]), regularization=.1, reference_scale=reference / 5)
+    assert wrong.weight.rows != right.weight.rows
+    # Operand capture only; Matrix arithmetic remains double precision.
+    class Scalar:
+        def __init__(self, value):
+            self.value = struct.unpack('<f', struct.pack('<f', value))[0]
+        def item(self):
+            return self.value
+        def __rmul__(self, other):
+            return Scalar(other * self.value)
+        def __mul__(self, other):
+            return self.value * other
+    fake = SimpleNamespace(**vars(torch))
+    fake.equal = lambda a, b: a.rows == b.rows
+    fake.isfinite = lambda value: SimpleNamespace(item=lambda: True) if isinstance(value, Scalar) else torch.isfinite(value)
+    def check_tensor(value, shape, device, **kw):
+        fit.require(isinstance(value, Scalar) and shape == () and device == 'cpu' and kw['frozen'], 'scalar differs')
+    audit = {}
+    checked = fit.checked_solver(path, SimpleNamespace(_check_tensor=check_tensor), fake, audit)
+    checked(source, target, Index([0, 1, 2, 3]), regularization=.1, reference_scale=Scalar(reference))
+    assert audit['lambda_bits'] == struct.pack('<f', .1 * Scalar(reference).item()).hex()
+    assert audit['lambda_value'] == struct.unpack('<f', bytes.fromhex(audit['lambda_bits']))[0]
+    rejects(lambda: checked(source, target, Index([0, 1, 2, 3]), regularization=.2,
+                            reference_scale=Scalar(reference)), 'penalty')
+    assert audit['lambda_bits'] != struct.pack('<f', .1 * reference / 5).hex()
+
+
+def check_terminal_reader():
+    """Real original predicates and archived 3min 745ms, no native import."""
+    def load(name, filename):
+        path = HERE / filename
+        return fit.load_authenticated(name, path, hashlib.sha256(path.read_bytes()).hexdigest(), {})
+    original = load('_signed_terminal_original', 'train_siglip2_substrate_adaptation.py')
+    initializer = load('_signed_terminal_initializer', 'initialize_siglip2_substrate_fit.py')
+    admission = original.FlatAdmission(); admission.init = initializer
+    context = {'legacy': {'original': original, 'admission': admission},
+               'guards': {original.__file__: fit.TERMINAL_SOURCE_SHA}}
+    reader = fit.original_terminal_reader(context)
+    node = copy.deepcopy(reader.__terminal_ast__)
+    original_node = fit.terminal_ast(original, fit.TERMINAL_SOURCE_SHA, fit.TERMINAL_AST_SHA, {}, 'FlatAdmission')
+    index = next(i for i, n in enumerate(original_node.body) if isinstance(n, ast.Assign) and
+                 isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'match')
+    node.body[index:index + 1] = copy.deepcopy(original_node.body[index:index + 3])
+    assert ast.dump(node) == ast.dump(original_node)
+    archive = ROOT / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1'
+    log = archive / 'fit-linear-v1.log'
+    record = json.loads((archive / 'fit-linear-v1-receipt.json').read_bytes())
+    proof = copy.deepcopy(fit.HISTORICAL_LINEAR['endpoint']['terminal'])
+    proof['log']['path'] = str(log)
+    lines = log.read_text().splitlines()
+    assert lines.count('Service runtime: 3min 745ms') == 1
+    assert fit.Decimal(3) * 60 + fit.Decimal(fit.runtime_components('3min 745ms')[1]) == fit.Decimal('180.745')
+    rejects(lambda: admission.admit_terminal(record, proof, 300, {}), 'runtime format')
+    footer = json.loads(next(line.removeprefix('FINAL_CGROUP ') for line in lines if line.startswith('FINAL_CGROUP ')))
+    assert reader(admission, record, proof, 300, {}) == footer
+    rejects(lambda: reader(admission, record, dict(proof, service_seconds=180.746), 300, {}), 'numeric binding')
+    rejects(lambda: reader(admission, record, dict(proof, both_locks_held=False), 300, {}), 'both locks')
+    with TemporaryDirectory() as directory:
+        path = Path(directory) / 'log'
+        for content, message in (
+            (log.read_text() + 'Service runtime: 3min 745ms\n', 'runtime line'),
+            (log.read_text() + 'FINAL_CGROUP ' + json.dumps(footer) + '\n', 'footer'),
+            (log.read_text().replace('\tExit status: 0', '\tExit status: 1'), 'normal-exit'),
+            (log.read_text().replace('3min 745ms', '3min 744ms'), 'numeric binding'),
+            (log.read_text().replace('3min 745ms', '3min 60000ms'), 'numeric binding'),
+            (log.read_text().replace('3min 745ms', '3min 0.745ms'), 'runtime format'),
+            (log.read_text().replace('"memory.swap.peak": "0"', '"memory.swap.peak": "1"'), 'memory/swap')):
+            path.write_text(content)
+            changed = dict(proof, log={'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
+            candidate_admission = original.FlatAdmission(); candidate_admission.init = initializer
+            rejects(lambda: reader(candidate_admission, record, changed, 300, {}), message)
+    function, code = original.FlatAdmission.admit_terminal, original.FlatAdmission.admit_terminal.__code__
+    function.__code__ = (lambda *args: None).__code__
+    try:
+        rejects(lambda: fit.original_terminal_reader(context), 'function/body')
+    finally:
+        function.__code__ = code
+
+
 def check():
     assert not any(n.split('.')[0] in fit.NATIVE for n in sys.modules)
     evidence = ROOT / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/quadratic-readout-v1/train-source-v7'
@@ -298,16 +495,23 @@ def check():
     assert hashlib.sha256((evidence / 'authority-cpu-v7.json').read_bytes()).hexdigest() == fit.ORIGINAL_CPU['authority']['sha256']
     assert hashlib.sha256((evidence / 'cpu-v7-receipt.json').read_bytes()).hexdigest() == fit.ORIGINAL_CPU['terminal']['receipt']['sha256']
     check_repeat_preparation(evidence)
+    check_signed_readout()
+    check_terminal_reader()
     original_launch = json.loads((evidence / 'authority-cpu-v7.json').read_bytes())
     launch = dict(schema=fit.AUTHORITY_SCHEMA, execution_sha256='a' * 64, phase='cpu', arm='linear',
                   original_reference=copy.deepcopy(fit.ORIGINAL_REFERENCE), original_cpu=copy.deepcopy(fit.ORIGINAL_CPU),
                   ridge_solver={'path': str(ROOT / 'src/sfora/foundation_adapter.py'), 'sha256': fit.SOLVER_SHA},
                   warm_start=original_launch['warm_start'], partition=original_launch['partition'],
+                  historical_linear=copy.deepcopy(fit.HISTORICAL_LINEAR),
                   recipe=copy.deepcopy(fit.RECIPE), resource_policy=fit.policy('cpu'), both_locks_held=True, selected_cpu=None)
     args = SimpleNamespace(execution_sha256='a' * 64, phase='cpu', arm='linear')
     fit.check_launch(launch, args)
     for mutate in (
         lambda v: v.update(schema='siglip2-quadratic-readout-launch-v1'),
+        lambda v: v.update(schema='siglip2-prototype-residual-launch-v1'),
+        lambda v: v.update(arm='quadratic'),
+        lambda v: v['historical_linear']['endpoint']['checkpoint'].update(sha256='0' * 64),
+        lambda v: v['recipe']['basis'].update(concat='[H0raw128,Z32]'),
         lambda v: v.update(seed=179061),
         lambda v: v.update(phase='mechanics'),
         lambda v: v['original_cpu']['authority'].update(sha256='0' * 64),
@@ -326,11 +530,14 @@ def check():
             'old CPU cannot qualify')
     rejects(lambda: fit.strict_json('{"schema":1,"schema":2}'))
     rejects(lambda: fit.strict_json('{"value":NaN}'))
-    witness = dict(rows=6355, classes=1008, coefficients=4096, arm='linear', feature_energy=4.,
-                   **{'lambda': .0125}, stationarity_numerator=0., stationarity_denominator=3.,
+    witness = dict(rows=6355, classes=1008, coefficients=4096, feature_width=32, arm='linear', feature_energy=4.,
+                   reference_energy=4., reference_scale=.125, lambda_bits=struct.pack('<f', .0125).hex(),
+                   actual_solve_checked=True, **{'lambda': struct.unpack('<f', struct.pack('<f', .0125))[0]}, stationarity_numerator=0., stationarity_denominator=3.,
                    normalized_stationarity=0., A_nonzero=True, target='raw member-inclusive prototypes', intercept=False)
     fit.check_fit_witness(witness, 'linear')
-    for fields in ({'feature_energy': 0.}, {'A_nonzero': False}, {'intercept': True},
+    for fields in ({'feature_energy': 0.}, {'reference_energy': 0.}, {'reference_scale': .2},
+                   {'lambda_bits': '00000000'}, {'actual_solve_checked': False}, {'feature_width': 160},
+                   {'lambda': .0125 * 32 / 160}, {'A_nonzero': False}, {'intercept': True},
                    {'stationarity_denominator': 0.}, {'lambda': float('nan')},
                    {'stationarity_numerator': 1., 'normalized_stationarity': 1. / 3}):
         rejects(lambda: fit.check_fit_witness(dict(witness, **fields), 'linear'))
@@ -353,9 +560,9 @@ def check():
     A = model.weight.T
     near(x @ A.T, x @ model.weight)
     assert model.target_mean.rows == [[11., 9.5]]
-    # Execute the exact existing primitive correction expression, with fake F;
+    # Execute the v2 signed primitive correction expression, with fake F;
     # a nonzero target mean exposes accidental model.transform/intercept use.
-    primitive = ast.parse((evidence / 'quadratic_readout.py').read_bytes())
+    primitive = ast.parse((HERE / 'prototype_residual_readout.py').read_bytes())
     raw = next(n for n in primitive.body if isinstance(n, ast.FunctionDef) and n.name == 'raw_features')
     assignment = next(n for n in ast.walk(raw) if isinstance(n, ast.Assign) and
                       any(isinstance(t, ast.Name) and t.id == 'raw' for t in n.targets))
@@ -374,6 +581,17 @@ def check():
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
     calls = lambda name: [ast.unparse(n.func) for n in ast.walk(functions[name]) if isinstance(n, ast.Call)]
     assert 'solver' in calls('fit_prototype_residual')
+    assert 'check_reference_scale' in calls('fit_prototype_residual')
+    assert 'historical_linear_parity' in calls('fit_run')
+    assert 'prepare_readout' in calls('exit_rehash')
+    assert 'prepare_readout' in calls('raw_features')
+    assert 'prepare_readout' in calls('zero_source_witness')
+    assert 'prepare_readout' in calls('integrity')
+    assert 'prepare_readout' in calls('check_payload')
+    assert 'observed_solve' in ast.unparse(functions['checked_solver'])
+    assert 'actual_lambda' in ast.unparse(functions['checked_solver'])
+    assert "tensor.data[index]" in ast.unparse(functions['tamper_witness'])
+    assert "tensor.data.reshape" not in ast.unparse(functions['tamper_witness'])
     assert not any('transform' in name for name in calls('fit_prototype_residual'))
     assert 'reconstruct' in calls('reload') and not {'fresh', 'fit_prototype_residual', 'extract_solver'}.intersection(calls('reload'))
     assert 'extract_solver' not in calls('prepare_native')
@@ -420,7 +638,8 @@ def check():
         bad[key] = value
         rejects(lambda: fit.verify_digest(typed_hash, bad, digest, 'reload/current bytes changed'))
     assert typed_hash({'label': 1}) != typed_hash({'label': 1.})
-    print('PASS: repeat genuine preparation/helper integrity, authenticated solver/no-intercept, authority, uncached bytes and typed reload mutation; native UNRUN')
+    check_adapter(solver_path, torch, source, target)
+    print('PASS: signed basis/width/schema/lambda/H0-byte/target-mean/adapter falsifiers, historical duration/predicates, helper integrity and original bounded checks; native FP32 UNRUN')
 
 
 if __name__ == '__main__':
