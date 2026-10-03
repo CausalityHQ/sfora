@@ -1,0 +1,27 @@
+{
+  "authority_sha256": "5ba809ccf300779fbb45b04df3da1fea1254ba3e225753f7878e4ab3aa447566",
+  "command_sha256": "e978ac5d49469837d8e14740e3228c18d11ec1da0d1b0c1931e28094cff128a7",
+  "cpu_terminal": {
+    "both_locks_held": true,
+    "invocation_id": "a193b61297e14cb490fcaa9bc0ba4a19",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/cpu-v2.log",
+      "sha256": "eab6fed2d9bb97343d2f30d24d0b0c34f6db28d823e314ab80b52dc54d0a1506"
+    },
+    "native_peak_rss_kib": 2873144,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-cpu-v2/receipt.json",
+      "sha256": "e497a1f6da45c9ab5eb5b6ecfc2f7c2ceb4ffd2c68bed642ea6264335e83a288"
+    },
+    "service_seconds": 296.448,
+    "unit": "sfora-so400-signed-concat-evaluation-cpu-v2"
+  },
+  "cpu_terminal_sha256": "89ef2f26a511a2d6272570cd4b83c072ad870eeddf63b00c06e4c605db9fdb45",
+  "execution_sha256": "c456456c83472526313177fa289ca52228b04f9dff0edf44575933ab45f62970",
+  "launch_sha256": "b2a8bafcf14ae093a155a64d70a60d2f7a5b103683fdb9e2b47e94ec74e8026a",
+  "output": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-selection-score-v1",
+  "schema": "signed-concat-selection-score-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2",
+  "stop_rule": "ONEoriginalcoldselectionscore500/8GiB/noSwap/events0/CUDAhidden/bothlocks. Full4reload/fullpanelwire/readback/sourceperquery replay before candidatequality. Sameimmediate/sourcefloors/bothgains>=.002fraction/product95LCB>0/shared5000seed179019. Anyfailureterminal; no retries/partialreuse. OnlyqualityGO admitssealedvalidation; noofficial/publicclaim.",
+  "unit": "sfora-so400-signed-concat-evaluation-selection-score-v1"
+}

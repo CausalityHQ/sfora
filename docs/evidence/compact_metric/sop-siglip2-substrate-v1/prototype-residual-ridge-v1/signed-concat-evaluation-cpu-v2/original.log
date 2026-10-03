@@ -1,0 +1,82 @@
+cpu-launch.sh: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/cpu-command.sh: OK
+Running as unit: sfora-so400-signed-concat-evaluation-cpu-v2.service; invocation ID: a193b61297e14cb490fcaa9bc0ba4a19
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-first-score-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/first-score.log: OK
+/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json: OK
+/home/riomus/runs/sfora-so400-prototype-residual-evaluation-source-v7/source-selection-inventory.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/authority-selection-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/evaluate_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/test_siglip2_prototype_residual_evaluation.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-linear-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-linear-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-linear-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-linear-v1.log: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/test_siglip2_prototype_residual.py: OK
+{"progress": "authority_start", "seconds": 0.045375226996839046}
+{"progress": "authority_end", "cost_pass": true, "seconds": 137.68068842310458}
+{"progress": "exit_rehash_start", "seconds": 282.0848241909407}
+{"schema": "siglip2-prototype-residual-evaluation-v2", "phase": "cpu", "output": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-cpu-v2", "decision": null}
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-first-score-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/first-score.log: OK
+/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json: OK
+/home/riomus/runs/sfora-so400-prototype-residual-evaluation-source-v7/source-selection-inventory.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/authority-selection-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/evaluate_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/test_siglip2_prototype_residual_evaluation.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-linear-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-linear-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-linear-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-linear-v1.log: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/test_siglip2_prototype_residual.py: OK
+FINAL_CGROUP {"command_exit_status": 0, "invocation_id": "a193b61297e14cb490fcaa9bc0ba4a19", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-signed-concat-evaluation-cpu-v2.service", "values": {"memory.current": "2471948288", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "3205505024", "memory.stat": "anon 5996544\nfile 2424971264\nkernel 38866944\nkernel_stack 65536\npagetables 344064\nsec_pagetables 0\npercpu 2464\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 16384\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5894144\ninactive_file 260620288\nactive_file 2164285440\nunevictable 0\nslab_reclaimable 38307096\nslab_unreclaimable 123592\nslab 38430688\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 271242\npgmajfault 5988\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 251\nthp_collapse_alloc 9\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+	Command being timed: "/bin/bash -c set -e; sudo -n /bin/sync; sudo -n /bin/sh -c "echo 3 > /proc/sys/vm/drop_caches"; exec /bin/bash /home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/cpu-command.sh"
+	User time (seconds): 105.01
+	System time (seconds): 16.82
+	Percent of CPU this job got: 41%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:56.41
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2873144
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 5989
+	Minor (reclaiming a frame) page faults: 265083
+	Voluntary context switches: 771103
+	Involuntary context switches: 856
+	Swaps: 0
+	File system inputs: 294435592
+	File system outputs: 6520
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+STOP_CGROUP {"exit_code": "exited", "exit_status": "0", "invocation_id": "a193b61297e14cb490fcaa9bc0ba4a19", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-signed-concat-evaluation-cpu-v2.service", "service_result": "success", "values": {"memory.current": "2470891520", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "3205505024", "memory.stat": "anon 5406720\nfile 2424971264\nkernel 38506496\nkernel_stack 0\npagetables 106496\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 16384\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 2097152\nshmem_thp 0\ninactive_anon 0\nactive_anon 5402624\ninactive_file 260620288\nactive_file 2164285440\nunevictable 0\nslab_reclaimable 38308072\nslab_unreclaimable 72536\nslab 38380608\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 272756\npgmajfault 5988\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 251\nthp_collapse_alloc 9\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 4min 56.448s
+CPU time consumed: 2min 1.855s
+Memory peak: 2.9G
+Memory swap peak: 0B
