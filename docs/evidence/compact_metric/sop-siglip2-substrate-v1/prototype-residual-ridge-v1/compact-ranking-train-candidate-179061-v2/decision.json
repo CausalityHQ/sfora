@@ -1,0 +1,97 @@
+{
+  "verdict": "FAIL_CURRENT_PROCEDURE_RUNTIME",
+  "session": 37015,
+  "unit": "sfora-so400-compact-ranking-train-candidate-179061-v2",
+  "invocation_id": "da1ed295a0a84b66a8d75216752fccaf",
+  "service_seconds": 300.242,
+  "completed_updates": 128,
+  "core_update_seconds": 44.094930118415505,
+  "inclusive_update_seconds": 105.48710474511608,
+  "host_peak_bytes": 7268855808,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "receipt_present": false,
+  "quality_read": false,
+  "log_sha256": "ec950f664f7416cf663752fad80d3c0c3b2d734f1748c8bfbcea6aaea2686cb8",
+  "last_phases": [
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_run_api_authentication",
+      "boundary": "end",
+      "delta_seconds": 0.5517580020241439,
+      "seconds": 260.56060380116105
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_run_origin_audit",
+      "boundary": "begin",
+      "seconds": 260.560638633091
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_run_origin_audit",
+      "boundary": "end",
+      "delta_seconds": 6.214200825896114,
+      "seconds": 266.7748412671499
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "origin_guard_promotion",
+      "boundary": "begin",
+      "seconds": 266.77489016298205
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "origin_guard_promotion",
+      "boundary": "end",
+      "delta_seconds": 0.036034167278558016,
+      "seconds": 266.8109252899885
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "source_exit_rehash",
+      "boundary": "begin",
+      "seconds": 266.8109973059036
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "source_exit_rehash",
+      "boundary": "end",
+      "delta_seconds": 26.88472795812413,
+      "seconds": 293.6957265441306
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "own_exit_rehash",
+      "boundary": "begin",
+      "seconds": 293.6957403840497
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "own_exit_rehash",
+      "boundary": "end",
+      "delta_seconds": 4.577278339769691,
+      "seconds": 298.27302101207897
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_exit_api_authentication",
+      "boundary": "begin",
+      "seconds": 298.2740128808655
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_exit_api_authentication",
+      "boundary": "end",
+      "delta_seconds": 0.7151268781162798,
+      "seconds": 298.9891417431645
+    },
+    {
+      "event": "COMPACT_PHASE",
+      "phase": "post_exit_origin_audit",
+      "boundary": "begin",
+      "seconds": 298.9891767189838
+    }
+  ],
+  "scope": "Frozen runtime procedure only; no quality or architecture KILL. No partial-state reuse."
+}
