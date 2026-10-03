@@ -1,0 +1,22 @@
+{
+  "authority_sha256": "f7fb3c39d90151c0fd171262f3d813bbeff17cba97a8d2e4a70e84c2a13260e4",
+  "code": {
+    "qualify_cudnn_wheel_provenance.py": "2c08f68be84e42a68bb3fbaa499121cf1ab11d0d9612a46647d406ec86ea0470",
+    "test_cudnn_wheel_provenance.py": "3397b0d2f8e5f1ad7024acbde3c585446125ec3d1686ff051802903bbf7f74d5"
+  },
+  "command_sha256": "91ed6f5df30b25f9ee5350a1f649036345a52c29e28c49e98b769fb8e5686382",
+  "execution_sha256": "eb546ed3d6e88f5058f8cbec7e6ed160b5da54cd6883f710dd64b21aca32aeed",
+  "launcher_sha256": "1440cd9ba3a311b36d10704f99dfa4da0a25cf7799a368652bf476989f95d8f8",
+  "output": "/home/riomus/runs/sfora-cudnn-wheel-provenance-v1",
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "root": "/home/riomus/runs/sfora-cudnn-wheel-provenance-source-v1",
+  "schema": "cudnn-wheel-provenance-freeze-v1",
+  "source_commit": "f3acd3e20eaa19ce1ce8f964f013a7bc12ff6a83",
+  "stop_rule": "ONE CPU-only vendor byte provenance job300s8GiBzeroSwap/events/bothlocks; complete wheel hash/unique installed ownership/selected bytes/uncached exit/original terminal; no native origin admission/model/quality/training eligibility",
+  "unit": "sfora-cudnn-wheel-provenance-v1"
+}

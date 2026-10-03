@@ -1,0 +1,33 @@
+{
+  "both_locks_held": true,
+  "execution_sha256": "eb546ed3d6e88f5058f8cbec7e6ed160b5da54cd6883f710dd64b21aca32aeed",
+  "installed_evidence": {
+    "path": "/home/riomus/runs/sfora-cudnn-wheel-provenance-source-v1/installed-evidence.json",
+    "sha256": "78d25af1531f2e209d712055c7882fcbd2f7d4f0379ab2fc1e35096ec9ffb12e"
+  },
+  "installed_site_root": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages",
+  "lock_paths": [
+    "/home/riomus/runs/.sfora-siglip2-gpu.lock",
+    "/home/riomus/.sfora-siglip2-gpu.lock"
+  ],
+  "official_wheel": {
+    "release_url": "https://pypi.org/pypi/nvidia-cudnn-cu13/9.20.0.48/json",
+    "sha256": "e31454ae00094b0c55319d9d15b6fa2fc50a9e1c0f5c8c80fb75258234e731e1",
+    "size_bytes": 444574296,
+    "url": "https://files.pythonhosted.org/packages/56/c5/83384d846b2fd17c44bd499b36c75a45ed4f095fbbb2252294e89cea5c5c/nvidia_cudnn_cu13-9.20.0.48-py3-none-manylinux_2_27_aarch64.whl"
+  },
+  "output": "/home/riomus/runs/sfora-cudnn-wheel-provenance-v1",
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "python_version": "3.13.9 (main, Oct 14 2025, 21:26:54) [Clang 20.1.4 ]",
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "cudnn-wheel-provenance-authority-v1",
+  "unit": "sfora-cudnn-wheel-provenance-v1"
+}
