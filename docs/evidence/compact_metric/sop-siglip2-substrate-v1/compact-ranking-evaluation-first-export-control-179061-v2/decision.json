@@ -1,0 +1,14 @@
+{
+  "decision": "FAIL_LAZY_RUNTIME_BEFORE_INFERENCE",
+  "session": 87601,
+  "invocation_id": "ba51305b4f384ad6b1d62cb7bf2ef871",
+  "service_seconds": 163.198,
+  "host_peak_bytes": 1565020160,
+  "events": 0,
+  "swap_bytes": 0,
+  "quality_read": false,
+  "timeout": false,
+  "blocked_path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/regex/__pycache__/__init__.cpython-313.pyc",
+  "log_sha256": "1ddab822251581a30cbbcef40d8c54581b5e01f8d392823fcf5ce14af5e0046f",
+  "candidate_launched": false
+}
