@@ -1,0 +1,88 @@
+{
+  "accepted_concat": {
+    "both_locks_held": true,
+    "checkpoint": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt",
+      "sha256": "b702e03847be88540ee9711b420279e3bc131fafc475f361eca3d57cf3b8bbcf"
+    },
+    "invocation_id": "94a84de4194f42f0842cee5b5c8f932a",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log",
+      "sha256": "93c2f7024116fc63d8e7cacc1a4e0106d2d57e9ca57d794c866e9bcc77311197"
+    },
+    "native_peak_rss_kib": 2854356,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json",
+      "sha256": "b4af0fecfa1d5f750f0ac9cc995198690baf4397fd970c8192727644135c7d5c"
+    },
+    "run": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1",
+    "service_seconds": 234.821,
+    "terminal_state_fingerprint": "a118fd98cce0b8fafa51c897be70b2b6e2ec93ebb226b2382dd264721776b644",
+    "unit": "sfora-so400-signed-concat-fit-concat-v1"
+  },
+  "accepted_original_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "32cb889b3b734c79bfbb84d20a82faf0",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/cpu-v2.log",
+      "sha256": "035b7b39b876353d60a054a125ac5fd8ca76ef9ad268a06970f688288aa9fe32"
+    },
+    "native_peak_rss_kib": 2854984,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-cpu-v2/receipt.json",
+      "sha256": "fb25c54c9d61a681bedabd38b267575858a3cd3a926fedbb6d5698291559ba92"
+    },
+    "service_seconds": 268.001,
+    "unit": "sfora-so400-signed-concat-cpu-v2"
+  },
+  "code": {
+    "fit_siglip2_prototype_residual.py": "95295794ef234967d40bdf5713d04f41d6710dae4e9d2b95bca76f0f31adc13b",
+    "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+    "test_siglip2_prototype_residual.py": "c89aa3855d60d9f11d0dd57b55311c5364304915bd4a5d22b26b4c1e0a29c7d4"
+  },
+  "inventory_only": true,
+  "original_fitter": {
+    "cpu_authority": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-cpu-v2.json",
+      "sha256": "e37f7e58b69254a64d3a4af06ba7870f7882211bea0acc2fc390721778f687b9"
+    },
+    "execution_sha256": "a47933beafd8a1c0e2d541624328c8fe1d7b9a90f68977eee83c3c82223a56fe",
+    "fit_authority": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json",
+      "sha256": "109b6fded3f4559fcee3822536abd5beeed5f4ffc23f4313b87904faa6c39630"
+    },
+    "root": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2"
+  },
+  "original_partition": {
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "original_warm_start": {
+    "checkpoint": {
+      "path": "/home/riomus/runs/sfora-so400-genuine-view-train-control-179061-v1/resume.pt",
+      "sha256": "97db53ab934edbef2656c6e9509e4518421eaba02d3864bdc336eedd7787c7d2"
+    },
+    "launch": {
+      "path": "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1/authority-train-control-179061-v1.json",
+      "sha256": "84ceaa5b819d9c9db89514bed13b140dab898e842ec6cbf85eb17dce123e6655"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "e76277bcc16c4a7b9b3c3643834cb840",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1/train-control-179061.log",
+        "sha256": "5c2c7ca41fe489d8ba56787c32ac6be5cc8b4fe5e842f223e6981c32de0b0bc8"
+      },
+      "native_peak_rss_kib": 2295028,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-genuine-view-train-control-179061-v1/receipt.json",
+        "sha256": "a85d7ef29909d677a12510bdafce2e1edbcd8e62d768918af572bdd3cfa87a5f"
+      },
+      "service_seconds": 182.39,
+      "unit": "sfora-so400-genuine-view-train-control-179061-v1"
+    },
+    "terminal_state_sha256": "b78bd945256438bfd24873347e26d62c970bf9d85048663301d4fe1236ac35a9"
+  },
+  "schema": "nearest-ranking-parent-collected-inputs-v1",
+  "training_qualified": false
+}
