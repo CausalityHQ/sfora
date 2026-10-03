@@ -1,0 +1,20 @@
+{
+  "verdict": "FAIL_ENGINEERING_TIMEOUT",
+  "session": 69688,
+  "unit": "sfora-so400-compact-ranking-mechanics-control-v1",
+  "invocation_id": "03a981cc8eea46d0880efda7e7dcb7af",
+  "service_seconds": 300.188,
+  "service_result": "timeout",
+  "exit_status": "TERM",
+  "host_peak_bytes": 7298428928,
+  "memory_events_zero": true,
+  "swap_bytes": 0,
+  "receipt_published": false,
+  "log_sha256": "239f0cebf3489b521e2b658dd0f9c92e7e19fc03c337b9b04f886042558b138c",
+  "source_exit_finished_seconds": 276.1935259802267,
+  "own_exit_finished_seconds": 293.88090137625113,
+  "remaining_operation": "post-complete-exit native_source_api audit_origins; no completion marker",
+  "quality_read": false,
+  "candidate_or_train_admitted": false,
+  "next": "bounded source-only critical-path correction with unchanged300 cap and all finalnative/integrity checks"
+}
