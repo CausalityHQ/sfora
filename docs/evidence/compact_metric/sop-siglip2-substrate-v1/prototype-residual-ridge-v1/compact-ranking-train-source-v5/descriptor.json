@@ -1,0 +1,11 @@
+{
+  "authority_sha256": "fd1b84b526cfa79e1568f33fb0fb9a4b839083844fae5fa810c699b2632a9c8c",
+  "code": {
+    "test_siglip2_compact_ranking.py": "218ea5e3c719fde4aa95d728e2a4622e0eadac6ef62af37d69c2acc6e33cfcff",
+    "train_siglip2_compact_ranking.py": "807cb0d7454244ac41db1150c7434ad5dbb64bd290ce226139d2ed468f59d3c9"
+  },
+  "execution_sha256": "3178cddfc993e60e3dba2524c49f7d1ce1bfd351584f2d54f39d687ab95699e3",
+  "qualification_eligible": false,
+  "root": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v5",
+  "stop_rule": "ONE fresh CPU500 full qualification; only complete PASS admits discarded control061 mechanics300, then candidate061 mechanics300 only after complete control PASS and runtime assessment. Both complete gates required before ONE fresh fixed TRAIN128/300 per arm/seed; preserve all prior failures, no scientific/resource/parity/current-byte changes. Estimated saving is not a native fit claim."
+}
