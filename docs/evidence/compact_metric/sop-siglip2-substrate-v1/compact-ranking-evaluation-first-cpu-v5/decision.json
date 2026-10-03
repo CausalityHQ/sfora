@@ -1,0 +1,21 @@
+{
+  "decision": "PASS_ENGINEERING_ONLY",
+  "quality_read": false,
+  "session": 17837,
+  "invocation_id": "f2407e3e95a04a6cae9efe7a10fba2af",
+  "service_seconds": 236.067,
+  "host_peak_bytes": 1577652224,
+  "rss_kib": 1149712,
+  "events": 0,
+  "swap_bytes": 0,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-first-cpu-v5/receipt.json",
+    "sha256": "55159154c0ca26766c6ad56685a88d426aa190642aa894ff359632ce47d5f8ec"
+  },
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/first-cpu-v5.log",
+    "sha256": "024ce596e70fa4821e7a3427aaaa938bf3d2770d721e6ee277d85b6de18a0fb3"
+  },
+  "source_execution_sha256": "185b0ac9b6f673067eebb6d6b7c7e70231df0bbc25e43ae983a2658817130f86",
+  "training_pair_unchanged": true
+}
