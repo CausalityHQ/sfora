@@ -1,0 +1,22 @@
+{
+  "candidate_mechanics_launched": false,
+  "decision": "FAIL",
+  "full_17_vs_independent_8_plus_9_pass": false,
+  "global_goal_met": false,
+  "host_peak_bytes": 8589934592,
+  "initial_updates": 17,
+  "invocation_id": "f34ca9e84be84e33847dd6a2aa1da957",
+  "median_update_core_seconds": 0.8191078100353479,
+  "median_update_whole_seconds": 2.945685626938939,
+  "memory_max_events": 194,
+  "oom_events": 0,
+  "original_log_sha256": "0b5d7b46df3e3c2c3b35cd5a2ed5381775d52a33527e3ac328b7db9d42486066",
+  "partial_state_reuse_allowed": false,
+  "reason": "cgroup memory failure event during independent step8 reload",
+  "schema": "nearest-ranking-mechanics-terminal-decision-v1",
+  "service_seconds": 286.431,
+  "session": 56401,
+  "swap_peak_bytes": 0,
+  "train_or_quality_admitted": false,
+  "unit": "sfora-so400-nearest-ranking-mechanics-control-v1"
+}
