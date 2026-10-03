@@ -1,0 +1,7 @@
+# Nearest-ranking terminal engineering checkpoint
+
+| Dataset / split | Matched control / candidate R1 + mAP@R | Measured cost | Public latency | Remaining gap / next decisive test |
+|---|---|---|---|---|
+| InShop previously observed TRAIN selection: 1,734 queries, 1,715 gallery, 498 products | Nearest-ranking quality UNREAD. Preserved prior linear: 96.424452% / 81.560353%; concat: 96.482122% / 81.777540%, verified archived score. Prior concat procedure KILL under frozen gain/LCB gates; preserve useful candidate. | New native CPU qualification PASS 274.971 s, peak 8.130 GB, zero events/swap. Original control mechanics FAIL 286.431 s: peak 8 GiB, 194 max events during independent step8 reload. Initial 17 updates: 14.900 s total compute, 50.310 s including integrity; median .819 / 2.946 s per update. | Unmeasured for this procedure | Complete replay/reload resource gate unmet; candidate/TRAIN/quality not admitted. Audit reload ownership; freeze one demonstrated correction only after source falsifier. Full external SOP+InShop quality and matched deployed speed remain unmet. |
+
+Original unit `sfora-so400-nearest-ranking-mechanics-control-v1`, invocation `f34ca9e84be84e33847dd6a2aa1da957`, session 56401 exited1. Timed phase end at284.523s is a finally marker on failure, **not** accepted reload. No partial state reuse. Failure evidence remains immutable. Source validation/preparation measured122.321/35.858s; memory root cause not yet isolated. Read-only specialist `e9ed34514cea47fb` is active; no DGX jobs, no additional quality reads, no cap change.
