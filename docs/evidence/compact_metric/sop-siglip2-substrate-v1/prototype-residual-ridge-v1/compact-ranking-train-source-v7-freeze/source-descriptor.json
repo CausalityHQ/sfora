@@ -1,0 +1,15 @@
+{
+  "root": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7",
+  "execution_sha256": "ee9f77da0bac2a90b09f87fdcd7e7935de9c8dd38b663d84ca8c57271f43ce26",
+  "code": {
+    "train_siglip2_compact_ranking.py": "880a8e40a1b32e97786d6dcf2449e4ecbdc98a0a5d9e5a35d9c6a2519d7cb53c",
+    "test_siglip2_compact_ranking.py": "544dc5fc63adb53f312e9d0b7eae2419958adef71cc8318092bd733941654274"
+  },
+  "cpu_authority_sha256": "116a60fc2f545df9e11af609a6a192534d0104e995a2f7226ceaca1ca04ee4b0",
+  "prospective_runtime_seconds": {
+    "cpu": 500,
+    "mechanics": 600,
+    "train": 600
+  },
+  "stop": "Full fresh CPU qualification then discarded matched mechanics then fresh TRAIN128 pair. Scientific gates unchanged; retain all prior failures. No partial reuse."
+}
