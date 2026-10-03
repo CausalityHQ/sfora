@@ -1,0 +1,22 @@
+{
+  "accepted_comparison": {
+    "receipt_sha256": "856cde03ac1ff4467f534f6b38c967c1619ffca5cb704cd27d0f4d491a87e330",
+    "service_seconds": 246.749
+  },
+  "authority_sha256": "5ee562302a3d5392291115e03890e1b1d49709a14b386d166088bdfb62ec2124",
+  "command_sha256": "1c8a381f0cd13214835ecacb8d0fa1021c06c495fb916b015bfb4eeeb5c48076",
+  "execution_sha256": "0723deae5c550776b0a0493e296ce789cec76718cb7801f612b4fddc6201c311",
+  "launcher_sha256": "c90bcbfdd7218d710913d87315afe5e8f91df44bb984cab77f58618c54cfde65",
+  "output": "/home/riomus/runs/sfora-so400-nearest-ranking-mechanics-control-v2",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "root": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5",
+  "schema": "nearest-ranking-mechanics-freeze-v2",
+  "source_commit": "e6404476efe1d5fb734d499da1bf1362e5e17b4e",
+  "stop_rule": "ONE control discarded full17 plus independent8+9 complete-state replay and strictupdated/inference reload, alloriginalsource/currentbyte/RNG/flags/fourgradient/update/exit/resource gates.300s8GiB0swap/eventsCUDA10locks. FAIL closes this arm; no cap rescue/partialreuse/quality/TRAIN. Candidate sequential only if control passes.",
+  "unit": "sfora-so400-nearest-ranking-mechanics-control-v2"
+}
