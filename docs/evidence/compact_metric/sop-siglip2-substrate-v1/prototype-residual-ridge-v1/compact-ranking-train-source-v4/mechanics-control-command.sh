@@ -25,10 +25,10 @@ c89aa3855d60d9f11d0dd57b55311c5364304915bd4a5d22b26b4c1e0a29c7d4  /home/riomus/r
 e17bec97da320e2c6bcd38ad5b720d8db8eb32d81e76893830a27e17dd8294e8  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/train_siglip2_compact_ranking.py
 bdb0d03997e4e0747280d1d5a0c3d1bc55bd881ad98cc3aa2274ceedc1666134  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/test_siglip2_compact_ranking.py
 125c7942d25f71e355da8b169606a484e4f1be161d5e1ecca80cc77e783efddc  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/execution.json
-d8cb59cb66b5f2af110509de61cfb7b776226b6d219f04d28e87d1114aef39a5  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/authority-cpu-v3.json
+6672f4f027830d2b12e43b800aae41aa61a1550b1e380f9cbe4798404beb4327  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/authority-cpu-v4.json
 04cdc9547fe72e72395734a369d3c2cedf53db7d0ea5eeab8ca3ea6090e4df31  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/authority-mechanics-control-v3.json
 16c758a32be7ae1f75aa6d89d69068ddb60f9cf83f59dbb123196cb9aef6a0ab  /home/riomus/runs/sfora-so400-compact-ranking-cpu-v4/receipt.json
-01b8be98b32e7c7f7035bae199ca8e55b9d5f59d911d2a3fe66515381b662323  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/cpu-v3.log
+01b8be98b32e7c7f7035bae199ca8e55b9d5f59d911d2a3fe66515381b662323  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/cpu-v4.log
 HASHES
 /home/riomus/group-learning/.venv/bin/python -B /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/train_siglip2_compact_ranking.py --execution-sha256 125c7942d25f71e355da8b169606a484e4f1be161d5e1ecca80cc77e783efddc --authority /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/authority-mechanics-control-v3.json --authority-sha256 04cdc9547fe72e72395734a369d3c2cedf53db7d0ea5eeab8ca3ea6090e4df31 --phase mechanics --arm control --seed 179061 --output /home/riomus/runs/sfora-so400-compact-ranking-mechanics-control-v3
 sha256sum -c <<'HASHES'
@@ -55,8 +55,8 @@ c89aa3855d60d9f11d0dd57b55311c5364304915bd4a5d22b26b4c1e0a29c7d4  /home/riomus/r
 e17bec97da320e2c6bcd38ad5b720d8db8eb32d81e76893830a27e17dd8294e8  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/train_siglip2_compact_ranking.py
 bdb0d03997e4e0747280d1d5a0c3d1bc55bd881ad98cc3aa2274ceedc1666134  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/test_siglip2_compact_ranking.py
 125c7942d25f71e355da8b169606a484e4f1be161d5e1ecca80cc77e783efddc  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/execution.json
-d8cb59cb66b5f2af110509de61cfb7b776226b6d219f04d28e87d1114aef39a5  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/authority-cpu-v3.json
+6672f4f027830d2b12e43b800aae41aa61a1550b1e380f9cbe4798404beb4327  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/authority-cpu-v4.json
 04cdc9547fe72e72395734a369d3c2cedf53db7d0ea5eeab8ca3ea6090e4df31  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/authority-mechanics-control-v3.json
 16c758a32be7ae1f75aa6d89d69068ddb60f9cf83f59dbb123196cb9aef6a0ab  /home/riomus/runs/sfora-so400-compact-ranking-cpu-v4/receipt.json
-01b8be98b32e7c7f7035bae199ca8e55b9d5f59d911d2a3fe66515381b662323  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/cpu-v3.log
+01b8be98b32e7c7f7035bae199ca8e55b9d5f59d911d2a3fe66515381b662323  /home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/cpu-v4.log
 HASHES
