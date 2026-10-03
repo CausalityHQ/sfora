@@ -2,6 +2,10 @@
 
 Read-only specialist ba55b65ce38c4c9c, GPT-6.1 Sol XHigh, completed normally after 756 seconds. Prospective recipe only; no new quality or performance result. Last-MLP procedure remains closed after control mechanics resource failure. Preserve accepted concat and native serializer improvements. Full SOP/InShop joint quality and deployed-speed goal remains unmet.
 
+Root protocol clarifications (source-verified while the fixed dual review is pending): run fresh control061 then candidate061 and the frozen immediate selection rejection screen. Only an eligible first-seed result admits candidate069 then control069, each with its own first128 authenticated schedule and fresh matched optimizer/RNG. Final paired quality and cost gates apply to both seeds and equal-weight means; no best-seed choice. Preserve all original immediate rejection rules, source floors and sealed-validation gates.
+
+The new inference loader must construct its processor from the bundle's own authenticated files, not the prior loader's external `legacy['prior']` preprocessor path. Constructor/runtime helpers remain admitted dependencies; TRAIN caches, teachers, warm checkpoints and optimizer files are unavailable to the inference loader. Independently prove this boundary. After native calibration and after complete exit, call the authenticated owned audit with `require_exact=True` to enforce actual exact-four supplemental membership; ordinary audit's default alone is insufficient. Initial pre-CUDA admission remains unchanged. These are explicit new-procedure requirements, not retroactive qualifications of the closed encoder arm.
+
 ## Specialist recommendation
 
 **Conditional GO for one frozen-encoder concat readout trial:** train only accepted concat’s `A[128,160]`—20,480 FP32 coefficients—with a shared, genuine-view identity regression objective; candidate adds nearest-positive versus wrong-identity ranking. Keep accepted concat and the serializer/native-authority improvements. The last-MLP procedure remains CLOSED.
