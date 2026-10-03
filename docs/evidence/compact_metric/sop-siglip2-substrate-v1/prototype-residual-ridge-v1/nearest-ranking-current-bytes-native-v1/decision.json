@@ -1,0 +1,21 @@
+{
+  "accepted": false,
+  "baseline_median_seconds": 1.8351443358696997,
+  "blocker": "Original audit rejects an unknown/changed native origin; original diagnostic does not identify differing path. Preserve failure and original authority; source-only exact difference diagnostics next. No whitelist/cap/gate changes.",
+  "candidate_median_seconds": 1.6573715442791581,
+  "candidate_to_baseline_ratio": 0.9031287141203024,
+  "cuda_peak_bytes": 1973163008,
+  "events_zero": true,
+  "host_peak_bytes": 5264048128,
+  "invocation_id": "a2c7367e37f04e549740018d11180e22",
+  "log_sha256": "7a5cc6f6f771888c742970458d822e9f6dfcbf371d3294ff352735692de54176",
+  "observed_digest_pairs_exact": true,
+  "observed_state_preserved": true,
+  "quality_read": false,
+  "receipt_sha256": "7e304e6208a686deebc411d939fc260c60cb80077ba7e7a50544b6789f6acc4d",
+  "schema": "nearest-current-byte-parent-decision-v1",
+  "service_seconds": 141.277,
+  "swap_bytes": 0,
+  "timing_qualified": false,
+  "verdict": "FAIL native origin/exit authority"
+}
