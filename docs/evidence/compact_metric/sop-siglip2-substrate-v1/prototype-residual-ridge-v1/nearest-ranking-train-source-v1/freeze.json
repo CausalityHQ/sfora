@@ -1,0 +1,27 @@
+{
+  "authority": {
+    "path": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v1/authority-cpu-v1.json",
+    "sha256": "20d93c5e47f332cea322414eab556f75a9adb9455262cdae0238b34780412c8a"
+  },
+  "code": {
+    "nearest_ranking_readout.py": "862d5db5a1831603d4fc3c1b645fa998c7ca66ff67c8141b20d7df74e92d9738",
+    "test_siglip2_nearest_ranking.py": "60af70908cdbc60ed7a7dfc1aadb3395f27cda2395a638eeab10aafdb009edde",
+    "train_siglip2_nearest_ranking.py": "bc86ee5a32ab899c881220348aa50503361e52a8574d9bfa55244b344e10f171"
+  },
+  "command_sha256": "de32b94e36c29d49d32e1efd232d7ff77aa9a892dec51363f3c80cd9cdcfe2ba",
+  "execution_sha256": "8678ae6f62df6d554728096c3442e06494f22db146ca502d3530876fee43026b",
+  "launcher_sha256": "12b273cf3f60dad114e012dda64a9821988867c64235416182ac632507e41369",
+  "limits": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "output": "/home/riomus/runs/sfora-so400-nearest-ranking-cpu-v1",
+  "phase": "cpu",
+  "qualification_eligible_after_full_terminal_only": true,
+  "schema": "nearest-ranking-train-source-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v1",
+  "stop_rule": "ONE original cold CPU500 unit, all unchanged integrity/roles/teacher/miner/strict updated reload/raw-unit-packed/current byte/exit checks. Failure is engineering FAIL, no TRAIN/quality read or automatic retry. Only accepted proof admits prospective paired discarded mechanics300.",
+  "unit": "sfora-so400-nearest-ranking-cpu-v1"
+}

@@ -1,0 +1,5 @@
+{
+  "nearest_ranking_readout.py": "862d5db5a1831603d4fc3c1b645fa998c7ca66ff67c8141b20d7df74e92d9738",
+  "test_siglip2_nearest_ranking.py": "60af70908cdbc60ed7a7dfc1aadb3395f27cda2395a638eeab10aafdb009edde",
+  "train_siglip2_nearest_ranking.py": "bc86ee5a32ab899c881220348aa50503361e52a8574d9bfa55244b344e10f171"
+}

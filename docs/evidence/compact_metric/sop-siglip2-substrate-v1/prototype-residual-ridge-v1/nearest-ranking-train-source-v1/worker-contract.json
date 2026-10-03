@@ -1,0 +1,382 @@
+{
+  "ACCEPTED": {
+    "arm": "concat",
+    "checkpoint": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt",
+      "sha256": "b702e03847be88540ee9711b420279e3bc131fafc475f361eca3d57cf3b8bbcf"
+    },
+    "launch": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json",
+      "sha256": "109b6fded3f4559fcee3822536abd5beeed5f4ffc23f4313b87904faa6c39630"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "94a84de4194f42f0842cee5b5c8f932a",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log",
+        "sha256": "93c2f7024116fc63d8e7cacc1a4e0106d2d57e9ca57d794c866e9bcc77311197"
+      },
+      "native_peak_rss_kib": 2854356,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json",
+        "sha256": "b4af0fecfa1d5f750f0ac9cc995198690baf4397fd970c8192727644135c7d5c"
+      },
+      "service_seconds": 234.821,
+      "unit": "sfora-so400-signed-concat-fit-concat-v1"
+    },
+    "terminal_state_sha256": "a118fd98cce0b8fafa51c897be70b2b6e2ec93ebb226b2382dd264721776b644"
+  },
+  "AUTHORITY_SCHEMA": "siglip2-nearest-ranking-launch-v1",
+  "CLI": [
+    "train_siglip2_nearest_ranking.py",
+    "--execution-sha256",
+    "SHA",
+    "--authority",
+    "FILE",
+    "--authority-sha256",
+    "SHA",
+    "--phase",
+    "cpu|mechanics|train",
+    "--arm",
+    "control|candidate",
+    "--seed",
+    "179061",
+    "--output",
+    "NEW_ABSOLUTE_DIRECTORY"
+  ],
+  "FILE": {
+    "keys": [
+      "path",
+      "sha256"
+    ],
+    "path": "canonical absolute current regular file",
+    "sha256": "64 lowercase hex; entire current bytes"
+  },
+  "FITTER": {
+    "code": {
+      "fit_siglip2_prototype_residual.py": "95295794ef234967d40bdf5713d04f41d6710dae4e9d2b95bca76f0f31adc13b",
+      "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+      "test_siglip2_prototype_residual.py": "c89aa3855d60d9f11d0dd57b55311c5364304915bd4a5d22b26b4c1e0a29c7d4"
+    },
+    "execution_sha256": "a47933beafd8a1c0e2d541624328c8fe1d7b9a90f68977eee83c3c82223a56fe",
+    "root": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2"
+  },
+  "INFERENCE_SCHEMA": "siglip2-nearest-ranking-inference-v1",
+  "RECIPE": {
+    "adamw": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "capturable": false,
+      "differentiable": false,
+      "eps": 1e-08,
+      "foreach": false,
+      "fused": false,
+      "lr": 1e-05,
+      "maximize": false,
+      "weight_decay": 0.05
+    },
+    "batch": 64,
+    "classes": 1008,
+    "clip": 1.0,
+    "core": "target construction + mining + decode/preprocess + forward/backward + optimizer",
+    "images": "original canonical native256; no augmentation",
+    "initial_scaler": 128.0,
+    "margin": 0.05,
+    "microbatch": 16,
+    "mining": "all6355; highest other same identity/highest wrong identity; ascending original-row ties",
+    "ranking": "hinge sum / (full B64 valid count * .05); detached indices/teacher",
+    "readout": "FP32 normalize(pooled.float()); connected fixed concat",
+    "regression": "sum128 coordinates / (64*e0)",
+    "rows": 6355,
+    "seed": 179061,
+    "singletons": 12,
+    "teacher": "accepted concat CPU full TRAIN normalization/readout; immutable T,V,P,e0",
+    "trainable_names": [
+      "encoder.layers.26.mlp.fc1.weight",
+      "encoder.layers.26.mlp.fc1.bias",
+      "encoder.layers.26.mlp.fc2.weight",
+      "encoder.layers.26.mlp.fc2.bias"
+    ],
+    "trainable_scalars": 9921872,
+    "trainable_shapes": [
+      [
+        4304,
+        1152
+      ],
+      [
+        4304
+      ],
+      [
+        1152,
+        4304
+      ],
+      [
+        1152
+      ]
+    ],
+    "updates": 32,
+    "vision": "eval FP32 parameters; FP16 CUDA autocast"
+  },
+  "SCHEMA": "siglip2-nearest-ranking-v1",
+  "UNIT": {
+    "both_locks_held": true,
+    "keys": [
+      "receipt",
+      "log",
+      "unit",
+      "invocation_id",
+      "service_seconds",
+      "native_peak_rss_kib",
+      "both_locks_held"
+    ],
+    "log": "FILE",
+    "normal_exit": "original authenticated terminal reader; original log/cgroup/invocation required",
+    "receipt": "FILE"
+  },
+  "base": "52e153254a8355971bae12fc2253d115b6a2a000",
+  "closure_files": [
+    "nearest_ranking_readout.py",
+    "test_siglip2_nearest_ranking.py",
+    "train_siglip2_nearest_ranking.py"
+  ],
+  "commit": "3b437ad9ee76ee66e1f73c02e9aa309f6ff7b5eb",
+  "export_API": {
+    "inference_payload(context,state,ident)": "self-contained updated vision/fixedconcat artifact; no TRAIN cache/teachers/optimizer",
+    "load_inference(context,path,sha,digest,device)": "authenticated native constructor + processor/head/readout/packing helpers supplied by context; strict updated vision; no TRAIN data reads",
+    "native_raw(context,state,pixels,oracle=False)": "FP16 vision CUDA; FP32 normalized pooled + connected fixedconcat; oracle uses isolated trainable A copy",
+    "packed_outputs(context,raw)": "raw/unit/codes/inverse_norms/wire",
+    "save_inference(context,state,ident,path)": "exclusive save; returns (file SHA, full typed digest)"
+  },
+  "future_hashes": "parent supplies actual source closure/authority/unit/log/endpoint SHAs; no invented future pins",
+  "identity_fields": [
+    "method",
+    "source",
+    "arm",
+    "device",
+    "seed",
+    "parameter_names",
+    "parameter_shapes",
+    "numerical_flags",
+    "static_sha256",
+    "frozen_vision_sha256",
+    "initial_trainable_sha256",
+    "initial_model_sha256",
+    "optimizer_defaults",
+    "optimizer_groups",
+    "initial_scaler",
+    "runtime",
+    "initial_cpu_rng_sha256",
+    "initial_cuda_rng_sha256"
+  ],
+  "inference_keys": [
+    "A",
+    "buffers",
+    "classifier",
+    "config",
+    "fixed_sha256",
+    "head",
+    "identity",
+    "means",
+    "numerical_flags",
+    "processor",
+    "schema",
+    "source",
+    "vision",
+    "vision_sha256"
+  ],
+  "launch_keys": [
+    "accepted",
+    "arm",
+    "both_locks_held",
+    "execution_sha256",
+    "fitter",
+    "phase",
+    "recipe",
+    "resource_policy",
+    "schema",
+    "seed",
+    "selected_cpu",
+    "selected_mechanics"
+  ],
+  "limits": {
+    "CPU_seconds": 500,
+    "CUDA_allocated_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "local": "stdlib only <=55s; no Torch/native/SSH/GPU/jobs/quality/reviews/children/operator contact",
+    "mechanics_seconds": 300,
+    "swap_bytes": 0,
+    "train_seconds": 300
+  },
+  "local_checks": {
+    "help": "stdlib help exit0; -O/-OO rejected",
+    "native": "UNRUN",
+    "runner": "timeout 55s python3 scripts/test_siglip2_nearest_ranking.py -v",
+    "syntax": "AST parses trainer/test",
+    "tests": 13
+  },
+  "local_test_names": [
+    "test_exact_authority_and_phase_admission",
+    "test_source_pins_match_committed_evidence",
+    "test_current_bytes_reject_same_size_restored_mtime",
+    "test_closure_is_exact_and_full_byte_authenticated",
+    "test_self_exclusion_wrong_identity_original_row_ties_singleton",
+    "test_actual_loss_unequal_micro_valid_counts_matches_B64",
+    "test_freeze_all_before_exact_four_roles_with_standin",
+    "test_state_export_source_separation_and_no_legacy_mutation",
+    "test_payload_rejects_bad_identity_before_native_reads",
+    "test_fresh_optimizer_keeps_cpu_scaler_and_rejects_old_moments",
+    "test_updated_inference_substitution_and_no_concurrent_models",
+    "test_original_image_mapping_rejects_source_and_identity_swap",
+    "test_help_optimization_rejection_and_syntax"
+  ],
+  "minimal_inference_context": {
+    "additional_for_oracle_true": [
+      "fitter.prepare_readout",
+      "fit_context"
+    ],
+    "legacy": [
+      "original.fingerprint",
+      "original.CheckpointPages",
+      "original.load_vision",
+      "source_driver.construct",
+      "source_driver.numerical_flags",
+      "prior authenticated constructor environment/packages/sources/guards/extract",
+      "prior.entry.input.preprocessor.path",
+      "selected.cached.head_from",
+      "quadratic primitive",
+      "packing helper"
+    ],
+    "live_model": "weakref optional; loader refuses an existing live model",
+    "load_reads": "only updated inference FILE and authenticated constructor/processor environment; no TRAIN cache/teachers/labels/schedule",
+    "old": [
+      "clone_tree",
+      "finite_tree"
+    ],
+    "top_level": [
+      "source",
+      "old",
+      "legacy",
+      "readout",
+      "guards",
+      "started",
+      "phase_seconds"
+    ]
+  },
+  "native_cpu_required_witnesses": [
+    "complete accepted payload admission before vision construction",
+    "actual448 source/config/buffers/processor origin parity",
+    "native connected-forward/old oracle on isolated trainable A copy",
+    "same-role native training/inference exact",
+    "real Torch unequal-valid reduction/gradient fixture (no vision update)",
+    "actual frozen vision/A/head/teacher/position-buffer data bypass rejection",
+    "four roles mutation rejection",
+    "complete step0 serialization and strict independent reload",
+    "independent arm initial raw/unit/packed exact"
+  ],
+  "native_mechanics_required_witnesses": [
+    "17 versus independent serialized8+9 full vision/AdamW/scaler/RNG/mapping/schedule exact",
+    "first update active valid hinge separate nonzero ranking gradients",
+    "allfour actual updated SHA witnesses and frozen444/head/config/buffers immutable",
+    "source-substitution rejection",
+    "strict independent final raw/unit/packed/native training-inference parity",
+    "self-contained inference strict updated-vision parity",
+    "discard all state"
+  ],
+  "owned_files": [
+    "scripts/train_siglip2_nearest_ranking.py",
+    "scripts/test_siglip2_nearest_ranking.py"
+  ],
+  "panel": "int64[at most128,3] local TRAIN ordinals anchor/positive/negative, ordered original-row ascending, frozen initially active teacher triples; diagnostic only, empty is not utility KILL",
+  "payload_keys": [
+    "A",
+    "buffers",
+    "classifier",
+    "config",
+    "counter",
+    "cpu_rng",
+    "cuda_rng",
+    "head",
+    "identity",
+    "means",
+    "numerical_flags",
+    "optimizer",
+    "original_rows",
+    "panel",
+    "partition",
+    "processor",
+    "provenance",
+    "scaler",
+    "schedule",
+    "schema",
+    "source",
+    "target",
+    "teachers",
+    "vision"
+  ],
+  "phase_prerequisites": {
+    "cpu": "control only; selected_cpu=null, selected_mechanics=null",
+    "mechanics": "actual new CPU UNIT; selected_mechanics=null",
+    "train": "actual new CPU UNIT and control/candidate mechanics UNIT dict"
+  },
+  "resource_and_cost_notes": [
+    "whole-unit start at module startup; no CUDA peak reset; source/save/reload/exit markers separate",
+    "phase_seconds.preparation includes nested target_construction; do not sum nested markers as whole wall",
+    "total_training_core_seconds=target_construction including fixed-panel mining + all declared update core including decode/mining/forward/backward/optimizer; mechanics also includes resumed9",
+    "per-update integrity/fingerprint overhead separate update_integrity timing and included whole-unit/service costs",
+    "current complete actual byte fingerprints at every state boundary; no immutable-complement hash cache or stat shortcut",
+    "parent original UNIT includes service elapsed and terminal final cgroup/log/locks; <=500cpu/300mechanics/300train",
+    "parent owns paired fresh TRAIN whole-service and total declared training-core <=1.50 gates; root owns every native qualification/quality decision"
+  ],
+  "serialization_API": {
+    "admit_terminal": "(context, unit, phase, arm)",
+    "authority": "(args)",
+    "canonical_pixels": "(context, state, batch)",
+    "check_inference": "(context, saved, digest)",
+    "check_payload": "(context, saved, ident, step)",
+    "check_terminal_record": "(record, launch, phase, arm)",
+    "fresh": "(context, arm, device, initial=None)",
+    "identity": "(context, state)",
+    "inference_payload": "(context, state, ident)",
+    "load_inference": "(context, path, sha, digest, device)",
+    "native_raw": "(context, state, pixels, oracle=False)",
+    "packed_outputs": "(context, raw)",
+    "payload": "(context, state, ident)",
+    "prepare_native": "(context)",
+    "restore": "(context, path, sha, digest, ident, step)",
+    "save": "(context, state, ident, path)",
+    "save_inference": "(context, state, ident, path)"
+  },
+  "source_file_sha256": {
+    "nearest_ranking_readout.py": "862d5db5a1831603d4fc3c1b645fa998c7ca66ff67c8141b20d7df74e92d9738",
+    "test_siglip2_nearest_ranking.py": "60af70908cdbc60ed7a7dfc1aadb3395f27cda2395a638eeab10aafdb009edde",
+    "train_siglip2_nearest_ranking.py": "bc86ee5a32ab899c881220348aa50503361e52a8574d9bfa55244b344e10f171"
+  },
+  "static_payload_members": [
+    "provenance",
+    "config",
+    "buffers",
+    "processor",
+    "head",
+    "classifier",
+    "A",
+    "means",
+    "partition",
+    "original_rows",
+    "target",
+    "schedule",
+    "teachers",
+    "panel"
+  ],
+  "status": "committed source candidate; 13 bounded stdlib checks +syntax/help/-O/-OO/diff PASS; native UNRUN",
+  "teacher_members": {
+    "P": "FP32[1008,128] member-inclusive class mean T",
+    "T": "FP32[6355,128] accepted CPU concat output",
+    "V": "FP32[6355,128] normalize(T)",
+    "counts": "int64[1008] positive; total6355,12 singletons",
+    "e0": "scalar FP32 mean-image coordinate-summed squared residual; finite>0"
+  },
+  "vision": "complete updated448 parameter state; only exact named4 may change; buffers nonpersistent embeddings.position_ids separately stored; original encoder proof separate provenance"
+}
