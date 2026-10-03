@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Bounded stdlib/source falsifiers; no Torch, images, corpus or native work."""
 import ast
+import base64
 import copy
+import csv
 from contextlib import redirect_stdout
 import hashlib
 import importlib.util
@@ -9,6 +11,7 @@ import io
 import json
 import os
 from pathlib import Path
+import py_compile
 import sys
 import tempfile
 from types import FunctionType, SimpleNamespace
@@ -78,6 +81,40 @@ def intervals(q):
     _,avg=math_helper.averaged_deltas(q,'full','selection')
     return {m:{'mean_delta':sum(avg[m])/len(avg[m]),'product_lower95':.001,'product_upper95':.1,
                'query_lower95':-.001,'query_upper95':.1} for m in e.METRICS}
+
+
+class PortableRuntimeFixture:
+    """Installed sources and a previously admitted RECORD; no native imports."""
+    def __init__(self,root):
+        self.site=root/'site-packages';self.site.mkdir()
+        packages={}
+        for name in ('torch','numpy','PIL','transformers','safetensors','torchvision'):
+            path=self.site/name;path.mkdir();packages[name]={'root':str(path)}
+        self.package=self.site/'packaging';self.package.mkdir()
+        self.sources={}
+        names=('__init__.py','_elffile.py','_manylinux.py','_musllinux.py','_parser.py','_structures.py',
+            '_tokenizer.py','dependency_groups.py','direct_url.py','errors.py','licenses/__init__.py',
+            'licenses/_spdx.py','markers.py','metadata.py','pylock.py','requirements.py','specifiers.py',
+            'tags.py','utils.py','version.py')
+        for name in names:
+            path=self.package/name;path.parent.mkdir(exist_ok=True)
+            raw={'__init__.py':b"marker = 'source'\n",'version.py':b'from ._structures import value\n',
+                 '_structures.py':b'value = 42\n'}.get(name,b'')
+            path.write_bytes(raw);self.sources[path]=raw
+        self.rows=[['packaging/'+str(path.relative_to(self.package)),
+            'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))]
+            for path,raw in self.sources.items()]
+        self.record=self.site/'packaging-26.2.dist-info'/'RECORD';self.record.parent.mkdir()
+        self.record.write_text(''.join(','.join(row)+'\n' for row in self.rows))
+        self.bundle=root/'bundle';self.bundle.mkdir()
+        self.manifest={'environment':{'packages':packages,'files':{}}}
+        digest=hashlib.sha256(self.record.read_bytes()).hexdigest()
+        self.context={'trainer':SimpleNamespace(admit_bundle=lambda *_:(self.manifest,{})),
+            'guards':{str(self.record):digest},'required_guards':{str(self.record):digest}}
+        self.endpoint={'bundle':descriptor(self.bundle/'bundle.json')}
+
+    def boundary(self):
+        return e.bundle_reads_only(self.context,self.endpoint)
 
 
 class SourceAdmissionFixture:
@@ -307,16 +344,87 @@ class EvaluationTests(unittest.TestCase):
 
     def test_bundle_boundary_denies_train_warm_optimizer_reads(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);bundle=root/'bundle';bundle.mkdir();owned=bundle/'vision.pt';owned.write_bytes(b'owned')
+            root=Path(directory);fixture=PortableRuntimeFixture(root)
+            owned=fixture.bundle/'vision.pt';owned.write_bytes(b'owned')
             outside=root/'resume.pt';outside.write_bytes(b'forbidden')
-            trainer=SimpleNamespace(admit_bundle=lambda *_:({'environment':{'packages':{},'files':{}}},{}))
-            endpoint={'bundle':descriptor(bundle/'bundle.json')}
-            with e.bundle_reads_only({'trainer':trainer},endpoint):
+            with fixture.boundary():
                 self.assertEqual(owned.read_bytes(),b'owned')
                 for path in (outside,root/'warm.pt',root/'optimizer.pt',root/'teachers.npy'):
                     with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
                 with self.assertRaisesRegex(ValueError,'attempted write'):owned.write_bytes(b'changed')
             self.assertEqual(outside.read_bytes(),b'forbidden');self.assertEqual(owned.read_bytes(),b'owned')
+
+    def test_bundle_boundary_imports_record_pinned_source_without_cached_code(self):
+        saved={n:m for n,m in sys.modules.items() if n=='packaging' or n.startswith('packaging.')}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory));source=f.package/'__init__.py';prior=source.stat()
+                source.write_bytes(b"marker = 'cached'\n");py_compile.compile(str(source),doraise=True)
+                source.write_bytes(f.sources[source]);os.utime(source,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                extra=f.package/'unqualified.py';extra.write_bytes(b'value = 99\n')
+                history=[f.package/name for name in ('resume.pt','warm.pt','optimizer.pt','teachers.npy','checkpoint.pt')]
+                for path in history:path.write_bytes(b'forbidden')
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name=='packaging' or name.startswith('packaging.'):sys.modules.pop(name)
+                        with f.boundary():
+                            if direct_loader:packaging=module('packaging',source)
+                            else:packaging=importlib.import_module('packaging')
+                            from packaging import version
+                            self.assertEqual(packaging.marker,'source','unpinned cached code executed')
+                            self.assertEqual(version.value,42)
+                            for path in (extra,f.record,f.site/'other.dist-info'/'METADATA',*history):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                            with self.assertRaisesRegex(ValueError,'attempted write'):source.write_bytes(b'changed')
+                            with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(source))).read_bytes()
+                # A stdlib directory containing site-packages grants no extra files.
+                del f.context['portable_audits']
+                with patch.object(e.sysconfig,'get_path',return_value=str(Path(directory))),f.boundary():
+                    with self.assertRaisesRegex(ValueError,'external dependency'):extra.read_bytes()
+                self.assertEqual({p:f.context['guards'][str(p)] for p in f.sources},
+                    {p:hashlib.sha256(raw).hexdigest() for p,raw in f.sources.items()})
+                prior=source.stat();source.write_bytes(b"marker = 'mutate'\n")
+                os.utime(source,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                with self.assertRaisesRegex(ValueError,'SHA256'):
+                    with f.boundary():pass
+        finally:
+            for name in tuple(sys.modules):
+                if name=='packaging' or name.startswith('packaging.'):sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_bundle_boundary_rejects_missing_mutated_and_foreign_runtime(self):
+        for case in ('missing_pin','mutated_record','missing_row','duplicate_row','missing_source','mutated_source',
+                     'wrong_size','wrong_hash','foreign_record','source_symlink','foreign_module','wrong_module_role'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root);source=f.package/'version.py'
+                if case=='missing_pin':f.context['required_guards'].clear()
+                elif case=='mutated_record':f.record.write_bytes(f.record.read_bytes()+b'\n')
+                elif case in ('missing_row','duplicate_row','wrong_size','wrong_hash'):
+                    rows=copy.deepcopy(f.rows)
+                    if case=='missing_row':rows.pop()
+                    elif case=='duplicate_row':rows.append(rows[-1])
+                    elif case=='wrong_hash':rows[-1][1]='sha256='+'A'*43
+                    else:rows[-1][-1]='999'
+                    with f.record.open('w',newline='') as stream:csv.writer(stream).writerows(rows)
+                    digest=hashlib.sha256(f.record.read_bytes()).hexdigest()
+                    f.context['guards'][str(f.record)]=f.context['required_guards'][str(f.record)]=digest
+                elif case=='missing_source':source.unlink()
+                elif case=='mutated_source':source.write_bytes(b'value = 99\n')
+                elif case=='foreign_record':
+                    foreign=root/'foreign'/'packaging-26.2.dist-info'/'RECORD';foreign.parent.mkdir(parents=True)
+                    foreign.write_bytes(f.record.read_bytes());digest=hashlib.sha256(foreign.read_bytes()).hexdigest()
+                    f.context['required_guards']={str(foreign):digest};f.context['guards']={str(foreign):digest}
+                elif case=='source_symlink':
+                    foreign=root/'foreign.py';foreign.write_bytes(f.sources[source]);source.unlink();source.symlink_to(foreign)
+                fake=SimpleNamespace(__file__=str(root/'foreign.py'),__spec__=SimpleNamespace(origin=str(root/'foreign.py')))
+                if case=='wrong_module_role':
+                    fake=SimpleNamespace(__file__=str(f.package/'__init__.py'),
+                        __spec__=SimpleNamespace(origin=str(f.package/'__init__.py')))
+                with patch.dict(sys.modules,{'packaging.version':fake} if case in ('foreign_module','wrong_module_role') else {}):
+                    with self.assertRaises((ValueError,OSError)):
+                        with f.boundary():pass
 
     def test_partial_metadata_receipt_and_foreign_bindings_rejected(self):
         value,args=launch();flags={'threads':1};source={'actual':'source'}
@@ -381,6 +489,9 @@ class EvaluationTests(unittest.TestCase):
             context={'trainer':trainer,'training_context':f.context,'args':SimpleNamespace(phase='export',execution_sha256=own['execution_sha256']),
                 'root':Path(own['root']),'code':own['code'],'guards':{},'launch':{'training':train,
                     'nearest_evaluator':refs[0],'genuine_evaluator':refs[1],'reference':refs[2],'endpoints':[]}}
+            runtime_root=root/'runtime';runtime_root.mkdir();portable=PortableRuntimeFixture(runtime_root)
+            with portable.boundary():pass
+            e.merge_guards(context['guards'],portable.context['guards'])
             def action():
                 phases.clear();return e.exit_rehash(context)
             with patch.object(e,'guard_helpers'),patch.object(e,'NEAREST_EVALUATOR',refs[0]), \
@@ -447,6 +558,10 @@ class EvaluationTests(unittest.TestCase):
                 private=next(c.cell_contents for c in api.audit_origins.__closure__ if isinstance(c.cell_contents,driver.FunctionType)
                     and c.cell_contents.__name__=='audit_origins')
                 with patch.dict(private.__globals__,{'_nearest_supplement':{'files':{},'modules':{}}}),self.assertRaisesRegex(ValueError,'global binding changed'):action()
+                runtime=portable.package/'version.py';raw=runtime.read_bytes();prior=runtime.stat()
+                runtime.write_bytes(b'changed');os.utime(runtime,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                with self.assertRaisesRegex(ValueError,'SHA256'):action()
+                runtime.write_bytes(raw);os.utime(runtime,ns=(prior.st_atime_ns,prior.st_mtime_ns))
                 manifest=Path(own['root'])/'execution.json';raw=manifest.read_bytes();manifest.write_bytes(raw+b' ')
                 with self.assertRaisesRegex(ValueError,'SHA256'):action()
                 manifest.write_bytes(raw);f.unchanged_originals(self)

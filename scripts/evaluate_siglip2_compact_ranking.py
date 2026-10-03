@@ -15,8 +15,10 @@ if not __debug__:
     raise SystemExit('Qualification requires assertions; optimized mode is forbidden')
 
 import argparse
+import base64
 import copy
 from contextlib import contextmanager
+import csv
 import gc
 import hashlib
 import importlib.util
@@ -44,6 +46,9 @@ ORDER = ((179061,'control'),(179061,'candidate'),(179069,'candidate'),(179069,'c
 METRICS = ('per_query_r1','per_query_ap')
 PANELS = {'selection':(3449,1734,1715,498),'validation':(3479,1749,1730,498)}
 NATIVE = {'torch','numpy','PIL','transformers','safetensors','torchvision','sfora'}
+PACKAGING_SOURCES = {'__init__.py','_elffile.py','_manylinux.py','_musllinux.py','_parser.py','_structures.py',
+ '_tokenizer.py','dependency_groups.py','direct_url.py','errors.py','licenses/__init__.py','licenses/_spdx.py',
+ 'markers.py','metadata.py','pylock.py','requirements.py','specifiers.py','tags.py','utils.py','version.py'}
 NEAREST_EVALUATOR = {'root':'/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1',
  'execution_sha256':'5c24fe113c03ae26d4ab68f21caf8e3a8d19c1a082e696fdf54abdd8bb73ab59',
  'code':{'evaluate_siglip2_nearest_ranking.py':'73e4386256c576329438da805cf6ff71ce67af7b4eae5b1074f2258d7d7029be',
@@ -737,6 +742,38 @@ def tuple_outputs(values):
 
 def packed_outputs(context,raw):
     return context['training_context']['old'].packed_outputs(context['training_context']['legacy'],raw)
+
+
+def packaging_runtime_files(context,environment):
+    """Derive finite source pins from the original admitted installed RECORD."""
+    sites={Path(v['root']).parent for v in environment['packages'].values()}
+    require(len(sites) == 1, 'one qualified runtime site required')
+    site=sites.pop()
+    require(site.is_absolute() and site.resolve() == site and site.is_dir(), 'canonical runtime site required')
+    records=[Path(p) for p in context['required_guards'] if Path(p).parent.parent == site and
+        Path(p).name == 'RECORD' and re.fullmatch(r'packaging-[^/]+\.dist-info',Path(p).parent.name)]
+    require(len(records) == 1, 'exact previously admitted packaging RECORD required')
+    record=records[0];digest=context['required_guards'][str(record)]
+    raw=bound_file(context['guards'],record,digest).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == digest, 'packaging RECORD changed before parsing')
+    files={record:digest};seen=set();wanted={'packaging/'+n for n in PACKAGING_SOURCES}
+    for row in csv.reader(raw.decode('utf-8').splitlines()):
+        require(len(row) == 3 and row[0] not in seen, 'invalid/duplicate packaging RECORD row')
+        seen.add(row[0])
+        if row[0] not in wanted:
+            continue
+        name,encoded,size=row
+        require(re.fullmatch(r'sha256=[A-Za-z0-9_-]{43}',encoded) and
+            re.fullmatch(r'0|[1-9][0-9]*',size), 'packaging source RECORD hash/size required')
+        value=base64.urlsafe_b64decode(encoded[7:]+'=')
+        require(base64.urlsafe_b64encode(value).decode().rstrip('=') == encoded[7:], 'noncanonical RECORD hash')
+        path=bound_file(context['guards'],site/name,value.hex())
+        require(path.stat().st_size == int(size), 'packaging source RECORD size differs')
+        files[path]=value.hex()
+    require(wanted <= seen, 'complete pinned packaging source inventory required')
+    return files
+
+
 @contextmanager
 def bundle_reads_only(context,endpoint):
     """Independently deny historical file dependencies during copied loading/forward.
@@ -750,9 +787,18 @@ bundle bytes. Native-origin admission remains the original owned API.
     identity=(str(directory),endpoint['bundle']['sha256'])
     if identity not in cached:
         manifest,_=context['trainer'].admit_bundle(directory,endpoint['bundle']['sha256'])
-        roots=[directory,Path(sysconfig.get_path('stdlib')).resolve()]
+        runtime=packaging_runtime_files(context,manifest['environment'])
+        sources={p for p in runtime if p.suffix == '.py'}
+        site=next(p.parent.parent for p in runtime if p.name == 'RECORD')
+        origins={str(p.relative_to(site)).removesuffix('.py').replace('/','.').removesuffix('.__init__'):str(p)
+            for p in sources}
+        # Imports enumerate these exact directories; no external file roots.
+        directories={p.parent for p in sources}|{site}
+        bytecode={Path(importlib.util.cache_from_source(str(p))).resolve() for p in sources}
+        stdlib=Path(sysconfig.get_path('stdlib')).resolve()
+        roots=[directory]
         roots += [Path(v['root']).resolve() for v in manifest['environment']['packages'].values()]
-        exact={Path(p).resolve() for p in manifest['environment']['files']}
+        exact={Path(p).resolve() for p in manifest['environment']['files']}|sources
         active=[False]
         def audit(event,args):
             if not active[0] or event not in ('open','os.listdir','os.scandir'):
@@ -762,15 +808,28 @@ bundle bytes. Native-origin admission remains the original owned API.
                 return
             require(isinstance(value,(str,bytes,os.PathLike)), 'unrecognized serving filesystem access')
             path=Path(os.fsdecode(value)).absolute().resolve()
-            require(path in exact or any(path.is_relative_to(p) for p in roots),
-                'bundle-only loader attempted external dependency: '+str(path))
             if event == 'open':
                 mode,flags=args[1:3]
                 require((mode is None or not any(c in mode for c in 'wax+')) and
                     not flags & (os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC|os.O_APPEND), 'serving loader attempted write')
-        sys.addaudithook(audit);cached[identity]=active
-    active=cached[identity]
+                if path in bytecode:
+                    # SourceFileLoader catches OSError and compiles pinned .py.
+                    # A timestamp-valid but unpinned cache must never execute.
+                    raise FileNotFoundError('unpinned runtime bytecode: '+str(path))
+            require(path in exact or any(path.is_relative_to(p) for p in roots) or
+                (path.is_relative_to(stdlib) and not {'site-packages','dist-packages'}.intersection(path.parts)) or
+                (event != 'open' and path in directories),
+                'bundle-only loader attempted external dependency: '+str(path))
+        sys.addaudithook(audit);cached[identity]=(active,runtime,origins)
+    active,runtime,origins=cached[identity]
     require(active[0] is False, 'nested serving dependency boundary forbidden')
+    for path,digest in runtime.items():
+        bound_file(context['guards'],path,digest)
+    for name,module in tuple(sys.modules.items()):
+        if name == 'packaging' or name.startswith('packaging.'):
+            require(name in origins and getattr(module,'__file__',None) == origins[name] and
+                getattr(getattr(module,'__spec__',None),'origin',None) == origins[name],
+                'loaded packaging runtime origin differs: '+name)
     previous=sys.dont_write_bytecode;sys.dont_write_bytecode=True;active[0]=True
     try:
         yield
