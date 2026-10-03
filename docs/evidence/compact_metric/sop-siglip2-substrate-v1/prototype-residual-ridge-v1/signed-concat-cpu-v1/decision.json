@@ -1,0 +1,40 @@
+{
+  "accepted_receipt_exists": false,
+  "authority_sha256": "d0dee86d2da0767ff87ad366fcf7e859a4ca5556761ee5fef78a3386f6c8df5a",
+  "candidate_quality_or_cost_measured": false,
+  "command_sha256": "54e93d2bd463086d9c179364b590ef54e285ab5b83ef4e97cc220b7fd46a3308",
+  "cpu_seconds": 118.667,
+  "decision": "ENGINEERING_TIMEOUT_TRIAL_CLOSED",
+  "execution_sha256": "ced15941c69f674e79740449cc12a3b0a1716221d6fb7cc4bc794a5726430fd8",
+  "host_peak_bytes": 1473957888,
+  "host_swap_bytes": 0,
+  "interpretation": "Qualification runtime failure under frozen300s; memory/resource-pressure cause not supported. No architecture or quality KILL claimed. No partial state accepted; no automatic retry or cap increase. Prior quality Pareto heads and historical failures preserved; full production goal unmet.",
+  "invocation_id": "d499123b98f2497ba3c277e070bebf7e",
+  "matched_fit_endpoints_started": false,
+  "memory_events_zero": true,
+  "native_exit_code": 1,
+  "native_session": 56782,
+  "original_log_sha256": "2a5330eae53f712659d902fb0c29727b38be816f04b4ba97335ada8685343785",
+  "output_directory_empty": true,
+  "quality_read": false,
+  "schema": "signed-concat-cpu-terminal-decision-v1",
+  "service_seconds": 300.149,
+  "stop_cgroup": {
+    "exit_code": "killed",
+    "exit_status": "TERM",
+    "invocation_id": "d499123b98f2497ba3c277e070bebf7e",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-signed-concat-cpu-v1.service",
+    "service_result": "timeout",
+    "values": {
+      "memory.current": "841830400",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "1473957888",
+      "memory.stat": "anon 328269824\nfile 451801088\nkernel 37691392\nkernel_stack 16384\npagetables 3334144\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 313372672\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 350257152\ninactive_file 117555200\nactive_file 334245888\nunevictable 0\nslab_reclaimable 33861736\nslab_unreclaimable 460640\nslab 34322376\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 243695\npgmajfault 4383\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 268\nthp_collapse_alloc 10\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "unit": "sfora-so400-signed-concat-cpu-v1"
+}
