@@ -1,0 +1,18 @@
+{
+  "decision": "PASS_VENDOR_BYTE_PROVENANCE_ONLY",
+  "exit_code": 0,
+  "host_peak_bytes": 1035268096,
+  "invocation_id": "78fd3394bbcb438da184aececc6189fe",
+  "log_sha256": "223cdb698747af05ccbd7184a8501651ec7cee1aa50a4be80a0d722833447558",
+  "memory_events_zero": true,
+  "model_qualified": false,
+  "native_authority_admitted": false,
+  "next": "Reconcile SAME critique9291b664a25244bc, implement exact-four private authenticated admission adapters with post-calibration/exit membership and inference binding; fresh CPU500 then one discarded comparison300/body90. Preserve prior FAIL and full mechanics/quality/speed gates.",
+  "original_session": 1472,
+  "proof_sha256": "5910eaca2a004aacd68bf15975222c0dfa5ddf270aafe5f383608ca1c4c4f027",
+  "quality_read": false,
+  "schema": "cudnn-wheel-provenance-parent-decision-v1",
+  "service_seconds": 16.824,
+  "swap_bytes": 0,
+  "unit": "sfora-cudnn-wheel-provenance-v1"
+}
