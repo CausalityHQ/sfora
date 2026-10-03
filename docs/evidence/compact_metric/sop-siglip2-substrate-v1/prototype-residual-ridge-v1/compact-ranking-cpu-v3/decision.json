@@ -1,0 +1,49 @@
+{
+  "verdict": "PASS_ENGINEERING_CPU_ONLY",
+  "session": 55698,
+  "terminal": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-cpu-v3/receipt.json",
+      "sha256": "1caa2d96b2df0300e621e44b13ded5f2600e6083bc0af7006e82201202cde9b8"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v3/cpu-v3.log",
+      "sha256": "9c694a5310ab8f59d0c5d366a66aed21de42151c5a02487c018d6c3fd6253b65"
+    },
+    "unit": "sfora-so400-compact-ranking-cpu-v3",
+    "invocation_id": "0dd5423d10b441f286f95cea098a29ac",
+    "service_seconds": 259.576,
+    "native_peak_rss_kib": 5815804,
+    "both_locks_held": true
+  },
+  "host_peak_bytes": 8365195264,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "cuda_initialized": false,
+  "quality_read": false,
+  "phase_seconds": {
+    "authority": 52.10540767898783,
+    "bundle_dependency_denial": 35.33173074899241,
+    "bundle_image_loading": 0.005244823172688484,
+    "bundle_loader": 32.08982979506254,
+    "bundle_loader_authentication": 16.654132878873497,
+    "bundle_native_forward": 2.680468240287155,
+    "bundle_oracle": 2.5441597858443856,
+    "bundle_release": 0.25045060459524393,
+    "cache_target_preparation": 2.272646372206509,
+    "cpu_bundle_qualification": 54.78643721016124,
+    "cpu_loss_falsifier": 0.7931588380597532,
+    "independent_reload": 1.529368325136602,
+    "origin_guard_promotion": 6.621186531148851,
+    "own_exit_rehash": 18.44460217701271,
+    "post_exit_api_authentication": 0.5354792959988117,
+    "post_exit_origin_audit": 12.198760094121099,
+    "post_run_api_authentication": 0.5463314489461482,
+    "post_run_origin_audit": 12.84849999519065,
+    "save": 0.8988040429539979,
+    "shared_bundle_preparation": 10.620785718318075,
+    "shared_source_preparation": 18.93292704736814,
+    "source_exit_rehash": 46.29237448098138
+  },
+  "next": "ONE discarded control061 mechanics300 instrumented gate; root feasibility decision before candidate/TRAIN"
+}
