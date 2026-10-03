@@ -948,47 +948,54 @@ def qualify_bundle(context, directory, sha, device, witness):
     batch = context['initial']['schedules'][str(witness['seed'])][0].tolist()[:2 if device == 'cpu' else 16]
     images = []
     try:
-        for ordinal in batch:
-            row, path, _ = nearest.canonical_row(context, context['initial'], ordinal)
-            bound_file(context['guards'], path, row['image_sha256'])
-            with Image.open(path) as image:
-                images.append(image.convert('RGB'))
+        with timed(context, 'bundle_image_loading'):
+            for ordinal in batch:
+                row, path, _ = nearest.canonical_row(context, context['initial'], ordinal)
+                bound_file(context['guards'], path, row['image_sha256'])
+                with Image.open(path) as image:
+                    images.append(image.convert('RGB'))
         expected = None
         drift = {}
         for _ in range(2):
             # Execute the owned copied loader, with original file dependencies
             # denied. A prior trainer context cannot supply missing bundle data.
-            portable_name = '_compact_portable_entry_' + str(time.time_ns())
-            portable = load_authenticated(portable_name, directory / 'train_siglip2_compact_ranking.py',
-                context['code']['train_siglip2_compact_ranking.py'], {})
-            bundle, _ = portable.admit_bundle(directory, sha)
-            with deny_training_dependencies(context, directory, bundle['environment']):
-                endpoint = portable.load_inference(directory, sha, device)
-                output = portable.inference_outputs(endpoint, images)
-            context['live_model'] = weakref.ref(endpoint['model'])
-            pixels = endpoint['processor_object'](images=images, return_tensors='pt')['pixel_values']
-            with torch.no_grad():
-                with torch.autocast(device, dtype=torch.float16, enabled=device == 'cuda'):
-                    pooled = endpoint['model'](pixel_values=pixels.to(device)).pooler_output
-                from torch.nn import functional as F
-                features = F.normalize(pooled.float(), dim=1)
-                oracle_A = torch.nn.Parameter(endpoint['A'].detach().clone())
-                raw = helper_guard(context).raw_features(features, endpoint['head_object'], oracle_A,
-                    endpoint['means'], 'concat', legacy['quadratic'])
-                require(fingerprint(context, context['old'].packed_outputs(legacy, raw)) == fingerprint(context, output),
-                        'same-role original helper raw/unit/packed/wire differs')
-                del oracle_A, raw, features, pooled
-            current = fingerprint(context, output)
-            require(expected is None or current == expected, 'sequential independent inference parity differs')
-            expected = current
-            difference = output['raw'] - witness['cache_raw'][batch]
-            drift = {'cache_native_drift_max_abs': float(difference.abs().max()),
-                     'cache_native_drift_l2': float(difference.double().norm()),
-                     'arithmetic_role': 'CPU FP32 native' if device == 'cpu' else 'CUDA FP16 B16 native'}
-            del pixels, output, difference
-            portable.release_inference(endpoint)
-            require(sys.modules.pop(portable_name, None) is portable, 'portable entry registry changed')
-            nearest.require_no_model(context)
+            with timed(context, 'bundle_loader_authentication'):
+                portable_name = '_compact_portable_entry_' + str(time.time_ns())
+                portable = load_authenticated(portable_name, directory / 'train_siglip2_compact_ranking.py',
+                    context['code']['train_siglip2_compact_ranking.py'], {})
+                bundle, _ = portable.admit_bundle(directory, sha)
+            with timed(context, 'bundle_dependency_denial'):
+                with deny_training_dependencies(context, directory, bundle['environment']):
+                    with timed(context, 'bundle_loader'):
+                        endpoint = portable.load_inference(directory, sha, device)
+                    with timed(context, 'bundle_native_forward'):
+                        output = portable.inference_outputs(endpoint, images)
+            with timed(context, 'bundle_oracle'):
+                context['live_model'] = weakref.ref(endpoint['model'])
+                pixels = endpoint['processor_object'](images=images, return_tensors='pt')['pixel_values']
+                with torch.no_grad():
+                    with torch.autocast(device, dtype=torch.float16, enabled=device == 'cuda'):
+                        pooled = endpoint['model'](pixel_values=pixels.to(device)).pooler_output
+                    from torch.nn import functional as F
+                    features = F.normalize(pooled.float(), dim=1)
+                    oracle_A = torch.nn.Parameter(endpoint['A'].detach().clone())
+                    raw = helper_guard(context).raw_features(features, endpoint['head_object'], oracle_A,
+                        endpoint['means'], 'concat', legacy['quadratic'])
+                    require(fingerprint(context, context['old'].packed_outputs(legacy, raw)) == fingerprint(context, output),
+                            'same-role original helper raw/unit/packed/wire differs')
+                    del oracle_A, raw, features, pooled
+                current = fingerprint(context, output)
+                require(expected is None or current == expected, 'sequential independent inference parity differs')
+                expected = current
+                difference = output['raw'] - witness['cache_raw'][batch]
+                drift = {'cache_native_drift_max_abs': float(difference.abs().max()),
+                         'cache_native_drift_l2': float(difference.double().norm()),
+                         'arithmetic_role': 'CPU FP32 native' if device == 'cpu' else 'CUDA FP16 B16 native'}
+            with timed(context, 'bundle_release'):
+                del pixels, output, difference
+                portable.release_inference(endpoint)
+                require(sys.modules.pop(portable_name, None) is portable, 'portable entry registry changed')
+                nearest.require_no_model(context)
     finally:
         for image in images:
             image.close()
@@ -1154,7 +1161,8 @@ def cpu_witnesses(context):
                         witness == matched[1], 'independent matched CPU initialization differs')
                 release(context, state)
     bundle = export_bundle(context, members, args.output / 'bundle')
-    native = qualify_bundle(context, args.output / 'bundle', bundle['sha256'], 'cpu', native_witness)
+    with timed(context, 'cpu_bundle_qualification'):
+        native = qualify_bundle(context, args.output / 'bundle', bundle['sha256'], 'cpu', native_witness)
     require(not torch.cuda.is_initialized(), 'CPU qualification initialized CUDA')
     return {'completed_step': 0, 'identity': first_ident, 'terminal_state_sha256': first_digest,
             'initial_A_sha256': context['initial_A_sha256'], 'initial_raw_unit_packed_sha256': first_witness,
@@ -1225,8 +1233,12 @@ def gpu_run(context):
         release(context, state)
         bundle_directory = temporary / 'bundle' if args.phase == 'mechanics' else args.output / 'bundle'
         bundle = export_bundle(context, members, bundle_directory)
-        native = qualify_bundle(context, bundle_directory, bundle['sha256'], 'cuda', native_witness)
-        context['nearest'].native_source_api(context).audit_origins(context['legacy'], require_exact=True)
+        with timed(context, 'gpu_bundle_qualification'):
+            native = qualify_bundle(context, bundle_directory, bundle['sha256'], 'cuda', native_witness)
+        with timed(context, 'post_calibration_api_authentication'):
+            api = context['nearest'].native_source_api(context)
+        with timed(context, 'post_calibration_origin_audit'):
+            api.audit_origins(context['legacy'], require_exact=True)
         for path in list(context['guards']):
             if Path(path).is_relative_to(temporary):
                 context['guards'].pop(path)  # Discard only after full reload/parity qualification.
@@ -1364,8 +1376,10 @@ def exit_rehash(context):
                 'own exact2 exit closure differs')
         require(closure(NEAREST['root'], NEAREST['execution_sha256'], NEAREST['code'], {}) == NEAREST['code'],
                 'external exact3 exit closure differs')
-    context['nearest'].native_source_api(context).audit_origins(context['legacy'],
-        require_exact=context['args'].phase != 'cpu')
+    with timed(context, 'post_exit_api_authentication'):
+        api = context['nearest'].native_source_api(context)
+    with timed(context, 'post_exit_origin_audit'):
+        api.audit_origins(context['legacy'], require_exact=context['args'].phase != 'cpu')
 
 
 def run(args):
@@ -1400,9 +1414,13 @@ def run(args):
     context['fit_context']['unit_started'] = started
     result = cpu_witnesses(context) if args.phase == 'cpu' else gpu_run(context)
     require(source.numerical_flags() == flags, 'constructor/forward/reload numerical flags changed')
-    context['nearest'].native_source_api(context).audit_origins(legacy, require_exact=args.phase != 'cpu')
-    for p, h in legacy['origins']['files'].items():
-        bound_file(context['guards'], p, h)
+    with timed(context, 'post_run_api_authentication'):
+        api = context['nearest'].native_source_api(context)
+    with timed(context, 'post_run_origin_audit'):
+        api.audit_origins(legacy, require_exact=args.phase != 'cpu')
+    with timed(context, 'origin_guard_promotion'):
+        for p, h in legacy['origins']['files'].items():
+            bound_file(context['guards'], p, h)
     exit_rehash(context)
     after = source.cgroup_memory()
     legacy['selected']['genuine']['reference'].admit_cgroup(after, unit)
