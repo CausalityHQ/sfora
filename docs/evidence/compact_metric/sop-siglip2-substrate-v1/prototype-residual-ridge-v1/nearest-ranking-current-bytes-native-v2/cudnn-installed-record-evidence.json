@@ -1,0 +1,45 @@
+{
+  "entries": [
+    {
+      "files": {
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9": {
+          "observed_native_sha256": "3b765736f63d724a0de67b7ce915b0d0a780154fe4a2d515ab14040224aa7db4",
+          "record_sha256": "3b765736f63d724a0de67b7ce915b0d0a780154fe4a2d515ab14040224aa7db4",
+          "record_size_bytes": 299909640
+        },
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_runtime_compiled.so.9": {
+          "observed_native_sha256": "7b8f371a7718c29549317efdbdeb8d7c301874f9471762a04830846ac4e83510",
+          "record_sha256": "7b8f371a7718c29549317efdbdeb8d7c301874f9471762a04830846ac4e83510",
+          "record_size_bytes": 33571912
+        },
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_graph.so.9": {
+          "observed_native_sha256": "b601fddd333d84ced4a3d833e75bb412c204e39b21755d79cb890335dce660b8",
+          "record_sha256": "b601fddd333d84ced4a3d833e75bb412c204e39b21755d79cb890335dce660b8",
+          "record_size_bytes": 10749656
+        },
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_heuristic.so.9": {
+          "observed_native_sha256": "368687b9b5c2c01b55c21f74bd930cb05d3654b4e901e998b7bfb33cebac6ae8",
+          "record_sha256": "368687b9b5c2c01b55c21f74bd930cb05d3654b4e901e998b7bfb33cebac6ae8",
+          "record_size_bytes": 65015024
+        }
+      },
+      "metadata": {
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia_cudnn_cu13-9.20.0.48.dist-info/METADATA",
+        "sha256": "905598a1f0fa9ec98b73133b7340bb60fb3666262eaaaf87f8fb8e3461261d38",
+        "text": "Metadata-Version: 2.4\nName: nvidia-cudnn-cu13\nVersion: 9.20.0.48\nSummary: cuDNN runtime libraries\nHome-page: https://developer.nvidia.com/cuda-zone\nAuthor: Nvidia CUDA Installer Team\nAuthor-email: compute_installer@nvidia.com\nLicense-Expression: LicenseRef-NVIDIA-Proprietary\nKeywords: cuda,nvidia,runtime,machine learning,deep learning\nClassifier: Development Status :: 4 - Beta\nClassifier: Intended Audience :: Developers\nClassifier: Intended Audience :: Education\nClassifier: Intended Audience :: Science/Research\nClassifier: Natural Language :: English\nClassifier: Programming Language :: Python :: 3\nClassifier: Programming Language :: Python :: 3.5\nClassifier: Programming Language :: Python :: 3.6\nClassifier: Programming Language :: Python :: 3.7\nClassifier: Programming Language :: Python :: 3.8\nClassifier: Programming Language :: Python :: 3.9\nClassifier: Programming Language :: Python :: 3.10\nClassifier: Programming Language :: Python :: 3.11\nClassifier: Programming Language :: Python :: 3 :: Only\nClassifier: Topic :: Scientific/Engineering\nClassifier: Topic :: Scientific/Engineering :: Mathematics\nClassifier: Topic :: Scientific/Engineering :: Artificial Intelligence\nClassifier: Topic :: Software Development\nClassifier: Topic :: Software Development :: Libraries\nClassifier: Operating System :: Microsoft :: Windows\nClassifier: Operating System :: POSIX :: Linux\nRequires-Python: >=3\nDescription-Content-Type: text/plain\nLicense-File: License.txt\nRequires-Dist: nvidia-cublas\nDynamic: author\nDynamic: author-email\nDynamic: classifier\nDynamic: description\nDynamic: description-content-type\nDynamic: home-page\nDynamic: keywords\nDynamic: license\nDynamic: license-file\nDynamic: license-expression\nDynamic: requires-dist\nDynamic: requires-python\nDynamic: summary\n\ncuDNN runtime libraries containing primitives for deep neural networks.\n"
+      },
+      "record": {
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia_cudnn_cu13-9.20.0.48.dist-info/RECORD",
+        "sha256": "69df46f9230f7342255a8e89863809dbab8b6c2c336587ec9ff3a7b6df38d4ef"
+      },
+      "wheel": {
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia_cudnn_cu13-9.20.0.48.dist-info/WHEEL",
+        "sha256": "95467093b8489cfdc0e3194785d28b1f2960711f871ea23aaa02796d1bba2a93",
+        "text": "Wheel-Version: 1.0\nGenerator: setuptools (82.0.0)\nRoot-Is-Purelib: true\nTag: py3-none-manylinux_2_27_aarch64\n\n"
+      }
+    }
+  ],
+  "independent_upstream_authentication": false,
+  "native_imported": false,
+  "schema": "cudnn-installed-record-readonly-evidence-v1"
+}
