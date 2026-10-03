@@ -545,8 +545,406 @@ class StartupAdmissionFixture:
         return patch.object(Path, 'open', opened)
 
 
+class CurrentByteFixture:
+    """Byte/layout stand-ins execute the genuine pinned serializer without Torch."""
+    class Buffer(bytearray):
+        pass
+
+    class View:
+        def __init__(self, fixture, raw, device='cuda:0', group=False):
+            self.fixture, self.raw, self.device, self.group = fixture, CurrentByteFixture.Buffer(raw), device, group
+
+        def reshape(self, *shape):
+            return self
+
+        def view(self, dtype):
+            assert dtype == 'uint8'
+            return self
+
+        def numel(self):
+            return len(self.raw)
+
+        def cpu(self):
+            self.fixture.events.append(('copy', self.device, len(self.raw)))
+            if self.fixture.copy_failure:
+                raise ValueError('copy failed')
+            host = type(self)(self.fixture, self.raw, 'cpu', self.group)
+            self.fixture.hosts.append(weakref.ref(host.raw))
+            return host
+
+        def contiguous(self):
+            return self
+
+        def numpy(self):
+            return self.raw
+
+    class Value:
+        _version = 0
+
+        def __init__(self, fixture, storage, shape, dtype='torch.uint8', width=1,
+                     device='cuda:0', indices=None):
+            self.fixture, self.storage = fixture, bytearray(storage)
+            self.shape, self.dtype, self.width, self.device = shape, dtype, width, device
+            self.indices = list(range(math.prod(shape))) if indices is None else indices
+            self.is_cuda = device.startswith('cuda')
+            self.reads = 0
+
+        def data_ptr(self):
+            return id(self.storage)
+
+        def numel(self):
+            return math.prod(self.shape)
+
+        def element_size(self):
+            return self.width
+
+        def detach(self):
+            return self
+
+        def contiguous(self):
+            self.reads += 1
+            raw = b''.join(self.storage[i * self.width:(i + 1) * self.width] for i in self.indices)
+            view = CurrentByteFixture.View(self.fixture, raw, self.device)
+            self.fixture.views.append(weakref.ref(view))
+            return view
+
+        def cpu(self):
+            self.fixture.events.append(('serial', self.device, self.numel() * self.width))
+            return self.contiguous()
+
+    def __init__(self, directory):
+        self.events, self.hosts, self.views = [], [], []
+        self.copy_failure = False
+        path = Path(directory) / 'original.py'
+        path.write_bytes(PATH.with_name('train_siglip2_substrate_adaptation.py').read_bytes())
+        spec = importlib.util.spec_from_file_location('_current_original', path)
+        self.original = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.original)
+        self.bindings = dict(vars(self.original))
+        self.codes = {k: v.__code__ for k, v in self.bindings.items() if isinstance(v, driver.FunctionType)}
+        self.context = {'legacy': {'original': self.original}}
+        self.torch = ModuleType('torch')
+        self.torch.Tensor, self.torch.uint8 = self.Value, 'uint8'
+        self.torch.cat = self.cat
+
+    def cat(self, views):
+        if any(ref() is not None for ref in self.hosts):
+            raise AssertionError('previous group host storage survived')
+        self.events.append(('cat', tuple(v.numel() for v in views)))
+        return self.View(self, b''.join(v.raw for v in views), views[0].device, True)
+
+    def value(self, raw, shape=None, **kwargs):
+        width = kwargs.get('width', 1)
+        return self.Value(self, raw, (len(raw) // width,) if shape is None else shape, **kwargs)
+
+    def small_groups(self):
+        # Only the private test clone uses eight bytes. Production stays literal64MiB.
+        node = next(n for n in ast.parse(PATH.read_text()).body if isinstance(n, ast.FunctionDef)
+                    and n.name == 'current_cuda_bytes')
+        dump = lambda n: ast.dump(n, include_attributes=False)
+        limit = ast.parse('64 * 1024**2', mode='eval').body
+        matches = [n for n in ast.walk(node) if dump(n) == dump(limit)]
+        assert len(matches) == 1
+        class Limit(ast.NodeTransformer):
+            def visit_BinOp(self, n):
+                return ast.copy_location(ast.Constant(8), n) if dump(n) == dump(limit) else self.generic_visit(n)
+        namespace = dict(vars(driver))
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[Limit().visit(node)], type_ignores=[])),
+                     str(PATH), 'exec'), namespace)
+        return patch.object(driver, 'current_cuda_bytes', namespace['current_cuda_bytes'])
+
+    def unchanged(self, case):
+        case.assertEqual(vars(self.original), self.bindings)
+        case.assertEqual({k: v.__code__ for k, v in vars(self.original).items()
+                          if isinstance(v, driver.FunctionType)}, self.codes)
+        case.assertEqual(hashlib.sha256(Path(self.original.__file__).read_bytes()).hexdigest(),
+                         'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543')
+
+
+class CurrentByteTests(unittest.TestCase):
+    def test_current_byte_order_dtype_shape_alias_stride_empty_mixed_groups(self):
+        with TemporaryDirectory() as directory:
+            f = CurrentByteFixture(directory)
+            a = f.value(b'0123456789', (3,), indices=[1, 4, 7])
+            b = f.value(b'abcdefgh', (2, 2), dtype='torch.bfloat16', width=2)
+            c = f.value(b'CPU', device='cpu')
+            d = f.value(b'xyz', device='cuda:1')
+            empty = f.value(b'', (0, 4), dtype='torch.float32', width=4)
+            # Repr-sorted dicts, nested sequences and repeated alias occurrences.
+            value = {'z': (b, c, d, empty), 'a': [a, a]}
+            with patch.dict(sys.modules, {'torch': f.torch}):
+                expected = f.original.fingerprint(value)
+                f.events.clear()
+                before = a.reads
+                with f.small_groups():
+                    self.assertEqual(driver.fingerprint(f.context, value), expected)
+                copies = [e for e in f.events if e[0] == 'copy']
+                self.assertEqual(copies, [('copy', 'cuda:0', 6), ('copy', 'cuda:0', 8),
+                                         ('copy', 'cuda:1', 3)])
+                self.assertEqual(a.reads - before, 2)
+                self.assertEqual([e for e in f.events if e[0] == 'serial'], [('serial', 'cpu', 3)])
+                self.assertTrue(all(sum(e[1]) <= 8 for e in f.events if e[0] == 'cat'))
+                self.assertTrue(all(ref() is None for ref in f.hosts + f.views))
+                self.assertNotEqual(expected, f.original.fingerprint({**value, 'z': (b, c, d)}))
+                old_shape = b.shape
+                b.shape = (4,)
+                self.assertNotEqual(expected, driver.fingerprint(f.context, value))
+                b.shape, b.dtype = old_shape, 'torch.float16'
+                self.assertNotEqual(expected, driver.fingerprint(f.context, value))
+            f.unchanged(self)
+
+    def test_fresh_current_reads_ignore_unchanged_version_and_release_groups(self):
+        with TemporaryDirectory() as directory:
+            f = CurrentByteFixture(directory)
+            value = [f.value(b'abcd'), f.value(b'efgh'), f.value(b'ijkl')]
+            with patch.dict(sys.modules, {'torch': f.torch}), f.small_groups():
+                first = driver.fingerprint(f.context, value)
+                reads = [v.reads for v in value]
+                value[0].storage[0] = ord('z')
+                self.assertEqual(value[0]._version, 0)
+                second = driver.fingerprint(f.context, value)
+                self.assertNotEqual(first, second)
+                self.assertEqual([v.reads - n for v, n in zip(value, reads)], [1, 1, 1])
+                self.assertEqual(second, f.original.fingerprint(value))
+                self.assertTrue(all(ref() is None for ref in f.hosts + f.views))
+            f.unchanged(self)
+
+    def test_empty_cpu_callbacks_kwargs_and_oversized_are_original_serial(self):
+        with TemporaryDirectory() as directory:
+            f = CurrentByteFixture(directory)
+            with patch.dict(sys.modules, {'torch': f.torch}):
+                empty = f.value(b'', (0, 3), dtype='torch.float32', width=4)
+                expected = f.original.fingerprint(empty)
+                f.events.clear()
+                self.assertEqual(driver.fingerprint(f.context, empty), expected)
+                self.assertEqual(f.events, [])
+                cpu = f.value(b'cpu', device='cpu')
+                with patch.object(driver, 'current_byte_adapter', side_effect=AssertionError('CPU adapter')):
+                    self.assertEqual(driver.fingerprint(f.context, cpu), f.original.fingerprint(cpu))
+                seen = []
+                callback_value = [f.value(b'cuda'), cpu]
+                self.assertEqual(driver.fingerprint(f.context, callback_value, consumed=seen.append),
+                                 f.original.fingerprint(callback_value))
+                self.assertEqual(seen, callback_value)
+                frozen = {(empty.data_ptr(), 0, str(empty.dtype), tuple(empty.shape)): ('frozen', (), 'cached')}
+                self.assertEqual(driver.fingerprint(f.context, empty, frozen=frozen),
+                                 f.original.fingerprint(empty, frozen=frozen))
+                for kwargs in ({'consumed': None}, {'frozen': None}, {'unsupported': True}):
+                    with patch.object(driver, 'current_byte_adapter', side_effect=AssertionError('kwargs adapter')):
+                        if 'unsupported' in kwargs:
+                            with self.assertRaises(TypeError):
+                                driver.fingerprint(f.context, empty, **kwargs)
+                        else:
+                            self.assertEqual(driver.fingerprint(f.context, empty, **kwargs), expected)
+                big = f.value(b'ab')
+                big.numel = lambda: 64 * 1024**2 + 1
+                f.events.clear()
+                driver.fingerprint(f.context, [big, f.value(b'cd')])
+                self.assertFalse(any(e[0] in ('cat', 'copy') for e in f.events))
+                self.assertEqual(len([e for e in f.events if e[0] == 'serial']), 2)
+            f.unchanged(self)
+
+    def test_copy_and_serializer_errors_close_groups_even_with_traceback(self):
+        with TemporaryDirectory() as directory:
+            f = CurrentByteFixture(directory)
+            value = [f.value(b'abcd'), f.value(b'efgh'), f.value(b'ijkl')]
+            with patch.dict(sys.modules, {'torch': f.torch}), f.small_groups():
+                f.copy_failure = True
+                try:
+                    driver.fingerprint(f.context, value)
+                except ValueError as error:
+                    self.assertIn('copy failed', str(error))
+                    self.assertTrue(all(ref() is None for ref in f.hosts + f.views))
+                else:
+                    self.fail('copy failure was swallowed')
+                f.copy_failure = False
+                class BadRepr:
+                    def __repr__(self):
+                        raise ValueError('repr failed')
+                try:
+                    driver.fingerprint(f.context, [*value, BadRepr()])
+                except ValueError as error:
+                    self.assertIn('repr failed', str(error))
+                    self.assertTrue(all(ref() is None for ref in f.hosts + f.views))
+                else:
+                    self.fail('serializer failure was swallowed')
+                self.assertEqual(driver.fingerprint(f.context, value), f.original.fingerprint(value))
+            f.unchanged(self)
+
+    def test_original_source_live_function_globals_defaults_and_origin_negatives(self):
+        with TemporaryDirectory() as directory:
+            f = CurrentByteFixture(directory)
+            value = f.value(b'ab')
+            with patch.dict(sys.modules, {'torch': f.torch}):
+                fn = f.original.fingerprint
+                for attr, replacement in (('__code__', (lambda value, frozen=None, consumed=None: 'bad').__code__),
+                                          ('__defaults__', ({}, None))):
+                    saved = getattr(fn, attr)
+                    try:
+                        setattr(fn, attr, replacement)
+                        with self.assertRaisesRegex(ValueError, 'original'):
+                            driver.fingerprint(f.context, value)
+                    finally:
+                        setattr(fn, attr, saved)
+                replacement = driver.FunctionType(fn.__code__, dict(fn.__globals__), fn.__name__, fn.__defaults__)
+                with patch.object(f.original, 'fingerprint', replacement), self.assertRaisesRegex(ValueError, 'original'):
+                    driver.fingerprint(f.context, value)
+                for name, replacement in (('hashlib', SimpleNamespace(sha256=lambda *a: None)),
+                                          ('memoryview', lambda x: memoryview(b'bad')), ('sorted', lambda x, **k: x),
+                                          ('__builtins__', dict(vars(__import__('builtins'))))):
+                    with patch.dict(vars(f.original), {name: replacement}), self.assertRaisesRegex(ValueError, 'original'):
+                        driver.fingerprint(f.context, value)
+                with patch.object(f.original.__spec__, 'origin', '/bad'), self.assertRaisesRegex(ValueError, 'original'):
+                    driver.fingerprint(f.context, value)
+                with patch.object(f.original.hashlib, 'sha256', side_effect=lambda *a, **k: None), \
+                        self.assertRaisesRegex(ValueError, 'original'):
+                    driver.current_byte_adapter(f.original, lambda item: memoryview(b''))
+                raw = Path(f.original.__file__).read_bytes()
+                Path(f.original.__file__).write_bytes(raw + b'\n')
+                with self.assertRaisesRegex(ValueError, 'original'):
+                    driver.fingerprint(f.context, value)
+                Path(f.original.__file__).write_bytes(raw)
+            f.unchanged(self)
+
+    def test_cpu_and_unsupported_keys_do_not_repeat_repr_or_custom_traversal(self):
+        with TemporaryDirectory() as directory:
+            f = CurrentByteFixture(directory)
+            class ChangingKey:
+                calls = 0
+                def __repr__(self):
+                    self.calls += 1
+                    return str(self.calls)
+            with patch.dict(sys.modules, {'torch': f.torch}):
+                for device in ('cpu', 'cuda:0'):
+                    key = ChangingKey()
+                    value = {key: f.value(b'ab', device=device)}
+                    expected = f.original.fingerprint(value)
+                    expected_calls = key.calls
+                    key.calls = 0
+                    self.assertEqual(driver.fingerprint(f.context, value), expected)
+                    self.assertEqual(key.calls, expected_calls)
+                class TensorKey(f.Value):
+                    calls = 0
+                    def __repr__(self):
+                        self.calls += 1
+                        self.storage[0] += 1
+                        return 'tensor-key'
+                key = TensorKey(f, b'ab', (2,))
+                value = {key: f.value(b'cd')}
+                expected = f.original.fingerprint(value)
+                expected_calls = key.calls
+                key.calls, key.storage[0] = 0, ord('a')
+                self.assertEqual(driver.fingerprint(f.context, value), expected)
+                self.assertEqual(key.calls, expected_calls)
+                class CustomDict(dict):
+                    calls = 0
+                    def __iter__(self):
+                        self.calls += 1
+                        return super().__iter__()
+                value = CustomDict(a=f.value(b'ab', device='cpu'))
+                expected = f.original.fingerprint(value)
+                expected_calls = value.calls
+                value.calls = 0
+                self.assertEqual(driver.fingerprint(f.context, value), expected)
+                self.assertEqual(value.calls, expected_calls)
+            f.unchanged(self)
+
+    def test_group_limit_explicit_close_byte_size_and_occurrence_order_fail_closed(self):
+        with TemporaryDirectory() as directory:
+            f = CurrentByteFixture(directory)
+            a, b = f.value(b'abcd'), f.value(b'efgh')
+            with patch.dict(sys.modules, {'torch': f.torch}), f.small_groups():
+                chunks = driver.current_cuda_bytes([(a, 4), (b, 4)])
+                tensor, raw = next(chunks)
+                self.assertIs(tensor, a)
+                self.assertEqual(raw.tobytes(), b'abcd')
+                self.assertEqual([e for e in f.events if e[0] == 'copy'], [('copy', 'cuda:0', 8)])
+                chunks.close()
+                with self.assertRaises(ValueError):
+                    raw.tobytes()
+                self.assertTrue(all(ref() is None for ref in f.hosts + f.views))
+                for count, message in ((9, 'exceeds byte group limit'), (3, 'size changed')):
+                    chunks = driver.current_cuda_bytes([(a, count)])
+                    with self.assertRaisesRegex(ValueError, message):
+                        next(chunks)
+                    chunks.close()
+                    self.assertTrue(all(ref() is None for ref in f.hosts + f.views))
+                with patch.object(f.torch, 'cat', side_effect=ValueError('cat failed')):
+                    with self.assertRaisesRegex(ValueError, 'cat failed'):
+                        driver.fingerprint(f.context, [a, b])
+                    self.assertTrue(all(ref() is None for ref in f.hosts + f.views))
+                with patch.object(driver, 'current_cuda_occurrences', return_value=[(b, 4), (a, 4)]):
+                    with self.assertRaisesRegex(ValueError, 'occurrence order differs'):
+                        driver.fingerprint(f.context, [a, b])
+                    self.assertTrue(all(ref() is None for ref in f.hosts + f.views))
+                with patch.object(driver, 'current_cuda_occurrences', return_value=[(a, 4), (a, 4)]):
+                    with self.assertRaisesRegex(ValueError, 'occurrences not exhausted'):
+                        driver.fingerprint(f.context, a)
+                    self.assertTrue(all(ref() is None for ref in f.hosts + f.views))
+            f.unchanged(self)
+
+    def test_source_boundary_rejects_fingerprint_and_helper_inventory_mutants(self):
+        tree = ast.parse(PATH.read_text())
+        self.assertEqual(startup_source_boundary(copy.deepcopy(tree)),
+                         '2b749548e57aa010826665a38e4e145adaeefed9658a3d8a86f470134f312a72')
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'fingerprint')
+        fn.body.append(ast.parse('unrelated_predicate = False').body[0])
+        with self.assertRaisesRegex(ValueError, 'exact current-byte fingerprint dispatch'):
+            startup_source_boundary(tree)
+        tree = ast.parse(PATH.read_text())
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'current_cuda_bytes')
+        tree.body.append(copy.deepcopy(fn))
+        with self.assertRaisesRegex(ValueError, 'exact added current-byte definition'):
+            startup_source_boundary(tree)
+
+    def test_exact_raw_ast_replacement_and_inverse(self):
+        with TemporaryDirectory() as directory:
+            f = CurrentByteFixture(directory)
+            fn = driver.current_byte_adapter(f.original, lambda item: memoryview(b''))
+            self.assertIsNot(fn.__globals__, vars(f.original))
+            self.assertEqual(hashlib.sha256(ast.dump(fn.__current_byte_ast__, include_attributes=False).encode()).hexdigest(),
+                             'bcb97676f8800cd5d7e4048dde059d2d3a47d80673b8556f85616383701f3f12')
+            before = ast.parse('item.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()', mode='eval').body
+            after = ast.parse('_nearest_cuda_raw(item) if item.is_cuda else ' + ast.unparse(before), mode='eval').body
+            tree = copy.deepcopy(fn.__current_byte_ast__)
+            dump = lambda n: ast.dump(n, include_attributes=False)
+            class Inverse(ast.NodeTransformer):
+                count = 0
+                def visit_IfExp(self, node):
+                    if dump(node) == dump(after):
+                        self.count += 1
+                        return copy.deepcopy(before)
+                    return self.generic_visit(node)
+            inverse = Inverse()
+            restored = inverse.visit(tree)
+            self.assertEqual(inverse.count, 1)
+            self.assertEqual(hashlib.sha256(dump(restored).encode()).hexdigest(),
+                             '3de225c57984a5ee3f292ecddce7a1516154938d5b4d415e692837abda5b2d0f')
+            f.unchanged(self)
+
+
+def current_byte_source_boundary(tree):
+    """Remove exactly the scheduling helpers and reverse only the pinned dispatch."""
+    added = {'current_cuda_occurrences', 'current_cuda_bytes', 'current_byte_adapter'}
+    for name in added:
+        driver.require(sum(isinstance(n, ast.FunctionDef) and n.name == name for n in tree.body) == 1,
+                       'exact added current-byte definition required')
+    dispatch = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'fingerprint']
+    driver.require(len(dispatch) == 1 and
+        hashlib.sha256(ast.dump(dispatch[0], include_attributes=False).encode()).hexdigest() ==
+        '9f2d65d5391b9bf9a3ceb0f3a55dfe65acc9c89be0d509368b2e6dd335bf2e81',
+        'exact current-byte fingerprint dispatch required')
+    original = ast.parse("""def fingerprint(context, value, **kwargs):
+    return context['legacy']['original'].fingerprint(value, **kwargs)
+""").body[0]
+    tree.body = [original if node is dispatch[0] else node for node in tree.body
+                 if not (isinstance(node, ast.FunctionDef) and node.name in added)]
+    return tree
+
+
 def startup_source_boundary(tree):
     """Invert only the authorized startup dispatch to retain the prior AST proof."""
+    tree = current_byte_source_boundary(tree)
     added = {'authenticate_startup_reader', 'startup_admission_adapter'}
     for name in added:
         driver.require(sum(isinstance(n, ast.FunctionDef) and n.name == name for n in tree.body) == 1,

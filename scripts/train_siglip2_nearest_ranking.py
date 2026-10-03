@@ -408,9 +408,192 @@ def loss_terms(state, raw, anchors, full_valid):
                        'valid': int(valid.sum()), 'active': active}
 
 
+def current_cuda_occurrences(value):
+    """Gather tensor references in the original traversal; never retain byte facts."""
+    import torch
+    occurrences = []
+    supported = True
+    tensor_type = getattr(torch, 'Tensor', ())
+    def gather(item, canonical=False):
+        nonlocal supported
+        if isinstance(item, tensor_type):
+            if item.is_cuda:
+                occurrences.append((item, item.numel() * item.element_size()))
+        elif isinstance(item, dict):
+            if type(item) is not dict or any(type(k) not in (str, bytes, int, float, bool, complex, type(None))
+                                            for k in item):
+                supported = False
+                return
+            for key in sorted(item, key=repr) if canonical else item:
+                gather(key, canonical); gather(item[key], canonical)
+        elif isinstance(item, (tuple, list)):
+            if type(item) not in (tuple, list):
+                supported = False
+                return
+            for child in item:
+                gather(child, canonical)
+    try:
+        # Do not sort or invoke repr on CPU-only or custom-container paths.
+        gather(value)
+        if not supported or not occurrences:
+            occurrences.clear()
+            return occurrences
+        occurrences.clear()
+        gather(value, canonical=True)
+        return occurrences
+    except BaseException:
+        occurrences.clear()
+        raise
+    finally:
+        gather = None
+
+
+def current_cuda_bytes(occurrences):
+    """Yield current raw bytes; at most one 64MiB group/device is resident."""
+    import torch
+    limit = 64 * 1024**2
+    start = 0
+    group, views = [], []
+    gpu = host = buffer = snapshot = view = None
+    try:
+        while start < len(occurrences):
+            device = occurrences[start][0].device
+            size, end = 0, start
+            while end < len(occurrences):
+                tensor, count = occurrences[end]
+                require(0 <= count <= limit, 'current CUDA tensor exceeds byte group limit')
+                if tensor.device != device or size + count > limit:
+                    break
+                group.append((tensor, count))
+                size += count
+                end += 1
+            try:
+                if size:
+                    for tensor, count in group:
+                        view = tensor.detach().contiguous().reshape(-1).view(torch.uint8)
+                        require(view.numel() == count, 'current CUDA byte size changed during traversal')
+                        views.append(view)
+                        view = None
+                    gpu = torch.cat(views)
+                    require(gpu.numel() == size, 'current CUDA byte group size differs')
+                    host = gpu.cpu()  # One blocking D2H copy for this nonempty group.
+                    gpu = None
+                    views.clear()
+                    buffer = memoryview(host.numpy())
+                    require(len(buffer) == size, 'current CUDA host byte group size differs')
+                else:
+                    buffer = memoryview(b'')
+                offset = 0
+                for tensor, count in group:
+                    snapshot = buffer[offset:offset + count]
+                    try:
+                        yield tensor, snapshot
+                    finally:
+                        snapshot.release()
+                        snapshot = None
+                    offset += count
+            finally:
+                if buffer is not None:
+                    buffer.release()
+                buffer = gpu = host = view = None
+                views.clear()
+                group.clear()
+            start = end
+    finally:
+        # Clear also on failed cat/copy, generator close and retained tracebacks.
+        if snapshot is not None:
+            snapshot.release()
+        if buffer is not None:
+            buffer.release()
+        snapshot = buffer = gpu = host = view = None
+        views.clear()
+        group.clear()
+
+
+def current_byte_adapter(original, cuda_raw):
+    """Authenticate live provenance and change only the original CUDA raw source."""
+    import ast
+    import builtins
+    import copy
+    import _hashlib
+    from types import ModuleType
+    require(type(original) is ModuleType and original.__spec__ is not None and
+            original.__spec__.origin == original.__file__, 'actual original fingerprint source required')
+    require(original.hashlib is hashlib and hashlib.sha256 is _hashlib.openssl_sha256,
+            'original fingerprint SHA256 global differs')
+    path = original.__file__
+    raw = Path(path).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() ==
+            'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543',
+            'original fingerprint source differs')
+    tree, code = ast.parse(raw, filename=path), compile(raw, path, 'exec')
+    nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'fingerprint']
+    codes = [c for c in code.co_consts if getattr(c, 'co_name', None) == 'fingerprint']
+    require(len(nodes) == len(codes) == 1, 'exact original fingerprint definition required')
+    fn = original.fingerprint
+    require(isinstance(fn, FunctionType) and fn.__globals__ is vars(original) and
+            fn.__code__ == codes[0] and fn.__code__.co_filename == path and
+            fn.__module__ == original.__name__ and fn.__qualname__ == 'fingerprint' and
+            fn.__defaults__ == (None, None) and fn.__kwdefaults__ is None and fn.__closure__ is None and
+            fn.__builtins__ is vars(builtins) and fn.__globals__.get('__builtins__') is vars(builtins),
+            'actual original fingerprint function/globals differ')
+    for name in ('__import__', 'isinstance', 'str', 'len', 'repr', 'sorted', 'type', 'tuple', 'memoryview'):
+        require(fn.__globals__.get(name, getattr(builtins, name)) is getattr(builtins, name),
+                'original fingerprint builtin global differs: ' + name)
+    dump = lambda n: ast.dump(n, include_attributes=False)
+    node = nodes[0]
+    require(hashlib.sha256(dump(node).encode()).hexdigest() ==
+            '3de225c57984a5ee3f292ecddce7a1516154938d5b4d415e692837abda5b2d0f',
+            'original fingerprint AST differs')
+    before = ast.parse('item.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()', mode='eval').body
+    after = ast.parse('_nearest_cuda_raw(item) if item.is_cuda else ' + ast.unparse(before), mode='eval').body
+    class Substitute(ast.NodeTransformer):
+        def __init__(self, source, target):
+            self.source, self.target, self.count = source, target, 0
+
+        def visit(self, node):
+            if dump(node) == dump(self.source):
+                self.count += 1
+                return ast.copy_location(copy.deepcopy(self.target), node)
+            return super().visit(node)
+    substitute = Substitute(before, after)
+    adapted = substitute.visit(copy.deepcopy(node))
+    inverse = Substitute(after, before)
+    restored = inverse.visit(copy.deepcopy(adapted))
+    require(substitute.count == inverse.count == 1 and dump(restored) == dump(node),
+            'current-byte adapter changed original serializer correspondence')
+    require(hashlib.sha256(dump(adapted).encode()).hexdigest() ==
+            'bcb97676f8800cd5d7e4048dde059d2d3a47d80673b8556f85616383701f3f12',
+            'current-byte fingerprint AST differs')
+    namespace = dict(vars(original), _nearest_cuda_raw=cuda_raw)
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[adapted], type_ignores=[])), path, 'exec'), namespace)
+    namespace['fingerprint'].__current_byte_ast__ = adapted
+    return namespace['fingerprint']
+
+
 def fingerprint(context, value, **kwargs):
     # No stat, version, or tensor-hash cache: every call reads current bytes.
-    return context['legacy']['original'].fingerprint(value, **kwargs)
+    original = context['legacy']['original']
+    if kwargs:
+        return original.fingerprint(value, **kwargs)
+    occurrences = current_cuda_occurrences(value)
+    if not occurrences:
+        return original.fingerprint(value)
+    chunks = current_cuda_bytes(occurrences)
+    def cuda_raw(item):
+        tensor, raw = next(chunks)
+        require(tensor is item, 'current CUDA occurrence order differs')
+        return raw
+    try:
+        adapted = current_byte_adapter(original, cuda_raw)
+        if any(size > 64 * 1024**2 for _, size in occurrences):
+            return original.fingerprint(value)
+        result = adapted(value)
+        require(next(chunks, None) is None, 'current CUDA occurrences not exhausted')
+        return result
+    finally:
+        chunks.close()
+        occurrences.clear()
 
 
 def clone(context, value, device='cpu'):
