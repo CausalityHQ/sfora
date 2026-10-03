@@ -424,19 +424,48 @@ def require_no_model(context):
     require(live is None or live() is None, 'one live vision model required; release before reload')
 
 
-def fresh(context, arm, device, initial=None):
+@contextmanager
+def restore_memory_snapshot(context, phase):
+    """Flushed raw diagnostics only; never reset or replace cgroup admission."""
+    def snapshot(boundary):
+        cgroup = {}
+        try:
+            unified = [line[3:] for line in Path('/proc/self/cgroup').read_text().splitlines()
+                       if line.startswith('0::')]
+            require(len(unified) == 1 and unified[0] != '/', 'enclosing cgroup v2 unit unavailable')
+            root = Path('/sys/fs/cgroup') / unified[0].lstrip('/')
+            cgroup['path'] = str(root)
+            cgroup['values'] = {name: (root / name).read_text().strip() for name in
+                               ('memory.current', 'memory.peak', 'memory.max', 'memory.swap.current',
+                                'memory.swap.peak', 'memory.swap.max', 'memory.events', 'memory.stat')}
+        except (OSError, ValueError) as error:
+            cgroup['error'] = str(error)
+        print(json.dumps({'event': 'NEAREST_RESTORE_MEMORY', 'phase': phase, 'boundary': boundary,
+                          'seconds': time.perf_counter() - context['started'],
+                          'invocation_id': os.environ.get('INVOCATION_ID'), 'cgroup': cgroup},
+                         sort_keys=True, allow_nan=False), flush=True)
+    snapshot('begin')
+    try:
+        yield
+    finally:
+        snapshot('end')
+
+
+def fresh(context, arm, device, initial=None, *, defer_vision_transfer=False):
     import torch
     require_no_model(context)
     require(arm in ARMS and device in ('cpu', 'cuda'), 'fresh role required')
     initial = context['initial'] if initial is None else initial
     legacy, source = context['legacy'], context['legacy']['source_driver']
-    with timed(context, 'source_construction'):
+    with timed(context, 'source_construction'), restore_memory_snapshot(context, 'source_construction'):
         model, processor, roles = source.fresh_source(legacy['prior'])
         require(source.model_facts(model, processor, roles, legacy['selected']['packages']) ==
                 initial['provenance']['encoder']['source_proof']['runtime'], 'actual full original source runtime differs')
         context['live_model'] = weakref.ref(model)
         configure_roles(model)
-        model.to(device)
+        if not defer_vision_transfer:
+            with restore_memory_snapshot(context, 'vision_transfer'):
+                model.to(device)
         head = legacy['selected']['cached'].head_from('control', tensors=initial['head']).requires_grad_(False).to(device).train()
         pairs, optimizer = optimizer_state(model)
         state = {'model': model, 'processor_object': processor, 'head_object': head, 'params': pairs,
@@ -624,29 +653,44 @@ def restore(context, path, sha, digest, ident, step):
         disk = torch.load(path, map_location='cpu', weights_only=True, mmap=True)
         with path.open('rb') as stream:
             pages = context['legacy']['original'].CheckpointPages(stream)
-            check_payload(context, disk, ident, step)
-            require(fingerprint(context, disk, consumed=pages.consume) == digest, 'complete serialized updated state differs')
+            with restore_memory_snapshot(context, 'payload_validation'):
+                check_payload(context, disk, ident, step)
+            with restore_memory_snapshot(context, 'payload_hash'):
+                require(fingerprint(context, disk, consumed=pages.consume) == digest, 'complete serialized updated state differs')
             # The source factory is checked independently, then trained state is loaded strictly.
-            state = fresh(context, ident['arm'], ident['device'], initial=disk)
-            require(identity(context, state) == ident, 'independent original initialization differs')
-            context['legacy']['original'].load_vision(state['model'], disk['vision'], pages)
-            for name, value in state['model'].named_buffers():
-                with torch.no_grad():
-                    value.copy_(disk['buffers'][name].to(state['device']))
-                pages.consume(disk['buffers'][name])
-            # Only named moments move to CUDA; Adam step scalars stay independently owned CPU.
-            optimizer = {'state': {}, 'param_groups': clone(context, disk['optimizer']['param_groups'])}
-            for i, member in disk['optimizer']['state'].items():
-                optimizer['state'][i] = {k: pages.copy(v, 'cpu' if k == 'step' else state['device']) for k, v in member.items()}
-            state['optimizer_object'].load_state_dict(optimizer)
-            del optimizer
-            state['scaler_object'].load_state_dict(disk['scaler'])
-            state['counter'] = step
-            torch.random.set_rng_state(disk['cpu_rng'].clone())
+            state = fresh(context, ident['arm'], ident['device'], initial=disk,
+                          defer_vision_transfer=ident['device'] == 'cuda')
+            with restore_memory_snapshot(context, 'identity'):
+                require(identity(context, state) == ident, 'independent original initialization differs')
+            with restore_memory_snapshot(context, 'strict_load'):
+                context['legacy']['original'].load_vision(state['model'], disk['vision'], pages)
+                for name, value in state['model'].named_buffers():
+                    with torch.no_grad():
+                        value.copy_(disk['buffers'][name].to(value.device))
+                    pages.consume(disk['buffers'][name])
             if state['device'] == 'cuda':
-                torch.cuda.set_rng_state_all([v.clone() for v in disk['cuda_rng']])
-        del disk, pages
-        gc.collect()
+                # Transfer may replace Parameters. Drop CPU bindings before moving
+                # vision, then bind fresh Adam to the transferred four Parameters.
+                del state['optimizer_object'], state['params']
+                with restore_memory_snapshot(context, 'vision_transfer'):
+                    state['model'].to(state['device'])
+                    state['params'], state['optimizer_object'] = optimizer_state(state['model'])
+            # Only named moments move to CUDA; Adam step scalars stay independently owned CPU.
+            with restore_memory_snapshot(context, 'moments_scaler_rng'):
+                optimizer = {'state': {}, 'param_groups': clone(context, disk['optimizer']['param_groups'])}
+                for i in disk['optimizer']['state']:
+                    optimizer['state'][i] = {k: pages.copy(v, 'cpu' if k == 'step' else state['device'])
+                                             for k, v in disk['optimizer']['state'][i].items()}
+                state['optimizer_object'].load_state_dict(optimizer)
+                del optimizer
+                state['scaler_object'].load_state_dict(disk['scaler'])
+                state['counter'] = step
+                torch.random.set_rng_state(disk['cpu_rng'].clone())
+                if state['device'] == 'cuda':
+                    torch.cuda.set_rng_state_all([v.clone() for v in disk['cuda_rng']])
+        with restore_memory_snapshot(context, 'archive_deletion'):
+            del disk, pages
+            gc.collect()
         integrity(context, state, ident)
         require(fingerprint(context, payload(context, state, ident)) == digest, 'strict independent all-state reload differs')
     return state

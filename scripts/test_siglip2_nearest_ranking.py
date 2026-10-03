@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """Bounded stdlib source/stand-in falsifiers; no Torch/native qualification."""
 import ast
-from contextlib import nullcontext
+from contextlib import ExitStack, nullcontext, redirect_stdout
 import copy
 import hashlib
 import importlib.util
+import io
 import json
 import math
 import os
 from pathlib import Path
 import subprocess
 import sys
+import time
+import weakref
 from tempfile import TemporaryDirectory
 from types import ModuleType, SimpleNamespace
 import unittest
@@ -127,6 +130,276 @@ def fake_torch():
     nn.functional = functional
     torch.nn = nn
     return {'torch': torch, 'torch.nn': nn, 'torch.nn.functional': functional}
+
+
+class RestoreFixture:
+    """Tiny metadata-only native boundary doubles; run real fresh/restore/identity.
+
+    No storage is allocated for declared native parameter shapes. Transfer replaces
+    parameter objects; Adam preserves CPU step references as the native loader does.
+    """
+    class Value:
+        dtype = 'torch.float32'
+        requires_grad, grad_fn = False, None
+
+        def __init__(self, value, shape=(), device='cpu'):
+            self.value, self.shape = copy.deepcopy(value), shape
+            self.device = SimpleNamespace(type=device)
+
+        def to(self, device, copy=False):
+            device = device if isinstance(device, str) else device.type
+            if copy or device != self.device.type:
+                result = self.clone()
+                result.device = SimpleNamespace(type=device)
+                return result
+            return self
+
+        def clone(self):
+            return copy.deepcopy(self)
+
+        def detach(self):
+            return self
+
+        def tolist(self):
+            return self.value
+
+        def requires_grad_(self, enabled):
+            self.requires_grad = enabled
+            return self
+
+        def numel(self):
+            return math.prod(self.shape)
+
+        def copy_(self, other):
+            self.value = copy.deepcopy(other.value)
+
+    def __init__(self, case, device, strict_failure=False):
+        self.case, self.device, self.strict_failure = case, device, strict_failure
+        self.events, self.old_bindings = [], []
+        fixture = self
+
+        class Buffer(self.Value):
+            def copy_(self, other):
+                fixture.events.append(('buffer_copy', self.device.type))
+                super().copy_(other)
+
+        class Model:
+            def __init__(self):
+                self.parameters = {**{f'frozen{i}': fixture.Value(0., (1,)) for i in range(444)},
+                    **{n: fixture.Value(0., shape) for n, shape in zip(driver.NAMES, driver.SHAPES, strict=True)}}
+                self.buffers = {'positions': Buffer([0, 1], (2,))}
+                self.config = SimpleNamespace(to_dict=lambda: {'source': 'pinned'})
+
+            def requires_grad_(self, enabled):
+                for value in self.parameters.values():
+                    value.requires_grad_(enabled)
+
+            def named_parameters(self):
+                return self.parameters.items()
+
+            def named_buffers(self):
+                return self.buffers.items()
+
+            def state_dict(self):
+                return self.parameters
+
+            def eval(self):
+                self.training = False
+
+            def to(self, device):
+                fixture.events.append(('transfer', device))
+                if device == 'cuda':
+                    fixture.old_bindings.append([weakref.ref(p) for p in self.parameters.values()])
+                    self.parameters = {n: p.to(device, copy=True) for n, p in self.parameters.items()}
+                    self.buffers = {n: p.to(device, copy=True) for n, p in self.buffers.items()}
+                return self
+
+        class Head:
+            def __init__(self, tensors):
+                self.tensors = copy.deepcopy(tensors)
+
+            def requires_grad_(self, enabled):
+                return self
+
+            def to(self, device):
+                self.tensors = {n: p.to(device) for n, p in self.tensors.items()}
+                return self
+
+            def train(self):
+                return self
+
+            def state_dict(self):
+                return self.tensors
+
+        class Adam:
+            def __init__(self, params, **defaults):
+                self.defaults, self.state = defaults, {}
+                self.param_groups = [{'params': params, **defaults}]
+                fixture.events.append(('adam', params[0].device.type))
+
+            def state_dict(self):
+                return {'state': {i: self.state[p] for i, p in enumerate(self.param_groups[0]['params']) if p in self.state},
+                        'param_groups': [{**self.defaults, 'params': list(range(4))}]}
+
+            def load_state_dict(self, saved):
+                fixture.events.append(('moments', fixture.device))
+                self.state = {self.param_groups[0]['params'][i]: member for i, member in saved['state'].items()}
+
+        class Scaler:
+            def __init__(self, device, init_scale):
+                self.saved = {'scale': init_scale, '_growth_tracker': 0} if device == 'cuda' else {}
+
+            def state_dict(self):
+                return copy.deepcopy(self.saved)
+
+            def load_state_dict(self, saved):
+                fixture.events.append(('scaler', fixture.device))
+                self.saved = copy.deepcopy(saved)
+
+        class Pages:
+            def __init__(self, stream):
+                pass
+
+            def consume(self, value):
+                case.assertEqual(value.device.type, 'cpu')
+
+            def copy(self, value, device='cpu'):
+                result = value.to(device, copy=True)
+                self.consume(value)
+                case.assertIsNot(result, value)
+                return result
+
+        def encode(value):
+            if isinstance(value, self.Value):
+                return ['Tensor', value.dtype, value.shape, value.value]
+            if isinstance(value, dict):
+                return {str(k): encode(v) for k, v in value.items()}
+            if isinstance(value, (tuple, list)):
+                return [encode(v) for v in value]
+            return value
+
+        def fingerprint(value, consumed=None):
+            if consumed:
+                def visit(v):
+                    if isinstance(v, self.Value):
+                        consumed(v)
+                    elif isinstance(v, dict):
+                        for child in v.values():
+                            visit(child)
+                    elif isinstance(v, (tuple, list)):
+                        for child in v:
+                            visit(child)
+                visit(value)
+            return hashlib.sha256(json.dumps(encode(value), sort_keys=True).encode()).hexdigest()
+
+        def load_vision(model, vision, pages):
+            current = next(iter(model.parameters.values())).device.type
+            self.events.append(('strict_load', current))
+            if strict_failure:
+                raise ValueError('strict fixture load failed')
+            case.assertEqual(model.parameters.keys(), vision.keys())
+            for name, value in model.parameters.items():
+                value.copy_(vision[name])
+                pages.consume(vision[name])
+
+        def fresh_source(prior):
+            self.events.append(('source', 'cpu'))
+            return Model(), SimpleNamespace(), ['pinned roles']
+
+        launch = {k: {} for k in ('execution_sha256', 'fitter', 'accepted', 'recipe', 'seed')}
+        initial = {k: {} for k in driver.STATIC_KEYS}
+        initial.update(provenance={'encoder': {'source_proof': {'runtime': {'source': 'pinned'}}}},
+                       head={'weight': self.Value(3.)}, config={'source': 'pinned'},
+                       buffers={'positions': self.Value([0, 1], (2,))}, target=self.Value([0]),
+                       classifier=self.Value(4.), A=self.Value(5.), means={'fixed': self.Value(6.)},
+                       original_rows=self.Value([4]), teachers={'counts': self.Value([1])})
+        source = SimpleNamespace(fresh_source=fresh_source,
+            model_facts=lambda *args: {'source': 'pinned'}, numerical_flags=lambda: {'pinned': True})
+        self.context = {'initial': initial, 'source': {'pinned': True}, 'launch': launch,
+            'flags': {'pinned': True}, 'guards': {}, 'started': time.perf_counter(), 'phase_seconds': {},
+            'old': SimpleNamespace(clone_tree=lambda v, device='cpu': self.clone_tree(v, device)),
+            'legacy': {'source_driver': source, 'prior': {},
+                'selected': {'packages': {}, 'cached': SimpleNamespace(head_from=lambda arm, tensors: Head(tensors))},
+                'original': SimpleNamespace(CheckpointPages=Pages, load_vision=load_vision,
+                    fingerprint=fingerprint, runtime=lambda *args: {'source': 'pinned'})}}
+        self.modules = fake_torch()
+        torch = self.modules['torch']
+        torch.optim = SimpleNamespace(AdamW=Adam)
+        torch.amp = SimpleNamespace(GradScaler=Scaler)
+        torch.random = SimpleNamespace(get_rng_state=lambda: self.Value([1]),
+            set_rng_state=lambda v: self.events.append(('cpu_rng', 'cpu')))
+        torch.cuda = SimpleNamespace(get_rng_state_all=lambda: [self.Value([2])],
+            set_rng_state_all=lambda v: self.events.append(('cuda_rng', 'cuda')), is_initialized=lambda: False)
+        def load(*args, **kwargs):
+            saved = copy.deepcopy(self.disk)
+            self.loaded_steps = [saved['optimizer']['state'][i]['step'] for i in range(4)]
+            return saved
+        torch.load = load
+
+    def clone_tree(self, value, device):
+        if isinstance(value, self.Value):
+            return value.to(device, copy=True)
+        if isinstance(value, dict):
+            return {k: self.clone_tree(v, device) for k, v in value.items()}
+        return copy.deepcopy(value)
+
+    def run(self, directory):
+        with ExitStack() as stack:
+            stack.enter_context(patch.dict(sys.modules, self.modules))
+            output = io.StringIO()
+            stack.enter_context(redirect_stdout(output))
+            # Payload admission/native integrity are separate tested boundaries;
+            # retain the actual complete identity and payload hashes in this fixture.
+            stack.enter_context(patch.object(driver, 'check_payload', side_effect=lambda c, d, i, s:
+                self.case.assertEqual((d['identity'], d['counter']), (i, s))))
+            stack.enter_context(patch.object(driver, 'integrity', side_effect=self.check_bindings))
+            real_identity = driver.identity
+            def identity(context, state):
+                self.events.append(('identity', next(iter(state['model'].parameters.values())).device.type))
+                return real_identity(context, state)
+            stack.enter_context(patch.object(driver, 'identity', side_effect=identity))
+            state = driver.fresh(self.context, 'control', self.device)
+            ident = driver.identity(self.context, state)
+            for name in driver.NAMES:
+                state['model'].parameters[name].value = 7.
+            state['counter'] = 1
+            for _, p in state['params']:
+                state['optimizer_object'].state[p] = {'step': self.Value(1.),
+                    'exp_avg': self.Value(2., p.shape, self.device), 'exp_avg_sq': self.Value(3., p.shape, self.device)}
+            if self.device == 'cuda':
+                state['scaler_object'].saved['_growth_tracker'] = 1
+            self.disk = self.clone_tree(driver.payload(self.context, state, ident), 'cpu')
+            digest = driver.fingerprint(self.context, self.disk)
+            driver.release(self.context, state)
+            self.events.clear()
+            self.old_bindings.clear()
+            output.seek(0)
+            output.truncate()
+            path = Path(directory) / 'fixture.pt'
+            path.write_bytes(b'tiny stand-in archive')
+            sha = hashlib.sha256(path.read_bytes()).hexdigest()
+            self.case.assertLess(len(repr(self.disk).encode()), 16 * 1024**2)
+            result = driver.restore(self.context, path, sha, digest, ident, 1)
+            self.snapshots = [json.loads(line) for line in output.getvalue().splitlines()
+                              if json.loads(line)['event'] == 'NEAREST_RESTORE_MEMORY']
+            self.case.assertEqual(driver.fingerprint(self.context, driver.payload(self.context, result, ident)), digest)
+            return result
+
+    def check_bindings(self, context, state, ident):
+        params = dict(state['model'].named_parameters())
+        self.case.assertEqual(state['device'], self.device)
+        for i, (name, p) in enumerate(state['params']):
+            self.case.assertIs(p, params[name])
+            self.case.assertIs(state['optimizer_object'].param_groups[0]['params'][i], p)
+            step = state['optimizer_object'].state[p]['step']
+            self.case.assertEqual(step.device.type, 'cpu')
+            self.case.assertIsNot(step, self.loaded_steps[i])
+            for key in ('exp_avg', 'exp_avg_sq'):
+                self.case.assertEqual(state['optimizer_object'].state[p][key].device.type, self.device)
+        self.case.assertTrue(all(ref() is None for group in self.old_bindings for ref in group))
+        for value in (state['target'], state['classifier'], state['A'], state['means']['fixed'],
+                      state['teachers']['counts'], state['head_object'].tensors['weight']):
+            self.case.assertEqual(value.device.type, self.device)
 
 
 class NearestRankingTests(unittest.TestCase):
@@ -373,6 +646,88 @@ class NearestRankingTests(unittest.TestCase):
             manifest['resolved_paths'] = ['/outside/image.jpg']
             with self.assertRaises(ValueError):
                 driver.canonical_row(context, state, 0)
+
+
+    def test_restore_cpu_identity_and_strict_load_precede_cuda_transfer(self):
+        started = time.perf_counter()
+        with TemporaryDirectory() as directory:
+            fixture = RestoreFixture(self, 'cuda')
+            state = fixture.run(directory)
+            events = fixture.events
+            self.assertEqual([(v['phase'], v['boundary']) for v in fixture.snapshots],
+                [(phase, boundary) for phase in ('payload_validation', 'payload_hash', 'source_construction',
+                 'identity', 'strict_load', 'vision_transfer', 'moments_scaler_rng', 'archive_deletion')
+                 for boundary in ('begin', 'end')])
+            self.assertIn(('identity', 'cpu'), events)
+            self.assertIn(('strict_load', 'cpu'), events)
+            transfer = events.index(('transfer', 'cuda'))
+            self.assertLess(events.index(('identity', 'cpu')), events.index(('strict_load', 'cpu')))
+            self.assertLess(events.index(('strict_load', 'cpu')), events.index(('buffer_copy', 'cpu')))
+            self.assertLess(events.index(('buffer_copy', 'cpu')), transfer)
+            self.assertLess(transfer, events.index(('adam', 'cuda')))
+            self.assertLess(events.index(('adam', 'cuda')), events.index(('moments', 'cuda')))
+            self.assertLess(events.index(('moments', 'cuda')), events.index(('scaler', 'cuda')))
+            self.assertLess(events.index(('scaler', 'cuda')), events.index(('cpu_rng', 'cpu')))
+            self.assertEqual(events[-1], ('cuda_rng', 'cuda'))
+            state['optimizer_object'].state[state['params'][0][1]]['step'].value = 99.
+            self.assertEqual(fixture.disk['optimizer']['state'][0]['step'].value, 1.)
+        self.assertLess(time.perf_counter() - started, 5)
+
+    def test_restore_cpu_lifecycle_unchanged_and_strict_failure_propagates(self):
+        started = time.perf_counter()
+        with TemporaryDirectory() as directory:
+            fixture = RestoreFixture(self, 'cpu')
+            fixture.run(directory)
+            self.assertEqual(fixture.events, [('source', 'cpu'), ('transfer', 'cpu'), ('adam', 'cpu'),
+                ('identity', 'cpu'), ('strict_load', 'cpu'), ('buffer_copy', 'cpu'), ('moments', 'cpu'), ('scaler', 'cpu'), ('cpu_rng', 'cpu')])
+            fixture = RestoreFixture(self, 'cuda', strict_failure=True)
+            with self.assertRaisesRegex(ValueError, 'strict fixture load failed'):
+                fixture.run(directory)
+            self.assertIn(('strict_load', 'cpu'), fixture.events)
+            self.assertNotIn(('transfer', 'cuda'), fixture.events)
+            self.assertNotIn(('moments', 'cuda'), fixture.events)
+        self.assertLess(time.perf_counter() - started, 5)
+
+
+    def test_restore_only_source_boundary_preserves_complete_other_ast(self):
+        tree = ast.parse(PATH.read_text())
+        tree.body = [node for node in tree.body if not (isinstance(node, ast.FunctionDef) and
+            node.name in {'fresh', 'restore', 'restore_memory_snapshot'})]
+        # Full committed 40426ca3 module AST, excluding only these lifecycle edits.
+        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+                         'f7031f46b323f65f2e77e35a2d51bf67b27786cb99d84f919651b2efc9a87eb6')
+
+    def test_raw_memory_diagnostic_preserves_failure_events_and_propagates_load_error(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            group = root / 'proc-cgroup'
+            group.write_text('0::/unit\n')
+            unit = root / 'unit'
+            unit.mkdir()
+            values = {'memory.current': '123', 'memory.peak': '456', 'memory.max': '8589934592',
+                'memory.swap.current': '0', 'memory.swap.peak': '0', 'memory.swap.max': '0',
+                'memory.events': 'low 0\nhigh 0\nmax 194\noom 0\noom_kill 0',
+                'memory.stat': 'anon 12\nfile 34\nfile_mapped 5'}
+            for name, value in values.items():
+                (unit / name).write_text(value)
+            def diagnostic_path(path):
+                return group if path == '/proc/self/cgroup' else root
+            with patch.object(driver, 'Path', side_effect=diagnostic_path), patch('builtins.print') as logged:
+                with self.assertRaisesRegex(ValueError, 'strict load failed'):
+                    with driver.restore_memory_snapshot({'started': time.perf_counter()}, 'strict_load'):
+                        raise ValueError('strict load failed')
+                self.assertEqual(logged.call_count, 2)
+                rows = [json.loads(call.args[0]) for call in logged.call_args_list]
+                self.assertEqual([row['boundary'] for row in rows], ['begin', 'end'])
+                self.assertTrue(all(call.kwargs['flush'] for call in logged.call_args_list))
+                self.assertTrue(all(row['cgroup']['values'] == values for row in rows))
+                self.assertTrue(all((unit / name).read_text() == value for name, value in values.items()))
+                # Missing diagnostic files cannot turn an original failure into success.
+                (unit / 'memory.stat').unlink()
+                with self.assertRaisesRegex(ValueError, 'strict load failed'):
+                    with driver.restore_memory_snapshot({'started': time.perf_counter()}, 'strict_load'):
+                        raise ValueError('strict load failed')
+                self.assertIn('error', json.loads(logged.call_args.args[0])['cgroup'])
 
     def test_help_optimization_rejection_and_syntax(self):
         ast.parse(PATH.read_text())
