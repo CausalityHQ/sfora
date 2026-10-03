@@ -1,0 +1,10 @@
+{
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "stop": "first original canonical exception OR before native_start",
+  "CPU_seconds": 500,
+  "host_bytes": 8589934592,
+  "swap": 0,
+  "both_locks": true,
+  "source_unchanged": true
+}
