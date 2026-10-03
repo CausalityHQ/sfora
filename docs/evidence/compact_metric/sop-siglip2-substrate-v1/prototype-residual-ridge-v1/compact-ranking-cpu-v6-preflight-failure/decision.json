@@ -1,0 +1,10 @@
+{
+  "verdict": "FAIL_PRE_PYTHON_LAUNCHER_PATH",
+  "session": 98844,
+  "invocation_id": "65a4fb7f8f3240a8a42768cb616607e1",
+  "service_seconds": 0.601,
+  "model_loaded": false,
+  "quality_read": false,
+  "cause": "Root blanket authority filename replacement changed unchanged nearest prerequisite path. Frozen hash guard rejected missing file.",
+  "log_sha256": "9468289139e57e906910334658821017a118cbe1e46137db317f4bab35c93f00"
+}
