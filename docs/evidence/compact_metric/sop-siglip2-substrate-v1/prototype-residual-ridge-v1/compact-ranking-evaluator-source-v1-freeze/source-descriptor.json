@@ -1,0 +1,16 @@
+{
+  "schema": "compact-ranking-evaluator-source-freeze-v1",
+  "root": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v1",
+  "execution_sha256": "2a039bce812b5adde5619b9c792915067b84e4e959c71bd94d0603db323986e8",
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "512c8802270d4a78499b2552d111a10914665624ed3b09f7079fb05fc5712dc9",
+    "test_compact_ranking_evaluation.py": "bc7e06c3c542c5e5ba49a944090458f9808de7f4979b7e55c6984bac06cfd474"
+  },
+  "source_commit": "30e16abb",
+  "fresh_unchanged_stdlib_tests": {
+    "count": 12,
+    "seconds": 5.398,
+    "original_session": 83480
+  },
+  "stop": "No native CPU until both full TRAIN061 endpoints pass resource/parity/current-byte and paired core/whole cost gates. Then one first-stage CPU500; exports300/score500 conditional on accepted prerequisites. No held quality before complete replay/readbacks/costs."
+}
