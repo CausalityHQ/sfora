@@ -1,0 +1,54 @@
+{
+  "verdict": "PASS_ENGINEERING_CONTROL_MECHANICS_ONLY",
+  "session": 78694,
+  "terminal": {
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-mechanics-control-v3/receipt.json",
+      "sha256": "ac8faff3054d967cf16b0fa7f8c4725cb0d5ee7e98c7cc16f79004100717aa9e"
+    },
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v4/mechanics-control-v3.log",
+      "sha256": "ad00272ec3ec56a5b078698251b0bfd7dc35d37e37e94c113fc4696aa639ca56"
+    },
+    "unit": "sfora-so400-compact-ranking-mechanics-control-v3",
+    "invocation_id": "ea4a6004cf5a4d278289394042422663",
+    "service_seconds": 277.804,
+    "native_peak_rss_kib": 4582664,
+    "both_locks_held": true
+  },
+  "host_peak_bytes": 7296319488,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "cuda_peak_bytes": 1940074496,
+  "quality_read": false,
+  "phase_seconds": {
+    "authority": 63.28561587585136,
+    "bundle_dependency_denial": 32.12933971825987,
+    "bundle_image_loading": 0.01591098913922906,
+    "bundle_loader": 30.722710995934904,
+    "bundle_loader_authentication": 16.421335029881448,
+    "bundle_native_forward": 0.8219474866054952,
+    "bundle_oracle": 0.25441636331379414,
+    "bundle_release": 0.2886469131335616,
+    "cache_target_preparation": 2.454481840133667,
+    "gpu_bundle_qualification": 49.110440561082214,
+    "independent_reload": 2.2074233717285097,
+    "origin_guard_promotion": 5.965906623285264,
+    "own_exit_rehash": 16.92926177289337,
+    "post_calibration_api_authentication": 1.0120512931607664,
+    "post_calibration_origin_audit": 6.948001347947866,
+    "post_exit_api_authentication": 0.5978796840645373,
+    "post_exit_origin_audit": 6.699941942002624,
+    "post_run_api_authentication": 0.5514752632007003,
+    "post_run_origin_audit": 6.637514670845121,
+    "save": 1.4358048788271844,
+    "shared_bundle_preparation": 11.038806470111012,
+    "shared_source_preparation": 18.682501474861056,
+    "source_exit_rehash": 39.37561943894252,
+    "update_integrity": 14.614031278528273
+  },
+  "steady_update_median_seconds": 0.8036095257848501,
+  "extra94_updates_seconds_estimate": 75.53929542377591,
+  "train_feasibility": "UNPROVEN; 22.196s service margin versus extra94-update estimate, fewer mechanics reload/save operations do not establish TRAIN300 fit",
+  "next": "Address remaining duplicated whole-exit reads on fresh current-byte boundary before candidate mechanics/TRAIN; retain accepted gate and all old failures"
+}
