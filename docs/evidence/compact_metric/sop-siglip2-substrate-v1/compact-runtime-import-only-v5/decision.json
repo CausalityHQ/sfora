@@ -1,0 +1,15 @@
+{
+  "schema": "compact-lazy-import-diagnostic-v1",
+  "pass": false,
+  "error": {
+    "message": "bundle-only loader attempted external dependency: /home/riomus/group-learning/.venv/lib/python3.13/site-packages/aiohappyeyeballs-2.6.2.dist-info/top_level.txt",
+    "type": "ValueError"
+  },
+  "seconds": 9.618970395065844,
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "model_constructed": false,
+  "images": 0,
+  "quality_read": false,
+  "native_not_in_original_proof": []
+}
