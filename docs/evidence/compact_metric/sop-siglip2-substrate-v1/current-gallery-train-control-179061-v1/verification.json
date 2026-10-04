@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "train",
+  "arm": "control",
+  "service_seconds": 340.157,
+  "invocation_id": "12cb8e60b86f46a0b6f7da797fe60c88",
+  "host_peak_bytes": 7368433664,
+  "rss_kib": 4621380,
+  "unit": "sfora-so400-current-gallery-smooth-ap-train-control-179061-v1",
+  "quality_read": false,
+  "receipt_sha256": "15c8133816847404527ff6564a44e7ab011b77f51075cf7e92dff26dcea15feb",
+  "log_sha256": "a48a06bbfbe9e0daf6b9643f1c0233e171b31514d850d33a4d1092009184d08a"
+}
