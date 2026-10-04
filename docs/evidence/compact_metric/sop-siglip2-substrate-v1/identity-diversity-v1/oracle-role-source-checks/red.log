@@ -1,0 +1,125 @@
+.FFFF
+======================================================================
+FAIL: test_complete_firstB64_old_new_A_C_and_gallery_decomposition (scripts.test_siglip2_identity_diversity.HistoricalGradientOracle.test_complete_firstB64_old_new_A_C_and_gallery_decomposition) (arm='control', seed=179061)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 542, in test_complete_firstB64_old_new_A_C_and_gallery_decomposition
+    old = values(run(64, historical=True))
+                 ~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 497, in run
+    result = namespace['objective'](micro, **kwargs)
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/train_siglip2_identity_diversity.py", line 1349, in objective
+    raw = raw_api(context,query,state['views'][view][anchors])
+  File "<string>", line 34, in raw_features
+  File "<string>", line 20, in fullfeature_raw_features
+  File "<string>", line 3, in require
+ValueError: control residual must be frozen exactzero
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 544, in test_complete_firstB64_old_new_A_C_and_gallery_decomposition
+    self.fail('complete archived oracle rejected trainable C: ' + str(error))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: complete archived oracle rejected trainable C: control residual must be frozen exactzero
+
+======================================================================
+FAIL: test_complete_firstB64_old_new_A_C_and_gallery_decomposition (scripts.test_siglip2_identity_diversity.HistoricalGradientOracle.test_complete_firstB64_old_new_A_C_and_gallery_decomposition) (arm='control', seed=179069)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 542, in test_complete_firstB64_old_new_A_C_and_gallery_decomposition
+    old = values(run(64, historical=True))
+                 ~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 497, in run
+    result = namespace['objective'](micro, **kwargs)
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/train_siglip2_identity_diversity.py", line 1349, in objective
+    raw = raw_api(context,query,state['views'][view][anchors])
+  File "<string>", line 34, in raw_features
+  File "<string>", line 20, in fullfeature_raw_features
+  File "<string>", line 3, in require
+ValueError: control residual must be frozen exactzero
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 544, in test_complete_firstB64_old_new_A_C_and_gallery_decomposition
+    self.fail('complete archived oracle rejected trainable C: ' + str(error))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: complete archived oracle rejected trainable C: control residual must be frozen exactzero
+
+======================================================================
+FAIL: test_complete_firstB64_old_new_A_C_and_gallery_decomposition (scripts.test_siglip2_identity_diversity.HistoricalGradientOracle.test_complete_firstB64_old_new_A_C_and_gallery_decomposition) (arm='candidate', seed=179061)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 542, in test_complete_firstB64_old_new_A_C_and_gallery_decomposition
+    old = values(run(64, historical=True))
+                 ~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 497, in run
+    result = namespace['objective'](micro, **kwargs)
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/train_siglip2_identity_diversity.py", line 1349, in objective
+    raw = raw_api(context,query,state['views'][view][anchors])
+  File "<string>", line 34, in raw_features
+  File "<string>", line 20, in fullfeature_raw_features
+  File "<string>", line 3, in require
+ValueError: control residual must be frozen exactzero
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 544, in test_complete_firstB64_old_new_A_C_and_gallery_decomposition
+    self.fail('complete archived oracle rejected trainable C: ' + str(error))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: complete archived oracle rejected trainable C: control residual must be frozen exactzero
+
+======================================================================
+FAIL: test_complete_firstB64_old_new_A_C_and_gallery_decomposition (scripts.test_siglip2_identity_diversity.HistoricalGradientOracle.test_complete_firstB64_old_new_A_C_and_gallery_decomposition) (arm='candidate', seed=179069)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 542, in test_complete_firstB64_old_new_A_C_and_gallery_decomposition
+    old = values(run(64, historical=True))
+                 ~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 497, in run
+    result = namespace['objective'](micro, **kwargs)
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/train_siglip2_identity_diversity.py", line 1349, in objective
+    raw = raw_api(context,query,state['views'][view][anchors])
+  File "<string>", line 34, in raw_features
+  File "<string>", line 20, in fullfeature_raw_features
+  File "<string>", line 3, in require
+ValueError: control residual must be frozen exactzero
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-identity-diversity-oracle-roles-20261004/scripts/test_siglip2_identity_diversity.py", line 544, in test_complete_firstB64_old_new_A_C_and_gallery_decomposition
+    self.fail('complete archived oracle rejected trainable C: ' + str(error))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: complete archived oracle rejected trainable C: control residual must be frozen exactzero
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.906s
+
+FAILED (failures=4)
+Command exited with non-zero status 1
+	Command being timed: "timeout 120s python3 -m unittest scripts.test_siglip2_identity_diversity.HistoricalGradientOracle.test_archived_control_gate_and_zeroC_candidate_derivative scripts.test_siglip2_identity_diversity.HistoricalGradientOracle.test_complete_firstB64_old_new_A_C_and_gallery_decomposition"
+	User time (seconds): 0.85
+	System time (seconds): 0.13
+	Percent of CPU this job got: 76%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.30
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 52692
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 48966
+	Voluntary context switches: 21
+	Involuntary context switches: 156
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 216
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

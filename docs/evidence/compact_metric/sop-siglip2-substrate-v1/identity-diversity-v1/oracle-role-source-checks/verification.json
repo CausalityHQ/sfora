@@ -1,0 +1,13 @@
+{
+  "source_commit": "1e0bfa4b039a7069516ed4da767e24e99cd3e8cf",
+  "tests": 21,
+  "wall_seconds": 4.0,
+  "peak_rss_kib": 72144,
+  "swaps": 0,
+  "native_qualified": false,
+  "logs": {
+    "green.log": "b772b3ba0739016ae8755f3b953fa95fe2cbe7933afa55343c91a81b85e411e8",
+    "red.log": "5f1a84b4f6f93c1bd55ad3e006f54f662569281d11240fda7f44b02fb06328f1",
+    "final-stdlib.log": "dca29751c0aa0a7d84889e1d52224e599a32c43b8788c40deab72999689fde08"
+  }
+}
