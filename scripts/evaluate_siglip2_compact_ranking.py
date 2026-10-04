@@ -558,7 +558,8 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
   'util/_print_versions.py util/_tester.py util/_validators.py util/version/__init__.py ').split()},
  'python_dateutil':{'dateutil/'+n for n in (  '__init__.py _common.py _version.py parser/__init__.py parser/_parser.py parser/isoparser.py '
 
-  'relativedelta.py tz/__init__.py tz/_common.py tz/_factories.py tz/tz.py tz/win.py ').split()},
+  'relativedelta.py tz/__init__.py tz/_common.py tz/_factories.py tz/tz.py tz/win.py '
+  'zoneinfo/__init__.py zoneinfo/dateutil-zoneinfo.tar.gz ').split()},
  'six':{'six.py'},
  'narwhals':{'narwhals/'+n for n in (  '__init__.py _compliant/__init__.py _compliant/any_namespace.py _compliant/column.py '
 

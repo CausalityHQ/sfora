@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import py_compile
 import sys
+import tarfile
 import tempfile
 from types import FunctionType, SimpleNamespace
 import unittest
@@ -189,7 +190,7 @@ SCIENTIFIC_IMPORTS = {
     'pandas/compat/pyarrow.py':'import pyarrow\nimport pyarrow.compute\n',
     'pandas/_libs/__init__.py':'from . import tslibs\n',
     # Simulate the three original native initializer dependencies without loading a native.
-    'pandas/_libs/tslibs/__init__.py':'from .parsing import value\nimport dateutil.parser\nimport dateutil.tz\nimport dateutil.relativedelta\n',
+    'pandas/_libs/tslibs/__init__.py':'from .parsing import value\nimport dateutil.parser\nimport dateutil.tz\nimport dateutil.relativedelta\nzone = dateutil.tz.tz.gettz("Etc/UTC")\n',
     'dateutil/__init__.py':'from . import _version\n',
     'dateutil/_version.py':'',
     'dateutil/parser/__init__.py':'from . import _parser, isoparser\n',
@@ -198,9 +199,16 @@ SCIENTIFIC_IMPORTS = {
     'dateutil/relativedelta.py':'import six\nfrom . import _common\n',
     'dateutil/_common.py':'',
     'dateutil/tz/__init__.py':'from . import tz\n',
-    'dateutil/tz/tz.py':'import six\nfrom . import _common, _factories\n',
+    'dateutil/tz/tz.py':
+        'import six\nfrom . import _common, _factories\n'
+        'def gettz(name):\n    from dateutil.zoneinfo import get_zonefile_instance\n    return get_zonefile_instance()\n',
     'dateutil/tz/_common.py':'import six\n',
     'dateutil/tz/_factories.py':'',
+    'dateutil/zoneinfo/__init__.py':
+        'from io import BytesIO\nfrom tarfile import TarFile\nfrom pkgutil import get_data\nfrom dateutil.tz import value\n'
+        'def get_zonefile_instance():\n'
+        '    with TarFile.open(fileobj=BytesIO(get_data(__name__, "dateutil-zoneinfo.tar.gz"))) as archive:\n'
+        '        return archive.extractfile("Etc/UTC").read()\n',
     'six.py':'',
     'narwhals/__init__.py':'from . import dataframe, series\n',
     'narwhals/dataframe.py':'from . import dtypes\n',
@@ -351,6 +359,11 @@ class PortableRuntimeFixture:
                     for n,imports in SCIENTIFIC_IMPORTS.items() if n.split('/')[0].removesuffix('.py')==package}
             examples['scikit_learn'].update({'sklearn/utils/_repr_html/'+n+'.css':b'/* pinned definition-time style */'
                 for n in ('estimator','params','features')})
+            stream=io.BytesIO();raw=b'pinned UTC archive member'
+            with tarfile.open(fileobj=stream,mode='w:gz') as archive:
+                entry=tarfile.TarInfo('Etc/UTC');entry.size=len(raw)
+                archive.addfile(entry,io.BytesIO(raw))
+            examples['python_dateutil']['dateutil/zoneinfo/dateutil-zoneinfo.tar.gz']=stream.getvalue()
         for distribution in examples:self.metadata_versions.setdefault(distribution,'1.0')
         self.extra_sources={};self.extra_records={};self.natives=[self.native]
         for distribution in examples:
@@ -996,22 +1009,24 @@ class EvaluationTests(unittest.TestCase):
 
     def test_scientific_runtime_inventory_is_finite(self):
         counts={'scipy':409,'scikit_learn':109,'joblib':38,'threadpoolctl':1,'pandas':250,
-            'python_dateutil':12,'six':1,'narwhals':56,'psutil':5,'pyarrow':9,'rich':54}
+            'python_dateutil':13,'six':1,'narwhals':56,'psutil':5,'pyarrow':9,'rich':54}
+        assets={'sklearn/utils/_repr_html/'+n+'.css' for n in ('estimator','params','features')}
+        assets.add('dateutil/zoneinfo/dateutil-zoneinfo.tar.gz')
         for distribution,count in counts.items():
             paths=e.RUNTIME_SOURCES[distribution]
             self.assertEqual(sum(n.endswith('.py') for n in paths),count)
             self.assertTrue(all('..' not in Path(n).parts and not Path(n).is_absolute() for n in paths))
-            self.assertTrue(all(n.endswith(('.py','.css')) for n in paths))
+            self.assertTrue(all(n.endswith('.py') or n in assets for n in paths))
         selected=set().union(*(e.RUNTIME_SOURCES[d] for d in counts))
-        self.assertEqual({n for n in selected if n.endswith('.css')},
-            {'sklearn/utils/_repr_html/'+n+'.css' for n in ('estimator','params','features')})
+        self.assertEqual({n for n in selected if not n.endswith('.py')},assets)
         self.assertTrue(set(SCIENTIFIC_IMPORTS)<=selected)
         self.assertTrue({'scipy/_external/array_api_compat/numpy/fft.py',
             'sklearn/externals/array_api_compat/numpy/fft.py'}<=selected)
         forbidden={'sklearn/cluster/__init__.py','sklearn/ensemble/__init__.py',
             'sklearn/datasets/__init__.py','scipy/datasets/__init__.py','scipy/io/__init__.py',
             'pandas/plotting/_matplotlib/__init__.py','pandas/_version.py','dateutil/rrule.py',
-            'dateutil/zoneinfo/__init__.py','narwhals/_arrow/dataframe.py','narwhals/_pandas_like/dataframe.py',
+            'dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz',
+            'narwhals/_arrow/dataframe.py','narwhals/_pandas_like/dataframe.py',
             'rich/markdown.py','rich/syntax.py','pyarrow/parquet/__init__.py'}
         self.assertFalse(selected & forbidden)
         for distribution in ('markdown_it_py','mdurl','pygments','tzdata'):
@@ -1032,15 +1047,20 @@ class EvaluationTests(unittest.TestCase):
                 forbidden=[f.site/n for n in ('sklearn/resume.pt','scipy/optimizer.pt','pandas/teachers.npy',
                     'sklearn/cluster/__init__.py','scipy/io/__init__.py','scipy/sparse/csgraph/_optional.py',
                     'pandas/plotting/_matplotlib/__init__.py',
+                    'dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz',
                     'narwhals/_arrow/dataframe.py','rich/markdown.py','pyarrow/parquet/__init__.py',
                     'sklearn/utils/_repr_html/estimator.js','scipy/foreign.so')]+[root/'foreign.py',root/'proc/stat']
                 for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
                 # Extra rows in an original RECORD still confer no optional code/native access.
-                record=f.extra_records['scipy'];raw=forbidden[-3].read_bytes()
-                record.write_text(record.read_text()+'scipy/foreign.so,sha256='+
-                    base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('=')+','+str(len(raw))+'\n')
-                h=hashlib.sha256(record.read_bytes()).hexdigest()
-                f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                for distribution,names in (('scipy',('scipy/foreign.so',)),
+                        ('python_dateutil',('dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz'))):
+                    record=f.extra_records[distribution]
+                    for name in names:
+                        raw=(f.site/name).read_bytes()
+                        record.write_text(record.read_text()+name+',sha256='+
+                            base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('=')+','+str(len(raw))+'\n')
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
                 originals=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
                 original_before=copy.deepcopy(originals);required_before=dict(f.context['required_guards'])
                 natives={name:SimpleNamespace(value=137,__file__=str(f.site/path),
@@ -1052,6 +1072,10 @@ class EvaluationTests(unittest.TestCase):
                         with patch.dict(sys.modules,natives),f.boundary():
                             loaded=module('sklearn',f.site/'sklearn/__init__.py') if direct_loader else importlib.import_module('sklearn')
                             self.assertEqual((loaded.value,loaded.marker),(137,'source'))
+                            self.assertEqual(sys.modules['pandas._libs.tslibs'].zone,b'pinned UTC archive member')
+                            archive=f.site/'dateutil/zoneinfo/dateutil-zoneinfo.tar.gz'
+                            self.assertEqual(archive.read_bytes(),f.extra_sources[archive])
+                            with self.assertRaisesRegex(ValueError,'attempted write'):archive.write_bytes(b'changed')
                             importlib.import_module('sklearn.metrics')
                             for path,raw in sources.items():
                                 name=str(path.relative_to(f.site)).removesuffix('.py').replace('/','.').removesuffix('.__init__')
@@ -1063,7 +1087,8 @@ class EvaluationTests(unittest.TestCase):
                                 with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
                             for path in (*forbidden,*(f.extra_records[d] for d in SCIENTIFIC_DISTRIBUTIONS)):
                                 with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
-                            for name in ('sklearn.cluster','scipy.io','scipy.sparse.csgraph._optional','rich.markdown'):
+                            for name in ('sklearn.cluster','scipy.io','scipy.sparse.csgraph._optional',
+                                    'dateutil.zoneinfo.rebuild','rich.markdown'):
                                 with self.assertRaisesRegex(ValueError,'external dependency'):importlib.import_module(name)
                 # The complete inventory, including modules absent from the small graph,
                 # has been authenticated to the fixture's original RECORD bytes.
@@ -1074,7 +1099,7 @@ class EvaluationTests(unittest.TestCase):
                 self.assertEqual(originals,original_before);self.assertEqual(f.context['required_guards'],required_before)
                 foreign=SimpleNamespace(__file__=str(forbidden[-2]),__spec__=SimpleNamespace(origin=str(forbidden[-2])))
                 for name in ('sklearn.utils.validation','scipy.stats._stats_py','scipy.sparse.csgraph._validation','pandas.compat.pyarrow',
-                        'dateutil.parser._parser','narwhals.stable.v2','psutil._pslinux','rich.console'):
+                        'dateutil.parser._parser','dateutil.zoneinfo','narwhals.stable.v2','psutil._pslinux','rich.console'):
                     with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
                         with f.boundary():pass
         finally:
@@ -1087,6 +1112,7 @@ class EvaluationTests(unittest.TestCase):
             f=PortableRuntimeFixture(Path(directory),scientific=True)
             paths=[f.site/n for n in ('sklearn/utils/validation.py','scipy/stats/_stats_py.py','scipy/sparse/csgraph/_validation.py',
                 'pandas/compat/pyarrow.py','dateutil/parser/_parser.py','narwhals/stable/v2/__init__.py',
+                'dateutil/zoneinfo/__init__.py','dateutil/zoneinfo/dateutil-zoneinfo.tar.gz',
                 'joblib/externals/loky/process_executor.py','psutil/_pslinux.py','pyarrow/compute.py',
                 'rich/console.py','threadpoolctl.py','six.py','sklearn/utils/_repr_html/estimator.css')]
             for cached in (False,True):
@@ -1101,30 +1127,33 @@ class EvaluationTests(unittest.TestCase):
                             with f.boundary():pass
                     finally:path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
             f.context.pop('portable_audits',None)
-            record=f.extra_records['scipy'];record_raw=record.read_bytes();record_sha=f.context['required_guards'][str(record)]
-            source='scipy/sparse/csgraph/_validation.py'
-            for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row','wrong_hash','wrong_size'):
-                guards=dict(f.context['guards']);required=dict(f.context['required_guards'])
-                if case=='missing_guard':f.context['required_guards'].pop(str(record))
-                elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
-                elif case=='mutated_record':record.write_bytes(record_raw+b'\n')
-                elif case=='foreign_record':
-                    foreign=f.site.parent/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True)
-                    foreign.write_bytes(record_raw);f.context['required_guards'].pop(str(record))
-                    f.context['guards'][str(foreign)]=f.context['required_guards'][str(foreign)]=record_sha
-                else:
-                    rows=list(csv.reader(record_raw.decode().splitlines()));row=next(r for r in rows if r[0]==source)
-                    if case=='missing_row':rows.remove(row)
-                    elif case=='wrong_hash':row[1]='sha256='+'A'*43
-                    else:row[2]='999'
-                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
-                    h=hashlib.sha256(record.read_bytes()).hexdigest()
-                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
-                try:
-                    with self.subTest(record=case),self.assertRaises(ValueError):
-                        with f.boundary():pass
-                finally:
-                    record.write_bytes(record_raw);f.context['guards']=guards;f.context['required_guards']=required
+            for distribution,source in (('scipy','scipy/sparse/csgraph/_validation.py'),
+                    ('python_dateutil','dateutil/zoneinfo/__init__.py'),
+                    ('python_dateutil','dateutil/zoneinfo/dateutil-zoneinfo.tar.gz')):
+                record=f.extra_records[distribution];record_raw=record.read_bytes();record_sha=f.context['required_guards'][str(record)]
+                for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row','wrong_hash','wrong_size'):
+                    guards=dict(f.context['guards']);required=dict(f.context['required_guards'])
+                    if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                    elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                    elif case=='mutated_record':record.write_bytes(record_raw+b'\n')
+                    elif case=='foreign_record':
+                        foreign=f.site.parent/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True,exist_ok=True)
+                        foreign.write_bytes(record_raw);f.context['required_guards'].pop(str(record))
+                        f.context['guards'][str(foreign)]=f.context['required_guards'][str(foreign)]=record_sha
+                    else:
+                        rows=list(csv.reader(record_raw.decode().splitlines()));row=next(r for r in rows if r[0]==source)
+                        if case=='missing_row':rows.remove(row)
+                        elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                        else:row[2]='999'
+                        record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                        h=hashlib.sha256(record.read_bytes()).hexdigest()
+                        f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                    try:
+                        with self.subTest(source=source,record=case),self.assertRaises(ValueError):
+                            with f.boundary():pass
+                    finally:
+                        record.write_bytes(record_raw);f.context['guards']=guards;f.context['required_guards']=required
+            record=f.extra_records['scipy'];record_raw=record.read_bytes()
             native=f.site/SCIENTIFIC_NATIVE_IMPORTS['scipy.sparse.csgraph._tools']
             original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
             for case in ('unobserved','original_hash','required_guard','record_hash','record_size'):
