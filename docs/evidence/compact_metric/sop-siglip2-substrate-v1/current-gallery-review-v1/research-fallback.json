@@ -1,0 +1,403 @@
+{
+  "group": "438b889e86184c80",
+  "reviewer": {
+    "role": "research_critic",
+    "id": "4b652f28f7454623",
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "fallbacks": [
+      {
+        "provider": "claude",
+        "model": "claude-opus-5-5"
+      },
+      {
+        "provider": "codex",
+        "model": "gpt-6.1-sol"
+      }
+    ],
+    "effort": "",
+    "agent": "sfora/emafactorial",
+    "cwd": "/home/rb/worktrees/sfora-positive-causality",
+    "status": "completed",
+    "runner_started": true,
+    "started_at": 1791120582,
+    "timeout_seconds": 1200,
+    "deadline_at": 1791121782,
+    "budget_usd": null,
+    "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only result-gated decision at Sfora /home/rb/worktrees/sfora-positive-causality HEAD e14ef13e. No edits/native/Torch/GPU/jobs/children/consultations/held quality reads. Evidence docs/inshop_image_anchor_smooth_ap_plan_2026-10-04.md and docs/evidence/compact_metric/sop-siglip2-substrate-v1/image-anchor-first-selection-score-v2/{verification,receipt}.json; prior image-anchor-review-v1 and smooth-ap first score evidence. New terminal KILL on previously observed InShop TRAINselection1734q1715g498: fresh active prototype+SmoothAP control R1 .9642445213379469/AP .8157304936790067; canonical per-imageT+sameSmoothAP candidate sameR1/AP .815641569616026. Acceptedconcat .9648212226066898/.8177754035543956. New recipe no069/VAL. Native integrity/mechanics/reload/full-state/export/sourceconcat replay passed; fresh costs whole1.01953164/core1.02035445<=1.50. Public latency unmeasured, overall protocol-matched SOP+InShop quality AND speed remains mandatory. Numerous readout/loss/target tweaks already failed; negative closes recipe not architecture. Need ONE concrete next intervention at responsible representation/supervision layer with path to useful trained model, not theory/probe sequence or another unconstrained sweep. Candidate hypothesis for critique: accepted concat loses retrieval structure when fitting frozen features; stop changing targets in same readout space and adapt a bounded last vision block from preserved accepted concat using existing admitted native training/resource machinery and TRAIN-only actual nearest ranking supervision. Inspect actual compact/nearest trainer and prior late-dense/role-matched evidence BEFORE asserting encoder not tried; distinguish it from archived failed adaptations. Either accept cheapest causally distinct encoder/supervision intervention with exact active matched control, preserved useful initialization/packed quality, small decisive TRAIN gate and resource/cost exposure OR reject and choose exactly one evidence-supported alternative. Need reasoned representation cause versus merely neutral .0089pp AP effect; no universal architecture KILL. Enumerate exact reuse, source/gradient/native mechanics/export prerequisites; minimize work via accepted authority/runtime/caps (CPU500, mechanics/train existing, export900, host8GiB/swap0/events0/CUDA<10GB/bothlocks), never weaken scientific floors or fresh<=1.50 costs. Preserve per-stage selection rules, no official/VAL reads until eligible. Recommend GO/KILL for a bounded intervention and one fast falsifier. Root independently verifies both labelled reviews; do not propose new loss grid, scaling estimate as measurement, fullsuite or serving polish.",
+    "prompt_sha256": "fcf397a61e44024c8c1770a43928280cb70f4153b635e78404ee17b858e7e080",
+    "prompt_bytes": 3040,
+    "fingerprint": "3104b6c49164ff4ec8e418d85bad7d0e3ed81305edbb3fa13e48fb8b6649c40d",
+    "evidence": {
+      "git_commit": "e14ef13e7309c9fe40fab7f08c2b507761d022a5",
+      "git_branch": "master",
+      "git_dirty": true,
+      "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+      "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+      "worktree_evidence_truncated": false,
+      "active_goal": {
+        "id": "goal-1790540789-1790540789754989478-2322852",
+        "agent": "sfora/emafactorial",
+        "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+        "status": "queued",
+        "revision": 1,
+        "actor": "operator",
+        "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+        "created_at": 1790540789,
+        "updated_at": 1790540789
+      }
+    },
+    "previous_fingerprint": "824323f47a8cc52f674e131fbaa1b8c32dd4ea717d58eedb5233938014fd372a",
+    "reused": false,
+    "critique_id": "438b889e86184c80",
+    "critique_role": "research_critic",
+    "systemd_unit": "devbox-consult-4b652f28f7454623.service",
+    "pid": 1582006,
+    "pgid": 1582006,
+    "attempt": 2,
+    "attempts": [
+      {
+        "provider": "claude",
+        "model": "claude-opus-5-5"
+      },
+      {
+        "provider": "codex",
+        "model": "gpt-6.1-sol"
+      }
+    ],
+    "attempt_history": [
+      {
+        "provider": "claude",
+        "model": "claude-opus-5-5",
+        "budget_usd": 4,
+        "timeout_seconds": 1200,
+        "started_at": 1791120582,
+        "effort": "xhigh",
+        "effort_source": "jev"
+      },
+      {
+        "provider": "codex",
+        "model": "gpt-6.1-sol",
+        "budget_usd": null,
+        "timeout_seconds": 1197,
+        "started_at": 1791120585
+      }
+    ],
+    "exit_code": 0,
+    "finished_at": 1791121222,
+    "event_cursor": 91,
+    "events": [
+      {
+        "seq": 68,
+        "at": 1791120836,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 69,
+        "at": 1791120837,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 70,
+        "at": 1791120945,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 71,
+        "at": 1791120945,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 72,
+        "at": 1791120945,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 73,
+        "at": 1791120947,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 74,
+        "at": 1791120947,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 75,
+        "at": 1791120947,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 76,
+        "at": 1791120959,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 77,
+        "at": 1791120966,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Web search started"
+      },
+      {
+        "seq": 78,
+        "at": 1791120968,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Web search completed"
+      },
+      {
+        "seq": 79,
+        "at": 1791120968,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 80,
+        "at": 1791120968,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 81,
+        "at": 1791120986,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Web search started"
+      },
+      {
+        "seq": 82,
+        "at": 1791120988,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Web search completed"
+      },
+      {
+        "seq": 83,
+        "at": 1791120988,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 84,
+        "at": 1791120988,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 85,
+        "at": 1791121056,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Web search started"
+      },
+      {
+        "seq": 86,
+        "at": 1791121057,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Web search completed"
+      },
+      {
+        "seq": 87,
+        "at": 1791121057,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 88,
+        "at": 1791121060,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 89,
+        "at": 1791121120,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 90,
+        "at": 1791121221,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 91,
+        "at": 1791121221,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ],
+    "events_truncated": true,
+    "provider_events": {
+      "claude": [
+        {
+          "seq": 1,
+          "at": 1791120582,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation attempt",
+          "detail": "claude-opus-5-5 · $4 cap · 1200s remaining"
+        },
+        {
+          "seq": 2,
+          "at": 1791120582,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Reviewer thinking applied",
+          "detail": "claude-opus-5-5 / xhigh (jev)",
+          "effort": "xhigh",
+          "model": "claude-opus-5-5",
+          "source": "jev"
+        },
+        {
+          "seq": 3,
+          "at": 1791120582,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation started"
+        },
+        {
+          "seq": 4,
+          "at": 1791120584,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Provider reported an error",
+          "detail": "success"
+        },
+        {
+          "seq": 5,
+          "at": 1791120585,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Provider attempt exited",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 6,
+          "at": 1791120585,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Provider unavailable; switching fallback",
+          "detail": "codex"
+        }
+      ],
+      "codex": [
+        {
+          "seq": 84,
+          "at": 1791120988,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 85,
+          "at": 1791121056,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 86,
+          "at": 1791121057,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 87,
+          "at": 1791121057,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 88,
+          "at": 1791121060,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 89,
+          "at": 1791121120,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 90,
+          "at": 1791121221,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 91,
+          "at": 1791121221,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ]
+    },
+    "partial_result": "**Research critic: reject the proposed last-block escalation for this next trial. Conditional GO for exactly one alternative: SmoothAP against the current canonical TRAIN gallery, with gradients through both retrieval roles.** This tests a demonstrated supervision mismatch while preserving the useful initialization and existing serving architecture.\n\nThe new result supports a recipe KILL, not a representation diagnosis. Image anchoring leaves R1 equal to the active control and changes AP by −0.00889241 percentage points; both remain below accepted concat. The [verified receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/image-anchor-first-selection-score-v2/verification.json) establishes that outcome. It does not establish lost feature information, insufficient capacity, catastrophic forgetting, or prototype attraction as the cause. Positive initial regression/ranking alignment and the unchanged prior diagnostic also argue against claiming a demonstrated conflict mechanism.\n\nEncoder adaptation has already been attempted:\n\n| Prior intervention | Evidence | Implication |\n|---|---|---|\n| Accepted-concat final MLP | Exactly four tensors, 9,921,872 trainable scalars; real updates ran. Both mechanics attempts failed resource qualification, with no eligible quality result. | “Encoder not tried” is false; encoder utility remains unknown. |\n| PE late-dense adaptation | Opening blocks10–11 harmed both packed metrics across two continuation seeds. | Adverse evidence for that allocation/source/objective, not every encoder update. |\n| PE role-matched SmoothAP | Changed opposite-role masks; fixed quality gate failed. Gallery bank remained detached. | It did not test the proposed connected current-gallery objective. |\n\nThe final-MLP [terminal decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/nearest-ranking-mechanics-control-v2/decision.json) records 8GiB peak and 378 memory-limit events. Longer current deadlines cannot repair that memory failure. Opening more of the last block would also introduce another allocation choice without causal evidence. The [late-dense](/home/rb/worktrees/sfora-positive-causality/docs/inshop_late_dense_adaptation_result_2026-09-30.md) and [role-matched](/home/rb/worktrees/sfora-positive-causality/docs/inshop_role_matched_result_2026-09-30.md) negatives remain intact.\n\nThe cheaper alternative addresses a concrete discrepancy in the [current loss](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:697):\n\n\\[\ns^{train}_{ij}=\\langle u_A(x_i),u_{A_0}(x_j)\\rangle,\n\\qquad\ns^{serve}_{ij}=\\langle u_A(x_i),u_A(x_j)\\rangle.\n\\]\n\nTraining moves the query against fixed accepted-concat teachers. Serving moves both query and gallery through the learned model. At initialization the scores coincide, but their derivatives differ: the serving geometry includes a gallery contribution missing from the current objective. Thus frozen-feature capacity has not been isolated as the bottleneck.\n\nThis is a structural argument, **not evidence that the mismatch caused the observed loss**. SmoothAP has established precedent as an end-to-end ranking objective; memory-based alternatives rely on approximate historical embeddings and measured slow drift. Neither precedent guarantees improvement here. [SmoothAP paper](https://arxiv.org/html/2007.12163), [Cross-Batch Memory paper](https://openaccess.thecvf.com/content_CVPR_2020/html/Wang_Cross-Batch_Memory_for_Embedding_Learning_CVPR_2020_paper.html).\n\nFreeze this single intervention:\n\n- **Initialization:** both arms start from authenticated accepted concat `A0`, checkpoint `b702e038…`, complete original encoder/head/classifier/means/processor. Fresh optimizer, scaler and RNG; no failed continuation initializes either arm.\n- **Active control:** original prototype regression plus coefficient-1 fixed-gallery SmoothAP.\n- **Candidate:** identical prototype regression and SmoothAP arithmetic, but gallery vectors are `normalize(raw_A(canonical TRAIN features))`, computed at the current pre-update `A`. Keep their graph connected to the same `A`.\n- Preserve `A[128,160]` as the sole trainable tensor, both original cached views, all6355 canonical gallery rows, all-positive membership, original-image exclusion, singleton regression-only behavior, temperature `.01`, common original `e0`, regression denominator `128*e0`, ranking denominator `2K`, micro16 accumulation, optimizer settings, numerical flags and fixed128 schedules179061/179069.\n- Rebuild the current gallery graph for each microbatch and release it after backward. Do not introduce a persistent stale queue, gallery sampling, top-k negatives, role masks, another regression target, or another loss.\n\nBoth gallery freshness and its gradient connection define this one objective. A refresh-only detached bank would be a different experiment. The archived [role-matched implementation](/home/rb/worktrees/sfora-positive-causality/scripts/role_matched_bank_rank.py:138) explicitly detaches the gallery; its negative therefore remains relevant adverse context without being an exact duplicate.\n\n**One fast falsifier:** integrate a gradient-decomposition witness into the single CPU qualification, using each seed’s already fixed first B64 and both views. At `A0`, independently instantiate query and gallery coefficient roles with identical values. Require:\n\n\\[\ng_{\\mathrm{candidate}}-g_{\\mathrm{active}}\n=g_{\\mathrm{gallery}},\n\\qquad\ng_{\\mathrm{candidate}}=g_{\\mathrm{query}}+g_{\\mathrm{gallery}}\n\\]\n\nbefore clipping and AdamW. Require matched initial loss/score values within existing arithmetic tolerances, finite nonzero gallery ranking contribution, full64 versus accumulated micro16 agreement, and the existing nonnearest-positive witness. A detached-gallery mutant must fail the witness. Failure closes this recipe without changing batches or constants. Passing establishes a distinct implementation, not useful quality.\n\nThe prerequisites and reuse should remain narrow:\n\n1. **Source and authority:** reuse accepted concat admission, original caches and mappings, teacher/prototype construction, current runtime closure, byte scheduler and native exact-four authority. Freeze prospective objective/schema/source identities; never amend historical receipts.\n2. **State:** retain complete `A`, moments, scaler, counters, schedules, RNG, numerical flags and immutable source state. The connected gallery is ephemeral and reconstructed from restored `A`; bind this rule explicitly.\n3. **Mechanics:** new bytes require qualification and both discarded17 versus independent8+9 complete replay, strict reload, frozen-complement checks, mutation/substitution negatives and uncached exits.\n4. **Exports:** reuse the admitted portable bundle and sequential independent B32 two-pass export machinery, including tails6/19, TRAINmicro16 witnesses, raw/unit/packed parity, wire readback and archived source/concat replay. The original448 vision tensors remain frozen.\n5. **Resources and costs:** CPU500, mechanics/TRAIN600, export900, score500; host≤8GiB, swap0/events0, CUDA<10GB, both locks, sequential original jobs. Candidate gallery forwards and backward belong in charged core. Obtain fresh cold active-control128 and candidate128 measurements; both whole/core ratios must pass≤1.50. Archived timings and tensor-size estimates admit nothing.\n\nFeasibility remains unmeasured. The earlier CPU qualification had only about214MiB headroom, so release qualification graphs before inference construction. This alternative avoids another trainable vision allocation and image-training path, but still must earn its resource and cost PASS.\n\nThe decisive usefulness test remains the unchanged first TRAIN selection gate: positive R1/nonnegative AP versus active control, source floors, R1 strictly above `.9648212226066898`, and AP≥`.8177754035543956`. Failure stops before069 and VAL. Only CONTINUE admits069; full acceptance retains each-seed signs, equal-seed mean gains≥`.002` for both metrics and positive paired-product95% lower bounds under the original bootstrap.\n\nA survivor supplies a useful step128 checkpoint and portable bundle, then advances through eligible validation, official protocol-matched SOP **and** InShop quality, and matched public image-to-top-k speed. Public latency remains unmeasured. Another negative closes this intervention, not the architecture.\n\nRead-only review completed. The score receipt hash matches its verification, and inspected trainer hashes match the recorded source bindings. No files, native experiments, held-quality evaluations, children or consultations were created.",
+    "partial_result_truncated": false,
+    "provider_partials": {
+      "claude": "Failed to authenticate: OAuth session expired and could not be refreshed",
+      "codex": "**Research critic: reject the proposed last-block escalation for this next trial. Conditional GO for exactly one alternative: SmoothAP against the current canonical TRAIN gallery, with gradients through both retrieval roles.** This tests a demonstrated supervision mismatch while preserving the useful initialization and existing serving architecture.\n\nThe new result supports a recipe KILL, not a representation diagnosis. Image anchoring leaves R1 equal to the active control and changes AP by −0.00889241 percentage points; both remain below accepted concat. The [verified receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/image-anchor-first-selection-score-v2/verification.json) establishes that outcome. It does not establish lost feature information, insufficient capacity, catastrophic forgetting, or prototype attraction as the cause. Positive initial regression/ranking alignment and the unchanged prior diagnostic also argue against claiming a demonstrated conflict mechanism.\n\nEncoder adaptation has already been attempted:\n\n| Prior intervention | Evidence | Implication |\n|---|---|---|\n| Accepted-concat final MLP | Exactly four tensors, 9,921,872 trainable scalars; real updates ran. Both mechanics attempts failed resource qualification, with no eligible quality result. | “Encoder not tried” is false; encoder utility remains unknown. |\n| PE late-dense adaptation | Opening blocks10–11 harmed both packed metrics across two continuation seeds. | Adverse evidence for that allocation/source/objective, not every encoder update. |\n| PE role-matched SmoothAP | Changed opposite-role masks; fixed quality gate failed. Gallery bank remained detached. | It did not test the proposed connected current-gallery objective. |\n\nThe final-MLP [terminal decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/nearest-ranking-mechanics-control-v2/decision.json) records 8GiB peak and 378 memory-limit events. Longer current deadlines cannot repair that memory failure. Opening more of the last block would also introduce another allocation choice without causal evidence. The [late-dense](/home/rb/worktrees/sfora-positive-causality/docs/inshop_late_dense_adaptation_result_2026-09-30.md) and [role-matched](/home/rb/worktrees/sfora-positive-causality/docs/inshop_role_matched_result_2026-09-30.md) negatives remain intact.\n\nThe cheaper alternative addresses a concrete discrepancy in the [current loss](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:697):\n\n\\[\ns^{train}_{ij}=\\langle u_A(x_i),u_{A_0}(x_j)\\rangle,\n\\qquad\ns^{serve}_{ij}=\\langle u_A(x_i),u_A(x_j)\\rangle.\n\\]\n\nTraining moves the query against fixed accepted-concat teachers. Serving moves both query and gallery through the learned model. At initialization the scores coincide, but their derivatives differ: the serving geometry includes a gallery contribution missing from the current objective. Thus frozen-feature capacity has not been isolated as the bottleneck.\n\nThis is a structural argument, **not evidence that the mismatch caused the observed loss**. SmoothAP has established precedent as an end-to-end ranking objective; memory-based alternatives rely on approximate historical embeddings and measured slow drift. Neither precedent guarantees improvement here. [SmoothAP paper](https://arxiv.org/html/2007.12163), [Cross-Batch Memory paper](https://openaccess.thecvf.com/content_CVPR_2020/html/Wang_Cross-Batch_Memory_for_Embedding_Learning_CVPR_2020_paper.html).\n\nFreeze this single intervention:\n\n- **Initialization:** both arms start from authenticated accepted concat `A0`, checkpoint `b702e038…`, complete original encoder/head/classifier/means/processor. Fresh optimizer, scaler and RNG; no failed continuation initializes either arm.\n- **Active control:** original prototype regression plus coefficient-1 fixed-gallery SmoothAP.\n- **Candidate:** identical prototype regression and SmoothAP arithmetic, but gallery vectors are `normalize(raw_A(canonical TRAIN features))`, computed at the current pre-update `A`. Keep their graph connected to the same `A`.\n- Preserve `A[128,160]` as the sole trainable tensor, both original cached views, all6355 canonical gallery rows, all-positive membership, original-image exclusion, singleton regression-only behavior, temperature `.01`, common original `e0`, regression denominator `128*e0`, ranking denominator `2K`, micro16 accumulation, optimizer settings, numerical flags and fixed128 schedules179061/179069.\n- Rebuild the current gallery graph for each microbatch and release it after backward. Do not introduce a persistent stale queue, gallery sampling, top-k negatives, role masks, another regression target, or another loss.\n\nBoth gallery freshness and its gradient connection define this one objective. A refresh-only detached bank would be a different experiment. The archived [role-matched implementation](/home/rb/worktrees/sfora-positive-causality/scripts/role_matched_bank_rank.py:138) explicitly detaches the gallery; its negative therefore remains relevant adverse context without being an exact duplicate.\n\n**One fast falsifier:** integrate a gradient-decomposition witness into the single CPU qualification, using each seed’s already fixed first B64 and both views. At `A0`, independently instantiate query and gallery coefficient roles with identical values. Require:\n\n\\[\ng_{\\mathrm{candidate}}-g_{\\mathrm{active}}\n=g_{\\mathrm{gallery}},\n\\qquad\ng_{\\mathrm{candidate}}=g_{\\mathrm{query}}+g_{\\mathrm{gallery}}\n\\]\n\nbefore clipping and AdamW. Require matched initial loss/score values within existing arithmetic tolerances, finite nonzero gallery ranking contribution, full64 versus accumulated micro16 agreement, and the existing nonnearest-positive witness. A detached-gallery mutant must fail the witness. Failure closes this recipe without changing batches or constants. Passing establishes a distinct implementation, not useful quality.\n\nThe prerequisites and reuse should remain narrow:\n\n1. **Source and authority:** reuse accepted concat admission, original caches and mappings, teacher/prototype construction, current runtime closure, byte scheduler and native exact-four authority. Freeze prospective objective/schema/source identities; never amend historical receipts.\n2. **State:** retain complete `A`, moments, scaler, counters, schedules, RNG, numerical flags and immutable source state. The connected gallery is ephemeral and reconstructed from restored `A`; bind this rule explicitly.\n3. **Mechanics:** new bytes require qualification and both discarded17 versus independent8+9 complete replay, strict reload, frozen-complement checks, mutation/substitution negatives and uncached exits.\n4. **Exports:** reuse the admitted portable bundle and sequential independent B32 two-pass export machinery, including tails6/19, TRAINmicro16 witnesses, raw/unit/packed parity, wire readback and archived source/concat replay. The original448 vision tensors remain frozen.\n5. **Resources and costs:** CPU500, mechanics/TRAIN600, export900, score500; host≤8GiB, swap0/events0, CUDA<10GB, both locks, sequential original jobs. Candidate gallery forwards and backward belong in charged core. Obtain fresh cold active-control128 and candidate128 measurements; both whole/core ratios must pass≤1.50. Archived timings and tensor-size estimates admit nothing.\n\nFeasibility remains unmeasured. The earlier CPU qualification had only about214MiB headroom, so release qualification graphs before inference construction. This alternative avoids another trainable vision allocation and image-training path, but still must earn its resource and cost PASS.\n\nThe decisive usefulness test remains the unchanged first TRAIN selection gate: positive R1/nonnegative AP versus active control, source floors, R1 strictly above `.9648212226066898`, and AP≥`.8177754035543956`. Failure stops before069 and VAL. Only CONTINUE admits069; full acceptance retains each-seed signs, equal-seed mean gains≥`.002` for both metrics and positive paired-product95% lower bounds under the original bootstrap.\n\nA survivor supplies a useful step128 checkpoint and portable bundle, then advances through eligible validation, official protocol-matched SOP **and** InShop quality, and matched public image-to-top-k speed. Public latency remains unmeasured. Another negative closes this intervention, not the architecture.\n\nRead-only review completed. The score receipt hash matches its verification, and inspected trainer hashes match the recorded source bindings. No files, native experiments, held-quality evaluations, children or consultations were created."
+    },
+    "providers_used": [
+      "claude",
+      "codex"
+    ],
+    "active_provider": "codex",
+    "phase": "Consultation completed",
+    "input_bytes": 3040,
+    "output_bytes": 8757,
+    "elapsed_seconds": 640,
+    "progress": "devbox-consult-stream: provider result success\nReading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)\ndevbox-ask: codex consult still running (8m 00s)\ndevbox-ask: codex consult still running (8m 30s)\ndevbox-ask: codex consult still running (9m 00s)\ndevbox-ask: codex consult still running (9m 30s)\ndevbox-ask: codex consult still running (10m 00s)\ndevbox-ask: codex consult still running (10m 30s)",
+    "progress_truncated": false,
+    "result": "**Research critic: reject the proposed last-block escalation for this next trial. Conditional GO for exactly one alternative: SmoothAP against the current canonical TRAIN gallery, with gradients through both retrieval roles.** This tests a demonstrated supervision mismatch while preserving the useful initialization and existing serving architecture.\n\nThe new result supports a recipe KILL, not a representation diagnosis. Image anchoring leaves R1 equal to the active control and changes AP by −0.00889241 percentage points; both remain below accepted concat. The [verified receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/image-anchor-first-selection-score-v2/verification.json) establishes that outcome. It does not establish lost feature information, insufficient capacity, catastrophic forgetting, or prototype attraction as the cause. Positive initial regression/ranking alignment and the unchanged prior diagnostic also argue against claiming a demonstrated conflict mechanism.\n\nEncoder adaptation has already been attempted:\n\n| Prior intervention | Evidence | Implication |\n|---|---|---|\n| Accepted-concat final MLP | Exactly four tensors, 9,921,872 trainable scalars; real updates ran. Both mechanics attempts failed resource qualification, with no eligible quality result. | “Encoder not tried” is false; encoder utility remains unknown. |\n| PE late-dense adaptation | Opening blocks10–11 harmed both packed metrics across two continuation seeds. | Adverse evidence for that allocation/source/objective, not every encoder update. |\n| PE role-matched SmoothAP | Changed opposite-role masks; fixed quality gate failed. Gallery bank remained detached. | It did not test the proposed connected current-gallery objective. |\n\nThe final-MLP [terminal decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/nearest-ranking-mechanics-control-v2/decision.json) records 8GiB peak and 378 memory-limit events. Longer current deadlines cannot repair that memory failure. Opening more of the last block would also introduce another allocation choice without causal evidence. The [late-dense](/home/rb/worktrees/sfora-positive-causality/docs/inshop_late_dense_adaptation_result_2026-09-30.md) and [role-matched](/home/rb/worktrees/sfora-positive-causality/docs/inshop_role_matched_result_2026-09-30.md) negatives remain intact.\n\nThe cheaper alternative addresses a concrete discrepancy in the [current loss](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:697):\n\n\\[\ns^{train}_{ij}=\\langle u_A(x_i),u_{A_0}(x_j)\\rangle,\n\\qquad\ns^{serve}_{ij}=\\langle u_A(x_i),u_A(x_j)\\rangle.\n\\]\n\nTraining moves the query against fixed accepted-concat teachers. Serving moves both query and gallery through the learned model. At initialization the scores coincide, but their derivatives differ: the serving geometry includes a gallery contribution missing from the current objective. Thus frozen-feature capacity has not been isolated as the bottleneck.\n\nThis is a structural argument, **not evidence that the mismatch caused the observed loss**. SmoothAP has established precedent as an end-to-end ranking objective; memory-based alternatives rely on approximate historical embeddings and measured slow drift. Neither precedent guarantees improvement here. [SmoothAP paper](https://arxiv.org/html/2007.12163), [Cross-Batch Memory paper](https://openaccess.thecvf.com/content_CVPR_2020/html/Wang_Cross-Batch_Memory_for_Embedding_Learning_CVPR_2020_paper.html).\n\nFreeze this single intervention:\n\n- **Initialization:** both arms start from authenticated accepted concat `A0`, checkpoint `b702e038…`, complete original encoder/head/classifier/means/processor. Fresh optimizer, scaler and RNG; no failed continuation initializes either arm.\n- **Active control:** original prototype regression plus coefficient-1 fixed-gallery SmoothAP.\n- **Candidate:** identical prototype regression and SmoothAP arithmetic, but gallery vectors are `normalize(raw_A(canonical TRAIN features))`, computed at the current pre-update `A`. Keep their graph connected to the same `A`.\n- Preserve `A[128,160]` as the sole trainable tensor, both original cached views, all6355 canonical gallery rows, all-positive membership, original-image exclusion, singleton regression-only behavior, temperature `.01`, common original `e0`, regression denominator `128*e0`, ranking denominator `2K`, micro16 accumulation, optimizer settings, numerical flags and fixed128 schedules179061/179069.\n- Rebuild the current gallery graph for each microbatch and release it after backward. Do not introduce a persistent stale queue, gallery sampling, top-k negatives, role masks, another regression target, or another loss.\n\nBoth gallery freshness and its gradient connection define this one objective. A refresh-only detached bank would be a different experiment. The archived [role-matched implementation](/home/rb/worktrees/sfora-positive-causality/scripts/role_matched_bank_rank.py:138) explicitly detaches the gallery; its negative therefore remains relevant adverse context without being an exact duplicate.\n\n**One fast falsifier:** integrate a gradient-decomposition witness into the single CPU qualification, using each seed’s already fixed first B64 and both views. At `A0`, independently instantiate query and gallery coefficient roles with identical values. Require:\n\n\\[\ng_{\\mathrm{candidate}}-g_{\\mathrm{active}}\n=g_{\\mathrm{gallery}},\n\\qquad\ng_{\\mathrm{candidate}}=g_{\\mathrm{query}}+g_{\\mathrm{gallery}}\n\\]\n\nbefore clipping and AdamW. Require matched initial loss/score values within existing arithmetic tolerances, finite nonzero gallery ranking contribution, full64 versus accumulated micro16 agreement, and the existing nonnearest-positive witness. A detached-gallery mutant must fail the witness. Failure closes this recipe without changing batches or constants. Passing establishes a distinct implementation, not useful quality.\n\nThe prerequisites and reuse should remain narrow:\n\n1. **Source and authority:** reuse accepted concat admission, original caches and mappings, teacher/prototype construction, current runtime closure, byte scheduler and native exact-four authority. Freeze prospective objective/schema/source identities; never amend historical receipts.\n2. **State:** retain complete `A`, moments, scaler, counters, schedules, RNG, numerical flags and immutable source state. The connected gallery is ephemeral and reconstructed from restored `A`; bind this rule explicitly.\n3. **Mechanics:** new bytes require qualification and both discarded17 versus independent8+9 complete replay, strict reload, frozen-complement checks, mutation/substitution negatives and uncached exits.\n4. **Exports:** reuse the admitted portable bundle and sequential independent B32 two-pass export machinery, including tails6/19, TRAINmicro16 witnesses, raw/unit/packed parity, wire readback and archived source/concat replay. The original448 vision tensors remain frozen.\n5. **Resources and costs:** CPU500, mechanics/TRAIN600, export900, score500; host≤8GiB, swap0/events0, CUDA<10GB, both locks, sequential original jobs. Candidate gallery forwards and backward belong in charged core. Obtain fresh cold active-control128 and candidate128 measurements; both whole/core ratios must pass≤1.50. Archived timings and tensor-size estimates admit nothing.\n\nFeasibility remains unmeasured. The earlier CPU qualification had only about214MiB headroom, so release qualification graphs before inference construction. This alternative avoids another trainable vision allocation and image-training path, but still must earn its resource and cost PASS.\n\nThe decisive usefulness test remains the unchanged first TRAIN selection gate: positive R1/nonnegative AP versus active control, source floors, R1 strictly above `.9648212226066898`, and AP≥`.8177754035543956`. Failure stops before069 and VAL. Only CONTINUE admits069; full acceptance retains each-seed signs, equal-seed mean gains≥`.002` for both metrics and positive paired-product95% lower bounds under the original bootstrap.\n\nA survivor supplies a useful step128 checkpoint and portable bundle, then advances through eligible validation, official protocol-matched SOP **and** InShop quality, and matched public image-to-top-k speed. Public latency remains unmeasured. Another negative closes this intervention, not the architecture.\n\nRead-only review completed. The score receipt hash matches its verification, and inspected trainer hashes match the recorded source bindings. No files, native experiments, held-quality evaluations, children or consultations were created.",
+    "result_truncated": false
+  }
+}
