@@ -4,6 +4,7 @@ import ast
 import base64
 import copy
 import csv
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, redirect_stdout
 import hashlib
 import importlib.util
@@ -15,6 +16,8 @@ import py_compile
 import sys
 import tarfile
 import tempfile
+import threading
+import time
 from types import FunctionType, SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -2472,7 +2475,7 @@ class InferenceBoundaryTests(unittest.TestCase):
                     self.assertTrue(all(not grad for _,grad in f.operations))
 
     def test_exact_production_ast_inverse_of_two_outer_contexts(self):
-        tree=ast.parse(PATH.read_text())
+        tree=inverse_runtime_hash_batch(ast.parse(PATH.read_text()))
         for name in ('train_diagnostic','export_pass'):
             node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name == name)
             index=next(i for i,n in enumerate(node.body) if isinstance(n,ast.For))
@@ -2480,6 +2483,250 @@ class InferenceBoundaryTests(unittest.TestCase):
             scope.body=[node.body[index]];node.body[index]=scope
         digest=hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest()
         self.assertEqual(digest,'9a102dd32044ca1d6dbf2c45f69ed578c2a22237d1477b90ee869e186a6b21ea')
+
+
+RUNTIME_HASH_BATCH_SOURCE = '''\
+items=list(runtime.items())
+hash_started=time.perf_counter()
+print(json.dumps({'event':'COMPACT_RUNTIME_HASH','boundary':'begin',
+    'elapsed_seconds':0.0,'item_count':len(items)}),flush=True)
+try:
+    for path,digest in items:
+        if path.name == 'RECORD' or path.suffix == '.so':
+            require(context['required_guards'].get(str(path)) == digest, 'runtime original FILE authority changed')
+        if path.suffix == '.so':
+            require(str(path) in original['native_files'] and original['files'].get(str(path)) == digest,
+                'runtime original native origin changed')
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures=[executor.submit(bound_file,{},path,digest) for path,digest in items]
+        paths=[future.result() for future in futures]
+    staged=dict(context['guards'])
+    for path,(_,digest) in zip(paths,items):
+        require(staged.setdefault(str(path),digest) == digest, 'conflicting FILE authority')
+    context['guards'].update(staged)
+finally:
+    print(json.dumps({'event':'COMPACT_RUNTIME_HASH','boundary':'end',
+        'elapsed_seconds':time.perf_counter()-hash_started,'item_count':len(items)}),flush=True)
+'''
+
+
+def inverse_runtime_hash_batch(tree):
+    """Undo only the exact authorized loop replacement, including its markers."""
+    node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='bundle_reads_only')
+    start=next(i for i,n in enumerate(node.body) if isinstance(n,ast.Assign) and
+        ast.unparse(n.targets[0])=='items')
+    expected=ast.parse(RUNTIME_HASH_BATCH_SOURCE).body
+    actual=node.body[start:start+len(expected)]
+    assert ast.dump(ast.Module(body=actual,type_ignores=[]),include_attributes=False)==ast.dump(
+        ast.Module(body=expected,type_ignores=[]),include_attributes=False), 'runtime hash replacement differs'
+    original=copy.deepcopy(expected[3].body[0]);original.iter=ast.parse('runtime.items()',mode='eval').body
+    original.body.append(ast.parse("bound_file(context['guards'],path,digest)").body[0])
+    node.body[start:start+len(expected)]=[original]
+    return tree
+
+
+def extracted_runtime_hash_entry():
+    """Execute the real loop and unchanged evaluator reader on stdlib files."""
+    tree=ast.parse(PATH.read_text())
+    node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='bundle_reads_only')
+    start=next(i for i,n in enumerate(node.body) if isinstance(n,ast.Assign) and
+        ast.unparse(n.targets[0])=='original')
+    stop=next(i for i,n in enumerate(node.body) if isinstance(n,ast.For) and
+        ast.unparse(n.iter)=='tuple(sys.modules.items())')
+    entry=ast.parse('def hash_entry(context,runtime):\n    pass').body[0]
+    entry.body=copy.deepcopy(node.body[start:stop])
+    namespace={'Path':Path,'hashlib':hashlib,'os':os,'re':__import__('re'),'time':time,'json':json}
+    extracted_functions(PATH,('require','sha','bound_file'),namespace)
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[entry],type_ignores=[])),str(PATH),'exec'),namespace)
+    return namespace
+
+
+class RuntimeHashBatchTests(unittest.TestCase):
+    def files(self,root,names):
+        items=[]
+        for name in names:
+            path=root/name;path.write_bytes(('pinned '+name).encode())
+            items.append((path,hashlib.sha256(path.read_bytes()).hexdigest()))
+        return items
+
+    def context(self,items,guards=None):
+        natives={str(p):h for p,h in items if p.suffix=='.so'}
+        return {'guards':{} if guards is None else guards,
+            'required_guards':{str(p):h for p,h in items if p.name=='RECORD' or p.suffix=='.so'},
+            'training_context':{'legacy':{'selected':{'source_cpu':{
+                'origins':{'native_files':list(natives),'files':natives}}}}}}
+
+    def run_entry(self,namespace,context,items):
+        output=io.StringIO()
+        with redirect_stdout(output):namespace['hash_entry'](context,SimpleNamespace(items=lambda:list(items)))
+        return [json.loads(line) for line in output.getvalue().splitlines()]
+
+    def test_four_workers_read_every_occurrence_and_publish_in_input_order(self):
+        with tempfile.TemporaryDirectory() as directory:
+            items=self.files(Path(directory),['file'+str(i)+'.py' for i in range(9)])
+            items.insert(2,items[0]);items.append(items[3])
+            owner=threading.get_ident();updates=[]
+            class Guards(dict):
+                def update(self,values):updates.append(threading.get_ident());super().update(values)
+            guards=Guards({'/existing':'a'*64});context=self.context(items,guards);before=dict(guards)
+            namespace=extracted_runtime_hash_entry();reader=namespace['bound_file']
+            lock=threading.Lock();barrier=threading.Barrier(4);calls=[];active=0;maximum=0;workers=[]
+            def read(local,path,digest):
+                nonlocal active,maximum
+                with lock:
+                    calls.append((path,dict(local),local is guards,threading.get_ident(),dict(guards)))
+                    number=len(calls);active+=1;maximum=max(maximum,active)
+                try:
+                    if number<=4:
+                        try:barrier.wait(timeout=.5)
+                        except threading.BrokenBarrierError:pass
+                    return reader(local,path,digest)
+                finally:
+                    with lock:active-=1
+            class Executor(ThreadPoolExecutor):
+                def __init__(self,*args,**kwargs):workers.append(kwargs['max_workers']);super().__init__(*args,**kwargs)
+            namespace['bound_file']=read
+            with patch('concurrent.futures.ThreadPoolExecutor',Executor):self.run_entry(namespace,context,items)
+            self.assertEqual(workers,[4]);self.assertEqual(maximum,4);self.assertEqual(active,0)
+            self.assertCountEqual([p for p,*_ in calls],[p for p,_ in items])
+            self.assertTrue(all(local=={} and not shared and thread!=owner and snapshot==before
+                for _,local,shared,thread,snapshot in calls))
+            self.assertEqual(updates,[owner])
+            self.assertEqual(list(guards),['/existing']+list(dict.fromkeys(str(p) for p,_ in items)))
+
+    def test_first_error_joins_all_later_reads_before_return(self):
+        with tempfile.TemporaryDirectory() as directory:
+            items=self.files(Path(directory),['file'+str(i)+'.py' for i in range(9)])
+            items[0]=(items[0][0],'0'*64)
+            context=self.context(items,{'/existing':'a'*64});before=dict(context['guards'])
+            namespace=extracted_runtime_hash_entry();reader=namespace['bound_file']
+            lock=threading.Lock();failed=threading.Event();finished=[];threads=[]
+            def read(local,path,digest):
+                with lock:threads.append(threading.current_thread())
+                try:
+                    if path==items[1][0]:self.assertTrue(failed.wait(timeout=1))
+                    return reader(local,path,digest)
+                except ValueError:
+                    failed.set();raise
+                finally:
+                    with lock:finished.append(path)
+            namespace['bound_file']=read
+            with self.assertRaisesRegex(ValueError,'file SHA256 differs'):
+                self.run_entry(namespace,context,items)
+            self.assertCountEqual(finished,[p for p,_ in items])
+            self.assertTrue(all(not thread.is_alive() for thread in threads))
+            self.assertEqual(context['guards'],before)
+
+    def test_later_file_error_does_not_publish_successful_prefix(self):
+        with tempfile.TemporaryDirectory() as directory:
+            items=self.files(Path(directory),['first.py','bad.py','last.py']);items[1]=(items[1][0],'0'*64)
+            context=self.context(items,{'/existing':'a'*64});before=dict(context['guards'])
+            with self.assertRaisesRegex(ValueError,'file SHA256 differs'):
+                self.run_entry(extracted_runtime_hash_entry(),context,items)
+            self.assertEqual(context['guards'],before)
+
+    def test_guard_conflict_is_staged_after_all_successful_reads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            items=self.files(Path(directory),['first.py','last.py'])
+            context=self.context(items,{str(items[-1][0]):'0'*64});before=dict(context['guards'])
+            namespace=extracted_runtime_hash_entry();reader=namespace['bound_file'];finished=[]
+            def read(local,path,digest):
+                result=reader(local,path,digest);finished.append(path);return result
+            namespace['bound_file']=read
+            with self.assertRaisesRegex(ValueError,'conflicting FILE authority'):
+                self.run_entry(namespace,context,items)
+            self.assertCountEqual(finished,[p for p,_ in items]);self.assertEqual(context['guards'],before)
+
+    def test_original_metadata_predicates_run_on_owner_before_any_read(self):
+        with tempfile.TemporaryDirectory() as directory:
+            items=self.files(Path(directory),['first.py','RECORD','native.so'])
+            for case in ('record','native_guard','native_origin'):
+                with self.subTest(case=case):
+                    context=self.context(items);calls=[];owner=threading.get_ident();checks=[]
+                    namespace=extracted_runtime_hash_entry();require=namespace['require']
+                    def check(condition,message):
+                        checks.append(threading.get_ident());return require(condition,message)
+                    namespace['require']=check
+                    namespace['bound_file']=lambda *args:calls.append(args)
+                    if case=='record':context['required_guards'].pop(str(items[1][0]))
+                    elif case=='native_guard':context['required_guards'].pop(str(items[2][0]))
+                    else:context['training_context']['legacy']['selected']['source_cpu']['origins']['native_files']=[]
+                    with self.assertRaisesRegex(ValueError,'runtime original'):
+                        self.run_entry(namespace,context,items)
+                    self.assertEqual(calls,[]);self.assertEqual(context['guards'],{})
+                    self.assertTrue(checks and all(thread==owner for thread in checks))
+
+    def test_every_entry_reads_current_bytes_even_with_restored_mtime(self):
+        with tempfile.TemporaryDirectory() as directory:
+            items=self.files(Path(directory),['source.py','RECORD','native.so'])
+            namespace=extracted_runtime_hash_entry();context=self.context(items)
+            self.run_entry(namespace,context,items);before=dict(context['guards'])
+            for path,_ in items:
+                with self.subTest(path=path.name):
+                    raw=path.read_bytes();prior=path.stat();path.write_bytes(b'X'+raw[1:])
+                    os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.assertRaisesRegex(ValueError,'file SHA256 differs'):
+                        self.run_entry(namespace,context,items)
+                    self.assertEqual(context['guards'],before)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    self.run_entry(namespace,context,items)
+
+    def test_bounded_timing_markers_cover_success_empty_and_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            good=self.files(Path(directory),['source.py'])
+            for case in ('success','empty','hash_error','conflict','metadata_error'):
+                with self.subTest(case=case):
+                    items=[] if case=='empty' else list(good)
+                    if case=='hash_error':items[0]=(items[0][0],'0'*64)
+                    if case=='metadata_error':items=self.files(Path(directory),['RECORD'])
+                    context=self.context(items)
+                    if case=='conflict':context['guards'][str(items[0][0])]='0'*64
+                    if case=='metadata_error':context['required_guards'].clear()
+                    output=io.StringIO()
+                    with redirect_stdout(output):
+                        if case.endswith('error') or case=='conflict':
+                            with self.assertRaises(ValueError):
+                                extracted_runtime_hash_entry()['hash_entry'](context,SimpleNamespace(items=lambda:items))
+                        else:extracted_runtime_hash_entry()['hash_entry'](context,SimpleNamespace(items=lambda:items))
+                    markers=[json.loads(line) for line in output.getvalue().splitlines()]
+                    self.assertEqual(len(markers),2)
+                    self.assertEqual([m['boundary'] for m in markers],['begin','end'])
+                    for marker in markers:
+                        self.assertEqual(set(marker),{'event','boundary','elapsed_seconds','item_count'})
+                        self.assertEqual(marker['event'],'COMPACT_RUNTIME_HASH')
+                        self.assertEqual(marker['item_count'],len(items));self.assertGreaterEqual(marker['elapsed_seconds'],0)
+                    self.assertEqual(markers[0]['elapsed_seconds'],0.0)
+
+    def test_uncached_and_cached_entries_keep_boundary_and_fresh_reads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture=PortableRuntimeFixture(Path(directory));owner=threading.get_ident();reads=[]
+            reader=e.bound_file
+            def read(guards,path,digest):
+                if threading.get_ident()!=owner:reads.append((path,dict(guards)))
+                return reader(guards,path,digest)
+            with patch.object(e,'bound_file',read),patch.object(fixture.context['trainer'],'admit_bundle',
+                    wraps=fixture.context['trainer'].admit_bundle) as admit,redirect_stdout(io.StringIO()):
+                for entry in range(2):
+                    reads.clear()
+                    with fixture.boundary():
+                        cached=next(iter(fixture.context['portable_audits'].values()))
+                        self.assertTrue(cached[0][0]);self.assertTrue(sys.dont_write_bytecode)
+                        with self.assertRaisesRegex(ValueError,'nested serving'):
+                            with fixture.boundary():pass
+                    self.assertFalse(cached[0][0]);self.assertEqual(admit.call_count,1)
+                    self.assertCountEqual([p for p,_ in reads],list(cached[1]))
+                    self.assertTrue(all(local=={} for _,local in reads))
+                path=fixture.package/'version.py';raw=path.read_bytes();prior=path.stat()
+                path.write_bytes(b'X'+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                with self.assertRaisesRegex(ValueError,'file SHA256 differs'):
+                    with fixture.boundary():self.fail('mutated cached source entered serving scope')
+                self.assertFalse(cached[0][0])
+
+    def test_exact_production_ast_inverse_of_runtime_hash_loop(self):
+        tree=inverse_runtime_hash_batch(ast.parse(PATH.read_text()))
+        digest=hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest()
+        self.assertEqual(digest,'a35111879bd1d2a65f72860f3fdddc9db0798185aa5d72df2c22e01ba422b948')
 
 
 if __name__ == '__main__':

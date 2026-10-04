@@ -1524,13 +1524,28 @@ bundle bytes. Native-origin admission remains the original owned API.
     active,runtime,origins,absent=cached[identity]
     require(active[0] is False, 'nested serving dependency boundary forbidden')
     original=context['training_context']['legacy']['selected']['source_cpu']['origins']
-    for path,digest in runtime.items():
-        if path.name == 'RECORD' or path.suffix == '.so':
-            require(context['required_guards'].get(str(path)) == digest, 'runtime original FILE authority changed')
-        if path.suffix == '.so':
-            require(str(path) in original['native_files'] and original['files'].get(str(path)) == digest,
-                'runtime original native origin changed')
-        bound_file(context['guards'],path,digest)
+    items=list(runtime.items())
+    hash_started=time.perf_counter()
+    print(json.dumps({'event':'COMPACT_RUNTIME_HASH','boundary':'begin',
+        'elapsed_seconds':0.0,'item_count':len(items)}),flush=True)
+    try:
+        for path,digest in items:
+            if path.name == 'RECORD' or path.suffix == '.so':
+                require(context['required_guards'].get(str(path)) == digest, 'runtime original FILE authority changed')
+            if path.suffix == '.so':
+                require(str(path) in original['native_files'] and original['files'].get(str(path)) == digest,
+                    'runtime original native origin changed')
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures=[executor.submit(bound_file,{},path,digest) for path,digest in items]
+            paths=[future.result() for future in futures]
+        staged=dict(context['guards'])
+        for path,(_,digest) in zip(paths,items):
+            require(staged.setdefault(str(path),digest) == digest, 'conflicting FILE authority')
+        context['guards'].update(staged)
+    finally:
+        print(json.dumps({'event':'COMPACT_RUNTIME_HASH','boundary':'end',
+            'elapsed_seconds':time.perf_counter()-hash_started,'item_count':len(items)}),flush=True)
     for name,module in tuple(sys.modules.items()):
         # The finite contract checks its exact modules. Existing packaging
         # admission also continues to reject every unknown packaging module.
