@@ -1,0 +1,21 @@
+{
+  "base": "e287f1bb757032d6e999d0dae05115d9da9aada5",
+  "unchanged_all_other_top_level_ast": true,
+  "unchanged_global_assignments_and_RUNTIME_SOURCES": true,
+  "unchanged_original_boundary_require_calls": 7,
+  "new_boundary_require_calls": 4,
+  "full_uncached_exit_AST_unchanged": true,
+  "new_function": "distribution_identity_files",
+  "no_global_or_nonlocal_binding": true,
+  "boundary_changes": [
+    "derive/merge exact identity inventory",
+    "add finite pinned fallback RECORD reads",
+    "cache finite missing probes",
+    "FileNotFound fallback with current absence check after original write denial",
+    "verify missing probes at every entry and exit"
+  ],
+  "production_sha256": "8c7dd65ae30c2e87139c68e75fac0a4f7064a22ab500841dfa610e76da03bf71",
+  "original_boundary_AST_after_removing_only_ledgered_additions_matches_base": true,
+  "unchanged_original_boundary_if_predicates": 8,
+  "cache_tuple_change": "Only adds absent as fourth member; first three preserved."
+}

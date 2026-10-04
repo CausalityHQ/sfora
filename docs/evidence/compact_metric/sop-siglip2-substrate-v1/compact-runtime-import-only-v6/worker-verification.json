@@ -1,0 +1,13 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "scripts/test_compact_ranking_evaluation.py",
+    "-v"
+  ],
+  "timeout_seconds": 55,
+  "exit_code": 0,
+  "timed_out": false,
+  "wall_seconds": 33.918625648948364,
+  "log": "/tmp/sfora-compact-distribution-identity-runtime-20261004.final.log"
+}

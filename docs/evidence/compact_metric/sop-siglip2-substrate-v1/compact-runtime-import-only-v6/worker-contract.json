@@ -1,0 +1,42 @@
+{
+  "base": "e287f1bb757032d6e999d0dae05115d9da9aada5",
+  "scope": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "evidence": {
+    "identity_context_sha256": "731983f22a2073f42c07b8105e3582b5fd903ff77d8c3e1cac65112c9bcf4b1a",
+    "qualified_records": 196,
+    "direct_identity_rows": 312,
+    "transformers_import_utils_sha256": "854f6a998a194c12f2e813f745b602a9e7aa7816b0e3f4153da19cfb708b6046",
+    "installed_stdlib_reader_sha256": "5476c7c22a65f9e8b5a07b799336d87fa70e792758fd95b161b53b530e3b2654"
+  },
+  "reader": "Actual installed Python3.13 packages_distributions reads declared top_level.txt or infers names from RECORD; both it and version read METADATA. It never opens inferred module code.",
+  "plan": "Add procedure-owned distribution_identity_files deriving only direct METADATA/top_level.txt bytes from exact original required RECORDs in original site. Missing declared top_level paths raise FileNotFoundError. Permit exact pinned RECORD bytes only for absent/empty declared top levels. No vendor/optional code, native or directory grant. Validate absent probes at entry, exit and actual read; any newly appearing regular file or symlink fails closed.",
+  "ast_ledger": {
+    "new_function": "distribution_identity_files",
+    "edited_function": "bundle_reads_only",
+    "permitted_additions": [
+      "helper call after original site derivation",
+      "merge pinned identity bytes with conflict check",
+      "exact RECORD fallback read set",
+      "FileNotFoundError for known missing top_level.txt after original write denial",
+      "extend cached audit tuple with finite absent-identity snapshot",
+      "validate actual absence/canonical containment on every boundary entry and exit and before missing-file fallback"
+    ],
+    "preserve": "All original module-level assignments, other functions, bundle boundary require predicates, native origin checks, bytecode fallback, caching/rechecks and full uncached exit guards; no global binding changed.",
+    "original_boundary_requires": [
+      "Call(func=Name(id='require', ctx=Load()), args=[Compare(left=Subscript(value=Name(id='active', ctx=Load()), slice=Constant(value=0), ctx=Load()), ops=[Is()], comparators=[Constant(value=False)]), Constant(value='nested serving dependency boundary forbidden')])",
+      "Call(func=Name(id='require', ctx=Load()), args=[Call(func=Name(id='isinstance', ctx=Load()), args=[Name(id='value', ctx=Load()), Tuple(elts=[Name(id='str', ctx=Load()), Name(id='bytes', ctx=Load()), Attribute(value=Name(id='os', ctx=Load()), attr='PathLike', ctx=Load())], ctx=Load())]), Constant(value='unrecognized serving filesystem access')])",
+      "Call(func=Name(id='require', ctx=Load()), args=[BoolOp(op=Or(), values=[Compare(left=Name(id='path', ctx=Load()), ops=[In()], comparators=[Name(id='exact', ctx=Load())]), Call(func=Name(id='any', ctx=Load()), args=[GeneratorExp(elt=Call(func=Attribute(value=Name(id='path', ctx=Load()), attr='is_relative_to', ctx=Load()), args=[Name(id='p', ctx=Load())]), generators=[comprehension(target=Name(id='p', ctx=Store()), iter=Name(id='roots', ctx=Load()), is_async=0)])]), BoolOp(op=And(), values=[Call(func=Attribute(value=Name(id='path', ctx=Load()), attr='is_relative_to', ctx=Load()), args=[Name(id='stdlib', ctx=Load())]), UnaryOp(op=Not(), operand=Call(func=Attribute(value=Set(elts=[Constant(value='site-packages'), Constant(value='dist-packages')]), attr='intersection', ctx=Load()), args=[Attribute(value=Name(id='path', ctx=Load()), attr='parts', ctx=Load())]))]), BoolOp(op=And(), values=[Compare(left=Name(id='event', ctx=Load()), ops=[NotEq()], comparators=[Constant(value='open')]), Compare(left=Name(id='path', ctx=Load()), ops=[In()], comparators=[Name(id='directories', ctx=Load())])])]), BinOp(left=Constant(value='bundle-only loader attempted external dependency: '), op=Add(), right=Call(func=Name(id='str', ctx=Load()), args=[Name(id='path', ctx=Load())]))])",
+      "Call(func=Name(id='require', ctx=Load()), args=[Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='context', ctx=Load()), slice=Constant(value='required_guards'), ctx=Load()), attr='get', ctx=Load()), args=[Call(func=Name(id='str', ctx=Load()), args=[Name(id='path', ctx=Load())])]), ops=[Eq()], comparators=[Name(id='digest', ctx=Load())]), Constant(value='runtime original FILE authority changed')])",
+      "Call(func=Name(id='require', ctx=Load()), args=[BoolOp(op=And(), values=[Compare(left=Call(func=Name(id='str', ctx=Load()), args=[Name(id='path', ctx=Load())]), ops=[In()], comparators=[Subscript(value=Name(id='original', ctx=Load()), slice=Constant(value='native_files'), ctx=Load())]), Compare(left=Call(func=Attribute(value=Subscript(value=Name(id='original', ctx=Load()), slice=Constant(value='files'), ctx=Load()), attr='get', ctx=Load()), args=[Call(func=Name(id='str', ctx=Load()), args=[Name(id='path', ctx=Load())])]), ops=[Eq()], comparators=[Name(id='digest', ctx=Load())])]), Constant(value='runtime original native origin changed')])",
+      "Call(func=Name(id='require', ctx=Load()), args=[BoolOp(op=And(), values=[Compare(left=Name(id='name', ctx=Load()), ops=[In()], comparators=[Name(id='origins', ctx=Load())]), Compare(left=Call(func=Name(id='getattr', ctx=Load()), args=[Name(id='module', ctx=Load()), Constant(value='__file__'), Constant(value=None)]), ops=[Eq()], comparators=[Subscript(value=Name(id='origins', ctx=Load()), slice=Name(id='name', ctx=Load()), ctx=Load())]), Compare(left=Call(func=Name(id='getattr', ctx=Load()), args=[Call(func=Name(id='getattr', ctx=Load()), args=[Name(id='module', ctx=Load()), Constant(value='__spec__'), Constant(value=None)]), Constant(value='origin'), Constant(value=None)]), ops=[Eq()], comparators=[Subscript(value=Name(id='origins', ctx=Load()), slice=Name(id='name', ctx=Load()), ctx=Load())])]), BinOp(left=Constant(value='loaded lazy runtime origin differs: '), op=Add(), right=Name(id='name', ctx=Load()))])",
+      "Call(func=Name(id='require', ctx=Load()), args=[BoolOp(op=And(), values=[BoolOp(op=Or(), values=[Compare(left=Name(id='mode', ctx=Load()), ops=[Is()], comparators=[Constant(value=None)]), UnaryOp(op=Not(), operand=Call(func=Name(id='any', ctx=Load()), args=[GeneratorExp(elt=Compare(left=Name(id='c', ctx=Load()), ops=[In()], comparators=[Name(id='mode', ctx=Load())]), generators=[comprehension(target=Name(id='c', ctx=Store()), iter=Constant(value='wax+'), is_async=0)])]))]), UnaryOp(op=Not(), operand=BinOp(left=Name(id='flags', ctx=Load()), op=BitAnd(), right=BinOp(left=BinOp(left=BinOp(left=BinOp(left=Attribute(value=Name(id='os', ctx=Load()), attr='O_WRONLY', ctx=Load()), op=BitOr(), right=Attribute(value=Name(id='os', ctx=Load()), attr='O_RDWR', ctx=Load())), op=BitOr(), right=Attribute(value=Name(id='os', ctx=Load()), attr='O_CREAT', ctx=Load())), op=BitOr(), right=Attribute(value=Name(id='os', ctx=Load()), attr='O_TRUNC', ctx=Load())), op=BitOr(), right=Attribute(value=Name(id='os', ctx=Load()), attr='O_APPEND', ctx=Load()))))]), Constant(value='serving loader attempted write')])"
+    ]
+  },
+  "verification": "Real stdlib packages_distributions + version on synthetic installed distributions (declared and inferred), poisoned optional module bodies; original RECORD/mutation/hash/size/foreign/historical/write/module-code denials. One final scoped suite <=55s, failing layer/final rerun only if needed.",
+  "limits": "No third-party/Torch/native imports, SSH/GPU/cloud/jobs/quality/reviews/children/operator contact. No merge/push. Parent owns importv6.",
+  "worktree": "Same original branch cleanly rebased to parent exact base (fast-forward impossible because integration cherry-picked original commit). Prior implementation scripts identical.",
+  "status": "contract before followup edits"
+}
