@@ -1,0 +1,86 @@
+{
+  "base": "bf4cea811d6348db10656178dc3757db8f4065f4",
+  "production_ast_inverse": true,
+  "production_original_ast_sha256": "01f514d4f821bd000bd4cf0cf8f27782925cc38d01077a637ab942509c7e5358",
+  "only_changed_production_node": "authenticate_anchor_endpoint",
+  "original_test_bodies_preserved_verbatim": 38,
+  "new_tests": 3,
+  "syntax": "pass",
+  "files_sha256": {
+    "scripts/train_siglip2_compact_ranking.py": "40c271217c74b89d3b7c20d0dfe05571746303ed6f75f7dcdcffbef3f77a2004",
+    "scripts/test_siglip2_compact_ranking.py": "b56265f631a589cc40aa5e0b7cc779bb54d84451eabd87628cc850b704eeba9d"
+  },
+  "test_ast_inverse": true,
+  "original_test_ast_sha256": "4c81bcd6cf712b8b0e6800a92da0c0eb200a7ce54178f84d57df7e72c0f16014",
+  "new_authentication_ast_sha256": "c40e8e35e917df89f54579a723405a0d30664fd5df951a5d6681ecc6ec3fcf39",
+  "focused_red": {
+    "exit_code": 1,
+    "failure": "matching native identity/JSON receipt rejected: complete payload identity differs",
+    "log": "red.log"
+  },
+  "focused_green": {
+    "exit_code": 0,
+    "tests": 3,
+    "log": "green-final.log"
+  },
+  "final_suite": {
+    "exit_code": 0,
+    "elapsed_seconds": 45.495129582006484,
+    "timeout_seconds": 120,
+    "virtual_memory_kib": 1048576,
+    "log_sha256": "ea98cadd6d11a17697441d8481602faf5c10bc65ddfa0bfffa7b5b86945a48a9",
+    "tests": 41,
+    "log": "suite.log",
+    "original_final_suite_runs": 1
+  },
+  "help_optimization_checks": [
+    {
+      "flags": [],
+      "exit_code": 0,
+      "log": "help.log"
+    },
+    {
+      "flags": [
+        "-O"
+      ],
+      "exit_code": 1,
+      "log": "help-O.log"
+    },
+    {
+      "flags": [
+        "-OO"
+      ],
+      "exit_code": 1,
+      "log": "help-OO.log"
+    }
+  ],
+  "diff_check": "pass",
+  "native_qualification": "UNRUN: prohibited; root owns prospective CPUv2",
+  "historical_cpu_v1": "FAIL preserved; no cap rescue or relaunch",
+  "type_authority": "Existing JSON digest renders bool/int/float distinctly. Complete length-framed native fingerprint preserves each native type, including tuple/list, independently; unchanged native check_payload/optimizer checks receive disk identity.",
+  "recorded_at": 1791113507.5887263,
+  "operator_git_identity": {
+    "name": "Roman Bartusiak",
+    "email": "riomus@gmail.com"
+  },
+  "artifact_sha256": {
+    "ast-syntax.json": "399d06b698920592330aac966a290147ea4d37cba3156b6c27dc0dd1e3f12bd6",
+    "red.log": "5100058bf8421e73be68f54d5058e7694553dc6c083c859a2ff4e3b616a1deca",
+    "green-final.log": "cf9d1b470ff096c937e755f96c792ca3a6ddd57f699e7c25397e8a9a1026391e",
+    "suite.log": "ea98cadd6d11a17697441d8481602faf5c10bc65ddfa0bfffa7b5b86945a48a9",
+    "suite-status.json": "92771e08fcbbfa747eaf020f79c83da4b82116ce487642cf8e1cf28f99de36dd",
+    "help.log": "b73cdf10dcd54768a30577305b24dbccae826cd7a99db4fe92e091a8a5332570",
+    "help-O.log": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03",
+    "help-OO.log": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03"
+  },
+  "commit": "50453e3b184825d5c3e6b342cd2e991c13aecce1",
+  "commit_parent": "bf4cea811d6348db10656178dc3757db8f4065f4",
+  "clean_worktree": true,
+  "commit_files": [
+    "scripts/test_siglip2_compact_ranking.py",
+    "scripts/train_siglip2_compact_ranking.py"
+  ],
+  "merged": false,
+  "pushed": false,
+  "completed_at": 1791113596.039961
+}

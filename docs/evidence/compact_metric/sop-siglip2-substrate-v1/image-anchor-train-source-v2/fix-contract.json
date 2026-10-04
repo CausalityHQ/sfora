@@ -1,0 +1,47 @@
+{
+  "status": "complete",
+  "base": "bf4cea811d6348db10656178dc3757db8f4065f4",
+  "owned_files": [
+    "scripts/train_siglip2_compact_ranking.py",
+    "scripts/test_siglip2_compact_ranking.py"
+  ],
+  "boundary": "authenticate_anchor_endpoint: authenticate native checkpoint identity against original JSON receipt, then pass the native typed identity to the unchanged original check_payload",
+  "independent_type_authority": "mandatory complete immutable typed checkpoint fingerprint equal to pinned terminal state",
+  "observed_difference": [
+    "identity.optimizer_defaults.betas tuple versus JSON list",
+    "identity.optimizer_groups[0].betas tuple versus JSON list"
+  ],
+  "preservation": "all other production AST and all 38 existing test bodies unchanged; original native helper and frozen pins unchanged; historical CPUv1 FAIL remains FAIL",
+  "verification_limits": {
+    "stdlib_suite_timeout_seconds": 120,
+    "virtual_memory_kib": 1048576,
+    "final_suite_runs": 1,
+    "no_native_torch_gpu_ssh_cloud_consults_children_operator_contact": true
+  },
+  "suite_coordination": "no suite is currently running; final trainer pins and suite completion will be recorded here and sent once to evaluator worker",
+  "receipt_path": "/tmp/image-anchor-native-identity-fix-20261004/verification.json",
+  "source_correction": "Existing json_sha256 binds the complete native identity to the JSON receipt. The unchanged native check_payload receives disk[identity]; complete typed fingerprint remains mandatory.",
+  "type_preservation": "JSON digests distinguish boolean from integer and integer from float; the complete typed state pin additionally binds tuple/list and every other native type.",
+  "base_repair": "Assigned clean isolated branch repaired from f860e06147ff7946a14497a1c6c43f67f304ba91 to required bf4cea811d6348db10656178dc3757db8f4065f4 before edits.",
+  "production_ast_inverse": true,
+  "production_original_ast_sha256": "01f514d4f821bd000bd4cf0cf8f27782925cc38d01077a637ab942509c7e5358",
+  "only_changed_production_node": "authenticate_anchor_endpoint",
+  "original_test_bodies_preserved_verbatim": 38,
+  "new_tests": 3,
+  "syntax": "pass",
+  "files_sha256": {
+    "scripts/train_siglip2_compact_ranking.py": "40c271217c74b89d3b7c20d0dfe05571746303ed6f75f7dcdcffbef3f77a2004",
+    "scripts/test_siglip2_compact_ranking.py": "b56265f631a589cc40aa5e0b7cc779bb54d84451eabd87628cc850b704eeba9d"
+  },
+  "suite_started_at": 1791113398.9518588,
+  "suite_exit_code": 0,
+  "suite_seconds": 45.495129582006484,
+  "suite_ended_at": 1791113444.447074,
+  "suite_running": false,
+  "test_ast_inverse": true,
+  "verification_sha256": "8ba7b6306a9c0b580308564ed5a316a0305e973360740c5fb755acd2948ab643",
+  "suite_tests": 41,
+  "new_authentication_ast_sha256": "c40e8e35e917df89f54579a723405a0d30664fd5df951a5d6681ecc6ec3fcf39",
+  "commit": "50453e3b184825d5c3e6b342cd2e991c13aecce1",
+  "clean_worktree": true
+}

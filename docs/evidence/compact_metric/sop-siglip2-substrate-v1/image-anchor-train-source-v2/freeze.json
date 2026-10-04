@@ -1,0 +1,14 @@
+{
+  "root": "/home/riomus/runs/sfora-so400-image-anchor-smooth-ap-train-source-v2",
+  "source_commit": "50453e3b184825d5c3e6b342cd2e991c13aecce1",
+  "historical_cpu_v1": "FAIL preserved",
+  "stop_rule": "ONE CPU500 full native witnesses, strict payload/reload/parity, host<=8GiB zero swap/events CUDA hidden both locks; any failure stops before mechanics/TRAIN/quality",
+  "files": {
+    "cpu-v2-launch.sh": "f34a35ed10ec5aa753bcae4735577a5eee06b2d1b1e079e14eca18c1a4e831eb",
+    "cpu-v2-command.sh": "fce6ca9224040fd6d893ad8b3488be073b1ef4d29e408053158e1a12bc5d7ff9",
+    "authority-cpu-v2.json": "c70e07a4b44af8a16bb95bfac36709026e3b1613766d011d6adb2da0f85664e1",
+    "execution.json": "1ed4790f6716ded3972a0e6fd86cffdd45edb7d2060cf949d07da2d4a1adf141",
+    "train_siglip2_compact_ranking.py": "40c271217c74b89d3b7c20d0dfe05571746303ed6f75f7dcdcffbef3f77a2004",
+    "test_siglip2_compact_ranking.py": "b56265f631a589cc40aa5e0b7cc779bb54d84451eabd87628cc850b704eeba9d"
+  }
+}
