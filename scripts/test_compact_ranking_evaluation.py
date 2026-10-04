@@ -236,6 +236,59 @@ SCIENTIFIC_IMPORTS = {
     'rich/style.py':'',
     'rich/text.py':'',
 }
+# Definition-time local edges from the installed sources; bodies are synthetic.
+ACCELERATE_IMPORTS = {
+    'accelerate/__init__.py':'import accelerate.accelerator\nimport accelerate.big_modeling\nimport accelerate.data_loader\nimport accelerate.inference\nimport accelerate.launchers\nimport accelerate.parallelism_config\nimport accelerate.state\nimport accelerate.utils\n',
+    'accelerate/accelerator.py':'import accelerate.big_modeling\nimport accelerate.checkpointing\nimport accelerate.data_loader\nimport accelerate.logging\nimport accelerate.optimizer\nimport accelerate.parallelism_config\nimport accelerate.scheduler\nimport accelerate.state\nimport accelerate.tracking\nimport accelerate.utils\nimport accelerate.utils.constants\nimport accelerate.utils.dataclasses\nimport accelerate.utils.modeling\nimport accelerate.utils.other\n',
+    'accelerate/big_modeling.py':'import accelerate.hooks\nimport accelerate.utils\nimport accelerate.utils.constants\nimport accelerate.utils.other\n',
+    'accelerate/checkpointing.py':'import accelerate.logging\nimport accelerate.state\nimport accelerate.utils\n',
+    'accelerate/commands/__init__.py':'',
+    'accelerate/commands/config/__init__.py':'import accelerate.commands.config.config\nimport accelerate.commands.config.config_args\nimport accelerate.commands.config.default\nimport accelerate.commands.config.update\n',
+    'accelerate/commands/config/cluster.py':'import accelerate.commands.config.config_args\nimport accelerate.commands.config.config_utils\nimport accelerate.utils\nimport accelerate.utils.constants\n',
+    'accelerate/commands/config/config.py':'import accelerate.commands.config.cluster\nimport accelerate.commands.config.config_args\nimport accelerate.commands.config.config_utils\nimport accelerate.commands.config.sagemaker\nimport accelerate.utils\n',
+    'accelerate/commands/config/config_args.py':'import accelerate.utils\nimport accelerate.utils.constants\nimport yaml\n',
+    'accelerate/commands/config/config_utils.py':'import accelerate.commands.menu\nimport accelerate.utils.dataclasses\n',
+    'accelerate/commands/config/default.py':'import accelerate.commands.config.config_args\nimport accelerate.commands.config.config_utils\nimport accelerate.utils\n',
+    'accelerate/commands/config/sagemaker.py':'import accelerate.commands.config.config_args\nimport accelerate.commands.config.config_utils\nimport accelerate.utils.constants\nimport accelerate.utils.dataclasses\nimport accelerate.utils.imports\n',
+    'accelerate/commands/config/update.py':'import accelerate.commands.config.config_args\nimport accelerate.commands.config.config_utils\n',
+    'accelerate/commands/menu/__init__.py':'import accelerate.commands.menu.selection_menu\n',
+    'accelerate/commands/menu/cursor.py':'',
+    'accelerate/commands/menu/helpers.py':'',
+    'accelerate/commands/menu/input.py':'import accelerate.commands.menu.keymap\n',
+    'accelerate/commands/menu/keymap.py':'',
+    'accelerate/commands/menu/selection_menu.py':'import accelerate.commands.menu\nimport accelerate.commands.menu.cursor\nimport accelerate.commands.menu.helpers\nimport accelerate.commands.menu.input\nimport accelerate.commands.menu.keymap\nimport accelerate.utils.imports\n',
+    'accelerate/data_loader.py':'import accelerate.logging\nimport accelerate.state\nimport accelerate.utils\nimport packaging.version\n',
+    'accelerate/hooks.py':'import accelerate.state\nimport accelerate.utils\nimport accelerate.utils.imports\nimport accelerate.utils.memory\nimport accelerate.utils.modeling\nimport accelerate.utils.other\n',
+    'accelerate/inference.py':'import accelerate.state\nimport accelerate.utils\n',
+    'accelerate/launchers.py':'import accelerate.state\nimport accelerate.utils\nimport accelerate.utils.constants\n',
+    'accelerate/logging.py':'import accelerate.state\n',
+    'accelerate/optimizer.py':'import accelerate.state\nimport accelerate.utils\n',
+    'accelerate/parallelism_config.py':'import accelerate.utils.dataclasses\nimport accelerate.utils.versions\n',
+    'accelerate/scheduler.py':'import accelerate.state\n',
+    'accelerate/state.py':'import accelerate.utils\nimport accelerate.utils.dataclasses\n',
+    'accelerate/tracking.py':'import accelerate.logging\nimport accelerate.state\nimport accelerate.utils\nimport packaging.version\nimport yaml\n',
+    'accelerate/utils/__init__.py':'import accelerate.parallelism_config\nimport accelerate.utils.ao\nimport accelerate.utils.bnb\nimport accelerate.utils.constants\nimport accelerate.utils.dataclasses\nimport accelerate.utils.environment\nimport accelerate.utils.fsdp_utils\nimport accelerate.utils.imports\nimport accelerate.utils.launch\nimport accelerate.utils.megatron_lm\nimport accelerate.utils.memory\nimport accelerate.utils.modeling\nimport accelerate.utils.offload\nimport accelerate.utils.operations\nimport accelerate.utils.other\nimport accelerate.utils.random\nimport accelerate.utils.torch_xla\nimport accelerate.utils.tqdm\nimport accelerate.utils.transformer_engine\nimport accelerate.utils.versions\n',
+    'accelerate/utils/ao.py':'import accelerate.utils.imports\n',
+    'accelerate/utils/bnb.py':'import accelerate.big_modeling\nimport accelerate.utils.dataclasses\nimport accelerate.utils.imports\nimport accelerate.utils.modeling\n',
+    'accelerate/utils/constants.py':'',
+    'accelerate/utils/dataclasses.py':'import accelerate.utils.constants\nimport accelerate.utils.environment\nimport accelerate.utils.imports\nimport accelerate.utils.versions\n',
+    'accelerate/utils/environment.py':'import packaging.version\n',
+    'accelerate/utils/fsdp_utils.py':'import accelerate.logging\nimport accelerate.utils.constants\nimport accelerate.utils.dataclasses\nimport accelerate.utils.modeling\nimport accelerate.utils.other\nimport accelerate.utils.versions\n',
+    'accelerate/utils/imports.py':'import accelerate.utils.environment\nimport accelerate.utils.versions\nimport packaging.version\n',
+    'accelerate/utils/launch.py':'import accelerate.commands.config.config_args\nimport accelerate.utils\nimport accelerate.utils.constants\nimport accelerate.utils.dataclasses\nimport accelerate.utils.other\nimport accelerate.utils.versions\n',
+    'accelerate/utils/megatron_lm.py':'import accelerate.optimizer\nimport accelerate.scheduler\nimport accelerate.utils.imports\nimport accelerate.utils.operations\n',
+    'accelerate/utils/memory.py':'import accelerate.utils.imports\n',
+    'accelerate/utils/modeling.py':'import accelerate.state\nimport accelerate.utils.constants\nimport accelerate.utils.dataclasses\nimport accelerate.utils.imports\nimport accelerate.utils.memory\nimport accelerate.utils.offload\nimport accelerate.utils.tqdm\nimport accelerate.utils.versions\n',
+    'accelerate/utils/offload.py':'',
+    'accelerate/utils/operations.py':'import accelerate.state\nimport accelerate.utils.constants\nimport accelerate.utils.dataclasses\nimport accelerate.utils.imports\nimport accelerate.utils.versions\n',
+    'accelerate/utils/other.py':'import accelerate.commands.config.default\nimport accelerate.logging\nimport accelerate.state\nimport accelerate.utils.constants\nimport accelerate.utils.dataclasses\nimport accelerate.utils.imports\nimport accelerate.utils.modeling\nimport accelerate.utils.transformer_engine\nimport accelerate.utils.versions\nimport packaging.version\n',
+    'accelerate/utils/random.py':'import accelerate.state\nimport accelerate.utils.constants\nimport accelerate.utils.dataclasses\nimport accelerate.utils.imports\n',
+    'accelerate/utils/torch_xla.py':'',
+    'accelerate/utils/tqdm.py':'import accelerate.state\nimport accelerate.utils.imports\n',
+    'accelerate/utils/transformer_engine.py':'import accelerate.utils.imports\nimport accelerate.utils.operations\n',
+    'accelerate/utils/versions.py':'import accelerate.utils.constants\nimport packaging.version\n',
+}
+
 SCIENTIFIC_NATIVE_IMPORTS = {
     'sklearn.__check_build._check_build':'sklearn/__check_build/_check_build.cpython-313-aarch64-linux-gnu.so',
     'scipy._lib._ccallback_c':'scipy/_lib/_ccallback_c.cpython-313-aarch64-linux-gnu.so',
@@ -251,11 +304,12 @@ SCIENTIFIC_NATIVE_IMPORTS = {
 
 class PortableRuntimeFixture:
     """Installed sources and a previously admitted RECORD; no native imports."""
-    def __init__(self,root,*,yaml_native=False,scientific=False):
+    def __init__(self,root,*,yaml_native=False,scientific=False,accelerate=False):
         # Legacy falsifiers keep their established installed distributions.
         # The scientific regression below uses the entire production inventory.
         self.runtime_sources={d:paths for d,paths in e.RUNTIME_SOURCES.items()
             if scientific or d not in SCIENTIFIC_DISTRIBUTIONS}
+        if not accelerate:self.runtime_sources['accelerate']={'accelerate-1.14.0.dist-info/METADATA'}
         self.site=root/'site-packages';self.site.mkdir()
         packages={}
         for name in ('torch','numpy','PIL','transformers','safetensors','torchvision'):
@@ -366,6 +420,9 @@ class PortableRuntimeFixture:
                 entry=tarfile.TarInfo('Etc/UTC');entry.size=len(raw)
                 archive.addfile(entry,io.BytesIO(raw))
             examples['python_dateutil']['dateutil/zoneinfo/dateutil-zoneinfo.tar.gz']=stream.getvalue()
+        if accelerate:
+            examples['accelerate']={name:(body+"value = 157\nmarker = 'source'\n").encode()
+                for name,body in ACCELERATE_IMPORTS.items()}
         for distribution in examples:self.metadata_versions.setdefault(distribution,'1.0')
         self.extra_sources={};self.extra_records={};self.natives=[self.native]
         for distribution in examples:
@@ -1013,6 +1070,54 @@ class EvaluationTests(unittest.TestCase):
                     finally:
                         path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
 
+    def test_accelerate_runtime_inventory_is_finite(self):
+        self.assertEqual(len(ACCELERATE_IMPORTS),49)
+        self.assertEqual(e.RUNTIME_SOURCES['accelerate'],set(ACCELERATE_IMPORTS)|
+            {'accelerate-1.14.0.dist-info/METADATA'})
+        self.assertFalse(set(ACCELERATE_IMPORTS)&{'accelerate/utils/rich.py',
+            'accelerate/utils/deepspeed.py','accelerate/commands/launch.py','accelerate/local_sgd.py',
+            'accelerate/memory_utils.py','accelerate/test_utils/__init__.py'})
+
+    def test_accelerate_sources_and_original_records_reject_mutations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            f=PortableRuntimeFixture(Path(directory),accelerate=True)
+            for cached in (False,True):
+                f.context.pop('portable_audits',None)
+                if cached:
+                    with f.boundary():pass
+                for name in sorted(ACCELERATE_IMPORTS):
+                    path=f.site/name;raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    try:
+                        with self.subTest(source=name,cached=cached),self.assertRaisesRegex(ValueError,'SHA256'):
+                            with f.boundary():pass
+                    finally:path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+            f.context.pop('portable_audits',None)
+            record=f.extra_records['accelerate'];record_raw=record.read_bytes()
+            source='accelerate/commands/config/config_args.py'
+            for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row','wrong_hash','wrong_size'):
+                guards=dict(f.context['guards']);required=dict(f.context['required_guards'])
+                if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                elif case=='mutated_record':record.write_bytes(record_raw+b'\n')
+                elif case=='foreign_record':
+                    foreign=f.site.parent/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True)
+                    foreign.write_bytes(record_raw);f.context['required_guards'].pop(str(record))
+                    f.context['guards'][str(foreign)]=required[str(record)]
+                else:
+                    rows=list(csv.reader(record_raw.decode().splitlines()));row=next(r for r in rows if r[0]==source)
+                    if case=='missing_row':rows.remove(row)
+                    elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                    else:row[2]='999'
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                try:
+                    with self.subTest(record=case),self.assertRaises(ValueError):
+                        with f.boundary():pass
+                finally:
+                    record.write_bytes(record_raw);f.context['guards']=guards;f.context['required_guards']=required
+
     def test_scientific_runtime_inventory_is_finite(self):
         counts={'scipy':409,'scikit_learn':109,'joblib':38,'threadpoolctl':1,'pandas':250,
             'python_dateutil':14,'six':1,'narwhals':56,'psutil':5,'pyarrow':9,'rich':54}
@@ -1039,13 +1144,13 @@ class EvaluationTests(unittest.TestCase):
             self.assertNotIn(distribution,e.RUNTIME_SOURCES)
 
     def test_bundle_boundary_scientific_transitive_source_fallback_and_denials(self):
-        prefixes=tuple(package for package,_ in SCIENTIFIC_DISTRIBUTIONS.values())
+        prefixes=tuple(package for package,_ in SCIENTIFIC_DISTRIBUTIONS.values())+('accelerate','yaml','packaging','tqdm')
         saved={n:m for n,m in sys.modules.items() if n.split('.')[0] in prefixes}
         try:
             for name in saved:sys.modules.pop(name)
             with tempfile.TemporaryDirectory() as directory:
-                root=Path(directory);f=PortableRuntimeFixture(root,scientific=True)
-                sources={f.site/n:f.extra_sources[f.site/n] for n in SCIENTIFIC_IMPORTS}
+                root=Path(directory);f=PortableRuntimeFixture(root,scientific=True,accelerate=True)
+                sources={f.site/n:f.extra_sources[f.site/n] for n in set(SCIENTIFIC_IMPORTS)|set(ACCELERATE_IMPORTS)}
                 for path,raw in sources.items():
                     prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached'))
                     py_compile.compile(str(path),doraise=True)
@@ -1054,12 +1159,16 @@ class EvaluationTests(unittest.TestCase):
                     'sklearn/cluster/__init__.py','scipy/io/__init__.py','scipy/sparse/csgraph/_optional.py',
                     'pandas/plotting/_matplotlib/__init__.py',
                     'dateutil/rrule.py','dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz',
+                    'accelerate/resume.pt','accelerate/optimizer.pt','accelerate/teachers.npy',
+                    'accelerate/utils/rich.py','accelerate/utils/deepspeed.py','accelerate/commands/launch.py',
+                    'accelerate/test_utils/__init__.py','accelerate/foreign.so',
                     'narwhals/_arrow/dataframe.py','rich/markdown.py','pyarrow/parquet/__init__.py',
                     'sklearn/utils/_repr_html/estimator.js','scipy/foreign.so')]+[root/'foreign.py',root/'proc/stat']
                 for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
                 # Extra rows in an original RECORD still confer no optional code/native access.
                 for distribution,names in (('scipy',('scipy/foreign.so',)),
-                        ('python_dateutil',('dateutil/rrule.py','dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz'))):
+                        ('python_dateutil',('dateutil/rrule.py','dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz')),
+                        ('accelerate',('accelerate/utils/rich.py','accelerate/foreign.so'))):
                     record=f.extra_records[distribution]
                     for name in names:
                         raw=(f.site/name).read_bytes()
@@ -1083,6 +1192,7 @@ class EvaluationTests(unittest.TestCase):
                             self.assertEqual(archive.read_bytes(),f.extra_sources[archive])
                             with self.assertRaisesRegex(ValueError,'attempted write'):archive.write_bytes(b'changed')
                             importlib.import_module('sklearn.metrics')
+                            self.assertEqual(importlib.import_module('accelerate').value,157)
                             for path,raw in sources.items():
                                 name=str(path.relative_to(f.site)).removesuffix('.py').replace('/','.').removesuffix('.__init__')
                                 loaded=sys.modules[name]
@@ -1091,21 +1201,23 @@ class EvaluationTests(unittest.TestCase):
                                 self.assertEqual(path.read_bytes(),raw)
                                 with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
                                 with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
-                            for path in (*forbidden,*(f.extra_records[d] for d in SCIENTIFIC_DISTRIBUTIONS)):
+                            for path in (*forbidden,*(f.extra_records[d] for d in (*SCIENTIFIC_DISTRIBUTIONS,'accelerate'))):
                                 with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
                             for name in ('sklearn.cluster','scipy.io','scipy.sparse.csgraph._optional',
-                                    'dateutil.rrule','dateutil.zoneinfo.rebuild','rich.markdown'):
+                                    'dateutil.rrule','dateutil.zoneinfo.rebuild','accelerate.utils.rich',
+                                    'accelerate.commands.launch','rich.markdown'):
                                 with self.assertRaisesRegex(ValueError,'external dependency'):importlib.import_module(name)
                 # The complete inventory, including modules absent from the small graph,
                 # has been authenticated to the fixture's original RECORD bytes.
-                for distribution in SCIENTIFIC_DISTRIBUTIONS:
+                for distribution in (*SCIENTIFIC_DISTRIBUTIONS,'accelerate'):
                     for name in e.RUNTIME_SOURCES[distribution]:
                         path=f.site/name
                         self.assertEqual(f.context['guards'][str(path)],hashlib.sha256(path.read_bytes()).hexdigest())
                 self.assertEqual(originals,original_before);self.assertEqual(f.context['required_guards'],required_before)
                 foreign=SimpleNamespace(__file__=str(forbidden[-2]),__spec__=SimpleNamespace(origin=str(forbidden[-2])))
                 for name in ('sklearn.utils.validation','scipy.stats._stats_py','scipy.sparse.csgraph._validation','pandas.compat.pyarrow',
-                        'dateutil.parser._parser','dateutil.easter','dateutil.zoneinfo','narwhals.stable.v2','psutil._pslinux','rich.console'):
+                        'dateutil.parser._parser','dateutil.easter','dateutil.zoneinfo','narwhals.stable.v2','psutil._pslinux',
+                        'rich.console','accelerate.state','accelerate.utils.launch','accelerate.commands.config.config_args'):
                     with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
                         with f.boundary():pass
         finally:

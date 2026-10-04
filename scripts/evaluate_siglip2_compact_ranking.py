@@ -598,7 +598,19 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
 
   'styled.py table.py terminal_theme.py text.py theme.py themes.py ').split()},
  # Definition-time version checks read identity bytes, without granting package code.
- 'accelerate':{'accelerate-1.14.0.dist-info/METADATA'},
+ 'accelerate':{'accelerate/'+n for n in (
+  '__init__.py accelerator.py big_modeling.py checkpointing.py commands/__init__.py '
+  'commands/config/__init__.py commands/config/cluster.py commands/config/config.py '
+  'commands/config/config_args.py commands/config/config_utils.py commands/config/default.py '
+  'commands/config/sagemaker.py commands/config/update.py commands/menu/__init__.py commands/menu/cursor.py '
+  'commands/menu/helpers.py commands/menu/input.py commands/menu/keymap.py commands/menu/selection_menu.py '
+  'data_loader.py hooks.py inference.py launchers.py logging.py optimizer.py parallelism_config.py '
+  'scheduler.py state.py tracking.py utils/__init__.py utils/ao.py utils/bnb.py utils/constants.py '
+  'utils/dataclasses.py utils/environment.py utils/fsdp_utils.py utils/imports.py utils/launch.py '
+  'utils/megatron_lm.py utils/memory.py utils/modeling.py utils/offload.py utils/operations.py '
+  'utils/other.py utils/random.py utils/torch_xla.py utils/tqdm.py utils/transformer_engine.py '
+  'utils/versions.py '
+).split()}|{'accelerate-1.14.0.dist-info/METADATA'},
  'aiohttp':{'aiohttp-3.14.1.dist-info/METADATA'},
  'hf_xet':{'hf_xet-1.5.1.dist-info/METADATA'},
  'numpy':{'numpy-2.5.0.dist-info/METADATA'},
