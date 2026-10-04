@@ -35,11 +35,11 @@ from types import FunctionType, SimpleNamespace
 import weakref
 
 UNIT_STARTED = time.perf_counter()
-SCHEMA = 'siglip2-compact-ranking-evaluation-v1'
-AUTHORITY_SCHEMA = 'siglip2-compact-ranking-evaluation-launch-v1'
+SCHEMA = 'siglip2-compact-smooth-ap-evaluation-v1'
+AUTHORITY_SCHEMA = 'siglip2-compact-smooth-ap-evaluation-launch-v1'
 FILES = {'evaluate_siglip2_compact_ranking.py', 'test_compact_ranking_evaluation.py'}
 TRAIN_FILES = {'train_siglip2_compact_ranking.py', 'test_siglip2_compact_ranking.py'}
-TRAINING = {'root': '/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7', 'execution_sha256': 'ee9f77da0bac2a90b09f87fdcd7e7935de9c8dd38b663d84ca8c57271f43ce26', 'code': {'train_siglip2_compact_ranking.py': '880a8e40a1b32e97786d6dcf2449e4ecbdc98a0a5d9e5a35d9c6a2519d7cb53c', 'test_siglip2_compact_ranking.py': '544dc5fc63adb53f312e9d0b7eae2419958adef71cc8318092bd733941654274'}}
+TRAINING = {'root': '/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1', 'code': {'test_siglip2_compact_ranking.py': '5834df438ac32dd98244d7b24bb19e94e173169b19ea6770ba7db2eff0c0f72b', 'train_siglip2_compact_ranking.py': '74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679'}, 'execution_sha256': 'bf3efd0040a6cccefde9414839a8cf4943e6a2a52c49f701b865a771def7e272'}
 ARMS = ('control', 'candidate')
 SEEDS = (179061, 179069)
 ORDER = ((179061,'control'),(179061,'candidate'),(179069,'candidate'),(179069,'control'))
@@ -969,8 +969,10 @@ def authority(args):
         loaded[key] = load_authenticated('_compact_eval_'+key,Path(fact['root'])/filename,fact['code'][filename],guards)
     trainer,native,math_helper,reference = (loaded[k] for k in ('training','nearest_evaluator','genuine_evaluator','reference'))
     require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and
-        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-ranking-v1' and
-        trainer.BUNDLE_SCHEMA == 'siglip2-compact-ranking-bundle-v1' and math_helper.ORDER == ORDER and
+        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-smooth-ap-v1' and
+        trainer.AUTHORITY_SCHEMA == 'siglip2-compact-smooth-ap-launch-v1' and
+        trainer.INFERENCE_SCHEMA == 'siglip2-compact-smooth-ap-inference-v1' and
+        trainer.BUNDLE_SCHEMA == 'siglip2-compact-smooth-ap-bundle-v1' and math_helper.ORDER == ORDER and
         math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')
     first = launch['endpoints'][0]; training = launch['training']
     targs = SimpleNamespace(execution_sha256=training['execution_sha256'],authority=Path(first['launch']['path']),
