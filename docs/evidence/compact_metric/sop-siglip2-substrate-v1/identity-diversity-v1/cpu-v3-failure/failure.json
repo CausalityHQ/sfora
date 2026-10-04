@@ -1,0 +1,13 @@
+{
+  "status": "FAIL",
+  "unit": "sfora-so400-identity-diversity-cpu-v3",
+  "invocation_id": "afa56499628e47dc807105740e3409f1",
+  "service_seconds": 239.783,
+  "host_peak_bytes": 8589934592,
+  "memory_max_events": 68,
+  "swap_bytes": 0,
+  "oom_events": 0,
+  "original_log_sha256": "a1a59bbeeeaeceac1cd6f510c3c52a1ec2b576cb5eec5a1f7177b73277ab857b",
+  "error": "cgroup memory failure event",
+  "quality_read": false
+}
