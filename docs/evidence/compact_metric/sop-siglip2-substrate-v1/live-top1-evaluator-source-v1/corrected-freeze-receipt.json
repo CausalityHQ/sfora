@@ -1,0 +1,11 @@
+{
+  "root": "/home/riomus/runs/sfora-so400-live-top1-evaluation-source-v1",
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "8ecaa206d0343dde117cec97fa92a0179cb8a5991127d4c18dc7917a7c535563",
+    "test_compact_ranking_evaluation.py": "bd49b89abdf6a29a1b18ebe058ffe0b265a41b2736a0e819d17f1b7f1d674e63"
+  },
+  "execution_sha256": "804bde987374b1416e8cedaaf1a9a44d888e4072a26d1af86a788bdae17ef072",
+  "native_eligible": false,
+  "requires": "accepted paired mechanics+fresh061pair+new first CPU launch authority",
+  "trainer_source": "/home/riomus/runs/sfora-so400-live-top1-train-source-v2"
+}
