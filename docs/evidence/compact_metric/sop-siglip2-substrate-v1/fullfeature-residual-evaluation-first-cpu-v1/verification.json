@@ -1,0 +1,11 @@
+{
+  "unit": "sfora-so400-fullfeature-residual-evaluation-first-cpu-v1",
+  "pass": true,
+  "service_seconds": 257.057,
+  "host_peak_bytes": 1624018944,
+  "rss_kib": 1181108,
+  "invocation_id": "a2600912904b454f8a03de438df27a86",
+  "quality_read": false,
+  "receipt_sha256": "b29033d7a493627964a9729117b591275686e1babcce080f3b1c82062fcb9f57",
+  "log_sha256": "05361e2076bbf0406a1cc00ea9ea4b203155e1d2f4a98a243fa2a72c3e67704f"
+}
