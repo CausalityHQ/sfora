@@ -741,6 +741,43 @@ class EvaluationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'attempted write'):owned.write_bytes(b'changed')
             self.assertEqual(outside.read_bytes(),b'forbidden');self.assertEqual(owned.read_bytes(),b'owned')
 
+    def test_bundle_boundary_self_maps_reads_and_proc_denials_fresh_and_cached(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);f=PortableRuntimeFixture(root)
+            alias=Path('/proc/self/maps');current=Path('/proc')/str(os.getpid())/'maps'
+            self.assertEqual(alias.resolve(),current)
+            other=Path('/proc')/str(1 if os.getpid()!=1 else 2)/'maps'
+            forbidden=[other,Path('/proc/maps'),*(Path('/proc/self')/name for name in
+                ('status','smaps','smaps_rollup','mem','fd','fd/999999'))]
+            foreign=f.regex/'foreign.so';foreign.write_bytes(b'foreign native; never executed')
+            history=[root/name for name in ('resume.pt','warm.pt','optimizer.pt','teachers.npy','checkpoint.pt')]
+            for path in history:path.write_bytes(b'historical dependency')
+            self.assertNotIn('portable_audits',f.context)
+            for cached in (False,True):
+                with self.subTest(cached=cached),f.boundary():
+                    for path in (alias,current):
+                        self.assertIn(b'\n',path.read_bytes())
+                        fd=os.open(path,os.O_RDONLY)
+                        try:self.assertTrue(os.read(fd,64))
+                        finally:os.close(fd)
+                        with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'forbidden')
+                        for mode in ('w','a','x','r+'):
+                            with self.assertRaisesRegex(ValueError,'attempted write'):
+                                sys.audit('open',str(path),mode,os.O_RDONLY)
+                        for flags in (os.O_WRONLY,os.O_RDWR,os.O_CREAT,os.O_TRUNC,os.O_APPEND):
+                            with self.assertRaisesRegex(ValueError,'attempted write'):
+                                sys.audit('open',str(path),None,flags)
+                    for path in (*forbidden,foreign,*history):
+                        with self.subTest(path=str(path)),self.assertRaisesRegex(ValueError,'external dependency'):
+                            path.read_bytes()
+                    for path in (Path('/proc'),alias.parent,current.parent,alias,current,alias.parent/'fd'):
+                        with self.assertRaisesRegex(ValueError,'external dependency'):os.listdir(path)
+                        with self.assertRaisesRegex(ValueError,'external dependency'):os.scandir(path)
+                if not cached:audits=f.context['portable_audits'].copy()
+                else:self.assertEqual(f.context['portable_audits'],audits)
+            self.assertEqual(foreign.read_bytes(),b'foreign native; never executed')
+            for path in history:self.assertEqual(path.read_bytes(),b'historical dependency')
+
     def test_bundle_boundary_imports_record_pinned_source_without_cached_code(self):
         saved={n:m for n,m in sys.modules.items() if n=='packaging' or n.startswith('packaging.')}
         try:

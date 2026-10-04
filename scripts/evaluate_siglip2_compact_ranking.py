@@ -1453,7 +1453,8 @@ bundle bytes. Native-origin admission remains the original owned API.
                     raise FileNotFoundError('unpinned runtime bytecode: '+str(path))
             require(path in exact or any(path.is_relative_to(p) for p in roots) or
                 (path.is_relative_to(stdlib) and not {'site-packages','dist-packages'}.intersection(path.parts)) or
-                (event != 'open' and path in directories),
+                (event != 'open' and path in directories) or
+                (event == 'open' and path == Path('/proc/self/maps').resolve()),
                 'bundle-only loader attempted external dependency: '+str(path))
         sys.addaudithook(audit);cached[identity]=(active,runtime,origins,absent)
     active,runtime,origins,absent=cached[identity]
