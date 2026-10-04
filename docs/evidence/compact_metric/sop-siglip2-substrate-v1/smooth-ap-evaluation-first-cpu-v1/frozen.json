@@ -1,0 +1,22 @@
+{
+  "root": "/home/riomus/runs/sfora-so400-smooth-ap-evaluation-source-v1",
+  "execution_sha256": "458ba8a4767027bc7c6b1e0c76f7d94ada13b29ebd62c308475c3e91c6414194",
+  "authority_sha256": "ba699484aea62afdd099d46a059d4f657bcb761c1ead2772d5459b8fa7dad184",
+  "command_sha256": "1ffe19555ba31ff07d6c2124f289c5791480ec98f51549a160a3272baf861230",
+  "launch_sha256": "62bda33e65966411976162e3f5a43a9c5695acb57b6c8a7da2597350d4e442dc",
+  "costs": {
+    "179061": {
+      "whole_service_ratio": 1.0121337708613394,
+      "total_training_core_ratio": 1.0191370178222778,
+      "pass": true,
+      "control": {
+        "service_seconds": 340.702,
+        "total_training_core_seconds": 68.8329109409824
+      },
+      "candidate": {
+        "service_seconds": 344.836,
+        "total_training_core_seconds": 70.15016758441925
+      }
+    }
+  }
+}

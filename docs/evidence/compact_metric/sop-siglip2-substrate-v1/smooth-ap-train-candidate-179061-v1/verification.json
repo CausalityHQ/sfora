@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "phase": "train",
+  "arm": "candidate",
+  "service_seconds": 344.836,
+  "invocation_id": "1dbeda11e66747fa8ea5a1e1fa1f7bb6",
+  "host_peak_bytes": 7286714368,
+  "rss_kib": 4619544,
+  "quality_read": false,
+  "receipt_sha256": "49a0d62d96864d6eec833aafe6c9676ae2c9be512ec624eae56997fd656d12c3",
+  "log_sha256": "c03eaa8b4d5372a31fac888a0a7446b67e1dd0d42fb36056f7b6931960998657"
+}
