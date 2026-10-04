@@ -1,0 +1,58 @@
+{
+  "schema": "identity-diversity-metadata-staging-v1",
+  "remote_root": "/home/riomus/runs/sfora-identity-diversity-metadata-v1",
+  "metadata_only": true,
+  "native_eligible": false,
+  "files": {
+    "freeze_identity_diversity_scope.py": {
+      "sha256": "771ff4d7b0c8bc5007a91756ea5e838e2ecf34cc935b18a4cc678142be77fa5d",
+      "size_bytes": 23910,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/scripts/freeze_identity_diversity_scope.py"
+    },
+    "test_identity_diversity_scope.py": {
+      "sha256": "184e300977bc596641665cdb5a33f4c9a39fb06a0974a806fe93e491d5c60430",
+      "size_bytes": 11365,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/scripts/test_identity_diversity_scope.py"
+    },
+    "scope.json": {
+      "sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726",
+      "size_bytes": 8370403,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-diversity-v1/scope.json"
+    },
+    "preflight.json": {
+      "sha256": "41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293",
+      "size_bytes": 6215041,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-augmented-100-v1/preflight-v2.json"
+    },
+    "roles.json": {
+      "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c",
+      "size_bytes": 348832,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/genuine-view-v1/export-source-v1/partition.json"
+    },
+    "official-partition.txt": {
+      "sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+      "size_bytes": 5007683,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-diversity-v1/original-partition.txt"
+    },
+    "mapping.json": {
+      "sha256": "fd0f6cb3376ecce3dc0b27402af2fb3671539a7aaf6246412f4a2009dc098ad6",
+      "size_bytes": 494,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-diversity-v1/metadata-mapping.json"
+    },
+    "plan.json": {
+      "sha256": "21dabd04d9208695b6d3f03e0e6575ee79c53bdb54cc19ccf7f1210eef316fdf",
+      "size_bytes": 32387,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/docs/inshop_identity_diversity_plan_2026-10-04.json"
+    },
+    "schedule-source.py": {
+      "sha256": "788d672bca384c478881fc8f0b59090efbaf6f84e1c9f27469828bc951b7ec96",
+      "size_bytes": 70380,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_genuine_views.py"
+    },
+    "schedule-consumer.py": {
+      "sha256": "80db5701d05091b0b0412c6bb18cc8d17f486f5ca52ef5a60a06a028a736f218",
+      "size_bytes": 166666,
+      "original_local_path": "/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py"
+    }
+  }
+}
