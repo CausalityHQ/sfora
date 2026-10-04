@@ -1,0 +1,20 @@
+{
+  "schema": "compact-selection-query-churn-v1",
+  "receipt_sha256": "a23bc6edc5b094c37e2e9ce124dfa1143841a5cf1b76b775887ece74bf67ae66",
+  "dataset": "DeepFashion InShop",
+  "split": "TRAIN-only previously observed selection1734q1715g498products",
+  "seed": 179061,
+  "r1_fixed": 6,
+  "r1_broken": 2,
+  "ap_better": 126,
+  "ap_worse": 180,
+  "ap_unchanged": 1428,
+  "ap_mean_delta": -0.00038473303789635983,
+  "ap_median_delta": 0.0,
+  "ap_sum_delta_by_r1": {
+    "fixed": 1.0833333432674408,
+    "broken": -0.4166666567325592,
+    "unchanged": -1.3337937742471695
+  },
+  "interpretation": "Observed distribution tradeoff, not proof of objective causality. Both trained arms trail concat AP; shared regression may contribute. No new checkpoint selection or tuning."
+}
