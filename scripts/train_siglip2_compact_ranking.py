@@ -28,10 +28,10 @@ from types import FunctionType
 import weakref
 
 UNIT_STARTED = time.perf_counter()
-SCHEMA = 'siglip2-compact-ranking-v1'
-AUTHORITY_SCHEMA = 'siglip2-compact-ranking-launch-v1'
-INFERENCE_SCHEMA = 'siglip2-compact-ranking-inference-v1'
-BUNDLE_SCHEMA = 'siglip2-compact-ranking-bundle-v1'
+SCHEMA = 'siglip2-compact-smooth-ap-v1'
+AUTHORITY_SCHEMA = 'siglip2-compact-smooth-ap-launch-v1'
+INFERENCE_SCHEMA = 'siglip2-compact-smooth-ap-inference-v1'
+BUNDLE_SCHEMA = 'siglip2-compact-smooth-ap-bundle-v1'
 FILES = {'train_siglip2_compact_ranking.py', 'test_siglip2_compact_ranking.py'}
 ARMS = ('control', 'candidate')
 SEEDS = (179061, 179069)
@@ -49,13 +49,13 @@ RECIPE = {'seeds': list(SEEDS), 'rows': 6355, 'classes': 1008, 'singletons': 12,
           'trainable_names': ['A'], 'trainable_shapes': [[128, 160]], 'trainable_scalars': 20480,
           'adamw': {**ADAM, 'betas': list(ADAM['betas'])}, 'clip': 1., 'initial_scaler': 128.,
           'regression': 'both same-row views coordinate sum / (128*e0)',
-          'ranking': 'candidate coefficient1; both mine; hinge sum / (2*K*.05)',
-          'margin': .05, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0',
-          'mining': 'all6355; other original image positive; wrong identity negative; ascending original-row ties',
+          'ranking': 'candidate coefficient1; both score all positives; SmoothAP sum / (2*K)',
+          'temperature': .01, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0',
+          'mining': 'all6355 canonical frozen bank; exclude same original image; all same-identity positives; canonical ordinal traversal',
           'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused',
           'readout': 'original CPU-renormalized genuine features; FP32 all; autocast disabled',
           'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means',
-          'core': 'cache/target preparation + both-arm mining + both-view forward/backward + optimizer'}
+          'core': 'cache/target preparation + both-arm all-positive scoring + both-view forward/backward + optimizer'}
 LAUNCH_KEYS = {'schema', 'execution_sha256', 'phase', 'arm', 'seed', 'nearest', 'fitter', 'accepted',
                'readout', 'recipe', 'resource_policy', 'both_locks_held', 'selected_cpu',
                'selected_mechanics', 'native_authority'}
@@ -177,9 +177,9 @@ def check_launch(launch, args):
     require(launch.keys() == LAUNCH_KEYS and launch['schema'] == AUTHORITY_SCHEMA and
             launch['execution_sha256'] == args.execution_sha256 and launch['phase'] == args.phase and
             launch['arm'] == args.arm and args.arm in ARMS and type(args.seed) is int and
-            launch['seed'] == args.seed and args.seed in SEEDS and launch['nearest'] == NEAREST and
+            type(launch['seed']) is int and launch['seed'] == args.seed and args.seed in SEEDS and launch['nearest'] == NEAREST and
             launch['fitter'] == FITTER and launch['accepted'] == ACCEPTED and launch['readout'] == READOUT and
-            launch['recipe'] == RECIPE and launch['resource_policy'] == policy(args.phase) and
+            launch['recipe'] == RECIPE and json_sha256(launch['recipe']) == json_sha256(RECIPE) and launch['resource_policy'] == policy(args.phase) and
             launch['both_locks_held'] is True, 'frozen compact-ranking launch differs')
     file_fact(launch['native_authority'])
     require((args.phase != 'cpu' or (args.arm == 'control' and args.seed == SEEDS[0])) and
@@ -424,6 +424,8 @@ def fresh(context, arm, seed, device, initial=None):
     state['target_list'] = state['target'].tolist()
     state['row_list'] = state['original_rows'].tolist()
     state['count_list'] = state['teachers']['counts'].tolist()
+    state['ranking_bank'] = ranking_bank(state['target_list'], state['row_list'])
+    check_ranking_bank(state['ranking_bank'])
     own_A(context, state, admit=True)
     return state
 
@@ -436,6 +438,7 @@ def identity(context, state):
     import torch
     optimizer = state['optimizer_object']
     return {'method': method(context['launch']), 'source': context['source'], 'arm': state['arm'],
+            'ranking_bank_sha256': state['ranking_bank']['sha256'],
             'seed': state['seed'], 'device': state['device'], 'parameter_names': ['A'],
             'parameter_shapes': [[128, 160]], 'numerical_flags': context['flags'],
             'static_sha256': fingerprint(context, static_tree(state)),
@@ -486,6 +489,8 @@ def check_payload(context, saved, ident, step):
             saved['numerical_flags'] == ident['numerical_flags'] == context['flags'], 'complete payload identity differs')
     require(fingerprint(context, {k: saved[k] for k in STATIC_KEYS}) == ident['static_sha256'] ==
             context['initial_static_sha256'], 'frozen complete encoder/head/teachers/cache/schedules current bytes differ')
+    require(ranking_bank(saved['target'].tolist(), saved['original_rows'].tolist())['sha256'] ==
+            ident['ranking_bank_sha256'], 'complete payload ranking bank differs')
     context['old'].check_encoder(saved['provenance']['encoder'])
     require(saved['provenance'] == context['initial']['provenance'], 'original provenance differs')
     primitive = context['legacy']['quadratic']
@@ -524,6 +529,9 @@ def integrity(context, state, ident):
     import torch
     helper = helper_guard(context)
     own_A(context, state)
+    require(state['ranking_bank'] == ranking_bank(state['target'].tolist(), state['original_rows'].tolist()) and
+            state['target_list'] == state['target'].tolist() and state['row_list'] == state['original_rows'].tolist(),
+            'live complete ranking bank differs')
     A, head, optimizer = state['A'], state['head_object'], state['optimizer_object']
     helper.check_weight(A, A.device, 'concat', context['legacy']['quadratic'])
     context['legacy']['quadratic']._check_base(head, A.device)
@@ -603,7 +611,7 @@ def restore(context, path, sha, digest, ident, step):
 
 def loss_denominators(full_valid):
     require(type(full_valid) is int and 0 <= full_valid <= 64, 'full B64 valid count required')
-    return 128, 2 * full_valid * .05 if full_valid else None
+    return 128, 2 * full_valid if full_valid else None
 
 
 def raw_features(context, state, features):
@@ -611,40 +619,84 @@ def raw_features(context, state, features):
                                               state['means'], 'concat', context['legacy']['quadratic'])
 
 
-def mine(context, state, unit, anchors):
+def json_sha256(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
+def ranking_bank(targets, original_rows):
+    require(isinstance(targets, list) and isinstance(original_rows, list) and
+            0 < len(targets) == len(original_rows) <= 6355 and
+            all(type(t) is int and t >= 0 for t in targets) and
+            all(type(r) is int and r >= 0 for r in original_rows), 'typed complete ranking bank required')
+    bank = {'target': list(targets), 'original_rows': list(original_rows)}
+    return {**bank, 'sha256': json_sha256(bank)}
+
+
+def check_ranking_bank(bank):
+    ranking_membership(bank, [])
+    counts = [0] * 1008
+    require(len(bank['target']) == 6355 and len(set(bank['original_rows'])) == 6355 and
+            all(t < 1008 for t in bank['target']), 'canonical TRAIN6355 ranking bank required')
+    for t in bank['target']:
+        counts[t] += 1
+    require(all(counts) and counts.count(1) == 12, 'ranking bank classes/singletons differ')
+
+
+def ranking_membership(bank, anchors):
+    require(isinstance(bank, dict) and bank.keys() == {'target', 'original_rows', 'sha256'} and
+            bank == ranking_bank(bank['target'], bank['original_rows']) and isinstance(anchors, list) and
+            len(anchors) <= 64 and all(type(a) is int and 0 <= a < len(bank['target']) for a in anchors),
+            'bound ranking membership required')
+    positives, counts, digests = [], [], []
+    targets, rows = bank['target'], bank['original_rows']
+    for anchor in anchors:
+        eligible = [j for j, row in enumerate(rows) if row != rows[anchor]]
+        positives.append([j for j in eligible if targets[j] == targets[anchor]])
+        counts.append(len(eligible))
+        digests.append(json_sha256(eligible))
+    return {'positive': positives, 'eligible_counts': counts, 'eligible_sha256': digests,
+            'valid': sum(bool(p) for p in positives)}
+
+
+def smooth_ap_terms(scores, positive, eligible):
+    """One anchor, all positives by frozen bank columns; no gallery square."""
     import torch
-    with torch.no_grad(), torch.autocast(unit.device.type, enabled=False):
-        scores = (unit.detach() @ state['teachers']['V'].T).cpu().tolist()
-        selected = [context['nearest'].select_nearest(row, state['target_list'], state['row_list'], int(anchor))
-                    for row, anchor in zip(scores, anchors, strict=True)]
-    positive, negative = zip(*selected, strict=True)
-    return torch.tensor(positive, device=unit.device), torch.tensor(negative, device=unit.device)
+    comparisons = ((scores[eligible][None, :] - scores[positive][:, None]) / .01).sigmoid()
+    columns = torch.tensor(eligible, device=scores.device)
+    positives = torch.tensor(positive, device=scores.device)
+    other = columns[None, :] != positives[:, None]
+    positive_set = set(positive)
+    positive_columns = torch.tensor([j in positive_set for j in eligible], device=scores.device)
+    rp = 1 + (comparisons * other * positive_columns[None, :]).sum(1)
+    rt = 1 + (comparisons * other).sum(1)
+    return 1 - rp / rt
 
 
 def loss_terms(context, state, raw, anchors, full_valid):
     import torch
     from torch.nn import functional as F
     rows, rank_denominator = loss_denominators(full_valid)
+    bank = state['ranking_bank']
+    membership = ranking_membership(bank, anchors)
     with torch.autocast(raw.device.type, enabled=False):
-        require(raw.dtype == torch.float32 and torch.isfinite(raw).all().item(), 'finite FP32 raw required')
+        require(raw.dtype == torch.float32 and torch.isfinite(raw).all().item() and
+                (raw.norm(dim=1) > 0).all().item(), 'finite nonzero FP32 raw required')
         index = torch.tensor(anchors, device=raw.device)
         mse = (raw - state['teachers']['P'][state['target'][index]]).square().sum() / (rows * state['teachers']['e0'])
-        unit = F.normalize(raw, dim=1)
-        positive, negative = mine(context, state, unit, anchors)
-        valid = positive >= 0
-        require(int(valid.sum()) == sum(state['count_list'][state['target_list'][i]] > 1 for i in anchors),
-                'singleton/valid mining differs')
-        if valid.any().item():
-            require(rank_denominator is not None, 'global valid denominator required')
-            hinge = F.relu(.05 + (unit[valid] * state['teachers']['V'][negative[valid]]).sum(1) -
-                          (unit[valid] * state['teachers']['V'][positive[valid]]).sum(1))
-            rank = hinge.sum() / rank_denominator
-            active = int((hinge > 0).sum())
-        else:
-            rank, active = raw.sum() * 0., 0
+        scores = F.normalize(raw, dim=1) @ state['teachers']['V'].T
+        terms, active = [], 0
+        for offset, (anchor, positive) in enumerate(zip(anchors, membership['positive'], strict=True)):
+            if positive:
+                require(rank_denominator is not None, 'global valid denominator required')
+                eligible = [j for j, row in enumerate(bank['original_rows']) if row != bank['original_rows'][anchor]]
+                per_positive = smooth_ap_terms(scores[offset], positive, eligible)
+                term = per_positive.mean()
+                require(torch.isfinite(per_positive).all().item(), 'nonfinite SmoothAP positive ranks')
+                terms.append(term)
+                active += int(term.detach().item() > 0)
+        rank = sum(terms) / rank_denominator if terms else raw.sum() * 0.
         require(torch.isfinite(mse).item() and torch.isfinite(rank).item(), 'nonfinite objective')
-    return mse, rank, {'positive': positive.tolist(), 'negative': negative.tolist(),
-                       'valid': int(valid.sum()), 'active': active}
+    return mse, rank, {**membership, 'active': active}
 
 
 def cached_witness(context, state):
@@ -656,11 +708,14 @@ def cached_witness(context, state):
 
 
 def cpu_gradients(context, state):
-    """Fixed first genuine B64 falsifier and full128 versus eight micro16."""
+    """Fixed first genuine B64 only; unchanged full/micro tolerances."""
     import torch
+    from torch.nn import functional as F
     with timed(context, 'cpu_loss_falsifier'):
         batch = state['schedules'][str(state['seed'])][0].tolist()
-        K = sum(state['count_list'][state['target_list'][i]] > 1 for i in batch)
+        bank = state['ranking_bank']
+        membership = ranking_membership(bank, batch)
+        K = membership['valid']
         A = state['A']
         def objective(micro):
             regression, ranking, active = [], [], 0
@@ -682,15 +737,60 @@ def cpu_gradients(context, state):
         for expected, actual in zip(full[:5], micro[:5], strict=True):
             require(torch.allclose(expected, actual, rtol=1e-5, atol=1e-6), 'global both-view micro16 loss/gradient differs')
         mse, rank, control, rank_grad, candidate, active = full
-        require(mse.item() > 0 and active == micro[5] and active > 0 and
+        require(mse.item() > 0 and rank.item() > 0 and active == micro[5] and active > 0 and
                 all(v.dtype == torch.float32 and torch.isfinite(v).all().item() and v.double().norm().item() > 0
                     for v in (control, rank_grad, candidate)) and
+                (candidate - control).double().norm().item() > 0 and
                 torch.allclose(candidate - control, rank_grad, rtol=1e-5, atol=1e-6),
                 'fixed firstB64 regression/rank/candidate gradient falsifier failed')
+        multi = sum(len(p) > 1 for p in membership['positive'])
+        require(multi > 0, 'fixed firstB64 lacks multiple distinct-image positives')
+        nonnearest, nonnearest_count = [], 0
+        for view in VIEWS:
+            for offset in range(0, 64, 16):
+                anchors = batch[offset:offset + 16]
+                raw = raw_features(context, state, state['views'][view][anchors])
+                with torch.autocast('cpu', enabled=False):
+                    scores = F.normalize(raw, dim=1) @ state['teachers']['V'].T
+                    for local, anchor in enumerate(anchors):
+                        positive = membership['positive'][offset + local]
+                        if len(positive) > 1:
+                            eligible = [j for j, row in enumerate(bank['original_rows']) if row != bank['original_rows'][anchor]]
+                            nearest = min(positive, key=lambda j: (-float(scores[local, j].detach()), bank['original_rows'][j]))
+                            terms = smooth_ap_terms(scores[local], positive, eligible)
+                            beyond = [i for i, p in enumerate(positive) if p != nearest]
+                            nonnearest.append(terms[beyond].sum() / len(positive) / (2 * K))
+                            nonnearest_count += len(beyond)
+        nonnearest_loss = sum(nonnearest)
+        nonnearest_grad = torch.autograd.grad(nonnearest_loss, A)[0]
+        require(torch.isfinite(nonnearest_loss).item() and nonnearest_loss.item() > 0 and
+                torch.isfinite(nonnearest_grad).all().item() and nonnearest_grad.double().norm().item() > 0,
+                'fixed firstB64 nonnearest positive gradient inactive')
+        # Native ties/self and genuine singleton witnesses, without batch rescue.
+        tied = torch.tensor([99., 0., 0., 0., 0.], dtype=torch.float32)
+        require(torch.allclose(smooth_ap_terms(tied, [1, 2], [1, 2, 3, 4]),
+                               torch.tensor([.4, .4]), rtol=1e-5, atol=1e-6), 'native tie/self rank algebra differs')
+        singletons = [i for i, t in enumerate(bank['target']) if state['count_list'][t] == 1]
+        require(len(singletons) == 12 and ranking_membership(bank, singletons)['valid'] == 0,
+                'genuine singleton membership differs')
+        raw = raw_features(context, state, state['views']['canonical'][singletons])
+        _, singleton_rank, singleton_facts = loss_terms(context, state, raw, singletons, 0)
+        singleton_grad = torch.autograd.grad(singleton_rank, A)[0]
+        require(singleton_rank.item() == 0 and singleton_facts['active'] == 0 and
+                torch.equal(singleton_grad, torch.zeros_like(A)), 'singletons must receive regression only')
         require(A.grad is None, 'falsifier changed A gradient')
-        return {'seed': state['seed'], 'mse': float(mse), 'rank': float(rank), 'active': active, 'K': K,
+        alignment = float(F.cosine_similarity(control.flatten().double(), rank_grad.flatten().double(), dim=0))
+        return {'seed': state['seed'], 'batch': batch, 'membership_sha256': json_sha256(membership),
+                'mse': float(mse), 'rank': float(rank), 'active': active, 'K': K,
                 'control_gradient_norm': float(control.double().norm()),
                 'ranking_gradient_norm': float(rank_grad.double().norm()),
+                'candidate_gradient_norm': float(candidate.double().norm()),
+                'candidate_minus_control_gradient_norm': float((candidate - control).double().norm()),
+                'gradient_alignment': alignment,
+                'multi_positive_anchors': multi, 'nonnearest_positive_terms': nonnearest_count,
+                'nonnearest_loss': float(nonnearest_loss.detach()),
+                'nonnearest_gradient_norm': float(nonnearest_grad.double().norm()),
+                'native_mask_self_ties_singletons_exact': True,
                 'candidate_minus_control_equals_rank': True, 'micro16_global_reduction_exact': True}
 
 
@@ -1046,12 +1146,13 @@ def update(context, state, ident, step):
     torch.cuda.synchronize()
     tick = time.perf_counter()
     batch = state['schedules'][str(state['seed'])][step - 1].tolist()
-    K = sum(state['count_list'][state['target_list'][i]] > 1 for i in batch)
+    full_membership = ranking_membership(state['ranking_bank'], batch)
+    K = full_membership['valid']
     optimizer, scaler, A = state['optimizer_object'], state['scaler_object'], state['A']
     optimizer.zero_grad(set_to_none=True)
     before = fingerprint(context, A.detach())
     mse_sum = rank_sum = 0.
-    active, mined = 0, []
+    active, membership = 0, []
     ranking_gradient = torch.zeros_like(A) if step == 1 else None
     for view in VIEWS:
         for offset in range(0, 64, 16):
@@ -1070,7 +1171,7 @@ def update(context, state, ident, step):
             mse_sum += float(mse.detach())
             rank_sum += float(rank.detach())
             active += selected['active']
-            mined.append({'view': view, 'batch': anchors, **selected})
+            membership.append({'view': view, 'batch': anchors, **selected})
             del raw, mse, rank, loss, features
     scaler.unscale_(optimizer)
     require(A.grad.dtype == torch.float32 and torch.isfinite(A.grad).all().item() and
@@ -1096,8 +1197,8 @@ def update(context, state, ident, step):
     with timed(context, 'update_integrity'):
         integrity(context, state, ident)
         digest = fingerprint(context, payload(context, state, ident))
-    row = {'step': step, 'batch': batch, 'mined': mined, 'full_valid': K, 'mse': mse_sum, 'rank': rank_sum,
-           'loss': mse_sum + (rank_sum if state['arm'] == 'candidate' else 0.), 'active_hinges': active,
+    row = {'step': step, 'batch': batch, 'membership': membership, 'full_membership_sha256': json_sha256(full_membership), 'full_valid': K, 'mse': mse_sum, 'rank': rank_sum,
+           'loss': mse_sum + (rank_sum if state['arm'] == 'candidate' else 0.), 'active_anchors': active,
            'gradient_norm': gradient, 'ranking_gradient_norm': rank_gradient, 'preclip_norm': float(norm),
            'A_before_sha256': before, 'A_after_sha256': after, 'scale': scaler.get_scale(),
            'state_sha256': digest, 'core_seconds': core, 'seconds': time.perf_counter() - tick}
@@ -1109,24 +1210,35 @@ def diagnostic(row):
     return {k: v for k, v in row.items() if k not in ('seconds', 'core_seconds')}
 
 
-def check_steps(rows, start, count):
+def check_steps(rows, start, count, bank):
+    check_ranking_bank(bank)
     require(isinstance(rows, list) and len(rows) == count and
             [r['step'] for r in rows] == list(range(start, start + count)), 'complete bounded steps required')
     for row in rows:
-        require(len(row['batch']) == 64 and all(type(i) is int and 0 <= i < 6355 for i in row['batch']) and
+        full = ranking_membership(bank, row['batch'])
+        require(len(row['batch']) == 64 and row['full_valid'] == full['valid'] and
+                type(row['full_valid']) is int and row['full_membership_sha256'] == json_sha256(full) and
                 row['scale'] == 128 and row['gradient_norm'] > 0 and
                 row['A_before_sha256'] != row['A_after_sha256'] and
-                0 < row['core_seconds'] <= row['seconds'] and len(row['mined']) == 8 and
-                [m['view'] for m in row['mined']] == ['canonical'] * 4 + ['augmented'] * 4 and
-                all(m['batch'] == row['batch'][(i % 4) * 16:(i % 4 + 1) * 16] and len(m['positive']) == 16 and
-                    len(m['negative']) == 16 and all(type(p) is int and -1 <= p < 6355 for p in m['positive']) and
-                    all(type(n) is int and 0 <= n < 6355 for n in m['negative'])
-                    for i, m in enumerate(row['mined'])), 'complete paired-view miner/update record differs')
-        require(all(type(row[k]) in (int, float) and math.isfinite(row[k]) for k in
-                    ('mse', 'rank', 'loss', 'gradient_norm', 'preclip_norm', 'core_seconds', 'seconds')),
-                'nonfinite update record')
+                0 < row['core_seconds'] <= row['seconds'] and len(row['membership']) == 8 and
+                [m['view'] for m in row['membership']] == ['canonical'] * 4 + ['augmented'] * 4,
+                'complete paired-view ranking/update record differs')
+        for i, member in enumerate(row['membership']):
+            anchors = row['batch'][(i % 4) * 16:(i % 4 + 1) * 16]
+            expected = ranking_membership(bank, anchors)
+            require(member.keys() == {'view', 'batch', 'active', *expected} and member['batch'] == anchors and
+                    json_sha256({k: member[k] for k in expected}) == json_sha256(expected) and
+                    type(member['active']) is int and 0 <= member['active'] <= expected['valid'],
+                    'complete all-positive original-image membership differs')
+        require(type(row['active_anchors']) is int and
+                row['active_anchors'] == sum(m['active'] for m in row['membership']) and
+                all(type(row[k]) in (int, float) and math.isfinite(row[k]) for k in
+                    ('mse', 'rank', 'loss', 'gradient_norm', 'preclip_norm', 'core_seconds', 'seconds')) and
+                0 <= row['rank'] <= 1, 'nonfinite update record')
     if start == 1:
-        require(rows[0]['active_hinges'] > 0 and rows[0]['ranking_gradient_norm'] > 0, 'first-step rank activity missing')
+        require(rows[0]['active_anchors'] > 0 and type(rows[0]['ranking_gradient_norm']) in (int, float) and
+                math.isfinite(rows[0]['ranking_gradient_norm']) and rows[0]['ranking_gradient_norm'] > 0,
+                'first-step rank activity missing')
 
 
 def tamper_witness(context, state, ident):
@@ -1199,7 +1311,9 @@ def cpu_witnesses(context):
     with timed(context, 'cpu_bundle_qualification'):
         native = qualify_bundle(context, args.output / 'bundle', bundle['sha256'], 'cpu', native_witness)
     require(not torch.cuda.is_initialized(), 'CPU qualification initialized CUDA')
-    return {'completed_step': 0, 'identity': first_ident, 'terminal_state_sha256': first_digest,
+    return {'ranking_bank': ranking_bank(context['initial']['target'].tolist(),
+                                         context['initial']['original_rows'].tolist()),
+            'completed_step': 0, 'identity': first_ident, 'terminal_state_sha256': first_digest,
             'initial_A_sha256': context['initial_A_sha256'], 'initial_raw_unit_packed_sha256': first_witness,
             'checkpoint': {'path': str(args.output / f'initializer-{SEEDS[0]}.pt'),
                            'sha256': context['guards'][str(args.output / f'initializer-{SEEDS[0]}.pt')]},
@@ -1277,10 +1391,11 @@ def gpu_run(context):
         for path in list(context['guards']):
             if Path(path).is_relative_to(temporary):
                 context['guards'].pop(path)  # Discard only after full reload/parity qualification.
-    check_steps(rows, 1, total)
+    bank = ranking_bank(context['initial']['target'].tolist(), context['initial']['original_rows'].tolist())
+    check_steps(rows, 1, total, bank)
     if resumed:
-        check_steps(resumed, 9, 9)
-    return {'completed_step': total, 'identity': ident, 'steps': rows, 'resumed_steps': resumed,
+        check_steps(resumed, 9, 9, bank)
+    return {'ranking_bank': bank, 'completed_step': total, 'identity': ident, 'steps': rows, 'resumed_steps': resumed,
             'terminal_state_sha256': digest, 'initial_A_sha256': ident['initial_A_sha256'],
             'initial_raw_unit_packed_sha256': initial_witness,
             'checkpoint': None if args.phase == 'mechanics' else {'path': str(checkpoint), 'sha256': sha},
@@ -1298,6 +1413,29 @@ def gpu_run(context):
             'median_update_seconds': statistics.median(r['seconds'] for r in rows[2:])}
 
 
+def check_cpu_gradient(g, bank):
+    members = ranking_membership(bank, g['batch'])
+    require(len(g['batch']) == 64 and g['membership_sha256'] == json_sha256(members) and
+            type(g['seed']) is int and g['seed'] in SEEDS and
+            type(g['K']) is int and 0 < g['K'] == members['valid'] <= 64 and
+            type(g['active']) is int and 0 < g['active'] <= 2 * g['K'] and
+            all(type(g[k]) in (int, float) and math.isfinite(g[k]) for k in
+                ('mse', 'rank', 'control_gradient_norm', 'ranking_gradient_norm', 'candidate_gradient_norm',
+                 'candidate_minus_control_gradient_norm', 'gradient_alignment', 'nonnearest_loss', 'nonnearest_gradient_norm')) and
+            all(g[k] > 0 for k in ('mse', 'rank', 'control_gradient_norm', 'ranking_gradient_norm',
+                                  'candidate_gradient_norm', 'candidate_minus_control_gradient_norm',
+                                  'nonnearest_loss', 'nonnearest_gradient_norm')) and
+            g['rank'] <= 1 and -1 <= g['gradient_alignment'] <= 1 and
+            type(g['multi_positive_anchors']) is int and g['multi_positive_anchors'] > 0 and
+            g['multi_positive_anchors'] == sum(len(p) > 1 for p in members['positive']) and
+            type(g['nonnearest_positive_terms']) is int and
+            g['nonnearest_positive_terms'] == 2 * sum(max(len(p) - 1, 0) for p in members['positive']) and
+            g['native_mask_self_ties_singletons_exact'] is True and
+            g['candidate_minus_control_equals_rank'] is True and g['micro16_global_reduction_exact'] is True,
+            'fixed firstB64 all-positive CPU gradient witness differs')
+    return True
+
+
 def check_terminal_record(record, launch, phase, arm, seed):
     from types import SimpleNamespace
     require(record['schema'] == SCHEMA and record['phase'] == phase and record['arm'] == arm and
@@ -1313,6 +1451,9 @@ def check_terminal_record(record, launch, phase, arm, seed):
     check_launch(record['launch'], SimpleNamespace(execution_sha256=launch['execution_sha256'],
                                                   phase=phase, arm=arm, seed=seed))
     ident = record['identity']
+    bank = record['ranking_bank']
+    check_ranking_bank(bank)
+    require(bank['sha256'] == ident['ranking_bank_sha256'], 'terminal complete ranking bank differs')
     require(record['code'].keys() == FILES and record['authority_sha256'] == record['authority']['sha256'] and
             record['invocation']['optimize'] == 0 and ident['method'] == method(launch) and
             ident['source'] == record['source'] and ident['arm'] == arm and ident['seed'] == seed and
@@ -1328,13 +1469,8 @@ def check_terminal_record(record, launch, phase, arm, seed):
                 all(record[k] is True for k in ('initial_arm_parity', 'cpu_serialization_exact',
                     'bypass_version_tamper_rejected', 'malformed_state_rejected', 'native_role_mutation_rejected',
                     'native_loss_reduction_exact')) and [g['seed'] for g in record['gradients']] == list(SEEDS) and
-                all(g['mse'] > 0 and g['active'] > 0 and g['control_gradient_norm'] > 0 and
-                    g['ranking_gradient_norm'] > 0 and g['candidate_minus_control_equals_rank'] is True and
-                    type(g['K']) is int and 0 < g['K'] <= 64 and 0 < g['active'] <= 2 * g['K'] and
-                    g['micro16_global_reduction_exact'] is True and
-                    all(type(g[k]) in (int, float) and math.isfinite(g[k]) for k in
-                        ('mse', 'rank', 'control_gradient_norm', 'ranking_gradient_norm'))
-                    for g in record['gradients']), 'both-seed CPU qualification incomplete')
+                all(check_cpu_gradient(g, bank) for g in record['gradients']),
+                'both-seed CPU qualification incomplete')
     else:
         require(ident['device'] == 'cuda' and record['cuda_initialized'] is True and
                 record['exact_four_native_membership'] is True and record['source_substitution_rejected'] is True and
@@ -1345,7 +1481,7 @@ def check_terminal_record(record, launch, phase, arm, seed):
                 'native CUDA qualification incomplete')
         count = 17 if phase == 'mechanics' else 128
         require(record['completed_step'] == count, 'fixed update count differs')
-        check_steps(record['steps'], 1, count)
+        check_steps(record['steps'], 1, count, bank)
         require(all(r['mse'] > 0 and r['rank'] >= 0 and
                     r['loss'] == r['mse'] + (r['rank'] if arm == 'candidate' else 0.)
                     for r in record['steps']), 'matched objective arithmetic differs')
@@ -1354,7 +1490,7 @@ def check_terminal_record(record, launch, phase, arm, seed):
                     record['training_state_discarded'] is True and record['replay_exact'] is True and
                     record['independent_first8_exact'] is True and all(diagnostic(a) == diagnostic(b)
                         for a, b in zip(record['steps'][8:], record['resumed_steps'], strict=True)), 'mechanics replay/discard differs')
-            check_steps(record['resumed_steps'], 9, 9)
+            check_steps(record['resumed_steps'], 9, 9, bank)
         else:
             require(record['training_state_discarded'] is False and record['resumed_steps'] == [] and
                     isinstance(record['checkpoint'], dict) and isinstance(record['bundle'], dict) and
