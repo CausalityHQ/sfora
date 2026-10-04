@@ -49,6 +49,49 @@ NATIVE = {'torch','numpy','PIL','transformers','safetensors','torchvision','sfor
 PACKAGING_SOURCES = {'__init__.py','_elffile.py','_manylinux.py','_musllinux.py','_parser.py','_structures.py',
  '_tokenizer.py','dependency_groups.py','direct_url.py','errors.py','licenses/__init__.py','licenses/_spdx.py',
  'markers.py','metadata.py','pylock.py','requirements.py','specifiers.py','tags.py','utils.py','version.py'}
+RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES},
+ 'regex':{'regex/__init__.py','regex/_main.py','regex/_regex_core.py'},
+ 'anyio':set(('anyio/__init__.py anyio/_core/__init__.py anyio/_core/_contextmanagers.py anyio/_core/_eventloop.py '
+  'anyio/_core/_exceptions.py anyio/_core/_fileio.py anyio/_core/_resources.py anyio/_core/_signals.py '
+  'anyio/_core/_sockets.py anyio/_core/_streams.py anyio/_core/_subprocesses.py '
+  'anyio/_core/_synchronization.py anyio/_core/_tasks.py anyio/_core/_tempfile.py anyio/_core/_testing.py '
+  'anyio/_core/_typedattr.py anyio/abc/__init__.py anyio/abc/_eventloop.py anyio/abc/_resources.py '
+  'anyio/abc/_sockets.py anyio/abc/_streams.py anyio/abc/_subprocesses.py anyio/abc/_tasks.py '
+  'anyio/abc/_testing.py anyio/from_thread.py anyio/lowlevel.py anyio/streams/__init__.py '
+  'anyio/streams/memory.py anyio/streams/stapled.py anyio/streams/tls.py anyio/to_thread.py').split()),
+ 'certifi':set(('certifi/__init__.py certifi/core.py').split()),
+ 'h11':set(('h11/__init__.py h11/_abnf.py h11/_connection.py h11/_events.py h11/_headers.py h11/_readers.py '
+  'h11/_receivebuffer.py h11/_state.py h11/_util.py h11/_version.py h11/_writers.py').split()),
+ 'httpcore':set(('httpcore/__init__.py httpcore/_api.py httpcore/_async/__init__.py httpcore/_async/connection.py '
+  'httpcore/_async/connection_pool.py httpcore/_async/http11.py httpcore/_async/http2.py '
+  'httpcore/_async/http_proxy.py httpcore/_async/interfaces.py httpcore/_async/socks_proxy.py '
+  'httpcore/_backends/__init__.py httpcore/_backends/anyio.py httpcore/_backends/auto.py '
+  'httpcore/_backends/base.py httpcore/_backends/mock.py httpcore/_backends/sync.py '
+  'httpcore/_backends/trio.py httpcore/_exceptions.py httpcore/_models.py httpcore/_ssl.py '
+  'httpcore/_sync/__init__.py httpcore/_sync/connection.py httpcore/_sync/connection_pool.py '
+  'httpcore/_sync/http11.py httpcore/_sync/http2.py httpcore/_sync/http_proxy.py '
+  'httpcore/_sync/interfaces.py httpcore/_sync/socks_proxy.py httpcore/_synchronization.py '
+  'httpcore/_trace.py httpcore/_utils.py').split()),
+ 'httpx':set(('httpx/__init__.py httpx/__version__.py httpx/_api.py httpx/_auth.py httpx/_client.py httpx/_config.py '
+  'httpx/_content.py httpx/_decoders.py httpx/_exceptions.py httpx/_main.py httpx/_models.py '
+  'httpx/_multipart.py httpx/_status_codes.py httpx/_transports/__init__.py httpx/_transports/asgi.py '
+  'httpx/_transports/base.py httpx/_transports/default.py httpx/_transports/mock.py '
+  'httpx/_transports/wsgi.py httpx/_types.py httpx/_urlparse.py httpx/_urls.py httpx/_utils.py').split()),
+ 'huggingface_hub':set(('huggingface_hub/__init__.py huggingface_hub/dataclasses.py huggingface_hub/errors.py').split()),
+ 'idna':set(('idna/__init__.py idna/core.py idna/idnadata.py idna/intranges.py idna/package_data.py').split()),
+ 'jinja2':set(('jinja2/__init__.py jinja2/_identifier.py jinja2/async_utils.py jinja2/bccache.py jinja2/compiler.py '
+  'jinja2/defaults.py jinja2/environment.py jinja2/exceptions.py jinja2/ext.py jinja2/filters.py '
+  'jinja2/idtracking.py jinja2/lexer.py jinja2/loaders.py jinja2/meta.py jinja2/nodes.py jinja2/optimizer.py '
+  'jinja2/parser.py jinja2/runtime.py jinja2/sandbox.py jinja2/tests.py jinja2/utils.py jinja2/visitor.py').split()),
+ 'markupsafe':set(('markupsafe/__init__.py markupsafe/_native.py').split()),
+ 'tokenizers':set(('tokenizers/__init__.py tokenizers/decoders/__init__.py tokenizers/implementations/__init__.py '
+  'tokenizers/implementations/base_tokenizer.py tokenizers/implementations/bert_wordpiece.py '
+  'tokenizers/implementations/byte_level_bpe.py tokenizers/implementations/char_level_bpe.py '
+  'tokenizers/implementations/sentencepiece_bpe.py tokenizers/implementations/sentencepiece_unigram.py '
+  'tokenizers/models/__init__.py tokenizers/normalizers/__init__.py tokenizers/pre_tokenizers/__init__.py '
+  'tokenizers/processors/__init__.py tokenizers/trainers/__init__.py').split()),
+ 'typing_extensions':set(('typing_extensions.py').split()),
+}
 NEAREST_EVALUATOR = {'root':'/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1',
  'execution_sha256':'5c24fe113c03ae26d4ab68f21caf8e3a8d19c1a082e696fdf54abdd8bb73ab59',
  'code':{'evaluate_siglip2_nearest_ranking.py':'73e4386256c576329438da805cf6ff71ce67af7b4eae5b1074f2258d7d7029be',
@@ -744,33 +787,44 @@ def packed_outputs(context,raw):
     return context['training_context']['old'].packed_outputs(context['training_context']['legacy'],raw)
 
 
-def packaging_runtime_files(context,environment):
-    """Derive finite source pins from the original admitted installed RECORD."""
+def lazy_runtime_files(context,environment):
+    """Exact sources from admitted RECORDs; native files stay original CPU origins."""
     sites={Path(v['root']).parent for v in environment['packages'].values()}
     require(len(sites) == 1, 'one qualified runtime site required')
     site=sites.pop()
     require(site.is_absolute() and site.resolve() == site and site.is_dir(), 'canonical runtime site required')
-    records=[Path(p) for p in context['required_guards'] if Path(p).parent.parent == site and
-        Path(p).name == 'RECORD' and re.fullmatch(r'packaging-[^/]+\.dist-info',Path(p).parent.name)]
-    require(len(records) == 1, 'exact previously admitted packaging RECORD required')
-    record=records[0];digest=context['required_guards'][str(record)]
-    raw=bound_file(context['guards'],record,digest).read_bytes()
-    require(hashlib.sha256(raw).hexdigest() == digest, 'packaging RECORD changed before parsing')
-    files={record:digest};seen=set();wanted={'packaging/'+n for n in PACKAGING_SOURCES}
-    for row in csv.reader(raw.decode('utf-8').splitlines()):
-        require(len(row) == 3 and row[0] not in seen, 'invalid/duplicate packaging RECORD row')
-        seen.add(row[0])
-        if row[0] not in wanted:
-            continue
-        name,encoded,size=row
-        require(re.fullmatch(r'sha256=[A-Za-z0-9_-]{43}',encoded) and
-            re.fullmatch(r'0|[1-9][0-9]*',size), 'packaging source RECORD hash/size required')
-        value=base64.urlsafe_b64decode(encoded[7:]+'=')
-        require(base64.urlsafe_b64encode(value).decode().rstrip('=') == encoded[7:], 'noncanonical RECORD hash')
-        path=bound_file(context['guards'],site/name,value.hex())
-        require(path.stat().st_size == int(size), 'packaging source RECORD size differs')
-        files[path]=value.hex()
-    require(wanted <= seen, 'complete pinned packaging source inventory required')
+    original=context['training_context']['legacy']['selected']['source_cpu']['origins']
+    files={}
+    for distribution,sources in RUNTIME_SOURCES.items():
+        records=[Path(p) for p in context['required_guards'] if Path(p).parent.parent == site and
+            Path(p).name == 'RECORD' and re.fullmatch(re.escape(distribution)+r'-[^/]+\.dist-info',Path(p).parent.name)]
+        require(len(records) == 1, 'exact previously admitted runtime RECORD required: '+distribution)
+        record=records[0];digest=context['required_guards'][str(record)]
+        raw=bound_file(context['guards'],record,digest).read_bytes()
+        require(hashlib.sha256(raw).hexdigest() == digest, 'runtime RECORD changed before parsing')
+        files[record]=digest;seen=set();wanted=set(sources)
+        packages={n.split('/')[0] for n in sources if '/' in n}
+        natives={Path(p):original['files'][p] for p in original['native_files'] if
+            Path(p).is_relative_to(site) and Path(p).relative_to(site).parts[0] in packages}
+        for path,h in natives.items():
+            require(context['required_guards'].get(str(path)) == h, 'native runtime original FILE authority differs')
+            wanted.add(str(path.relative_to(site)))
+        for row in csv.reader(raw.decode('utf-8').splitlines()):
+            require(len(row) == 3 and row[0] not in seen, 'invalid/duplicate runtime RECORD row')
+            seen.add(row[0])
+            if row[0] not in wanted:
+                continue
+            name,encoded,size=row
+            require(re.fullmatch(r'sha256=[A-Za-z0-9_-]{43}',encoded) and
+                re.fullmatch(r'0|[1-9][0-9]*',size), 'runtime RECORD hash/size required')
+            value=base64.urlsafe_b64decode(encoded[7:]+'=')
+            require(base64.urlsafe_b64encode(value).decode().rstrip('=') == encoded[7:], 'noncanonical RECORD hash')
+            path=site/name
+            require(path not in natives or natives[path] == value.hex(), 'native runtime RECORD differs from original CPU origin')
+            bound_file(context['guards'],path,value.hex())
+            require(path.stat().st_size == int(size), 'runtime RECORD size differs')
+            files[path]=value.hex()
+        require(wanted <= seen, 'complete pinned runtime inventory required: '+distribution)
     return files
 
 
@@ -787,18 +841,20 @@ bundle bytes. Native-origin admission remains the original owned API.
     identity=(str(directory),endpoint['bundle']['sha256'])
     if identity not in cached:
         manifest,_=context['trainer'].admit_bundle(directory,endpoint['bundle']['sha256'])
-        runtime=packaging_runtime_files(context,manifest['environment'])
+        runtime=lazy_runtime_files(context,manifest['environment'])
         sources={p for p in runtime if p.suffix == '.py'}
         site=next(p.parent.parent for p in runtime if p.name == 'RECORD')
         origins={str(p.relative_to(site)).removesuffix('.py').replace('/','.').removesuffix('.__init__'):str(p)
             for p in sources}
+        origins.update({str(p.relative_to(site)).split('.',1)[0].replace('/','.'):str(p)
+            for p in runtime if p.suffix == '.so'})
         # Imports enumerate these exact directories; no external file roots.
         directories={p.parent for p in sources}|{site}
         bytecode={Path(importlib.util.cache_from_source(str(p))).resolve() for p in sources}
         stdlib=Path(sysconfig.get_path('stdlib')).resolve()
         roots=[directory]
         roots += [Path(v['root']).resolve() for v in manifest['environment']['packages'].values()]
-        exact={Path(p).resolve() for p in manifest['environment']['files']}|sources
+        exact={Path(p).resolve() for p in manifest['environment']['files']}|{p for p in runtime if p.name != 'RECORD'}
         active=[False]
         def audit(event,args):
             if not active[0] or event not in ('open','os.listdir','os.scandir'):
@@ -823,13 +879,21 @@ bundle bytes. Native-origin admission remains the original owned API.
         sys.addaudithook(audit);cached[identity]=(active,runtime,origins)
     active,runtime,origins=cached[identity]
     require(active[0] is False, 'nested serving dependency boundary forbidden')
+    original=context['training_context']['legacy']['selected']['source_cpu']['origins']
     for path,digest in runtime.items():
+        if path.name == 'RECORD' or path.suffix == '.so':
+            require(context['required_guards'].get(str(path)) == digest, 'runtime original FILE authority changed')
+        if path.suffix == '.so':
+            require(str(path) in original['native_files'] and original['files'].get(str(path)) == digest,
+                'runtime original native origin changed')
         bound_file(context['guards'],path,digest)
     for name,module in tuple(sys.modules.items()):
-        if name == 'packaging' or name.startswith('packaging.'):
+        # The finite contract checks its exact modules. Existing packaging
+        # admission also continues to reject every unknown packaging module.
+        if name in origins or name.split('.')[0] in ('packaging','regex'):
             require(name in origins and getattr(module,'__file__',None) == origins[name] and
                 getattr(getattr(module,'__spec__',None),'origin',None) == origins[name],
-                'loaded packaging runtime origin differs: '+name)
+                'loaded lazy runtime origin differs: '+name)
     previous=sys.dont_write_bytecode;sys.dont_write_bytecode=True;active[0]=True
     try:
         yield

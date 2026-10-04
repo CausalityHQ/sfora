@@ -112,6 +112,54 @@ class PortableRuntimeFixture:
         self.context={'trainer':SimpleNamespace(admit_bundle=lambda *_:(self.manifest,{})),
             'guards':{str(self.record):digest},'required_guards':{str(self.record):digest}}
         self.endpoint={'bundle':descriptor(self.bundle/'bundle.json')}
+        self.regex=self.site/'regex';self.regex.mkdir()
+        self.native=self.regex/'_regex.cpython-313-aarch64-linux-gnu.so'
+        self.native.write_bytes(b'original exact native file; never executed')
+        self.regex_sources={self.regex/'__init__.py':b"from ._main import value\nmarker = 'source'\n",
+            self.regex/'_main.py':b'from ._regex_core import value\n',self.regex/'_regex_core.py':b'value = 73\n'}
+        for path,raw in self.regex_sources.items():path.write_bytes(raw)
+        self.regex_rows=[['regex/'+path.name,
+            'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))]
+            for path,raw in {**self.regex_sources,self.native:self.native.read_bytes()}.items()]
+        self.regex_record=self.site/'regex-2026.6.28.dist-info'/'RECORD';self.regex_record.parent.mkdir()
+        self.regex_record.write_text(''.join(','.join(row)+'\n' for row in self.regex_rows))
+        for path in (self.regex_record,self.native):
+            digest=hashlib.sha256(path.read_bytes()).hexdigest()
+            self.context['guards'][str(path)]=self.context['required_guards'][str(path)]=digest
+        self.context['training_context']={'legacy':{'selected':{'source_cpu':{'origins':{
+            'files':{str(self.native):self.context['required_guards'][str(self.native)]},
+            'native_files':[str(self.native)]}}}}}
+        examples={'typing_extensions':{'typing_extensions.py':b'value = 21\n'},
+            'tokenizers':{'tokenizers/__init__.py':b'from .implementations import value\n',
+                'tokenizers/implementations/__init__.py':b'value = 84\n'},
+            'httpx':{'httpx/__init__.py':b'from ._api import value\n','httpx/_api.py':b'value = 101\n'},
+            'httpcore':{'httpcore/__init__.py':b'value = 102\n'},'anyio':{'anyio/__init__.py':b'value = 103\n'},
+            'h11':{'h11/__init__.py':b'value = 104\n'},'certifi':{'certifi/__init__.py':b'value = 105\n'},
+            'idna':{'idna/__init__.py':b'value = 106\n'},'jinja2':{'jinja2/__init__.py':b'value = 107\n'},
+            'markupsafe':{'markupsafe/__init__.py':b'value = 108\n'},
+            'huggingface_hub':{'huggingface_hub/__init__.py':b'from .dataclasses import value\n',
+                'huggingface_hub/dataclasses.py':b'from .errors import value\n','huggingface_hub/errors.py':b'value = 109\n'}}
+        self.extra_sources={};self.extra_records={};self.natives=[self.native]
+        for distribution in examples:
+            sources={self.site/n:b'' for n in getattr(e,'RUNTIME_SOURCES',{}).get(distribution,())}
+            sources.update({self.site/n:raw for n,raw in examples[distribution].items()})
+            for path,raw in sources.items():path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+            self.extra_sources.update(sources)
+            if distribution in ('tokenizers','markupsafe'):
+                name='tokenizers.abi3.so' if distribution=='tokenizers' else '_speedups.cpython-313-aarch64-linux-gnu.so'
+                path=self.site/distribution/name;path.write_bytes(b'original exact native file; never executed')
+                sources[path]=path.read_bytes();self.natives.append(path)
+                digest=hashlib.sha256(path.read_bytes()).hexdigest()
+                self.context['guards'][str(path)]=self.context['required_guards'][str(path)]=digest
+                original=self.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                original['files'][str(path)]=digest;original['native_files'].append(str(path))
+            record=self.site/(distribution+'-1.0.dist-info')/'RECORD';record.parent.mkdir()
+            rows=[[str(path.relative_to(self.site)),
+                'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))]
+                for path,raw in sources.items()]
+            record.write_text(''.join(','.join(row)+'\n' for row in rows));self.extra_records[distribution]=record
+            digest=hashlib.sha256(record.read_bytes()).hexdigest()
+            self.context['guards'][str(record)]=self.context['required_guards'][str(record)]=digest
 
     def boundary(self):
         return e.bundle_reads_only(self.context,self.endpoint)
@@ -425,6 +473,113 @@ class EvaluationTests(unittest.TestCase):
                 with patch.dict(sys.modules,{'packaging.version':fake} if case in ('foreign_module','wrong_module_role') else {}):
                     with self.assertRaises((ValueError,OSError)):
                         with f.boundary():pass
+
+    def test_bundle_boundary_sequential_lazy_sources_and_exact_original_native(self):
+        prefixes=('packaging','regex')
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0] in prefixes}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory))
+                sources={f.package/'__init__.py':f.sources[f.package/'__init__.py'],**f.regex_sources}
+                for path,raw in sources.items():
+                    prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached').replace(b'73',b'99'))
+                    py_compile.compile(str(path),doraise=True)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                foreign=f.regex/'foreign.so';foreign.write_bytes(b'foreign')
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name.split('.')[0] in prefixes:sys.modules.pop(name)
+                        with f.boundary():
+                            packaging=module('packaging',f.package/'__init__.py') if direct_loader else importlib.import_module('packaging')
+                            from packaging import version
+                            regex=module('regex',f.regex/'__init__.py') if direct_loader else importlib.import_module('regex')
+                            self.assertEqual((packaging.marker,version.value,regex.marker,regex.value),('source',42,'source',73))
+                            self.assertEqual(f.native.read_bytes(),b'original exact native file; never executed')
+                            for path in (foreign,f.regex_record,f.regex/'unqualified.py',f.regex/'resume.pt',f.site/'foreign.py'):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                            for path in sources:
+                                with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                            with self.assertRaisesRegex(ValueError,'attempted write'):f.native.write_bytes(b'changed')
+                native=SimpleNamespace(__file__=str(f.native),__spec__=SimpleNamespace(origin=str(f.native)))
+                with patch.dict(sys.modules,{'regex._regex':native}),f.boundary():pass
+                for path in (*f.regex_sources,f.native):
+                    raw=path.read_bytes();prior=path.stat();path.write_bytes(b'x'*len(raw))
+                    os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0] in prefixes:sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_bundle_boundary_processor_dependency_sources_have_exact_origins(self):
+        expected={'typing_extensions':21,'tokenizers':84,'httpx':101,'httpcore':102,'anyio':103,
+            'h11':104,'certifi':105,'idna':106,'jinja2':107,'markupsafe':108,'huggingface_hub':109}
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0] in expected}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory))
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]),f.boundary():
+                    actual={name:importlib.import_module(name).value for name in expected}
+                    self.assertEqual(actual,expected)
+                    for name in expected:
+                        path=f.site/(name+'.py') if name=='typing_extensions' else f.site/name/'__init__.py'
+                        self.assertEqual(sys.modules[name].__file__,str(path))
+                        with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                    for name in ('tokenizers','httpx','huggingface_hub'):
+                        with self.assertRaisesRegex(ValueError,'external dependency'):(f.site/name/'resume.pt').read_bytes()
+                foreign=SimpleNamespace(__file__=str(f.site/'foreign.py'),__spec__=SimpleNamespace(origin=str(f.site/'foreign.py')))
+                for name in expected:
+                    with self.subTest(name=name),patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
+                        with f.boundary():pass
+                for name in expected:
+                    path=f.site/(name+'.py') if name=='typing_extensions' else f.site/name/'__init__.py'
+                    raw=path.read_bytes();prior=path.stat();path.write_bytes(b'x'*len(raw))
+                    os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.subTest(name=name),self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0] in expected:sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_bundle_boundary_native_grants_require_record_guard_and_original_cpu_origin(self):
+        for case in ('unobserved','missing_guard','foreign_guard','foreign_origin','record_hash','record_size',
+                     'record_missing','module_origin','cached_guard','cached_origin'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory));original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                if case.startswith('cached_'):
+                    with f.boundary():pass
+                if case=='unobserved':
+                    extra=f.regex/'unobserved.so';extra.write_bytes(b'foreign')
+                    h=hashlib.sha256(extra.read_bytes()).hexdigest();f.context['guards'][str(extra)]=h
+                    f.context['required_guards'][str(extra)]=h
+                    f.regex_rows.append(['regex/unobserved.so','sha256='+base64.urlsafe_b64encode(bytes.fromhex(h)).decode().rstrip('='),'7'])
+                elif case=='missing_guard':f.context['required_guards'].pop(str(f.native))
+                elif case in ('foreign_guard','cached_guard'):f.context['required_guards'][str(f.native)]='a'*64
+                elif case in ('foreign_origin','cached_origin'):original['files'][str(f.native)]='a'*64
+                elif case in ('record_hash','record_size','record_missing'):
+                    if case=='record_hash':f.regex_rows[-1][1]='sha256='+'A'*43
+                    elif case=='record_size':f.regex_rows[-1][2]='1'
+                    else:f.regex_rows.pop()
+                if case.startswith('record_') or case=='unobserved':
+                    f.regex_record.write_text(''.join(','.join(row)+'\n' for row in f.regex_rows))
+                    h=hashlib.sha256(f.regex_record.read_bytes()).hexdigest()
+                    f.context['guards'][str(f.regex_record)]=f.context['required_guards'][str(f.regex_record)]=h
+                foreign=SimpleNamespace(__file__=str(f.native),__spec__=SimpleNamespace(origin=str(f.regex/'foreign.so')))
+                with patch.dict(sys.modules,{'regex._regex':foreign} if case=='module_origin' else {}):
+                    if case=='unobserved':
+                        with f.boundary():
+                            for path in f.natives:self.assertEqual(path.read_bytes(),b'original exact native file; never executed')
+                            with self.assertRaisesRegex(ValueError,'external dependency'):extra.read_bytes()
+                    else:
+                        with self.assertRaises(ValueError):
+                            with f.boundary():pass
 
     def test_partial_metadata_receipt_and_foreign_bindings_rejected(self):
         value,args=launch();flags={'threads':1};source={'actual':'source'}
