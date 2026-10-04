@@ -1,0 +1,11 @@
+{
+  "unit": "sfora-so400-image-anchor-smooth-ap-evaluation-first-cpu-v2",
+  "pass": true,
+  "service_seconds": 283.884,
+  "host_peak_bytes": 1617190912,
+  "rss_kib": 1174512,
+  "invocation_id": "cc82d01560c34f7eb6d3843fd8874861",
+  "quality_read": false,
+  "receipt_sha256": "cf5e2fc574924ef89a73af2168f38da5e0e00f3f7ec616aebf0752cd84309752",
+  "log_sha256": "c96b5b802c9071d07d402497b95bc5002b62e4c959c6e2d82385cfd21d33adf5"
+}
