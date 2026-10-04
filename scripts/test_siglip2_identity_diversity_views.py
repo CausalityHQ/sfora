@@ -324,6 +324,53 @@ class Falsifiers(unittest.TestCase):
             altered['rows'][0]['relative_path'] = 'Img/alias.bin'
             rejects(lambda: self.d.resolve_scope_images(altered, root, {}), 'resolved alias')
 
+    def test_selected_symlink_paths_preserve_containment_hash_and_guards(self):
+        # Reproduce Img -> img with synthetic bytes, without decoding images.
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve() / 'dataset'
+            directory = root / 'img' / 'img'
+            directory.mkdir(parents=True)
+            (root / 'Img').symlink_to('img', target_is_directory=True)
+            path = directory / 'synthetic.bin'
+            raw = b'selected synthetic bytes'
+            path.write_bytes(raw)
+            digest = hashlib.sha256(raw).hexdigest()
+            manifest = {'rows': [{'relative_path': 'Img/img/synthetic.bin', 'image_sha256': digest}]}
+            frozen = copy.deepcopy(manifest)
+            guards = {}
+            self.assertEqual(self.d.resolve_scope_images(manifest, root, guards), [str(path)])
+            self.assertEqual(guards, {str(path): digest})
+            self.assertEqual(manifest, frozen)
+            rejects(lambda: self.d.canonical(root / 'Img' / 'img' / 'synthetic.bin'),
+                    'noncanonical generic FILE path')
+            rejects(lambda: self.d.resolve_scope_images(manifest, root / 'Img', {}),
+                    'noncanonical dataset root')
+
+            alias = directory / 'alias.bin'
+            alias.symlink_to('synthetic.bin')
+            duplicates = {'rows': manifest['rows'] + [dict(manifest['rows'][0], relative_path='Img/img/alias.bin')]}
+            with self.assertRaisesRegex(ValueError, 'selected scope resolved paths collide'):
+                self.d.resolve_scope_images(duplicates, root, {})
+
+            outside = root.parent / 'outside.bin'
+            outside.write_bytes(raw)
+            (directory / 'escape.bin').symlink_to(outside)
+            (directory / 'dangling.bin').symlink_to('missing.bin')
+            for name, message in (('escape.bin', 'scope image escaped canonical dataset root'),
+                                  ('dangling.bin', 'canonical regular file required')):
+                altered = {'rows': [dict(manifest['rows'][0], relative_path='Img/img/' + name)]}
+                with self.subTest(name=name), self.assertRaisesRegex(ValueError, message):
+                    self.d.resolve_scope_images(altered, root, {})
+            altered = {'rows': [dict(manifest['rows'][0], image_sha256='0' * 64)]}
+            with self.assertRaisesRegex(ValueError, 'scope input FILE SHA256 differs'):
+                self.d.resolve_scope_images(altered, root, {})
+            path.write_bytes(b'tampered selected bytes')
+            with self.assertRaisesRegex(ValueError, 'scope input FILE SHA256 differs'):
+                self.d.resolve_scope_images(manifest, root, {})
+            for guarded_path, expected in guards.items():
+                with self.assertRaisesRegex(ValueError, 'scope input FILE SHA256 differs'):
+                    self.d.guard_file({'path': guarded_path, 'sha256': expected}, {})
+
     def test_original_provenance_and_staged_file_binding(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -548,7 +548,7 @@ def resolve_scope_images(manifest, dataset_root, guards):
         relative = PurePosixPath(row['relative_path'])
         require(not relative.is_absolute() and str(relative) == row['relative_path'] and
                 '..' not in relative.parts and relative.parts[0] == 'Img', 'scope relative path differs')
-        path = canonical(root / relative)
+        path = canonical((root / relative).resolve())
         require(path.is_relative_to(root), 'scope image escaped canonical dataset root')
         guard_file(launch_descriptor(path, row['image_sha256']), guards)
         paths.append(str(path))
