@@ -1,0 +1,65 @@
+{
+  "pass": true,
+  "decision": "KILL",
+  "quality": {
+    "179061": {
+      "control": {
+        "recall_at_1": 0.9636678200692042,
+        "map_at_r": 0.816869575719348
+      },
+      "candidate": {
+        "recall_at_1": 0.9682814302191465,
+        "map_at_r": 0.8273301284197361
+      }
+    },
+    "179069": {
+      "control": {
+        "recall_at_1": 0.967128027681661,
+        "map_at_r": 0.8188665404425979
+      },
+      "candidate": {
+        "recall_at_1": 0.9665513264129181,
+        "map_at_r": 0.8278333876483924
+      }
+    }
+  },
+  "paired_seed_average_intervals": {},
+  "bootstrap_draws": 0,
+  "deltas": {
+    "per_query_ap": 0.009713699953091324,
+    "per_query_r1": 0.002018454440599769
+  },
+  "cost": {
+    "179061": {
+      "candidate": {
+        "service_seconds": 417.247,
+        "total_training_core_seconds": 102.11744439089671
+      },
+      "control": {
+        "service_seconds": 423.604,
+        "total_training_core_seconds": 108.46391960280016
+      },
+      "pass": true,
+      "total_training_core_ratio": 0.9414876833223017,
+      "whole_service_ratio": 0.9849930595556228
+    },
+    "179069": {
+      "candidate": {
+        "service_seconds": 404.095,
+        "total_training_core_seconds": 99.92999212630093
+      },
+      "control": {
+        "service_seconds": 431.726,
+        "total_training_core_seconds": 109.8174746511504
+      },
+      "pass": true,
+      "total_training_core_ratio": 0.9099643972304193,
+      "whole_service_ratio": 0.9359987584718086
+    }
+  },
+  "service_seconds": 454.156,
+  "host_peak_bytes": 1407451136,
+  "invocation_id": "4a0f3b0ae04544899dd057965fdbf1d2",
+  "receipt_sha256": "9bba061eb81a904844e203616bd06277f69fd38280c08710c2a221bc21478991",
+  "log_sha256": "822675ac4d4c8d478fbdba094c7ca5df077ed59d0b581bb2c588b537f21596f9"
+}
