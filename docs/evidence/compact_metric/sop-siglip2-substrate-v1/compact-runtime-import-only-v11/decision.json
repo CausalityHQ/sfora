@@ -1,0 +1,9 @@
+{
+  "pass": false,
+  "service_seconds": 19.624,
+  "error": "dateutil/easter.py denial",
+  "zoneinfo_source_and_archive_passed": true,
+  "native_not_in_original_proof": [],
+  "model_constructed": false,
+  "quality_read": false
+}
