@@ -1,0 +1,33 @@
+{
+  "prospective": true,
+  "execution_sha256": "b971a8fc28d000d57a3a15b557539aefa0f3f6b624cf0214fdbe072ad6775466",
+  "authority_sha256": "b672bfc61b29fe232c6d9fb365d403e65abed26afdc714a373522a1882940ce9",
+  "policy": {
+    "cpu": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 500,
+      "swap_bytes": 0
+    },
+    "export": {
+      "cuda_visible_devices": "0",
+      "host_bytes": 8589934592,
+      "seconds": 300,
+      "swap_bytes": 0
+    },
+    "score": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 500,
+      "swap_bytes": 0
+    }
+  },
+  "unit": "sfora-so400-compact-ranking-evaluation-first-cpu-v10",
+  "quality_read": false,
+  "source_contract_pass": true,
+  "child_commit": "edbb19674ef28e7bd6d51df7ae33484eae84102f",
+  "stdlib_tests": 55,
+  "stdlib_seconds": 52.013,
+  "production_inverse_pass": true,
+  "old51tests_unchanged": true
+}
