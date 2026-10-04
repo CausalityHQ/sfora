@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "cpu",
+  "arm": "control",
+  "service_seconds": 189.415,
+  "invocation_id": "3ce92670d9f14459badef05a4452170f",
+  "host_peak_bytes": 8288935936,
+  "rss_kib": 5668348,
+  "unit": "sfora-so400-current-gallery-smooth-ap-cpu-v1",
+  "quality_read": false,
+  "receipt_sha256": "83fef7fcaa7e037b5f910ac93ad2272ebd3eabb0395fb94f8dde75456c763888",
+  "log_sha256": "743f17050f81b4e0cd21d55764c0753457a97411e90cd46f75980a6130e9c425"
+}
