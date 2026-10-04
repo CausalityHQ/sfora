@@ -3695,6 +3695,98 @@ LIVE_TOP1_ARCHIVED_SOURCE_SHA256 = 'ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb5
 LIVE_TOP1_ARCHIVED_TEST_SHA256 = '6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b'
 
 class LiveTop1Tests(unittest.TestCase):
+    def test_native_role_witness_rejects_both_arms_and_restores_after_failure(self):
+        # Execute the real witness and residual owner, replacing only the tensor runtime
+        # and unrelated complete-payload checks. A no-op C mutation must fail this test.
+        spec = importlib.util.spec_from_file_location('role_witness_nearest', PATH.with_name('train_siglip2_nearest_ranking.py'))
+        nearest = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(nearest)
+
+        class Tensor:
+            _version = 0
+            is_leaf = True
+            grad_fn = None
+            device = 'cpu'
+
+            def __init__(self, shape=(), trainable=False):
+                self.shape, self.requires_grad, self.value = shape, trainable, 0.
+                self.roles = []
+
+            @property
+            def data(self): return self
+            def detach(self): return self
+            def clone(self): return copy.copy(self)
+            def reshape(self, *shape): return self
+            def __getitem__(self, index): return self.value
+            def __setitem__(self, index, value): self.value = value
+            def copy_(self, saved): self.value = saved.value
+            def requires_grad_(self, role):
+                self.roles.append(role)
+                self.requires_grad = role
+                return self
+
+        def digest(context, value):
+            return hashlib.sha256(repr((value.shape, value.value) if isinstance(value, Tensor) else value).encode()).hexdigest()
+
+        def check_tensor(value, shape, device, frozen=False):
+            driver.require(value.shape == shape and value.device == device and
+                           (not frozen or not value.requires_grad), 'standin tensor contract differs')
+
+        torch = SimpleNamespace(isfinite=lambda value: SimpleNamespace(
+            all=lambda: SimpleNamespace(item=lambda: math.isfinite(value.value))))
+        for arm in driver.ARMS:
+            for fail in (False, True):
+                with self.subTest(arm=arm, failure=fail):
+                    A, C, mu = Tensor((128, 160), True), Tensor((128, 1152), True), Tensor((1152,))
+                    head, mean, teacher, proxy, view = (Tensor() for _ in range(5))
+                    values = [A, C, mu, head, mean, teacher, proxy, view]
+                    state = {'A': A, 'C': C, 'mu_train': mu, 'mu_train_provenance': {'domain': 'TRAIN'},
+                             'arm': arm, 'counter': 0, 'head_object': SimpleNamespace(parameters=lambda: iter([head])),
+                             'means': {'concat': mean}, 'teachers': {'T': teacher, 'P': proxy},
+                             'views': {'augmented': view}}
+                    rejected_roles = []
+
+                    def integrity(context, current, ident):
+                        driver.require(all(value.value == 0. for value in values), 'current bytes differ')
+                        driver.require(current['A'].requires_grad, 'A role differs')
+                        try:
+                            driver.own_residual(context, current)
+                        except ValueError:
+                            if not current['C'].requires_grad:
+                                rejected_roles.append('C')
+                            raise
+
+                    def rejected(call, message):
+                        if message == 'C role mutation accepted':
+                            self.assertFalse(C.requires_grad, 'C negative witness did not change the valid role')
+                        result = nearest.rejected(call, message)
+                        if message == 'C role mutation accepted' and fail:
+                            raise RuntimeError('injected witness failure')
+                        return result
+
+                    context = {'legacy': {'quadratic': SimpleNamespace(_check_tensor=check_tensor)},
+                               'nearest': SimpleNamespace(fingerprint=digest, rejected=rejected),
+                               'mu_train_sha256': digest(None, mu),
+                               'mu_train_provenance_sha256': digest(None, state['mu_train_provenance'])}
+                    with patch.dict(sys.modules, {'torch': torch}), \
+                         patch.object(driver, 'integrity', side_effect=integrity), \
+                         patch.object(driver, 'payload', return_value={'A': A}), \
+                         patch.object(driver, 'check_payload', side_effect=ValueError('standin malformed payload')):
+                        driver.own_residual(context, state, admit=True)
+                        integrity(context, state, {})
+                        try:
+                            if fail:
+                                with self.assertRaisesRegex(RuntimeError, 'injected witness failure'):
+                                    driver.tamper_witness(context, state, {})
+                            else:
+                                driver.tamper_witness(context, state, {})
+                        finally:
+                            self.assertTrue(A.requires_grad)
+                            self.assertTrue(C.requires_grad, 'C valid original role was not restored')
+                            integrity(context, state, {})
+                        self.assertEqual(C.roles, [False, True])
+                        self.assertEqual(rejected_roles, ['C'])
+
     def test_both_arms_own_A_C_and_reject_archived_authority(self):
         for arm in driver.ARMS:
             self.assertEqual(driver.parameter_roles(arm), (['A', 'C'], [[128, 160], [128, 1152]], 167936))
@@ -3923,7 +4015,7 @@ class LiveTop1Tests(unittest.TestCase):
             if isinstance(node,ast.FunctionDef) and node.name in (
                 'loss_terms','live_top1_hinge','live_top1_indices','parameter_roles','check_payload',
                 'load_inference','inference_outputs','cpu_gradients','native_live_top1_witness',
-                'check_steps','check_cpu_gradient','check_terminal_record','update','policy','exit_rehash'):
+                'check_steps','check_cpu_gradient','check_terminal_record','update','policy','exit_rehash','tamper_witness'):
                 mutant=''.join(lines[:node.lineno-1])+f'def {node.name}():\n    pass\n'+''.join(lines[node.end_lineno:])
                 with self.subTest(node=node.name),self.assertRaises(ValueError):live_top1_source_inverse(mutant)
 
@@ -3977,6 +4069,21 @@ def live_top1_source_inverse(source):
     """Undo only exact reviewed line spans; require the complete archived bytes."""
     import base64
     import zlib
+    corrected = """    C_requires_grad = state['C'].requires_grad
+    state['C'].requires_grad_(not C_requires_grad)
+    try:
+        nearest.rejected(lambda: integrity(context, state, ident), 'C role mutation accepted')
+    finally:
+        state['C'].requires_grad_(C_requires_grad)
+"""
+    original = """    state['C'].requires_grad_(not (state['arm'] == 'candidate'))
+    try:
+        nearest.rejected(lambda: integrity(context, state, ident), 'C role mutation accepted')
+    finally:
+        state['C'].requires_grad_(state['arm'] == 'candidate')
+"""
+    driver.require(source.count(corrected) == 1, 'live-top1 C role witness span differs')
+    source = source.replace(corrected, original, 1)
     raw=zlib.decompress(base64.b85decode(LIVE_TOP1_INVERSE))
     driver.require(hashlib.sha256(raw).hexdigest()==LIVE_TOP1_INVERSE_SHA256, 'live-top1 inverse bytes differ')
     lines=source.splitlines(keepends=True)

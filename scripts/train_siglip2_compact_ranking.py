@@ -1926,11 +1926,12 @@ def tamper_witness(context, state, ident):
         nearest.rejected(lambda: integrity(context, state, ident), 'A role mutation accepted')
     finally:
         state['A'].requires_grad_(True)
-    state['C'].requires_grad_(not (state['arm'] == 'candidate'))
+    C_requires_grad = state['C'].requires_grad
+    state['C'].requires_grad_(not C_requires_grad)
     try:
         nearest.rejected(lambda: integrity(context, state, ident), 'C role mutation accepted')
     finally:
-        state['C'].requires_grad_(state['arm'] == 'candidate')
+        state['C'].requires_grad_(C_requires_grad)
     saved = payload(context, state, ident)
     for key, value in (('schema', 'wrong'), ('source', {}), ('teachers', {}), ('schedules', {}),
                        ('buffers', {}), ('C', saved['A']), ('mu_train', saved['A']), ('mu_train_provenance', {}),
