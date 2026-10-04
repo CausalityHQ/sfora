@@ -1,0 +1,44 @@
+{
+  "base": "2ccdeefa61d1f350da4a6514f081c29a4aa83996",
+  "code": {
+    "train_siglip2_compact_ranking.py": "c37bf7af0b7404f0aaeaf9cffc562a4af2ca43e673ab326d6b9c5a4c5ee43027",
+    "test_siglip2_compact_ranking.py": "cd2aa21b4abe8ac1b326233f68bb04326d153a4f60ed9f40fa230aac7a671e62"
+  },
+  "execution_sha256": "3e34b17e25db9fd449d042b94cfbecd67244b7d965b97addccf03a7571bd3352",
+  "syntax": "PASS",
+  "early_contract": "/tmp/image-anchor-trainer-20261004/early-contract.json",
+  "native_execution": "UNRUN by explicit worker prohibition; root must freeze and run CPU, both-arm17/8+9 mechanics, one fresh128 pair",
+  "commit": "0028f69825b95649499ac3a8251122df9235ff98",
+  "clean": true,
+  "changed_files": [
+    "scripts/test_siglip2_compact_ranking.py",
+    "scripts/train_siglip2_compact_ranking.py"
+  ],
+  "verification": {
+    "command": [
+      "timeout",
+      "120",
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "scripts",
+      "-p",
+      "test_siglip2_compact_ranking.py",
+      "-v"
+    ],
+    "exit_code": 0,
+    "seconds": 48.791025857033674,
+    "virtual_memory_limit_bytes": 1073741824,
+    "peak_rss_kib": 174764
+  },
+  "tests": 38,
+  "test_log": "/tmp/image-anchor-trainer-20261004/final-tests.log",
+  "focused_red_green": "PASS: schema/candidate-target failures observed, then paired receipt and displacement checks passed",
+  "help_optimized_modes": "PASS: help exits0; -O/-OO rejected, tested in final suite",
+  "diff_check": "PASS",
+  "parent_early_delivery": "rejected because parent already had 20 queued instructions; retained locally",
+  "pushed": false,
+  "merged": false
+}

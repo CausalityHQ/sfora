@@ -1,0 +1,107 @@
+{
+  "ANCHOR_ENDPOINT": {
+    "A_sha256": "461b23b5980f7aa917bc897760c20e3e4d040e15cbf68c58a55f1890a28ba834",
+    "authority": {
+      "path": "/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1/authority-train-candidate-179061-v1.json",
+      "sha256": "4e7cb6c9b09ec611d9d1f1aa1b8d00c62f0e5169d5ca5ad1f33b4ffde055bb8c"
+    },
+    "bundle": {
+      "path": "/home/riomus/runs/sfora-so400-smooth-ap-train-candidate-179061-v1/bundle/bundle.json",
+      "sha256": "a3d6460966c228d4f50cd7c16e643ba3b5496ebd3f8ee60741e4b2ddb22ea883"
+    },
+    "checkpoint": {
+      "path": "/home/riomus/runs/sfora-so400-smooth-ap-train-candidate-179061-v1/resume.pt",
+      "sha256": "4f79c3690b874385a286d09a70c4e0e9320eb3a691b207e9e52d143bacfe90b3"
+    },
+    "inference_state_sha256": "ad7e819aa56cf163b66f039b417d397ca1d0c37518f60f74e5984607815feb15",
+    "role": "discarded canonical-anchor displacement witness only",
+    "source": {
+      "code": {
+        "test_siglip2_compact_ranking.py": "5834df438ac32dd98244d7b24bb19e94e173169b19ea6770ba7db2eff0c0f72b",
+        "train_siglip2_compact_ranking.py": "74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679"
+      },
+      "execution_sha256": "bf3efd0040a6cccefde9414839a8cf4943e6a2a52c49f701b865a771def7e272",
+      "root": "/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "1dbeda11e66747fa8ea5a1e1fa1f7bb6",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1/train-candidate-179061-v1.log",
+        "sha256": "c03eaa8b4d5372a31fac888a0a7446b67e1dd0d42fb36056f7b6931960998657"
+      },
+      "native_peak_rss_kib": 4619544,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-smooth-ap-train-candidate-179061-v1/receipt.json",
+        "sha256": "49a0d62d96864d6eec833aafe6c9676ae2c9be512ec624eae56997fd656d12c3"
+      },
+      "service_seconds": 344.836,
+      "unit": "sfora-so400-smooth-ap-train-candidate-179061-v1"
+    },
+    "terminal_state_sha256": "5dcc6eadca4b365796551c9e3829c043614794be7e2786307110d295e8e1a3e6"
+  },
+  "RECIPE": {
+    "adamw": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "capturable": false,
+      "differentiable": false,
+      "eps": 1e-08,
+      "foreach": false,
+      "fused": false,
+      "lr": 0.0001,
+      "maximize": false,
+      "weight_decay": 0.05
+    },
+    "batch": 64,
+    "classes": 1008,
+    "clip": 1.0,
+    "core": "cache/target preparation + both-arm all-positive scoring + both-view forward/backward + optimizer",
+    "frozen": "complete encoder448/config/buffers/processor/head/classifier/means",
+    "initial_scaler": 128.0,
+    "microbatch": 16,
+    "mining": "all6355 canonical frozen bank; exclude same original image; all same-identity positives; canonical ordinal traversal",
+    "ranking": "both arms backward coefficient1; all positives; SmoothAP sum / (2*K)",
+    "readout": "original CPU-renormalized genuine features; FP32 all; autocast disabled",
+    "regression": "control P[label]; candidate canonical T[image]; both original views coordinate sum / (128*e0)",
+    "rows": 6355,
+    "schedule": "original first128 B64 per seed; warm-authenticated; masks unused",
+    "seeds": [
+      179061,
+      179069
+    ],
+    "singletons": 12,
+    "teacher": "accepted canonical T; member-inclusive P; normalize(T); both-view e0",
+    "temperature": 0.01,
+    "trainable_names": [
+      "A"
+    ],
+    "trainable_scalars": 20480,
+    "trainable_shapes": [
+      [
+        128,
+        160
+      ]
+    ],
+    "updates": 128,
+    "views": [
+      "canonical",
+      "augmented"
+    ]
+  },
+  "code": {
+    "test_siglip2_compact_ranking.py": "cd2aa21b4abe8ac1b326233f68bb04326d153a4f60ed9f40fa230aac7a671e62",
+    "train_siglip2_compact_ranking.py": "c37bf7af0b7404f0aaeaf9cffc562a4af2ca43e673ab326d6b9c5a4c5ee43027"
+  },
+  "execution_sha256": "3e34b17e25db9fd449d042b94cfbecd67244b7d965b97addccf03a7571bd3352",
+  "native_execution": "UNRUN",
+  "schemas": {
+    "AUTHORITY_SCHEMA": "siglip2-compact-image-anchor-smooth-ap-launch-v1",
+    "BUNDLE_SCHEMA": "siglip2-compact-image-anchor-smooth-ap-bundle-v1",
+    "INFERENCE_SCHEMA": "siglip2-compact-image-anchor-smooth-ap-inference-v1",
+    "SCHEMA": "siglip2-compact-image-anchor-smooth-ap-v1"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "base": "2ccdeefa61d1f350da4a6514f081c29a4aa83996",
+  "changed_nodes": [
+    "SCHEMA",
+    "AUTHORITY_SCHEMA",
+    "INFERENCE_SCHEMA",
+    "BUNDLE_SCHEMA",
+    "RECIPE",
+    "loss_terms",
+    "cpu_gradients",
+    "update",
+    "check_steps",
+    "cpu_witnesses",
+    "check_cpu_gradient",
+    "check_terminal_record"
+  ],
+  "base_ast_sha256": "9b87c006e5f46a55ecdb79b015bad185161c5b7ad30fcd0d3c54026dceec5586",
+  "new_nodes": [
+    "ANCHOR_ENDPOINT",
+    "authenticate_anchor_endpoint",
+    "anchor_displacement_witness"
+  ],
+  "preserved": [
+    "PAYLOAD_KEYS",
+    "INFERENCE_KEYS",
+    "SERVING_FILES",
+    "loss_denominators",
+    "smooth_ap_terms",
+    "all other existing top-level AST nodes"
+  ],
+  "parent_delivery": "rejected: recipient already has 20 queued instructions"
+}

@@ -1,0 +1,11 @@
+{
+  "base": "2ccdeefa61d1f350da4a6514f081c29a4aa83996",
+  "code": {
+    "train_siglip2_compact_ranking.py": "c37bf7af0b7404f0aaeaf9cffc562a4af2ca43e673ab326d6b9c5a4c5ee43027",
+    "test_siglip2_compact_ranking.py": "cd2aa21b4abe8ac1b326233f68bb04326d153a4f60ed9f40fa230aac7a671e62"
+  },
+  "execution_sha256": "3e34b17e25db9fd449d042b94cfbecd67244b7d965b97addccf03a7571bd3352",
+  "syntax": "PASS",
+  "early_contract": "/tmp/image-anchor-trainer-20261004/early-contract.json",
+  "native_execution": "UNRUN: prohibited for worker"
+}

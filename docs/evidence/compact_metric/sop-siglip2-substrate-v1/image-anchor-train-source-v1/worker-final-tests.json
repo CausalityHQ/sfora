@@ -1,0 +1,19 @@
+{
+  "command": [
+    "timeout",
+    "120",
+    "python3",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "scripts",
+    "-p",
+    "test_siglip2_compact_ranking.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "seconds": 48.791025857033674,
+  "virtual_memory_limit_bytes": 1073741824,
+  "peak_rss_kib": 174764
+}
