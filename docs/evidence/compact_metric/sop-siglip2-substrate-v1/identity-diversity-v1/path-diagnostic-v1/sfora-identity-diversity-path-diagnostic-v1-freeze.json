@@ -1,0 +1,15 @@
+{
+  "schema": "identity-diversity-path-diagnostic-freeze-v1",
+  "unit": "sfora-identity-diversity-path-diagnostic-v1",
+  "source_sha256": "c7bfb5041e889682a37198d60a3d2adb93bc51db146b5167bc8bb6f1199de9ce",
+  "diagnostic_sha256": "7c07ae4448655219da677ad61febdb6431cf9d8ea4fb1cb5f3b243f82d768378",
+  "command_sha256": "85da8eb450e9c1a93deee7750395576c10855bae62fae29808762247e349a428",
+  "launch_sha256": "097a707e6ac15fead303b7dcb830edff68c2cd86d169c33fb539071e53d4bfc6",
+  "seconds": 300,
+  "host_bytes": 8589934592,
+  "swap_bytes": 0,
+  "cuda_hidden": true,
+  "both_locks": true,
+  "native_or_quality_qualification": false,
+  "stop_rule": "One authority-only observation; first original exception or authority return. No startup/model/image decode/receipt publication."
+}
