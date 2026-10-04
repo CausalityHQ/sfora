@@ -173,8 +173,141 @@ SMOOTH_AP_ORIGINAL_SHA256 = '18a83be27e434ecc649304cf89affeb7a7ad9089ab7274381ac
 SMOOTH_AP_NODE_SHA256 = {'AUTHORITY_SCHEMA': 'c8ce894a446a95bbe55d91a7da9c4ad501b530f23a0890691451d643c86ae6b8', 'BUNDLE_SCHEMA': '7fb0fa5a54e3c6656e673e5827a336b34d22ea371bdbae1ec170502693b3039f', 'INFERENCE_SCHEMA': '2ef7b39b1f944ecf28407868a0a4b38687b76fa270e6998bd4a48cdb4d8a89d6', 'RECIPE': '70113290169f127385276a62a03300f91878349730d4f867536c51ae6a3a881c', 'SCHEMA': 'c296494aa481af4bbc15e7759b0c68c0ecf29d880d4ffc8e943463ddd8c2f714', 'check_launch': 'c63f5699e97360d949cd21deaafd7feb264706f5f59c658a984b81a5b3ef5b53', 'check_payload': 'a1e612bb93303430b5b1f832cc61174bf68f4dc66c317b618bfca5584720e931', 'check_steps': '3dcc5e276768ec48ea65495512c96765b970b1e49babeca38d9f979dd8a1d0e1', 'check_terminal_record': '229a5dbd0f273b37161ec0c2609fe8871f7c4fd89b6c2da75860cdc42c597b48', 'cpu_gradients': '5f13180bddbde1d66def88541b56e6bfb0c4475a2b1ccf73797b737b063c31cf', 'cpu_witnesses': 'ce9c0205609c179eef07545d59a1a999d5807203381b407f973752ccbb99f9fd', 'fresh': '650608ae9456a230b3b9737809ccb0b45b37057a5d669461cc24e37b7884a1c5', 'gpu_run': 'c70acf3b090677b863a8118a6118513598ee676553128e259e31437e14b08487', 'identity': 'ed07044e70ba918891d73a9c09bb0e9ec685c5a577dbcc79021951d0696674db', 'integrity': 'dea97f5e0d2a34f9d44cdc63002cecf562dd2cca8b13be4930f60e70b4d47d06', 'loss_denominators': 'ce86de123238eee428db8c62ff8ed4c09c2cde5ad6fbe52a85139623802a78e5', 'loss_terms': '7d2dee77280be380508ee3495536d866132e2799fe3a39a4d1d6137fca20310d', 'update': '376d51f4188bd6700c958de1ebb33bc770fee9da3ad7a56f3fb932a6061ce533', 'check_cpu_gradient': '4c466add6fcdf6af5ba9de2723281f35833ec7be8ca5e9d5373008ddea3d8cc8', 'check_ranking_bank': 'b6214203d0f994a7d5258101053ea480323f593b78814c4e85fd0c30ee0e1a28', 'json_sha256': 'e6afa190880b91cfdb1e70946e6618bc5792b89e4b5e2bb8d72e8e549b865d98', 'ranking_bank': 'bc2b9bb03c0e4437e68e2b3e67b34dd0a8bbef6b7c2fbeee7ee613197e14905c', 'ranking_membership': 'c56dd67441cc81a47e8fcfb71032e4c751b7d5b70f2b6df19ca6236b9301813f', 'smooth_ap_terms': 'a90d81810d4295691ff1829215a07b9ab1793cd040ad92530d6bffaefa1eb698'}
 
 
+
+
+IMAGE_ANCHOR_ORIGINAL_NODES = (
+    'c-qB1i*nmWlD{(Rt1A);_>d!OZ8}UH*Rg9|-gsTHvsYJK777A}6f6?p0ia~X<$u5Kp7&rtO3B`x99!hfpl7D1-`#_JeX{uV(_jDo%iB-'
+    '?m3(~l*VjKUp3GRMjm_DhDK^_;|8$g9yM3Cqqh?oC?e!?#kGAQd%&teb=YuCPd-9iG-'
+    '~aTt*A_6R;W(tLLz!>6g7o(No7ca*e*ek_=C>V(SCngB^D@&Qe|i1t?T6P0NPL3FzYZGC^JXw(+oEZQA78)z>0=bLL0#Qp<K_3yp24?ln>G!{h'
+    'V$w4d5n{mn=NmvlG>ie|16pQ865U`+KSOnaqv~zX4eSp0>12utgckc`6aa67W_^x;2&>a|0gWKf!Ee)QKna0o|Ng1;4TM?!78?Un(K5gx|THQ`'
+    'Q>!wjmXk%TH}zX(~IX*cZxJmcX!bB_3Ui%)8c1bG;dSADr{TIrd9NfFjDMs17rAHlto*lTbhB_V%uXEe$6*EZ<?Yip?h!z2gDlK%LvfSX#Xs$s'
+    'yc_IwwyJG9h<NrKsn>nXy8Fg%NsyGg2~b{FA&x6Fki2Wtl(vP{*npsSygkEZntb-HL$*0-n?WVi8dA=)D%z8-udubzT5LUZ4WhvImXj-'
+    'L?TbKYuec$%`(1kdCp++sw`l~?9)rO<GU+f1Hon6LjzN>4=-'
+    '6+)w^_C{Kki$BC)0s?v(MVH{%ZQCpHADMS`<nuj}eJUa~9L^h?IS0Qj5}=2%r18$j2V6}xo9U(!wqr9}={DB62_-v*#S@|FQz-'
+    '153fx87nJ*l2#(;@$^(igi&pEgT2?%jE?F>@eh+m+UUBccb*sUgLxroCCD&(&naNhw{+y+&?*<=GCEfAiw(X>j+p>p(<w^ULJ~)vo)t9fVIE*@'
+    'cmQV9c=N?R$1D#EH4@)X@3HNETRmM1;C!10ryuquP-j1PqM097n{k|VGUBDne6K-'
+    '1B$Hb$u+ENLL6SK3tmrlJO#FPK_f8<k^}rq+O*#AmhEf4Pk~f`s@ZqqgaISC){(+Jks+L}>L&_VS2dt6pIoKc4Ss;mYTp(+KtMhChJwmSyobm+'
+    'DcxXY*-'
+    'et|56PxZbL0gCkn=U`_6#>M5mhu3+Y|)cz&w(_64`QH?1wloW}BrHWUEL#Q}h2m6g3}ic{#K?*?bO?jsb7tBL)nLsHe{^2P+)#xv5IoFqA_ge8'
+    'fgNW9|K(BWNTygj_VNC|d<uv_cCbsonqhJMY;k`+<pOT#B52Ik*K9M1Vi2^@pJW?%`m=AXOj2c*@SyEFD-tB0~x91_7092#{j7-'
+    'd1T#hyX@vug68RM&YW)0pYM480`YXpW$HF@IfrZBmM?zZ|iES4?IC0Qv>jPI~`h@`d!`G?7<+t4o%WKoo)c+Zps~e!d8$*B~O99+hkicjo0J?i'
+    'J~z65GCwKz`VlBA4fu9r^mK_1cgVj@}Oz{D2jme2n|Gw=R{JYbNmb)fkQFF!c@OIY}+DHVl7F*<g4nY%ancN=%hl6?0o=O6SOo*mwg0}pVL9_@'
+    't`%!s>g60y-'
+    'T;yrl)Cnz4KPzS=o{2aB;}rxWHZdMJ;l~z*?9_k6kFvl@fT=o=L;E>!dAslNc*A;a@<uptNh)r~1HyK>ElJ<aD}i5=jmg1j0Ysqvw~&W(!v7Hm'
+    'O1TXQ<Kq89k~Utcx$8uE{b$tH4oupw*e8F?Lt9B`8`@+N5{~T6=(gFA20!UQNsQjjOe&X^7@{%o<R<ASJWvfWp$&Ut+9cYwRJd<!Pz{5DGBBBa'
+    'i^mxE10SPY~NkebEG66fbK~I<Oo-3Z8I{CydV!Igp(U3)t|XTqgYj-A>S=D7MU!D`?6AeY82Xyj-D%fP-Ny!OzSp)(5cij_7C@?rUjZQ#(T}T}'
+    '|x>KT&!R`tZ9^j2(n%F6%t(hy~O80BZopMd7Ik4mla(F|<fEd{-'
+    'j&$Quo1kz8>=GdIil(_HnWYv6Lz5d?zzo`z=xgafPPjS!+@mAb_uF54QC$bTLNzuYa!EtHhDlceARARG|a3)>zBpRo%dIIu$w8<gr~A3<9{;}}'
+    '}pr$~FkGL?ii5gshi4Qwy>IaiTr5li`os{^xrhi(%OY;@)+Zz1B@+#%QHuwehrE+Sa(`Q=P}fxVoIhLsC~f7$a4y|5#^Ag77kClxD*;o}>A-'
+    'wf#_z6ykEcRgmxnv2<)n(v!1&FERZa(r6tDR`RrW0UyTo0)=fvohw3o+R>lLiI%b@QDr8!um|qIrB$gn}V(xy~jW?B;yEs<;#u85oP8aLUg0hZ'
+    '={A;N!Xz1VP5|cWh(5fef6_V4-&OWjt@M{C|4u<&GMjWuFScP`3U|bhE<F?Y0DN2I?0bw)GL%EPg$0qup7mSnZwuWT#B_+RVY$t-'
+    'Lpa+w4AO2c$YF(>i{t<Y+Q#i+TBD4#V3GD1#ol}E;J+q$$A-'
+    '~5+*UiXoDC!*%b}iUW3S(CTRH~nI{5yu94z(4#h99FDNz|v;B42a1crLE~eOt5{c`&+7b4E<ahfD&fsH#JoX;reBkAC*M1RTmlUMgrGoHffPl~'
+    '-yJ<GjOCO!iln{a<3quwD3FsMwZ;gxvpQO}lud7_IL2ON`G1({DqJFSoOjn0G<6uy4i|k&mkv<P;sgbi*9Tid1UF!Y*3A*7<VXI@r(*Z4FMagY'
+    '}F-'
+    'aHv#l`df3DA@V3P~`SC5+=YU|S0mqX?1XZj7CM%xT}JLKHM@U1Ti)1;)sw<qggJOM#7mnCnCj1zNy(8xY&B%K0{_?n)`zpjU>LlB!NKK!Su6^5'
+    'CV%K?p;Z(ZO;vy=emJP^_U9M&*3Z%bfi95LgkzPn1$f)bI@b8Tegb)J{Zz!LQA3n&g^qbASsQtjQ%k04ddg;-'
+    'Hu#yGxyQ)xrdN1HL7u$KAoXI2{hbdA3^rbTVL=?0E{F27I_Fu7r$zjwZ_V>BZUEQ`j0&$hyD~v53^MyX$JpM+XpSj9fBo^K_#SBZ7ZAEEfAx0S'
+    'p439mq=)7Q$Q%T@L(?US)p#hfp&&Qfsay*PO(c(i}(!XoJZGtI+d6nrmo?S>3jKriMJsal<A!D9dG_sa%j|%NVg20-'
+    '0%>MUE6}>iD9re8rgYU}YJHZ{Ggx^+#8XDl&B(nNBa*wS#_7LgTHxtul%u<9H?Y1V|ya<aULeRdLJXGFLt#1g^V0-'
+    'DZLI^@4uBqX~l3U?3b;1fp8xsHAhUa3?XNWWGuavr<<5NFoOV{hVaIO*f502Hn2yIxXK{qg}~2=xDh`KOm2lCK{tdx<gBUI9N_cFVfL^_4V@N8'
+    '%VKJa3ViuVhI9q1QVpRiB@wH4T<S2jz_9stO=bCn;&HR!ysg^X)+eHpC>YE;geI&Zwo~m1gyvCR`3pan#g1yCTo2CrzIsyNE!^1x1z*Qa&_OT<'
+    'DMR$#bpKpgIXGOx>&CSGw4}u;Gjv!?5hIfoH1ZDljeM2sL)@|u&}StujoOqtBfe{66!S+1TkS4^iWOMORX4NpTBi=k4itmJRJ^hQ_M_)J@A>_H'
+    'H5fJw=nCDP8ccA?vo0>29is5hgM8z2K3A+pF$s{6AKgynJrE31-'
+    'HB*FH53N8QzTyPgqIyepDVwPaT~h3fc6OW+PFBQAnwb1w8>6#S)60IM8l@gM$14lsItcJj@T_@T^VYgw13P5+G4=U&}vr0<^BgPMX7215)AOp5'
+    '=*Y9V6xlYyJR6OfsG7zyAU@EvuFo;(b+uAu$+4kAr!&O`GJds&B~ZNkj%$9>?rr`r>l-{DjC-CKOWamav6%CO{~g$?LJvzT??-'
+    'S{7N87&S=L4Blpl_{4FtSHJ$WI7xbB{ZOD8Jeohdf?dx$APU7u=i|h@43Wzyy>$D<Y=NkZ6KPizhu=^Rp1T3}?m9>sE-'
+    'A`kLISl8Lj2e(@d?OM#6yIAqM&@oh6Vs&25l1JL6zZ<c$to)Fjy0xcefLf&}^~DfmK(?KX_g!p|8O%DY6iDdQN5*4lI)BvB<=g7?vVJrbWJR1}'
+    'ODoclIF8_IS|*78)Qg!11kfUn*E0_<oz-pH3%rSyMZH3589bhhUI6&x>?ZRv@RcVM^As)o>N{yCZmJDNq?6+i%6*r^My+*($ap35T5|`9_*-'
+    'ps?q-63VscgJNRK6N#D73HR|pXOb86pT`HD4hga7@k8obP~OC3B(M4p>HomwIU!UHTZBcc-G37P8n%BesO<dDHkoyp3lEw`vroS)-'
+    'oBq+o=>KiFR(C&PM|43v&jRulWXAE2|LZgQmkSZ13O;<ysr#Beot#am4=+@o%p%{#fKr1p*21_P8CJDKeWl_0HgqT8E?4rFnUX^3a~ltmY=K4N'
+    'k9uQC+&osRdxjoi|($bc8X+LCYDLF+KodDQ1CAzd)ab@ihn-'
+    'AKW|LRSJ!D_?zbwp_b(ZqIHo^y${J26ugqGoK5L}5W-MSxFGd7A+p5m4?MNtoAD5--Ujt0kp5Vu)z$Rkk9mr}14inGKV#%~7n{^GmL}gsgF;b='
+    'm^ek;^sf*lDs({=Ws%BAUv;x8!!@|*Yjcgbc%#dS4u?(w_3ez7)a#OS(3-'
+    '&uUx1Q9A7&BmDW?tCscz{}u4GHH_M;58l%UCTa7LjhyXdqT%`aAW=8MuTpg1{zJk~-'
+    '_MERLzx>xPq!CsN<jn5tZZ3+d+n2n|aCV<tg;Cmvq)h=}x#@Oqc10zr>rV}&MBRl8c^@6}Syx$03rJB)MHbTmd;!9+w-'
+    'RP)i92G*c+j4^u`^@%iv{BgQR{W*lG`o@aGQ3GpN%QzSmr}v$$T21cDeMWDMi6og>5eQFe5YzhVP}GjVLxL%>_7bJU82=d(&;@Ga78DzbkNve!'
+    'y}&yj`C()ZAL;=mu>LSurr@`CSwKG$Vqhtv<OD{IbC@i<9!3H+)>paj*sMD?(<;8{6l53{yu7dwDP*ACeSYaB(N*%5Kp(K2R~SE3c`<volDs57'
+    '+BQy)#UatM-DW_$eCUIReSu_~pYzc(Xp$c<QH_fFAFE1L76uUyOmsC*z<RQn=Rw$GqOPRtNZ`SM#@-'
+    'Dh<3`}=cx?*GT%zXL%5Lth`#{t5cAR6j4WAW=qD&;#7h@KaT6F61HbOKGBQ-q^f#)mmN;$M*X3=#1=nGIskdm=+6gPb--Jv1*k-'
+    '~0tWDz|zIxbNJU^=S`lSnXs>ePT4(K1136Elw{AFZC@Q?WHAPeeyp3CK=X{gHyS>gfV>M1U~o+gai^&2Abo6Zp(nNZx{H-'
+    'pbkqT`_Mj%aj4e*5^dI?w;~Ir8ti$O^^)%jd@C2c4}k(m(-*%yR^{7I{YEUjAO7osTzMyeoUX%r~4SVjW=U+GlG<8UhL-'
+    'Q5&I9dBzfBcS2g$t*u|gvISWHrTcw8GG9*?0GwXLabqUM7hqjg)%QVrd9~AfrM6&WxqTJc>%p2bp8w{5r4SlBFe2!JwpV@}UeCc#5T}#4JiZu='
+    'W)0_nd$b($1jxRydGVZ@Hi;vMins3wHRi3iXGd3KNlpKl^TuPjOUTLiv#XYO|yo#dZD<Innd7dsaB<WsSTlQSQU}k9wYbW4d@%ySolVe$^TD85'
+    '4SaVbu-'
+    '$6`DY@EWG76HmoqZKd3jH@w9uZT@Na=^Pr><rAr=%LW1fB_p1AqnU~sYHH{6q}|sJoJbi<^k*&P_BWYwWRl$qb<F@2db$MXk1}H9eX2==*0(UF'
+    '9Xa72CcV%s)coJ;q~9xdlBx%TI~r|ZHt;}=^5+dZB+ry0jVfOt3xXtQkX0|@Ua2e7Tlaq%gd&!hszf)#-L)HzZk1QLuT$+F;U-XY0dAm8O{g(-'
+    '+9cQuH^5SeIK)nU~VONTxykL&|qVHuGhjWHMRt@M9I~5!>{TzWLKK%cZZMLkbo37vZQ2`dW0A#K{p;mQ7bBkR^g&(GgTxCi?#6?bl<JvraBrkn'
+    ';|mm(!+@o$w%vMy99V?)@Ez*#9DMxyPKe}Rr3IE*MP=b4uOL@CSUyNd&G-7OmVPITziYQ3O@T2%VITj31a9jHI{w9@w#e&Qf~NgLBV5-'
+    '^mYdj2sO_*(yp;^Dd-idY+cZHRs0?;P;K(6_}D_r6&rxQi-'
+    'Z0VDcm>X3<Ochlcv}eTS_A<F9KLTZGrWM#u>0o_+T%ZS<}c_F}cIy2J~RYoG6%eZJB;kMBOjmpM~!6L4VL$z|77}?hJz<sv=gkQM|)cUC*RL2Q'
+    'Ba5%e!z5d+2_Z0;o{sX@%h8!iA&u(t;W$2&?acm|mCae<ZYHcghs(2l<P^c>;IBW`-t%2O7S)H52ZYdtc4FKsD<aI>BtJcLh#u(zh#&9eNx{7-'
+    'c7nh^Rl$d-'
+    'A&0EOc|~=&9OQwdB+6)D<l;?wbnmYiq*}@ask;*_B_^jl_c{MP(qzVPO~+RJnz6m;@1`6BGYnve{)2C~O8;d_igO>mtv2*}3DSGY+w^z|;!WSE'
+    '|5JU-Duj+!S=Sg;+KJIv1G1MHfe-Zk^3LBhieYJd(ONZ24(oPk{Zr+5uUuQ=sGo6gZk1RXyIN<pJMw08djY$_`%0r1IRFNhdXHx{0v(<!3({Kq'
+    '43AJ?5~C($&?LBD3MADplE~suA;(Hr{CH+tl4*v3TAaZSV$G_=eZ}8lE>#(*5^bVb`D7pV>;>3;G@ed}2)r%AY!#kP7%uvMwsTrtmIx!dGO>=0'
+    'x;kFwFO0n@`w!V92>1eZ`abHr}^`E)Y<Cs97a>Ht8)7&mUXUMZrrCl6r=6xZF)(EE>388nh?U@Ce4zgJiep=t-'
+    '9JvYIJ`lw<tUi>)C&G!&}k+48jErw1x-LRntb)&mCjv3+8Cx6|OPLe%{pHo&vd7$s3CBKJ&^6%&R2eWeHw-'
+    'gKbyAW+4IPZpU|r!47>?#%ezz3F+Y+E>*#BCFO|*3bjHcihoQG(j0)=PSC8pleVx#~^Ywvx-uy--'
+    '}g|{%3R{4s>E7zMHX{?p<M_%LY!Qr{&EEr!34#QcM4ME-'
+    'T0GI|~TU8_R_|bpawU>oREcdvv&8#imD)cK0rGe|6L1Gv?IwYl}icLC;nB?K<E7nCl85fL;hv!|l{!dsTBY$`<Gg3^P|+>iYz4h4;)6qy7wv_!'
+    'nllzhcw3vfiVFzCRX;C;K$J!3DarDaqn*$kejT;3TMc1f9BicvQJ59YPB31o{Wvji~CC<s&Cree>5Z$$2Kp*}5Q!mcL~$hN`QBmUeH!wYIEJR9'
+    'G7eysyqWJn!++YYp{St#ugii5poOa_}11(Y5y81Jf`&)y^|fxP}*3d#j3PotRjEEu5YybQ?}}o}GyWcc31*3}%rl6>^%(U`z2rr$mUM#CoCAU_'
+    '}m<35h9h>cJ%;=5+}DzShI5p2YhqC=dZhU7;|7=Ty+nYHEho#LhLWBb7@Jt6Fkz)Q1v+fPt~7{vKm^`bcU}*TUfw56;QM=x!PykTplB<i5+?;*'
+    'VhBInPmMn65;F`;Xy2@tQG=z51T2@S$@4#ShHulNLLko6Wn$5opyT;87^S`GG{IXqLKgNwck1(YOKaTVp6fC6(wtG`@GH3y4phT=>5v-'
+    'AZKc6^nVfZjm94nZ$-k)kSWY9&1`O!ot~BuZDNlaVFK!BPMT$L9B{RQ{+O-'
+    '!R%q7L;rtH)S@P`GSod8Qi1=6rbzKofMtUo<LmB*M;suJ1?^`$JZ0WApx?Bpw}3|zG|Fi|b}}_E##FqaABKZ;)X&QDIaw54@ka2Gd%DE2mI-LO'
+    'Oo03=810Nr$0swN7{j)cksVQ0-'
+    'UKnDi@`kO*(#&@dUj@5q#F_^%_Q!0D6J&E^~E00!tGZ=I`tytLC>WpJE_KNc_S3xoG_Aa7o(SpQOgf=`QlTNVWlvje)ELOXVqPqEW+-'
+    'X<(oA3z$JB6q6|~LMTX~#j@B4Ra-GP94YkgDRK>5_iC_5Zy|pN;9fOM1E%JRQi{6snDqnpG6tF<=QH|}QU-KpeK|VrS%B|t(Zu_DGnetqT$i{)'
+    'S(^d&kB^TmWVvSyk)EE3)m`J-'
+    'c8_<?I>?Bs?N5wiSedAzniq*!F?7WnVR<BMrPULgpaOk}c#HVg3x3AdhQH55IF0xXoS#v_+LMk99pRfE&0jJZws-y2Z0mv=+xe*yyk-Wa6Ok}b'
+    'yJtf%SC1lD$?ys3R(XQgNq>;MB@ki>R?NjWD0sjl?gKeycT+V|n%Wj2<F%hL{2nt2h>M?u4C+u;W=ZRd8%Rlx{&bI{K?UA)Trm)$nZ_qdPJJ;f'
+    '1xR+-j88N0`Ls6%rUOqeQ9y~GfcXN}g?OV6zdOg^wruIe~9j+*<w`N_73}qI`w{y*i-'
+    'L2fTCb+XR1@xOYEh3hP(;{h6;iULVjF&h%l=LAPYO(3X%|wF#5u_y^IOVq}u>B=W9hYU%Pmh*R6$cXr9~n`cbROx@vHvg`x4sm&WQ{MbdxU_#N'
+    '9q)CdyDE+^Ny57;qawjrzH;GU83m0J!p|rmg7TPY@0E?e~ZK>_9w&T0&l>M!Kkk5s!ob^q76A)ZxYF%E)X<?u>`?ukwaU!`wm?xx)T<hM{HeyW'
+    'Os?_%o`AmiWjnBu~KiUv?^$@!4I1>Hw7?QKGD0HU`-'
+    'l8*O!Jtk6uv<SE00P2ohwe^zq$^54Iol>s^G|0ZtM<FDzcX4Dl$t5!6q9i+9a(`)D3v{T#PAGhrD8EKV>S(HuPz{};PRbSl=pWBA|%txnek(Ys'
+    'IYF<{mMCDL&u@qaxKL2sgoW2HWW8FO5bp4WKJI`8mI>~bJxzZ?{cc~m)&)HbFTNU0Q;PzSR9Ln|jX)Vk*(3UN9%l|@#eiZoH(sr)Jt^*!#d5^_'
+    'Y9{~|wAX9AwBH<$k!(wVftW9Gkybf#HDya06;kTo7~FIAy(o`X(ol;$%H{S^L9Od#kE4}6>-'
+    'cKZgjGrtw_=fSJL|NLR`>QnOTho2UoUgNtn&w%8<0Wo4q4d19V7lB-i6yGIfTFTfUz7_D$T-*F89b<U@$+!Ojprrd<'
+)
+IMAGE_ANCHOR_ORIGINAL_SHA256 = '549c67075e3c3891930d6dd88e5107baca896d289a9717d4f14f6da414bad3c5'
+IMAGE_ANCHOR_NODE_SHA256 = {'SCHEMA': '4218e5fed8dc8ccf25947498c501093963bd45c9ac6e600ae1c5ea3ffa3f71cd', 'AUTHORITY_SCHEMA': 'd0267ef02058481201845e0749ff1f32e9956cdf3d6509371df5243090f1784f', 'INFERENCE_SCHEMA': 'a5ffb29526ff524d9a6f350ca5d2a4c8626ba7812d3a6f22d7262c5c790197d1', 'BUNDLE_SCHEMA': 'a44ccb0ecea15bb47bc5c2dd53ae2590a3091fc044214bbe707cecdc9ce8ebbf', 'ANCHOR_ENDPOINT': 'cd7e9da091388fe766f95d82ee3c8b4fcd1a7793e76a97199ae57c778cabfc75', 'RECIPE': 'c661bea4e6031fe8fc4b88b38b840c1a806a3c3d2c1702adf7db2471a5a09456', 'loss_terms': '051c24eef6cb3c07f2e15365a24c15708ad0e9ff707a09fd44c8aea163c5e19f', 'authenticate_anchor_endpoint': 'f87fafbf53652cea35b28baa43cac396ec10316fb2d81c9e5bf534825622b9d6', 'anchor_displacement_witness': 'ad35be405d58e040fb7b0ed48b83d37deec1f73f99757ccf26daca027a8ab5d9', 'cpu_gradients': '8fd57518120408b8de8d0fd93e697c0836909ed2af1212e8c131cec457107fae', 'update': '793d55489d4454f5471c7268481f529bd223c84eb0cdd054e2a3b0f1c84d578c', 'check_steps': 'c4ef99bf95d4592f9f8d96795bfd84ad78ca591eae13d5040aef3f81e56ed052', 'cpu_witnesses': 'aca1bec7408e17521a6d28095ff4257f32a7a7143146e8047ffe044affad80d4', 'check_cpu_gradient': '6b853cd435af926813bfd591218c90d98e5ff4062c8a8e7538f84df042194327', 'check_terminal_record': '72f681866bd458e555c35e01439ed405c149264c3685e6f86e549d6dd879f833'}
+IMAGE_ANCHOR_TEST_BASE_AST_SHA256 = 'a8259716541ea82e38da84c5eececde611019ed4b25d315ae65492b9d594a602'
+IMAGE_ANCHOR_BASE_AST_SHA256 = '9b87c006e5f46a55ecdb79b015bad185161c5b7ad30fcd0d3c54026dceec5586'
+
+
+def image_anchor_source_boundary(tree):
+    """Exact prospective objective/witness inverse; every other AST node retained."""
+    import base64
+    import zlib
+    raw = zlib.decompress(base64.b85decode(IMAGE_ANCHOR_ORIGINAL_NODES))
+    driver.require(hashlib.sha256(raw).hexdigest() == IMAGE_ANCHOR_ORIGINAL_SHA256,
+                   'image-anchor original source nodes differ')
+    originals = {k: ast.parse(v).body[0] for k, v in json.loads(raw).items()}
+    changed, result = {}, []
+    for node in tree.body:
+        name = (node.name if isinstance(node, ast.FunctionDef) else
+                node.targets[0].id if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) else None)
+        if name in IMAGE_ANCHOR_NODE_SHA256:
+            driver.require(hashlib.sha256(ast.dump(node).encode()).hexdigest() == IMAGE_ANCHOR_NODE_SHA256[name],
+                           'exact image-anchor reviewed node differs: ' + name)
+            changed[name] = changed.get(name, 0) + 1
+            if name in originals:
+                result.append(copy.deepcopy(originals[name]))
+        else:
+            result.append(node)
+    driver.require(changed == {k: 1 for k in IMAGE_ANCHOR_NODE_SHA256}, 'exact image-anchor sites required')
+    tree.body = result
+    driver.require(hashlib.sha256(ast.dump(tree).encode()).hexdigest() == IMAGE_ANCHOR_BASE_AST_SHA256,
+                   'image-anchor changed unrelated production AST')
+    return tree
+
+
 def smooth_ap_source_boundary(tree):
     """Exact named-node inverse; reject any unreviewed objective/guard edit."""
+    tree = image_anchor_source_boundary(tree)
     import base64
     import zlib
     raw = zlib.decompress(base64.b85decode(SMOOTH_AP_ORIGINAL_NODES))
@@ -1217,6 +1350,8 @@ class ContractTests(unittest.TestCase):
                     "initial_arm_parity", "cpu_serialization_exact", "bypass_version_tamper_rejected",
                     "malformed_state_rejected", "native_role_mutation_rejected", "native_loss_reduction_exact")
         record.update({k: True for k in required})
+        record["gradients"] = [image_anchor_gradient_fixture(g) for g in record["gradients"]]
+        record["anchor_endpoint"] = driver.ANCHOR_ENDPOINT
         check(record, launch, "cpu", "control", 179061)
         for key in required:
             with self.subTest(key=key), self.assertRaises(ValueError):
@@ -1809,7 +1944,7 @@ class SmoothAPTests(unittest.TestCase):
                 'full_valid': 64, 'full_membership_sha256': driver.json_sha256(full),
                 'scale': 128, 'gradient_norm': 1., 'ranking_gradient_norm': .2,
                 'A_before_sha256': 'a'*64, 'A_after_sha256': 'b'*64,
-                'core_seconds': .1, 'seconds': .2, 'mse': .2, 'rank': .1, 'loss': .3,
+                'core_seconds': .1, 'seconds': .2, 'mse': .2, 'rank': .1, 'loss': .2 + .1,
                 'preclip_norm': 1., 'active_anchors': 128}
 
     def test_complete_membership_rejects_nearest_only_self_and_dropped_guards(self):
@@ -1869,12 +2004,13 @@ class SmoothAPTests(unittest.TestCase):
                    'nonnearest_loss': .08, 'nonnearest_gradient_norm': .1,
                    'native_mask_self_ties_singletons_exact': True,
                    'candidate_minus_control_equals_rank': True, 'micro16_global_reduction_exact': True}
+        witness = image_anchor_gradient_fixture(witness)
         driver.check_cpu_gradient(witness, bank)
         for key, bad in (('nonnearest_loss', 0.), ('nonnearest_gradient_norm', 0.),
                          ('candidate_minus_control_gradient_norm', 0.), ('candidate_gradient_norm', float('nan')),
                          ('gradient_alignment', 1.01), ('multi_positive_anchors', 0),
                          ('nonnearest_positive_terms', 0), ('native_mask_self_ties_singletons_exact', False),
-                         ('micro16_global_reduction_exact', False), ('candidate_minus_control_equals_rank', False)):
+                         ('micro16_global_reduction_exact', False), ('candidate_minus_control_equals_regression_difference', False)):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 driver.check_cpu_gradient({**witness, key: bad}, bank)
         for mutate in (lambda b: b['target'].__setitem__(12, 1008),
@@ -1926,6 +2062,267 @@ class SmoothAPTests(unittest.TestCase):
         changed = copy.deepcopy(launch); changed['recipe']['adamw']['betas'][0] = True
         with self.assertRaises(ValueError): driver.check_launch(changed, args)
 
+
+
+def image_anchor_gradient_fixture(g):
+    """Explicit extension of original receipt fixtures for the new objective."""
+    g = copy.deepcopy(g)
+    g.pop('candidate_minus_control_equals_rank', None)
+    g['candidate_minus_control_equals_regression_difference'] = True
+    g['ranking_gradients_identical'] = True
+    g['original_active_objective_exact'] = True
+    g['regression_difference_gradient_norm'] = g['candidate_minus_control_gradient_norm']
+    g['canonical_anchor_at_A0'] = True
+    g['arms'] = {}
+    for arm in driver.ARMS:
+        canonical, augmented = (0., .5) if arm == 'candidate' else (.5, g['mse']-.5)
+        row = {'canonical_mse': canonical, 'augmented_mse': augmented, 'mse': canonical+augmented,
+               'rank': g['rank'], 'loss': canonical+augmented+g['rank'], 'active': g['active'],
+               'micro16_global_reduction_exact': True}
+        for name, norm in (('canonical_regression', 0. if arm == 'candidate' else .5),
+                           ('augmented_regression', .5), ('regression', 1.),
+                           ('ranking', g['ranking_gradient_norm']), ('total', g[arm+'_gradient_norm'])):
+            row[name+'_gradient_norm'] = norm
+            row[name+'_gradient_sha256'] = 'a'*64
+        g['arms'][arm] = row
+    g['displacement'] = {'endpoint': driver.ANCHOR_ENDPOINT, 'training_state_discarded': True,
+                         'canonical_mse': .125, 'gradient_norm': .2, 'dot_gradient_displacement': .25,
+                         'gradient_sha256': 'b'*64, 'A_sha256': driver.ANCHOR_ENDPOINT['A_sha256'],
+                         'canonical_connected_identity': True}
+    return g
+
+
+class ImageAnchorTests(unittest.TestCase):
+    def test_both_arm_receipts_zero_and_target_difference_are_authenticated(self):
+        self.assertTrue(hasattr(driver, 'ANCHOR_ENDPOINT'), 'discarded historical endpoint must be pinned')
+        bank = SmoothAPTests().bank()
+        batch = list(range(12, 76)); members = driver.ranking_membership(bank, batch)
+        g = image_anchor_gradient_fixture({'seed': 179061, 'batch': batch,
+            'membership_sha256': driver.json_sha256(members), 'mse': 1., 'rank': .1, 'K': 64, 'active': 128,
+            'control_gradient_norm': 1., 'candidate_gradient_norm': .9, 'ranking_gradient_norm': .2,
+            'candidate_minus_control_gradient_norm': .3, 'gradient_alignment': .2,
+            'multi_positive_anchors': 64, 'nonnearest_positive_terms': 2*sum(len(p)-1 for p in members['positive']),
+            'nonnearest_loss': .08, 'nonnearest_gradient_norm': .1, 'native_mask_self_ties_singletons_exact': True,
+            'micro16_global_reduction_exact': True})
+        driver.check_cpu_gradient(g, bank)
+        for arm in driver.ARMS:
+            for key in ('mse', 'rank', 'loss', 'canonical_mse', 'augmented_mse', 'ranking_gradient_norm',
+                        'total_gradient_norm', 'canonical_regression_gradient_norm'):
+                for value in (-1., float('nan'), True):
+                    bad=copy.deepcopy(g); bad['arms'][arm][key]=value
+                    with self.subTest(arm=arm,key=key,value=value), self.assertRaises(ValueError):
+                        driver.check_cpu_gradient(bad, bank)
+            for key, value in (('ranking_gradient_sha256', 'd'*64),
+                               ('micro16_global_reduction_exact', False), ('loss', 100.)):
+                bad=copy.deepcopy(g); bad['arms'][arm][key]=value
+                with self.subTest(arm=arm,key=key), self.assertRaises(ValueError):
+                    driver.check_cpu_gradient(bad, bank)
+        for key in ('ranking_gradients_identical', 'canonical_anchor_at_A0',
+                    'candidate_minus_control_equals_regression_difference'):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                driver.check_cpu_gradient({**g,key:False},bank)
+        for key, value in (('canonical_mse', 0.), ('gradient_norm', 0.),
+                           ('dot_gradient_displacement', .3), ('canonical_connected_identity', False),
+                           ('training_state_discarded', False), ('endpoint', {})):
+            bad=copy.deepcopy(g); bad['displacement'][key]=value
+            with self.subTest(displacement=key), self.assertRaises(ValueError):
+                driver.check_cpu_gradient(bad,bank)
+        bad=copy.deepcopy(g); bad['arms'].pop('control')
+        with self.assertRaises(ValueError): driver.check_cpu_gradient(bad,bank)
+
+    def test_historical_pin_matches_committed_training_evidence(self):
+        directory = PATH.parent.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-train-candidate-179061-v1'
+        if not directory.exists():
+            self.skipTest('portable exact2 has no repository evidence; frozen pins remain source-bound')
+        pin = driver.ANCHOR_ENDPOINT
+        receipt_path = directory / 'receipt.json'
+        self.assertEqual(hashlib.sha256(receipt_path.read_bytes()).hexdigest(), pin['terminal']['receipt']['sha256'])
+        self.assertEqual(hashlib.sha256((directory / 'original.log').read_bytes()).hexdigest(), pin['terminal']['log']['sha256'])
+        receipt = json.loads(receipt_path.read_bytes())
+        self.assertEqual((receipt['schema'],receipt['phase'],receipt['arm'],receipt['seed'],receipt['completed_step']),
+                         ('siglip2-compact-smooth-ap-v1','train','candidate',179061,128))
+        for key in ('authority','checkpoint','bundle','terminal_state_sha256','inference_state_sha256'):
+            self.assertEqual(pin[key],receipt[key])
+        self.assertEqual(pin['A_sha256'],receipt['steps'][-1]['A_after_sha256'])
+        self.assertEqual(pin['source']['code'],receipt['code'])
+        self.assertEqual(pin['source']['execution_sha256'],receipt['execution_sha256'])
+
+    def test_discarded_anchor_connected_identity_rejects_detached_and_wrong_target(self):
+        class Scalar:
+            def __init__(self, value, gradient=0.): self.value,self.gradient=value,gradient
+            def __sub__(self, other): return Scalar(self.value-other.value,self.gradient-other.gradient)
+            def __add__(self, other): return Scalar(self.value+other.value,self.gradient+other.gradient)
+            def __mul__(self, other):
+                if not isinstance(other,Scalar): other=Scalar(other)
+                return Scalar(self.value*other.value,self.gradient*other.value+self.value*other.gradient)
+            __rmul__=__mul__
+            def __truediv__(self, other): return self*(1/other)
+            def square(self): return self*self
+            def clone(self): return Scalar(self.value,self.gradient)
+            def detach(self): return Scalar(self.value)
+            def double(self): return self
+            def sum(self): return self
+            def norm(self): return Scalar(abs(self.value))
+            def all(self): return self
+            def item(self): return self.value
+            def __float__(self): return float(self.value)
+            def __getitem__(self,key): return self
+        fake = SimpleNamespace(nn=SimpleNamespace(Parameter=lambda x:Scalar(x.value,1.)),
+            autograd=SimpleNamespace(grad=lambda loss,A:[Scalar(loss.gradient)]),
+            isfinite=lambda x:Scalar(math.isfinite(x.value)),
+            allclose=lambda a,b,**kw:math.isclose(a.value,b.value,rel_tol=kw['rtol'],abs_tol=kw['atol']))
+        context={'anchor_A':Scalar(3.),'initial':{'A':Scalar(1.)}}
+        state={'A':Scalar(1.,1.),'teachers':{'T':Scalar(3.),'e0':2.},'views':{'canonical':Scalar(0.)}}
+        def readout(context,probe,features): return probe['A']*2+Scalar(1.)
+        with patch.dict(sys.modules,{'torch':fake}), patch.object(driver,'raw_features',side_effect=readout), \
+             patch.object(driver,'fingerprint',return_value='a'*64):
+            result=driver.anchor_displacement_witness(context,state,[0])
+            self.assertEqual(result['canonical_mse'],16/256)
+            self.assertEqual(result['dot_gradient_displacement'],2*result['canonical_mse'])
+            self.assertEqual(state['A'].value,1.)
+            with patch.object(driver,'raw_features',return_value=Scalar(7.)), self.assertRaises(ValueError):
+                driver.anchor_displacement_witness(context,state,[0])
+            state['teachers']['T']=Scalar(4.)
+            with self.assertRaises(ValueError): driver.anchor_displacement_witness(context,state,[0])
+
+    def test_previous_stdlib_cases_preserved_by_exact_required_inverses(self):
+        tree=ast.parse(Path(__file__).read_text())
+        added={'IMAGE_ANCHOR_ORIGINAL_NODES','IMAGE_ANCHOR_ORIGINAL_SHA256','IMAGE_ANCHOR_NODE_SHA256',
+               'IMAGE_ANCHOR_BASE_AST_SHA256','IMAGE_ANCHOR_TEST_BASE_AST_SHA256',
+               'image_anchor_source_boundary','image_anchor_gradient_fixture','ImageAnchorTests'}
+        def name(n):
+            return n.name if isinstance(n,(ast.FunctionDef,ast.ClassDef)) else (
+                n.targets[0].id if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) else None)
+        self.assertEqual({name(n) for n in tree.body if name(n) in added},added)
+        tree.body=[n for n in tree.body if name(n) not in added]
+        changes={
+            ('smooth_ap_source_boundary','tree = image_anchor_source_boundary(tree)'): None,
+            ('test_terminal_rejects_partial_false_and_nonfinite_cpu_proof',
+             'record["gradients"] = [image_anchor_gradient_fixture(g) for g in record["gradients"]]'): None,
+            ('test_terminal_rejects_partial_false_and_nonfinite_cpu_proof',
+             'record["anchor_endpoint"] = driver.ANCHOR_ENDPOINT'): None,
+            ('test_cpu_witness_requires_positive_nonnearest_loss_and_total_difference',
+             'witness = image_anchor_gradient_fixture(witness)'): None}
+        dump=lambda n:ast.dump(n)
+        keyed={(fn,dump(ast.parse(source).body[0])):replacement for (fn,source),replacement in changes.items()}
+        seen={key:0 for key in keyed}
+        expressions={('step',dump(ast.parse('.2 + .1',mode='eval').body)):ast.Constant(value=.3),
+                     ('test_cpu_witness_requires_positive_nonnearest_loss_and_total_difference',
+                      dump(ast.Constant(value='candidate_minus_control_equals_regression_difference'))):
+                         ast.Constant(value='candidate_minus_control_equals_rank')}
+        expr_seen={key:0 for key in expressions}
+        class Restore(ast.NodeTransformer):
+            function=None
+            def visit_FunctionDef(self,node):
+                previous=self.function;self.function=node.name
+                node=self.generic_visit(node);self.function=previous
+                return node
+            def visit(self,node):
+                key=(self.function,dump(node))
+                if key in keyed:
+                    seen[key]+=1
+                    return None
+                if key in expressions:
+                    expr_seen[key]+=1
+                    return copy.deepcopy(expressions[key])
+                return super().visit(node)
+        tree=Restore().visit(tree)
+        self.assertEqual(set(seen.values()),{1})
+        self.assertEqual(set(expr_seen.values()),{1})
+        self.assertEqual(hashlib.sha256(ast.dump(tree).encode()).hexdigest(),IMAGE_ANCHOR_TEST_BASE_AST_SHA256)
+
+    def test_exact_objective_boundary_rejects_witness_and_retained_node_mutations(self):
+        tree=ast.parse(PATH.read_text())
+        image_anchor_source_boundary(copy.deepcopy(tree))
+        for name in IMAGE_ANCHOR_NODE_SHA256:
+            mutant=copy.deepcopy(tree)
+            node=next(n for n in mutant.body if getattr(n,'name',None)==name or
+                      isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id==name)
+            if isinstance(node,ast.FunctionDef): node.body=[ast.Pass()]
+            else: node.value=ast.Constant(value=None)
+            with self.subTest(node=name),self.assertRaises(ValueError): image_anchor_source_boundary(mutant)
+        for name in ('PAYLOAD_KEYS','INFERENCE_KEYS','SERVING_FILES'):
+            mutant=copy.deepcopy(tree)
+            node=next(n for n in mutant.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id==name)
+            node.value=ast.Constant(value=None)
+            with self.subTest(retained=name),self.assertRaises(ValueError): image_anchor_source_boundary(mutant)
+
+    def test_zero_regression_keeps_ranking_and_actual_update_predicates(self):
+        case=SmoothAPTests();bank=case.bank();row=case.step(bank)
+        row.update(mse=0.,loss=row['rank'])
+        driver.check_steps([row],1,1,bank)
+        for key,value in (('mse',-1.),('loss',0.),('gradient_norm',0.),
+                          ('ranking_gradient_norm',0.),('A_after_sha256',row['A_before_sha256'])):
+            with self.subTest(key=key),self.assertRaises(ValueError): driver.check_steps([{**row,key:value}],1,1,bank)
+        launch,args=ContractTests().launch()
+        with self.assertRaises(ValueError):
+            driver.check_launch({**launch,'schema':'siglip2-compact-smooth-ap-launch-v1'},args)
+
+    def test_historical_admission_keeps_original_role_and_rejects_pin_substitution(self):
+        node=next(n for n in ast.parse(PATH.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='authenticate_anchor_endpoint')
+        # Exercise every new pre-native admission predicate. Existing original
+        # admissions have their own unchanged tests; these callbacks supply their results.
+        stop=next(i for i,n in enumerate(node.body) if isinstance(n,ast.Import) and n.names[0].name=='torch')
+        node.body=node.body[:stop]+[ast.Return(value=ast.Name(id='record',ctx=ast.Load()))]
+        scope=dict(vars(driver));exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),str(PATH),'exec'),scope)
+        pin=driver.ANCHOR_ENDPOINT
+        record={k:copy.deepcopy(pin[k]) for k in ('authority','checkpoint','bundle','terminal_state_sha256','inference_state_sha256')}
+        record.update(initial_A_sha256='a'*64,identity={'static_sha256':'b'*64})
+        context={'guards':{},'root':Path('/prospective'),'required_guards':{'/prospective/execution.json':'c'*64,'/retained':'d'*64},
+                 'initial_A_sha256':'a'*64,'initial_static_sha256':'b'*64,'legacy':object()}
+        def admit(historical,unit,phase,arm,seed):
+            self.assertEqual((unit,phase,arm,seed),(pin['terminal'],'train','candidate',179061))
+            self.assertEqual(historical['required_guards'],{'/retained':'d'*64})
+            self.assertIs(historical['legacy'],context['legacy'])
+            self.assertEqual(historical['launch'],{'original':'launch'})
+            return record
+        original=SimpleNamespace(admit_terminal=admit,
+            admit_bundle=lambda directory,sha:({'endpoint_state_sha256':pin['inference_state_sha256']},{}))
+        scope.update(closure=lambda *a:pin['source']['code'],load_authenticated=lambda *a:original,
+                     read_json=lambda *a:{'original':'launch'})
+        self.assertIs(scope['authenticate_anchor_endpoint'](context),record)
+        for key in ('authority','checkpoint','bundle','terminal_state_sha256','inference_state_sha256','initial_A_sha256','identity'):
+            saved=record[key];record[key]={'static_sha256':'0'*64} if key=='identity' else 'wrong'
+            try:
+                with self.subTest(key=key),self.assertRaises(ValueError):scope['authenticate_anchor_endpoint'](context)
+            finally:record[key]=saved
+        scope['closure']=lambda *a:{}
+        with self.assertRaises(ValueError):scope['authenticate_anchor_endpoint'](context)
+
+    def test_prospective_schemas_and_both_arm_ranking(self):
+        self.assertEqual(driver.SCHEMA, 'siglip2-compact-image-anchor-smooth-ap-v1')
+        self.assertEqual(driver.AUTHORITY_SCHEMA, 'siglip2-compact-image-anchor-smooth-ap-launch-v1')
+        self.assertEqual(driver.INFERENCE_SCHEMA, 'siglip2-compact-image-anchor-smooth-ap-inference-v1')
+        self.assertEqual(driver.BUNDLE_SCHEMA, 'siglip2-compact-image-anchor-smooth-ap-bundle-v1')
+        node = next(n for n in ast.parse(PATH.read_text()).body if isinstance(n, ast.FunctionDef) and n.name == 'update')
+        loss = next(n.value for n in ast.walk(node) if isinstance(n, ast.Assign) and
+                    any(isinstance(t, ast.Name) and t.id == 'loss' for t in n.targets))
+        for arm in driver.ARMS:
+            self.assertEqual(eval(compile(ast.Expression(loss), str(PATH), 'eval'),
+                                  {'mse': 2., 'rank': .3, 'state': {'arm': arm}}), 2.3)
+
+    def test_both_original_views_regress_to_canonical_image_with_common_e0(self):
+        class Vector:
+            def __init__(self, values): self.values = values
+            def __getitem__(self, index): return Vector([self.values[i] for i in index])
+            def __iter__(self): return iter(self.values)
+            def __sub__(self, other): return Vector([a-b for a,b in zip(self,other,strict=True)])
+            def square(self): return Vector([v*v for v in self])
+            def sum(self): return sum(self)
+        node = next(n for n in ast.parse(PATH.read_text()).body if isinstance(n, ast.FunctionDef) and n.name == 'loss_terms')
+        # Execute the actual target/reduction statements, independently of ranking/native imports.
+        statements = [n for n in ast.walk(node) if isinstance(n, ast.Assign) and
+                      len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and
+                      n.targets[0].id in ('target', 'mse')]
+        code = compile(ast.Module(body=statements, type_ignores=[]), str(PATH), 'exec')
+        teachers = {'T': Vector([2., 5.]), 'P': Vector([3.5]), 'e0': 2.}
+        for arm in driver.ARMS:
+            for values in ([2., 5.], [3., 4.]):
+                state = {'arm': arm, 'teachers': teachers, 'target': Vector([0, 0])}
+                scope = {'state': state, 'raw': Vector(values), 'index': [0, 1], 'rows': 128}
+                exec(code, scope)
+                target = [2., 5.] if arm == 'candidate' else [3.5, 3.5]
+                self.assertEqual(scope['mse'], sum((a-b)**2 for a,b in zip(values,target))/(128*2.))
 
 
 if __name__ == "__main__":

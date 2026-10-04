@@ -28,10 +28,10 @@ from types import FunctionType
 import weakref
 
 UNIT_STARTED = time.perf_counter()
-SCHEMA = 'siglip2-compact-smooth-ap-v1'
-AUTHORITY_SCHEMA = 'siglip2-compact-smooth-ap-launch-v1'
-INFERENCE_SCHEMA = 'siglip2-compact-smooth-ap-inference-v1'
-BUNDLE_SCHEMA = 'siglip2-compact-smooth-ap-bundle-v1'
+SCHEMA = 'siglip2-compact-image-anchor-smooth-ap-v1'
+AUTHORITY_SCHEMA = 'siglip2-compact-image-anchor-smooth-ap-launch-v1'
+INFERENCE_SCHEMA = 'siglip2-compact-image-anchor-smooth-ap-inference-v1'
+BUNDLE_SCHEMA = 'siglip2-compact-image-anchor-smooth-ap-bundle-v1'
 FILES = {'train_siglip2_compact_ranking.py', 'test_siglip2_compact_ranking.py'}
 ARMS = ('control', 'candidate')
 SEEDS = (179061, 179069)
@@ -41,6 +41,28 @@ NEAREST = {'root': '/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v
 FITTER = {'code': {'fit_siglip2_prototype_residual.py': '95295794ef234967d40bdf5713d04f41d6710dae4e9d2b95bca76f0f31adc13b', 'prototype_residual_readout.py': '2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68', 'test_siglip2_prototype_residual.py': 'c89aa3855d60d9f11d0dd57b55311c5364304915bd4a5d22b26b4c1e0a29c7d4'}, 'execution_sha256': 'a47933beafd8a1c0e2d541624328c8fe1d7b9a90f68977eee83c3c82223a56fe', 'root': '/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2'}
 ACCEPTED = {'arm': 'concat', 'checkpoint': {'path': '/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt', 'sha256': 'b702e03847be88540ee9711b420279e3bc131fafc475f361eca3d57cf3b8bbcf'}, 'launch': {'path': '/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json', 'sha256': '109b6fded3f4559fcee3822536abd5beeed5f4ffc23f4313b87904faa6c39630'}, 'terminal': {'both_locks_held': True, 'invocation_id': '94a84de4194f42f0842cee5b5c8f932a', 'log': {'path': '/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log', 'sha256': '93c2f7024116fc63d8e7cacc1a4e0106d2d57e9ca57d794c866e9bcc77311197'}, 'native_peak_rss_kib': 2854356, 'receipt': {'path': '/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json', 'sha256': 'b4af0fecfa1d5f750f0ac9cc995198690baf4397fd970c8192727644135c7d5c'}, 'service_seconds': 234.821, 'unit': 'sfora-so400-signed-concat-fit-concat-v1'}, 'terminal_state_sha256': 'a118fd98cce0b8fafa51c897be70b2b6e2ec93ebb226b2382dd264721776b644'}
 READOUT = {'path': '/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py', 'sha256': '2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68'}
+ANCHOR_ENDPOINT = {'A_sha256': '461b23b5980f7aa917bc897760c20e3e4d040e15cbf68c58a55f1890a28ba834', 'role': 'discarded canonical-anchor displacement witness only',
+ 'source': {'root': '/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1',
+            'execution_sha256': 'bf3efd0040a6cccefde9414839a8cf4943e6a2a52c49f701b865a771def7e272',
+            'code': {'test_siglip2_compact_ranking.py': '5834df438ac32dd98244d7b24bb19e94e173169b19ea6770ba7db2eff0c0f72b',
+                     'train_siglip2_compact_ranking.py': '74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679'}},
+ 'authority': {'path': '/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1/authority-train-candidate-179061-v1.json',
+               'sha256': '4e7cb6c9b09ec611d9d1f1aa1b8d00c62f0e5169d5ca5ad1f33b4ffde055bb8c'},
+ 'terminal': {'receipt': {'path': '/home/riomus/runs/sfora-so400-smooth-ap-train-candidate-179061-v1/receipt.json',
+                          'sha256': '49a0d62d96864d6eec833aafe6c9676ae2c9be512ec624eae56997fd656d12c3'},
+              'log': {'path': '/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1/train-candidate-179061-v1.log',
+                      'sha256': 'c03eaa8b4d5372a31fac888a0a7446b67e1dd0d42fb36056f7b6931960998657'},
+              'unit': 'sfora-so400-smooth-ap-train-candidate-179061-v1',
+              'invocation_id': '1dbeda11e66747fa8ea5a1e1fa1f7bb6',
+              'service_seconds': 344.836,
+              'native_peak_rss_kib': 4619544,
+              'both_locks_held': True},
+ 'checkpoint': {'path': '/home/riomus/runs/sfora-so400-smooth-ap-train-candidate-179061-v1/resume.pt',
+                'sha256': '4f79c3690b874385a286d09a70c4e0e9320eb3a691b207e9e52d143bacfe90b3'},
+ 'bundle': {'path': '/home/riomus/runs/sfora-so400-smooth-ap-train-candidate-179061-v1/bundle/bundle.json',
+            'sha256': 'a3d6460966c228d4f50cd7c16e643ba3b5496ebd3f8ee60741e4b2ddb22ea883'},
+ 'terminal_state_sha256': '5dcc6eadca4b365796551c9e3829c043614794be7e2786307110d295e8e1a3e6',
+ 'inference_state_sha256': 'ad7e819aa56cf163b66f039b417d397ca1d0c37518f60f74e5984607815feb15'}
 ADAM = {'lr': 1e-4, 'betas': (.9, .999), 'eps': 1e-8, 'weight_decay': .05,
         'amsgrad': False, 'maximize': False, 'foreach': False, 'capturable': False,
         'differentiable': False, 'fused': False}
@@ -48,8 +70,8 @@ RECIPE = {'seeds': list(SEEDS), 'rows': 6355, 'classes': 1008, 'singletons': 12,
           'updates': 128, 'batch': 64, 'microbatch': 16, 'views': list(VIEWS),
           'trainable_names': ['A'], 'trainable_shapes': [[128, 160]], 'trainable_scalars': 20480,
           'adamw': {**ADAM, 'betas': list(ADAM['betas'])}, 'clip': 1., 'initial_scaler': 128.,
-          'regression': 'both same-row views coordinate sum / (128*e0)',
-          'ranking': 'candidate coefficient1; both score all positives; SmoothAP sum / (2*K)',
+          'regression': 'control P[label]; candidate canonical T[image]; both original views coordinate sum / (128*e0)',
+          'ranking': 'both arms backward coefficient1; all positives; SmoothAP sum / (2*K)',
           'temperature': .01, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0',
           'mining': 'all6355 canonical frozen bank; exclude same original image; all same-identity positives; canonical ordinal traversal',
           'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused',
@@ -682,7 +704,8 @@ def loss_terms(context, state, raw, anchors, full_valid):
         require(raw.dtype == torch.float32 and torch.isfinite(raw).all().item() and
                 (raw.norm(dim=1) > 0).all().item(), 'finite nonzero FP32 raw required')
         index = torch.tensor(anchors, device=raw.device)
-        mse = (raw - state['teachers']['P'][state['target'][index]]).square().sum() / (rows * state['teachers']['e0'])
+        target = state['teachers']['T'][index] if state['arm'] == 'candidate' else state['teachers']['P'][state['target'][index]]
+        mse = (raw - target).square().sum() / (rows * state['teachers']['e0'])
         scores = F.normalize(raw, dim=1) @ state['teachers']['V'].T
         terms, active = [], 0
         for offset, (anchor, positive) in enumerate(zip(anchors, membership['positive'], strict=True)):
@@ -707,6 +730,78 @@ def cached_witness(context, state):
                 context, state, state['views'][view][batch].to(state['device']))) for view in VIEWS}
 
 
+def authenticate_anchor_endpoint(context):
+    """Original candidate authority and complete state; retain only a discarded A."""
+    from types import SimpleNamespace
+    pin, guards = ANCHOR_ENDPOINT, context['guards']
+    root = Path(pin['source']['root'])
+    code = closure(root, pin['source']['execution_sha256'], FILES, guards)
+    require(code == pin['source']['code'], 'discarded anchor original exact2 differs')
+    original = load_authenticated('_compact_anchor_original', root / 'train_siglip2_compact_ranking.py',
+                                  code['train_siglip2_compact_ranking.py'], guards)
+    launch = read_json(pin['authority'], guards)
+    # Reuse the admitted runtime, never reconstruct a second legacy/model context.
+    historical = {**context, 'root': root, 'code': code, 'launch': launch,
+                  'args': SimpleNamespace(execution_sha256=pin['source']['execution_sha256']),
+                  'required_guards': {p: h for p, h in context['required_guards'].items()
+                                      if not Path(p).is_relative_to(context['root'])},
+                  'terminals': {}, 'terminal_cgroups': {}}
+    record = original.admit_terminal(historical, pin['terminal'], 'train', 'candidate', SEEDS[0])
+    require(record['authority'] == pin['authority'] and
+            all(record[k] == pin[k] for k in ('checkpoint', 'bundle', 'terminal_state_sha256', 'inference_state_sha256')) and
+            record['initial_A_sha256'] == context['initial_A_sha256'] and
+            record['identity']['static_sha256'] == context['initial_static_sha256'],
+            'discarded anchor endpoint/common initialization differs')
+    directory = Path(pin['bundle']['path']).parent
+    manifest, bundle_guards = original.admit_bundle(directory, pin['bundle']['sha256'])
+    require(manifest['endpoint_state_sha256'] == pin['inference_state_sha256'],
+            'discarded anchor inference digest differs')
+    for path, digest in bundle_guards.items():
+        require(guards.setdefault(path, digest) == digest, 'discarded anchor bundle guard conflict')
+    import torch
+    path = bound_file(guards, pin['checkpoint']['path'], pin['checkpoint']['sha256'])
+    disk = torch.load(path, map_location='cpu', weights_only=True, mmap=True)
+    with path.open('rb') as stream:
+        pages = context['legacy']['original'].CheckpointPages(stream)
+        original.check_payload(historical, disk, record['identity'], 128)
+        require(fingerprint(context, disk, consumed=pages.consume) == pin['terminal_state_sha256'],
+                'discarded anchor complete typed state differs')
+        A = clone(context, disk['A'])
+        require(fingerprint(context, A) == pin['A_sha256'], 'discarded anchor A bytes differ')
+    del disk, pages
+    endpoint = torch.load(directory / 'endpoint.pt', map_location='cpu', weights_only=True, mmap=True)
+    require(endpoint.keys() == INFERENCE_KEYS and endpoint['schema'] == original.INFERENCE_SCHEMA and
+            fingerprint(context, endpoint) == pin['inference_state_sha256'] and
+            fingerprint(context, {k: v for k, v in endpoint.items() if k != 'fixed_sha256'}) == endpoint['fixed_sha256'] and
+            torch.equal(endpoint['A'], A) and endpoint['numerical_flags'] == context['flags'] and
+            all(fingerprint(context, endpoint[k]) == fingerprint(context, context['initial'][k])
+                for k in ('config', 'buffers', 'processor', 'head', 'means')),
+            'discarded anchor strict inference/checkpoint binding differs')
+    del endpoint, historical
+    gc.collect()
+    return A, original
+
+
+def anchor_displacement_witness(context, state, batch):
+    """Pinned old A is a diagnostic parameter only; never a training initializer."""
+    import torch
+    A = torch.nn.Parameter(context['anchor_A'].clone())
+    probe = {**state, 'A': A, 'arm': 'candidate'}
+    raw = raw_features(context, probe, state['views']['canonical'][batch])
+    loss = (raw - state['teachers']['T'][batch]).square().sum() / (128 * state['teachers']['e0'])
+    gradient = torch.autograd.grad(loss, A)[0]
+    displacement = A.detach() - context['initial']['A']
+    dot = (gradient.double() * displacement.double()).sum()
+    require(torch.isfinite(loss).item() and loss.item() > 0 and
+            torch.isfinite(gradient).all().item() and gradient.double().norm().item() > 0 and
+            torch.allclose(dot, 2 * loss.detach().double(), rtol=1e-5, atol=1e-6),
+            'discarded canonical anchor is disconnected from displacement')
+    return {'endpoint': ANCHOR_ENDPOINT, 'training_state_discarded': True,
+            'canonical_mse': float(loss.detach()), 'gradient_norm': float(gradient.double().norm()),
+            'dot_gradient_displacement': float(dot), 'gradient_sha256': fingerprint(context, gradient),
+            'A_sha256': fingerprint(context, A.detach()), 'canonical_connected_identity': True}
+
+
 def cpu_gradients(context, state):
     """Fixed first genuine B64 only; unchanged full/micro tolerances."""
     import torch
@@ -717,32 +812,69 @@ def cpu_gradients(context, state):
         membership = ranking_membership(bank, batch)
         K = membership['valid']
         A = state['A']
-        def objective(micro):
-            regression, ranking, active = [], [], 0
+        require(state['counter'] == 0 and torch.equal(A.detach(), context['initial']['A']),
+                'CPU falsifier must start at accepted A0')
+        def objective(micro, arm, historical=False):
+            regression, ranking, active = {v: [] for v in VIEWS}, [], 0
+            gradients = [torch.zeros_like(A) for _ in range(5)]
+            objective_state = {**state, 'arm': arm}
             for view in VIEWS:
                 for offset in range(0, 64, micro):
                     anchors = batch[offset:offset + micro]
-                    raw = raw_features(context, state, state['views'][view][anchors])
-                    mse, rank, diagnostic = loss_terms(context, state, raw, anchors, K)
-                    regression.append(mse)
-                    ranking.append(rank)
+                    raw = raw_features(context, objective_state, state['views'][view][anchors])
+                    if arm == 'candidate' and view == 'canonical':
+                        require(torch.allclose(raw, state['teachers']['T'][anchors], rtol=1e-5, atol=1e-6),
+                                'canonical image anchoring must be zero at A0 within original tolerance')
+                    loss_api = context['anchor_original'].loss_terms if historical else loss_terms
+                    mse, rank, diagnostic = loss_api(context, objective_state, raw, anchors, K)
+                    regression[view].append(mse.detach())
+                    ranking.append(rank.detach())
                     active += diagnostic['active']
-            mse, rank = sum(regression), sum(ranking)
-            control = torch.autograd.grad(mse, A, retain_graph=True)[0]
-            rank_grad = torch.autograd.grad(rank, A, retain_graph=True)[0]
-            candidate = torch.autograd.grad(mse + rank, A)[0]
-            return mse.detach(), rank.detach(), control, rank_grad, candidate, active
-        full = objective(64)
-        micro = objective(16)
-        for expected, actual in zip(full[:5], micro[:5], strict=True):
-            require(torch.allclose(expected, actual, rtol=1e-5, atol=1e-6), 'global both-view micro16 loss/gradient differs')
-        mse, rank, control, rank_grad, candidate, active = full
-        require(mse.item() > 0 and rank.item() > 0 and active == micro[5] and active > 0 and
-                all(v.dtype == torch.float32 and torch.isfinite(v).all().item() and v.double().norm().item() > 0
-                    for v in (control, rank_grad, candidate)) and
+                    regression_grad = torch.autograd.grad(mse, A, retain_graph=True)[0]
+                    ranking_grad = torch.autograd.grad(rank, A, retain_graph=True)[0]
+                    total_grad = torch.autograd.grad(mse + rank, A)[0]
+                    gradients[VIEWS.index(view)].add_(regression_grad)
+                    for accumulated, contribution in zip(gradients[2:], (regression_grad, ranking_grad, total_grad), strict=True):
+                        accumulated.add_(contribution)
+                    del raw, mse, rank, regression_grad, ranking_grad, total_grad
+            canonical, augmented = (sum(regression[v]) for v in VIEWS)
+            mse, rank = canonical + augmented, sum(ranking)
+            loss = mse + rank
+            return [canonical, augmented, mse, rank, loss] + gradients, active
+        values, arms = {}, {}
+        loss_names = ('canonical_mse', 'augmented_mse', 'mse', 'rank', 'loss')
+        gradient_names = ('canonical_regression', 'augmented_regression', 'regression', 'ranking', 'total')
+        for arm in ARMS:
+            full, active = objective(64, arm)
+            micro, micro_active = objective(16, arm)
+            require(active == micro_active and active > 0 and
+                    all(torch.allclose(expected, actual, rtol=1e-5, atol=1e-6)
+                        for expected, actual in zip(full, micro, strict=True)),
+                    'both-arm global both-view micro16 loss/gradient differs')
+            require(all(v.dtype == torch.float32 and torch.isfinite(v).all().item() for v in full) and
+                    all(v.item() >= 0 for v in full[:5]) and full[3].item() > 0 and
+                    all(v.double().norm().item() > 0 for v in full[8:]),
+                    'fixed firstB64 both-arm finite regression/active ranking gradient required')
+            values[arm] = full
+            arms[arm] = {**{name: float(v) for name, v in zip(loss_names, full[:5], strict=True)},
+                         'active': active, 'micro16_global_reduction_exact': True}
+            for name, gradient in zip(gradient_names, full[5:], strict=True):
+                arms[arm][name + '_gradient_norm'] = float(gradient.double().norm())
+                arms[arm][name + '_gradient_sha256'] = fingerprint(context, gradient)
+        historical, historical_active = objective(64, 'control', historical=True)
+        require(historical_active == arms['control']['active'] and
+                all(torch.equal(a, b) for a, b in zip(historical, values['control'], strict=True)),
+                'active control differs from authenticated original prototype-plus-SmoothAP objective')
+        control, candidate = values['control'][9], values['candidate'][9]
+        rank_grad = values['control'][8]
+        regression_difference = values['candidate'][7] - values['control'][7]
+        require(torch.equal(values['control'][3], values['candidate'][3]) and
+                torch.equal(rank_grad, values['candidate'][8]) and
                 (candidate - control).double().norm().item() > 0 and
-                torch.allclose(candidate - control, rank_grad, rtol=1e-5, atol=1e-6),
-                'fixed firstB64 regression/rank/candidate gradient falsifier failed')
+                regression_difference.double().norm().item() > 0 and
+                torch.allclose(candidate - control, regression_difference, rtol=1e-5, atol=1e-6),
+                'fixed firstB64 target-switch gradient falsifier failed')
+        mse, rank, active = values['control'][2], values['control'][3], arms['control']['active']
         multi = sum(len(p) > 1 for p in membership['positive'])
         require(multi > 0, 'fixed firstB64 lacks multiple distinct-image positives')
         nonnearest, nonnearest_count = [], 0
@@ -779,7 +911,7 @@ def cpu_gradients(context, state):
         require(singleton_rank.item() == 0 and singleton_facts['active'] == 0 and
                 torch.equal(singleton_grad, torch.zeros_like(A)), 'singletons must receive regression only')
         require(A.grad is None, 'falsifier changed A gradient')
-        alignment = float(F.cosine_similarity(control.flatten().double(), rank_grad.flatten().double(), dim=0))
+        alignment = float(F.cosine_similarity(values['control'][7].flatten().double(), rank_grad.flatten().double(), dim=0))
         return {'seed': state['seed'], 'batch': batch, 'membership_sha256': json_sha256(membership),
                 'mse': float(mse), 'rank': float(rank), 'active': active, 'K': K,
                 'control_gradient_norm': float(control.double().norm()),
@@ -791,7 +923,12 @@ def cpu_gradients(context, state):
                 'nonnearest_loss': float(nonnearest_loss.detach()),
                 'nonnearest_gradient_norm': float(nonnearest_grad.double().norm()),
                 'native_mask_self_ties_singletons_exact': True,
-                'candidate_minus_control_equals_rank': True, 'micro16_global_reduction_exact': True}
+                'arms': arms, 'canonical_anchor_at_A0': True,
+                'ranking_gradients_identical': True, 'original_active_objective_exact': True,
+                'regression_difference_gradient_norm': float(regression_difference.double().norm()),
+                'candidate_minus_control_equals_regression_difference': True,
+                'displacement': anchor_displacement_witness(context, state, batch),
+                'micro16_global_reduction_exact': True}
 
 
 def inference_members(context, state):
@@ -1166,7 +1303,7 @@ def update(context, state, ident, step):
                 require(grad.dtype == torch.float32 and torch.isfinite(grad).all().item(), 'finite FP32 rank gradient required')
                 ranking_gradient.add_(grad.detach())
                 del grad
-            loss = mse + rank if state['arm'] == 'candidate' else mse
+            loss = mse + rank
             scaler.scale(loss).backward()
             mse_sum += float(mse.detach())
             rank_sum += float(rank.detach())
@@ -1198,7 +1335,7 @@ def update(context, state, ident, step):
         integrity(context, state, ident)
         digest = fingerprint(context, payload(context, state, ident))
     row = {'step': step, 'batch': batch, 'membership': membership, 'full_membership_sha256': json_sha256(full_membership), 'full_valid': K, 'mse': mse_sum, 'rank': rank_sum,
-           'loss': mse_sum + (rank_sum if state['arm'] == 'candidate' else 0.), 'active_anchors': active,
+           'loss': mse_sum + rank_sum, 'active_anchors': active,
            'gradient_norm': gradient, 'ranking_gradient_norm': rank_gradient, 'preclip_norm': float(norm),
            'A_before_sha256': before, 'A_after_sha256': after, 'scale': scaler.get_scale(),
            'state_sha256': digest, 'core_seconds': core, 'seconds': time.perf_counter() - tick}
@@ -1234,7 +1371,8 @@ def check_steps(rows, start, count, bank):
                 row['active_anchors'] == sum(m['active'] for m in row['membership']) and
                 all(type(row[k]) in (int, float) and math.isfinite(row[k]) for k in
                     ('mse', 'rank', 'loss', 'gradient_norm', 'preclip_norm', 'core_seconds', 'seconds')) and
-                0 <= row['rank'] <= 1, 'nonfinite update record')
+                row['mse'] >= 0 and 0 <= row['rank'] <= 1 and
+                row['loss'] == row['mse'] + row['rank'], 'nonfinite update record')
     if start == 1:
         require(rows[0]['active_anchors'] > 0 and type(rows[0]['ranking_gradient_norm']) in (int, float) and
                 math.isfinite(rows[0]['ranking_gradient_norm']) and rows[0]['ranking_gradient_norm'] > 0,
@@ -1281,6 +1419,7 @@ def cpu_witnesses(context):
     require(not torch.cuda.is_initialized(), 'CPU CUDA hidden required')
     gradients, first_witness, first_ident, first_digest = [], None, None, None
     members, native_witness = None, None
+    context['anchor_A'], context['anchor_original'] = authenticate_anchor_endpoint(context)
     for seed in SEEDS:
         torch.random.default_generator.manual_seed(seed)
         matched = None
@@ -1307,6 +1446,7 @@ def cpu_witnesses(context):
                         ident['initial_cpu_rng_sha256'] == matched[0]['initial_cpu_rng_sha256'] and
                         witness == matched[1], 'independent matched CPU initialization differs')
                 release(context, state)
+    del context['anchor_A'], context['anchor_original']
     bundle = export_bundle(context, members, args.output / 'bundle')
     with timed(context, 'cpu_bundle_qualification'):
         native = qualify_bundle(context, args.output / 'bundle', bundle['sha256'], 'cpu', native_witness)
@@ -1317,7 +1457,7 @@ def cpu_witnesses(context):
             'initial_A_sha256': context['initial_A_sha256'], 'initial_raw_unit_packed_sha256': first_witness,
             'checkpoint': {'path': str(args.output / f'initializer-{SEEDS[0]}.pt'),
                            'sha256': context['guards'][str(args.output / f'initializer-{SEEDS[0]}.pt')]},
-            'bundle': bundle, 'gradients': gradients, 'initial_arm_parity': True,
+            'bundle': bundle, 'gradients': gradients, 'anchor_endpoint': ANCHOR_ENDPOINT, 'initial_arm_parity': True,
             'cpu_serialization_exact': True, 'bypass_version_tamper_rejected': True, 'malformed_state_rejected': True,
             'native_role_mutation_rejected': True, 'native_loss_reduction_exact': True,
             'inference_artifact_independent': True, 'forward_oracle_exact': True,
@@ -1422,7 +1562,7 @@ def check_cpu_gradient(g, bank):
             all(type(g[k]) in (int, float) and math.isfinite(g[k]) for k in
                 ('mse', 'rank', 'control_gradient_norm', 'ranking_gradient_norm', 'candidate_gradient_norm',
                  'candidate_minus_control_gradient_norm', 'gradient_alignment', 'nonnearest_loss', 'nonnearest_gradient_norm')) and
-            all(g[k] > 0 for k in ('mse', 'rank', 'control_gradient_norm', 'ranking_gradient_norm',
+            g['mse'] >= 0 and all(g[k] > 0 for k in ('rank', 'control_gradient_norm', 'ranking_gradient_norm',
                                   'candidate_gradient_norm', 'candidate_minus_control_gradient_norm',
                                   'nonnearest_loss', 'nonnearest_gradient_norm')) and
             g['rank'] <= 1 and -1 <= g['gradient_alignment'] <= 1 and
@@ -1431,8 +1571,46 @@ def check_cpu_gradient(g, bank):
             type(g['nonnearest_positive_terms']) is int and
             g['nonnearest_positive_terms'] == 2 * sum(max(len(p) - 1, 0) for p in members['positive']) and
             g['native_mask_self_ties_singletons_exact'] is True and
-            g['candidate_minus_control_equals_rank'] is True and g['micro16_global_reduction_exact'] is True,
+            g['candidate_minus_control_equals_regression_difference'] is True and
+            g['ranking_gradients_identical'] is True and g['original_active_objective_exact'] is True and
+            g['canonical_anchor_at_A0'] is True and g['micro16_global_reduction_exact'] is True,
             'fixed firstB64 all-positive CPU gradient witness differs')
+    require(isinstance(g.get('arms'), dict) and g['arms'].keys() == set(ARMS),
+            'both-arm loss/gradient records required')
+    gradients = ('canonical_regression', 'augmented_regression', 'regression', 'ranking', 'total')
+    for arm, row in g['arms'].items():
+        numeric = ('canonical_mse', 'augmented_mse', 'mse', 'rank', 'loss',
+                   *(name + '_gradient_norm' for name in gradients))
+        require(row.keys() == {*numeric, *(name + '_gradient_sha256' for name in gradients),
+                               'active', 'micro16_global_reduction_exact'} and
+                all(type(row[k]) in (int, float) and math.isfinite(row[k]) and row[k] >= 0 for k in numeric) and
+                all(isinstance(row[name + '_gradient_sha256'], str) and
+                    re.fullmatch('[0-9a-f]{64}', row[name + '_gradient_sha256']) for name in gradients) and
+                row['rank'] == g['rank'] and row['ranking_gradient_norm'] == g['ranking_gradient_norm'] and
+                row['total_gradient_norm'] == g[arm + '_gradient_norm'] and
+                type(row['active']) is int and row['active'] == g['active'] and
+                math.isclose(row['mse'], row['canonical_mse'] + row['augmented_mse'], rel_tol=1e-5, abs_tol=1e-6) and
+                math.isclose(row['loss'], row['mse'] + row['rank'], rel_tol=1e-5, abs_tol=1e-6) and
+                row['micro16_global_reduction_exact'] is True, 'authenticated both-arm objective/gradient record differs')
+    require(g['arms']['control']['mse'] == g['mse'] and
+            g['arms']['control']['ranking_gradient_sha256'] == g['arms']['candidate']['ranking_gradient_sha256'] and
+            type(g['regression_difference_gradient_norm']) in (int, float) and
+            math.isfinite(g['regression_difference_gradient_norm']) and g['regression_difference_gradient_norm'] > 0 and
+            math.isclose(g['regression_difference_gradient_norm'], g['candidate_minus_control_gradient_norm'],
+                         rel_tol=1e-5, abs_tol=1e-6), 'nonzero regression-target gradient difference required')
+    displacement = g['displacement']
+    require(displacement.keys() == {'endpoint', 'training_state_discarded', 'canonical_mse', 'gradient_norm',
+                                   'dot_gradient_displacement', 'gradient_sha256', 'A_sha256',
+                                   'canonical_connected_identity'} and
+            displacement['endpoint'] == ANCHOR_ENDPOINT and displacement['A_sha256'] == ANCHOR_ENDPOINT['A_sha256'] and
+            displacement['training_state_discarded'] is True and
+            displacement['canonical_connected_identity'] is True and
+            all(type(displacement[k]) in (int, float) and math.isfinite(displacement[k]) and displacement[k] > 0
+                for k in ('canonical_mse', 'gradient_norm', 'dot_gradient_displacement')) and
+            all(isinstance(displacement[k], str) and re.fullmatch('[0-9a-f]{64}', displacement[k])
+                for k in ('gradient_sha256', 'A_sha256')) and
+            math.isclose(displacement['dot_gradient_displacement'], 2 * displacement['canonical_mse'],
+                         rel_tol=1e-5, abs_tol=1e-6), 'discarded canonical anchor connection witness differs')
     return True
 
 
@@ -1469,6 +1647,7 @@ def check_terminal_record(record, launch, phase, arm, seed):
                 all(record[k] is True for k in ('initial_arm_parity', 'cpu_serialization_exact',
                     'bypass_version_tamper_rejected', 'malformed_state_rejected', 'native_role_mutation_rejected',
                     'native_loss_reduction_exact')) and [g['seed'] for g in record['gradients']] == list(SEEDS) and
+                record['anchor_endpoint'] == ANCHOR_ENDPOINT and
                 all(check_cpu_gradient(g, bank) for g in record['gradients']),
                 'both-seed CPU qualification incomplete')
     else:
@@ -1482,8 +1661,8 @@ def check_terminal_record(record, launch, phase, arm, seed):
         count = 17 if phase == 'mechanics' else 128
         require(record['completed_step'] == count, 'fixed update count differs')
         check_steps(record['steps'], 1, count, bank)
-        require(all(r['mse'] > 0 and r['rank'] >= 0 and
-                    r['loss'] == r['mse'] + (r['rank'] if arm == 'candidate' else 0.)
+        require(all(r['mse'] >= 0 and r['rank'] >= 0 and
+                    r['loss'] == r['mse'] + r['rank']
                     for r in record['steps']), 'matched objective arithmetic differs')
         if phase == 'mechanics':
             require(seed == SEEDS[0] and record['checkpoint'] is None and record['bundle'] is None and
