@@ -1,0 +1,9 @@
+{
+  "installed_source_sha256": "be45f9ecb7a48c28b115e25241b46afa53a63b4ece43ce0f344c153a8138605f",
+  "original_cpu_v7_input_guard_match": true,
+  "statement": "self.id2label = {int(key): value for key, value in self.id2label.items()}",
+  "line": 270,
+  "statement_ast_sha256": "434b0da7a4be6baf91481f2dcf05a5713ba2e768fdff686420dc4f59c443db43",
+  "frozen_expected_config": "training_context.initial.config",
+  "training_authority": "Complete accepted typed payload authenticated before clone; STATIC_KEYS including config bound to initial_static_sha256; complete TRAIN and inference member hashes compared in authenticate_payloads."
+}

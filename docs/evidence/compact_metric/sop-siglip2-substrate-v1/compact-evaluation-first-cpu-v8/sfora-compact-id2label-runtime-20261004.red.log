@@ -1,0 +1,288 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+======================================================================
+FAIL: test_endpoint_facts_original_constructor_config_conversion_and_fresh_parity (__main__.EvaluationTests.test_endpoint_facts_original_constructor_config_conversion_and_fresh_parity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 778, in test_endpoint_facts_original_constructor_config_conversion_and_fresh_parity
+    for _ in range(3):self.assertEqual(f.facts(),expected)
+                      ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'vis[100 chars]': 'ebece71ab8e6a5bce0c2aba8b82a864bbe639d3649[413 chars]f0'}} != {'vis[100 chars]': 'e2e3b92c33a01d42feea6340d80fdf43244205b1e5[413 chars]f0'}}
+Diff is 743 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_bool')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_float')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_foreign_int')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_strings')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_noncanonical')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_collision')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_empty')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_changed_key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_foreign_key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_changed_label')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_non_string_label')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_foreign_label')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='live_map_type')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_bool')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_int')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_foreign_string')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_noncanonical')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_negative')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_signed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_collision')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_empty')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_changed_key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_changed_label')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_foreign_label')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (case='frozen_map_type')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 824, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (missing_field_frozen=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 828, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.subTest(missing_field_frozen=frozen),self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+                                                   ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps (__main__.EvaluationTests.test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps) (missing_field_frozen=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 828, in test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps
+    with self.subTest(missing_field_frozen=frozen),self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+                                                   ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_facts_retains_all_other_complete_typed_config_changes (__main__.EvaluationTests.test_endpoint_facts_retains_all_other_complete_typed_config_changes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 842, in test_endpoint_facts_retains_all_other_complete_typed_config_changes
+    live.clear();live.update(copy.deepcopy(saved));self.assertEqual(f.facts()['members']['config'],expected)
+                                                   ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'ebece71ab8e6a5bce0c2aba8b82a864bbe639d36496b7f77a3fb509d3d7d7413' != 'e2e3b92c33a01d42feea6340d80fdf43244205b1e5216abf8826d9910223221c'
+- ebece71ab8e6a5bce0c2aba8b82a864bbe639d36496b7f77a3fb509d3d7d7413
++ e2e3b92c33a01d42feea6340d80fdf43244205b1e5216abf8826d9910223221c
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.084s
+
+FAILED (failures=31)

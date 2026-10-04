@@ -1,0 +1,10 @@
+{
+  "command": "timeout 55s python3 scripts/test_compact_ranking_evaluation.py",
+  "exit_code": 0,
+  "whole_seconds": 48.005624357028864,
+  "log": "/tmp/sfora-compact-id2label-runtime-20261004.final.log",
+  "script_sha256": {
+    "scripts/evaluate_siglip2_compact_ranking.py": "612a4a9cdbe4e2cec5abf13b7afbad3ed96917570e07e75e3bb50b71cef1a468",
+    "scripts/test_compact_ranking_evaluation.py": "90e4b3d8f4529cbec8db528990fafe878a685d6de2c18db1ba6f89f3935b0913"
+  }
+}

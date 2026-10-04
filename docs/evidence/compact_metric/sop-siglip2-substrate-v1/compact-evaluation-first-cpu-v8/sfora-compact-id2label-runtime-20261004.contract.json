@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "base": "b619bb4c1f515de5649b0616336c8d04077e83b4",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "before_sha256": {
+    "scripts/evaluate_siglip2_compact_ranking.py": "9acc2332dc4c2471299f92a634bab65243a9b9addbd3823af3471716dc7eb7d0",
+    "scripts/test_compact_ranking_evaluation.py": "eb8476be0a4fd02e98bbbc7f98757eb619f95c662027f045621b7edf4d388d6b"
+  },
+  "cause_evidence": {
+    "git_path": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/compact-state-diagnostic-v1/observed.json",
+    "sha256": "f7fd461c7b72b34ea1361e4eefab6c6ea6ff5d02f6ad0bb51769433acf7d6286",
+    "qualification_eligible": false,
+    "exit_rehash_pass": false,
+    "reason": "Measured id2label string-key disk versus int-key live conversion ONLY; vision/buffers/head/A/means match. Original diagnostic native exact-four exit failed before any images; observation is not qualification."
+  },
+  "frozen_expected_config": "training_context[initial][config]: trainer.prepare_native clones config only after complete accepted typed payload authentication; trainer.check_payload binds config in STATIC_KEYS to initial_static_sha256; authenticate_payloads confirms TRAIN and inference disk full member hashes.",
+  "production_change": "ONLY endpoint_facts: obtain fresh live config, validate exact builtin dict label maps, nonempty frozen canonical nonnegative decimal string keys and builtin str labels, exact builtin int live keys (exclude bool/float/subclasses), one-to-one identical key set and identical builtin str labels; convert only id2label live int keys back to the exact frozen string keys; fingerprint that full config with all other keys/types/values untouched. No equality predicate changes.",
+  "constructor_source_proof": "Pending original transformers/configuration_utils.py __init__/from_dict/to_dict source+hash requested from parent; no production write until supplied and checked. Stand-in will preserve the exact original finite key-conversion AST.",
+  "regressions": "stdlib original-source config/serializer stand-ins, RED->GREEN; parity against frozen typed complete config and repeated fresh facts; bool/float/foreign/subclass/noncanonical/mixed/collision/missing/changed label/key rejection; unrelated config key/type/list/tuple/value changes still change typed full hash; no state/frozen config mutation; all other endpoint fields preserved.",
+  "ledger": "Every other production AST identical, all original comparison/native exact-four/uncached exit/math/caps/science preserved. Only assigned evaluator/test files may change.",
+  "final_gate": "Narrow affected tests first; one stable timeout 55s python3 scripts/test_compact_ranking_evaluation.py; failing-layer repair/final rerun allowed.",
+  "restrictions": "No actual native/Torch/SSH/GPU/jobs/reviews/children/new worktree/operator/merge/push/trainer/bundle/checkpoint edits. Roman exact2 commit. Root fresh CPU/export/quality only; accepted TRAIN pair unchanged/candidate unlaunched."
+}

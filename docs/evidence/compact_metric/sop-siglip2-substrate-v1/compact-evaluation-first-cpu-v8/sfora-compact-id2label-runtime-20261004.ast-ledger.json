@@ -1,0 +1,27 @@
+{
+  "base": "b619bb4c1f515de5649b0616336c8d04077e83b4",
+  "only_production_function_changed": "endpoint_facts",
+  "all_other_production_bytes_ast_identical": true,
+  "within_endpoint_facts_original_return_exact_after_config_argument_restoration": true,
+  "original_all_45_test_ast_unchanged": true,
+  "new_tests": [
+    "test_endpoint_facts_original_constructor_config_conversion_and_fresh_parity",
+    "test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps",
+    "test_endpoint_facts_retains_all_other_complete_typed_config_changes"
+  ],
+  "constructor_statement_ast_identical_to_original_cpu_guarded_installed_source": true,
+  "constructor_statement_line": 270,
+  "constructor_statement_ast_sha256": "434b0da7a4be6baf91481f2dcf05a5713ba2e768fdff686420dc4f59c443db43",
+  "installed_source_sha256": "be45f9ecb7a48c28b115e25241b46afa53a63b4ece43ce0f344c153a8138605f",
+  "bijection_proof": "Frozen keys have exact str type and canonical nonnegative decimal representation; observed keys have exact int type. str(int) is injective on this domain. All observed keys belong to the frozen set and cardinalities agree, establishing exact bijection. Exact builtin str label equality is required. Only the id2label key representation is converted in a fresh outer/map dictionary; every other config entry is passed unchanged to the original typed full serializer.",
+  "preserved": "native_export complete vision/config/buffers/head/A/means predicates and processor predicate; native exact-four/helper/source/metadata/runtime inventory/math/science/caps/full uncached exits; original trainer/bundle/checkpoint",
+  "fresh_aliased_live_and_frozen_config_not_mutated": true,
+  "red_and_green_logs": {
+    "red": "/tmp/sfora-compact-id2label-runtime-20261004.red.log",
+    "final_layer": "/tmp/sfora-compact-id2label-runtime-20261004.layer-final.log"
+  },
+  "script_sha256": {
+    "scripts/evaluate_siglip2_compact_ranking.py": "612a4a9cdbe4e2cec5abf13b7afbad3ed96917570e07e75e3bb50b71cef1a468",
+    "scripts/test_compact_ranking_evaluation.py": "90e4b3d8f4529cbec8db528990fafe878a685d6de2c18db1ba6f89f3935b0913"
+  }
+}

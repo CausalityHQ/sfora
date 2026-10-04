@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "base": "b619bb4c1f515de5649b0616336c8d04077e83b4",
+  "commit": "53d0db1cea3951c09df66339e444570da38c7c6e",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "exact_two_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "clean_worktree": true,
+  "production_only_endpoint_facts": true,
+  "all_other_production_bytes_ast_and_original_45_tests_identical": true,
+  "constructor_exact_original_ast_and_cpu_guard_match": true,
+  "source_request_resolved_by": {
+    "path": "/tmp/compact-id2label-configuration_utils.py",
+    "sha256": "be45f9ecb7a48c28b115e25241b46afa53a63b4ece43ce0f344c153a8138605f"
+  },
+  "strict_bijection_and_frozen_labels_only_no_blanket_canonicalization": true,
+  "typed_complete_other_config_fields_and_state_bytes_remain_identity": true,
+  "no_live_or_frozen_config_mutation": true,
+  "red_to_green": true,
+  "targeted_tests": 3,
+  "final_tests": 48,
+  "verification": {
+    "command": "timeout 55s python3 scripts/test_compact_ranking_evaluation.py",
+    "exit_code": 0,
+    "whole_seconds": 48.005624357028864,
+    "log": "/tmp/sfora-compact-id2label-runtime-20261004.final.log",
+    "script_sha256": {
+      "scripts/evaluate_siglip2_compact_ranking.py": "612a4a9cdbe4e2cec5abf13b7afbad3ed96917570e07e75e3bb50b71cef1a468",
+      "scripts/test_compact_ranking_evaluation.py": "90e4b3d8f4529cbec8db528990fafe878a685d6de2c18db1ba6f89f3935b0913"
+    }
+  },
+  "artifacts_sha256": {
+    "/tmp/sfora-compact-id2label-runtime-20261004.contract.json": "fb8bb717eaa75508703ef04cc9be6077587b1878bb8dde89bc1b693f9122fd66",
+    "/tmp/sfora-compact-id2label-runtime-20261004.constructor-proof.json": "83cf06e690d27d7823e665974c80a1bc7e214f142fbac5f4d97ce0f004e8edef",
+    "/tmp/sfora-compact-id2label-runtime-20261004.red.log": "e1a1f866eb1492212aa8437f5319137451c7dc34c21c003b074bdef4503cde4d",
+    "/tmp/sfora-compact-id2label-runtime-20261004.layer.log": "407b8ad439dba844b1acd632cc4f3e3cb514114a104057ac464223e8bc461e3b",
+    "/tmp/sfora-compact-id2label-runtime-20261004.layer-final.log": "e4dc9219f2467db33d6a13eab81b5433518c662ddf17e01b8fb6449a48b465d4",
+    "/tmp/sfora-compact-id2label-runtime-20261004.ast-ledger.json": "a6ce87e8d4f1c13860a60362c406bf50696f8d2f7f1118f97b241d918579a69c",
+    "/tmp/sfora-compact-id2label-runtime-20261004.final.log": "863a420eb2ea53b13d0818067d212ed28c9a9f362fe64bdd35a00ec57c5761d4",
+    "/tmp/sfora-compact-id2label-runtime-20261004.verification.json": "20ca69a042855aba29f2029301ddcaa194a5560eaddf6095f7b5436990c41404"
+  },
+  "control_unchanged": "334ce9d6f12e1f8a88d63fc261ab7a6ed1a26ec75b6f13314e16482da1cf1566",
+  "original_diagnostic_qualification_eligible": false,
+  "original_native_exact_four_exit_failure_preserved": true,
+  "actual_thirdparty_torch_native_ssh_gpu_jobs_reviews_children_new_worktree_operator_merge_push": false,
+  "parent_owns": "Fresh freeze/CPU/export/quality. Accepted TRAIN pair unchanged and candidate remains unlaunched."
+}
