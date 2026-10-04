@@ -1,0 +1,12 @@
+{
+  "base": "4b98413635138ddeb5e3dc914d54ae2f42d79542",
+  "scope": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "plan": "Trace supplied PyYAML sources; extend finite RUNTIME_SOURCES closure only if existing native authority suffices; add real stdlib SourceFileLoader transitive import and denial falsifiers.",
+  "native_authority": "unchanged: only original proof native_files, files, input guards and original RECORD",
+  "limits": "No thirdparty/Torch/native loading, SSH/GPU/cloud/jobs/quality/reviews/children/operator contact; one final scoped suite <=55 seconds; no merge/push",
+  "verification": "Tests first, targeted failing layer; final scoped unittest suite bounded by timeout 55s",
+  "status": "contract before edits"
+}

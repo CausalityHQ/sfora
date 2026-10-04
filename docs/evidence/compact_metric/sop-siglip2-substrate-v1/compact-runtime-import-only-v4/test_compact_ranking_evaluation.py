@@ -1,0 +1,1109 @@
+#!/usr/bin/env python3
+"""Bounded stdlib/source falsifiers; no Torch, images, corpus or native work."""
+import ast
+import base64
+import copy
+import csv
+from contextlib import redirect_stdout
+import hashlib
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import py_compile
+import sys
+import tempfile
+from types import FunctionType, SimpleNamespace
+import unittest
+from unittest.mock import patch
+
+PATH=Path(__file__).resolve().with_name('evaluate_siglip2_compact_ranking.py')
+def module(name,path):
+    spec=importlib.util.spec_from_file_location(name,path)
+    value=importlib.util.module_from_spec(spec);sys.modules[name]=value;spec.loader.exec_module(value)
+    return value
+
+e=module('_compact_evaluation_tests',PATH)
+math_helper=module('_compact_math_tests',PATH.with_name('evaluate_siglip2_genuine_views.py'))
+
+
+def quality(r1,ap):
+    return {'recall_at_1':sum(r1)/len(r1),'map_at_r':sum(ap)/len(ap),'per_query_r1':r1,'per_query_ap':ap}
+
+
+def descriptor(path,digest='a'*64):
+    return {'path':str(path),'sha256':digest}
+
+
+def unit(number):
+    return {'receipt':descriptor('/tmp/u'+str(number)+'/receipt.json'),'log':descriptor('/tmp/u'+str(number)+'.log'),
+        'unit':'u'+str(number),'invocation_id':format(number,'032x'),'service_seconds':10,
+        'native_peak_rss_kib':100,'both_locks_held':True}
+
+
+def launch(stage='first',phase='cpu',panel='selection'):
+    endpoints=[]
+    for i,(seed,arm) in enumerate(e.endpoint_order(stage),1):
+        endpoints.append({'seed':seed,'arm':arm,'launch':descriptor('/tmp/l'+str(i)),'terminal':unit(i),
+            'checkpoint':descriptor('/tmp/u'+str(i)+'/resume.pt',format(i,'064x')),
+            'terminal_state_sha256':'b'*64,'bundle':descriptor('/tmp/u'+str(i)+'/bundle/bundle.json'),
+            'inference_state_sha256':'c'*64})
+    args=SimpleNamespace(execution_sha256='d'*64,phase=phase,arm=None,seed=None)
+    if phase == 'export':args.seed,args.arm=e.endpoint_order(stage)[-1]
+    result={'schema':e.AUTHORITY_SCHEMA,'execution_sha256':args.execution_sha256,
+        'training':copy.deepcopy(e.TRAINING),
+        'nearest_evaluator':e.NEAREST_EVALUATOR,'genuine_evaluator':{'root':'/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4',
+            'execution_sha256':e.GENUINE_EXECUTION_SHA,'code':e.GENUINE_PINS},'reference':e.REFERENCE,
+        'phase':phase,'arm':args.arm,'seed':args.seed,'stage':stage,'panel':panel,'endpoints':endpoints,
+        'selected_cpu':None if phase=='cpu' else unit(10),'exports':{},
+        'first_selection':None if stage=='first' else unit(11),
+        'selection_go':None if panel=='selection' else unit(12),'both_locks_held':True,
+        'selection_previously_exposed':True,'cost_policy':e.COST_POLICY,
+        'resource_policies':{p:e.policy(p) for p in ('cpu','export','score')}}
+    if phase=='score':result['exports']={e.label(v):unit(i+20) for i,v in enumerate(endpoints)}
+    return result,args
+
+
+def controls(stage):
+    return {(s,a):{'service_seconds':100,'total_training_core_seconds':60} for s,a in e.endpoint_order(stage)}
+
+
+def panels(stage):
+    n=e.PANELS['selection'][1]
+    left=[0 if i<12 else 1 for i in range(n)]; right=left.copy();right[:6]=[1]*6
+    source=quality(left,[.8]*n);concat=quality(left,[.817]*n)
+    q={str(s):{'control':quality(left,[.818]*n),'candidate':quality(right,[.822]*n)} for s in e.seeds(stage)}
+    return q,source,concat
+
+
+def intervals(q):
+    _,avg=math_helper.averaged_deltas(q,'full','selection')
+    return {m:{'mean_delta':sum(avg[m])/len(avg[m]),'product_lower95':.001,'product_upper95':.1,
+               'query_lower95':-.001,'query_upper95':.1} for m in e.METRICS}
+
+
+class PortableRuntimeFixture:
+    """Installed sources and a previously admitted RECORD; no native imports."""
+    def __init__(self,root,*,yaml_native=False):
+        self.site=root/'site-packages';self.site.mkdir()
+        packages={}
+        for name in ('torch','numpy','PIL','transformers','safetensors','torchvision'):
+            path=self.site/name;path.mkdir();packages[name]={'root':str(path)}
+        self.package=self.site/'packaging';self.package.mkdir()
+        self.sources={}
+        names=('__init__.py','_elffile.py','_manylinux.py','_musllinux.py','_parser.py','_structures.py',
+            '_tokenizer.py','dependency_groups.py','direct_url.py','errors.py','licenses/__init__.py',
+            'licenses/_spdx.py','markers.py','metadata.py','pylock.py','requirements.py','specifiers.py',
+            'tags.py','utils.py','version.py')
+        for name in names:
+            path=self.package/name;path.parent.mkdir(exist_ok=True)
+            raw={'__init__.py':b"marker = 'source'\n",'version.py':b'from ._structures import value\n',
+                 '_structures.py':b'value = 42\n'}.get(name,b'')
+            path.write_bytes(raw);self.sources[path]=raw
+        self.rows=[['packaging/'+str(path.relative_to(self.package)),
+            'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))]
+            for path,raw in self.sources.items()]
+        self.record=self.site/'packaging-26.2.dist-info'/'RECORD';self.record.parent.mkdir()
+        self.record.write_text(''.join(','.join(row)+'\n' for row in self.rows))
+        self.bundle=root/'bundle';self.bundle.mkdir()
+        self.manifest={'environment':{'packages':packages,'files':{}}}
+        digest=hashlib.sha256(self.record.read_bytes()).hexdigest()
+        self.context={'trainer':SimpleNamespace(admit_bundle=lambda *_:(self.manifest,{})),
+            'guards':{str(self.record):digest},'required_guards':{str(self.record):digest}}
+        self.endpoint={'bundle':descriptor(self.bundle/'bundle.json')}
+        self.regex=self.site/'regex';self.regex.mkdir()
+        self.native=self.regex/'_regex.cpython-313-aarch64-linux-gnu.so'
+        self.native.write_bytes(b'original exact native file; never executed')
+        self.regex_sources={self.regex/'__init__.py':b"from ._main import value\nmarker = 'source'\n",
+            self.regex/'_main.py':b'from ._regex_core import value\n',self.regex/'_regex_core.py':b'value = 73\n'}
+        for path,raw in self.regex_sources.items():path.write_bytes(raw)
+        self.regex_rows=[['regex/'+path.name,
+            'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))]
+            for path,raw in {**self.regex_sources,self.native:self.native.read_bytes()}.items()]
+        self.regex_record=self.site/'regex-2026.6.28.dist-info'/'RECORD';self.regex_record.parent.mkdir()
+        self.regex_record.write_text(''.join(','.join(row)+'\n' for row in self.regex_rows))
+        for path in (self.regex_record,self.native):
+            digest=hashlib.sha256(path.read_bytes()).hexdigest()
+            self.context['guards'][str(path)]=self.context['required_guards'][str(path)]=digest
+        self.context['training_context']={'legacy':{'selected':{'source_cpu':{'origins':{
+            'files':{str(self.native):self.context['required_guards'][str(self.native)]},
+            'native_files':[str(self.native)]}}}}}
+        self.metadata_versions=dict(v.split('-',1) for v in (
+            'accelerate-1.14.0 aiohttp-3.14.1 filelock-3.29.4 hf_xet-1.5.1 httpx-0.28.1 '
+            'huggingface_hub-1.16.1 jinja2-3.1.6 numpy-2.5.0 packaging-26.2 pillow-12.2.0 '
+            'pydantic-2.13.4 pyyaml-6.0.3 regex-2026.6.28 safetensors-0.8.0 tokenizers-0.22.2 '
+            'torch-2.12.1 tqdm-4.68.3').split())
+        examples={'typing_extensions':{'typing_extensions.py':b'value = 21\n'},
+            'tqdm':{'tqdm/__init__.py':b'from . import _monitor, _tqdm_pandas, cli, gui\nfrom .std import value\nfrom .version import __version__\n',
+                'tqdm/_monitor.py':b'value = 1\n','tqdm/_tqdm_pandas.py':b'value = 2\n',
+                'tqdm/cli.py':b'from .std import value\nfrom .version import __version__\n',
+                'tqdm/gui.py':b'from .std import value\n',
+                'tqdm/std.py':b'from ._monitor import value as monitor\nfrom .utils import value as utility\nvalue = monitor + utility\n',
+                'tqdm/utils.py':b'value = 3\n',
+                'tqdm/version.py':b"from importlib.metadata import version\n__version__ = version('tqdm')\nmarker = 'source'\n",
+                'tqdm/auto.py':b"from .autonotebook import value as notebook\nfrom .asyncio import value as asynchronous\nvalue = notebook + asynchronous\nmarker = 'source'\n",
+                'tqdm/autonotebook.py':b'from .std import value\n',
+                'tqdm/asyncio.py':b'from .std import value\n'},
+            'tokenizers':{'tokenizers/__init__.py':b'from .implementations import value\n',
+                'tokenizers/implementations/__init__.py':b'value = 84\n'},
+            'httpx':{'httpx/__init__.py':b'from ._api import value\n','httpx/_api.py':b'value = 101\n'},
+            'httpcore':{'httpcore/__init__.py':b'value = 102\n'},'anyio':{'anyio/__init__.py':b'value = 103\n'},
+            'h11':{'h11/__init__.py':b'value = 104\n'},'certifi':{'certifi/__init__.py':b'value = 105\n'},
+            'idna':{'idna/__init__.py':b'value = 106\n'},'jinja2':{'jinja2/__init__.py':b'value = 107\n'},
+            'markupsafe':{'markupsafe/__init__.py':b'value = 108\n'},
+            'huggingface_hub':{'huggingface_hub/__init__.py':b'from .dataclasses import value\n',
+                'huggingface_hub/dataclasses.py':b'from .errors import value\n','huggingface_hub/errors.py':b'value = 109\n',
+                'huggingface_hub/utils/__init__.py':b"from ._http import value\nmarker = 'source'\n",
+                'huggingface_hub/utils/_http.py':b"from ..errors import value\nmarker = 'source'\n",
+                'huggingface_hub/utils/_runtime.py':b"import importlib.metadata\n_package_versions = {}\nfor name in ('aiohttp', 'hf_xet', 'Jinja2', 'httpx', 'numpy', 'Pillow', 'pydantic', 'safetensors', 'torch', 'fastai'):\n    try:\n        _package_versions[name] = importlib.metadata.version(name)\n    except importlib.metadata.PackageNotFoundError:\n        _package_versions[name] = 'N/A'\n"}}
+        # Synthetic definition-time PyYAML graph, independent of the runtime list.
+        yaml_imports={'__init__':'from .error import *\nfrom .tokens import *\nfrom .events import *\nfrom .nodes import *\nfrom .loader import *\nfrom .dumper import *\ntry:\n    from .cyaml import *\n    __with_libyaml__ = True\nexcept ImportError:\n    __with_libyaml__ = False\n',
+            'loader':'from .reader import *\nfrom .scanner import *\nfrom .parser import *\nfrom .composer import *\nfrom .constructor import *\nfrom .resolver import *\n',
+            'dumper':'from .emitter import *\nfrom .serializer import *\nfrom .representer import *\nfrom .resolver import *\n',
+            'cyaml':'from yaml._yaml import CParser, CEmitter\nfrom .constructor import *\nfrom .serializer import *\nfrom .representer import *\nfrom .resolver import *\n',
+            'composer':'from .error import *\nfrom .events import *\nfrom .nodes import *\n',
+            'constructor':'from .error import *\nfrom .nodes import *\n',
+            'emitter':'from .error import *\nfrom .events import *\n',
+            'parser':'from .error import *\nfrom .tokens import *\nfrom .events import *\nfrom .scanner import *\n',
+            'reader':'from .error import *\n','representer':'from .error import *\nfrom .nodes import *\n',
+            'resolver':'from .error import *\nfrom .nodes import *\n',
+            'scanner':'from .error import *\nfrom .tokens import *\n',
+            'serializer':'from .error import *\nfrom .events import *\nfrom .nodes import *\n',
+            'error':'','events':'','nodes':'value = 113\n','tokens':''}
+        examples['pyyaml']={'yaml/'+n+'.py':(imports+"marker = 'source'\n").encode()
+            for n,imports in yaml_imports.items()}
+        self.extra_sources={};self.extra_records={};self.natives=[self.native]
+        for distribution in examples:
+            sources={self.site/n:b'' for n in getattr(e,'RUNTIME_SOURCES',{}).get(distribution,())}
+            sources.update({self.site/n:raw for n,raw in examples[distribution].items()})
+            for path,raw in sources.items():path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+            self.extra_sources.update(sources)
+            if distribution in ('tokenizers','markupsafe') or (distribution=='pyyaml' and yaml_native):
+                name={'tokenizers':'tokenizers/tokenizers.abi3.so',
+                    'markupsafe':'markupsafe/_speedups.cpython-313-aarch64-linux-gnu.so',
+                    'pyyaml':'yaml/_yaml.cpython-313-aarch64-linux-gnu.so'}[distribution]
+                path=self.site/name;path.write_bytes(b'original exact native file; never executed')
+                sources[path]=path.read_bytes();self.natives.append(path)
+                digest=hashlib.sha256(path.read_bytes()).hexdigest()
+                self.context['guards'][str(path)]=self.context['required_guards'][str(path)]=digest
+                original=self.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                original['files'][str(path)]=digest;original['native_files'].append(str(path))
+            record=self.site/(distribution+'-'+self.metadata_versions.get(distribution,'1.0')+'.dist-info')/'RECORD'
+            record.parent.mkdir(exist_ok=True)
+            rows=[[str(path.relative_to(self.site)),
+                'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))]
+                for path,raw in sources.items()]
+            record.write_text(''.join(','.join(row)+'\n' for row in rows));self.extra_records[distribution]=record
+            digest=hashlib.sha256(record.read_bytes()).hexdigest()
+            self.context['guards'][str(record)]=self.context['required_guards'][str(record)]=digest
+        self.metadata={}
+        for distribution,version in self.metadata_versions.items():
+            path=self.site/(distribution+'-'+version+'.dist-info')/'METADATA'
+            path.parent.mkdir(exist_ok=True)
+            raw=('Metadata-Version: 2.1\nName: '+distribution+'\nVersion: '+version+'\n').encode()
+            path.write_bytes(raw);self.metadata[distribution]=path
+            record={'packaging':self.record,'regex':self.regex_record}.get(distribution,
+                self.extra_records.get(distribution,path.with_name('RECORD')))
+            name=str(path.relative_to(self.site))
+            rows=[r for r in csv.reader(record.read_text().splitlines()) if r[0]!=name] if record.exists() else []
+            rows.append([name,'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))])
+            record.write_text(''.join(','.join(row)+'\n' for row in rows))
+            if distribution=='packaging':self.rows=rows
+            elif distribution=='regex':self.regex_rows=rows
+            if distribution not in ('packaging','regex'):self.extra_records[distribution]=record
+            digest=hashlib.sha256(record.read_bytes()).hexdigest()
+            self.context['guards'][str(record)]=self.context['required_guards'][str(record)]=digest
+
+    def boundary(self):
+        return e.bundle_reads_only(self.context,self.endpoint)
+
+
+class SourceAdmissionFixture:
+    """Run the real context-composition block and pinned adapter, without native work.
+
+    The old authority's actual dictionary expression supplies the pre-native
+    context. Only external receipts/logs/wires are disconnected stand-ins.
+    """
+    def __init__(self, root):
+        def pinned(name, filename, digest):
+            if name not in sys.modules:
+                e.load_authenticated(name, PATH.with_name(filename), digest, {})
+            value=sys.modules[name]
+            e.bound_file({},value.__file__,digest)
+            return value
+        reference=pinned('_compact_context_reference_tests','evaluate_siglip2_prototype_residual.py',
+            e.REFERENCE['code']['evaluate_siglip2_prototype_residual.py'])
+        self.baseline=pinned('_compact_context_baseline_tests','evaluate_siglip2_quadratic_readout.py',
+            reference.EVALUATOR_PINS['evaluate_siglip2_quadratic_readout.py'])
+        b=self.baseline
+        self.partition={'original_cache':descriptor(root/'cache.npy',reference.FIT_SHA),
+            'panels':{'selection':{'original_rows':[8,3,5]},'validation':{'original_rows':[9,4]}}}
+        self.path=root/'partition.json';self.path.write_text(json.dumps(self.partition))
+        part=descriptor(self.path,hashlib.sha256(self.path.read_bytes()).hexdigest())
+        self.spec={'partition':part,'source_selection':{'inventory':descriptor(root/'inventory.json',b.SOURCE_INVENTORY_SHA)}}
+        fit={'class_names':['one','two'],'targets':[0,1]}
+        selected={'partition':copy.deepcopy(self.partition),'source':{'standin':'authenticated source'},
+            'genuine':{'prior':{'fit':fit}},'source_driver':None,'original':None,'extract':None,
+            'source_cpu':{'invocation':{'invocation_id':'0'*32}}}
+        self.calls=[]
+        def wire_file(guards,path,digest):
+            fact=next(v for v in b.SOURCE_INVENTORY['files'].values() if v['path']==str(path))
+            e.require(digest==fact['sha256'],'wire descriptor differs')
+            guards[str(path)]=digest;self.calls.append(('wire',str(path)))
+            return SimpleNamespace(stat=lambda:SimpleNamespace(st_size=fact['bytes']))
+        admission=SimpleNamespace(bound_file=wire_file)
+        # Evaluate the authenticated authority's REAL context expression: no
+        # synthetic top-level partition, initial state or ownership checks.
+        original=PATH.with_name('train_siglip2_quadratic_readout.py')
+        e.bound_file({},original,reference.ORIGINAL_PINS[original.name])
+        node=next(n for n in ast.parse(original.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='authority')
+        expression=next(n.value for n in node.body if isinstance(n,ast.Assign) and
+            any(isinstance(t,ast.Name) and t.id=='context' for t in n.targets))
+        self.legacy=eval(compile(ast.Expression(expression),str(original),'eval'),
+            {'args':None,'root':root,'code':{},'launch':{'partition':part},'guards':{},
+             'genuine':None,'selected':selected,'admission':admission,'record':{}})
+        self.training={'legacy':self.legacy,'fit_context':{'launch':{'partition':part},'guards':{}},'guards':{}}
+        self.archived={'cgroup_before':{},'cgroup_after':{},'input_guards':{},'files':{},'output':str(root)}
+        inventory=b.SOURCE_INVENTORY
+        self.record={'schema':'siglip2-genuine-view-evaluation-v1','phase':'score','pass':True,
+            'engineering_admission_pass':True,'source':selected['source'],
+            'spec':{'panel':'selection','stage':'first','endpoints':[inventory['baseline_endpoint']],
+                'partition':inventory['partition'],'evaluation_reference':{'root':b.REFERENCE_ROOT,
+                    'execution_sha256':b.REFERENCE_EXECUTION_SHA}},
+            'resource_policy':b.policy('score'),'query_images':1734,'gallery_images':1715,'panel_products':498,
+            'peak_cuda_allocated_bytes':0,'files':{n:v['sha256'] for n,v in inventory['files'].items()},
+            'output':str(Path(next(iter(inventory['files'].values()))['path']).parent),
+            'quality':{'179061':{'control':{'recall_at_1':inventory['control_quality']['recall_at_1'],
+                'map_at_r':inventory['control_quality']['map_at_r'],'per_query_r1':[1]*1670+[0]*64,
+                'per_query_ap':[inventory['control_quality']['map_at_r']]*1734}}},
+            'input_guards':{},'cgroup_before':{},'cgroup_after':{}}
+        for k in ('strict_independent_head_reload_exact','train_raw_unit_cpu_packed_exact','rng_flags_preserved',
+            'exit_rehash_pass','full_panel_raw_unit_packed_replay_exact','per_query_replay_exact'):self.record[k]=True
+        for k in ('official_read','public_latency_measured','global_production_goal_met','cuda_initialized'):self.record[k]=False
+        def reader(admitted,record,terminal,seconds,guards):
+            e.require(admitted is admission,'original admission object differs')
+            self.calls.append(('terminal',seconds));return {}
+        # Copy the adapter's namespace; ORIGINAL module globals stay untouched.
+        adapter_factory=FunctionType(reference.source_selection_adapter.__code__,
+            {**vars(reference),'original_terminal_reader':lambda _:reader})
+        def source_adapter(baseline,context):
+            adapted=adapter_factory(baseline,context)  # Full-byte/live-code/AST authentication stays real.
+            def receipt(value,guards):
+                self.calls.append(('source_json',value['path']))
+                if value==self.spec['source_selection']['inventory']:return inventory
+                e.require(value==inventory['receipt'],'source receipt descriptor differs')
+                return self.record
+            adapted.__globals__['read_json']=receipt
+            return adapted
+        self.reference=SimpleNamespace(FIT_SHA=reference.FIT_SHA,original_terminal_reader=lambda _:reader,
+            source_selection_adapter=source_adapter)
+        self.originals=[(m,dict(vars(m))) for m in (reference,b)]
+
+    def compose(self):
+        node=next(n for n in ast.parse(PATH.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='authority')
+        def assigns(n,name):
+            return isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id==name for t in n.targets)
+        start=next(i for i,n in enumerate(node.body) if assigns(n,'legacy'))
+        stop=next(i for i,n in enumerate(node.body) if assigns(n,'source_record'))+1
+        namespace={**vars(e),'t':self.training,'reference':self.reference,'spec':self.spec,'args':None,
+            'guards':{},'archived':self.archived,'baseline':self.baseline,
+            'helper':SimpleNamespace(zero_events=lambda _:None),'native':SimpleNamespace(CONCAT_TERMINAL=unit(99))}
+        exec(compile(ast.Module(body=node.body[start:stop],type_ignores=[]),str(PATH),'exec'),namespace)
+        return namespace['s']
+
+
+class EvaluationTests(unittest.TestCase):
+    def test_exact_source_stage_seed_and_roles(self):
+        for stage in ('first','full'):
+            for phase in ('cpu','export','score'):
+                value,args=launch(stage,phase);e.check_launch(value,args)
+                for k,v in (('selection_previously_exposed',False),('both_locks_held',False),
+                    ('stage','other'),('reference',{}),('endpoints',value['endpoints'][::-1])):
+                    with self.subTest(stage=stage,phase=phase,k=k),self.assertRaises((ValueError,KeyError)):
+                        e.check_launch({**value,k:v},args)
+        value,args=launch()
+        for k,v in (('first_selection',unit(11)),('selected_cpu',unit(10)),('panel','validation'),('seed',179069),
+                    ('arm','control'),('exports',{'control-179061':unit(20)})):
+            with self.subTest(k=k),self.assertRaises(ValueError):e.check_launch({**value,k:v},args)
+        value,args=launch('full','score','validation');e.check_launch(value,args)
+        for k in ('selection_go','first_selection','selected_cpu'):
+            with self.assertRaises(ValueError):e.check_launch({**value,k:None},args)
+        value,args=launch('full');value['training']['code']['foreign.py']='0'*64
+        with self.assertRaises(ValueError):e.check_launch(value,args)
+        value,args=launch();value['endpoints'][0]['seed']=True
+        with self.assertRaises(ValueError):e.check_launch(value,args)
+        value,args=launch('full');value['first_selection']=value['endpoints'][0]['terminal']
+        with self.assertRaises(ValueError):e.check_launch(value,args)
+
+    def test_pre_native_partition_and_pinned_source_adapter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            f=SourceAdmissionFixture(Path(directory))
+            self.assertTrue({'partition','partition_check','initial'}.isdisjoint(f.legacy))
+            s=f.compose()
+            self.assertEqual(s['partition']['panels']['selection']['original_rows'],[8,3,5])
+            self.assertIs(s['fit'],f.legacy['prior']['fit']);self.assertIs(s['selected'],f.legacy)
+            self.assertIs(s['source_record'],f.record);self.assertIs(s['origin_records'][-1],f.record)
+            self.assertEqual(s['terminals'][-1],f.baseline.SOURCE_SCORE_TERMINAL)
+            self.assertEqual(s['source_guards'][str(f.spec['source_selection']['inventory']['path'])],f.baseline.SOURCE_INVENTORY_SHA)
+            self.assertEqual(s['guards'][str(f.path)],f.spec['partition']['sha256'])
+            self.assertEqual([n for kind,n in f.calls if kind=='terminal'],[500,300])
+            self.assertEqual(sum(kind=='wire' for kind,_ in f.calls),3)
+            for module,values in f.originals:
+                self.assertEqual(vars(module).keys(),values.keys())
+                self.assertTrue(all(vars(module)[k] is v for k,v in values.items()))
+            self.assertFalse(any(n.split('.')[0] in e.NATIVE for n in sys.modules))
+
+    def test_partition_order_descriptor_cache_and_hash_rejected_before_source(self):
+        for mutation in ('order','descriptor','cache','hash'):
+            with self.subTest(mutation=mutation),tempfile.TemporaryDirectory() as directory:
+                f=SourceAdmissionFixture(Path(directory))
+                if mutation=='order':f.legacy['selected']['partition']['panels']['selection']['original_rows'].reverse()
+                elif mutation=='descriptor':f.training['fit_context']['launch']['partition']=descriptor(f.path,'0'*64)
+                elif mutation=='cache':
+                    f.partition['original_cache']['sha256']='0'*64
+                    f.path.write_text(json.dumps(f.partition))
+                    f.spec['partition']['sha256']=hashlib.sha256(f.path.read_bytes()).hexdigest()
+                    f.legacy['selected']['partition']=copy.deepcopy(f.partition)
+                else:f.path.write_text(json.dumps(f.partition)+' ')
+                with self.assertRaisesRegex(ValueError,'ordered panel partition|SHA256'):f.compose()
+                self.assertFalse(any(kind=='source_json' for kind,_ in f.calls))
+
+    def test_first_screen_never_bootstraps(self):
+        q,source,concat=panels('first');costs=e.paired_cost(controls('first'),'first')
+        result=e.decide(math_helper,q,source,concat,'first','selection',{},costs)
+        self.assertEqual(result['decision'],'CONTINUE');self.assertFalse(result['selection_go_admits_validation_only'])
+        for replacement in (q['179061']['control'],quality(q['179061']['candidate']['per_query_r1'],[.7]*1734)):
+            bad=copy.deepcopy(q);bad['179061']['candidate']=replacement
+            self.assertEqual(e.decide(math_helper,bad,source,concat,'first','selection',{},costs)['decision'],'KILL')
+            with self.assertRaises(ValueError):e.decide(math_helper,bad,source,concat,'first','selection',{'ci':{}},costs)
+        with self.assertRaises(ValueError):e.decide(math_helper,q,source,concat,'first','selection',{'ci':{}},costs)
+        records=controls('first');records[179061,'candidate']['service_seconds']=151
+        self.assertEqual(e.decide(math_helper,q,source,concat,'first','selection',{},e.paired_cost(records,'first'))['decision'],'KILL')
+
+    def test_full_equal_seed_floor_sign_and_intervals(self):
+        q,source,concat=panels('full');costs=e.paired_cost(controls('full'),'full');bounds=intervals(q)
+        result=e.decide(math_helper,q,source,concat,'full','selection',bounds,costs)
+        self.assertEqual(result['decision'],'GO');self.assertTrue(result['selection_go_admits_validation_only'])
+        self.assertFalse(result['global_production_goal_met']);self.assertFalse(result['product_go'])
+        bad=copy.deepcopy(bounds);bad[e.METRICS[0]]['product_lower95']=0
+        self.assertEqual(e.decide(math_helper,q,source,concat,'full','selection',bad,costs)['decision'],'KILL')
+        bad=copy.deepcopy(bounds);bad[e.METRICS[0]]['mean_delta']=.7
+        with self.assertRaises(ValueError):e.decide(math_helper,q,source,concat,'full','selection',bad,costs)
+        bad=copy.deepcopy(q);bad['179069']['candidate']=copy.deepcopy(bad['179069']['control'])
+        self.assertEqual(e.decide(math_helper,bad,source,concat,'full','selection',{},costs)['decision'],'KILL')
+        with self.assertRaises(ValueError):e.decide(math_helper,bad,source,concat,'full','selection',bounds,costs)
+        high=quality([1]*1734,[.9]*1734)
+        self.assertEqual(e.decide(math_helper,q,high,concat,'full','selection',{},costs)['decision'],'KILL')
+        self.assertEqual(e.decide(math_helper,q,source,high,'full','selection',{},costs)['decision'],'KILL')
+        bad=copy.deepcopy(q);bad['179069']['candidate']['per_query_ap'][0]=float('nan')
+        with self.assertRaises(ValueError):e.decide(math_helper,bad,source,concat,'full','selection',bounds,costs)
+
+    def test_each_seed_core_and_whole_cost_boundary(self):
+        records=controls('full');records[179069,'candidate'].update(service_seconds=150,total_training_core_seconds=90)
+        self.assertTrue(all(v['pass'] for v in e.paired_cost(records,'full').values()))
+        for key,value in (('total_training_core_seconds',90.01),('service_seconds',150.01)):
+            bad=copy.deepcopy(records);bad[179069,'candidate'][key]=value
+            self.assertFalse(e.paired_cost(bad,'full')['179069']['pass'])
+        for bad_value in (0,True,float('nan'),float('inf'),101):
+            bad=copy.deepcopy(records);bad[179061,'control']['total_training_core_seconds']=bad_value
+            with self.assertRaises(ValueError):e.paired_cost(bad,'full')
+        with self.assertRaises(ValueError):e.paired_cost(controls('first'),'full')
+
+    def test_no_quality_before_readiness(self):
+        calls=[]
+        for key in e.READINESS:
+            ready=dict.fromkeys(e.READINESS,True);ready[key]=False
+            with self.assertRaises(ValueError):e.quality_after_readiness(ready,lambda:calls.append('quality'))
+        self.assertEqual(calls,[])
+        e.quality_after_readiness(dict.fromkeys(e.READINESS,True),lambda:calls.append('quality'))
+        self.assertEqual(calls,['quality'])
+
+    def test_diagnostic_and_native_roles(self):
+        value=e.diagnostic_result([.1,-.1],[.09,-.2])
+        self.assertFalse(value['mechanism_demonstrated']);self.assertFalse(value['utility_veto']);self.assertTrue(value['diagnostic_only'])
+        self.assertEqual(e.batch_sizes(1734),[32]*54+[6]);self.assertEqual(e.batch_sizes(1715),[32]*53+[19])
+        self.assertEqual(e.batch_sizes(1749)[-1],21);self.assertEqual(e.batch_sizes(1730)[-1],2)
+        for invalid in (0,True,-1):
+            with self.assertRaises(ValueError):e.batch_sizes(invalid)
+        with self.assertRaises(ValueError):e.diagnostic_result([float('nan')],[0])
+
+    def test_strict_files_closure_and_restored_mtime(self):
+        for raw in ('{"a":1,"a":2}','{"a":NaN}'):
+            with self.assertRaises(ValueError):e.strict_json(raw)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);path=root/'worker.py';path.write_bytes(b'first')
+            digest=hashlib.sha256(path.read_bytes()).hexdigest();code={'worker.py':digest}
+            manifest=root/'execution.json';manifest.write_text(json.dumps(code));manifest_sha=hashlib.sha256(manifest.read_bytes()).hexdigest()
+            self.assertEqual(e.closure(root,manifest_sha,code,{}),code)
+            prior=path.stat();path.write_bytes(b'other');os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+            with self.assertRaises(ValueError):e.bound_file({},path,digest)
+            path.write_bytes(b'first');link=root/'link';link.symlink_to(path)
+            with self.assertRaises(ValueError):e.bound_file({},link,digest)
+            fifo=root/'fifo';os.mkfifo(fifo)
+            with self.assertRaises(ValueError):e.bound_file({},fifo,digest)
+            with self.assertRaises(ValueError):e.closure(root,manifest_sha,{'worker.py','extra'}, {})
+
+    def test_bundle_boundary_denies_train_warm_optimizer_reads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);fixture=PortableRuntimeFixture(root)
+            owned=fixture.bundle/'vision.pt';owned.write_bytes(b'owned')
+            outside=root/'resume.pt';outside.write_bytes(b'forbidden')
+            with fixture.boundary():
+                self.assertEqual(owned.read_bytes(),b'owned')
+                for path in (outside,root/'warm.pt',root/'optimizer.pt',root/'teachers.npy'):
+                    with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                with self.assertRaisesRegex(ValueError,'attempted write'):owned.write_bytes(b'changed')
+            self.assertEqual(outside.read_bytes(),b'forbidden');self.assertEqual(owned.read_bytes(),b'owned')
+
+    def test_bundle_boundary_imports_record_pinned_source_without_cached_code(self):
+        saved={n:m for n,m in sys.modules.items() if n=='packaging' or n.startswith('packaging.')}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory));source=f.package/'__init__.py';prior=source.stat()
+                source.write_bytes(b"marker = 'cached'\n");py_compile.compile(str(source),doraise=True)
+                source.write_bytes(f.sources[source]);os.utime(source,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                extra=f.package/'unqualified.py';extra.write_bytes(b'value = 99\n')
+                history=[f.package/name for name in ('resume.pt','warm.pt','optimizer.pt','teachers.npy','checkpoint.pt')]
+                for path in history:path.write_bytes(b'forbidden')
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name=='packaging' or name.startswith('packaging.'):sys.modules.pop(name)
+                        with f.boundary():
+                            if direct_loader:packaging=module('packaging',source)
+                            else:packaging=importlib.import_module('packaging')
+                            from packaging import version
+                            self.assertEqual(packaging.marker,'source','unpinned cached code executed')
+                            self.assertEqual(version.value,42)
+                            for path in (extra,f.record,f.site/'other.dist-info'/'METADATA',*history):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                            with self.assertRaisesRegex(ValueError,'attempted write'):source.write_bytes(b'changed')
+                            with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(source))).read_bytes()
+                # A stdlib directory containing site-packages grants no extra files.
+                del f.context['portable_audits']
+                with patch.object(e.sysconfig,'get_path',return_value=str(Path(directory))),f.boundary():
+                    with self.assertRaisesRegex(ValueError,'external dependency'):extra.read_bytes()
+                self.assertEqual({p:f.context['guards'][str(p)] for p in f.sources},
+                    {p:hashlib.sha256(raw).hexdigest() for p,raw in f.sources.items()})
+                prior=source.stat();source.write_bytes(b"marker = 'mutate'\n")
+                os.utime(source,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                with self.assertRaisesRegex(ValueError,'SHA256'):
+                    with f.boundary():pass
+        finally:
+            for name in tuple(sys.modules):
+                if name=='packaging' or name.startswith('packaging.'):sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_bundle_boundary_rejects_missing_mutated_and_foreign_runtime(self):
+        for case in ('missing_pin','mutated_record','missing_row','duplicate_row','missing_source','mutated_source',
+                     'wrong_size','wrong_hash','foreign_record','source_symlink','foreign_module','wrong_module_role'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root);source=f.package/'version.py'
+                if case=='missing_pin':f.context['required_guards'].clear()
+                elif case=='mutated_record':f.record.write_bytes(f.record.read_bytes()+b'\n')
+                elif case in ('missing_row','duplicate_row','wrong_size','wrong_hash'):
+                    rows=copy.deepcopy(f.rows)
+                    if case=='missing_row':rows.pop()
+                    elif case=='duplicate_row':rows.append(rows[-1])
+                    elif case=='wrong_hash':rows[-1][1]='sha256='+'A'*43
+                    else:rows[-1][-1]='999'
+                    with f.record.open('w',newline='') as stream:csv.writer(stream).writerows(rows)
+                    digest=hashlib.sha256(f.record.read_bytes()).hexdigest()
+                    f.context['guards'][str(f.record)]=f.context['required_guards'][str(f.record)]=digest
+                elif case=='missing_source':source.unlink()
+                elif case=='mutated_source':source.write_bytes(b'value = 99\n')
+                elif case=='foreign_record':
+                    foreign=root/'foreign'/'packaging-26.2.dist-info'/'RECORD';foreign.parent.mkdir(parents=True)
+                    foreign.write_bytes(f.record.read_bytes());digest=hashlib.sha256(foreign.read_bytes()).hexdigest()
+                    f.context['required_guards']={str(foreign):digest};f.context['guards']={str(foreign):digest}
+                elif case=='source_symlink':
+                    foreign=root/'foreign.py';foreign.write_bytes(f.sources[source]);source.unlink();source.symlink_to(foreign)
+                fake=SimpleNamespace(__file__=str(root/'foreign.py'),__spec__=SimpleNamespace(origin=str(root/'foreign.py')))
+                if case=='wrong_module_role':
+                    fake=SimpleNamespace(__file__=str(f.package/'__init__.py'),
+                        __spec__=SimpleNamespace(origin=str(f.package/'__init__.py')))
+                with patch.dict(sys.modules,{'packaging.version':fake} if case in ('foreign_module','wrong_module_role') else {}):
+                    with self.assertRaises((ValueError,OSError)):
+                        with f.boundary():pass
+
+    def test_bundle_boundary_sequential_lazy_sources_and_exact_original_native(self):
+        prefixes=('packaging','regex')
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0] in prefixes}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory))
+                sources={f.package/'__init__.py':f.sources[f.package/'__init__.py'],**f.regex_sources}
+                for path,raw in sources.items():
+                    prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached').replace(b'73',b'99'))
+                    py_compile.compile(str(path),doraise=True)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                foreign=f.regex/'foreign.so';foreign.write_bytes(b'foreign')
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name.split('.')[0] in prefixes:sys.modules.pop(name)
+                        with f.boundary():
+                            packaging=module('packaging',f.package/'__init__.py') if direct_loader else importlib.import_module('packaging')
+                            from packaging import version
+                            regex=module('regex',f.regex/'__init__.py') if direct_loader else importlib.import_module('regex')
+                            self.assertEqual((packaging.marker,version.value,regex.marker,regex.value),('source',42,'source',73))
+                            self.assertEqual(f.native.read_bytes(),b'original exact native file; never executed')
+                            for path in (foreign,f.regex_record,f.regex/'unqualified.py',f.regex/'resume.pt',f.site/'foreign.py'):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                            for path in sources:
+                                with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                            with self.assertRaisesRegex(ValueError,'attempted write'):f.native.write_bytes(b'changed')
+                native=SimpleNamespace(__file__=str(f.native),__spec__=SimpleNamespace(origin=str(f.native)))
+                with patch.dict(sys.modules,{'regex._regex':native}),f.boundary():pass
+                for path in (*f.regex_sources,f.native):
+                    raw=path.read_bytes();prior=path.stat();path.write_bytes(b'x'*len(raw))
+                    os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0] in prefixes:sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_bundle_boundary_processor_dependency_sources_have_exact_origins(self):
+        expected={'typing_extensions':21,'tokenizers':84,'httpx':101,'httpcore':102,'anyio':103,
+            'h11':104,'certifi':105,'idna':106,'jinja2':107,'markupsafe':108,'huggingface_hub':109}
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0] in expected}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory))
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]),f.boundary():
+                    actual={name:importlib.import_module(name).value for name in expected}
+                    self.assertEqual(actual,expected)
+                    for name in expected:
+                        path=f.site/(name+'.py') if name=='typing_extensions' else f.site/name/'__init__.py'
+                        self.assertEqual(sys.modules[name].__file__,str(path))
+                        with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                    for name in ('tokenizers','httpx','huggingface_hub'):
+                        with self.assertRaisesRegex(ValueError,'external dependency'):(f.site/name/'resume.pt').read_bytes()
+                foreign=SimpleNamespace(__file__=str(f.site/'foreign.py'),__spec__=SimpleNamespace(origin=str(f.site/'foreign.py')))
+                for name in expected:
+                    with self.subTest(name=name),patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
+                        with f.boundary():pass
+                for name in expected:
+                    path=f.site/(name+'.py') if name=='typing_extensions' else f.site/name/'__init__.py'
+                    raw=path.read_bytes();prior=path.stat();path.write_bytes(b'x'*len(raw))
+                    os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.subTest(name=name),self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0] in expected:sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_hub_runtime_source_contract_is_finite(self):
+        names=('__init__.py constants.py dataclasses.py errors.py serialization/__init__.py serialization/_base.py '
+            'serialization/_torch.py utils/__init__.py utils/_auth.py utils/_cache_assets.py utils/_cache_manager.py '
+            'utils/_chunk_utils.py utils/_datetime.py utils/_detect_agent.py utils/_experimental.py utils/_fixes.py '
+            'utils/_git_credential.py utils/_headers.py utils/_hf_uris.py utils/_http.py utils/_lfs.py '
+            'utils/_pagination.py utils/_parsing.py utils/_paths.py utils/_runtime.py utils/_safetensors.py '
+            'utils/_subprocess.py utils/_telemetry.py utils/_terminal.py utils/_typing.py utils/_validators.py '
+            'utils/_xet.py utils/logging.py utils/tqdm.py').split()
+        self.assertEqual(e.RUNTIME_SOURCES['huggingface_hub'],{'huggingface_hub/'+n for n in names}|
+            {'huggingface_hub-1.16.1.dist-info/METADATA'})
+
+    def test_hub_runtime_sources_require_original_record_hash_and_size(self):
+        for case in ('missing_guard','foreign_guard','mutated_record','missing_row','wrong_hash','wrong_size'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory));record=f.extra_records['huggingface_hub']
+                if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                elif case=='mutated_record':record.write_bytes(record.read_bytes()+b'\n')
+                else:
+                    rows=list(csv.reader(record.read_text().splitlines()))
+                    row=next(r for r in rows if r[0]=='huggingface_hub/utils/__init__.py')
+                    if case=='missing_row':rows.remove(row)
+                    elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                    else:row[2]='999'
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                with self.assertRaises(ValueError):
+                    with f.boundary():pass
+
+    def test_bundle_boundary_hub_utils_cached_source_fallback_and_denials(self):
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0]=='huggingface_hub'}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root)
+                sources={p:raw for p,raw in f.extra_sources.items() if p.relative_to(f.site).as_posix() in
+                    ('huggingface_hub/utils/__init__.py','huggingface_hub/utils/_http.py')}
+                for path,raw in sources.items():
+                    prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached'))
+                    py_compile.compile(str(path),doraise=True)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                history=[f.site/'huggingface_hub'/name for name in
+                    ('utils/resume.pt','utils/optimizer.pt','utils/teachers.npy','utils/unqualified.py','hf_api.py')]
+                foreign=root/'foreign.py';foreign.write_bytes(b'forbidden')
+                for path in history:path.write_bytes(b'forbidden')
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name.split('.')[0]=='huggingface_hub':sys.modules.pop(name)
+                        with f.boundary():
+                            path=f.site/'huggingface_hub/utils/__init__.py'
+                            utils=module('huggingface_hub.utils',path) if direct_loader else importlib.import_module('huggingface_hub.utils')
+                            sibling=sys.modules['huggingface_hub.utils._http']
+                            self.assertEqual((utils.value,utils.marker,sibling.marker),(109,'source','source'))
+                            for name,value in (('huggingface_hub.utils',utils),('huggingface_hub.utils._http',sibling)):
+                                origin=f.site/(name.replace('.','/')+('/__init__.py' if value is utils else '.py'))
+                                self.assertIsInstance(value.__loader__,importlib.machinery.SourceFileLoader)
+                                self.assertEqual(value.__file__,str(origin));self.assertEqual(value.__spec__.origin,str(origin))
+                                with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(origin))).read_bytes()
+                                with self.assertRaisesRegex(ValueError,'attempted write'):origin.write_bytes(b'changed')
+                            for path in (*history,foreign,f.extra_records['huggingface_hub']):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                fake=SimpleNamespace(__file__=str(foreign),__spec__=SimpleNamespace(origin=str(foreign)))
+                for name in ('huggingface_hub.utils','huggingface_hub.utils._http'):
+                    with patch.dict(sys.modules,{name:fake}),self.assertRaisesRegex(ValueError,'origin differs'):
+                        with f.boundary():pass
+                for path in (f.site/'huggingface_hub/constants.py',*sources,f.site/'huggingface_hub/serialization/_torch.py'):
+                    raw=path.read_bytes();prior=path.stat();path.write_bytes(raw+b'# mutation\n')
+                    os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0]=='huggingface_hub':sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_bundle_boundary_yaml_transitive_source_fallback_and_denials(self):
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0]=='yaml'}
+        try:
+            for name in saved:sys.modules.pop(name)
+            for observed_native in (False,True):
+                with self.subTest(observed_native=observed_native),tempfile.TemporaryDirectory() as directory:
+                    root=Path(directory);f=PortableRuntimeFixture(root,yaml_native=observed_native)
+                    sources={p:raw for p,raw in f.extra_sources.items() if p.parent.name=='yaml'}
+                    for path,raw in sources.items():
+                        prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached').replace(b'113',b'999'))
+                        py_compile.compile(str(path),doraise=True)
+                        path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    forbidden=[f.site/'yaml'/n for n in ('resume.pt','optimizer.pt','teachers.npy','unqualified.py','foreign.so')]
+                    forbidden.append(root/'foreign.py')
+                    for path in forbidden:path.write_bytes(b'forbidden')
+                    native=f.site/'yaml/_yaml.cpython-313-aarch64-linux-gnu.so'
+                    original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                    original_before=copy.deepcopy(original);required_before=dict(f.context['required_guards'])
+                    # Represent an already mapped original module; never load an extension.
+                    mapped=SimpleNamespace(__file__=str(native),__spec__=SimpleNamespace(origin=str(native)),
+                        CParser=object(),CEmitter=object())
+                    with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                        for direct_loader in (True,False):
+                            for name in tuple(sys.modules):
+                                if name.split('.')[0]=='yaml':sys.modules.pop(name)
+                            with patch.dict(sys.modules,{'yaml._yaml':mapped} if observed_native else {}),f.boundary():
+                                yaml=module('yaml',f.site/'yaml/__init__.py') if direct_loader else importlib.import_module('yaml')
+                                self.assertEqual((yaml.value,yaml.marker,yaml.__with_libyaml__),(113,'source',observed_native))
+                                expected={'yaml'+('' if p.stem=='__init__' else '.'+p.stem) for p in sources}
+                                if not observed_native:expected.remove('yaml.cyaml')
+                                self.assertEqual({n for n in sys.modules if n.split('.')[0]=='yaml' and n!='yaml._yaml'},expected)
+                                for name in expected:
+                                    value=sys.modules[name];path=f.site/'yaml'/('__init__.py' if name=='yaml' else name.split('.')[1]+'.py')
+                                    self.assertIsInstance(value.__loader__,importlib.machinery.SourceFileLoader)
+                                    self.assertEqual((value.__file__,value.__spec__.origin,value.marker),(str(path),str(path),'source'))
+                                for path,raw in sources.items():
+                                    self.assertEqual(path.read_bytes(),raw)
+                                    with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                                    with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
+                                for path in (*forbidden,f.extra_records['pyyaml']):
+                                    with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                                with self.assertRaisesRegex(ValueError,'external dependency'):
+                                    importlib.import_module('yaml.unqualified')
+                                if observed_native:
+                                    self.assertEqual(native.read_bytes(),b'original exact native file; never executed')
+                                    with self.assertRaisesRegex(ValueError,'attempted write'):native.write_bytes(b'changed')
+                                else:
+                                    with self.assertRaisesRegex(ValueError,'external dependency'):native.read_bytes()
+                    self.assertEqual(original,original_before);self.assertEqual(f.context['required_guards'],required_before)
+                    foreign=SimpleNamespace(__file__=str(forbidden[-1]),__spec__=SimpleNamespace(origin=str(forbidden[-1])))
+                    for name in ('yaml','yaml.loader','yaml.cyaml','yaml.nodes'):
+                        with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
+                            with f.boundary():pass
+                    for name in tuple(sys.modules):
+                        if name.split('.')[0]=='yaml':sys.modules.pop(name)
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0]=='yaml':sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_yaml_runtime_requires_original_record_hash_and_complete_rows(self):
+        for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row','wrong_hash','wrong_size'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root);record=f.extra_records['pyyaml']
+                if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                elif case=='mutated_record':record.write_bytes(record.read_bytes()+b'\n')
+                elif case=='foreign_record':
+                    foreign=root/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True)
+                    foreign.write_bytes(record.read_bytes());h=hashlib.sha256(foreign.read_bytes()).hexdigest()
+                    f.context['required_guards'].pop(str(record))
+                    f.context['guards'][str(foreign)]=f.context['required_guards'][str(foreign)]=h
+                else:
+                    rows=list(csv.reader(record.read_text().splitlines()))
+                    row=next(r for r in rows if r[0]=='yaml/loader.py')
+                    if case=='missing_row':rows.remove(row)
+                    elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                    else:row[2]='999'
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                with self.assertRaises(ValueError):
+                    with f.boundary():pass
+
+    def test_yaml_current_source_and_record_bytes_rechecked_with_restored_mtime(self):
+        for cached in (False,True):
+            with self.subTest(cached=cached),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory))
+                if cached:
+                    with f.boundary():pass
+                paths=[p for p in f.extra_sources if p.parent.name=='yaml']+[f.extra_records['pyyaml'],f.metadata['pyyaml']]
+                for path in paths:
+                    raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.subTest(path=path.name),self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+
+    def test_yaml_native_authority_stays_exact_and_optional(self):
+        for case in ('unobserved','missing_guard','foreign_guard','foreign_origin','not_native_files',
+                     'record_hash','record_size','record_missing','module_origin','cached_guard','cached_origin','cached_bytes'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory),yaml_native=case!='unobserved')
+                native=f.site/'yaml/_yaml.cpython-313-aarch64-linux-gnu.so';record=f.extra_records['pyyaml']
+                original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                if case.startswith('cached_'):
+                    with f.boundary():pass
+                if case=='unobserved':
+                    native.write_bytes(b'unobserved')
+                    h=hashlib.sha256(native.read_bytes()).hexdigest()
+                    f.context['guards'][str(native)]=f.context['required_guards'][str(native)]=h
+                    with record.open('a') as stream:
+                        csv.writer(stream).writerow([str(native.relative_to(f.site)),
+                            'sha256='+base64.urlsafe_b64encode(bytes.fromhex(h)).decode().rstrip('='),'10'])
+                elif case=='missing_guard':f.context['required_guards'].pop(str(native))
+                elif case in ('foreign_guard','cached_guard'):f.context['required_guards'][str(native)]='a'*64
+                elif case in ('foreign_origin','cached_origin'):original['files'][str(native)]='a'*64
+                elif case=='not_native_files':original['native_files'].remove(str(native))
+                elif case=='cached_bytes':
+                    prior=native.stat();native.write_bytes(b'x'*prior.st_size)
+                    os.utime(native,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                elif case.startswith('record_'):
+                    rows=list(csv.reader(record.read_text().splitlines()))
+                    row=next(r for r in rows if r[0]==str(native.relative_to(f.site)))
+                    if case=='record_hash':row[1]='sha256='+'A'*43
+                    elif case=='record_size':row[2]='1'
+                    else:rows.remove(row)
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                if case.startswith('record_') or case=='unobserved':
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                foreign=SimpleNamespace(__file__=str(native),__spec__=SimpleNamespace(origin=str(f.site/'yaml/foreign.so')))
+                with patch.dict(sys.modules,{'yaml._yaml':foreign} if case=='module_origin' else {}):
+                    if case in ('unobserved','not_native_files'):
+                        with f.boundary():
+                            with self.assertRaisesRegex(ValueError,'external dependency'):native.read_bytes()
+                    else:
+                        with self.assertRaises(ValueError):
+                            with f.boundary():pass
+
+    def test_bundle_boundary_tqdm_auto_source_fallback_and_metadata_reads(self):
+        import importlib.metadata
+        prefixes=('tqdm','huggingface_hub')
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0] in prefixes}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root)
+                sources={p:raw for p,raw in f.extra_sources.items() if p.parent.name=='tqdm'}
+                for path in (f.site/'tqdm/auto.py',f.site/'tqdm/version.py'):
+                    raw=sources[path];prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached'))
+                    py_compile.compile(str(path),doraise=True)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                forbidden=[f.site/n for n in ('tqdm/resume.pt','tqdm/teachers.npy','tqdm/notebook.py',
+                    'tqdm/contrib/slack.py','accelerate/__init__.py','aiohttp/__init__.py',
+                    'pydantic/__init__.py','hf_xet/unqualified.so','gradio-1.0.dist-info/METADATA',
+                    'tqdm-4.68.3.dist-info/entry_points.txt')]
+                foreign=root/'foreign.py';forbidden.append(foreign)
+                for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name.split('.')[0] in prefixes:sys.modules.pop(name)
+                        with f.boundary():
+                            auto=module('tqdm.auto',f.site/'tqdm/auto.py') if direct_loader else importlib.import_module('tqdm.auto')
+                            self.assertEqual((auto.value,auto.marker,sys.modules['tqdm.version'].__version__,
+                                sys.modules['tqdm.version'].marker),(8,'source','4.68.3','source'))
+                            runtime=importlib.import_module('huggingface_hub.utils._runtime')
+                            self.assertEqual(runtime._package_versions['fastai'],'N/A')
+                            self.assertEqual(runtime._package_versions['Pillow'],'12.2.0')
+                            for distribution,version in f.metadata_versions.items():
+                                self.assertEqual(importlib.metadata.version(distribution.replace('_','-')),version)
+                                self.assertIn('Version: '+version,f.metadata[distribution].read_text())
+                                with self.assertRaisesRegex(ValueError,'attempted write'):
+                                    f.metadata[distribution].write_bytes(b'changed')
+                            for path in sources:
+                                name='tqdm'+('' if path.name=='__init__.py' else '.'+path.stem)
+                                value=sys.modules[name]
+                                self.assertIsInstance(value.__loader__,importlib.machinery.SourceFileLoader)
+                                self.assertEqual((value.__file__,value.__spec__.origin),(str(path),str(path)))
+                                with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                                with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
+                            for path in (*forbidden,f.extra_records['tqdm'],f.extra_records['accelerate']):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                fake=SimpleNamespace(__file__=str(foreign),__spec__=SimpleNamespace(origin=str(foreign)))
+                for name in ('tqdm.auto','tqdm.version','tqdm.std'):
+                    with patch.dict(sys.modules,{name:fake}),self.assertRaisesRegex(ValueError,'origin differs'):
+                        with f.boundary():pass
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0] in prefixes:sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_tqdm_metadata_rows_require_original_record_hash_and_size(self):
+        for distribution in ('tqdm','accelerate','huggingface_hub','packaging'):
+            for case in ('missing_guard','foreign_guard','mutated_record','missing_row','wrong_hash','wrong_size','foreign_record'):
+                with self.subTest(distribution=distribution,case=case),tempfile.TemporaryDirectory() as directory:
+                    root=Path(directory);f=PortableRuntimeFixture(root)
+                    record=f.metadata[distribution].with_name('RECORD')
+                    if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                    elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                    elif case=='mutated_record':record.write_bytes(record.read_bytes()+b'\n')
+                    elif case=='foreign_record':
+                        foreign=root/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True)
+                        foreign.write_bytes(record.read_bytes());h=hashlib.sha256(foreign.read_bytes()).hexdigest()
+                        f.context['required_guards'].pop(str(record))
+                        f.context['guards'][str(foreign)]=f.context['required_guards'][str(foreign)]=h
+                    else:
+                        rows=list(csv.reader(record.read_text().splitlines()))
+                        row=next(r for r in rows if r[0]==str(f.metadata[distribution].relative_to(f.site)))
+                        if case=='missing_row':rows.remove(row)
+                        elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                        else:row[2]='999'
+                        record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                        h=hashlib.sha256(record.read_bytes()).hexdigest()
+                        f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                    with self.assertRaises(ValueError):
+                        with f.boundary():pass
+
+    def test_tqdm_metadata_and_source_mutations_are_rejected(self):
+        for name in ('tqdm/auto.py','tqdm/version.py','tqdm-4.68.3.dist-info/METADATA',
+                     'accelerate-1.14.0.dist-info/METADATA','huggingface_hub-1.16.1.dist-info/METADATA'):
+            for cached in (False,True):
+                with self.subTest(name=name,cached=cached),tempfile.TemporaryDirectory() as directory:
+                    root=Path(directory);f=PortableRuntimeFixture(root)
+                    if cached:
+                        with f.boundary():pass
+                    path=f.site/name;raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
+
+    def test_bundle_boundary_native_grants_require_record_guard_and_original_cpu_origin(self):
+        for case in ('unobserved','missing_guard','foreign_guard','foreign_origin','record_hash','record_size',
+                     'record_missing','module_origin','cached_guard','cached_origin'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory));original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                if case.startswith('cached_'):
+                    with f.boundary():pass
+                if case=='unobserved':
+                    extra=f.regex/'unobserved.so';extra.write_bytes(b'foreign')
+                    h=hashlib.sha256(extra.read_bytes()).hexdigest();f.context['guards'][str(extra)]=h
+                    f.context['required_guards'][str(extra)]=h
+                    f.regex_rows.append(['regex/unobserved.so','sha256='+base64.urlsafe_b64encode(bytes.fromhex(h)).decode().rstrip('='),'7'])
+                elif case=='missing_guard':f.context['required_guards'].pop(str(f.native))
+                elif case in ('foreign_guard','cached_guard'):f.context['required_guards'][str(f.native)]='a'*64
+                elif case in ('foreign_origin','cached_origin'):original['files'][str(f.native)]='a'*64
+                elif case in ('record_hash','record_size','record_missing'):
+                    if case=='record_hash':f.regex_rows[-1][1]='sha256='+'A'*43
+                    elif case=='record_size':f.regex_rows[-1][2]='1'
+                    else:f.regex_rows.pop()
+                if case.startswith('record_') or case=='unobserved':
+                    f.regex_record.write_text(''.join(','.join(row)+'\n' for row in f.regex_rows))
+                    h=hashlib.sha256(f.regex_record.read_bytes()).hexdigest()
+                    f.context['guards'][str(f.regex_record)]=f.context['required_guards'][str(f.regex_record)]=h
+                foreign=SimpleNamespace(__file__=str(f.native),__spec__=SimpleNamespace(origin=str(f.regex/'foreign.so')))
+                with patch.dict(sys.modules,{'regex._regex':foreign} if case=='module_origin' else {}):
+                    if case=='unobserved':
+                        with f.boundary():
+                            for path in f.natives:self.assertEqual(path.read_bytes(),b'original exact native file; never executed')
+                            with self.assertRaisesRegex(ValueError,'external dependency'):extra.read_bytes()
+                    else:
+                        with self.assertRaises(ValueError):
+                            with f.boundary():pass
+
+    def test_partial_metadata_receipt_and_foreign_bindings_rejected(self):
+        value,args=launch();flags={'threads':1};source={'actual':'source'}
+        args.authority=Path('/tmp/launch');args.authority_sha256='a'*64;args.output=Path('/tmp/output')
+        context={'args':args,'launch':value,'code':dict.fromkeys(e.FILES,'b'*64),
+            'training_context':{'source':source,'legacy':{'selected':{'source_cpu':{'numerical_flags':flags}}}},
+            'costs':e.paired_cost(controls('first'),'first'),'reference':SimpleNamespace(check_synthetic_bootstrap=lambda _:None),
+            'guards':{}}
+        record={'schema':e.SCHEMA,'phase':'cpu','arm':None,'seed':None,'stage':'first','panel':'selection',
+            'execution_sha256':args.execution_sha256,'source_code':context['code'],'source':source,
+            'cost_policy':e.COST_POLICY,'launch':value,'authority':descriptor(args.authority),
+            'authority_sha256':args.authority_sha256,'binding':e.binding(context),'numerical_flags':flags,
+            'output':str(args.output),'cost':context['costs'],'resource_policy':e.policy('cpu'),
+            'wall_seconds':1,'process_peak_rss_kib':100,'peak_cuda_allocated_bytes':0,'cuda_initialized':False,
+            'invocation':{'argv':e.cli(args),'optimize':0,'cuda_visible_devices':'','cublas_workspace_config':':4096:8'},
+            'synthetic_bootstrap':{},'files':{},'quality_read':False,'metadata_only':True,
+            'updated_payloads_authenticated':True,'malformed_inference_rejected':True,
+            'payload_facts':{e.label(v):{} for v in value['endpoints']},
+            'calibration':{'same_role_forward_exact':True,'raw_unit_packed_exact':True}}
+        for key in ('pass','engineering_admission_pass','integrity_pass','resources_pass','exit_rehash_pass',
+            'sequential_model_ownership','rng_flags_preserved','both_locks_held_in_parent_authority'):record[key]=True
+        for key in ('official_read','global_production_goal_met','public_latency_measured','product_go'):record[key]=False
+        with patch.object(e,'read_json',return_value=value):
+            e.check_receipt(context,record,'cpu')
+            for key,bad in (('metadata_only',False),('updated_payloads_authenticated',False),('payload_facts',{}),
+                ('quality_read',True),('source_code',{}),('stage','full'),('panel','validation'),('numerical_flags',{})):
+                with self.subTest(key=key),self.assertRaises((ValueError,KeyError)):
+                    e.check_receipt(context,{**record,key:bad},'cpu')
+
+    def test_whole_unit_resource_caps(self):
+        for phase in ('cpu','export','score'):
+            record={'resource_policy':e.policy(phase),'wall_seconds':1,'process_peak_rss_kib':100,
+                'peak_cuda_allocated_bytes':1 if phase=='export' else 0,'cuda_initialized':phase=='export'}
+            e.check_resource_facts(record,phase)
+            for key,value in (('wall_seconds',e.policy(phase)['seconds']),('process_peak_rss_kib',8*1024**2+1),
+                ('peak_cuda_allocated_bytes',10_000_000_000),('cuda_initialized',phase!='export')):
+                with self.assertRaises(ValueError):e.check_resource_facts({**record,key:value},phase)
+
+    def test_owned_native_api_exit_and_exact_membership(self):
+        from test_siglip2_nearest_ranking import NativeAdmissionFixture,driver
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);f=NativeAdmissionFixture(root)
+            class ExitContext(dict):
+                def __getitem__(self,key):
+                    accessed.add(key);return super().__getitem__(key)
+            accessed=set()
+            fit=f.context['fit_context']=ExitContext(f.context['fit_context'])
+            phases=fit['phase_seconds'];fit.pop('unit_started')  # Authority does not supply the run clock.
+            api=f.admit()
+            def code_descriptor(name,names):
+                target=root/name;target.mkdir()
+                for n in names:(target/n).write_bytes(PATH.with_name(n).read_bytes())
+                code={n:hashlib.sha256((target/n).read_bytes()).hexdigest() for n in names}
+                manifest=target/'execution.json';manifest.write_text(json.dumps(code))
+                return {'root':str(target),'code':code,'execution_sha256':hashlib.sha256(manifest.read_bytes()).hexdigest()}
+            own=code_descriptor('own',e.FILES);train=code_descriptor('train',e.TRAIN_FILES) if all(PATH.with_name(n).exists() for n in e.TRAIN_FILES) else own
+            refs=[code_descriptor('ref'+str(i),pins) for i,pins in enumerate((e.NEAREST_EVALUATOR['code'],e.GENUINE_PINS,e.REFERENCE['code']))]
+            # No model exists; use the REAL native API, with only disconnected trainer/source snapshots stubbed.
+            trainer=SimpleNamespace(require_no_training=lambda _:None,helper_guard=lambda _:None,
+                admit_bundle=lambda *_:({},{}))
+            f.context['nearest']=driver
+            context={'trainer':trainer,'training_context':f.context,'args':SimpleNamespace(phase='export',execution_sha256=own['execution_sha256']),
+                'root':Path(own['root']),'code':own['code'],'guards':{},'launch':{'training':train,
+                    'nearest_evaluator':refs[0],'genuine_evaluator':refs[1],'reference':refs[2],'endpoints':[]}}
+            runtime_root=root/'runtime';runtime_root.mkdir();portable=PortableRuntimeFixture(runtime_root)
+            with portable.boundary():pass
+            e.merge_guards(context['guards'],portable.context['guards'])
+            def action():
+                phases.clear();return e.exit_rehash(context)
+            with patch.object(e,'guard_helpers'),patch.object(e,'NEAREST_EVALUATOR',refs[0]), \
+                patch.object(e,'GENUINE_PINS',refs[1]['code']),patch.object(e,'TRAIN_FILES',train['code']),redirect_stdout(io.StringIO()):
+                # Execute the actual run prefix through native_start, stopping
+                # before the Torch import. The fixture used to mask this bug
+                # by supplying its own unrelated fitter start timestamp.
+                run_node=next(n for n in ast.parse(PATH.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='run')
+                stop=next(i for i,n in enumerate(run_node.body) if isinstance(n,ast.Import) and
+                    any(a.name=='torch' for a in n.names))
+                prefix=copy.deepcopy(run_node);prefix.body=prefix.body[:stop]
+                def start(value):
+                    self.assertIs(value,context)
+                    self.assertIs(action(),f.legacy['origins'])
+                    self.assertIs(fit['unit_started'],e.UNIT_STARTED,'inherited exit must use the original evaluator start')
+                    self.assertIs(fit['phase_seconds'],phases)
+                def run_prefix(node):
+                    namespace={**vars(e),'cli':lambda _:sys.argv,'authority':lambda _:context,'native_start':start}
+                    exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),str(PATH),'exec'),namespace)
+                    namespace['run'](context['args'])
+                for phase in ('cpu','export','score'):
+                    context['args'].phase=phase;fit.pop('unit_started',None)
+                    before=e.time.perf_counter()-e.UNIT_STARTED
+                    run_prefix(prefix)
+                    after=e.time.perf_counter()-e.UNIT_STARTED
+                    self.assertEqual(list(phases),['old_exit_begin','old_exit_end','own_union_begin',
+                        'own_union_end','closure_begin','closure_end'])
+                    self.assertTrue(all(before<=v<=after for v in phases.values()))
+                    self.assertEqual(list(phases.values()),sorted(phases.values()))
+                required={'legacy','old','root','args','code','guards','readout','phase_seconds','unit_started'}
+                self.assertTrue(required<=accessed,'real private exit context fields were not exercised')
+                # Each inherited required field is consumed by the authentic
+                # private adapter; neither a gate nor a source predicate is stubbed.
+                for key in sorted(required):
+                    saved=fit.pop(key)
+                    try:
+                        phases.clear()
+                        with self.subTest(missing=key),self.assertRaises(KeyError) as error:action()
+                        self.assertEqual(error.exception.args,(key,))
+                    finally:fit[key]=saved
+                target=ast.parse("context['training_context']['fit_context']['unit_started']=None").body[0].targets[0]
+                for replacement in (None,'time.perf_counter()',"context['training_context']['nearest'].UNIT_STARTED"):
+                    class ChangeStart(ast.NodeTransformer):
+                        count=0
+                        def visit_Assign(self,node):
+                            if any(ast.dump(t,include_attributes=False)==ast.dump(target,include_attributes=False) for t in node.targets):
+                                self.count+=1
+                                if replacement is None:return None
+                                node.value=ast.parse(replacement,mode='eval').body
+                            return self.generic_visit(node)
+                    change=ChangeStart();mutant=change.visit(copy.deepcopy(prefix))
+                    self.assertEqual(change.count,1)
+                    fit.pop('unit_started',None)
+                    expected=KeyError if replacement is None else AssertionError
+                    with self.subTest(start=replacement),self.assertRaises(expected):run_prefix(mutant)
+                    if replacement is None:
+                        with self.assertRaisesRegex(KeyError,'unit_started'):action()
+                context['args'].phase='export';run_prefix(prefix)
+                self.assertIs(action(),f.legacy['origins'])
+                f.set_origins({p:h for i,(p,h) in enumerate(f.files.items()) if i})
+                with self.assertRaisesRegex(ValueError,'exact four'):action()
+                f.set_origins(f.files)
+                with self.assertRaisesRegex(ValueError,'owned legacy'):api.audit_origins(dict(f.legacy))
+                private=next(c.cell_contents for c in api.audit_origins.__closure__ if isinstance(c.cell_contents,driver.FunctionType)
+                    and c.cell_contents.__name__=='audit_origins')
+                with patch.dict(private.__globals__,{'_nearest_supplement':{'files':{},'modules':{}}}),self.assertRaisesRegex(ValueError,'global binding changed'):action()
+                runtime=portable.package/'version.py';raw=runtime.read_bytes();prior=runtime.stat()
+                runtime.write_bytes(b'changed');os.utime(runtime,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                with self.assertRaisesRegex(ValueError,'SHA256'):action()
+                runtime.write_bytes(raw);os.utime(runtime,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                manifest=Path(own['root'])/'execution.json';raw=manifest.read_bytes();manifest.write_bytes(raw+b' ')
+                with self.assertRaisesRegex(ValueError,'SHA256'):action()
+                manifest.write_bytes(raw);f.unchanged_originals(self)
+
+    def test_source_order_bundle_loader_and_no_global_rebinding(self):
+        source=PATH.read_text();tree=ast.parse(source);nodes={n.name:n for n in tree.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))}
+        text=lambda name:ast.get_source_segment(source,nodes[name])
+        score=text('score_exports')
+        self.assertLess(score.index('archived_replay('),score.index('quality_after_readiness('))
+        self.assertLess(score.index('repeated=native.read_wires('),score.index('quality_after_readiness('))
+        self.assertLess(score.index("launch['stage'] == 'full' and immediate"),score.index('paired_intervals('))
+        export=text('native_export');self.assertIn('for pass_index in range(2)',export)
+        self.assertIn("portable.load_inference(directory,endpoint['bundle']['sha256'],'cuda')",export)
+        self.assertIn('with bundle_reads_only(context,endpoint)',export);self.assertIn('require_exact=True',export)
+        self.assertNotIn('native_raw',export);self.assertNotIn('cache_rows',export)
+        exit_source=text('exit_rehash');self.assertIn("api.exit_rehash(t['fit_context'])",exit_source)
+        self.assertIn("require_exact=context['args'].phase == 'export'",exit_source)
+        for forbidden in ('reset_peak','globals()[','if False','torch.load('):
+            if forbidden != 'torch.load(':self.assertNotIn(forbidden,source)
+        for node in tree.body:
+            if isinstance(node,ast.Import):self.assertTrue(all(n.name.split('.')[0] not in e.NATIVE for n in node.names))
+        self.assertEqual(e.TRAIN_FILES,{'train_siglip2_compact_ranking.py','test_siglip2_compact_ranking.py'})
+
+
+if __name__ == '__main__':
+    unittest.main()
