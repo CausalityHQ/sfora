@@ -83,6 +83,41 @@ def intervals(q):
                'query_lower95':-.001,'query_upper95':.1} for m in e.METRICS}
 
 
+# Independent definition-time graphs from the supplied installed sources.
+FILELOCK_IMPORTS = {
+    '__init__':'from ._api import *\nfrom ._error import *\nfrom ._async_read_write import *\nfrom ._read_write import *\nfrom ._soft import *\nfrom ._soft_rw import *\nfrom ._unix import *\nfrom ._windows import *\nfrom .asyncio import *\nfrom .version import *\n',
+    '_api':'from ._error import *\nfrom ._util import *\n',
+    '_async_read_write':'from ._read_write import *\n',
+    '_error':'', '_read_write':'from ._api import *\nfrom ._error import *\n',
+    '_soft':'from ._api import *\nfrom ._util import *\n',
+    '_soft_rw/__init__':'from ._async import *\nfrom ._sync import *\n',
+    '_soft_rw/_async':'from ._sync import *\n',
+    '_soft_rw/_sync':'from .._api import *\nfrom .._error import *\nfrom .._soft import *\nfrom .._util import *\n',
+    '_unix':'from ._api import *\nfrom ._util import *\n', '_util':'',
+    '_windows':'from ._api import *\nfrom ._util import *\n',
+    'asyncio':'from ._api import *\nfrom ._error import *\nfrom ._soft import *\nfrom ._unix import *\nfrom ._windows import *\n',
+    'version':''}
+HUB_IMPORTS = {
+    '_buckets':'from .utils import *\n',
+    '_commit_api':'from .file_download import *\nfrom .lfs import *\nfrom tqdm.contrib.concurrent import *\n',
+    '_dataset_viewer':'from .utils import *\n', '_eval_results':'',
+    '_inference_endpoints':'from .errors import *\nfrom .utils import *\n',
+    '_jobs_api':'from ._space_api import *\nfrom .utils._datetime import *\n',
+    '_local_folder':'from .utils._fixes import *\n',
+    '_snapshot_download':'from .file_download import *\nfrom .hf_api import *\nfrom tqdm.contrib.concurrent import *\n',
+    '_space_api':'from .utils import *\n',
+    '_upload_large_folder':'from ._commit_api import *\nfrom ._local_folder import *\nfrom .utils.sha import *\n',
+    'community':'from .utils import *\n',
+    'file_download':'from ._local_folder import *\nfrom .utils.sha import *\n',
+    'hf_api':'from ._buckets import *\nfrom ._commit_api import *\nfrom ._dataset_viewer import *\nfrom ._eval_results import *\nfrom ._inference_endpoints import *\nfrom ._jobs_api import *\nfrom ._space_api import *\nfrom ._upload_large_folder import *\nfrom .community import *\nfrom .file_download import *\nfrom .repocard_data import *\nfrom .utils._deprecation import *\nfrom .utils._verification import *\nfrom .utils.endpoint_helpers import *\n',
+    'lfs':'from .utils.sha import *\n',
+    'repocard':'from .file_download import *\nfrom .hf_api import *\nfrom .repocard_data import *\n',
+    'repocard_data':'from .utils import *\n', 'utils/_deprecation':'',
+    'utils/_verification':'from ..file_download import *\nfrom .sha import *\n',
+    'utils/endpoint_helpers':'from ..repocard_data import *\n',
+    'utils/insecure_hashlib':'', 'utils/sha':'from .insecure_hashlib import *\n'}
+
+
 class PortableRuntimeFixture:
     """Installed sources and a previously admitted RECORD; no native imports."""
     def __init__(self,root,*,yaml_native=False):
@@ -173,6 +208,13 @@ class PortableRuntimeFixture:
             'error':'','events':'','nodes':'value = 113\n','tokens':''}
         examples['pyyaml']={'yaml/'+n+'.py':(imports+"marker = 'source'\n").encode()
             for n,imports in yaml_imports.items()}
+        examples['filelock']={'filelock/'+n+'.py':(imports+"value = 127\nmarker = 'source'\n").encode()
+            for n,imports in FILELOCK_IMPORTS.items()}
+        examples['huggingface_hub'].update({'huggingface_hub/'+n+'.py':
+            (imports+"value = 131\nmarker = 'source'\n").encode() for n,imports in HUB_IMPORTS.items()})
+        examples['huggingface_hub']['huggingface_hub/utils/_fixes.py']=b'from filelock import value\n'
+        examples['tqdm'].update({'tqdm/contrib/__init__.py':b"from ..auto import value\nmarker = 'source'\n",
+            'tqdm/contrib/concurrent.py':b"from ..auto import value\nmarker = 'source'\n"})
         self.extra_sources={};self.extra_records={};self.natives=[self.native]
         for distribution in examples:
             sources={self.site/n:b'' for n in getattr(e,'RUNTIME_SOURCES',{}).get(distribution,())}
@@ -609,7 +651,11 @@ class EvaluationTests(unittest.TestCase):
             'utils/_git_credential.py utils/_headers.py utils/_hf_uris.py utils/_http.py utils/_lfs.py '
             'utils/_pagination.py utils/_parsing.py utils/_paths.py utils/_runtime.py utils/_safetensors.py '
             'utils/_subprocess.py utils/_telemetry.py utils/_terminal.py utils/_typing.py utils/_validators.py '
-            'utils/_xet.py utils/logging.py utils/tqdm.py').split()
+            'utils/_xet.py utils/logging.py utils/tqdm.py _buckets.py _commit_api.py _dataset_viewer.py '
+            '_eval_results.py _inference_endpoints.py _jobs_api.py _local_folder.py _snapshot_download.py '
+            '_space_api.py _upload_large_folder.py community.py file_download.py hf_api.py lfs.py '
+            'repocard.py repocard_data.py utils/_deprecation.py utils/_verification.py '
+            'utils/endpoint_helpers.py utils/insecure_hashlib.py utils/sha.py').split()
         self.assertEqual(e.RUNTIME_SOURCES['huggingface_hub'],{'huggingface_hub/'+n for n in names}|
             {'huggingface_hub-1.16.1.dist-info/METADATA'})
 
@@ -645,7 +691,7 @@ class EvaluationTests(unittest.TestCase):
                     py_compile.compile(str(path),doraise=True)
                     path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
                 history=[f.site/'huggingface_hub'/name for name in
-                    ('utils/resume.pt','utils/optimizer.pt','utils/teachers.npy','utils/unqualified.py','hf_api.py')]
+                    ('utils/resume.pt','utils/optimizer.pt','utils/teachers.npy','utils/unqualified.py','_login.py')]
                 foreign=root/'foreign.py';foreign.write_bytes(b'forbidden')
                 for path in history:path.write_bytes(b'forbidden')
                 with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
@@ -679,6 +725,103 @@ class EvaluationTests(unittest.TestCase):
             for name in tuple(sys.modules):
                 if name.split('.')[0]=='huggingface_hub':sys.modules.pop(name)
             sys.modules.update(saved)
+
+    def test_bundle_boundary_filelock_hub_transitive_source_fallback_and_denials(self):
+        prefixes=('filelock','huggingface_hub','tqdm')
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0] in prefixes}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root)
+                names=({'filelock/'+n+'.py' for n in FILELOCK_IMPORTS}|
+                    {'huggingface_hub/'+n+'.py' for n in HUB_IMPORTS}|
+                    {'tqdm/contrib/__init__.py','tqdm/contrib/concurrent.py'})
+                sources={f.site/n:f.extra_sources[f.site/n] for n in names}
+                for path,raw in sources.items():
+                    prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached'))
+                    py_compile.compile(str(path),doraise=True)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                forbidden=[f.site/n for n in ('filelock/resume.pt','filelock/optimizer.pt','filelock/teachers.npy',
+                    'filelock/unqualified.py','filelock/foreign.so','huggingface_hub/_login.py',
+                    'huggingface_hub/inference/__init__.py','huggingface_hub/utils/_xet_progress_reporting.py',
+                    'tqdm/contrib/slack.py','tqdm/notebook.py')]+[root/'foreign.py']
+                for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
+                original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                original_before=copy.deepcopy(original);required_before=dict(f.context['required_guards'])
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name.split('.')[0] in prefixes:sys.modules.pop(name)
+                        with f.boundary():
+                            lock=module('filelock',f.site/'filelock/__init__.py') if direct_loader else importlib.import_module('filelock')
+                            self.assertEqual((lock.value,lock.marker),(127,'source'))
+                            for name in ('huggingface_hub._snapshot_download','huggingface_hub.repocard'):
+                                self.assertEqual(importlib.import_module(name).value,131)
+                            self.assertEqual(sys.modules['tqdm.contrib.concurrent'].value,8)
+                            for path,raw in sources.items():
+                                name=str(path.relative_to(f.site)).removesuffix('.py').replace('/','.').removesuffix('.__init__')
+                                value=sys.modules[name]
+                                self.assertIsInstance(value.__loader__,importlib.machinery.SourceFileLoader)
+                                self.assertEqual((value.__file__,value.__spec__.origin,value.marker),(str(path),str(path),'source'))
+                                self.assertEqual(path.read_bytes(),raw)
+                                with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                                with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
+                            for path in (*forbidden,f.extra_records['filelock'],f.extra_records['huggingface_hub'],f.extra_records['tqdm']):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                            with self.assertRaisesRegex(ValueError,'external dependency'):
+                                importlib.import_module('filelock.unqualified')
+                self.assertEqual(original,original_before);self.assertEqual(f.context['required_guards'],required_before)
+                foreign=SimpleNamespace(__file__=str(forbidden[-1]),__spec__=SimpleNamespace(origin=str(forbidden[-1])))
+                for name in ('filelock','filelock._api','filelock._soft_rw._sync','huggingface_hub.hf_api','tqdm.contrib.concurrent'):
+                    with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
+                        with f.boundary():pass
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0] in prefixes:sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_filelock_hub_closure_requires_original_record_hash_and_size(self):
+        for distribution,name in (('filelock','filelock/_soft_rw/_sync.py'),
+                ('huggingface_hub','huggingface_hub/hf_api.py'),('tqdm','tqdm/contrib/concurrent.py')):
+            for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row','wrong_hash','wrong_size'):
+                with self.subTest(distribution=distribution,case=case),tempfile.TemporaryDirectory() as directory:
+                    root=Path(directory);f=PortableRuntimeFixture(root);record=f.extra_records[distribution]
+                    if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                    elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                    elif case=='mutated_record':record.write_bytes(record.read_bytes()+b'\n')
+                    elif case=='foreign_record':
+                        foreign=root/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True)
+                        foreign.write_bytes(record.read_bytes());h=hashlib.sha256(foreign.read_bytes()).hexdigest()
+                        f.context['required_guards'].pop(str(record))
+                        f.context['guards'][str(foreign)]=f.context['required_guards'][str(foreign)]=h
+                    else:
+                        rows=list(csv.reader(record.read_text().splitlines()));row=next(r for r in rows if r[0]==name)
+                        if case=='missing_row':rows.remove(row)
+                        elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                        else:row[2]='999'
+                        record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                        h=hashlib.sha256(record.read_bytes()).hexdigest()
+                        f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                    with self.assertRaises(ValueError):
+                        with f.boundary():pass
+
+    def test_filelock_hub_source_mutations_rejected_before_and_after_cached_boundary(self):
+        names=({'filelock/'+n+'.py' for n in FILELOCK_IMPORTS}|
+            {'huggingface_hub/'+n+'.py' for n in HUB_IMPORTS}|
+            {'tqdm/contrib/__init__.py','tqdm/contrib/concurrent.py','filelock-3.29.4.dist-info/METADATA'})
+        for cached in (False,True):
+            with tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory))
+                if cached:
+                    with f.boundary():pass
+                for name in sorted(names):
+                    path=f.site/name;raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    try:
+                        with self.subTest(name=name,cached=cached),self.assertRaisesRegex(ValueError,'SHA256'):
+                            with f.boundary():pass
+                    finally:
+                        path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
 
     def test_bundle_boundary_yaml_transitive_source_fallback_and_denials(self):
         saved={n:m for n,m in sys.modules.items() if n.split('.')[0]=='yaml'}

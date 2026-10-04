@@ -53,6 +53,7 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
  'regex':{'regex/__init__.py','regex/_main.py','regex/_regex_core.py','regex-2026.6.28.dist-info/METADATA'},
  'tqdm':set(('tqdm/__init__.py tqdm/_monitor.py tqdm/_tqdm_pandas.py tqdm/cli.py tqdm/gui.py tqdm/std.py '
   'tqdm/utils.py tqdm/version.py tqdm/auto.py tqdm/autonotebook.py tqdm/asyncio.py '
+  'tqdm/contrib/__init__.py tqdm/contrib/concurrent.py '
   'tqdm-4.68.3.dist-info/METADATA').split()),
  'anyio':set(('anyio/__init__.py anyio/_core/__init__.py anyio/_core/_contextmanagers.py anyio/_core/_eventloop.py '
   'anyio/_core/_exceptions.py anyio/_core/_fileio.py anyio/_core/_resources.py anyio/_core/_signals.py '
@@ -81,18 +82,25 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
   'httpx/_transports/base.py httpx/_transports/default.py httpx/_transports/mock.py '
   'httpx/_transports/wsgi.py httpx/_types.py httpx/_urlparse.py httpx/_urls.py httpx/_utils.py '
   'httpx-0.28.1.dist-info/METADATA').split()),
- 'huggingface_hub':set(('huggingface_hub/__init__.py huggingface_hub/constants.py huggingface_hub/dataclasses.py '
+ 'huggingface_hub':set(('huggingface_hub/__init__.py huggingface_hub/_buckets.py huggingface_hub/_commit_api.py '
+  'huggingface_hub/_dataset_viewer.py huggingface_hub/_eval_results.py huggingface_hub/_inference_endpoints.py '
+  'huggingface_hub/_jobs_api.py huggingface_hub/_local_folder.py huggingface_hub/_snapshot_download.py '
+  'huggingface_hub/_space_api.py huggingface_hub/_upload_large_folder.py huggingface_hub/community.py '
+  'huggingface_hub/constants.py huggingface_hub/dataclasses.py huggingface_hub/file_download.py '
+  'huggingface_hub/hf_api.py huggingface_hub/lfs.py huggingface_hub/repocard.py huggingface_hub/repocard_data.py '
   'huggingface_hub/errors.py huggingface_hub/serialization/__init__.py huggingface_hub/serialization/_base.py '
   'huggingface_hub/serialization/_torch.py huggingface_hub/utils/__init__.py huggingface_hub/utils/_auth.py '
   'huggingface_hub/utils/_cache_assets.py huggingface_hub/utils/_cache_manager.py huggingface_hub/utils/_chunk_utils.py '
-  'huggingface_hub/utils/_datetime.py huggingface_hub/utils/_detect_agent.py huggingface_hub/utils/_experimental.py '
+  'huggingface_hub/utils/_datetime.py huggingface_hub/utils/_deprecation.py huggingface_hub/utils/_detect_agent.py '
+  'huggingface_hub/utils/_experimental.py '
   'huggingface_hub/utils/_fixes.py huggingface_hub/utils/_git_credential.py huggingface_hub/utils/_headers.py '
   'huggingface_hub/utils/_hf_uris.py huggingface_hub/utils/_http.py huggingface_hub/utils/_lfs.py '
   'huggingface_hub/utils/_pagination.py huggingface_hub/utils/_parsing.py huggingface_hub/utils/_paths.py '
   'huggingface_hub/utils/_runtime.py huggingface_hub/utils/_safetensors.py huggingface_hub/utils/_subprocess.py '
   'huggingface_hub/utils/_telemetry.py huggingface_hub/utils/_terminal.py huggingface_hub/utils/_typing.py '
-  'huggingface_hub/utils/_validators.py huggingface_hub/utils/_xet.py huggingface_hub/utils/logging.py '
-  'huggingface_hub/utils/tqdm.py huggingface_hub-1.16.1.dist-info/METADATA').split()),
+  'huggingface_hub/utils/_validators.py huggingface_hub/utils/_verification.py huggingface_hub/utils/_xet.py '
+  'huggingface_hub/utils/endpoint_helpers.py huggingface_hub/utils/insecure_hashlib.py huggingface_hub/utils/logging.py '
+  'huggingface_hub/utils/sha.py huggingface_hub/utils/tqdm.py huggingface_hub-1.16.1.dist-info/METADATA').split()),
  'idna':set(('idna/__init__.py idna/core.py idna/idnadata.py idna/intranges.py idna/package_data.py').split()),
  'jinja2':set(('jinja2/__init__.py jinja2/_identifier.py jinja2/async_utils.py jinja2/bccache.py jinja2/compiler.py '
   'jinja2/defaults.py jinja2/environment.py jinja2/exceptions.py jinja2/ext.py jinja2/filters.py '
@@ -106,6 +114,10 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
   'tokenizers/implementations/sentencepiece_bpe.py tokenizers/implementations/sentencepiece_unigram.py '
   'tokenizers/models/__init__.py tokenizers/normalizers/__init__.py tokenizers/pre_tokenizers/__init__.py '
   'tokenizers/processors/__init__.py tokenizers/trainers/__init__.py tokenizers-0.22.2.dist-info/METADATA').split()),
+ 'filelock':set(('filelock/__init__.py filelock/_api.py filelock/_async_read_write.py filelock/_error.py '
+  'filelock/_read_write.py filelock/_soft.py filelock/_soft_rw/__init__.py filelock/_soft_rw/_async.py '
+  'filelock/_soft_rw/_sync.py filelock/_unix.py filelock/_util.py filelock/_windows.py filelock/asyncio.py '
+  'filelock/version.py filelock-3.29.4.dist-info/METADATA').split()),
  'typing_extensions':set(('typing_extensions.py').split()),
  'pyyaml':set(('yaml/__init__.py yaml/composer.py yaml/constructor.py yaml/cyaml.py yaml/dumper.py '
   'yaml/emitter.py yaml/error.py yaml/events.py yaml/loader.py yaml/nodes.py yaml/parser.py '
@@ -114,7 +126,6 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
  # Definition-time version checks read identity bytes, without granting package code.
  'accelerate':{'accelerate-1.14.0.dist-info/METADATA'},
  'aiohttp':{'aiohttp-3.14.1.dist-info/METADATA'},
- 'filelock':{'filelock-3.29.4.dist-info/METADATA'},
  'hf_xet':{'hf_xet-1.5.1.dist-info/METADATA'},
  'numpy':{'numpy-2.5.0.dist-info/METADATA'},
  'pillow':{'pillow-12.2.0.dist-info/METADATA'},
