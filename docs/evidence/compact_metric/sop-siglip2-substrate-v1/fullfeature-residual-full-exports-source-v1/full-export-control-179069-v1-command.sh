@@ -1,0 +1,90 @@
+#!/bin/bash
+set -euo pipefail
+trap 'sfora_command_status=$?; trap - EXIT; set +e; export SFORA_COMMAND_STATUS=$sfora_command_status; /usr/bin/python3 /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py; sfora_footer_status=$?; if (( sfora_command_status != 0 )); then exit "$sfora_command_status"; fi; exit "$sfora_footer_status"' EXIT
+sha256sum -c <<'HASHES'
+9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b  /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13
+bfe7cd329ad359bdcbc077e732ce654a94ef248b8567f0f32fd4234652df1995  /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py
+e5f08a75c38ee6579ccc9681aee4946fbc59ddfa36e376a3fb81e27d9e58ef45  /home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py
+73e4386256c576329438da805cf6ff71ce67af7b4eae5b1074f2258d7d7029be  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/evaluate_siglip2_nearest_ranking.py
+5c24fe113c03ae26d4ab68f21caf8e3a8d19c1a082e696fdf54abdd8bb73ab59  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/execution.json
+a0e42560d1cce4b7e416e48a09ea27cf531e5e01c035ead5a387fea5cf48d90e  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/test_nearest_ranking_evaluation.py
+abadae094c26d57e702dc0c2b8962a47aed7ae89f3d7459a1ea09a6c95708964  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/authority-full-export-control-179069-v1.json
+3684268825e8a03592ad355a0752b582245f1d05fd0bcb3ed084a01ef68140b0  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/evaluate_siglip2_compact_ranking.py
+c7b5916d70432dcd5bd990f007b2dc6a41c4c1912582a6838daf7e4554fa80a4  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/execution.json
+426f0fe67434db451a50440b3a2be7b342afea9d2ad2da09616f76ff88e43167  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/test_compact_ranking_evaluation.py
+68531079df9155239d38ed5a7d21404cda059aa608d263aa749aa2109a37a9ff  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179061-v1/bundle/bundle.json
+22017177fc81cdd0b2aa78f021f77774daf1b85be81806d51a8a69b781ebb349  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179061-v1/receipt.json
+d36ad206f355e97e93c83123043ebcb939c374c090e92802a7c68676da0a9df7  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179061-v1/resume.pt
+7ad4fbcc3210cdf7f371a0686aa41920239b7427168ad9866c269e9b724dc8b7  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179061-v1/bundle/bundle.json
+1ae1fb7043cdff8b09c7e1e15211ff4465b5bc11f2c3e6985bc8302e04338898  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179061-v1/receipt.json
+218e440e5634daea52b34279aba1305f754e028080b070377c4de02b2ebbe8c7  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179061-v1/resume.pt
+558d8c3fd9a6e89274058b701fdbe8259ce32888911390b79e321a57cd45bdb2  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/authority-train-candidate-179061-v1.json
+75e2fa6914e90e080019f4da611973e514fcf13f03c711a55ae139d86fde0a6e  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/authority-train-control-179061-v1.json
+996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/execution.json
+6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/test_siglip2_compact_ranking.py
+d3c275cd10d68cd54701643796041ee9a4c722443390e58f8cc4d820047f30ef  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train-candidate-179061-v1.log
+6363011794f63841ab13141d7094f7c187b2f56c9b97d7ad83eb5eb95e3c4ec8  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train-control-179061-v1.log
+ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train_siglip2_compact_ranking.py
+85fd39e08bb676cbfc827576bf5c5bfda7fb5ff0a9da800aa4d35a4d30a2c6aa  /home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/evaluate_siglip2_genuine_views.py
+82e4e71362a474e58643214380736da606ca5b67a9cd1b50c6dc5fa997a3224f  /home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/execution.json
+ca558a7d43f753a345e2fe67262e0880a9b82aaa778decc7993bc2a622bd0c35  /home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/test_siglip2_genuine_view_evaluation.py
+e74b944dee26565029a4ec7e6ea2948d0f23e8564e5ee60ffd2f876453f529eb  /home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/evaluate_siglip2_prototype_residual.py
+c456456c83472526313177fa289ca52228b04f9dff0edf44575933ab45f62970  /home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/execution.json
+5c46839ec6a437387d1309dd72167411cfb8a815ceab837ea21dca81aa43dc49  /home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/test_siglip2_prototype_residual_evaluation.py
+041c66c5ab958fcc8a318cf86f7a7a0139899f77012edb630c2d033cf88304a1  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-full-cpu-v1/receipt.json
+a04d39784280c4ceff6d2f78aa1a197e7c69ed8482d2ba41f22711f02cac0058  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/full-cpu-v1.log
+a021c444eee79dd75bef9e6086620e29ea65d5a4a8e0b2440b5f4507480cfe3b  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179069-v2/resume.pt
+3d16405158dd054519e8ba11d61fdbcfbad43028385a91b7b85266b2997c7e5e  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179069-v2/bundle/bundle.json
+dbc18bd35ff6d61a0e748f31301239433bf6ab79722b7d5b361c6d533e7947fb  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/authority-train-candidate-179069-v2.json
+7c1a718d3124f3a53b872aebaf5d1b2131323e2e9e5dc48772bc696d8b43f0cc  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179069-v2/receipt.json
+db176f9725bb81c9d1e2d833e8d0efb629367e71edcef523f703703fcc1079d7  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train-candidate-179069-v2.log
+12aaec27521a9f6c3e83829f07bdac904a62632c0edc868f0a87077379b00956  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179069-v2/resume.pt
+74a0e8b9bd0fb428e445ef49dd7fd5baec0d7ba8112368d2e8e5dfb1d6337ce0  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179069-v2/bundle/bundle.json
+d9a37b328636a7b3709c905a8fef776f321d972f4c906f9ed93646552de9de32  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/authority-train-control-179069-v2.json
+69488a65dc1dfcfd802aeaae5dfaf522fb91f8f31d802ef7cd03170fd53c5bbf  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179069-v2/receipt.json
+bfa73c55eab7ce446effbe12327b2babb4f2b05f58fd8bdc96cf267b0128f90b  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train-control-179069-v2.log
+HASHES
+/home/riomus/group-learning/.venv/bin/python -B /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/evaluate_siglip2_compact_ranking.py --execution-sha256 c7b5916d70432dcd5bd990f007b2dc6a41c4c1912582a6838daf7e4554fa80a4 --authority /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/authority-full-export-control-179069-v1.json --authority-sha256 abadae094c26d57e702dc0c2b8962a47aed7ae89f3d7459a1ea09a6c95708964 --phase export --seed 179069 --arm control --output /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-full-export-control-179069-v1
+sha256sum -c <<'HASHES'
+9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b  /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13
+bfe7cd329ad359bdcbc077e732ce654a94ef248b8567f0f32fd4234652df1995  /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py
+e5f08a75c38ee6579ccc9681aee4946fbc59ddfa36e376a3fb81e27d9e58ef45  /home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py
+73e4386256c576329438da805cf6ff71ce67af7b4eae5b1074f2258d7d7029be  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/evaluate_siglip2_nearest_ranking.py
+5c24fe113c03ae26d4ab68f21caf8e3a8d19c1a082e696fdf54abdd8bb73ab59  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/execution.json
+a0e42560d1cce4b7e416e48a09ea27cf531e5e01c035ead5a387fea5cf48d90e  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/test_nearest_ranking_evaluation.py
+abadae094c26d57e702dc0c2b8962a47aed7ae89f3d7459a1ea09a6c95708964  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/authority-full-export-control-179069-v1.json
+3684268825e8a03592ad355a0752b582245f1d05fd0bcb3ed084a01ef68140b0  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/evaluate_siglip2_compact_ranking.py
+c7b5916d70432dcd5bd990f007b2dc6a41c4c1912582a6838daf7e4554fa80a4  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/execution.json
+426f0fe67434db451a50440b3a2be7b342afea9d2ad2da09616f76ff88e43167  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/test_compact_ranking_evaluation.py
+68531079df9155239d38ed5a7d21404cda059aa608d263aa749aa2109a37a9ff  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179061-v1/bundle/bundle.json
+22017177fc81cdd0b2aa78f021f77774daf1b85be81806d51a8a69b781ebb349  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179061-v1/receipt.json
+d36ad206f355e97e93c83123043ebcb939c374c090e92802a7c68676da0a9df7  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179061-v1/resume.pt
+7ad4fbcc3210cdf7f371a0686aa41920239b7427168ad9866c269e9b724dc8b7  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179061-v1/bundle/bundle.json
+1ae1fb7043cdff8b09c7e1e15211ff4465b5bc11f2c3e6985bc8302e04338898  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179061-v1/receipt.json
+218e440e5634daea52b34279aba1305f754e028080b070377c4de02b2ebbe8c7  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179061-v1/resume.pt
+558d8c3fd9a6e89274058b701fdbe8259ce32888911390b79e321a57cd45bdb2  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/authority-train-candidate-179061-v1.json
+75e2fa6914e90e080019f4da611973e514fcf13f03c711a55ae139d86fde0a6e  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/authority-train-control-179061-v1.json
+996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/execution.json
+6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/test_siglip2_compact_ranking.py
+d3c275cd10d68cd54701643796041ee9a4c722443390e58f8cc4d820047f30ef  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train-candidate-179061-v1.log
+6363011794f63841ab13141d7094f7c187b2f56c9b97d7ad83eb5eb95e3c4ec8  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train-control-179061-v1.log
+ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train_siglip2_compact_ranking.py
+85fd39e08bb676cbfc827576bf5c5bfda7fb5ff0a9da800aa4d35a4d30a2c6aa  /home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/evaluate_siglip2_genuine_views.py
+82e4e71362a474e58643214380736da606ca5b67a9cd1b50c6dc5fa997a3224f  /home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/execution.json
+ca558a7d43f753a345e2fe67262e0880a9b82aaa778decc7993bc2a622bd0c35  /home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/test_siglip2_genuine_view_evaluation.py
+e74b944dee26565029a4ec7e6ea2948d0f23e8564e5ee60ffd2f876453f529eb  /home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/evaluate_siglip2_prototype_residual.py
+c456456c83472526313177fa289ca52228b04f9dff0edf44575933ab45f62970  /home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/execution.json
+5c46839ec6a437387d1309dd72167411cfb8a815ceab837ea21dca81aa43dc49  /home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/test_siglip2_prototype_residual_evaluation.py
+041c66c5ab958fcc8a318cf86f7a7a0139899f77012edb630c2d033cf88304a1  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-full-cpu-v1/receipt.json
+a04d39784280c4ceff6d2f78aa1a197e7c69ed8482d2ba41f22711f02cac0058  /home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1/full-cpu-v1.log
+a021c444eee79dd75bef9e6086620e29ea65d5a4a8e0b2440b5f4507480cfe3b  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179069-v2/resume.pt
+3d16405158dd054519e8ba11d61fdbcfbad43028385a91b7b85266b2997c7e5e  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179069-v2/bundle/bundle.json
+dbc18bd35ff6d61a0e748f31301239433bf6ab79722b7d5b361c6d533e7947fb  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/authority-train-candidate-179069-v2.json
+7c1a718d3124f3a53b872aebaf5d1b2131323e2e9e5dc48772bc696d8b43f0cc  /home/riomus/runs/sfora-so400-fullfeature-residual-train-candidate-179069-v2/receipt.json
+db176f9725bb81c9d1e2d833e8d0efb629367e71edcef523f703703fcc1079d7  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train-candidate-179069-v2.log
+12aaec27521a9f6c3e83829f07bdac904a62632c0edc868f0a87077379b00956  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179069-v2/resume.pt
+74a0e8b9bd0fb428e445ef49dd7fd5baec0d7ba8112368d2e8e5dfb1d6337ce0  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179069-v2/bundle/bundle.json
+d9a37b328636a7b3709c905a8fef776f321d972f4c906f9ed93646552de9de32  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/authority-train-control-179069-v2.json
+69488a65dc1dfcfd802aeaae5dfaf522fb91f8f31d802ef7cd03170fd53c5bbf  /home/riomus/runs/sfora-so400-fullfeature-residual-train-control-179069-v2/receipt.json
+bfa73c55eab7ce446effbe12327b2babb4f2b05f58fd8bdc96cf267b0128f90b  /home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train-control-179069-v2.log
+HASHES
