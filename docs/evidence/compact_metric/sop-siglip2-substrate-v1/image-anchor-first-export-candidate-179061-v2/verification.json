@@ -1,0 +1,16 @@
+{
+  "pass": true,
+  "arm": "candidate",
+  "service_seconds": 617.346,
+  "host_peak_bytes": 4954263552,
+  "rss_kib": 4102996,
+  "invocation_id": "bd6cc721074642fd960af9576cd05ecd",
+  "receipt_sha256": "a558615b2951bf1f4680dbab12c7da3f744e3c3a2d2ad97fcd5053f4986d2bb5",
+  "log_sha256": "c8527f6aec0b78cd3f2d0faab46ac827d4fc7ee8114efda62feac2461ae9d46b",
+  "files": {
+    "candidate-179061.packed.bin": "b612c262c3ebdad09a6f0f9ab1623a2be1cbc4ac263f414b068c1f5546374af6",
+    "candidate-179061.raw.npy": "34d4e48b189367114a8bb8cfeacd4275d1d1126d08244709768320f9ce41c46f",
+    "candidate-179061.unit.npy": "6b9430f9d13cb0e74b632dd7cdb33c8193ebeeed5ad2015f55626666e8184b53"
+  },
+  "quality_read": false
+}
