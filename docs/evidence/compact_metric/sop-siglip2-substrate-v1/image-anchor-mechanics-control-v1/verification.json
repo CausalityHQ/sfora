@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "mechanics",
+  "arm": "control",
+  "service_seconds": 249.016,
+  "invocation_id": "a5b83898fa5a4d1eb767765707aac8ef",
+  "host_peak_bytes": 7306911744,
+  "rss_kib": 4595868,
+  "unit": "sfora-so400-image-anchor-smooth-ap-mechanics-control-v1",
+  "quality_read": false,
+  "receipt_sha256": "b13c04f1eda734e1e9eef2bfb0d52e5cfb30259e8c4b5acd54897e9b24a080d6",
+  "log_sha256": "78843216dd6be62cb8ca34a7c1c181f6e6572c61a4be62bff2bb024041bd2c09"
+}
