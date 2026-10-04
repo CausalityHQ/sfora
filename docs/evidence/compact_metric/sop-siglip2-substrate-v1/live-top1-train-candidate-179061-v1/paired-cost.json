@@ -1,0 +1,14 @@
+{
+  "pass": true,
+  "seed": 179061,
+  "updates": 128,
+  "control_whole_seconds": 419.282,
+  "candidate_whole_seconds": 437.753,
+  "control_core_seconds": 101.19301586924121,
+  "candidate_core_seconds": 125.17960500810295,
+  "whole_ratio": 1.0440538825897605,
+  "core_ratio": 1.2370379905452817,
+  "limit": 1.5,
+  "quality_measured": false,
+  "public_latency_measured": false
+}
