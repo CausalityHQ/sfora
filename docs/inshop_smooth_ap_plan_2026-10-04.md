@@ -1,0 +1,27 @@
+# Prospective Smooth-AP compact readout trial
+
+The compact nearest-positive hinge recipe closed with verified first-selection KILL. Preserve all original receipts and its R1 Pareto checkpoint; never initialize from either trained endpoint. Production SOP/InShop quality and deployed-speed goal remains unmet.
+
+Dual review81cfd3446cb641bc: research29e4ea30e0b5480e attempted Opus5.5, authentication failed and its recorded Sol fallback completed; engineering30aed6f100d74570 Astra completed. Both conditionally support one all-positive fixed-bank objective trial. Root selects research Smooth-AP rather than engineering per-positive softplus: positive rank ratios address AP explicitly; softplus is cheaper but still a contrastive surrogate. This is not proof of sufficient representation or causal attribution. Regression-only control also lost0.443575pp AP versus concat. Reused selection remains adaptive development evidence; sealed validation remains unread.
+
+## Frozen scientific contract
+
+Both fresh arms start from authenticated accepted concat A0, original head/means/448 encoder/processor, canonical and genuine augmented TRAIN6355x1152 caches and1008 labels. Only A128x160 is trainable. Preserve first128 B64 schedules seed179061/179069, both anchor views, micro16 accumulation, optimizer/scaler/numerical flags/packing and fresh RNG. No nearest-hinge warm start, optimizer reuse, bank refresh, positive sampling, negative top-k, new augmentations or tuning.
+
+For anchor original image i, Omega contains every canonical TRAIN teacher row of a different original image. P is all rows in Omega sharing its identity. Canonical teacher V=normalize(T) remains frozen. With s_j=normalize(raw_A(x_i)) dot V_j and sigmoid((s_j-s_p)/0.01), define positive rank rp=1+sum over other P and total rank rt=1+sum over other Omega. Per-anchor loss is1-mean_p(rp/rt). Include all eligible positives/negatives; exclude self and p from the appropriate sums. Singletons receive regression only. Ranking reduction is sum across two views divided by2K, where K is the full B64 valid-anchor count. Control uses existing normalized prototype regression; candidate uses regression+SmoothAP with coefficient1. Fix temperature0.01/no margin/no rescaling/annealing/sweep.
+
+Use fixed row/positive traversal and bounded positive-versus-bank comparisons; never construct gallery-square or anchor-gallery-gallery tensors. FP32/autocast disabled, finite/norm guards. Both arms compute identical diagnostics; candidate alone backpropagates ranking. Charge real preparation/mining-equivalent scoring/loss/backward to core and complete admission/reload/exit to whole service; no dummy backward to inflate control.
+
+## Qualification and stops
+
+One genuine CPU qualification must validate masks/self/ties/singletons and zero-update accepted concat raw/unit/packed parity; on the fixed first B64 require finite positive loss, nonzero regression and ranking gradients, total candidate-control gradient equal to ranking contribution, full B64 versus micro16 agreement at original tolerances, at least one multi-distinct-image-positive anchor, and nonzero gradient from terms beyond the old nearest positive. Record gradient magnitudes/alignment. No batch search or recipe rescue after failure. Stdlib fixtures establish algebra/authority only; native qualification remains DGX-owned.
+
+Then both discarded17-step mechanics must pass independent8+9 complete replay and strict updated reload. Fresh control061 then candidate061 each128 updates; whole/core ratios<=1.50 before quality. Original engineering policies CPU500/mechanics600/TRAIN600/export600/score500, <=8GiB host/zero swap/events/<10GB CUDA/BOTHlocks/full current-byte and uncached exit checks remain. Each new phase has exact source/authority/inputs/stop rule before launch; one original job at a time.
+
+First observed selection1734q1715g498products: candidate-control R1>0/AP>=0, source floors, candidate R1>0.9648212226066898 and AP>=0.8177754035543956. Only CONTINUE admits candidate069 then control069. Full per-seed positiveR1/nonnegativeAP, equal-seed means>=.002 each and paired-product95LCB>0/shared5000 seed179019/query intervals unchanged. Only full selectionGO admits sealed validation1749q1730g498products. Official SOP/InShop and matched public B1/B32 full-pipeline speed remain mandatory. No quality claim from native signal or engineering PASS.
+
+## Implementation and decisive execution
+
+One bounded trainer specialist changes only existing trainer/test, publishes new prospective schema/recipe and complete payload/bundle API contract, preserves source admission/optimizer/serializer/inference boundaries, and runs meaningful narrow stdlib negatives/AST correspondence. Root verifies/integrates actual bytes and freezes a new source closure. Then a bounded evaluator specialist adapts only actual new trainer schema/recipe bindings, retaining archived source/concat replay, full export admission and exact quality/cost decisions. Reuse current complete runtime closure unchanged; no import-inventory reconstruction or unrelated serving polish.
+
+Root qualifies the new CPU source once, both mechanics, then the fresh first pair and native exports/scoring. Any qualification/integrity/resource/first-quality failure closes this recipe. A survivor proceeds to069, confirmation and serving. Another negative result requires intervention at the demonstrated responsible layer; it does not establish an encoder ceiling or complete the global goal.
