@@ -1,0 +1,64 @@
+{
+  "early_contract": {
+    "path": "/tmp/sfora-identity-diversity-evaluator-contract-early.json",
+    "sha256": "66fc15a81c33fb3e86a097c9ec1e3656dff3d940c73553a3cbe2be710885d369"
+  },
+  "native_eligibility": false,
+  "native_jobs_launched": false,
+  "original_suite": {
+    "exit_code": 1,
+    "failure": "fixture-only one-ulp AP aggregate sum rounded to floor; corrected to statistics.mean",
+    "log": {
+      "path": "/tmp/sfora-identity-diversity-evaluator-final.log",
+      "sha256": "106958896999c1a7a1dc0b80f9f842eadc1e8a482d9c5141b6109b815e1af562"
+    },
+    "peak_rss_kib": 71184,
+    "swaps": 0,
+    "tests": 28,
+    "time": {
+      "path": "/tmp/sfora-identity-diversity-evaluator-final.time",
+      "sha256": "f83bec7f063a0d73938ba9e1c09369bed8436bf0bb8c65d905ce6dd9718ffa51"
+    },
+    "wall_seconds": 6.91
+  },
+  "replacement_suite": {
+    "exit_code": 0,
+    "log": {
+      "path": "/tmp/sfora-identity-diversity-evaluator-replacement.log",
+      "sha256": "f86043b72bd421aa8160436bd56f9bc28602ff7c52c9e64e51d6fad3367d73ba"
+    },
+    "memory_cap_bytes": 1073741824,
+    "peak_rss_kib": 71020,
+    "permission": "immediate-1791154998835360710-2054090",
+    "swaps": 0,
+    "tests": 28,
+    "time": {
+      "path": "/tmp/sfora-identity-diversity-evaluator-replacement.time",
+      "sha256": "77661736a0e2e8752b5e8c406e6c670bb6703533c720df7f9ac80177a8927e41"
+    },
+    "timeout_seconds": 120,
+    "wall_seconds": 6.41
+  },
+  "schema": "sfora-identity-diversity-evaluator-checks-v1",
+  "source_closure": {
+    "code": {
+      "evaluate_siglip2_identity_diversity.py": "4b8f93c4127612307ec5d5aca22cc749b7243411af2dccb024f25ff69fceca52",
+      "test_identity_diversity_evaluation.py": "5593b7d05261a27d525579443febbfd7fb665e496ab403b39b2e3e90e24385cf"
+    },
+    "execution_sha256": "d3d8142b0d5f4862de68ed33a9b572b1cdac083fba11e2cf7f8018d1563e7b9b",
+    "root": "/tmp/sfora-identity-diversity-evaluator-source-v1"
+  },
+  "source_files": {
+    "evaluate_siglip2_identity_diversity.py": "4b8f93c4127612307ec5d5aca22cc749b7243411af2dccb024f25ff69fceca52",
+    "test_identity_diversity_evaluation.py": "5593b7d05261a27d525579443febbfd7fb665e496ab403b39b2e3e90e24385cf"
+  },
+  "status": "28 source-only checks pass for original trainer pins; hold commit pending corrected descriptor",
+  "trainer": {
+    "code": {
+      "test_siglip2_identity_diversity.py": "10cc9bd05cfe5d07c436bc05f62a9e6b3fda4b24127cbdfbb6ce870377633d85",
+      "train_siglip2_identity_diversity.py": "28c78d9d3ce58a97042ca60a32b183b663af77099964456c2c18d6ec10869c8c"
+    },
+    "execution_sha256": "04368bc364b331a11d3f7756266ead0af12231a5dc0966b10787f48cb3c75c41",
+    "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v1"
+  }
+}
