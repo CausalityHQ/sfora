@@ -1,0 +1,962 @@
+{
+  "hub_new": [
+    "huggingface_hub/_buckets.py",
+    "huggingface_hub/_commit_api.py",
+    "huggingface_hub/_dataset_viewer.py",
+    "huggingface_hub/_eval_results.py",
+    "huggingface_hub/_inference_endpoints.py",
+    "huggingface_hub/_jobs_api.py",
+    "huggingface_hub/_local_folder.py",
+    "huggingface_hub/_snapshot_download.py",
+    "huggingface_hub/_space_api.py",
+    "huggingface_hub/_upload_large_folder.py",
+    "huggingface_hub/community.py",
+    "huggingface_hub/file_download.py",
+    "huggingface_hub/hf_api.py",
+    "huggingface_hub/lfs.py",
+    "huggingface_hub/repocard.py",
+    "huggingface_hub/repocard_data.py",
+    "huggingface_hub/utils/_deprecation.py",
+    "huggingface_hub/utils/_verification.py",
+    "huggingface_hub/utils/endpoint_helpers.py",
+    "huggingface_hub/utils/insecure_hashlib.py",
+    "huggingface_hub/utils/sha.py"
+  ],
+  "edges": {
+    "huggingface_hub/utils/_chunk_utils.py": [],
+    "huggingface_hub/constants.py": [],
+    "huggingface_hub/utils/_paths.py": [],
+    "huggingface_hub/utils/tqdm.py": [
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/_git_credential.py": [
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/_subprocess.py"
+    ],
+    "huggingface_hub/utils/_pagination.py": [
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_xet.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py"
+    ],
+    "huggingface_hub/utils/_datetime.py": [],
+    "huggingface_hub/serialization/_torch.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/serialization/_base.py"
+    ],
+    "huggingface_hub/utils/_terminal.py": [
+      "huggingface_hub/utils/_detect_agent.py"
+    ],
+    "huggingface_hub/dataclasses.py": [
+      "huggingface_hub/errors.py"
+    ],
+    "huggingface_hub/utils/_cache_assets.py": [
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/_fixes.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/logging.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/_auth.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/_runtime.py"
+    ],
+    "huggingface_hub/utils/_hf_uris.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/_validators.py"
+    ],
+    "huggingface_hub/serialization/_base.py": [
+      "huggingface_hub/__init__.py"
+    ],
+    "huggingface_hub/utils/_http.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_lfs.py",
+      "huggingface_hub/utils/_typing.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_headers.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/_auth.py",
+      "huggingface_hub/utils/_detect_agent.py",
+      "huggingface_hub/utils/_runtime.py",
+      "huggingface_hub/utils/_validators.py"
+    ],
+    "huggingface_hub/utils/_runtime.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/__init__.py": [
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_auth.py",
+      "huggingface_hub/utils/_cache_assets.py",
+      "huggingface_hub/utils/_cache_manager.py",
+      "huggingface_hub/utils/_chunk_utils.py",
+      "huggingface_hub/utils/_datetime.py",
+      "huggingface_hub/utils/_detect_agent.py",
+      "huggingface_hub/utils/_experimental.py",
+      "huggingface_hub/utils/_fixes.py",
+      "huggingface_hub/utils/_git_credential.py",
+      "huggingface_hub/utils/_headers.py",
+      "huggingface_hub/utils/_hf_uris.py",
+      "huggingface_hub/utils/_http.py",
+      "huggingface_hub/utils/_pagination.py",
+      "huggingface_hub/utils/_paths.py",
+      "huggingface_hub/utils/_runtime.py",
+      "huggingface_hub/utils/_safetensors.py",
+      "huggingface_hub/utils/_subprocess.py",
+      "huggingface_hub/utils/_telemetry.py",
+      "huggingface_hub/utils/_terminal.py",
+      "huggingface_hub/utils/_typing.py",
+      "huggingface_hub/utils/_validators.py",
+      "huggingface_hub/utils/_xet.py",
+      "huggingface_hub/utils/tqdm.py"
+    ],
+    "huggingface_hub/utils/_subprocess.py": [
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_typing.py": [],
+    "huggingface_hub/utils/_safetensors.py": [],
+    "huggingface_hub/serialization/__init__.py": [
+      "huggingface_hub/serialization/_base.py",
+      "huggingface_hub/serialization/_torch.py"
+    ],
+    "huggingface_hub/utils/_experimental.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/_cache_manager.py": [
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_parsing.py",
+      "huggingface_hub/utils/_terminal.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_detect_agent.py": [],
+    "huggingface_hub/utils/_lfs.py": [],
+    "huggingface_hub/utils/_parsing.py": [],
+    "huggingface_hub/utils/_telemetry.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py"
+    ],
+    "huggingface_hub/__init__.py": [],
+    "huggingface_hub/utils/_validators.py": [
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/_typing.py"
+    ],
+    "huggingface_hub/errors.py": [],
+    "huggingface_hub/hf_api.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/_buckets.py",
+      "huggingface_hub/_commit_api.py",
+      "huggingface_hub/_dataset_viewer.py",
+      "huggingface_hub/_eval_results.py",
+      "huggingface_hub/_inference_endpoints.py",
+      "huggingface_hub/_jobs_api.py",
+      "huggingface_hub/_space_api.py",
+      "huggingface_hub/_upload_large_folder.py",
+      "huggingface_hub/community.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/file_download.py",
+      "huggingface_hub/repocard_data.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_auth.py",
+      "huggingface_hub/utils/_deprecation.py",
+      "huggingface_hub/utils/_http.py",
+      "huggingface_hub/utils/_typing.py",
+      "huggingface_hub/utils/_verification.py",
+      "huggingface_hub/utils/_xet.py",
+      "huggingface_hub/utils/endpoint_helpers.py",
+      "huggingface_hub/utils/logging.py",
+      "huggingface_hub/utils/tqdm.py"
+    ],
+    "huggingface_hub/file_download.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/_local_folder.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_http.py",
+      "huggingface_hub/utils/_runtime.py",
+      "huggingface_hub/utils/logging.py",
+      "huggingface_hub/utils/sha.py",
+      "huggingface_hub/utils/tqdm.py"
+    ],
+    "huggingface_hub/_snapshot_download.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/file_download.py",
+      "huggingface_hub/hf_api.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/logging.py",
+      "huggingface_hub/utils/tqdm.py"
+    ],
+    "huggingface_hub/repocard.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/file_download.py",
+      "huggingface_hub/hf_api.py",
+      "huggingface_hub/repocard_data.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/_buckets.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/__init__.py"
+    ],
+    "huggingface_hub/_commit_api.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/file_download.py",
+      "huggingface_hub/lfs.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_runtime.py",
+      "huggingface_hub/utils/logging.py",
+      "huggingface_hub/utils/sha.py",
+      "huggingface_hub/utils/tqdm.py"
+    ],
+    "huggingface_hub/_dataset_viewer.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py"
+    ],
+    "huggingface_hub/_eval_results.py": [],
+    "huggingface_hub/_inference_endpoints.py": [
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/_jobs_api.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/_space_api.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/_datetime.py"
+    ],
+    "huggingface_hub/_space_api.py": [
+      "huggingface_hub/utils/__init__.py"
+    ],
+    "huggingface_hub/_upload_large_folder.py": [
+      "huggingface_hub/_commit_api.py",
+      "huggingface_hub/_local_folder.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_runtime.py",
+      "huggingface_hub/utils/sha.py",
+      "huggingface_hub/utils/tqdm.py"
+    ],
+    "huggingface_hub/community.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py"
+    ],
+    "huggingface_hub/repocard_data.py": [
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_deprecation.py": [],
+    "huggingface_hub/utils/_verification.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/file_download.py",
+      "huggingface_hub/utils/sha.py"
+    ],
+    "huggingface_hub/utils/endpoint_helpers.py": [
+      "huggingface_hub/repocard_data.py"
+    ],
+    "huggingface_hub/_local_folder.py": [
+      "huggingface_hub/utils/__init__.py"
+    ],
+    "huggingface_hub/utils/sha.py": [
+      "huggingface_hub/utils/insecure_hashlib.py"
+    ],
+    "huggingface_hub/lfs.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_lfs.py",
+      "huggingface_hub/utils/logging.py",
+      "huggingface_hub/utils/sha.py"
+    ],
+    "huggingface_hub/utils/insecure_hashlib.py": []
+  },
+  "external": {
+    "huggingface_hub/utils/_chunk_utils.py": [
+      "collections.abc",
+      "collections.abc.Iterable",
+      "itertools",
+      "typing",
+      "typing.TypeVar"
+    ],
+    "huggingface_hub/constants.py": [
+      "os",
+      "re",
+      "typing",
+      "typing.Literal",
+      "warnings"
+    ],
+    "huggingface_hub/utils/_paths.py": [
+      "collections.abc",
+      "collections.abc.Callable",
+      "collections.abc.Generator",
+      "collections.abc.Iterable",
+      "fnmatch",
+      "fnmatch.fnmatch",
+      "pathlib",
+      "pathlib.Path",
+      "typing",
+      "typing.TypeVar"
+    ],
+    "huggingface_hub/utils/tqdm.py": [
+      "collections.abc",
+      "collections.abc.Iterator",
+      "contextlib",
+      "contextlib.contextmanager",
+      "contextlib.nullcontext",
+      "io",
+      "logging",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "threading",
+      "tqdm.auto",
+      "tqdm.auto.tqdm",
+      "typing",
+      "typing.ContextManager",
+      "warnings"
+    ],
+    "huggingface_hub/utils/_git_credential.py": [
+      "re",
+      "subprocess"
+    ],
+    "huggingface_hub/utils/_pagination.py": [
+      "collections.abc",
+      "collections.abc.Iterable",
+      "httpx"
+    ],
+    "huggingface_hub/utils/_xet.py": [
+      "dataclasses",
+      "dataclasses.dataclass",
+      "enum",
+      "enum.Enum",
+      "httpx",
+      "time"
+    ],
+    "huggingface_hub/utils/_datetime.py": [
+      "datetime",
+      "datetime.datetime",
+      "datetime.timezone"
+    ],
+    "huggingface_hub/serialization/_torch.py": [
+      "collections",
+      "collections.abc",
+      "collections.abc.Iterable",
+      "collections.defaultdict",
+      "collections.namedtuple",
+      "functools",
+      "functools.lru_cache",
+      "importlib",
+      "importlib.util",
+      "json",
+      "os",
+      "packaging",
+      "packaging.version",
+      "pathlib",
+      "pathlib.Path",
+      "pathlib.PureWindowsPath",
+      "re",
+      "typing",
+      "typing.Any",
+      "typing.NamedTuple",
+      "typing.TYPE_CHECKING",
+      "typing.Union"
+    ],
+    "huggingface_hub/utils/_terminal.py": [
+      "os",
+      "shutil",
+      "sys"
+    ],
+    "huggingface_hub/dataclasses.py": [
+      "collections.abc",
+      "collections.abc.Callable",
+      "dataclasses",
+      "dataclasses.Field",
+      "dataclasses.MISSING",
+      "dataclasses._MISSING_TYPE",
+      "dataclasses.field",
+      "dataclasses.fields",
+      "dataclasses.make_dataclass",
+      "functools",
+      "functools.lru_cache",
+      "functools.wraps",
+      "inspect",
+      "types",
+      "typing",
+      "typing.Annotated",
+      "typing.Any",
+      "typing.ForwardRef",
+      "typing.Literal",
+      "typing.NotRequired",
+      "typing.Required",
+      "typing.Type",
+      "typing.TypeVar",
+      "typing.Union",
+      "typing.get_args",
+      "typing.get_origin",
+      "typing.overload",
+      "typing_extensions",
+      "typing_extensions.NotRequired",
+      "typing_extensions.Required"
+    ],
+    "huggingface_hub/utils/_cache_assets.py": [
+      "pathlib",
+      "pathlib.Path"
+    ],
+    "huggingface_hub/utils/_fixes.py": [
+      "collections.abc",
+      "collections.abc.Callable",
+      "collections.abc.Generator",
+      "contextlib",
+      "filelock",
+      "filelock.BaseFileLock",
+      "filelock.FileLock",
+      "filelock.SoftFileLock",
+      "filelock.Timeout",
+      "functools",
+      "functools.partial",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "shutil",
+      "stat",
+      "tempfile",
+      "time",
+      "yaml"
+    ],
+    "huggingface_hub/utils/logging.py": [
+      "logging",
+      "logging.CRITICAL",
+      "logging.DEBUG",
+      "logging.ERROR",
+      "logging.FATAL",
+      "logging.INFO",
+      "logging.NOTSET",
+      "logging.WARN",
+      "logging.WARNING",
+      "os"
+    ],
+    "huggingface_hub/utils/_auth.py": [
+      "configparser",
+      "io",
+      "logging",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "threading",
+      "threading.Lock",
+      "warnings"
+    ],
+    "huggingface_hub/utils/_hf_uris.py": [
+      "dataclasses",
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "functools",
+      "re",
+      "urllib.parse",
+      "urllib.parse.unquote"
+    ],
+    "huggingface_hub/serialization/_base.py": [
+      "collections.abc",
+      "collections.abc.Callable",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "typing",
+      "typing.Any",
+      "typing.TypeVar"
+    ],
+    "huggingface_hub/utils/_http.py": [
+      "atexit",
+      "collections.abc",
+      "collections.abc.Callable",
+      "collections.abc.Generator",
+      "collections.abc.Mapping",
+      "contextlib",
+      "contextlib.contextmanager",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "httpx",
+      "io",
+      "json",
+      "os",
+      "re",
+      "shlex",
+      "shlex.quote",
+      "threading",
+      "time",
+      "typing",
+      "typing.Any",
+      "typing.TypeVar",
+      "urllib.parse",
+      "urllib.parse.urlparse",
+      "uuid"
+    ],
+    "huggingface_hub/utils/_headers.py": [],
+    "huggingface_hub/utils/_runtime.py": [
+      "importlib.metadata",
+      "importlib.util",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "platform",
+      "sys",
+      "typing",
+      "typing.Any",
+      "typing.Literal",
+      "warnings"
+    ],
+    "huggingface_hub/utils/__init__.py": [],
+    "huggingface_hub/utils/_subprocess.py": [
+      "collections.abc",
+      "collections.abc.Generator",
+      "contextlib",
+      "contextlib.contextmanager",
+      "io",
+      "io.StringIO",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "subprocess",
+      "sys",
+      "typing",
+      "typing.IO"
+    ],
+    "huggingface_hub/utils/_typing.py": [
+      "collections.abc",
+      "collections.abc.Callable",
+      "types",
+      "types.UnionType",
+      "typing",
+      "typing.Any",
+      "typing.Literal",
+      "typing.TypeVar",
+      "typing.Union",
+      "typing.get_args",
+      "typing.get_origin"
+    ],
+    "huggingface_hub/utils/_safetensors.py": [
+      "collections",
+      "collections.defaultdict",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "functools",
+      "operator",
+      "typing",
+      "typing.Literal"
+    ],
+    "huggingface_hub/serialization/__init__.py": [],
+    "huggingface_hub/utils/_experimental.py": [
+      "collections.abc",
+      "collections.abc.Callable",
+      "functools",
+      "functools.wraps",
+      "warnings"
+    ],
+    "huggingface_hub/utils/_cache_manager.py": [
+      "collections",
+      "collections.defaultdict",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "shutil",
+      "typing",
+      "typing.Literal"
+    ],
+    "huggingface_hub/utils/_detect_agent.py": [
+      "os",
+      "typing",
+      "typing.Optional"
+    ],
+    "huggingface_hub/utils/_lfs.py": [
+      "contextlib",
+      "contextlib.AbstractContextManager",
+      "io",
+      "os",
+      "typing",
+      "typing.BinaryIO"
+    ],
+    "huggingface_hub/utils/_parsing.py": [
+      "re",
+      "time"
+    ],
+    "huggingface_hub/utils/_telemetry.py": [
+      "queue",
+      "queue.Queue",
+      "threading",
+      "threading.Lock",
+      "threading.Thread",
+      "urllib.parse",
+      "urllib.parse.quote"
+    ],
+    "huggingface_hub/__init__.py": [
+      "importlib",
+      "os",
+      "sys",
+      "typing",
+      "typing.TYPE_CHECKING"
+    ],
+    "huggingface_hub/utils/_validators.py": [
+      "functools",
+      "functools.wraps",
+      "inspect",
+      "itertools",
+      "itertools.chain",
+      "re",
+      "typing",
+      "typing.Any",
+      "warnings"
+    ],
+    "huggingface_hub/errors.py": [
+      "httpx",
+      "httpx.HTTPError",
+      "httpx.Response",
+      "pathlib",
+      "pathlib.Path"
+    ],
+    "huggingface_hub/hf_api.py": [
+      "__future__",
+      "__future__.annotations",
+      "collections",
+      "collections.abc",
+      "collections.abc.Callable",
+      "collections.abc.Iterable",
+      "collections.abc.Iterator",
+      "collections.defaultdict",
+      "concurrent.futures",
+      "concurrent.futures.Future",
+      "concurrent.futures.ThreadPoolExecutor",
+      "dataclasses",
+      "dataclasses.asdict",
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "datetime",
+      "datetime.datetime",
+      "datetime.timezone",
+      "functools",
+      "functools.wraps",
+      "httpcore",
+      "httpx",
+      "inspect",
+      "itertools",
+      "itertools.islice",
+      "json",
+      "pathlib",
+      "pathlib.Path",
+      "re",
+      "secrets",
+      "secrets.token_hex",
+      "struct",
+      "time",
+      "tqdm.auto",
+      "tqdm.auto.tqdm",
+      "tqdm.contrib.concurrent",
+      "tqdm.contrib.concurrent.thread_map",
+      "typing",
+      "typing.Any",
+      "typing.BinaryIO",
+      "typing.Literal",
+      "typing.TYPE_CHECKING",
+      "typing.TypeVar",
+      "typing.overload",
+      "urllib.parse",
+      "urllib.parse.quote",
+      "warnings"
+    ],
+    "huggingface_hub/file_download.py": [
+      "copy",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "errno",
+      "httpx",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "re",
+      "shutil",
+      "stat",
+      "time",
+      "tqdm.auto",
+      "tqdm.auto.tqdm",
+      "typing",
+      "typing.Any",
+      "typing.BinaryIO",
+      "typing.Literal",
+      "typing.NoReturn",
+      "typing.overload",
+      "urllib.parse",
+      "urllib.parse.quote",
+      "urllib.parse.urlparse",
+      "uuid",
+      "warnings"
+    ],
+    "huggingface_hub/_snapshot_download.py": [
+      "collections.abc",
+      "collections.abc.Iterable",
+      "httpx",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "tqdm.auto",
+      "tqdm.auto.tqdm",
+      "tqdm.contrib.concurrent",
+      "tqdm.contrib.concurrent.thread_map",
+      "typing",
+      "typing.Literal",
+      "typing.overload"
+    ],
+    "huggingface_hub/repocard.py": [
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "re",
+      "typing",
+      "typing.Any",
+      "typing.Literal",
+      "yaml"
+    ],
+    "huggingface_hub/_buckets.py": [
+      "collections.abc",
+      "collections.abc.Iterator",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "datetime",
+      "datetime.datetime",
+      "datetime.timezone",
+      "fnmatch",
+      "json",
+      "mimetypes",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "stat",
+      "sys",
+      "time",
+      "typing",
+      "typing.Any",
+      "typing.Literal",
+      "typing.TYPE_CHECKING"
+    ],
+    "huggingface_hub/_commit_api.py": [
+      "base64",
+      "collections",
+      "collections.abc",
+      "collections.abc.Iterable",
+      "collections.abc.Iterator",
+      "collections.defaultdict",
+      "contextlib",
+      "contextlib.contextmanager",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "io",
+      "itertools",
+      "itertools.groupby",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "pathlib.PurePosixPath",
+      "tqdm.contrib.concurrent",
+      "tqdm.contrib.concurrent.thread_map",
+      "typing",
+      "typing.Any",
+      "typing.BinaryIO",
+      "typing.Literal",
+      "typing.TYPE_CHECKING",
+      "typing.Union",
+      "warnings"
+    ],
+    "huggingface_hub/_dataset_viewer.py": [
+      "dataclasses",
+      "dataclasses.dataclass",
+      "json",
+      "os",
+      "shutil",
+      "subprocess",
+      "typing",
+      "typing.Any",
+      "typing.TYPE_CHECKING",
+      "typing.Union"
+    ],
+    "huggingface_hub/_eval_results.py": [
+      "dataclasses",
+      "dataclasses.dataclass",
+      "typing",
+      "typing.Any"
+    ],
+    "huggingface_hub/_inference_endpoints.py": [
+      "dataclasses",
+      "dataclasses.dataclass",
+      "dataclasses.field",
+      "datetime",
+      "datetime.datetime",
+      "enum",
+      "enum.Enum",
+      "time",
+      "typing",
+      "typing.Optional",
+      "typing.TYPE_CHECKING"
+    ],
+    "huggingface_hub/_jobs_api.py": [
+      "dataclasses",
+      "dataclasses.dataclass",
+      "datetime",
+      "datetime.datetime",
+      "enum",
+      "enum.Enum",
+      "typing",
+      "typing.Any"
+    ],
+    "huggingface_hub/_space_api.py": [
+      "dataclasses",
+      "dataclasses.dataclass",
+      "datetime",
+      "datetime.datetime",
+      "enum",
+      "enum.Enum",
+      "typing",
+      "typing.Literal"
+    ],
+    "huggingface_hub/_upload_large_folder.py": [
+      "datetime",
+      "datetime.datetime",
+      "enum",
+      "logging",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "queue",
+      "shutil",
+      "sys",
+      "threading",
+      "threading.Lock",
+      "time",
+      "traceback",
+      "typing",
+      "typing.Any",
+      "typing.TYPE_CHECKING",
+      "urllib.parse",
+      "urllib.parse.quote"
+    ],
+    "huggingface_hub/community.py": [
+      "dataclasses",
+      "dataclasses.dataclass",
+      "datetime",
+      "datetime.datetime",
+      "typing",
+      "typing.Literal",
+      "typing.TypedDict"
+    ],
+    "huggingface_hub/repocard_data.py": [
+      "collections",
+      "collections.defaultdict",
+      "copy",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "typing",
+      "typing.Any"
+    ],
+    "huggingface_hub/utils/_deprecation.py": [
+      "collections.abc",
+      "collections.abc.Iterable",
+      "functools",
+      "functools.wraps",
+      "inspect",
+      "inspect.Parameter",
+      "inspect.signature",
+      "warnings"
+    ],
+    "huggingface_hub/utils/_verification.py": [
+      "dataclasses",
+      "dataclasses.dataclass",
+      "pathlib",
+      "pathlib.Path",
+      "re",
+      "typing",
+      "typing.Literal",
+      "typing.TYPE_CHECKING",
+      "typing.TypedDict"
+    ],
+    "huggingface_hub/utils/endpoint_helpers.py": [
+      "math",
+      "re",
+      "typing",
+      "typing.TYPE_CHECKING"
+    ],
+    "huggingface_hub/_local_folder.py": [
+      "base64",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "hashlib",
+      "logging",
+      "os",
+      "pathlib",
+      "pathlib.Path",
+      "time"
+    ],
+    "huggingface_hub/utils/sha.py": [
+      "typing",
+      "typing.BinaryIO"
+    ],
+    "huggingface_hub/lfs.py": [
+      "collections.abc",
+      "collections.abc.Iterable",
+      "dataclasses",
+      "dataclasses.dataclass",
+      "io",
+      "math",
+      "math.ceil",
+      "os.path",
+      "os.path.getsize",
+      "re",
+      "typing",
+      "typing.BinaryIO",
+      "typing.TYPE_CHECKING",
+      "typing.TypedDict",
+      "urllib.parse",
+      "urllib.parse.unquote"
+    ],
+    "huggingface_hub/utils/insecure_hashlib.py": [
+      "functools",
+      "hashlib"
+    ]
+  }
+}

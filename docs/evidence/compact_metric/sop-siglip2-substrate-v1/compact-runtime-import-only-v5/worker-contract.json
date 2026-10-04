@@ -1,0 +1,238 @@
+{
+  "base": "fc12c9de3cba09589252784cdb4934c815ae01c9",
+  "scope": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "plan": "Extend RUNTIME_SOURCES only: source-evidenced filelock definition-time closure, required Hub API/download/repocard closure, two tqdm.contrib sources. Existing SHA/size/RECORD/native/origin/bytecode/exit helpers untouched.",
+  "sources": {
+    "filelock/__init__.py": {
+      "sha256": "220fd036fb0056d72dcf6f9f92af44502817996e8ce4f0ee762382f39b339a2b",
+      "size_bytes": 2612,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_api.py": {
+      "sha256": "5b97544c75b61dbc15b72930b7c3e247d9087d4dcb9db069bb97808593013d81",
+      "size_bytes": 22687,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_async_read_write.py": {
+      "sha256": "a61259b358441b0d069645992496a0a0f6b85a27935467c14e9c40b2fee8c81e",
+      "size_bytes": 8507,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_error.py": {
+      "sha256": "6a6a89683904bf80e18de94e849df19b5da456d81a91264b9d5032cc02f62185",
+      "size_bytes": 775,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_read_write.py": {
+      "sha256": "c15d6a52b507f36fd03aa4733c771975f5ee1922b7fc6498c31d4148cdfad5d0",
+      "size_bytes": 15497,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_soft.py": {
+      "sha256": "cfb23928914d65ec0265d5504bc3e5a2af34b4a2aeacbb71090c4fa6d45bcd00",
+      "size_bytes": 10329,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_soft_rw/__init__.py": {
+      "sha256": "fe4b691a654e6f3aef2f42b5fc4015dcb17b07d25aad8c56fa6c7f7b218f853d",
+      "size_bytes": 370,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_soft_rw/_async.py": {
+      "sha256": "dcc76024dd1204cfbdf8cb2c96de077a2909b73d9c735b5b78dd6c58af4d57ad",
+      "size_bytes": 8704,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_soft_rw/_sync.py": {
+      "sha256": "79990a4eac273a51113ac30e649fdcc8423be9b4ac7cf2082187abb08465c982",
+      "size_bytes": 35603,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_unix.py": {
+      "sha256": "a5b4ec222dbd42ff3306d2ec5ea7373f3952df0cf675be77335308a95a3defdd",
+      "size_bytes": 4579,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_util.py": {
+      "sha256": "a64c9aa681c5b71e5a7b60405ec2c7fe224e8324095dd9bfab9bcd8355c6b574",
+      "size_bytes": 3584,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/_windows.py": {
+      "sha256": "90914e7a769f7ce3fa4336b66f7fb2c6088f883732ae85a7cf3f524c6902ae03",
+      "size_bytes": 3943,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/asyncio.py": {
+      "sha256": "cfac91977a1df412c4bedc17aaf3cbcda6a6a258972fea277a573bae62865250",
+      "size_bytes": 15558,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "filelock/version.py": {
+      "sha256": "2a098aefc7281cef042c65cb02cf3bf80741d82082aae2d35a6b277faa859eaf",
+      "size_bytes": 522,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0"
+    },
+    "huggingface_hub/_buckets.py": {
+      "sha256": "8039db1b2eb03ffd81b50ed4644eda92203e8ff06ae599e56dd89e1be1661777",
+      "size_bytes": 44789,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/_commit_api.py": {
+      "sha256": "70474171478be9eda66f62924d757d0396d03ee438f2b1759e1250e03a82dbe7",
+      "size_bytes": 40992,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/_dataset_viewer.py": {
+      "sha256": "2c4f64e2cd1627424d76b889f0beaa57ffb17db5150b554487b0817748ce8cb2",
+      "size_bytes": 5675,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/_eval_results.py": {
+      "sha256": "3a0ee9edb0a5d87406e995a5483ca2afe0914d78cd58fbb74b7abae5c4c67dfb",
+      "size_bytes": 8126,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/_inference_endpoints.py": {
+      "sha256": "af07ad724fcc9db57e32b4cb54dedc6b322bc543588b9c769c1930d5d7af9f16",
+      "size_bytes": 17643,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/_jobs_api.py": {
+      "sha256": "d3e869ff3e6e6810e40e2988a777954ce08f469ae2add7a2c4ca08a58934b5f4",
+      "size_bytes": 17816,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/_local_folder.py": {
+      "sha256": "15cfe18a4c8c699447b57203663dfc84becc364ab99d9655c5017e75df8490ca",
+      "size_bytes": 18279,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/_snapshot_download.py": {
+      "sha256": "2aa88405233c0af557140647512d6520d37de162b4e6af7e7b1356af360eea41",
+      "size_bytes": 20614,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/_space_api.py": {
+      "sha256": "8da1cd7d245eb36e51c38199cb2658abe1a6f1666f50218f946e196ad215742a",
+      "size_bytes": 12144,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/_upload_large_folder.py": {
+      "sha256": "056035cf238af56ff76147ab5fd61641adf0018b4745eff2a60b0eefd24492aa",
+      "size_bytes": 31235,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/community.py": {
+      "sha256": "379384e516dcd81330a4d5c214e3d00309f4a2da90ba7b177449d213fd09d97a",
+      "size_bytes": 12325,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/file_download.py": {
+      "sha256": "d36a882f5e4035a858a4bb020dc6a1df9c4514ae46bc8c34f4b689c5455357f0",
+      "size_bytes": 82745,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/hf_api.py": {
+      "sha256": "cc8443e1d61cd5135c19258eaa867182f952a01a353068d036973250703ce540",
+      "size_bytes": 617952,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/lfs.py": {
+      "sha256": "b1591164c0fcc3edefc5aa920d2aec042a20ebe94bc963fdf2eff1475748c0ca",
+      "size_bytes": 14123,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/repocard.py": {
+      "sha256": "a766fd1a2133aab309656dcee359f0882e80b1e42114d6ea09b488a683fff151",
+      "size_bytes": 34829,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/repocard_data.py": {
+      "sha256": "948f831086e68ed94e32f927b6ac1703d103e22713782bcd6c03987363f664c9",
+      "size_bytes": 33879,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_deprecation.py": {
+      "sha256": "9f890d1db1a2a6ab9239b27e831a1d71f77a96aa1effcb3e548b13ba8dceaee9",
+      "size_bytes": 4865,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_verification.py": {
+      "sha256": "6528a59e8952918987077be60655aeb95af9df1cf9f4fe6e1a7c42dc7f878dcd",
+      "size_bytes": 5434,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/endpoint_helpers.py": {
+      "sha256": "f55b48025c50e47ff8cb7d2c8c20206eeed70aa02d34b0bb69163168d9f484b2",
+      "size_bytes": 2366,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/insecure_hashlib.py": {
+      "sha256": "cf7755505bdd059f24408ffc573bef96bde29acf8406263e4983dd9f320a3a4c",
+      "size_bytes": 1008,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/sha.py": {
+      "sha256": "87cc3185e66972febbd5186d88815c1664130d2ae880dde4c10c7765a3445078",
+      "size_bytes": 2121,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "tqdm/contrib/__init__.py": {
+      "sha256": "d46318604f3ae960af94783931d9b33af3ec423e19b8c957cf3f317117090fad",
+      "size_bytes": 2479,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076"
+    },
+    "tqdm/contrib/concurrent.py": {
+      "sha256": "2b5ca3968292e5644d1728cb46d8740e65393c09c36c5d00f860f6ecdf89e1af",
+      "size_bytes": 3986,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076"
+    }
+  },
+  "source_count": 37,
+  "native_authority": "unchanged: only original CPU native_files/files and accepted CPU5 required_guards/RECORD",
+  "verification": "First failing real stdlib SourceFileLoader fake transitive regression; poisoned timestamp-valid bytecode fallback, source/RECORD mutation, foreign/historical/write denials. One final scoped unittest suite with timeout 55s.",
+  "limits": "No third-party/Torch/native imports, SSH/GPU/cloud/jobs/quality/reviews/children/operator contact. No merge/push.",
+  "worktree_recovery": "Clean stale branch reset to exact base, using sparse checkout after ENOSPC; removed only incomplete checkout evidence copies in this previously clean worktree.",
+  "status": "contract before edits"
+}
