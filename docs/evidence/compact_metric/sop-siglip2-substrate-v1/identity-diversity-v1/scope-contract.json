@@ -1,0 +1,86 @@
+{
+  "allocation_contract": {
+    "candidate": "all1008 original TRAIN product names plus chosen1008; retain12 original singleton rows; minimum2 hash-ranked rows per other product; fail insufficient capacity; allocation-class hash order repeats, adding next row for each unexhausted product; stop immediately when6355 including final partial round; no reorder at exhaustion",
+    "candidate_classes": 2016,
+    "candidate_rows": 6355,
+    "control": "exact original panels.train FIT-index list resolved to official TRAIN ordinals; same order and all original rows",
+    "control_classes": 1008,
+    "control_rows": 6355,
+    "extra_identities": 1008,
+    "outer_eligibility": "historical held_manifest products with >=2 distinct rows after shared selection/validation product/path/SHA exclusion; choose first1008 outer-product hash order, no replacement or rescue",
+    "output_order": "rows ascending official TRAIN ordinal; class_names lexicographic; targets dense zero-based indices into arm.class_names"
+  },
+  "api": {
+    "CLI": "python3 scripts/freeze_identity_diversity_scope.py --output NEW_JSON [--preflight FILE --roles FILE --official-partition FILE --mapping FILE --plan FILE --schedule-source FILE --schedule-consumer FILE]; fixed input SHA pins; exit0 success/2 failure",
+    "allocate_rows(members, singletons, budget)": "deterministic pure allocation, error if minimum/capacity constraints fail",
+    "build_scope(preflight, roles, official_partition_text, mapping)": "pure validated production-sized metadata payload; source file authentication is performed by freeze_scope",
+    "freeze_scope(output, paths=None)": "read pins, build payload, recheck all input+own source guards, exclusive O_CREAT|O_EXCL regular JSON write+fsync/readback, exit rechecks, remove only own output on failure; returns full payload",
+    "read_sources(paths=None)": "returns authenticated metadata inputs and path->FILE SHA guards; CLI pins fixed, no overrides"
+  },
+  "arm_fields": [
+    "rows",
+    "original_rows",
+    "class_names",
+    "targets",
+    "augmentation_ids",
+    "global_product_ids",
+    "class_depth_counts",
+    "coverage",
+    "expected_anchor_revisits",
+    "scope_sha256"
+  ],
+  "base_commit": "676e745f792b233a32cdb61dc8f330a6761795b9",
+  "checks": "bounded stdlib falsifiers: source tamper; official mismatch; FIT ordinal substitution; duplicate rows/path/SHA; role overlap; singleton/capacity failures; deterministic partial round; exclusive output; source exit recheck. One final timeout55 <=1GiB affected suite; no full repo/native/consults/children/operator contact.",
+  "hash_contract": {
+    "digest": "SHA256 hexadecimal lowercase",
+    "domains": {
+      "allocation-class": "[product]",
+      "outer-product": "[product]",
+      "row": "[original_train_row, relative_path, product, image_sha256]",
+      "scope": "complete arm payload without scope_sha256"
+    },
+    "prefix": "ASCII sfora-identity-diversity-scope-v1 followed by NUL, ASCII domain followed by NUL, then serialization",
+    "product_tiebreak": "(digest, product)",
+    "row_tiebreak": "(digest, original_train_row, relative_path, product, image_sha256)",
+    "serialization": "json.dumps(value, sort_keys=True, separators=(comma,colon), ensure_ascii=True, allow_nan=False).encode(utf-8); no newline"
+  },
+  "inputs": {
+    "mapping": "fd0f6cb3376ecce3dc0b27402af2fb3671539a7aaf6246412f4a2009dc098ad6",
+    "official_partition": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+    "plan": "21dabd04d9208695b6d3f03e0e6575ee79c53bdb54cc19ccf7f1210eef316fdf",
+    "preflight": "41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293",
+    "roles": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c",
+    "schedule_consumer": "80db5701d05091b0b0412c6bb18cc8d17f486f5ca52ef5a60a06a028a736f218",
+    "schedule_source": "788d672bca384c478881fc8f0b59090efbaf6f84e1c9f27469828bc951b7ec96"
+  },
+  "output_fields": [
+    "input_files",
+    "source_file",
+    "contract",
+    "global_class_names",
+    "shared_roles",
+    "exclusions",
+    "control",
+    "candidate",
+    "consumed_outer_products",
+    "remaining_outer_products",
+    "exit_rehash_pass",
+    "metadata_only",
+    "native_eligible"
+  ],
+  "output_schema": "sfora-identity-diversity-scope-v1",
+  "owned_files": [
+    "scripts/freeze_identity_diversity_scope.py",
+    "scripts/test_identity_diversity_scope.py"
+  ],
+  "row_contract": {
+    "augmentation_id": "original_train_row, global across official TRAIN25882 rows; augmented_rng_seed=179081+augmentation_id",
+    "fit_index": "legacy panels.original_rows are FIT inventory indexes only; emitted separately original_fit_index; never used as canonical/augmentation identity",
+    "global_product_id": "index into sorted all3997 official TRAIN product names, separate from local target and legacy2004 FIT class IDs",
+    "image_sha256": "retained exact historical manifest SHA; metadata only, no image recheck",
+    "original_train_row": "zero-based ordinal among exact official evaluation_status=train lines; exact Img/ + official image_name and item_id lookup; fit_manifest.train_row MUST equal resolved ordinal"
+  },
+  "schedule": "source-only class cyclic-permutation arithmetic for128x64: control880 classes8 visits+128 classes9; candidate1888 classes4+128 classes5. Repeat summary for179061/179069. Explicit unqualified pending trainer for seed->class mapping, sampled image IDs, masks/RNG parity; no equality/native eligibility claim.",
+  "schema": "sfora-identity-diversity-scope-contract-v1",
+  "validation": "authenticate exhaustive original FIT13283/2004+outer12599/1993 = official TRAIN25882/3997; unique official ordinals, products, paths, image hashes; legacy target/counts; all roles disjoint by product/path/SHA; train6355/1008+selection3449/498+validation3479/498 complete original FIT partition; query/gallery exact coverage and per-role products;12 original singletons; min2 other candidate classes; total6355 distinct; consumed outer products lose held status"
+}

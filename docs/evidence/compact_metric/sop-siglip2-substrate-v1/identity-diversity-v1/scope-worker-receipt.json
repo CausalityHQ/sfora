@@ -1,0 +1,150 @@
+{
+  "checks": {
+    "child_peak_rss_kib": 123672,
+    "memory_cap_bytes": 1073741824,
+    "pass": true,
+    "path": "/tmp/sfora-identity-diversity-scope-checks.json",
+    "sha256": "54649d77678923f8aff8fec7dbd9644774bf7ae46bf77c7a3c4cee1d2377006a",
+    "tests": 12,
+    "timeout_seconds": 55,
+    "wall_seconds": 9.293872728012502
+  },
+  "commit": "5d25147e2bc69b391d483ea0ef680ea1b471b200",
+  "consumed_outer_products": 1008,
+  "contract": {
+    "path": "/tmp/sfora-identity-diversity-scope-contract.json",
+    "sha256": "4250db8dc0300ee432d580f4a13b2ef02869c1a2592961cd92b291dd6d2737b2"
+  },
+  "git_identity": [
+    "Roman Bartusiak <riomus@gmail.com>",
+    "Roman Bartusiak <riomus@gmail.com>"
+  ],
+  "merged_or_pushed": false,
+  "metadata_only": true,
+  "metadata_output": {
+    "bytes": 8370403,
+    "path": "/tmp/sfora-identity-diversity-scope-v1.json",
+    "sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+  },
+  "native_eligible": false,
+  "owned_files": {
+    "scripts/freeze_identity_diversity_scope.py": "771ff4d7b0c8bc5007a91756ea5e838e2ecf34cc935b18a4cc678142be77fa5d",
+    "scripts/test_identity_diversity_scope.py": "184e300977bc596641665cdb5a33f4c9a39fb06a0974a806fe93e491d5c60430"
+  },
+  "parent_commit": "676e745f792b233a32cdb61dc8f330a6761795b9",
+  "remaining_outer_products": 985,
+  "schema": "sfora-identity-diversity-scope-worker-receipt-v1",
+  "scopes": {
+    "candidate": {
+      "anchor_revisits": {
+        "179061": {
+          "anchor_input_equality_claim": false,
+          "anchor_slots": 8192,
+          "batch": 64,
+          "class_visit_histogram": {
+            "4": 1888,
+            "5": 128
+          },
+          "sampled_images_masks_rng": "pending trainer",
+          "seed_class_assignment": "pending trainer",
+          "source_arithmetic": "order[(step*64+arange(64)) % classes]; first128 steps",
+          "steps": 128,
+          "trainer_qualified": false
+        },
+        "179069": {
+          "anchor_input_equality_claim": false,
+          "anchor_slots": 8192,
+          "batch": 64,
+          "class_visit_histogram": {
+            "4": 1888,
+            "5": 128
+          },
+          "sampled_images_masks_rng": "pending trainer",
+          "seed_class_assignment": "pending trainer",
+          "source_arithmetic": "order[(step*64+arange(64)) % classes]; first128 steps",
+          "steps": 128,
+          "trainer_qualified": false
+        }
+      },
+      "class_depth_counts": {
+        "1": 12,
+        "2": 6,
+        "3": 1661,
+        "4": 337
+      },
+      "classes": 2016,
+      "rows": 6355,
+      "scope_sha256": "c12e557afa89b53dc37b984ef0c1d369c4dbff42186c2fc63f4adc331ad31882"
+    },
+    "control": {
+      "anchor_revisits": {
+        "179061": {
+          "anchor_input_equality_claim": false,
+          "anchor_slots": 8192,
+          "batch": 64,
+          "class_visit_histogram": {
+            "8": 880,
+            "9": 128
+          },
+          "sampled_images_masks_rng": "pending trainer",
+          "seed_class_assignment": "pending trainer",
+          "source_arithmetic": "order[(step*64+arange(64)) % classes]; first128 steps",
+          "steps": 128,
+          "trainer_qualified": false
+        },
+        "179069": {
+          "anchor_input_equality_claim": false,
+          "anchor_slots": 8192,
+          "batch": 64,
+          "class_visit_histogram": {
+            "8": 880,
+            "9": 128
+          },
+          "sampled_images_masks_rng": "pending trainer",
+          "seed_class_assignment": "pending trainer",
+          "source_arithmetic": "order[(step*64+arange(64)) % classes]; first128 steps",
+          "steps": 128,
+          "trainer_qualified": false
+        }
+      },
+      "class_depth_counts": {
+        "1": 12,
+        "10": 21,
+        "11": 10,
+        "111": 1,
+        "12": 29,
+        "13": 6,
+        "14": 9,
+        "15": 14,
+        "16": 15,
+        "17": 1,
+        "19": 4,
+        "2": 3,
+        "20": 9,
+        "23": 2,
+        "24": 3,
+        "27": 1,
+        "28": 1,
+        "3": 98,
+        "30": 1,
+        "31": 1,
+        "32": 1,
+        "34": 1,
+        "4": 419,
+        "46": 1,
+        "49": 1,
+        "5": 158,
+        "56": 1,
+        "6": 31,
+        "7": 35,
+        "8": 82,
+        "9": 37
+      },
+      "classes": 1008,
+      "rows": 6355,
+      "scope_sha256": "1f3ad34bbd20a3b375ccb4908f9a3da05b63b514395cb553e1c81925789b2280"
+    }
+  },
+  "trainer_qualification": "pending; seed->class/image/masks/RNG mapping unqualified",
+  "worktree_clean": true
+}
