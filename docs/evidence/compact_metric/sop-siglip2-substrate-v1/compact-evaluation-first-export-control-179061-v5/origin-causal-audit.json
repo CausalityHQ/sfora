@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "base": "69db0712f8b481d36f4bb9c35bee1e114dbabe0b",
+  "actual_cause": {
+    "module": "charset_normalizer.md",
+    "expected_source_origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/md.py",
+    "recorded_file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/md.cpython-313-aarch64-linux-gnu.so",
+    "recorded_spec_origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/md.cpython-313-aarch64-linux-gnu.so",
+    "current_predicate": "__file__ == origins[name] AND __spec__.origin == origins[name]",
+    "predicate_line": 1474,
+    "file_comparison": false,
+    "spec_origin_comparison": false,
+    "expected_origin_derivation": "Source md.py appears in finite RUNTIME_SOURCES; runtime native origins overwrite only names of original proof-authorized .so files. No authorized md native exists, so md retains the source-only expected string."
+  },
+  "fresh_cached_entry_semantics": "Origins are built and cached once per bundle before yield. Module metadata is checked on every boundary entry, before activating the audit. A first entry with md absent can import cd/grouped code inside yield without an exit module-origin scan; a later entry checks the now-present md against the same cached source path. This source explains the mismatch without any changed file bytes or new runtime native authority. The v5 log lacks per-entry metadata; exact call site timing is not separately proven.",
+  "supplied_observations": {
+    "v14_pass": true,
+    "qualification_eligible": false,
+    "model_constructed": false,
+    "images": 0,
+    "quality_read": false,
+    "md_absent_before_import": true,
+    "md_wrapper_not_in_native_after": true,
+    "md_wrapper_open_events": 0,
+    "new_native_not_in_original_proof": [],
+    "approved_group_natives": {
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/cd.cpython-313-aarch64-linux-gnu.so": "12fb9cc199fd48481b3ece86aa70bf06aaa469d0f74045d9e5be722d1ef4f216",
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so": "43ec7be7cd6f9b15bd3e29fca57a6e3be6fbe7f8152cc7b27a0eda754560f956"
+    },
+    "source_edges": [
+      {
+        "source": "charset_normalizer/api.py",
+        "line": 20,
+        "statement": "from .md import mess_ratio"
+      },
+      {
+        "source": "charset_normalizer/cd.py",
+        "line": 18,
+        "statement": "from .md import is_suspiciously_successive_range"
+      }
+    ]
+  },
+  "proof_limit": "The Python source context and source trace contain no compiled grouped initializer body. The earlier native-frontier explicitly marks grouped md initialization unproven. v14 metadata + mapped-native snapshots support the grouped initializer explanation, but are not a bound source proof tying md metadata to a particular original initializer. Do not grant the physical md.so file or declare qualification from import-only observations.",
+  "smallest_design_conditional_only": "If root proves the initializer-produced metadata alias, permit ONLY the exact charset_normalizer.md file/spec pair as a finite metadata alternative, bound to this exact md RECORD label and both original cd/shared bytes/required guards. Keep md.py as the allowed source. Never add md.so to runtime, exact file set, original native files or required guards; keep filesystem md.so reads and foreign/mixed metadata denial and every original native predicate/full exit unchanged. No blanket package/native/suffix alternatives. No implementation authorized by this read-only result.",
+  "required_root_diagnostic": {
+    "mode": "One root-only fresh original bundle loader observation, engineering only, no state reuse/images/quality.",
+    "placement": "After copied load_inference completes, before the next bundle_reads_only entry, inspect existing sys.modules/cache metadata. No additional third-party imports or any callable invocation.",
+    "module_names": [
+      "charset_normalizer.md",
+      "charset_normalizer.cd",
+      "81d243bd2c585b0f4821__mypyc"
+    ],
+    "fields": [
+      "module __name__ / __file__",
+      "spec.name / spec.origin / spec.has_location",
+      "module.__loader__ and spec.loader qualified Python types plus loader name/path metadata",
+      "md callable mess_ratio and is_suspiciously_successive_range qualified type/__module__/__qualname__/__wrapped__ metadata only; code.co_filename if Python code exists; DO NOT call these functions",
+      "cached origins[charset_normalizer.md] and whether this is first/cached entry",
+      "cd/shared membership and exact original SHA/required guard bindings already authenticated; current mapped-native names from the ORIGINAL source API",
+      "whether md.so is mapped; whether any actual import audit event selected md.so, if root adds a strictly observational finite import-event logger before existing public loading"
+    ],
+    "interpretation": "Report a finite metadata-only alias only after the recorded loader/initializer relationship and original mapping/guard authority support it. Otherwise retain the denial and ask for source/hash-bound grouped initializer evidence. Never read/dlopen md.so to diagnose.",
+    "exit": "Then attempt the unchanged cached boundary once if needed to record the existing rejection; always release_inference, exact copied module cleanup, require_no_training and the existing full source/native/exact-four uncached exits. Mark observation-only and retain any pre-first-forward exact-four exit failure; do not weaken it."
+  },
+  "owned_files_unchanged": true,
+  "no_production_edits_fullsuite_native_torch_ssh_gpu_jobs_children_reviews_new_worktree": true,
+  "input_sha256": {
+    "/tmp/sfora-compact-charset-source-context-20261004.json": "6e9ccfa32967c782f46f01e2d263fce8f7d84035384852d0e7662092924d1c63",
+    "/tmp/compact-runtime-import-only-v14-result.json": "edad442ddecf79d7548fd30c3d1cea63a975a2d97f028b3620508451c187bc69",
+    "/tmp/sfora-native256-source-cpu-so400-v4.json": "e8a1e02e27ed4e4726682c0a61e547d097912b98e3535ddb3da8c1bb4e144cbf",
+    "/tmp/sfora-compact-charset-native-frontier-20261004.json": "4207cff44af56fb15bcae92390acb13ee7eec952fa09218f95f2cbf7305b1847",
+    "/tmp/sfora-compact-charset-source-trace-20261004.json": "4157c41559cfe4433debda15c2d86414643bfddf8d8874a525438601a121d04f",
+    "/tmp/compact-first-export-control-v5-original.log": "1d3239a3978bf5edb33b2bcafae7b30cbf0121cce882ddfb72c3a255b48b053a"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "charset-metadata-correction-stop-rule-v1",
+  "evidence": [
+    "original control v5 failure",
+    "original v14 md module metadata with no md wrapper open/map",
+    "original-proof-bound shared binary CPyInit md/cd static symbols"
+  ],
+  "scope": "exact md module file/spec metadata label only",
+  "physical_md_wrapper_reads_or_maps_allowed": false,
+  "required": "exact original cd/shared native/files/required-guard hash binding, exact pinned RECORD label, fresh original map excludes md wrapper",
+  "unchanged": [
+    "all original native authority",
+    "full uncached exit",
+    "scientific thresholds",
+    "resource caps",
+    "accepted TRAIN pair"
+  ],
+  "next": "fresh CPU proof then sequential original control/candidate exports and selection score; fail closed on missing binding"
+}
