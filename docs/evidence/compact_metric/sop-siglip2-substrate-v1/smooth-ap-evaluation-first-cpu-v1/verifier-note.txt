@@ -1,0 +1,1 @@
+Original job94504 exited0. Standalone extra assertion initially addressed missing code key; original production check_receipt passed. Corrected only extra key to actual source_code; full verifier PASS. Frozen evaluator/source/job unchanged, no rerun.
