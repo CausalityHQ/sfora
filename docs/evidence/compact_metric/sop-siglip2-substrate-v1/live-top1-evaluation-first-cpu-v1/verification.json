@@ -1,0 +1,11 @@
+{
+  "unit": "sfora-so400-live-top1-evaluation-first-cpu-v1",
+  "pass": true,
+  "service_seconds": 274.588,
+  "host_peak_bytes": 1786077184,
+  "rss_kib": 1181864,
+  "invocation_id": "217ba9044d564f4d8282672aad93b0f6",
+  "quality_read": false,
+  "receipt_sha256": "f406120e83be273df6285c319e8ca8b13b620287e4a772e0460b09a920e4f477",
+  "log_sha256": "7bcf532d35eb7671c6b40e2cdf1d04a04963cd6ce62815751ada4ebfa4435c25"
+}
