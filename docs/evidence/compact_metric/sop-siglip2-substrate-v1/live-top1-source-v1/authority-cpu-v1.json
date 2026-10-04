@@ -1,0 +1,153 @@
+{
+  "accepted": {
+    "arm": "concat",
+    "checkpoint": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt",
+      "sha256": "b702e03847be88540ee9711b420279e3bc131fafc475f361eca3d57cf3b8bbcf"
+    },
+    "launch": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json",
+      "sha256": "109b6fded3f4559fcee3822536abd5beeed5f4ffc23f4313b87904faa6c39630"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "94a84de4194f42f0842cee5b5c8f932a",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log",
+        "sha256": "93c2f7024116fc63d8e7cacc1a4e0106d2d57e9ca57d794c866e9bcc77311197"
+      },
+      "native_peak_rss_kib": 2854356,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json",
+        "sha256": "b4af0fecfa1d5f750f0ac9cc995198690baf4397fd970c8192727644135c7d5c"
+      },
+      "service_seconds": 234.821,
+      "unit": "sfora-so400-signed-concat-fit-concat-v1"
+    },
+    "terminal_state_sha256": "a118fd98cce0b8fafa51c897be70b2b6e2ec93ebb226b2382dd264721776b644"
+  },
+  "arm": "control",
+  "both_locks_held": true,
+  "execution_sha256": "0992550a70f38a2efe461abf6d0672fc8608ee976fca155bb16e66305da7cc81",
+  "fitter": {
+    "code": {
+      "fit_siglip2_prototype_residual.py": "95295794ef234967d40bdf5713d04f41d6710dae4e9d2b95bca76f0f31adc13b",
+      "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+      "test_siglip2_prototype_residual.py": "c89aa3855d60d9f11d0dd57b55311c5364304915bd4a5d22b26b4c1e0a29c7d4"
+    },
+    "execution_sha256": "a47933beafd8a1c0e2d541624328c8fe1d7b9a90f68977eee83c3c82223a56fe",
+    "root": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2"
+  },
+  "native_authority": {
+    "path": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/native-authority.json",
+    "sha256": "7c1c78ef3f2c784f217822690e93e52e3ef55b27d6a27d8f9daf9b9b19295f51"
+  },
+  "nearest": {
+    "code": {
+      "nearest_ranking_readout.py": "862d5db5a1831603d4fc3c1b645fa998c7ca66ff67c8141b20d7df74e92d9738",
+      "test_siglip2_nearest_ranking.py": "a2d0a6fff65c371c4dd50531766677db5464ee35918887b3d55935dbdf489eec",
+      "train_siglip2_nearest_ranking.py": "4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c"
+    },
+    "execution_sha256": "0723deae5c550776b0a0493e296ce789cec76718cb7801f612b4fddc6201c311",
+    "root": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5"
+  },
+  "phase": "cpu",
+  "readout": {
+    "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py",
+    "sha256": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68"
+  },
+  "recipe": {
+    "adamw": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "capturable": false,
+      "differentiable": false,
+      "eps": 1e-08,
+      "foreach": false,
+      "fused": false,
+      "lr": 0.0001,
+      "maximize": false,
+      "weight_decay": 0.05
+    },
+    "batch": 64,
+    "classes": 1008,
+    "clip": 1.0,
+    "core": "cache/target preparation + both-arm all-positive scoring + both-view forward/backward + every both-arm gallery forward/backward + both-arm fullfeature centering/transfers + candidate hinge selection/transfers/backward + optimizer",
+    "frozen": "complete encoder448/config/buffers/processor/head/classifier/means/muTRAIN",
+    "gallery": "both arms reconstruct connected gallery every micro16 at same pre-update A/C; both-role backward then release each graph; one optimizer step after eight micros; no serialized gallery",
+    "hinge": "candidate coefficient1 relu(.05+s_nearest_wrong-s_nearest_positive) sum / (.05*2*K); control connected zero; K counts full scheduled B64 valid occurrences bothviews/micro16",
+    "hinge_coefficient": 1.0,
+    "hinge_margin": 0.05,
+    "initial_scaler": 128.0,
+    "microbatch": 16,
+    "mining": "all6355 canonical rows; both arms current connected canonical readout at same pre-update A/C; exclude same original image; all same-identity positives; canonical ordinal traversal",
+    "ranking": "both arms backward coefficient1; all positives; SmoothAP sum / (2*K)",
+    "readout": "original CPU-renormalized genuine features; FP32 all; autocast disabled",
+    "regression": "both arms P[label]; both original views coordinate sum / (128*e0)",
+    "residual": "both arms original concat helper once + linear(actual normalized x - canonical TRAIN6355 mu,C); fresh accepted A0/zeroC; mean FP32 canonical actual CPU domain only",
+    "rows": 6355,
+    "schedule": "original first128 B64 per seed; warm-authenticated; masks unused",
+    "seeds": [
+      179061,
+      179069
+    ],
+    "selection": "detached scores for indices only; filter invalid anchors before indexing; exclude original-row self; highest score then ascending original row; gather same connected scorematrix; singleton gallery negatives connected",
+    "singletons": 12,
+    "teacher": "accepted canonical T; member-inclusive P; normalize(T); both-view e0",
+    "temperature": 0.01,
+    "trainable_names": {
+      "candidate": [
+        "A",
+        "C"
+      ],
+      "control": [
+        "A",
+        "C"
+      ]
+    },
+    "trainable_scalars": {
+      "candidate": 167936,
+      "control": 167936
+    },
+    "trainable_shapes": {
+      "candidate": [
+        [
+          128,
+          160
+        ],
+        [
+          128,
+          1152
+        ]
+      ],
+      "control": [
+        [
+          128,
+          160
+        ],
+        [
+          128,
+          1152
+        ]
+      ]
+    },
+    "updates": 128,
+    "views": [
+      "canonical",
+      "augmented"
+    ]
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "schema": "siglip2-compact-live-top1-launch-v1",
+  "seed": 179061,
+  "selected_cpu": null,
+  "selected_mechanics": null
+}

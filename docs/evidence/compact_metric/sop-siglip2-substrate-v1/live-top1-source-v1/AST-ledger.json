@@ -1,0 +1,106 @@
+{
+  "ACTIVE_OBJECTIVE_SOURCE": {
+    "after": "7a50e045ecf6e53da2bdd138082339429ec4dcec94efe75c4b0afb5f8f4efaf0",
+    "before": "c943f4407efcd87414a674f987d620fbfbe6f298300a0a902d031d35a5ac49b0"
+  },
+  "AUTHORITY_SCHEMA": {
+    "after": "fb0fa35e1972c4ff7c96d1da6d14265bed53ac028ab6576eef8919bf6f998c54",
+    "before": "c48f888afe8fe552a1303492c33db760b004c472068ea7162300bf46a2e20053"
+  },
+  "BUNDLE_SCHEMA": {
+    "after": "277b4914303653b09a825c1388037b9e3d69e4e25bbfbdcbcdc8f294a561c463",
+    "before": "0a5b7a967e5267bd828f1f068e9f5075ce056054b5f8f599ea077290f482741f"
+  },
+  "INFERENCE_SCHEMA": {
+    "after": "ae743d5b4835531d10ef7a845646f92d3e0679482e24c25de362ee041fa945e0",
+    "before": "a77220b4dabd76c3cdc21dc8d3ab6d04651092a5f738cda9749be0bb41fe8003"
+  },
+  "RECIPE": {
+    "after": "9b053dc24b1b78d2acaa5d177055234997790b4c0b4de5eaba25574ec8333e1b",
+    "before": "b1b652bbf6b4d00b567f927f3faf71af784d32031b25b47b7ff87421a1b04d13"
+  },
+  "SCHEMA": {
+    "after": "08a0e623245c616cdf2f5538cc65cfed39ef08faf1df12a2ec50e56eab4bea2d",
+    "before": "9b68fa5c5e3afbd6e249f0b2e2d4f6082b6334c8961a1457a7525c6c7478a6fe"
+  },
+  "check_cpu_gradient": {
+    "after": "8d1e89a049ba56d8edf4662f95f875383cf9c74489df2ea962c5de7d142f30a5",
+    "before": "52680adac8d04761cc5b5e8020b63d7a0760043c2a4d0f9c43ef2c2d68c1b47b"
+  },
+  "check_payload": {
+    "after": "05a4ebaefac7ee4e17a1b772197f1e7aa6d5f10268a341dfc460a93edd15a37e",
+    "before": "4dcff8e89f627ddfc48ac1dc0df75a9c10aa65ebde020e4acd64f9fb480dc48c"
+  },
+  "check_steps": {
+    "after": "202ab4496d20ba304e41ed7a26ecc036e235301068579266b6c168ec034d349b",
+    "before": "93afd0142e2b174308612880e6124dfd7288328ef86a7278464c63b68a12a90b"
+  },
+  "check_terminal_record": {
+    "after": "11fdb5915635ecfc8ae5b9370b7d571f9eef21dc6431e2992a357135c4390ce9",
+    "before": "a893755494ade5719a40fe9d4beac08b8a095173828b2d269b62e8244367f307"
+  },
+  "cpu_gradients": {
+    "after": "2765faaabb97d1b5027061d679eb6fcf7fb8835bc18aac0ff4aa51fbb8eb441d",
+    "before": "35ab7c8b330c3f612ec74e2ba3ff20449db5811457e102babaf4ca316e6de600"
+  },
+  "cpu_witnesses": {
+    "after": "4ee50c6580724bf229feec888b98a320e86b63568a2b381ebd8a0cc1a9e39c52",
+    "before": "f6aef2f4b6779a37dffea20fcebe6ee5366bebeb67d30ff39dda5e2b84b5c6c4"
+  },
+  "fresh": {
+    "after": "4caa0726c0bc33f0d4412a8714aadf21ec250b870b06d6e06bb65aef856cd311",
+    "before": "178fdb25ff58c1d54b62b3faf5475633d4387739fbf338f319f80b5db23723a1"
+  },
+  "fullfeature_raw_features": {
+    "after": "3706820907338be9911fd5b51d84dd8bd3de246be547533f3d203c61ff2e4af6",
+    "before": "337adfab3ecc63f101bab911497fcb8c9aacf2ea45bb611343808ef14765ce9c"
+  },
+  "gpu_run": {
+    "after": "e6d2076bfb5d10116e2a53ab977426e695fcdfbf4b6a60d6c9bcbd1234738659",
+    "before": "26fe6c9392f35661f028dce1188433e0298247250f6f3808198cd9138298ed72"
+  },
+  "inference_witness": {
+    "after": "5bb714fc576b4171642323502ac4b8de2eb0d86ff41babbb34ebc094cbb8be9c",
+    "before": "05e85e693991374af1071b726d1474af28c2655e12f2e9e312ba1b8ff3b81d21"
+  },
+  "integrity": {
+    "after": "c7b564cf9f8352105d115e9a0fe1925fd162ba4ac483892306464ae7060c2fcb",
+    "before": "64877044d20931db9bf8802704a6f70d6dab322b071dad189c26c0ec3451c633"
+  },
+  "live_top1_hinge": {
+    "after": "f52156b1115d6050eefd8d6354b37738a856ec23c8c01a93dcc5c1e83d9af5d7",
+    "before": null
+  },
+  "live_top1_indices": {
+    "after": "9ac22ebb7afbdc594a462dfe36aa7fbb200e4f45b4b6f3edbc3d1b1f077c9e8d",
+    "before": null
+  },
+  "load_inference": {
+    "after": "415612a3a14cd231b93e164c3889051a9985ebe4198827e2f9db5684f28b49e3",
+    "before": "8cefc90f00ecde080e4cc29c43ab8cf6fc27381ca974157b5ff7edb0b5993f7c"
+  },
+  "loss_terms": {
+    "after": "2bf842e860a593f95a439a373c43fd7a658bda40d73ef8e6136209fcf5aa0574",
+    "before": "dbbc041853c44aa9e6c9a51e42f68ae1514a5620e2f3e6c5073386b57bc8f300"
+  },
+  "native_live_top1_witness": {
+    "after": "570705425ec044fa35d672e8290125cbddd31b508d6ac795a9779af3746e152e",
+    "before": null
+  },
+  "own_residual": {
+    "after": "3a149e7ce44faf03f3c6e389e1000921e5d34f9b0553ad451f3b6e9a6dbce7d9",
+    "before": "6835a6943d7a78da7edb43882885308882f9121b885973a7dc84675e20faa1ca"
+  },
+  "parameter_roles": {
+    "after": "4ea18a5cf379fcf0fc9e686539c1fecae948647a7984fe7c239e6d0373404909",
+    "before": "17221a0f94371dd0123fe44951e86d3a97dc2449d902bac8be0556b998469aee"
+  },
+  "qualify_bundle": {
+    "after": "176ec0d82f7585ee776757fccf844e532f3eec7372c60b2b3106e6afeee0f830",
+    "before": "2777b4de8cb4bab978539865ea66ba95c64146557088c05fd80e7477684af9dd"
+  },
+  "update": {
+    "after": "b9924df83ea03987db8f5142db24abd8acb9ea80bb14369b1f0cd17a67dcb1b5",
+    "before": "a0c0b8ca6fad2dbb8f73ea88046c479cfd68865c0fdc31f05c4e52ecce50673b"
+  }
+}

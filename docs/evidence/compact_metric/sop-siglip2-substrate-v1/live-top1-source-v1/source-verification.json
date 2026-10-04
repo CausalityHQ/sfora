@@ -1,0 +1,10 @@
+{
+  "schema": "live-top1-source-verification-v1",
+  "pass": true,
+  "original_guards": 32,
+  "new_guards": 4,
+  "pre_post_equal": true,
+  "trainer_commit": "da67588e6de5f2368b06676ea5e446b8ea43597f",
+  "integration_commit": "f151abf4eace853b254538bb1be317fb1689f6b7",
+  "native_qualified": false
+}
