@@ -1,0 +1,16 @@
+{
+  "control": {
+    "authority_sha256": "59eaaa51080f1779a6b0478ef0b67bafeb2e7537869e65446ab6dd0a8512cb53",
+    "command_sha256": "9a6069960a8d13a5b8b6f06e8f540300dafe9d030fdc93aaa9e3a9a62ae4f92c",
+    "launch_sha256": "e54cb95ca2223b40901db91e688eba781b324218399c96144654dbcec4f1e740",
+    "unit": "sfora-so400-live-top1-evaluation-first-export-control-179061-v1",
+    "native_launched": false
+  },
+  "candidate": {
+    "authority_sha256": "e54b8ac8d073d126e9205868e49e477d71bc29f49f864c09f5352bb2919ffeaf",
+    "command_sha256": "3dfdbf44f623b024229e2506c6e03b85c8e4162b7d8b70aa9dae81f5b02d8020",
+    "launch_sha256": "264f6a0043aca69d13bb949d84e81c9f08a5ddadaab02d937324c144bfb93005",
+    "unit": "sfora-so400-live-top1-evaluation-first-export-candidate-179061-v1",
+    "native_launched": false
+  }
+}
