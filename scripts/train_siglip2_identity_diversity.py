@@ -1335,7 +1335,10 @@ def cpu_gradients(context, state):
         del gallery
 
         def objective(micro, historical=False, split=False, detached=False):
-            query = {**state,'arm':'control',**{n:torch.nn.Parameter(state[n].detach().clone()) for n in ('A','C')}}
+            # The archived candidate readout connects trainable C; its loss is
+            # the same CONTROL regression/SmoothAP. Only discarded oracle copies
+            # use that historical role, including the inherited gallery copy.
+            query = {**state,'arm':'candidate' if historical else 'control',**{n:torch.nn.Parameter(state[n].detach().clone()) for n in ('A','C')}}
             gallery = {**query,**({n:torch.nn.Parameter(query[n].detach().clone()) for n in ('A','C')} if split else {})}
             labels = ('canonical_regression','augmented_regression','regression','ranking','total')
             gradients = {n:{k:torch.zeros_like(query[n]) for k in labels} for n in ('A','C')}

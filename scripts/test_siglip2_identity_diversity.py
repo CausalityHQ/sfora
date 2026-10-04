@@ -73,7 +73,7 @@ common_features = context.pop('_common_features')
 
 class DiversityAdmissions(unittest.TestCase):
     def test_complete_unrelated_ast_and_native_preparation_preserved(self):
-        tree = ast.parse(PATH.read_bytes())
+        tree = oracle_role_inverse(ast.parse(PATH.read_bytes()))
         owned = {'prepare_native', 'release_scope', 'tensor_weakrefs'}
         unrelated = ast.Module(body=[n for n in tree.body
                             if not (isinstance(n, ast.FunctionDef) and n.name in owned)], type_ignores=[])
@@ -370,6 +370,264 @@ class DiversityAdmissions(unittest.TestCase):
         self.assertIn('historical', ast.unparse(functions['cpu_gradients']))
         self.assertNotIn('reset_peak_memory_stats', PATH.read_text())
 
+
+
+
+def oracle_role_inverse(tree):
+    """Invert only the discarded historical readout role; retain every old pin."""
+    cpu = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'cpu_gradients')
+    objective = next(n for n in ast.walk(cpu) if isinstance(n, ast.FunctionDef) and n.name == 'objective')
+    query = objective.body[0].value
+    role = next(i for i, key in enumerate(query.keys) if isinstance(key, ast.Constant) and key.value == 'arm')
+    expected = ast.parse("'candidate' if historical else 'control'", mode='eval').body
+    driver.require(ast.dump(query.values[role]) == ast.dump(expected), 'historical oracle readout role differs')
+    query.values[role] = ast.Constant(value='control')
+    return tree
+
+
+def oracle_fixture(arm, seed):
+    """Real old readout/loss/gallery and real new objective; reduced stdlib tensors.
+
+    The packed nodes come verbatim from archived 80872bec trainer/test bytes,
+    matching ACTIVE_OBJECTIVE_SOURCE. Only native tensor/concat boundaries are
+    stand-ins. This is a role/graph reproduction, not native qualification.
+    """
+    import base64
+    from contextlib import nullcontext
+    import math
+    import sys
+    from unittest.mock import patch
+    import zlib
+    raw = zlib.decompress(base64.b85decode(ORACLE_AST_FIXTURE))
+    driver.require(hashlib.sha256(raw).hexdigest() ==
+                   'd397bd48bc61aebf43753ea4c0d33516d792ee61dea61ee76c9a09acedaa501c', 'archived oracle AST fixture differs')
+    packed = json.loads(raw)
+    standins = {'math': math, 'SimpleNamespace': SimpleNamespace}
+    exec(packed['standins'], standins)
+    GalleryTensor, Dual = standins['GalleryTensor'], standins['GalleryDual']
+
+    class Tensor(GalleryTensor):
+        def __init__(self, values, name=None, shape=None):
+            super().__init__(values)
+            self.name, self.declared_shape = name, shape
+        @property
+        def shape(self): return self.declared_shape or super().shape
+        def apply(self, other, operation):
+            if (isinstance(other, GalleryTensor) and isinstance(other.values, list) and other.values and
+                    not isinstance(other.values[0], list) and isinstance(self.values, list) and
+                    self.values and isinstance(self.values[0], list)):
+                other = Tensor([other.values])
+            return Tensor(super().apply(other, operation).values)
+        def __getitem__(self, key): return Tensor(super().__getitem__(key).values)
+        def sum(self, dim=None): return Tensor(super().sum(dim).values)
+        def __matmul__(self, other): return Tensor(super().__matmul__(other).values)
+        def sigmoid(self): return Tensor(super().sigmoid().values)
+        def detach(self): return Tensor(super().detach().values, self.name, self.declared_shape)
+        def clone(self): return Tensor(copy.deepcopy(self.values), self.name, self.declared_shape)
+        def float(self): return self
+        def tolist(self): return copy.deepcopy(self.values)
+        def add_(self, other): self.values += other.values; return self
+        def __float__(self): return float(self.item())
+
+    class Parameter(Tensor):
+        def __init__(self, value, axis):
+            super().__init__(Dual(float(value), tuple(float(i == axis) for i in range(4))),
+                             value.name, value.shape)
+            self.axis = axis
+        requires_grad, grad_fn, is_leaf = True, None, True
+
+    def check_tensor(tensor, shape, device, frozen=False):
+        driver.require(tensor.shape == shape and tensor.device == device and
+                       (not frozen or not tensor.requires_grad), 'stand-in native tensor boundary differs')
+
+    def concat(features, head, A, means, role, primitive):
+        driver.require(role == 'concat', 'accepted concat role differs')
+        return Tensor([[x + A.values*y, y + A.values*x] for x, y in features.values])
+
+    functional = SimpleNamespace(
+        linear=lambda features, C: Tensor([[C.values*x, C.values*y] for x, y in features.values]),
+        normalize=lambda tensor, dim: tensor / tensor.norm(dim=dim)[:, None])
+    creation = []
+    def parameter(value):
+        result = Parameter(value, len(creation))
+        creation.append(result)
+        return result
+    torch = SimpleNamespace(float32='float32', nn=SimpleNamespace(Parameter=parameter),
+        tensor=lambda values, **kw: Tensor(values), zeros_like=lambda value: Tensor(0.),
+        isfinite=lambda tensor: tensor.apply(0, lambda a, b: math.isfinite(float(a))),
+        count_nonzero=lambda tensor: Tensor(sum(float(v) != 0 for v in tensor.flat())),
+        autocast=lambda *args, **kw: nullcontext(),
+        autograd=SimpleNamespace(grad=lambda term, members, **kw:
+            tuple(Tensor(term.values.derivative[member.axis]) for member in members)))
+    primitive, readout = SimpleNamespace(_check_tensor=check_tensor), SimpleNamespace(raw_features=concat)
+    context = {'legacy': {'quadratic': primitive}}
+    historical = {'ARMS': driver.ARMS, 'json': json, 'hashlib': hashlib,
+                  'helper_guard': lambda context: readout}
+    exec(packed['historical'], historical)
+    snapshot = dict(historical)
+    context['active_original'] = SimpleNamespace(**{name: value for name, value in historical.items()
+                                                   if not name.startswith('__')})
+    delta = .04 if arm == 'candidate' else 0.
+    canonical = Tensor([[1., .2+delta], [.9, .3], [.8, .4], [.7, .5], [.3, 1.]])
+    augmented = Tensor([[x+.03, y-.02] for x, y in canonical.values])
+    bank = driver.ranking_bank([0, 0, 0, 1, 2], [180, 7, 40, 90, 21])
+    batch = ([0, 1, 2, 3] if seed == 179061 else [2, 3, 0, 1])*16
+    state = {'arm': arm, 'seed': seed, 'device': 'cpu', 'counter': 0,
+             'A': Tensor(.05, 'A', (128, 160)), 'C': Tensor(0., 'C', (128, 1152)),
+             'mu_train': Tensor([.6, .4], shape=(1152,)), 'head_object': None, 'means': None,
+             'views': {'canonical': canonical, 'augmented': augmented}, 'ranking_bank': bank,
+             'target': Tensor(bank['target']),
+             'teachers': {'P': Tensor([[.85, .32], [.75, .472], [.35, .988]]),
+                          'T': canonical, 'e0': 2.}}
+    cpu = next(n for n in ast.parse(PATH.read_bytes()).body
+               if isinstance(n, ast.FunctionDef) and n.name == 'cpu_gradients')
+    objective = next(n for n in ast.walk(cpu) if isinstance(n, ast.FunctionDef) and n.name == 'objective')
+    namespace = dict(vars(driver))
+    namespace.update(torch=torch, F=functional, context=context, state=state, batch=batch, bank=bank,
+                     K=driver.ranking_membership(bank, batch)['valid'], helper_guard=lambda context: readout)
+    # Compile the source functions together to keep their genuine global call
+    # chain, substituting only the admitted concat helper boundary.
+    nodes = [n for n in ast.parse(PATH.read_bytes()).body if isinstance(n, ast.FunctionDef) and
+             n.name in {'raw_features', 'ranking_gallery', 'fullfeature_raw_features', 'loss_terms'}]
+    exec(compile(ast.Module(body=nodes+[objective], type_ignores=[]), str(PATH), 'exec'), namespace)
+
+    def run(micro, **kwargs):
+        creation.clear()
+        with patch.dict(sys.modules, {'torch': torch, 'torch.nn': SimpleNamespace(functional=functional)}):
+            result = namespace['objective'](micro, **kwargs)
+        driver.require(state['arm'] == arm and state['A'].item() == .05 and state['C'].item() == 0. and
+                       historical.keys() == snapshot.keys() and
+                       all(historical[k] is v for k, v in snapshot.items()), 'oracle mutated live scope or old globals')
+        return result
+
+    def raw_probe(role, trainable=True):
+        C = Parameter(state['C'], 1) if trainable else state['C']
+        A = Parameter(state['A'], 0)
+        with patch.dict(sys.modules, {'torch': torch, 'torch.nn': SimpleNamespace(functional=functional)}):
+            return historical['fullfeature_raw_features'](canonical, None, A, None, C,
+                    state['mu_train'], role, primitive, readout)
+    return run, raw_probe
+
+
+class HistoricalGradientOracle(unittest.TestCase):
+    def test_archived_control_gate_and_zeroC_candidate_derivative(self):
+        for arm in driver.ARMS:
+            for seed in driver.SEEDS:
+                with self.subTest(arm=arm, seed=seed):
+                    _, probe = oracle_fixture(arm, seed)
+                    with self.assertRaisesRegex(ValueError, 'control residual must be frozen exactzero'):
+                        probe('control')
+                    frozen, connected = probe('control', trainable=False), probe('candidate')
+                    self.assertEqual([float(v) for v in frozen.flat()], [float(v) for v in connected.flat()])
+                    self.assertTrue(any(v.derivative[1] != 0 for v in connected.flat()))
+                    self.assertTrue(all(v.derivative[1] == 0 for v in frozen.flat()))
+
+    def test_complete_firstB64_old_new_A_C_and_gallery_decomposition(self):
+        def values(result):
+            return result[0], {n: {k: v.item() for k, v in terms.items()} for n, terms in result[1].items()}, \
+                   {n: v.item() for n, v in result[2].items()}, result[3]
+        def near(left, right):
+            for key, value in left[0].items(): self.assertAlmostEqual(value, right[0][key], places=12)
+            for name in ('A', 'C'):
+                for term, value in left[1][name].items():
+                    self.assertAlmostEqual(value, right[1][name][term], places=10)
+                self.assertAlmostEqual(left[2][name], right[2][name], places=10)
+            self.assertEqual(left[3], right[3])
+        for arm in driver.ARMS:
+            for seed in driver.SEEDS:
+                with self.subTest(arm=arm, seed=seed):
+                    run, _ = oracle_fixture(arm, seed)
+                    full = values(run(64)); micro = values(run(16)); near(full, micro)
+                    try:
+                        old = values(run(64, historical=True))
+                    except ValueError as error:
+                        self.fail('complete archived oracle rejected trainable C: ' + str(error))
+                    self.assertEqual(full, old)
+                    near(old, values(run(16, historical=True)))
+                    split = values(run(64, split=True)); split_micro = values(run(16, split=True))
+                    near(split, split_micro)
+                    self.assertEqual(split, values(run(64, historical=True, split=True)))
+                    near(split, values(run(16, historical=True, split=True)))
+                    mutant = values(run(16, detached=True))
+                    for key, scalar in full[0].items():
+                        self.assertAlmostEqual(scalar, mutant[0][key], places=12)
+                        self.assertEqual(scalar, split[0][key])
+                    for name in ('A', 'C'):
+                        tied, query, gallery = full[1][name]['ranking'], split[1][name]['ranking'], split[2][name]
+                        for gradient in (tied, query, gallery): self.assertGreater(abs(gradient), 1e-8)
+                        self.assertAlmostEqual(tied, query+gallery, places=10)
+                        self.assertAlmostEqual(full[1][name]['total'], split[1][name]['total']+gallery, places=10)
+                        self.assertAlmostEqual(mutant[1][name]['ranking'], query, places=10)
+                        self.assertAlmostEqual(mutant[1][name]['total'], split[1][name]['total'], places=10)
+                        self.assertGreater(abs(tied-mutant[1][name]['ranking']), 1e-8)
+
+    def test_exact_source_and_test_inverse_keeps_all_historical_hashes(self):
+        tree = oracle_role_inverse(ast.parse(PATH.read_bytes()))
+        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+                         '69775bf080f43eb9c63048ba25d298199a999ed617da5ca9f7ce19b311fbb9e5')
+        tree = ast.parse(Path(__file__).read_bytes())
+        additions = {'oracle_role_inverse', 'oracle_fixture', 'HistoricalGradientOracle'}
+        tree.body = [n for n in tree.body if not (isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name in additions)
+                     and not (isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'ORACLE_AST_FIXTURE')]
+        inverses = 0
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call) and \
+                    isinstance(node.value.func, ast.Name) and node.value.func.id == 'oracle_role_inverse':
+                node.value = node.value.args[0]; inverses += 1
+        self.assertEqual(inverses, 1)
+        self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
+                         'ffd0b8a12676aa16d0a3deab0d6d7a1df42744054e5c69b74c83e17be2dbc0fe')
+        self.assertEqual(driver.ACTIVE_OBJECTIVE_SOURCE['code'], {
+            'train_siglip2_compact_ranking.py': 'ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad',
+            'test_siglip2_compact_ranking.py': '6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b'})
+
+
+ORACLE_AST_FIXTURE = (
+    'c-plZ+j5-9^;bH20mcZ;$ZKaKXI$%O<2+^Kid}iZQ&SD}%wR!-xr`)l`QLL+U!a@IjO_KwWeMo+bHBsy7l*WNiYkq1c5y>461F21'
+    '``o4#bK`<1X_FS*CpoKYx@X?aM^4};-4R|iq}!k#<4;A?nvws}tY!bKs-klB(U1HiN9ZN3XwDi|ZL1<<wM(m9gVl(e$C8QXB&|u^'
+    'RD|+`z&%MhdGp_YzxRo=OCMMQ2kJCwX(krc>BR9gw5F{%aYN^gv++q7uC9Of$?D~D19#WUpMG9?$Os-?uZaW9G(eF<SOyHZJx6#R'
+    'Fy0P;z>U0Ky|_k*tCxTM+w+$lo4Yp4c8mfEY+KR$t-7vVec_V>qlr)6pmZsR`&+nbw+%=TBo1Wxq^!~$1bk#Za6^-#ZM3L9Uf{oX'
+    'ZIq=kdHe49wcbFABdbVrV1&jEiiQ_ePP6n2h%4n~+xX-@Z4RX14D}aNP$SK<Kmt_i&C8-{2$)5DkWY41k<0slbG^Q6d5qde`PbyF'
+    '+&QIQwW65`w()_*ciV>X8Vm&3b~{OWKG6aS5_U{ucII?1F&EGKV*ox<|Aq1OhpJ`Xz|sUuX}wE%+A#Ol3qTgG7r;&Kdcy7oTQoj<'
+    'r{9|k{y1`TXP;N7;gNw(7@z4#ibQm@+d$pb+kHh7LDy}7m)jjjC;1K4*;5-AEpN8G;9po(AXkbXK(!o@D#%sndw<H?x*-u$k|XQ^'
+    'j0s_B(uE00T(oV9nAVLu5PN`L>=VXml(A&}mV#S(R-m{iYi+f`6J5lSChHik;q@R*fr2p7gf`3+seu-LKO=90Eai+=Cg}~051`gv'
+    'R?r3{c4@fetvA-rz&Zf#z%V*nFam-=KNGHCNr#ZEsOxRQc#)@^0wNF$z}Ozao0G|qX)L2rq`VO}u_S+AlYR~FUjBrH!6WjImp>8t'
+    'SQyP5S;9fD$-;z_?#w$8Hqj0>`Ibu2!q@`@pSl61^gi12A<#S_Y6<|MgO;%^qE9StFfgm9Z;WeUGH~B3O)cD-o0N8qM_@vDrzj4c'
+    'jO}Us=xjpgb4!zoHffCO2bPr(<@PPD63w31h5t`=!MF8+UcY$h9x)jX7(LMXkfl+ew&3<4Y4fs{yMY*pu-iNKSc|X)_Y5N|TEW_N'
+    'd`w6;4p<l1T5-SSlq&}d7>|pDxt<ps*h7-;8F;4GtAyXBe7}w0uiMaS&l->@WdA)_SOyXMz8)G@TBjTY!(-MT$e?79!O>W?pcs2>'
+    '_XArb8RHt32uXNv(;!Ur`HL6h^XOZ`)*H*j8}b@L8`%|*`mjpqz|RAyEC5vxph5sPJs@p7gFcd%8N<jfB}q_{BcBlu*W`CclHuG4'
+    'X>>dTGz+|5w{d>8?B(~x0-?fDX)$odG%;Mm6SkUjmPf3r4{7Pj!=R`GSkMU_%Y8{2D+S|yfMzJON5|5Lhn}*pW1&ldtZn<lU!jHv'
+    '4khnxsGE_QDHdi842?;%DI=Y%9<|!(I5bjalQuz~Fb0aopy3U(d;}3Q=}e)Q_Q)X0q87QT_GOf<QN-w)HJC|=rKI>TH+OD^5`gt5'
+    '$w`%INU<Q+AlpcQEQ3RkjuGo8vHO!igS#1Ta|RIxJVUr3M0Z^I%UaM8N?@B!53FM<pk>K;;%blrn#KfR6hq;s4cdUd(*TX6DrKX='
+    'p-MCu&)B6Tr?;7IFx;-4$I-Nc+ZeiV^!}~H469l_{Zi*|3h&SeMD~N_y3O6FC^EN{mQ$h_I%K_b)_GAhhb=9kg01q}t>Z%EHNDmE'
+    'WM|j<{}B})%1lK49yEy_b)6>sEH1J(=k+V7{K+16vg(o4kh&^%rpU+OMynL$iDu_2%0f-fCdBOSlba1xMQTkGu?cT{k^I4Ju1K(4'
+    'c|o1-^CC@LPXiZJ0bp4&sq$R|2Zs<<<5~h9)czf-gVVjtPMij5Lr1jM6!ctxX?Ku2`fZHcnl*3~es{PAG;L=X3qP6q7jQ<-u{lY1'
+    'RRYWvl&P+%n1$kJF`}Sj3}g?sxYA&n6JQ2gRjmj51>{$7beK_;Jq^mav7xf^z%ZI*&|E?rg3|>8?MitdP&1J{jjQ4nX-h27NqoSF'
+    'P@{P6p_aOeXncnkKddFyY0j+gMxzAah(j$2SK4Q$W(re%j{+-ohXMLr%X6wOR=|!a!>ArQo%ozh&=f;l-b6<N;IXPK83tRmzhThT'
+    'KyE^a9{`eE7j+NpPB1Zw&@31et<Ur8acWg8O!T7o)aXXBWgT>+^BvMO9>E5VF5D!|*DH^_Cd*N0)m3A?@>H`Gw^hY>V_Kim>QJMG'
+    '-M<aGSqY-Y9F3^0c1*_Xq1MFit}+>SX@AIiMLCTQX!e3&M<?4us}NOIU{+tcVlax9_4&GS-U);qJ+1FI>~!Ap{!Ft`HloHOYI-)&'
+    'kqga%>K}%&z0<Uc-aYfiNm=KRNgsR%zw~2O*M$O;SzqNf)@jHQ#ACS)!nH``u8iB5YelsN;d}xMTRLWSC36gboUwEA%egQgd@$HU'
+    'NAPjT2q{QavCDoLb6v69LE7_)tIL)yh1&Jz7qGKVq`mEhebpwK^9q_0Im7b?GaaZg_12q-kkuL7z=e!R1y-@oiU=G}4l~ScQ)cmP'
+    '1@%m4(^uG&8zxHbuJmTrR&$INHd#`JQvRFC(sB$Fj{+<cbbuoi*P9pVz)8)sBd-H@Q;zpuko)FcN0+d>+L<A$tMu_^VvjPxXKU>0'
+    '#HN0Xr(y+00W%HDs0bb;;G-LjjbkT~%ej_Fs>0(IWEq?t1Lio1nV%sevPsFvc@|o{U6BDinF4$q1oSQfhb8yWf5?lk7e2YbRyl!='
+    '8DHqc8Leyb9#SB!K8WyT6>A?-4&6bMWNAdAs-Ou*bI76(Vou2(Sll+)+~Ny`Jy>+grMAc&t2nb?8^{nyaQa%d4yH}{bVs&Z<Zrum'
+    'YnJVNB1T-b>BaawkdNWKys!a4^h1GlFz(o+2>{e(3<+RS4G4zQUnx&h9BybJ57UkC;uIYiplrO8D4Mp+*tg=?AS5^*E;rriUKm*z'
+    '9wqi8VmD8WYZVK+$$%od7acfH_Nas=YJT`rVqAhk!z5j|N#d{8h0U`%ZsPVN>0-rb(E%?MXAxM7OMMbe1Z;DpGc!?)rgexv90<+n'
+    'gP0Le@F6k2@g^gc5Lehy6D|?EJcpIXN-~h*V5MJ+>@}}93NZdXbGf&93P(31{6~~VuVi`>Of(Ay5F8CK(Pq*FJ3UJ!oHim2+At<%'
+    'FrH_-V%<ia8_EqGf#R^VIAtsu&7*`8BmiO*R5F?l39I^kU=aYL7BHG5-%Z%FjxZof00I+JAWa;3n|(Kq#en$+ikT!memA_U0X)vW'
+    '8x$5H1}r_i!E>hniM0kRd;6_MR}TrlYz_f?DBVjMsn;1p&+G;bP`~16f{9{CY?X6(;diWG9+|Ge&~m_xqK|qeKajhnV4&6=<PCU&'
+    '?5}Rd-!3>h5f(gqL?E>_Vsp;8R47ETL*!7>Nq<$v;UKzy<T6kHOBUY0wluTS^xLAXL@$Dc5H_~8zyrKh>5+;F)(vUy3-Y;z<G#4m'
+    '9dBH)-7bw&hO<>WUr%Rd-vGOImjM*^-G6U7Yy0xLKc};}3CqMPT0MofH&gl6wFi67yJxc3blNgxtFo5yL~a`E)7;Y21vY7<NmU29'
+    '^jRb)@P33U#<pf46<?m}A9&uAf(~c<k*rM0E=^5HVlIz^Qo=;~4bdD}y_^^7Sf=WXdua;ve5}7z=Zr#PHr{@V)_<VV7pBUU#?5EX'
+    'qJ?20f4~p~%fb-E)e|ztpDq!horSe?bv2g9<<We&SX}ouIA+)~jR9i=>ljmbh1;zDpqV*q=;XBuFk{o~Gw1wi$Pv@W>(5m)%9IuK'
+    'xN8yryJah;&6pb=Q^Gu6xz`K4_nzd*b19px?SyPl;=K}o*Q+ac^-SjAe)aWQr(wBzl5Eomjti-McXcVzoFspc`Bdh#S`5XE8Ws{q'
+    'jR~DW*ZDrhY4C3}XLU(q`AN)Lw4#dkU&;zA;^xs18V<t8x>H{cVkclEYR?}$fDX>{22N&{&wW>8_P2vB$A+iQ$Zrrw_|GGg2j>~K'
+    'X7_`PLiwZlDZtSV6}A$08Gar$k4L=?7+{d|4Y#*6`&EMR36X{)@Jv;q_cXh6kEa{Uqd(U_A~O%j%<+airYuY3KwbcS7!<2WmELt6'
+    '8HxCEL!2`;<((K^oSj@)t^mS=XKVN$=&{KBNxNILUF!SC9BRsO9_$a9Y}nu@MjI1@4Vl>{#~Ra6TiEJ)R!7vI)=HdcA8=BRY@Njr'
+    'o-6uQ=doU^A%jMtJ<Gr@rm(gniJf8~dDR68%Oz!A67LEoP8y=?TBqoSF3c8CyhYJWpXb*_Y9RFYYDVs5@{`|LKP|clnF)y)$#V*{'
+    'cdDOyYF%I&fFTK)=c)JF6bR0<CrfZ80=+(=K{4t*-Rjh*V*7NNZ3P5GqsHE|3SUm~I3L45oMbl?k#A_?SnDoKu54|9PK|<oRJ~3k'
+    '621h+IjpGxr7t^i-+DVF_Q{2gBy+0iZJuB`bLG?-snY(tm(fh{bmdKrPi98lFTVO0t|;F!TFSln`hPfCcMk'
+)
 
 RETAINED_AST = {'require': '3b218d97634fd91fd6595535193a2eb525911ab34ffd45793deaba58332ca99e', 'strict_json': '75f8d5022ff11de276d183c29d91ecdba25ecc218f7b88ec932c123426467c88', 'file_fact': '64d3e7497f697206a7793c38e1750095e0f3b60036c158a36ae689fb3f5a634a', 'bound_file': '3db94d649ee69a5e3247924c59b7880d2fc4004242122e53717965b4beff7467', 'batch_bound_files': '1fef853c3b4168a306b418dec5a7d40b1d35e3f63285d20d90272d0c6fba8ac9', 'read_json': '6b985b95eaf4a2e83a13f6b8eb2080ff9b8f9231dc8ec08a7f333229c8f7dea4', 'closure': 'bcc0d3bd8b35c3f0cbb5f928def6eaf837deb8bb9dc59a19c5c1622b12e121a3', 'load_authenticated': 'da8fa1d6dcbaacb6076d2f89ccbead51739b39336645b9b50d02f1be8fa89afa', 'policy': '6410e1634b30c2e3123aa9ad3c26185a589311226ae0780ad75ac9ed3cddf426', 'check_unit': '794886df880372a198328a31c19b840cc3f86eda8d5b4c91265555fd0a157908', 'timed': '3be58e1115fe8d07cd2eca68ba26c2b9b58da48c082f6afe4e83f4206885ccc0', 'fingerprint': 'b0a6510a7b799d7e59bcff9e90aed85955ffb71ac498b45b772ca9d12648c444', 'clone': 'a199ca1ea370e82e09f8609909c242c48c64d2c8eb0e67dabdbd4bc16bf7c2d3', 'helper_guard': '0a2be6c7589a29cfe5f3af0f2c1e3d56e74b653ab9692b31e354578e9a9d5765', 'require_no_training': '25e8a7a041a2778641802a45f437a7202c203cee6e46795cea8748944f15564d', 'parameter_roles': '4ea18a5cf379fcf0fc9e686539c1fecae948647a7984fe7c239e6d0373404909', 'check_mu_train_provenance': 'a7c29161a365bd30f8c153fc5a2afe34e2452183ed3b9c4ebb76ab37820d701c', 'own_residual': '3a149e7ce44faf03f3c6e389e1000921e5d34f9b0553ad451f3b6e9a6dbce7d9', 'fullfeature_raw_features': '3706820907338be9911fd5b51d84dd8bd3de246be547533f3d203c61ff2e4af6', 'residual_facts': '7e567c86831e6892bf9d868c0febd083b60f82a896530d3cfb3a930059973477', 'own_A': '7daa0ed42a9eb402a4a2a1c8978dd300fa3451c283f5eeea5d937a345cdf2992', 'static_tree': '744541c495643dc2182624e4621bfccb03dd7f65108e8da0babe0727fd51cbf4', 'payload': '67a9119a750659545d4630b5cbd80f1a897bab800551f2f499592dd9f31def85', 'check_optimizer': '8525a2ba87d989912eab7f9731724033cfcd747d360a2257f3e6daa46cf12eb5', 'integrity': 'c7b564cf9f8352105d115e9a0fe1925fd162ba4ac483892306464ae7060c2fcb', 'release': '73b095a67686e93c4b9717805a59c88a9bafe291b832f7825a88e8bdbf8368bc', 'save': '78a1e1b6ca09f134ae5d8703a25715f8cee7c52e798c2227a05ebc3f60adb591', 'restore': '38274c5421b261fd7db23796bd553f7e901034d93fe053088ecc5c63a4703f1b', 'loss_denominators': 'ce86de123238eee428db8c62ff8ed4c09c2cde5ad6fbe52a85139623802a78e5', 'raw_features': '0b877d75f371d1897721897b3f212d8fe68aef2613bd1e6edbee9e53703ab9f0', 'json_sha256': 'e6afa190880b91cfdb1e70946e6618bc5792b89e4b5e2bb8d72e8e549b865d98', 'ranking_bank': 'bc2b9bb03c0e4437e68e2b3e67b34dd0a8bbef6b7c2fbeee7ee613197e14905c', 'ranking_membership': 'c56dd67441cc81a47e8fcfb71032e4c751b7d5b70f2b6df19ca6236b9301813f', 'smooth_ap_terms': 'a90d81810d4295691ff1829215a07b9ab1793cd040ad92530d6bffaefa1eb698', 'ranking_gallery': '80a6ab2cf778da8b8f6c78ccb183cd877085c4b62d1ac83655aa6f86ba69e3bd', 'cached_witness': 'e2aff52bac2a3940972cf6f3fd20e2a35d7368fef3333473123d51e387abb2bf', 'write_json': 'de7f335d66c6e9d0fba69513d6ff489f974048310910e0349b0e63044df8775c', 'clone_inference_provenance': '7f0f106547748083ee34228b7929f295aca9c20370ba1739e322fdbe19680462', 'inference_outputs': 'e02047621095dd855ef0e54bb78d84b346e0770bae1dae881561550467b6ca26', 'release_inference': '5ddd8431f61917a317625523a14032375317a929ed541a5b4a25b1dd9ff6fbf4', 'deny_training_dependencies': '763cbe31be6cd080e8d6268d9d81e5fa762af28b9280f614fabc302aac9a6537', 'authenticate_bundle_environment': '2a17ba90a73c264a45e89b0f99070e1c8eeb150a4877a42e8360da6536f66a69', 'diagnostic': '50765e6ec73ef644531c6f2fc04f4fc282c886ffcf38de9e401d70fcdc9349f5', 'admit_terminal': 'c51b07ae4e4b327a509ea11cc93225bb8e8af66d166a4f780b983898a9b22499', 'exit_admission_adapter': '61e460d249e11df9b7f475342ac9c96aa824c45d4861d91fba0e0094ed71a257', 'exit_rehash': 'd10e411cedd92f43f237a0271b8d0c193362e791ebd147c9910c2dc36c2206e8', 'parser': 'f0f62dcb216f2f0db7b3712b3f8cd316cb7c134c4cbf831319f55aaf2b9b0ff6'}
 RETAINED_STATEMENTS = {'update': ['4d5e05f5856c1a5a101208c444bffaac476161c006d71966f56919de16dab93d', 'd9cfa6fe7d76cfdde017fca0e2e00cd43cb88ae3e0e00e241781eecc921b2f88', '20927af6beb23021579101325cd75a1fc87c3140da2a5fc23e442c55ff137695', 'ee03ae96a9e439afdcb84faa536d920ade9e5e92800f53d098b15c386ce1374a', '58f1cf47aa114554fafed5fe0bf86b3848e309e743990543188ba764e60dc73c', '424ca1d4579dab6038f6ddd707bfdff7168134e06582f811e0a957beb72e6b3b', 'b80d61ebbf8a66bcb3def1ba7403d73d48d7a15be0b36f55ceb6c4e1c24455d5', '7deaef48e153d39aa345a2d070ae58874b7ac9f5c83ece264541f063b2e83c46', '73ed15a46f18ffc6009e5c73704ad0381d6cb0ccb6f377445de1356f6d001361', 'ca10f20f80349b90077bce130956687f86bbd201e7657b095f4c010c1e47e248', 'bfc2e2c431fe705d927c539865c8f5ae0bf876e630958fd3c3755e643e5cd2a9', '083748fc61763407503ea98b1c02802d3bcc30c0a9f4540fbffed317c7166c4a', 'dd911beea80467dfc8ce7ac61c3a8d141ec5609a585e194f02bd80aea461127a', '534c6f4c1b238c791c011796463686602631017e991a2a18aee0a04ca918f770', '0dd57e0cf72cd8c41dc9c2fdf5e3a6e7b15d4d6b45ce3d4ef78d02a353c3fddc', '6f1d52fe3ed0efeaa266358c952766ff744fd9a0040f2cdd9caf2ba09ee8780e', 'bf193c322291f40bdb8c2cea2bc71f333f618bc5b907f0c34cf39a068d798f52', '479509cd399ddf8b006c42eead9a61e50e28be0881ffbbf811cafdfc091f0953', 'a524638bbb938056e7c16726ddc40796ed444d630e9a0288a45d4c0940356804', '87bca565dfd34bc5bfd7d9738f45e8f0e7666987538fc855fcbe60323e5380d5', '04433a7bccec471d9dd8e3c03c37ec7773274a7cc3e6c1a5d91f2ca3190c5f45', 'ad1a190799df48db2ac3b585ee622880dc292227e3f7ca602a18cc957418964e', 'a1c5f489dfc781cc7b41304cf79826436f3f5744222e1a06c31ab1f2b579f79d', 'cbf7c085ed2bb78c86564d214c1dc49cd931650722ee777c68db1fd242b04240', 'e09f7604af2bffecc35a0a5e113909950b6cfa1d122fa8738b99c933ef1d0b7b', '669a0052dce5acc44bad06a9c4b634f9e42cdd6519f7c248ae6d22db4304c5af', '461385d4a2741cdb626050345848552d0f21c9f70e184f2a7507bdf59cff017e', 'b2035e7f0413e4abb8b54ffc2021a12639320e0adac84142845e44ea91fbd3bb', 'e7e0cb32ef94449b8181063af7b7ace686fd40fb2c8b8bcd5a422975d40bd556', 'ca10f20f80349b90077bce130956687f86bbd201e7657b095f4c010c1e47e248', 'ee03ae96a9e439afdcb84faa536d920ade9e5e92800f53d098b15c386ce1374a', '52d71335c8e8ae5fa4f9dce7ae9e5d3838dd504c64fc2b57507209e1e430aab4', '405a9c31479b7d88548be0991f210d5ebb5ed2129113898e40e60fb71e43e76e', '5869ad204934101fd5712ee3a3f8dc40c9f42bec11d50f6053d6d3d5cbdadca6', '95f8dab19088df3922536a353780e8d27d7aa638cd426c433c851d61a8dbec76'], 'load_inference': ['b357698030e54ba32b67e81d5e5ccd51659370344ada21259c81ba8e4d32c6a9', '378eb8e73c3cb18ef84cd07873aabf6aa2e8f6103c71f1457374519b7a467e60', '9c7f9ae5434e9a7e231f62180e624d0c689109089fc3b0a3831f176efae4a3f3', '0d6dacb480cfc0007f5b1c8a52d6c6c13dce485fa8d5590298125519d8da7a7c', 'd67739cbecd97b03eb2bc7a76baf13e9d4f632ce6845b4efb31b0623a2d30114', '4e0b5e77cfe070e2a8bd61a152aa714b69f8bd035cdaf4cfd1f618c91aa8b16d', '9aa2691b326413a61c55270e9e97d5d2f307cb739162f6704ad4d369ebe9b089', 'c84c332e75a46a48e831815c0fad1200bee5b4c4c67f734163846b18478bf9a3', 'e5bf40d3aceecd2f6fb6abe30b3a6deb367653d8aa20d0e3e2ee34f76e234b86', 'b2baa6969e14313dd2acd12c037ec5b72c5a4fe7168d3cbdcbb7412be18dd7d4', '4d5e05f5856c1a5a101208c444bffaac476161c006d71966f56919de16dab93d', '0f4ad26150b408574332b03c6f7e60aa19a45234261634547029980861c7e382', '6b262267ee94de3c40fb8efc05cb165f6b48b6c93da6eece22c55ccc5c6928ce', 'b9b94ec726006dfe2f3f341d43a6ec0380cbb706233344c097ee99fe5bbcab4d', '1699dbd84f8b9e5d78875e372075a05fb9a5c5c92533b5e00a21232f4e8b6fa9', '6b2fc000d642a1e9f58de3e804ef104ed0480847637a3824802cc5929603e423', '7eda7747dc65beadadea3da984529abea052f19685c807bd6dba82cfb4472fe2', 'ff660840da1e414a3f839c002c0cfb85ce29a9a19bb8f9ac5f48435400665d7d', 'edb42a9e235442d4827c1157dae2026dcf5be225e97d2061a4ff43db026eda3e', '6fff40904c64db1edf228e0718b341dcc670a820118a025bd8e249dc8498d98b', '991bafc091321a59bd85fbd212ca6107cda8116dbb57f986d4d88b017994155d', '060c434334ee67c564fa18dcd1084eea87b0b2be52653f51e9917bcd97a52da8', 'aa843ad08497ce2e91ad68ed4b4a4e3f1b896efa9f20980670137479d13cd272', 'faba36c3e3e6b31bd6d93e70cc28d0bebef46192ee91df109bf198d5a719bbd9', 'a8ad540c6fb1fb0850242e91f27fdeac221721b729641c6e8f7d64a96f1160ac', 'f758480b6ef22982ae6c12a7118025d205e860f83b2cf0c41fbf8db70bd0b554', '77c7d734559db134ec9be6a64132a972aaf1ec37a82565f7785fcccd45ba59d4', 'b6ad6254466a2fb49f5c96417f63cf2f1eded517ed69247214db7fb2f68dedb3', 'f777ba4617f736778fe3e07f648a1a87fd5c46179a703eb36a84ecad4daf5922', '865986e8391252ad0ac7a1725cc290ed15fa553d1755dd0bb1c85bc0ee5067fa', 'a86bb01eef5cafbdd54e90848330f75b245ee5d39cbd52146b818ce965c0ddad', '36d4bdb2e96b0651ecbb721d3b4c9d68c95d8635ef42a4063df2abef09698377', 'bd33c2fbf3d16feacd6fcc5158b673cfee83a1cc6f934930b1f1ad21ce4ba717', '95fde7dcf9c32c9cd0186c919248c219d30881ce9e39eee577a90fa947da0556', 'bc2ad0b7c949042d1cbaef772862bdeb0b7b69bf9a105053c13af6555e4b6623', 'd39b079d4f979a7b0523e34a55c4091d02839e052d68f96f7ee7b222067f523d', '7d2cf57042a27ec31c4f72f20223eec6810d83af9120f79cd16c10aa501c4f01', 'e408efa1010b371d84ea341f6a0f6ee0833025986dff610f8409467cccf21c42', 'bdb2a01e54b27c70f29609c42e250a6d03b784be1f9e936ceb0fba5a27034312', '2c9c62b9bf54399f7f21a97c774b31d3229be14a58b5f63914cd06fc7d0b70d1', 'd7aa4c43205bcb6ea71da4e104e4f092ee89b02888103ef148e6f252ffdcb3f4', '50b888fb5e67dc47e804429136e2c44ffcea7727aa963770c874537a63ffd2a6', '2830233c05c70858cf2fd4c1683585d949226f5fd6d367ef68a764f2b97b1baa'], 'export_bundle': ['f86017adc0ace5187a56ec3c072ef529c9c4ef404139446cb5653f7ac0c612c3', '4d5e05f5856c1a5a101208c444bffaac476161c006d71966f56919de16dab93d', 'f171c6b6b060bcad614549cd8cef7242bca4d91df53a225d6fa1595bfc75eab3', '2649ab7dbfa6eae369c6c7edbee296f9bbb91e697d2856821817666abbb14a70', 'acf2244acd30c355fcd478c404a68f4c462846771798422313a3ebd894b8fb56'], 'qualify_bundle': ['73d0bf35a8ff28d1acd4cd6cd453dcc0c5ad4ce115c9abf4249d9e4f4788c0ac', '4d5e05f5856c1a5a101208c444bffaac476161c006d71966f56919de16dab93d', 'eb355e0b2477a9d207a50accb1e41c8347717cb90a6348625683dd4c9e8e9888', 'a45d2f0b39caece0fd2032b5976d531bd3437a6dac6593eeff0e8ad15fa7348c', '387bde589a7eeb175fc889a95825e08765cae7861705a66a3ffec3c25d532474', '4676e109f3dbf822c0ef8957e966987b47d3677d0cef6d0cd18633f5fb32a7d7'], 'prepare_native': ['a5bf6bd721f4d9ed252eeb2227def08aaea4be7b98736102ee00f2a0a8953a2b', '4d5e05f5856c1a5a101208c444bffaac476161c006d71966f56919de16dab93d', '34ed6fe8f75af70f79763a7f0afcb2e2357f06ef1b655c091aca31d51c7e4d74', 'ca765426c9ffd917e7665a34f4b461557aa8008a2708b5096ea74930a2cd14ca', '32dbec26f3362261788d9aae94986e5a195ba519d765b5f1d49f894e81fdbeb1', '09ca8706a09b9ca00acc760e10bf0b639805722a218f873d3789cc137768a58a']}
