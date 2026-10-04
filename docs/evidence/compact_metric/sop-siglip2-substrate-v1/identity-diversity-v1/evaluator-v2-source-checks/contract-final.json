@@ -1,0 +1,93 @@
+{
+  "CLI": "python3 ROOT/evaluate_siglip2_identity_diversity.py --execution-sha256 SHA --authority FILE --authority-sha256 SHA --phase cpu|export|score [--seed 179061|179069 --arm control|candidate] --output NEWDIR",
+  "FILE": [
+    "path",
+    "sha256"
+  ],
+  "TRAINING": {
+    "code": {
+      "test_siglip2_identity_diversity.py": "986ced3e9a0234b7aa2c26ae4688fb4e12810a42c8f017ed6d7007e655027d8f",
+      "train_siglip2_identity_diversity.py": "c71100e09db22625905dffeee8368a7c068457ecea5f5068a234630e51ed4be8"
+    },
+    "execution_sha256": "a12a1aa5624c032c08616298b3211d35e8f0ff3c2fcfc95e6a170187dc36fd76",
+    "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v2"
+  },
+  "UNIT": [
+    "receipt",
+    "log",
+    "unit",
+    "invocation_id",
+    "service_seconds",
+    "native_peak_rss_kib",
+    "both_locks_held"
+  ],
+  "arm_sha256": {
+    "candidate": "c12e557afa89b53dc37b984ef0c1d369c4dbff42186c2fc63f4adc331ad31882",
+    "control": "1f3ad34bbd20a3b375ccb4908f9a3da05b63b514395cb553e1c81925789b2280"
+  },
+  "caps": {
+    "both_lifetime_locks": true,
+    "cpu_seconds": 500,
+    "cuda_bytes_exclusive": 10000000000,
+    "export_seconds": 900,
+    "host_bytes": 8589934592,
+    "score_seconds": 500,
+    "swap_bytes": 0
+  },
+  "commit": "4bfbb072678be8c189e73dc1ee31fde2269e65dc",
+  "cost_policy": {
+    "core": "both-cache preparation + teacher construction + mining + paired forwards/backward + optimizer",
+    "denominator": "fresh matched control128 per seed; complete cold whole units",
+    "optimization_throughput_is_image_training_throughput": false,
+    "preparation": "actual original control and fresh candidate startup/export UNITs separately authenticated",
+    "shared_export_in_ratios": false,
+    "total_training_core_ratio_max": 1.5,
+    "whole_service_ratio_max": 1.5
+  },
+  "launch_extension": {
+    "candidate_cache": "same exporter exact2/authority FILE/proof UNIT as trainer launch; actual parent-supplied pins only",
+    "scope": "actual FILE sha256 55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+  },
+  "launch_keys": [
+    "arm",
+    "both_locks_held",
+    "candidate_cache",
+    "cost_policy",
+    "endpoints",
+    "execution_sha256",
+    "exports",
+    "first_selection",
+    "genuine_evaluator",
+    "nearest_evaluator",
+    "panel",
+    "phase",
+    "reference",
+    "resource_policies",
+    "schema",
+    "scope",
+    "seed",
+    "selected_cpu",
+    "selection_go",
+    "selection_previously_exposed",
+    "stage",
+    "training"
+  ],
+  "owned_files": [
+    "evaluate_siglip2_identity_diversity.py",
+    "test_identity_diversity_evaluation.py"
+  ],
+  "schema": "sfora-identity-diversity-evaluator-final-contract-v1",
+  "schemas": {
+    "launch": "siglip2-identity-diversity-evaluation-launch-v1",
+    "receipt": "siglip2-identity-diversity-evaluation-v1"
+  },
+  "source_closure": {
+    "code": {
+      "evaluate_siglip2_identity_diversity.py": "aea4f96e0b9cea3207686c249c26ffed7f5bec1f5ce7e7e10383ce456ab0add4",
+      "test_identity_diversity_evaluation.py": "7e2815749c795cfbc316dc0783fcedebce6b55efb5a3d015bf0eb796d937f3a7"
+    },
+    "execution_sha256": "bc172ea96891a34d24c50a153fc5ec86e7345b8e7510cc2d1da87985089dda2a",
+    "root": "/tmp/sfora-identity-diversity-evaluator-source-v2"
+  },
+  "status": "source qualified; native unqualified"
+}

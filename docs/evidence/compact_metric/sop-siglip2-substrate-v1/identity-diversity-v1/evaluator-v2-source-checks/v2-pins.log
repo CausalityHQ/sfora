@@ -1,0 +1,8 @@
+test_actual_trainer_exact2_descriptor_and_public_apis (test_identity_diversity_evaluation.DiversityTests.test_actual_trainer_exact2_descriptor_and_public_apis) ... ok
+test_launch_file_unit_scope_cache_and_prerequisite_mutants (test_identity_diversity_evaluation.DiversityTests.test_launch_file_unit_scope_cache_and_prerequisite_mutants) ... ok
+test_complete_source_delta_and_unchanged_native_math_quality_seams (test_identity_diversity_evaluation.DiversityTests.test_complete_source_delta_and_unchanged_native_math_quality_seams) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.180s
+
+OK

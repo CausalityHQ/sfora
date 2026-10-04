@@ -1,0 +1,83 @@
+{
+  "affected_v2_checks": {
+    "exit_code": 0,
+    "log": {
+      "path": "/tmp/sfora-identity-diversity-evaluator-v2-pins.log",
+      "sha256": "1dd5e162870d5572d727ab6ffffaaaf25f13cc12432bf6cdc04ba35b5fe7673b"
+    },
+    "memory_cap_bytes": 1073741824,
+    "peak_rss_kib": 63904,
+    "permission": [
+      "1791156241188175461-2054090",
+      "immediate-1791156338300625235-2054090"
+    ],
+    "swaps": 0,
+    "tests": 3,
+    "time": {
+      "path": "/tmp/sfora-identity-diversity-evaluator-v2-pins.time",
+      "sha256": "dc402977034dc2f9209e5d6d8cbdf71e8544c7b6aa73ab8748c01a59034c0e90"
+    },
+    "timeout_seconds": 120,
+    "wall_seconds": 0.5
+  },
+  "base": "8e34ae67054f63d6893fa3ec6f2a88df14cd8f1f",
+  "commit": "4bfbb072678be8c189e73dc1ee31fde2269e65dc",
+  "final_contract": {
+    "path": "/tmp/sfora-identity-diversity-evaluator-contract-final.json",
+    "sha256": "c18dd1e61202705db3ba298d26e05abfba381bbd826d4ccc9baf110fb6c78796"
+  },
+  "git_diff_cached_check": "pass",
+  "merged_or_pushed": false,
+  "native_eligibility": false,
+  "native_jobs_launched": false,
+  "preserved_v1_evidence": {
+    "path": "/tmp/sfora-identity-diversity-evaluator-checks-v1.json",
+    "sha256": "eb9471b222c9953d8f762ebbd64e2c8bfdc0b0c4279d15740cfbb3fe1b857b9f"
+  },
+  "reused_suite": {
+    "exit_code": 0,
+    "log": {
+      "path": "/tmp/sfora-identity-diversity-evaluator-replacement.log",
+      "sha256": "f86043b72bd421aa8160436bd56f9bc28602ff7c52c9e64e51d6fad3367d73ba"
+    },
+    "peak_rss_kib": 71020,
+    "swaps": 0,
+    "tests": 28,
+    "time": {
+      "path": "/tmp/sfora-identity-diversity-evaluator-replacement.time",
+      "sha256": "77661736a0e2e8752b5e8c406e6c670bb6703533c720df7f9ac80177a8927e41"
+    },
+    "trainer_execution_sha256": "04368bc364b331a11d3f7756266ead0af12231a5dc0966b10787f48cb3c75c41",
+    "wall_seconds": 6.41
+  },
+  "schema": "sfora-identity-diversity-evaluator-checks-v2",
+  "scope_of_update": {
+    "behavior_changed": false,
+    "production_changed_lines": [
+      42
+    ],
+    "tests_changed": "expected execution hash and source-delta ledger only"
+  },
+  "source_closure": {
+    "code": {
+      "evaluate_siglip2_identity_diversity.py": "aea4f96e0b9cea3207686c249c26ffed7f5bec1f5ce7e7e10383ce456ab0add4",
+      "test_identity_diversity_evaluation.py": "7e2815749c795cfbc316dc0783fcedebce6b55efb5a3d015bf0eb796d937f3a7"
+    },
+    "execution_sha256": "bc172ea96891a34d24c50a153fc5ec86e7345b8e7510cc2d1da87985089dda2a",
+    "root": "/tmp/sfora-identity-diversity-evaluator-source-v2"
+  },
+  "source_files": {
+    "evaluate_siglip2_identity_diversity.py": "aea4f96e0b9cea3207686c249c26ffed7f5bec1f5ce7e7e10383ce456ab0add4",
+    "test_identity_diversity_evaluation.py": "7e2815749c795cfbc316dc0783fcedebce6b55efb5a3d015bf0eb796d937f3a7"
+  },
+  "status": "exact two-file commit clean; original 28 source checks reused after literal TRAINING-only production update; three affected checks pass for corrected actual v2 pins",
+  "trainer": {
+    "code": {
+      "test_siglip2_identity_diversity.py": "986ced3e9a0234b7aa2c26ae4688fb4e12810a42c8f017ed6d7007e655027d8f",
+      "train_siglip2_identity_diversity.py": "c71100e09db22625905dffeee8368a7c068457ecea5f5068a234630e51ed4be8"
+    },
+    "execution_sha256": "a12a1aa5624c032c08616298b3211d35e8f0ff3c2fcfc95e6a170187dc36fd76",
+    "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v2"
+  },
+  "working_tree": "clean"
+}
