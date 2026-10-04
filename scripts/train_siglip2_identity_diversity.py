@@ -587,10 +587,17 @@ def prepare_scope(context, arm):
     return initial
 
 
+def tensor_weakrefs(context, value):
+    """Use the admitted typed traversal; containers/cache metadata aren't tensors."""
+    released = []
+    fingerprint(context, value, consumed=lambda tensor: released.append(weakref.ref(tensor)))
+    return released
+
+
 def release_scope(context):
     require_no_training(context)
+    released = tensor_weakrefs(context, context['initial'])
     initial = context.pop('initial')
-    released = [weakref.ref(v) for v in (*initial['views'].values(), *initial['teachers'].values())]
     initial.clear()
     del initial
     gc.collect()
@@ -795,8 +802,10 @@ def prepare_native(context):
     context['control_mapping'] = {'original_fit_indices': initial['original_rows'].tolist(),
         'official_rows': [legacy['prior']['fit']['rows'][i]['train_row'] for i in initial['original_rows'].tolist()],
         'target': initial['target'].tolist()}
-    released = [weakref.ref(v) for v in (*initial['views'].values(), *initial['teachers'].values(),
-                                       *legacy['initial']['views'].values())]
+    released = tensor_weakrefs(context, (
+        {name: initial[name] for name in ('views', 'teachers', 'schedules', 'target', 'original_rows')},
+        {k: v for k,v in legacy['initial'].items()
+         if k not in ('head', 'classifier', 'target', 'original_rows', 'partition')}))
     for name in ('views', 'teachers', 'schedules', 'target', 'original_rows'):
         initial.pop(name)
     legacy['initial'] = {k: v for k,v in legacy['initial'].items()

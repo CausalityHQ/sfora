@@ -2,6 +2,7 @@
 """Bounded stdlib falsifiers; native numerical qualification belongs to root."""
 import ast
 import copy
+import gc
 import hashlib
 import importlib.util
 import json
@@ -9,6 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
+import weakref
 
 PATH = Path(__file__).with_name('train_siglip2_identity_diversity.py')
 if PATH.exists():
@@ -20,7 +22,160 @@ else:
 SCOPE = Path(__file__).parent.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-diversity-v1/scope.json'
 
 
+class LifetimeTensor:
+    """Weakrefable tensor stand-in; these tests never import native packages."""
+    def __init__(self, rows=()):
+        self.rows = list(rows)
+
+    def tolist(self):
+        return self.rows.copy()
+
+
+def lifetime_context():
+    # Match the authenticated fingerprint's tensor-only consumed callback and
+    # dict/key/value/list/tuple traversal, without hashing native tensor bytes.
+    def fingerprint(context, value, *, consumed):
+        def visit(item):
+            if isinstance(item, LifetimeTensor):
+                consumed(item)
+            elif isinstance(item, dict):
+                for key in sorted(item, key=repr):
+                    visit(key); visit(item[key])
+            elif isinstance(item, (list, tuple)):
+                for child in item:
+                    visit(child)
+        visit(value)
+    return {'nearest': SimpleNamespace(fingerprint=fingerprint, require_no_model=lambda context: None)}
+
+
+def native_release_tail():
+    # Execute the actual source-owned cleanup boundary, leaving all preceding
+    # native preparation/admission to root's numerical qualification.
+    node = next(n for n in ast.parse(PATH.read_bytes()).body
+                if isinstance(n, ast.FunctionDef) and n.name == 'prepare_native')
+    start = next(i for i, stmt in enumerate(node.body)
+                 if isinstance(stmt, ast.Assign) and
+                 ast.unparse(stmt.targets[0]) == "context['control_mapping']")
+    setup = ast.parse("""initial = context.pop('_initial')
+legacy = context['legacy']
+views = initial['views']
+schedules = initial['schedules']
+target = initial['target']
+counts = initial['teachers']['counts']
+common_features = context.pop('_common_features')
+""").body
+    node.body = setup + node.body[start:]
+    namespace = dict(vars(driver))
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
+                 str(PATH), 'exec'), namespace)
+    return namespace['prepare_native']
+
+
 class DiversityAdmissions(unittest.TestCase):
+    def test_complete_unrelated_ast_and_native_preparation_preserved(self):
+        tree = ast.parse(PATH.read_bytes())
+        owned = {'prepare_native', 'release_scope', 'tensor_weakrefs'}
+        unrelated = ast.Module(body=[n for n in tree.body
+                            if not (isinstance(n, ast.FunctionDef) and n.name in owned)], type_ignores=[])
+        self.assertEqual(hashlib.sha256(ast.dump(unrelated, include_attributes=False).encode()).hexdigest(),
+                         '98616eefc02ea755e5ae55befc5e2b1667f9fad8da8fb3d6b3c3d8c85dacbf84')
+        preparation = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'prepare_native')
+        start = next(i for i, stmt in enumerate(preparation.body) if isinstance(stmt, ast.Assign) and
+                     ast.unparse(stmt.targets[0]) == "context['control_mapping']")
+        preparation.body = preparation.body[:start]
+        self.assertEqual(hashlib.sha256(ast.dump(preparation, include_attributes=False).encode()).hexdigest(),
+                         'bfe1d99058bd0a3c40fcc10c17c62622dfb4f5bad3ca187515e09f42f462a6de')
+
+    def test_tensor_leaf_refs_nested_metadata_and_duplicate_aliases(self):
+        context = lifetime_context()
+        first, second = LifetimeTensor(), LifetimeTensor()
+        tree = {'canonical': first, 'augmented': [second, (first,)],
+                'caches': {'canonical': {'path': '/tmp/canonical.npy', 'sha256': 'a'*64,
+                            'shape': [6355, 1152], 'dtype': 'float32', 'normalized': True}},
+                'ordered_view_sha256': {'canonical': 'b'*64}, 'optional': None}
+        refs = driver.tensor_weakrefs(context, tree)
+        self.assertEqual([ref() for ref in refs].count(first), 2)
+        self.assertEqual([ref() for ref in refs].count(second), 1)
+        self.assertEqual(len(refs), 3)
+        del tree, first, second
+        gc.collect()
+        self.assertTrue(all(ref() is None for ref in refs))
+
+    def test_scope_release_tracks_all_nested_leaves_and_rejects_aliases(self):
+        context = lifetime_context()
+        context['initial'] = {'views': {'canonical': LifetimeTensor(), 'augmented': [LifetimeTensor()]},
+                              'teachers': {'T': LifetimeTensor(), 'P': (LifetimeTensor(),)},
+                              'schedules': {'179061': LifetimeTensor()}, 'masks': {'179061': LifetimeTensor()}}
+        alias = context['initial']['masks']['179061']
+        ref = weakref.ref(alias)
+        with self.assertRaisesRegex(ValueError, 'lifetime survived release'):
+            driver.release_scope(context)
+        self.assertNotIn('initial', context)
+        self.assertNotIn('scope_lifetime_released', context)
+        del alias
+        gc.collect()
+        self.assertIsNone(ref())
+        context['initial'] = {'views': {'canonical': LifetimeTensor(), 'augmented': [LifetimeTensor()]},
+                              'teachers': {'T': LifetimeTensor(), 'P': (LifetimeTensor(),)}}
+        driver.release_scope(context)
+        self.assertTrue(context['scope_lifetime_released'])
+
+    def test_native_release_drops_legacy_banks_and_keeps_metadata_provenance(self):
+        release = native_release_tail()
+        for retained_alias in (False, True):
+            context = lifetime_context()
+            initial = {'views': {'canonical': LifetimeTensor(), 'augmented': LifetimeTensor()},
+                       'teachers': {'T': LifetimeTensor(), 'counts': LifetimeTensor()},
+                       'schedules': {'179061': LifetimeTensor()},
+                       'target': LifetimeTensor([0, 1]), 'original_rows': LifetimeTensor([0, 1])}
+            retained = {name: LifetimeTensor() for name in ('head', 'classifier', 'target', 'original_rows')}
+            retained['partition'] = {'sha256': 'c'*64}
+            metadata = {'caches': {'canonical': {'path': '/tmp/old.npy', 'shape': [6355, 1152],
+                                                'dtype': 'float32', 'sha256': 'd'*64}},
+                        'ordered_input_sha256': 'e'*64, 'ordered_view_sha256': {'canonical': 'f'*64}}
+            legacy = {'initial': {**retained, 'views': copy.deepcopy(metadata),
+                                  'bank': LifetimeTensor(), 'pca': {'mean': LifetimeTensor()},
+                                  'positive': LifetimeTensor(), 'masks': {'179061': [LifetimeTensor()]}},
+                      'prior': {'fit': {'rows': [{'train_row': 7}, {'train_row': 90}]}}}
+            context['provenance'] = copy.deepcopy(metadata)
+            dropped = weakref.ref(legacy['initial']['bank'])
+            if retained_alias:
+                alias = legacy['initial']['pca']['mean']
+            context.update(_initial=initial, legacy=legacy, _common_features=LifetimeTensor())
+            # The boundary owns these local aliases in prepare_native. The test
+            # caller must relinquish its own references before entering it.
+            del initial
+            if retained_alias:
+                with self.assertRaisesRegex(ValueError, 'old control cache/teacher lifetime survived release'):
+                    release(context)
+                self.assertNotIn('old_scope_released_before_candidate_load', context)
+                del alias
+            else:
+                release(context)
+                self.assertTrue(context['old_scope_released_before_candidate_load'])
+            gc.collect()
+            self.assertIsNone(dropped())
+            self.assertEqual(legacy['initial'], retained)
+            self.assertEqual(context['provenance'], metadata)
+            self.assertEqual(context['control_mapping'],
+                             {'original_fit_indices': [0, 1], 'official_rows': [7, 90], 'target': [0, 1]})
+
+    def test_scope_release_traversal_error_keeps_owner_and_does_not_admit(self):
+        context = lifetime_context()
+        context['initial'] = {'views': {'canonical': LifetimeTensor()}, 'teachers': {'T': LifetimeTensor()}}
+        ref = weakref.ref(context['initial']['views']['canonical'])
+        def failed_fingerprint(context, value, *, consumed):
+            consumed(value['views']['canonical'])
+            raise RuntimeError('hash read failed')
+        context['nearest'].fingerprint = failed_fingerprint
+        with self.assertRaisesRegex(RuntimeError, 'hash read failed'):
+            driver.release_scope(context)
+        self.assertNotIn('scope_lifetime_released', context)
+        self.assertIsNotNone(ref())
+        context['nearest'] = lifetime_context()['nearest']
+        driver.release_scope(context)
+        self.assertIsNone(ref())
+
     def test_new_exact2_and_method(self):
         self.assertEqual(driver.FILES, {'train_siglip2_identity_diversity.py', 'test_siglip2_identity_diversity.py'})
         self.assertEqual(driver.SCHEMA, 'siglip2-identity-diversity-v1')
