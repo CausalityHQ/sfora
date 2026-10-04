@@ -118,6 +118,16 @@ HUB_IMPORTS = {
     'utils/insecure_hashlib':'', 'utils/sha':'from .insecure_hashlib import *\n'}
 
 
+CHARSET_IMPORTS = {
+    '__init__':'from .api import value\nfrom .legacy import value\nfrom .models import value\nfrom .utils import value\nfrom .version import value\n',
+    'api':'from .cd import value\nfrom .constant import value\nfrom .md import value\nfrom .models import value\nfrom .utils import value\n',
+    'cd':'from .constant import value\nfrom .md import value\nfrom .models import value\nfrom .utils import value\n',
+    'constant':'', 'legacy':'from .api import value\n',
+    'md':'from .constant import value\nfrom .utils import value\n',
+    'models':'from .constant import value\nfrom .utils import value\n',
+    'utils':'from .constant import value\n', 'version':'',
+}
+
 SCIENTIFIC_DISTRIBUTIONS = {
     'scipy':('scipy','1.18.0'), 'scikit_learn':('sklearn','1.9.0'),
     'joblib':('joblib','1.5.3'), 'threadpoolctl':('threadpoolctl','3.6.0'),
@@ -324,6 +334,9 @@ class PortableRuntimeFixture:
         examples['huggingface_hub']['huggingface_hub/utils/_fixes.py']=b'from filelock import value\n'
         examples['tqdm'].update({'tqdm/contrib/__init__.py':b"from ..auto import value\nmarker = 'source'\n",
             'tqdm/contrib/concurrent.py':b"from ..auto import value\nmarker = 'source'\n"})
+        self.metadata_versions['charset_normalizer']='3.4.7'
+        examples['charset_normalizer']={'charset_normalizer/'+n+'.py':
+            (imports+"value = 151\nmarker = 'source'\n").encode() for n,imports in CHARSET_IMPORTS.items()}
         if scientific:
             for distribution,(package,version) in SCIENTIFIC_DISTRIBUTIONS.items():
                 self.metadata_versions[distribution]=version
@@ -338,9 +351,10 @@ class PortableRuntimeFixture:
             sources.update({self.site/n:raw for n,raw in examples[distribution].items()})
             for path,raw in sources.items():path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
             self.extra_sources.update(sources)
-            if distribution in ('tokenizers','markupsafe') or (distribution=='pyyaml' and yaml_native):
+            if distribution in ('tokenizers','markupsafe','charset_normalizer') or (distribution=='pyyaml' and yaml_native):
                 name={'tokenizers':'tokenizers/tokenizers.abi3.so',
                     'markupsafe':'markupsafe/_speedups.cpython-313-aarch64-linux-gnu.so',
+                    'charset_normalizer':'charset_normalizer/cd.cpython-313-aarch64-linux-gnu.so',
                     'pyyaml':'yaml/_yaml.cpython-313-aarch64-linux-gnu.so'}[distribution]
                 path=self.site/name;path.write_bytes(b'original exact native file; never executed')
                 sources[path]=path.read_bytes();self.natives.append(path)
@@ -1126,6 +1140,95 @@ class EvaluationTests(unittest.TestCase):
                 finally:
                     original.clear();original.update(saved);record.write_bytes(record_raw)
                     f.context['guards']=guards;f.context['required_guards']=required;f.context.pop('portable_audits',None)
+
+    def test_charset_source_loader_fallback_preserves_native_wrapper_denial(self):
+        selected={'charset_normalizer/'+n+'.py' for n in CHARSET_IMPORTS}
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0]=='charset_normalizer'}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root)
+                native=f.site/'charset_normalizer/cd.cpython-313-aarch64-linux-gnu.so'
+                mapped=SimpleNamespace(value=151,__file__=str(native),__spec__=SimpleNamespace(origin=str(native)))
+                for name in selected:
+                    path=f.site/name;raw=f.extra_sources[path];prior=path.stat()
+                    path.write_bytes(raw.replace(b'source',b'cached'));py_compile.compile(str(path),doraise=True)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                forbidden=[f.site/n for n in ('charset_normalizer/md.cpython-313-aarch64-linux-gnu.so',
+                    'charset_normalizer/__main__.py','charset_normalizer/cli/__init__.py',
+                    'charset_normalizer/cli/__main__.py','charset_normalizer/unqualified.py',
+                    'charset_normalizer/resume.pt','charset_normalizer/optimizer.pt','charset_normalizer/teachers.npy',
+                    'chardet/__init__.py')]+[root/'foreign.py']
+                for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
+                record=f.extra_records['charset_normalizer'];raw=forbidden[0].read_bytes()
+                record.write_text(record.read_text()+str(forbidden[0].relative_to(f.site))+',sha256='+
+                    base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('=')+','+str(len(raw))+'\n')
+                h=hashlib.sha256(record.read_bytes()).hexdigest()
+                f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                before=copy.deepcopy(original);required=dict(f.context['required_guards'])
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name.split('.')[0]=='charset_normalizer':sys.modules.pop(name)
+                        with patch.dict(sys.modules,{'charset_normalizer.cd':mapped}),f.boundary():
+                            loaded=module('charset_normalizer',f.site/'charset_normalizer/__init__.py') if direct_loader else importlib.import_module('charset_normalizer')
+                            self.assertEqual((loaded.value,loaded.marker),(151,'source'))
+                            for path in (f.site/n for n in selected if n!='charset_normalizer/cd.py'):
+                                name=str(path.relative_to(f.site)).removesuffix('.py').replace('/','.').removesuffix('.__init__')
+                                loaded=sys.modules[name]
+                                self.assertIsInstance(loaded.__loader__,importlib.machinery.SourceFileLoader)
+                                self.assertEqual((loaded.__file__,loaded.__spec__.origin,loaded.marker),(str(path),str(path),'source'))
+                                with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                                with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
+                            self.assertIs(sys.modules['charset_normalizer.cd'],mapped)
+                            for path in (*forbidden,record):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                            for name in ('charset_normalizer.cli','charset_normalizer.unqualified','chardet'):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):importlib.import_module(name)
+                self.assertEqual(e.RUNTIME_SOURCES['charset_normalizer'],selected)
+                self.assertEqual(original,before);self.assertEqual(f.context['required_guards'],required)
+                self.assertNotIn(str(forbidden[0]),f.context['guards'])
+                foreign=SimpleNamespace(__file__=str(forbidden[-1]),__spec__=SimpleNamespace(origin=str(forbidden[-1])))
+                for name in ('charset_normalizer','charset_normalizer.api','charset_normalizer.md','charset_normalizer.cd'):
+                    with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
+                        with f.boundary():pass
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0]=='charset_normalizer':sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_charset_original_records_and_current_source_bytes_are_required(self):
+        with tempfile.TemporaryDirectory() as directory:
+            f=PortableRuntimeFixture(Path(directory))
+            for cached in (False,True):
+                f.context.pop('portable_audits',None)
+                if cached:
+                    with f.boundary():pass
+                for name in CHARSET_IMPORTS:
+                    path=f.site/('charset_normalizer/'+name+'.py');raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    try:
+                        with self.subTest(source=name,cached=cached),self.assertRaisesRegex(ValueError,'SHA256'):
+                            with f.boundary():pass
+                    finally:path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+            f.context.pop('portable_audits',None)
+            record=f.extra_records['charset_normalizer'];raw=record.read_bytes()
+            for case in ('missing_guard','mutated_record','missing_row','wrong_hash','wrong_size'):
+                guards=dict(f.context['guards']);required=dict(f.context['required_guards'])
+                if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                elif case=='mutated_record':record.write_bytes(raw+b'\n')
+                else:
+                    rows=list(csv.reader(raw.decode().splitlines()));row=next(r for r in rows if r[0]=='charset_normalizer/api.py')
+                    if case=='missing_row':rows.remove(row)
+                    elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                    else:row[2]='999'
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows));h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                try:
+                    with self.subTest(record=case),self.assertRaises(ValueError):
+                        with f.boundary():pass
+                finally:record.write_bytes(raw);f.context['guards']=guards;f.context['required_guards']=required
 
     def test_numpy_distribution_origin_preserves_missing_metadata(self):
         import importlib.metadata

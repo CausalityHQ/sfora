@@ -118,6 +118,9 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
   'filelock/_read_write.py filelock/_soft.py filelock/_soft_rw/__init__.py filelock/_soft_rw/_async.py '
   'filelock/_soft_rw/_sync.py filelock/_unix.py filelock/_util.py filelock/_windows.py filelock/asyncio.py '
   'filelock/version.py filelock-3.29.4.dist-info/METADATA').split()),
+ 'charset_normalizer':set(('charset_normalizer/__init__.py charset_normalizer/api.py charset_normalizer/cd.py '
+  'charset_normalizer/constant.py charset_normalizer/legacy.py charset_normalizer/md.py '
+  'charset_normalizer/models.py charset_normalizer/utils.py charset_normalizer/version.py').split()),
  'typing_extensions':set(('typing_extensions.py').split()),
  'pyyaml':set(('yaml/__init__.py yaml/composer.py yaml/constructor.py yaml/cyaml.py yaml/dumper.py '
   'yaml/emitter.py yaml/error.py yaml/events.py yaml/loader.py yaml/nodes.py yaml/parser.py '
