@@ -1,0 +1,100 @@
+{
+  "AST_ledger": {
+    "path": "/tmp/live-top1-AST-ledger.json",
+    "sha256": "02f95c260a137a143c6f56f86a05fe4e2873988cae23b95735997ddfef7b1c94"
+  },
+  "base": "0708ba553025bc3c368a2e66008ade162b5f93a2",
+  "checks": {
+    "VM_limit_kib": 1048576,
+    "affected_tests": 65,
+    "diff_check": true,
+    "early_contract_matches": true,
+    "failing_layer_exit_status": 0,
+    "failing_layer_peak_rss_kib": 169012,
+    "failing_layer_tests": 6,
+    "failing_layer_wall_seconds": 24.95,
+    "final_exit_status": 0,
+    "final_peak_rss_kib": 199824,
+    "final_test_seconds": 65.631,
+    "final_wall_seconds": 66.12,
+    "original_affected_exit_status": 1,
+    "original_affected_failure": "Six archived FreshOriginAudit tests rejected symlink helper staging as noncanonical. TEST-ONLY regular byte-identical helper copies repaired staging; all archived validators and production bytes unchanged.",
+    "original_affected_peak_rss_kib": 143604,
+    "original_affected_tests": 65,
+    "original_affected_wall_seconds": 43.88,
+    "source2_syntax": true,
+    "swaps": 0,
+    "timeout_seconds": 120
+  },
+  "clean_worktree": true,
+  "code": {
+    "test_siglip2_compact_ranking.py": "3a511a3d256bd80e3210b06de2896c0fb93f8cd34a5a539be6f18cb00dbd823c",
+    "train_siglip2_compact_ranking.py": "bcabe2691a2a398b8d8a18a58d91fb8a83388b3004c6f5047ee712bcffb8e453"
+  },
+  "commit": "da67588e6de5f2368b06676ea5e446b8ea43597f",
+  "commit_files": [
+    "scripts/test_siglip2_compact_ranking.py",
+    "scripts/train_siglip2_compact_ranking.py"
+  ],
+  "diff": {
+    "path": "/tmp/live-top1-final.diff",
+    "sha256": "6bd4265ed5dfccd6a86e228daaa855af00722de29749406c9008e9a8eba95eb8"
+  },
+  "early_contract": {
+    "path": "/tmp/sfora-live-top1-trainer-20261004.contract.json",
+    "sha256": "733a00bed96f720dd642439058617d8e67c64780d68abadf0a68ddde892f5633"
+  },
+  "execution": {
+    "path": "/tmp/live-top1-final-source/execution.json",
+    "sha256": "0992550a70f38a2efe461abf6d0672fc8608ee976fca155bb16e66305da7cc81"
+  },
+  "final_contract": {
+    "path": "/tmp/sfora-live-top1-trainer-20261004.final-contract.json",
+    "sha256": "f1e210709d71d113bb3dc6b993b81185f8cb53974c5c5497060f04f625b9713e"
+  },
+  "historical": "Exact source inverse yields terminal fullfeature source ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad and byte-identical test6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b. All54 archived tests executed unchanged, plus11 live-top1 tests.",
+  "logs": {
+    "affected-suite-final": {
+      "path": "/tmp/live-top1-affected-suite-final.log",
+      "sha256": "d3a279237dc5ad6263f0143cff63c5895f49d0c717f66d48bf8f2dc8eea384ff"
+    },
+    "affected-suite-original": {
+      "path": "/tmp/live-top1-affected-suite-original.log",
+      "sha256": "5176f21ace44ce67a38c372116a3ef709c00ff3916b2b3bcac40fb5a4308f0d5"
+    },
+    "failing-layer": {
+      "path": "/tmp/live-top1-failing-layer.log",
+      "sha256": "6230785b21b432074d587eae51ec19463d8808f566a052570027220d09078f1d"
+    },
+    "focused": {
+      "path": "/tmp/live-top1-focused.log",
+      "sha256": "6cf0eedf44d86dbf59ff6d52e3de09bd82aaf6788e95a1e68b20da6b203c58dd"
+    },
+    "focused-final": {
+      "path": "/tmp/live-top1-focused-final.log",
+      "sha256": "f8ea973de814f1a0a38beb3a1407561971193398b46a002b380dd8d334440629"
+    },
+    "focused-inverse": {
+      "path": "/tmp/live-top1-focused-inverse.log",
+      "sha256": "c6152aea0eee350a767624b7a0f0f5e835c2ce50f28230d0b0ba79ce83fbb546"
+    },
+    "green-initial": {
+      "path": "/tmp/live-top1-green-initial.log",
+      "sha256": "0c63d7a9d2881469085b3009d1d601e3f0968ade1f73539d07a58a2f32c41d29"
+    },
+    "inverse-red": {
+      "path": "/tmp/live-top1-inverse-red.log",
+      "sha256": "cdb09f703b71bb5cfd0ac8d4bd5b6d8e4efd0ed258e92d6cdb5554758c7de629"
+    },
+    "red": {
+      "path": "/tmp/live-top1-red.log",
+      "sha256": "d3d3e8801063876a4f3e3b37f02ca2f1524934156f6ae90d1b0cfb1d17f41e27"
+    }
+  },
+  "native": "UNRUN; no actual Torch/native/third-party/SSH/GPU/cloud/train/eval/quality jobs/consultations/children/operator contact/merge/push. Parent owns all native qualification and integration.",
+  "no_AI_attribution": true,
+  "objective": "Both fresh arms ordered trainable A,C and identical fullfeature raw/portable inference; candidate alone adds coeff1 live-top1 hinge .05 using same connected scores, global scheduled valid occurrence reduction. Old recipe KILL and full production BOTH official SOP/InShop quality+publicspeed goal unchanged.",
+  "operator_identity": "Roman Bartusiak <riomus@gmail.com>",
+  "parent": "0708ba553025bc3c368a2e66008ade162b5f93a2",
+  "parent_notification": "Early contract written before implementation. agent_send attempts timed out or were rejected because parent already has20 queued instructions; handoff durable in this receipt and agent_complete archive."
+}
