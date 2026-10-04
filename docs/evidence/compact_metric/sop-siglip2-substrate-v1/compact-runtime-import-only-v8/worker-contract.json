@@ -1,0 +1,35 @@
+{
+  "schema": "compact-numpy-origin-absence-contract-v1",
+  "base": "ee340f3dfc769407f32279aaf56bf48888b3f857",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "production_scope": "Only add exact numpy-2.5.0.dist-info/direct_url.json to live checked absent identity probes; require absence from original RECORD rows and live canonical absence. All other helper functions, inventories/native/science/math/caps/full uncached exit unchanged.",
+  "evidence": "/tmp/sfora-compact-numpy-direct-url-context-20261004.json",
+  "reader": "Real stdlib Distribution.origin/read_text; absent metadata returns None, matching installed NumPy IS_EDITABLE=False AttributeError handling",
+  "checks": [
+    "original required RECORD SHA",
+    "entry/read/exit current canonical absence",
+    "newly present regular/empty/symlink file fails closed",
+    "RECORD-declared direct_url fails closed",
+    "write denial before absent-probe fallback",
+    "other distributions direct_url and NumPy unknown metadata/code/native/history/foreign reads denied"
+  ],
+  "verification": "targeted red/green then one final timeout55s suite; failure layer/final rerun permitted",
+  "forbidden": [
+    "thirdparty/native/Torch execution",
+    "SSH/GPU/cloud/jobs/models/images/quality",
+    "reviews/children/operatorcontact",
+    "merge/push",
+    "control edits"
+  ],
+  "targeted_verification": {
+    "tests": 2,
+    "seconds": 1.047,
+    "exit_code": 0
+  },
+  "ast_ledger": "/tmp/sfora-compact-numpy-direct-url-runtime-20261004.ast-ledger.json",
+  "production_added_lines": 6,
+  "new_tests": 2
+}

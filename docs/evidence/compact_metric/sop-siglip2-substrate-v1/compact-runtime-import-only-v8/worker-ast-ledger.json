@@ -1,0 +1,17 @@
+{
+  "schema": "compact-numpy-origin-absence-ast-ledger-v1",
+  "base": "ee340f3dfc769407f32279aaf56bf48888b3f857",
+  "production_addition": "if record.parent.name == 'numpy-2.5.0.dist-info':\n    origin = record.parent / 'direct_url.json'\n    require(str(origin.relative_to(site)) not in seen and origin.resolve() == origin and (not origin.exists()) and (not origin.is_symlink()), 'absent distribution identity changed: ' + str(origin))\n    absent.add(origin)",
+  "new_require_count": 1,
+  "entire_production_AST_minus_exact_new_branch_identical": true,
+  "all_original_predicates_and_require_calls_identical": true,
+  "all_inventories_and_native_science_helpers_identical": true,
+  "all_bundle_reads_only_and_exit_AST_identical": true,
+  "all_prior_38_tests_and_fixture_AST_identical": true,
+  "new_tests": [
+    "test_numpy_distribution_origin_preserves_missing_metadata",
+    "test_numpy_missing_origin_rejects_new_files_symlinks_and_record_rows"
+  ],
+  "new_file_read_or_module_native_grants": false,
+  "global_rebindings_added": false
+}
