@@ -1,0 +1,8 @@
+{
+  "pass": true,
+  "same_exact_code": true,
+  "worker_manifest_sha256": "0fb358fcf8083ade5b1f0a27072520601b8a90327a5b94d454c9e86bc01d13c4",
+  "root_canonical_manifest_sha256": "95a2342f503f6f87bd46d11fd629ce2dd29bb52d8a58a9782bf7b30105e58c2c",
+  "difference": "JSON serialization only; worker receipt binds compact serialization, root future freeze uses sorted indent2 newline",
+  "native_execution": "UNRUN"
+}
