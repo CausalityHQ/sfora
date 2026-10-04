@@ -1,0 +1,39 @@
+{
+  "production_changed_AST_nodes": [
+    "SCHEMA",
+    "AUTHORITY_SCHEMA",
+    "TRAINING",
+    "authority"
+  ],
+  "production_changed_byte_nodes": [
+    "SCHEMA",
+    "AUTHORITY_SCHEMA",
+    "TRAINING",
+    "authority"
+  ],
+  "added_nodes": [],
+  "removed_nodes": [],
+  "unrelated_top_level_nodes_byte_identical": 100,
+  "whole_source_byte_inverse": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede",
+  "whole_source_AST_inverse": "97e8e03dbd710e065999bead5ed1f59315443a9800c8aee14e731bb3dad80c99",
+  "CLI_delta": [],
+  "parser_cli_AST_and_bytes_unchanged": true,
+  "test_added_nodes": [
+    "CURRENT_GALLERY_AST_EDITS",
+    "inverse_current_gallery_authority",
+    "inverse_current_gallery_source",
+    "EvaluationTests.test_exact_current_gallery_inverse_preserves_entire_source"
+  ],
+  "test_changed_nodes": [
+    "EvaluationTests",
+    "inverse_export_envelope_source",
+    "inverse_export_envelope"
+  ],
+  "test_changed_methods": [
+    "test_current_trainer_full_payload_and_inference_schema_denials",
+    "test_prospective_frozen_training_and_retired_authority",
+    "test_actual_prospective_trainer_source_admission_and_schema_denials",
+    "test_partial_metadata_receipt_and_foreign_bindings_rejected"
+  ],
+  "historical_pin_assignments_byte_identical": true
+}

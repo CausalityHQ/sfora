@@ -1,0 +1,261 @@
+{
+  "AST_delta": {
+    "CLI_delta": [],
+    "added_nodes": [],
+    "historical_pin_assignments_byte_identical": true,
+    "parser_cli_AST_and_bytes_unchanged": true,
+    "production_changed_AST_nodes": [
+      "SCHEMA",
+      "AUTHORITY_SCHEMA",
+      "TRAINING",
+      "authority"
+    ],
+    "production_changed_byte_nodes": [
+      "SCHEMA",
+      "AUTHORITY_SCHEMA",
+      "TRAINING",
+      "authority"
+    ],
+    "removed_nodes": [],
+    "test_added_nodes": [
+      "CURRENT_GALLERY_AST_EDITS",
+      "inverse_current_gallery_authority",
+      "inverse_current_gallery_source",
+      "EvaluationTests.test_exact_current_gallery_inverse_preserves_entire_source"
+    ],
+    "test_changed_methods": [
+      "test_current_trainer_full_payload_and_inference_schema_denials",
+      "test_prospective_frozen_training_and_retired_authority",
+      "test_actual_prospective_trainer_source_admission_and_schema_denials",
+      "test_partial_metadata_receipt_and_foreign_bindings_rejected"
+    ],
+    "test_changed_nodes": [
+      "EvaluationTests",
+      "inverse_export_envelope_source",
+      "inverse_export_envelope"
+    ],
+    "unrelated_top_level_nodes_byte_identical": 100,
+    "whole_source_AST_inverse": "97e8e03dbd710e065999bead5ed1f59315443a9800c8aee14e731bb3dad80c99",
+    "whole_source_byte_inverse": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede"
+  },
+  "CLI_delta": [],
+  "CLI_preserved": {
+    "arms": [
+      "control",
+      "candidate"
+    ],
+    "flags": [
+      "--execution-sha256",
+      "--authority",
+      "--authority-sha256",
+      "--phase",
+      "--seed",
+      "--arm",
+      "--output"
+    ],
+    "phases": [
+      "cpu",
+      "export",
+      "score"
+    ],
+    "seeds": [
+      179061,
+      179069
+    ]
+  },
+  "TRAINING": {
+    "code": {
+      "test_siglip2_compact_ranking.py": "32f9ade5717d98e9aa5f6644ad7ac0dc5992bb21e0861730e154d0d78c8a7744",
+      "train_siglip2_compact_ranking.py": "affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480"
+    },
+    "execution_sha256": "73cbc39e857ad99e2962a6252c8c158b232636889b5023c28a97b1be7edda68e",
+    "root": "/home/riomus/runs/sfora-so400-current-gallery-smooth-ap-train-source-v1"
+  },
+  "artifacts": {
+    "BEFOREcode-contract.json": {
+      "bytes": 3386,
+      "sha256": "1f8406a577767c5afa3aa77070a1fc7a20978f5394b8954f8daa6d056d1affc4"
+    },
+    "O.log": {
+      "bytes": 63,
+      "sha256": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03"
+    },
+    "OO.log": {
+      "bytes": 63,
+      "sha256": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03"
+    },
+    "affected-original.json": {
+      "bytes": 357,
+      "sha256": "c7c2e687f4c3b51fb132e8bed905b93c58652ba5beba9686eab745a48b785064"
+    },
+    "affected-original.log": {
+      "bytes": 80618,
+      "sha256": "b1568ba30686e31360651708686cc149ee2b159643552f1bd202f1fda0dd38b5"
+    },
+    "ast-delta-ledger.json": {
+      "bytes": 1286,
+      "sha256": "723472a800c747ae90c44600537128295bb79a22d2cda10bc34849aeda71825a"
+    },
+    "evaluate_siglip2_compact_ranking.py.after": {
+      "bytes": 127183,
+      "sha256": "0128c543768d8f9eb964231777f5b1fe30e1c39b34c41dc5065441fe2d92c294"
+    },
+    "evaluate_siglip2_compact_ranking.py.before": {
+      "bytes": 127162,
+      "sha256": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede"
+    },
+    "final-checks.json": {
+      "bytes": 1235,
+      "sha256": "920beefa16beec6d5aa09c00cd8383db4fb364b26c97d88f3c61b3ff64e72c84"
+    },
+    "help.log": {
+      "bytes": 1547,
+      "sha256": "195f3f241fd9e2e49bfb0e62a8cc6f86fdbee1df4ff33c44cc09ad732f139c3b"
+    },
+    "production-edits.json": {
+      "bytes": 2498,
+      "sha256": "30cb3e7cc4f6d10a14ed767326d9344180677ce085159359a06759b50a9ce22d"
+    },
+    "red-original.json": {
+      "bytes": 591,
+      "sha256": "46f57caec1e18323020bcaa13229acf72acfccc64c760d439178d76194c5cf3b"
+    },
+    "red-original.log": {
+      "bytes": 2677,
+      "sha256": "ba1c0d574ac9f7e7115212b43e9bb09ed79b2cf7012c73d9f609fe8ec2c7211f"
+    },
+    "regular-helpers.json": {
+      "bytes": 1175,
+      "sha256": "378e7e6e88d9884172b6ca5f9af0d5c2a4bcc6d8916c3f7be62ecf17fffd7514"
+    },
+    "retained-source-verification.json": {
+      "bytes": 304,
+      "sha256": "8415ac2ba3cbcf97623f0b185fc054ab3c730042a95b774cba43bd7ceedb1884"
+    },
+    "test_compact_ranking_evaluation.py.after": {
+      "bytes": 255520,
+      "sha256": "e46e55e5b9d6548ab03d467791b3fba0ff08c6af8c51cf875bae21aee7f5f46e"
+    },
+    "test_compact_ranking_evaluation.py.before": {
+      "bytes": 247189,
+      "sha256": "9d0f2c983051deec30b869f6255166eb4265783cd177c62556f1538909d774dc"
+    }
+  },
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "base": "b6f76c15bff02a2be999f4ed26a2318b5705362b",
+  "branch": "devbox/current-gallery-smooth-ap-evaluator-20261004",
+  "clean_worktree": true,
+  "commit": "52d4151518cd06d38b6d7444b293c853ccaf9079",
+  "control_file": "read only; untouched",
+  "created_unix": 1791123560.6374335,
+  "implementation_code": {
+    "evaluate_siglip2_compact_ranking.py": "0128c543768d8f9eb964231777f5b1fe30e1c39b34c41dc5065441fe2d92c294",
+    "test_compact_ranking_evaluation.py": "e46e55e5b9d6548ab03d467791b3fba0ff08c6af8c51cf875bae21aee7f5f46e"
+  },
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "parent_delivery_note": "Initial actionable checkout notice rejected: parent has20 queued instructions. Same child branch fast-forwarded successfully to exact brief base; no remaining blocker. agent_complete will be called exactly once.",
+  "parent_only_remaining": [
+    "verify/integrate",
+    "DGX/native qualification",
+    "evaluator source/authority freeze",
+    "exports/score/quality under frozen protocol"
+  ],
+  "schemas": {
+    "AUTHORITY_SCHEMA": "siglip2-compact-current-gallery-smooth-ap-evaluation-launch-v1",
+    "SCHEMA": "siglip2-compact-current-gallery-smooth-ap-evaluation-v1"
+  },
+  "state": "implementation-verified; parent owns integration and native qualification",
+  "trainer_schema_guard": {
+    "AUTHORITY_SCHEMA": "siglip2-compact-current-gallery-smooth-ap-launch-v1",
+    "BUNDLE_SCHEMA": "siglip2-compact-current-gallery-smooth-ap-bundle-v1",
+    "INFERENCE_SCHEMA": "siglip2-compact-current-gallery-smooth-ap-inference-v1",
+    "SCHEMA": "siglip2-compact-current-gallery-smooth-ap-v1"
+  },
+  "verification": {
+    "affected_suite": {
+      "address_space_limit_bytes": 1073741824,
+      "command": [
+        "python3",
+        "-B",
+        "scripts/test_compact_ranking_evaluation.py",
+        "-v"
+      ],
+      "exit": 0,
+      "log_sha256": "b1568ba30686e31360651708686cc149ee2b159643552f1bd202f1fda0dd38b5",
+      "max_rss_kib": 204692,
+      "tests": 81,
+      "timed_out": false,
+      "timeout_seconds": 120,
+      "wall_seconds": 95.20316338539124
+    },
+    "checks": {
+      "O": {
+        "command": [
+          "python3",
+          "-B",
+          "-O",
+          "scripts/evaluate_siglip2_compact_ranking.py",
+          "--help"
+        ],
+        "exit": 1,
+        "log_sha256": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03",
+        "wall_seconds": 0.06595015525817871
+      },
+      "OO": {
+        "command": [
+          "python3",
+          "-B",
+          "-OO",
+          "scripts/evaluate_siglip2_compact_ranking.py",
+          "--help"
+        ],
+        "exit": 1,
+        "log_sha256": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03",
+        "wall_seconds": 0.0679929256439209
+      },
+      "attribution_trailers": "none",
+      "author": "Roman Bartusiak <riomus@gmail.com>",
+      "base": "b6f76c15bff02a2be999f4ed26a2318b5705362b",
+      "clean_worktree": true,
+      "commit": "52d4151518cd06d38b6d7444b293c853ccaf9079",
+      "diff_check": "PASS",
+      "exact2": true,
+      "help": {
+        "command": [
+          "python3",
+          "-B",
+          "scripts/evaluate_siglip2_compact_ranking.py",
+          "--help"
+        ],
+        "exit": 0,
+        "log_sha256": "195f3f241fd9e2e49bfb0e62a8cc6f86fdbee1df4ff33c44cc09ad732f139c3b",
+        "wall_seconds": 0.1177372932434082
+      },
+      "optimized_failclosed": "PASS -O and -OO before imports",
+      "syntax": "owned2 compile PASS, no bytecode writes"
+    },
+    "complete_historical_inverses": "PASS; unchanged historical pins",
+    "no_native_imports_or_jobs": true,
+    "production_entire_byte_inverse": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede",
+    "red_original": {
+      "address_space_limit_bytes": 1073741824,
+      "command": [
+        "python3",
+        "-B",
+        "scripts/test_compact_ranking_evaluation.py",
+        "EvaluationTests.test_prospective_frozen_training_and_retired_authority",
+        "EvaluationTests.test_actual_prospective_trainer_source_admission_and_schema_denials",
+        "-v"
+      ],
+      "exit": 1,
+      "expected": "2 failures: old evaluator schema and old trainer2 code hashes; production still byte-identical",
+      "log_sha256": "ba1c0d574ac9f7e7115212b43e9bb09ed79b2cf7012c73d9f609fe8ec2c7211f",
+      "max_rss_kib": 51428,
+      "wall_seconds": 0.22129273414611816
+    },
+    "trainer_evidence": "REUSED committed current-gallery-source-cpu-freeze-v1; trainer suite UNRUN"
+  }
+}

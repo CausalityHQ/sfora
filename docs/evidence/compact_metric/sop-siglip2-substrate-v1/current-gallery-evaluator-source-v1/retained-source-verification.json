@@ -1,0 +1,10 @@
+{
+  "trainer2_committed_execution_exact": true,
+  "trainer_bytes_exact": true,
+  "historical_pin_assignments_byte_identical": [
+    "SMOOTH_AP_AST_EDITS",
+    "IMAGE_ANCHOR_AST_EDITS"
+  ],
+  "trainer_suite": "UNRUN; reused committed affected-original.json and final-checks.json",
+  "owned2_only": true
+}

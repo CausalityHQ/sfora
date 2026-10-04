@@ -1,0 +1,46 @@
+{
+  "help": {
+    "command": [
+      "python3",
+      "-B",
+      "scripts/evaluate_siglip2_compact_ranking.py",
+      "--help"
+    ],
+    "exit": 0,
+    "wall_seconds": 0.1177372932434082,
+    "log_sha256": "195f3f241fd9e2e49bfb0e62a8cc6f86fdbee1df4ff33c44cc09ad732f139c3b"
+  },
+  "O": {
+    "command": [
+      "python3",
+      "-B",
+      "-O",
+      "scripts/evaluate_siglip2_compact_ranking.py",
+      "--help"
+    ],
+    "exit": 1,
+    "wall_seconds": 0.06595015525817871,
+    "log_sha256": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03"
+  },
+  "OO": {
+    "command": [
+      "python3",
+      "-B",
+      "-OO",
+      "scripts/evaluate_siglip2_compact_ranking.py",
+      "--help"
+    ],
+    "exit": 1,
+    "wall_seconds": 0.0679929256439209,
+    "log_sha256": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03"
+  },
+  "syntax": "owned2 compile PASS, no bytecode writes",
+  "optimized_failclosed": "PASS -O and -OO before imports",
+  "diff_check": "PASS",
+  "commit": "52d4151518cd06d38b6d7444b293c853ccaf9079",
+  "base": "b6f76c15bff02a2be999f4ed26a2318b5705362b",
+  "exact2": true,
+  "clean_worktree": true,
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "attribution_trailers": "none"
+}
