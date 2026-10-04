@@ -1,0 +1,11 @@
+{
+  "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/configuration_utils.py",
+  "sha256": "be45f9ecb7a48c28b115e25241b46afa53a63b4ece43ce0f344c153a8138605f",
+  "found": [
+    {
+      "line": 270,
+      "source": "                    f\"the `id2label` map of length `{len(self.id2label)}`.\"\n                )\n            # Keys are always strings in JSON so convert ids to int\n            self.id2label = {int(key): value for key, value in self.id2label.items()}\n\n        if self.problem_type == \"single_label_classification\" and self.num_labels == 1:\n            raise ValueError("
+    }
+  ],
+  "original_cpu_v7_input_guard_match": true
+}
