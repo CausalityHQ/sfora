@@ -1489,8 +1489,15 @@ bundle bytes. Native-origin admission remains the original owned API.
 
 def endpoint_facts(context,state):
     trainer,t=context['trainer'],context['training_context']
+    config=state['model'].config.to_dict();labels=t['initial']['config'].get('id2label')
+    require(type(config) is dict and type(labels) is dict and labels and
+        type(config.get('id2label')) is dict and len(config['id2label']) == len(labels) and
+        all(type(k) is str and re.fullmatch(r'0|[1-9][0-9]*',k) and type(v) is str for k,v in labels.items()) and
+        all(type(k) is int and str(k) in labels and type(v) is str and v == labels[str(k)]
+            for k,v in config['id2label'].items()), 'live id2label differs from frozen config')
+    config={**config,'id2label':{str(k):v for k,v in config['id2label'].items()}}
     return {'vision_sha256':trainer.fingerprint(t,state['model'].state_dict()),
-        'members':{k:trainer.fingerprint(t,state['model'].config.to_dict() if k == 'config' else
+        'members':{k:trainer.fingerprint(t,config if k == 'config' else
             dict(state['model'].named_buffers()) if k == 'buffers' else
             json.loads(state['processor_object'].to_json_string()) if k == 'processor_config' else
             dict(state['head_object'].state_dict()) if k == 'head' else state[k])

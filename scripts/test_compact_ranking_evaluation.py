@@ -302,6 +302,43 @@ SCIENTIFIC_NATIVE_IMPORTS = {
 }
 
 
+ID2LABEL_CONSTRUCTOR_SOURCE='self.id2label = {int(key): value for key, value in self.id2label.items()}'
+
+
+class EndpointFactsFixture:
+    """Exact finite constructor statement and original typed serializer; stdlib only."""
+    def __init__(self):
+        # Installed configuration_utils.py:270, original CPU guard be45f9ec...
+        class Config:
+            def __init__(self,value):
+                self.values=copy.deepcopy(value);self.id2label=self.values['id2label']
+                exec(compile(ID2LABEL_CONSTRUCTOR_SOURCE,'<original id2label conversion>','exec'),{}, {'self':self})
+                self.values['id2label']=self.id2label
+            def to_dict(self):return copy.deepcopy(self.values)
+        self.frozen={'id2label':{'0':'LABEL_0','1':'LABEL_1'},'label2id':{'LABEL_0':0,'LABEL_1':1},
+            'hidden_size':1152,'torch_dtype':'float32','do_sample':False,'architectures':['SiglipVisionModel'],
+            'nested':{'tuple':(1,2),'list':[3,4]}}
+        config=Config(self.frozen)
+        self.vision={'vision':b'frozen vision'};self.buffers={'position_ids':(0,1)}
+        self.head={'weight':b'frozen head'};self.processor={'backend':'torchvision','size':[256,256]}
+        self.state={'model':SimpleNamespace(config=config,state_dict=lambda:self.vision,
+            named_buffers=lambda:self.buffers.items()),'head_object':SimpleNamespace(state_dict=lambda:self.head),
+            'processor_object':SimpleNamespace(to_json_string=lambda:json.dumps(self.processor)),
+            'A':b'updated A','means':{'source':1.25}}
+        path=PATH.with_name('train_siglip2_substrate_adaptation.py');raw=path.read_bytes()
+        assert hashlib.sha256(raw).hexdigest()=='a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543'
+        fn=next(n for n in ast.parse(raw).body if isinstance(n,ast.FunctionDef) and n.name=='fingerprint')
+        def synthetic_import(name,*args):
+            assert name=='torch',name
+            return SimpleNamespace(Tensor=()) # No real tensors or installed third-party code.
+        namespace={'hashlib':hashlib,'__builtins__':dict(vars(sys.modules['builtins']),__import__=synthetic_import)}
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),'<original typed serializer only>','exec'),namespace)
+        self.fingerprint=namespace['fingerprint']
+        self.context={'trainer':SimpleNamespace(fingerprint=lambda _,value:self.fingerprint(value)),
+            'training_context':{'initial':{'config':self.frozen}}}
+    def facts(self):return e.endpoint_facts(self.context,self.state)
+
+
 class PortableRuntimeFixture:
     """Installed sources and a previously admitted RECORD; no native imports."""
     def __init__(self,root,*,yaml_native=False,scientific=False,accelerate=False):
@@ -728,6 +765,88 @@ class EvaluationTests(unittest.TestCase):
             fifo=root/'fifo';os.mkfifo(fifo)
             with self.assertRaises(ValueError):e.bound_file({},fifo,digest)
             with self.assertRaises(ValueError):e.closure(root,manifest_sha,{'worker.py','extra'}, {})
+
+    def test_endpoint_facts_original_constructor_config_conversion_and_fresh_parity(self):
+        f=EndpointFactsFixture();live=f.state['model'].config.values
+        self.assertEqual(live['id2label'],{0:'LABEL_0',1:'LABEL_1'})
+        self.assertTrue(all(type(k)is int for k in live['id2label']))
+        original_live=copy.deepcopy(live);original_frozen=copy.deepcopy(f.frozen)
+        expected={'vision_sha256':f.fingerprint(f.vision),'members':{
+            'config':f.fingerprint(f.frozen),'buffers':f.fingerprint(f.buffers),
+            'processor_config':f.fingerprint(f.processor),'head':f.fingerprint(f.head),
+            'A':f.fingerprint(f.state['A']),'means':f.fingerprint(f.state['means'])}}
+        for _ in range(3):self.assertEqual(f.facts(),expected)
+        self.assertEqual(EndpointFactsFixture().facts(),expected)
+        self.assertEqual(live,original_live);self.assertEqual(f.frozen,original_frozen)
+        # Even an alias-returning stand-in must remain unchanged by comparison.
+        f.state['model'].config.to_dict=lambda:live
+        self.assertEqual(f.facts(),expected);self.assertEqual(f.facts(),expected)
+        self.assertEqual(live,original_live);self.assertEqual(f.frozen,original_frozen)
+        f.state['A']=b'different A'
+        changed=f.facts();self.assertNotEqual(changed['members']['A'],expected['members']['A'])
+        self.assertEqual(changed['members']['config'],expected['members']['config'])
+
+    def test_endpoint_facts_rejects_noncanonical_frozen_and_live_label_maps(self):
+        class ForeignInt(int):pass
+        class ForeignString(str):pass
+        class ForeignDict(dict):pass
+        f=EndpointFactsFixture();live=f.state['model'].config.values
+        original_live=copy.deepcopy(live);original_frozen=copy.deepcopy(f.frozen)
+        cases=(
+            ('live_bool',{False:'LABEL_0',1:'LABEL_1'},False),
+            ('live_float',{0.0:'LABEL_0',1:'LABEL_1'},False),
+            ('live_foreign_int',{ForeignInt(0):'LABEL_0',1:'LABEL_1'},False),
+            ('live_strings',{'0':'LABEL_0','1':'LABEL_1'},False),
+            ('live_noncanonical',{'00':'LABEL_0',1:'LABEL_1'},False),
+            ('live_collision',{0:'LABEL_0','0':'LABEL_0',1:'LABEL_1'},False),
+            ('live_missing',{0:'LABEL_0'},False),('live_empty',{},False),
+            ('live_changed_key',{0:'LABEL_0',2:'LABEL_1'},False),
+            ('live_foreign_key',{object():'LABEL_0',1:'LABEL_1'},False),
+            ('live_changed_label',{0:'CHANGED',1:'LABEL_1'},False),
+            ('live_non_string_label',{0:None,1:'LABEL_1'},False),
+            ('live_foreign_label',{0:ForeignString('LABEL_0'),1:'LABEL_1'},False),
+            ('live_map_type',[(0,'LABEL_0'),(1,'LABEL_1')],False),
+            ('live_foreign_map',ForeignDict({0:'LABEL_0',1:'LABEL_1'}),False),
+            ('frozen_bool',{False:'LABEL_0','1':'LABEL_1'},True),
+            ('frozen_int',{0:'LABEL_0','1':'LABEL_1'},True),
+            ('frozen_foreign_string',{ForeignString('0'):'LABEL_0','1':'LABEL_1'},True),
+            ('frozen_noncanonical',{'00':'LABEL_0','1':'LABEL_1'},True),
+            ('frozen_negative',{'-0':'LABEL_0','1':'LABEL_1'},True),
+            ('frozen_signed',{'+0':'LABEL_0','1':'LABEL_1'},True),
+            ('frozen_collision',{'0':'LABEL_0','00':'LABEL_0','1':'LABEL_1'},True),
+            ('frozen_missing',{'0':'LABEL_0'},True),('frozen_empty',{},True),
+            ('frozen_changed_key',{'0':'LABEL_0','2':'LABEL_1'},True),
+            ('frozen_changed_label',{'0':'CHANGED','1':'LABEL_1'},True),
+            ('frozen_foreign_label',{'0':ForeignString('LABEL_0'),'1':'LABEL_1'},True),
+            ('frozen_map_type',[('0','LABEL_0'),('1','LABEL_1')],True),
+            ('frozen_foreign_map',ForeignDict({'0':'LABEL_0','1':'LABEL_1'}),True))
+        for case,labels,frozen in cases:
+            with self.subTest(case=case):
+                live.clear();live.update(copy.deepcopy(original_live))
+                f.frozen.clear();f.frozen.update(copy.deepcopy(original_frozen))
+                (f.frozen if frozen else live)['id2label']=labels
+                with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+        for frozen in (False,True):
+            live.clear();live.update(copy.deepcopy(original_live));f.frozen.clear();f.frozen.update(copy.deepcopy(original_frozen))
+            del (f.frozen if frozen else live)['id2label']
+            with self.subTest(missing_field_frozen=frozen),self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+        live.clear();live.update(copy.deepcopy(original_live));f.frozen.clear();f.frozen.update(copy.deepcopy(original_frozen))
+        f.state['model'].config.to_dict=lambda:ForeignDict(live)
+        with self.assertRaisesRegex(ValueError,'id2label'):f.facts()
+
+    def test_endpoint_facts_retains_all_other_complete_typed_config_changes(self):
+        f=EndpointFactsFixture();live=f.state['model'].config.values
+        saved=copy.deepcopy(live);expected=f.fingerprint(f.frozen)
+        changes=(('hidden_size',1153),('hidden_size',1152.0),('torch_dtype',None),('do_sample',0),
+            ('architectures',('SiglipVisionModel',)),('nested',{'tuple':[1,2],'list':[3,4]}),
+            ('label2id',{'LABEL_0':False,'LABEL_1':1}),('foreign_field','extra'),('nested',None))
+        for key,value in changes:
+            with self.subTest(key=key,value=value):
+                live.clear();live.update(copy.deepcopy(saved));live[key]=value
+                self.assertNotEqual(f.facts()['members']['config'],expected)
+        live.clear();live.update(copy.deepcopy(saved));del live['nested']
+        self.assertNotEqual(f.facts()['members']['config'],expected)
+        live.clear();live.update(copy.deepcopy(saved));self.assertEqual(f.facts()['members']['config'],expected)
 
     def test_bundle_boundary_denies_train_warm_optimizer_reads(self):
         with tempfile.TemporaryDirectory() as directory:
