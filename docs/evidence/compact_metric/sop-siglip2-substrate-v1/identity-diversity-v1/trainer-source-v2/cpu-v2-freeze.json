@@ -1,0 +1,20 @@
+{
+  "authority_sha256": "df932869c101a661e6fce77a287f979ee8529f37b1d9d6cc208a8cfeae2f3dff",
+  "command_sha256": "b6e77dd7239e13fa81c3dbbcdfbd1f24c0c71050021f13ef7f3fecb21b0c46c3",
+  "descriptor": {
+    "code": {
+      "test_siglip2_identity_diversity.py": "986ced3e9a0234b7aa2c26ae4688fb4e12810a42c8f017ed6d7007e655027d8f",
+      "train_siglip2_identity_diversity.py": "c71100e09db22625905dffeee8368a7c068457ecea5f5068a234630e51ed4be8"
+    },
+    "execution_sha256": "a12a1aa5624c032c08616298b3211d35e8f0ff3c2fcfc95e6a170187dc36fd76",
+    "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v2"
+  },
+  "historical_cpu_v1": "FAIL",
+  "launch_sha256": "7ec57fb7b2b6e5d49214920621483ed7e446239aa4d19670d9a863d1311f16fb",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  }
+}
