@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "mechanics",
+  "arm": "control",
+  "service_seconds": 231.88,
+  "invocation_id": "d4706a06345b4e7ea05b423c7f9b444b",
+  "host_peak_bytes": 7387353088,
+  "rss_kib": 4592244,
+  "unit": "sfora-so400-current-gallery-smooth-ap-mechanics-control-v1",
+  "quality_read": false,
+  "receipt_sha256": "832850e7a47c3482249e86257cc6ccd68fcfe7a3f165f50e6720989abd40ab0f",
+  "log_sha256": "53162da2fadf00b482420f9b128bb6cf3588d66414f4dd99d3b7e5937842fea1"
+}
