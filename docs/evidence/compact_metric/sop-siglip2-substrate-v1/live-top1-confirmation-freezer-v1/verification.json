@@ -1,0 +1,17 @@
+{
+  "source_only": true,
+  "native_pass": false,
+  "worker_commit": "4ad8c99a3726b5b30df1866aed5936c24eef8cfb",
+  "worker_base": "55455d8fa33ee22f194338f884d6e62ff127b385",
+  "tests": 19,
+  "wall_seconds": 6.11,
+  "peak_rss_kib": 61608,
+  "swaps": 0,
+  "first_continue_and_four_endpoints_required": true,
+  "actual_receipt_qualification_pending": true,
+  "scope": "new helper/test only; historical helper/test unchanged",
+  "code": {
+    "freeze_live_top1_confirmation_cpu.py": "b08583b82dc70c7aa4f50716a173b1aadd3a087f16d58d0b99dcb8ae32e1d11f",
+    "test_freeze_live_top1_confirmation_cpu.py": "fac21e138e8f37c529cd3e14f36206e6c464792df7289e995ae4b89957c0d8d6"
+  }
+}

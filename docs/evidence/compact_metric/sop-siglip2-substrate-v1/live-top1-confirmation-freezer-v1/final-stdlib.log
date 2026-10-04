@@ -1,0 +1,47 @@
+test_exact_cli_is_available_without_native_imports (__main__.ContractCLI.test_exact_cli_is_available_without_native_imports) ... ok
+test_actual_cli_freeze_preserves_historical_paths_policies_and_bindings (__main__.FixtureGate.test_actual_cli_freeze_preserves_historical_paths_policies_and_bindings) ... ok
+test_actual_core_cost_over_limit_rejected_after_rehash (__main__.FixtureGate.test_actual_core_cost_over_limit_rejected_after_rehash) ... ok
+test_both_arms_require_trainable_changed_nonzero_residual (__main__.FixtureGate.test_both_arms_require_trainable_changed_nonzero_residual) ... ok
+test_conflicting_path_hash_and_checkpoint_reuse (__main__.FixtureGate.test_conflicting_path_hash_and_checkpoint_reuse) ... ok
+test_duplicate_nonfinite_and_unsafe_paths (__main__.FixtureGate.test_duplicate_nonfinite_and_unsafe_paths) ... ok
+test_endpoint_and_verification_order_missing_extra_and_unchanged061 (__main__.FixtureGate.test_endpoint_and_verification_order_missing_extra_and_unchanged061) ... ok
+test_exclusive_canonical_output_inputs_and_exact_cli (__main__.FixtureGate.test_exclusive_canonical_output_inputs_and_exact_cli) ... ok
+test_first_continue_receipt_checked_by_original_evaluator (__main__.FixtureGate.test_first_continue_receipt_checked_by_original_evaluator) ... ok
+test_first_flags_match_original_training_pair (__main__.FixtureGate.test_first_flags_match_original_training_pair) ... ok
+test_first_original_verification_summaries_are_bound (__main__.FixtureGate.test_first_original_verification_summaries_are_bound) ... ok
+test_frozen_descriptors_are_exact_and_required (__main__.FixtureGate.test_frozen_descriptors_are_exact_and_required) ... ok
+test_hash_tamper_frozen_source_templates_first_continue_and_verification (__main__.FixtureGate.test_hash_tamper_frozen_source_templates_first_continue_and_verification) ... ok
+test_missing_extra_input_keys_and_copy_roles (__main__.FixtureGate.test_missing_extra_input_keys_and_copy_roles) ... ok
+test_native_import_is_rejected_before_metadata_admission (__main__.FixtureGate.test_native_import_is_rejected_before_metadata_admission) ... ok
+test_original_first_candidate_thresholds_are_not_relaxed (__main__.FixtureGate.test_original_first_candidate_thresholds_are_not_relaxed) ... ok
+test_receipt_proof_guard_argv_and_prerequisite_mutations (__main__.FixtureGate.test_receipt_proof_guard_argv_and_prerequisite_mutations) ... ok
+test_rehashed_log_footer_runtime_and_invocation_mismatches (__main__.FixtureGate.test_rehashed_log_footer_runtime_and_invocation_mismatches) ... ok
+test_whole_cost_boundary_and_missing_costs_use_frozen_api (__main__.FixtureGate.test_whole_cost_boundary_and_missing_costs_use_frozen_api) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 5.999s
+
+OK
+	Command being timed: "timeout 55s python3 -B scripts/test_freeze_live_top1_confirmation_cpu.py"
+	User time (seconds): 5.79
+	System time (seconds): 0.25
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:06.11
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 61608
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 59497
+	Voluntary context switches: 91
+	Involuntary context switches: 678
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
