@@ -32,6 +32,42 @@ e=module('_compact_evaluation_tests',PATH)
 math_helper=module('_compact_math_tests',PATH.with_name('evaluate_siglip2_genuine_views.py'))
 
 
+# Exact fullfeature delta only; historical source and AST hashes below remain unchanged.
+FULLFEATURE_SOURCE_EDITS = (("\nUNIT_STARTED = time.perf_counter()\nSCHEMA = 'siglip2-compact-fullfeature-residual-evaluation-v1'\nAUTHORITY_SCHEMA = 'siglip2-compact-fullfeature-residual-evaluation-launch-v1'\nFILES = {'evaluate_siglip2_compact_ranking.py', 'test_compact_ranking_evaluation.py'}\nTRAIN_FILES = {'train_siglip2_compact_ranking.py', 'test_siglip2_compact_ranking.py'}\nTRAINING = {'root': '/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1', 'execution_sha256': '996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15', 'code': {'train_siglip2_compact_ranking.py': 'ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad', 'test_siglip2_compact_ranking.py': '6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b'}}\nARMS = ('control', 'candidate')\nSEEDS = (179061, 179069)\n", "\nUNIT_STARTED = time.perf_counter()\nSCHEMA = 'siglip2-compact-current-gallery-smooth-ap-evaluation-v1'\nAUTHORITY_SCHEMA = 'siglip2-compact-current-gallery-smooth-ap-evaluation-launch-v1'\nFILES = {'evaluate_siglip2_compact_ranking.py', 'test_compact_ranking_evaluation.py'}\nTRAIN_FILES = {'train_siglip2_compact_ranking.py', 'test_siglip2_compact_ranking.py'}\nTRAINING = {'code': {'test_siglip2_compact_ranking.py': '32f9ade5717d98e9aa5f6644ad7ac0dc5992bb21e0861730e154d0d78c8a7744', 'train_siglip2_compact_ranking.py': 'affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480'}, 'execution_sha256': '73cbc39e857ad99e2962a6252c8c158b232636889b5023c28a97b1be7edda68e', 'root': '/home/riomus/runs/sfora-so400-current-gallery-smooth-ap-train-source-v1'}\nARMS = ('control', 'candidate')\nSEEDS = (179061, 179069)\n"), ("            'authenticated helper live source/global binding changed')\n        bound_file({},path,context['guards'][str(path)])\ndef check_paired_initialization(c,a):\n    for record,arm,names,shapes in ((c,'control',['A'],[[128,160]]),\n            (a,'candidate',['A','C'],[[128,160],[128,1152]])):\n        require(record['arm'] == record['identity']['arm'] == arm and\n            record['identity']['parameter_names'] == names and record['identity']['parameter_shapes'] == shapes and\n            type(record['identity']['parameter_shapes']) is list and\n            all(type(shape) is list and all(type(d) is int for d in shape)\n                for shape in record['identity']['parameter_shapes']),\n            'exact control A / candidate A,C optimizer roles differ')\n    require(all(c[k] == a[k] for k in ('source','initial_A_sha256','initial_C_sha256','mu_train_sha256',\n            'mu_train_provenance_sha256','initial_raw_unit_packed_sha256','numerical_flags')) and\n        all(c['identity'][k] == a['identity'][k] for k in ('static_sha256','initial_A_sha256','initial_C_sha256',\n            'mu_train_sha256','mu_train_provenance_sha256','source','numerical_flags',\n            'initial_cpu_rng_sha256','initial_cuda_rng_sha256')) and\n        [s['batch'] for s in c['steps']] == [s['batch'] for s in a['steps']],\n        'fresh same-seed complete initialization/RNG/schedule differs')\n\n\ndef check_residual_oracle(proof,arm):\n    keys={'C_exact_zero','residual_nonzero_witness','omitted_C_mutant_rejected','wrong_mu_mutant_rejected'}\n    require(arm in ARMS and isinstance(proof,dict) and proof.keys() == keys and\n        proof['C_exact_zero'] is (arm == 'control') and\n        all(proof[k] is (arm == 'candidate') for k in keys-{'C_exact_zero'}),\n        'complete role-specific nonzero C / omitted C / wrong mu oracle required')\n\n\ndef authority(args):\n    require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native import preceded source admission')\n", "            'authenticated helper live source/global binding changed')\n        bound_file({},path,context['guards'][str(path)])\ndef authority(args):\n    require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native import preceded source admission')\n"), ("    trainer,native,math_helper,reference = (loaded[k] for k in ('training','nearest_evaluator','genuine_evaluator','reference'))\n    require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-fullfeature-residual-v1' and\n        trainer.AUTHORITY_SCHEMA == 'siglip2-compact-fullfeature-residual-launch-v1' and\n        trainer.INFERENCE_SCHEMA == 'siglip2-compact-fullfeature-residual-inference-v1' and\n        trainer.BUNDLE_SCHEMA == 'siglip2-compact-fullfeature-residual-bundle-v1' and math_helper.ORDER == ORDER and\n        math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')\n    first = launch['endpoints'][0]; training = launch['training']\n", "    trainer,native,math_helper,reference = (loaded[k] for k in ('training','nearest_evaluator','genuine_evaluator','reference'))\n    require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-current-gallery-smooth-ap-v1' and\n        trainer.AUTHORITY_SCHEMA == 'siglip2-compact-current-gallery-smooth-ap-launch-v1' and\n        trainer.INFERENCE_SCHEMA == 'siglip2-compact-current-gallery-smooth-ap-inference-v1' and\n        trainer.BUNDLE_SCHEMA == 'siglip2-compact-current-gallery-smooth-ap-bundle-v1' and math_helper.ORDER == ORDER and\n        math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')\n    first = launch['endpoints'][0]; training = launch['training']\n"), ("    for seed in seeds(launch['stage']):\n        c,a = (records[seed,arm] for arm in ARMS)\n        check_paired_initialization(c,a)\n    require(len({e['checkpoint']['sha256'] for e in launch['endpoints']}) == len(launch['endpoints']),\n        'trained state reused between endpoints')\n", "    for seed in seeds(launch['stage']):\n        c,a = (records[seed,arm] for arm in ARMS)\n        require(all(c[k] == a[k] for k in ('source','initial_A_sha256','initial_raw_unit_packed_sha256','numerical_flags')) and\n            all(c['identity'][k] == a['identity'][k] for k in ('static_sha256','initial_A_sha256','parameter_names',\n                'source','numerical_flags','initial_cpu_rng_sha256','initial_cuda_rng_sha256')) and\n            [s['batch'] for s in c['steps']] == [s['batch'] for s in a['steps']],\n            'fresh same-seed complete initialization/RNG/schedule differs')\n    require(len({e['checkpoint']['sha256'] for e in launch['endpoints']}) == len(launch['endpoints']),\n        'trained state reused between endpoints')\n"), ("            record['calibration']['same_role_forward_exact'] is True and record['calibration']['raw_unit_packed_exact'] is True,\n            'CPU full-payload/bundle/synthetic metadata qualification differs')\n        require(record['calibration']['residual_oracles'].keys() == {label(e) for e in endpoints},\n            'complete synthetic endpoint residual proofs required')\n        for endpoint in endpoints:\n            check_residual_oracle(record['calibration']['residual_oracles'][label(endpoint)],endpoint['arm'])\n    elif phase == 'export':\n        endpoint = next(e for e in endpoints if (e['seed'],e['arm']) == (seed,arm)); key=label(endpoint)\n", "            record['calibration']['same_role_forward_exact'] is True and record['calibration']['raw_unit_packed_exact'] is True,\n            'CPU full-payload/bundle/synthetic metadata qualification differs')\n    elif phase == 'export':\n        endpoint = next(e for e in endpoints if (e['seed'],e['arm']) == (seed,arm)); key=label(endpoint)\n"), ("        context['reference'].check_value_facts(record['panel_facts'],PANELS[panel][0])\n        require(len(record['train_witness']['batch']) == 16, 'actual TRAIN micro16 witness required')\n        check_residual_oracle(record['train_witness']['residual_oracle'],arm)\n    else:\n        decision = decide(context['math'],record['quality'],record['source_quality'],record['concat_quality'],stage,panel,\n", "        context['reference'].check_value_facts(record['panel_facts'],PANELS[panel][0])\n        require(len(record['train_witness']['batch']) == 16, 'actual TRAIN micro16 witness required')\n    else:\n        decision = decide(context['math'],record['quality'],record['source_quality'],record['concat_quality'],stage,panel,\n"), ("            trainer.fingerprint(t,disk,consumed=pages.consume) == endpoint['terminal_state_sha256'],\n            'complete TRAIN128 current bytes/actual identity differ')\n        members={k:trainer.fingerprint(t,disk[k]) for k in ('config','buffers','processor','head','A','means',\n            'C','mu_train','mu_train_provenance')}\n        members['arm']=trainer.fingerprint(t,ident['arm'])\n        ident=trainer.clone(t,ident)\n    del disk,pages; gc.collect()\n", "            trainer.fingerprint(t,disk,consumed=pages.consume) == endpoint['terminal_state_sha256'],\n            'complete TRAIN128 current bytes/actual identity differ')\n        members={k:trainer.fingerprint(t,disk[k]) for k in ('config','buffers','processor','head','A','means')}\n        ident=trainer.clone(t,ident)\n    del disk,pages; gc.collect()\n"), ("        trainer.fingerprint(t,{k:v for k,v in disk.items() if k != 'fixed_sha256'}) == disk['fixed_sha256'] and\n        all(trainer.fingerprint(t,disk[k]) == h for k,h in members.items()) and\n        disk['numerical_flags'] == t['flags'] and disk['arm'] == endpoint['arm'] == ident['arm'],\n        'bundle substitutes trained A/C/mu/arm or complete fixed endpoint members')\n    for name,shape in (('C',(128,1152)),('mu_train',(1152,))):\n        t['legacy']['quadratic']._check_tensor(disk[name],shape,'cpu',frozen=True)\n    require((torch.count_nonzero(disk['C']).item() == 0) is (disk['arm'] == 'control'),\n        'updated candidate C nonzero / frozen exactzero control differs')\n    require(disk['source']['initial_C_sha256'] == ident['initial_C_sha256'] and\n        disk['source']['mu_train_sha256'] == ident['mu_train_sha256'] == trainer.fingerprint(t,disk['mu_train']) and\n        disk['source']['mu_train_provenance_sha256'] == ident['mu_train_provenance_sha256'] ==\n            trainer.fingerprint(t,disk['mu_train_provenance']), 'bundle initial C / immutable TRAIN mean provenance differs')\n    require(disk['source']['accepted_A_sha256'] == t['initial_A_sha256'] and\n        disk['source']['encoder_checkpoint_sha256'] == t['initial']['provenance']['encoder']['checkpoint']['sha256'] and\n", "        trainer.fingerprint(t,{k:v for k,v in disk.items() if k != 'fixed_sha256'}) == disk['fixed_sha256'] and\n        all(trainer.fingerprint(t,disk[k]) == h for k,h in members.items()) and\n        disk['numerical_flags'] == t['flags'], 'bundle substitutes trained A or complete fixed endpoint members')\n    require(disk['source']['accepted_A_sha256'] == t['initial_A_sha256'] and\n        disk['source']['encoder_checkpoint_sha256'] == t['initial']['provenance']['encoder']['checkpoint']['sha256'] and\n"), ('\n\ndef fullfeature_oracle(context,state,features):\n    """Independent accepted concat plus explicit centered residual; never the owned wrapper."""\n    import torch\n    from torch.nn import functional as F\n    trainer,t=context[\'trainer\'],context[\'training_context\'];arm=state[\'arm\']\n    require(arm in ARMS, \'fullfeature oracle arm differs\')\n    base=trainer.helper_guard(t).raw_features(features,state[\'head_object\'],\n        torch.nn.Parameter(state[\'A\'].detach().clone()),state[\'means\'],\'concat\',t[\'legacy\'][\'quadratic\'])\n    C=state[\'C\'].detach().clone();mu=state[\'mu_train\'].detach().clone()\n    zero=torch.count_nonzero(C).item() == 0\n    require(zero is (arm == \'control\'), \'updated candidate must have nonzero C; control must have exactzero C\')\n    raw=base if arm == \'control\' else base+F.linear(features-mu,C)\n    output=packed_outputs(context,raw)\n    proof={\'C_exact_zero\':zero,\'residual_nonzero_witness\':False,\n        \'omitted_C_mutant_rejected\':False,\'wrong_mu_mutant_rejected\':False}\n    if arm == \'candidate\':\n        omitted=packed_outputs(context,base)\n        column=int(C.abs().sum(dim=0).argmax().item())\n        wrong_mu=mu.clone();wrong_mu[column]+=1./float(C[:,column].abs().max().item())\n        wrong=packed_outputs(context,base+F.linear(features-wrong_mu,C))\n        digest=trainer.fingerprint(t,output)\n        proof[\'residual_nonzero_witness\']=proof[\'omitted_C_mutant_rejected\']=(\n            digest != trainer.fingerprint(t,omitted))\n        proof[\'wrong_mu_mutant_rejected\']=digest != trainer.fingerprint(t,wrong)\n    check_residual_oracle(proof,arm)\n    return output,proof\n\n\ndef cpu_calibration(context):\n    """Updated bundle readouts versus the accepted helper, synthetic features only."""\n', '\n\ndef cpu_calibration(context):\n    """Updated bundle readouts versus the accepted helper, synthetic features only."""\n'), ("    from torch.nn import functional as F\n    t=context['training_context'];trainer=context['trainer'];legacy=t['legacy'];facts={}\n    oracles={}\n    features=F.normalize(torch.linspace(-1,1,32*1152,dtype=torch.float32).reshape(32,1152),dim=1)\n    for endpoint in context['launch']['endpoints']:\n", "    from torch.nn import functional as F\n    t=context['training_context'];trainer=context['trainer'];legacy=t['legacy'];facts={}\n    features=F.normalize(torch.linspace(-1,1,32*1152,dtype=torch.float32).reshape(32,1152),dim=1)\n    for endpoint in context['launch']['endpoints']:\n"), ("        A=torch.nn.Parameter(disk['A'].clone())\n        with torch.no_grad(),torch.autocast('cpu',enabled=False):\n            raw=trainer.fullfeature_raw_features(features,head,A,disk['means'],disk['C'],disk['mu_train'],\n                disk['arm'],legacy['quadratic'],serving)\n            first=packed_outputs(context,raw)\n            second,proof=fullfeature_oracle(context,{'head_object':head,'A':A,**disk},features.clone())\n            context['helper'].exact(tuple_outputs(first),tuple_outputs(second))\n            require(trainer.fingerprint(t,first) == trainer.fingerprint(t,second), 'synthetic updated raw/unit/pack/wire parity differs')\n        facts[label(endpoint)]=trainer.fingerprint(t,first)\n        oracles[label(endpoint)]=proof\n        require(sys.modules.pop(name,None) is serving, 'synthetic helper registry changed')\n        del head,A,raw,first,second,disk,serving;gc.collect()\n    del features\n    return {'role':'synthetic CPU FP32 updated readout','rows':32,'same_role_forward_exact':True,\n        'raw_unit_packed_exact':True,'outputs_sha256':facts,'residual_oracles':oracles}\n\n\n", "        A=torch.nn.Parameter(disk['A'].clone())\n        with torch.no_grad(),torch.autocast('cpu',enabled=False):\n            raw=serving.raw_features(features,head,A,disk['means'],'concat',legacy['quadratic'])\n            oracle=trainer.helper_guard(t).raw_features(features.clone(),head,torch.nn.Parameter(A.detach().clone()),\n                disk['means'],'concat',legacy['quadratic'])\n            first,second=packed_outputs(context,raw),packed_outputs(context,oracle)\n            context['helper'].exact(tuple_outputs(first),tuple_outputs(second))\n            require(trainer.fingerprint(t,first) == trainer.fingerprint(t,second), 'synthetic updated raw/unit/pack/wire parity differs')\n        facts[label(endpoint)]=trainer.fingerprint(t,first)\n        require(sys.modules.pop(name,None) is serving, 'synthetic helper registry changed')\n        del head,A,raw,oracle,first,second,disk,serving;gc.collect()\n    del features\n    return {'role':'synthetic CPU FP32 updated readout','rows':32,'same_role_forward_exact':True,\n        'raw_unit_packed_exact':True,'outputs_sha256':facts}\n\n\n"), ("            json.loads(state['processor_object'].to_json_string()) if k == 'processor_config' else\n            dict(state['head_object'].state_dict()) if k == 'head' else state[k])\n            for k in ('config','buffers','processor_config','head','A','means','C','mu_train','mu_train_provenance','arm')}}\n\n\n", "            json.loads(state['processor_object'].to_json_string()) if k == 'processor_config' else\n            dict(state['head_object'].state_dict()) if k == 'head' else state[k])\n            for k in ('config','buffers','processor_config','head','A','means')}}\n\n\n"), ("                with torch.autocast('cuda',enabled=False):\n                    features=F.normalize(pooled.float(),dim=1)\n                    expected,proof=fullfeature_oracle(context,state,features)\n            context['helper'].exact(tuple_outputs(values),tuple_outputs(expected))\n            require(trainer.fingerprint(t,values) == trainer.fingerprint(t,expected), 'same-role original readout/pack/wire differs')\n            del pooled,features,expected\n        fact={'rows':rows,'rgb_sha256':rgb.hexdigest(),'pixels_sha256':trainer.fingerprint(t,pixels),\n            'outputs_sha256':trainer.fingerprint(t,values),'residual_oracle':proof if oracle else None}\n        del pixels\n        return values,fact\n", "                with torch.autocast('cuda',enabled=False):\n                    features=F.normalize(pooled.float(),dim=1)\n                    A=torch.nn.Parameter(state['A'].detach().clone())\n                    raw=trainer.helper_guard(t).raw_features(features,state['head_object'],A,state['means'],\n                        'concat',t['legacy']['quadratic'])\n                    expected=packed_outputs(context,raw)\n            context['helper'].exact(tuple_outputs(values),tuple_outputs(expected))\n            require(trainer.fingerprint(t,values) == trainer.fingerprint(t,expected), 'same-role original readout/pack/wire differs')\n            del pooled,features,A,raw,expected\n        fact={'rows':rows,'rgb_sha256':rgb.hexdigest(),'pixels_sha256':trainer.fingerprint(t,pixels),\n            'outputs_sha256':trainer.fingerprint(t,values)}\n        del pixels\n        return values,fact\n"), ("        cache=t['initial']['views']['canonical'][ids]\n        head=t['legacy']['selected']['cached'].head_from('control',tensors=t['initial']['head']).requires_grad_(False).train()\n        expected,_=fullfeature_oracle(context,{'head_object':head,'A':state['A'].detach().cpu(),\n            'means':{k:v.cpu() for k,v in state['means'].items()},'C':state['C'].detach().cpu(),\n            'mu_train':state['mu_train'].detach().cpu(),'arm':state['arm']},cache)\n        raw=expected['raw']\n    difference=values['raw']-raw\n    result={'batch':ids,**fact,'cache_native_drift_max_abs':float(difference.abs().max()),\n        'cache_native_drift_l2':float(difference.double().norm()),'arithmetic_role':'CUDA FP16 vision / FP32 readout micro16',\n        'role_drift_is_diagnostic':True}\n    del values,raw,expected,cache,head,difference; gc.collect()\n    return result\n\n", "        cache=t['initial']['views']['canonical'][ids]\n        head=t['legacy']['selected']['cached'].head_from('control',tensors=t['initial']['head']).requires_grad_(False).train()\n        raw=trainer.helper_guard(t).raw_features(cache,head,torch.nn.Parameter(state['A'].detach().cpu().clone()),\n            {k:v.cpu() for k,v in state['means'].items()},'concat',t['legacy']['quadratic'])\n    difference=values['raw']-raw\n    result={'batch':ids,**fact,'cache_native_drift_max_abs':float(difference.abs().max()),\n        'cache_native_drift_l2':float(difference.double().norm()),'arithmetic_role':'CUDA FP16 vision / FP32 readout micro16',\n        'role_drift_is_diagnostic':True}\n    del values,raw,cache,head,difference; gc.collect()\n    return result\n\n"), ("            print(json.dumps({'event':'COMPACT_TIMING','stage':'endpoint_facts','boundary':'end','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)\n            require(model_facts['vision_sha256'] == facts['vision_sha256'] and\n                all(model_facts['members'][k] == facts['members'][k] for k in\n                    ('config','buffers','head','A','means','C','mu_train','mu_train_provenance','arm')),\n                'independent complete frozen vision/updated A/C/mu/arm differs')\n            require(model_facts['members']['processor_config'] == facts['processor_config_sha256'],\n                'bundle-owned processor config differs')\n", "            print(json.dumps({'event':'COMPACT_TIMING','stage':'endpoint_facts','boundary':'end','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)\n            require(model_facts['vision_sha256'] == facts['vision_sha256'] and\n                all(model_facts['members'][k] == facts['members'][k] for k in ('config','buffers','head','A','means')),\n                'independent complete frozen vision/updated A differs')\n            require(model_facts['members']['processor_config'] == facts['processor_config_sha256'],\n                'bundle-owned processor config differs')\n"))
+FULLFEATURE_AST_EDITS = (('authority', "require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n    tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-fullfeature-residual-v1' and\n    trainer.AUTHORITY_SCHEMA == 'siglip2-compact-fullfeature-residual-launch-v1' and\n    trainer.INFERENCE_SCHEMA == 'siglip2-compact-fullfeature-residual-inference-v1' and\n    trainer.BUNDLE_SCHEMA == 'siglip2-compact-fullfeature-residual-bundle-v1' and math_helper.ORDER == ORDER and\n    math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')\n", "require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n    tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-current-gallery-smooth-ap-v1' and\n    trainer.AUTHORITY_SCHEMA == 'siglip2-compact-current-gallery-smooth-ap-launch-v1' and\n    trainer.INFERENCE_SCHEMA == 'siglip2-compact-current-gallery-smooth-ap-inference-v1' and\n    trainer.BUNDLE_SCHEMA == 'siglip2-compact-current-gallery-smooth-ap-bundle-v1' and math_helper.ORDER == ORDER and\n    math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')\n"), ('authority', 'check_paired_initialization(c,a)\n', "require(all(c[k] == a[k] for k in ('source','initial_A_sha256','initial_raw_unit_packed_sha256','numerical_flags')) and\n    all(c['identity'][k] == a['identity'][k] for k in ('static_sha256','initial_A_sha256','parameter_names',\n        'source','numerical_flags','initial_cpu_rng_sha256','initial_cuda_rng_sha256')) and\n    [s['batch'] for s in c['steps']] == [s['batch'] for s in a['steps']],\n    'fresh same-seed complete initialization/RNG/schedule differs')\n"), ('check_receipt', "require(record['calibration']['residual_oracles'].keys() == {label(e) for e in endpoints},\n    'complete synthetic endpoint residual proofs required')\nfor endpoint in endpoints:\n    check_residual_oracle(record['calibration']['residual_oracles'][label(endpoint)],endpoint['arm'])\n", ''), ('check_receipt', "check_residual_oracle(record['train_witness']['residual_oracle'],arm)\n", ''), ('authenticate_payloads', "members={k:trainer.fingerprint(t,disk[k]) for k in ('config','buffers','processor','head','A','means',\n    'C','mu_train','mu_train_provenance')}\nmembers['arm']=trainer.fingerprint(t,ident['arm'])\n", "members={k:trainer.fingerprint(t,disk[k]) for k in ('config','buffers','processor','head','A','means')}\n"), ('authenticate_payloads', "require(disk.keys() == trainer.INFERENCE_KEYS and disk['schema'] == trainer.INFERENCE_SCHEMA and\n    trainer.fingerprint(t,disk) == manifest['endpoint_state_sha256'] == endpoint['inference_state_sha256'] and\n    trainer.fingerprint(t,{k:v for k,v in disk.items() if k != 'fixed_sha256'}) == disk['fixed_sha256'] and\n    all(trainer.fingerprint(t,disk[k]) == h for k,h in members.items()) and\n    disk['numerical_flags'] == t['flags'] and disk['arm'] == endpoint['arm'] == ident['arm'],\n    'bundle substitutes trained A/C/mu/arm or complete fixed endpoint members')\nfor name,shape in (('C',(128,1152)),('mu_train',(1152,))):\n    t['legacy']['quadratic']._check_tensor(disk[name],shape,'cpu',frozen=True)\nrequire((torch.count_nonzero(disk['C']).item() == 0) is (disk['arm'] == 'control'),\n    'updated candidate C nonzero / frozen exactzero control differs')\nrequire(disk['source']['initial_C_sha256'] == ident['initial_C_sha256'] and\n    disk['source']['mu_train_sha256'] == ident['mu_train_sha256'] == trainer.fingerprint(t,disk['mu_train']) and\n    disk['source']['mu_train_provenance_sha256'] == ident['mu_train_provenance_sha256'] ==\n        trainer.fingerprint(t,disk['mu_train_provenance']), 'bundle initial C / immutable TRAIN mean provenance differs')\n", "require(disk.keys() == trainer.INFERENCE_KEYS and disk['schema'] == trainer.INFERENCE_SCHEMA and\n    trainer.fingerprint(t,disk) == manifest['endpoint_state_sha256'] == endpoint['inference_state_sha256'] and\n    trainer.fingerprint(t,{k:v for k,v in disk.items() if k != 'fixed_sha256'}) == disk['fixed_sha256'] and\n    all(trainer.fingerprint(t,disk[k]) == h for k,h in members.items()) and\n    disk['numerical_flags'] == t['flags'], 'bundle substitutes trained A or complete fixed endpoint members')\n"), ('cpu_calibration', 'oracles={}\n', ''), ('cpu_calibration', "raw=trainer.fullfeature_raw_features(features,head,A,disk['means'],disk['C'],disk['mu_train'],\n    disk['arm'],legacy['quadratic'],serving)\nfirst=packed_outputs(context,raw)\nsecond,proof=fullfeature_oracle(context,{'head_object':head,'A':A,**disk},features.clone())\n", "raw=serving.raw_features(features,head,A,disk['means'],'concat',legacy['quadratic'])\noracle=trainer.helper_guard(t).raw_features(features.clone(),head,torch.nn.Parameter(A.detach().clone()),\n    disk['means'],'concat',legacy['quadratic'])\nfirst,second=packed_outputs(context,raw),packed_outputs(context,oracle)\n"), ('cpu_calibration', 'oracles[label(endpoint)]=proof\n', ''), ('cpu_calibration', 'del head,A,raw,first,second,disk,serving;gc.collect()\n', 'del head,A,raw,oracle,first,second,disk,serving;gc.collect()\n'), ('cpu_calibration', "return {'role':'synthetic CPU FP32 updated readout','rows':32,'same_role_forward_exact':True,\n    'raw_unit_packed_exact':True,'outputs_sha256':facts,'residual_oracles':oracles}\n", "return {'role':'synthetic CPU FP32 updated readout','rows':32,'same_role_forward_exact':True,\n    'raw_unit_packed_exact':True,'outputs_sha256':facts}\n"), ('endpoint_facts', "return {'vision_sha256':trainer.fingerprint(t,state['model'].state_dict()),\n    'members':{k:trainer.fingerprint(t,config if k == 'config' else\n        dict(state['model'].named_buffers()) if k == 'buffers' else\n        json.loads(state['processor_object'].to_json_string()) if k == 'processor_config' else\n        dict(state['head_object'].state_dict()) if k == 'head' else state[k])\n        for k in ('config','buffers','processor_config','head','A','means','C','mu_train','mu_train_provenance','arm')}}\n", "return {'vision_sha256':trainer.fingerprint(t,state['model'].state_dict()),\n    'members':{k:trainer.fingerprint(t,config if k == 'config' else\n        dict(state['model'].named_buffers()) if k == 'buffers' else\n        json.loads(state['processor_object'].to_json_string()) if k == 'processor_config' else\n        dict(state['head_object'].state_dict()) if k == 'head' else state[k])\n        for k in ('config','buffers','processor_config','head','A','means')}}\n"), ('images_outputs', "if oracle:\n    with torch.no_grad():\n        with torch.autocast('cuda',dtype=torch.float16):\n            pooled=state['model'](pixel_values=pixels.to('cuda')).pooler_output\n        with torch.autocast('cuda',enabled=False):\n            features=F.normalize(pooled.float(),dim=1)\n            expected,proof=fullfeature_oracle(context,state,features)\n    context['helper'].exact(tuple_outputs(values),tuple_outputs(expected))\n    require(trainer.fingerprint(t,values) == trainer.fingerprint(t,expected), 'same-role original readout/pack/wire differs')\n    del pooled,features,expected\nfact={'rows':rows,'rgb_sha256':rgb.hexdigest(),'pixels_sha256':trainer.fingerprint(t,pixels),\n    'outputs_sha256':trainer.fingerprint(t,values),'residual_oracle':proof if oracle else None}\n", "if oracle:\n    with torch.no_grad():\n        with torch.autocast('cuda',dtype=torch.float16):\n            pooled=state['model'](pixel_values=pixels.to('cuda')).pooler_output\n        with torch.autocast('cuda',enabled=False):\n            features=F.normalize(pooled.float(),dim=1)\n            A=torch.nn.Parameter(state['A'].detach().clone())\n            raw=trainer.helper_guard(t).raw_features(features,state['head_object'],A,state['means'],\n                'concat',t['legacy']['quadratic'])\n            expected=packed_outputs(context,raw)\n    context['helper'].exact(tuple_outputs(values),tuple_outputs(expected))\n    require(trainer.fingerprint(t,values) == trainer.fingerprint(t,expected), 'same-role original readout/pack/wire differs')\n    del pooled,features,A,raw,expected\nfact={'rows':rows,'rgb_sha256':rgb.hexdigest(),'pixels_sha256':trainer.fingerprint(t,pixels),\n    'outputs_sha256':trainer.fingerprint(t,values)}\n"), ('native_train_witness', "expected,_=fullfeature_oracle(context,{'head_object':head,'A':state['A'].detach().cpu(),\n    'means':{k:v.cpu() for k,v in state['means'].items()},'C':state['C'].detach().cpu(),\n    'mu_train':state['mu_train'].detach().cpu(),'arm':state['arm']},cache)\nraw=expected['raw']\n", "raw=trainer.helper_guard(t).raw_features(cache,head,torch.nn.Parameter(state['A'].detach().cpu().clone()),\n    {k:v.cpu() for k,v in state['means'].items()},'concat',t['legacy']['quadratic'])\n"), ('native_train_witness', 'del values,raw,expected,cache,head,difference; gc.collect()\n', 'del values,raw,cache,head,difference; gc.collect()\n'), ('native_export', "require(model_facts['vision_sha256'] == facts['vision_sha256'] and\n    all(model_facts['members'][k] == facts['members'][k] for k in\n        ('config','buffers','head','A','means','C','mu_train','mu_train_provenance','arm')),\n    'independent complete frozen vision/updated A/C/mu/arm differs')\n", "require(model_facts['vision_sha256'] == facts['vision_sha256'] and\n    all(model_facts['members'][k] == facts['members'][k] for k in ('config','buffers','head','A','means')),\n    'independent complete frozen vision/updated A differs')\n"), (None, "SCHEMA = 'siglip2-compact-fullfeature-residual-evaluation-v1'", "SCHEMA = 'siglip2-compact-current-gallery-smooth-ap-evaluation-v1'"), (None, "AUTHORITY_SCHEMA = 'siglip2-compact-fullfeature-residual-evaluation-launch-v1'", "AUTHORITY_SCHEMA = 'siglip2-compact-current-gallery-smooth-ap-evaluation-launch-v1'"), (None, "TRAINING = {'root': '/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1', 'execution_sha256': '996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15', 'code': {'train_siglip2_compact_ranking.py': 'ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad', 'test_siglip2_compact_ranking.py': '6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b'}}", "TRAINING = {'code': {'test_siglip2_compact_ranking.py': '32f9ade5717d98e9aa5f6644ad7ac0dc5992bb21e0861730e154d0d78c8a7744', 'train_siglip2_compact_ranking.py': 'affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480'}, 'execution_sha256': '73cbc39e857ad99e2962a6252c8c158b232636889b5023c28a97b1be7edda68e', 'root': '/home/riomus/runs/sfora-so400-current-gallery-smooth-ap-train-source-v1'}"))
+FULLFEATURE_HELPERS = ("def check_paired_initialization(c,a):\n    for record,arm,names,shapes in ((c,'control',['A'],[[128,160]]),\n            (a,'candidate',['A','C'],[[128,160],[128,1152]])):\n        require(record['arm'] == record['identity']['arm'] == arm and\n            record['identity']['parameter_names'] == names and record['identity']['parameter_shapes'] == shapes and\n            type(record['identity']['parameter_shapes']) is list and\n            all(type(shape) is list and all(type(d) is int for d in shape)\n                for shape in record['identity']['parameter_shapes']),\n            'exact control A / candidate A,C optimizer roles differ')\n    require(all(c[k] == a[k] for k in ('source','initial_A_sha256','initial_C_sha256','mu_train_sha256',\n            'mu_train_provenance_sha256','initial_raw_unit_packed_sha256','numerical_flags')) and\n        all(c['identity'][k] == a['identity'][k] for k in ('static_sha256','initial_A_sha256','initial_C_sha256',\n            'mu_train_sha256','mu_train_provenance_sha256','source','numerical_flags',\n            'initial_cpu_rng_sha256','initial_cuda_rng_sha256')) and\n        [s['batch'] for s in c['steps']] == [s['batch'] for s in a['steps']],\n        'fresh same-seed complete initialization/RNG/schedule differs')", "def check_residual_oracle(proof,arm):\n    keys={'C_exact_zero','residual_nonzero_witness','omitted_C_mutant_rejected','wrong_mu_mutant_rejected'}\n    require(arm in ARMS and isinstance(proof,dict) and proof.keys() == keys and\n        proof['C_exact_zero'] is (arm == 'control') and\n        all(proof[k] is (arm == 'candidate') for k in keys-{'C_exact_zero'}),\n        'complete role-specific nonzero C / omitted C / wrong mu oracle required')", 'def fullfeature_oracle(context,state,features):\n    """Independent accepted concat plus explicit centered residual; never the owned wrapper."""\n    import torch\n    from torch.nn import functional as F\n    trainer,t=context[\'trainer\'],context[\'training_context\'];arm=state[\'arm\']\n    require(arm in ARMS, \'fullfeature oracle arm differs\')\n    base=trainer.helper_guard(t).raw_features(features,state[\'head_object\'],\n        torch.nn.Parameter(state[\'A\'].detach().clone()),state[\'means\'],\'concat\',t[\'legacy\'][\'quadratic\'])\n    C=state[\'C\'].detach().clone();mu=state[\'mu_train\'].detach().clone()\n    zero=torch.count_nonzero(C).item() == 0\n    require(zero is (arm == \'control\'), \'updated candidate must have nonzero C; control must have exactzero C\')\n    raw=base if arm == \'control\' else base+F.linear(features-mu,C)\n    output=packed_outputs(context,raw)\n    proof={\'C_exact_zero\':zero,\'residual_nonzero_witness\':False,\n        \'omitted_C_mutant_rejected\':False,\'wrong_mu_mutant_rejected\':False}\n    if arm == \'candidate\':\n        omitted=packed_outputs(context,base)\n        column=int(C.abs().sum(dim=0).argmax().item())\n        wrong_mu=mu.clone();wrong_mu[column]+=1./float(C[:,column].abs().max().item())\n        wrong=packed_outputs(context,base+F.linear(features-wrong_mu,C))\n        digest=trainer.fingerprint(t,output)\n        proof[\'residual_nonzero_witness\']=proof[\'omitted_C_mutant_rejected\']=(\n            digest != trainer.fingerprint(t,omitted))\n        proof[\'wrong_mu_mutant_rejected\']=digest != trainer.fingerprint(t,wrong)\n    check_residual_oracle(proof,arm)\n    return output,proof')
+
+
+def inverse_fullfeature_source(source):
+    for new,old in FULLFEATURE_SOURCE_EDITS:
+        assert source.count(new)==1, 'fullfeature source delta differs'
+        source=source.replace(new,old,1)
+    return source
+
+
+def inverse_fullfeature_authority(tree):
+    dump=lambda n:ast.dump(n,include_attributes=False)
+    for source in FULLFEATURE_HELPERS:
+        expected=ast.parse(source).body[0]
+        found=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name==expected.name]
+        assert len(found)==1 and dump(found[0])==dump(expected), 'fullfeature oracle/role helper differs'
+        tree.body.remove(found[0])
+    for scope,new,old in FULLFEATURE_AST_EDITS:
+        expected=ast.parse(new).body;replacement=ast.parse(old).body
+        root=tree if scope is None else next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name==scope)
+        matches=[]
+        for node in ast.walk(root):
+            for _,values in ast.iter_fields(node):
+                if isinstance(values,list):
+                    for i in range(len(values)-len(expected)+1):
+                        candidate=values[i:i+len(expected)]
+                        if all(isinstance(n,ast.AST) for n in candidate) and [dump(n) for n in candidate]==[dump(n) for n in expected]:
+                            matches.append((values,i))
+        assert len(matches)==1, 'fullfeature statement delta differs: '+str(scope)
+        values,index=matches[0];values[index:index+len(expected)]=copy.deepcopy(replacement)
+    return tree
+
+
 # Restore current-gallery authority before every unchanged historical inverse.
 CURRENT_GALLERY_AST_EDITS = (("SCHEMA = 'siglip2-compact-current-gallery-smooth-ap-evaluation-v1'",
   "SCHEMA = 'siglip2-compact-image-anchor-smooth-ap-evaluation-v1'"),
@@ -69,6 +105,8 @@ CURRENT_GALLERY_AST_EDITS = (("SCHEMA = 'siglip2-compact-current-gallery-smooth-
 
 
 def inverse_current_gallery_source(source):
+    if "SCHEMA = 'siglip2-compact-fullfeature-residual-evaluation-v1'" in source:
+        source=inverse_fullfeature_source(source)
     for new,old in CURRENT_GALLERY_AST_EDITS:
         assert source.count(new)==1, 'prospective current-gallery authority statement differs: '+new
         source=source.replace(new,old,1)
@@ -76,6 +114,9 @@ def inverse_current_gallery_source(source):
 
 
 def inverse_current_gallery_authority(tree):
+    if any(isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id=='SCHEMA' and
+            n.value.value=='siglip2-compact-fullfeature-residual-evaluation-v1' for n in tree.body):
+        tree=inverse_fullfeature_authority(tree)
     with patch.dict(inverse_smooth_ap_authority.__globals__,SMOOTH_AP_AST_EDITS=CURRENT_GALLERY_AST_EDITS):
         return inverse_smooth_ap_authority(tree)
 
@@ -404,7 +445,8 @@ class EndpointFactsFixture:
         self.state={'model':SimpleNamespace(config=config,state_dict=lambda:self.vision,
             named_buffers=lambda:self.buffers.items()),'head_object':SimpleNamespace(state_dict=lambda:self.head),
             'processor_object':SimpleNamespace(to_json_string=lambda:json.dumps(self.processor)),
-            'A':b'updated A','means':{'source':1.25}}
+            'A':b'updated A','means':{'source':1.25},'C':b'updated C',
+            'mu_train':(.25,.5),'mu_train_provenance':{'rows':6355},'arm':'candidate'}
         path=PATH.with_name('train_siglip2_substrate_adaptation.py');raw=path.read_bytes()
         assert hashlib.sha256(raw).hexdigest()=='a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543'
         fn=next(n for n in ast.parse(raw).body if isinstance(n,ast.FunctionDef) and n.name=='fingerprint')
@@ -771,7 +813,7 @@ class GroupedMdFixture(PortableRuntimeFixture):
 
 class EvaluationTests(unittest.TestCase):
     def test_exact_current_gallery_inverse_preserves_entire_source(self):
-        source=PATH.read_text()
+        source=inverse_fullfeature_source(PATH.read_text())
         restored=inverse_current_gallery_source(source)
         self.assertEqual(hashlib.sha256(restored.encode()).hexdigest(),
             '8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede')
@@ -835,7 +877,8 @@ class EvaluationTests(unittest.TestCase):
         def admit(saved):
             exec(predicate,{**vars(trainer),'context':context,'saved':saved,'ident':ident,'step':128})
         admit(payload)
-        for schema in ('siglip2-compact-image-anchor-smooth-ap-v1','siglip2-compact-smooth-ap-v1',
+        for schema in ('siglip2-compact-current-gallery-smooth-ap-v1',
+                'siglip2-compact-image-anchor-smooth-ap-v1','siglip2-compact-smooth-ap-v1',
                 'siglip2-compact-ranking-v1','foreign'):
             with self.subTest(payload_schema=schema),self.assertRaises(ValueError):
                 admit({**payload,'schema':schema})
@@ -847,7 +890,8 @@ class EvaluationTests(unittest.TestCase):
             with self.subTest(payload_field=key),self.assertRaises(ValueError):admit({**payload,key:bad})
         inference=dict.fromkeys(trainer.INFERENCE_KEYS);inference['schema']=trainer.INFERENCE_SCHEMA
         e.check_inference_members(trainer,inference)
-        for schema in ('siglip2-compact-image-anchor-smooth-ap-inference-v1',
+        for schema in ('siglip2-compact-current-gallery-smooth-ap-inference-v1',
+                'siglip2-compact-image-anchor-smooth-ap-inference-v1',
                 'siglip2-compact-smooth-ap-inference-v1','siglip2-compact-ranking-inference-v1',trainer.SCHEMA,'foreign'):
             with self.subTest(inference_schema=schema),self.assertRaises(ValueError):
                 e.check_inference_members(trainer,{**inference,'schema':schema})
@@ -859,16 +903,17 @@ class EvaluationTests(unittest.TestCase):
         self.assertFalse(any(n.split('.')[0] in e.NATIVE for n in sys.modules))
 
     def test_prospective_frozen_training_and_retired_authority(self):
-        self.assertEqual(e.SCHEMA,'siglip2-compact-current-gallery-smooth-ap-evaluation-v1')
-        self.assertEqual(e.AUTHORITY_SCHEMA,'siglip2-compact-current-gallery-smooth-ap-evaluation-launch-v1')
-        self.assertEqual(e.TRAINING,{'code': {'test_siglip2_compact_ranking.py': '32f9ade5717d98e9aa5f6644ad7ac0dc5992bb21e0861730e154d0d78c8a7744', 'train_siglip2_compact_ranking.py': 'affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480'}, 'execution_sha256': '73cbc39e857ad99e2962a6252c8c158b232636889b5023c28a97b1be7edda68e', 'root': '/home/riomus/runs/sfora-so400-current-gallery-smooth-ap-train-source-v1'})
+        self.assertEqual(e.SCHEMA,'siglip2-compact-fullfeature-residual-evaluation-v1')
+        self.assertEqual(e.AUTHORITY_SCHEMA,'siglip2-compact-fullfeature-residual-evaluation-launch-v1')
+        self.assertEqual(e.TRAINING,{'root': '/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1', 'execution_sha256': '996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15', 'code': {'train_siglip2_compact_ranking.py': 'ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad', 'test_siglip2_compact_ranking.py': '6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b'}})
         value,args=launch()
         e.check_launch(value,args)
         changed=copy.deepcopy(value)
         changed['training']={'root':'/tmp/another-actual-trainer','execution_sha256':'1'*64,
             'code':dict.fromkeys(e.TRAIN_FILES,'2'*64)}
         with self.assertRaisesRegex(ValueError,'parent-frozen'):e.check_launch(changed,args)
-        for bad in ('siglip2-compact-image-anchor-smooth-ap-evaluation-launch-v1',
+        for bad in ('siglip2-compact-current-gallery-smooth-ap-evaluation-launch-v1',
+                'siglip2-compact-image-anchor-smooth-ap-evaluation-launch-v1',
                 'siglip2-compact-image-anchor-smooth-ap-launch-v1',
                 'siglip2-compact-ranking-evaluation-launch-v1', 'siglip2-compact-ranking-launch-v1',
                 'siglip2-compact-smooth-ap-evaluation-launch-v1','siglip2-compact-smooth-ap-launch-v1'):
@@ -931,8 +976,8 @@ class EvaluationTests(unittest.TestCase):
                 'native':SimpleNamespace(REFERENCE=e.REFERENCE),'math_helper':math_helper}
             def admit():exec(compile(ast.Module(body=[guard],type_ignores=[]),str(PATH),'exec'),namespace)
             admit()
-            self.assertEqual(trainer.PAYLOAD_KEYS,set(('A', 'buffers', 'classifier', 'config', 'counter', 'cpu_rng', 'cuda_rng', 'head', 'identity', 'means', 'numerical_flags', 'optimizer', 'original_rows', 'partition', 'processor', 'provenance', 'scaler', 'schedules', 'schema', 'source', 'target', 'teachers', 'views')))
-            self.assertEqual(trainer.INFERENCE_KEYS,set(('A', 'buffers', 'config', 'fixed_sha256', 'head', 'means', 'numerical_flags', 'processor', 'schema', 'source', 'vision_sha256')))
+            self.assertEqual(trainer.PAYLOAD_KEYS,set(('A', 'C', 'mu_train', 'mu_train_provenance', 'buffers', 'classifier', 'config', 'counter', 'cpu_rng', 'cuda_rng', 'head', 'identity', 'means', 'numerical_flags', 'optimizer', 'original_rows', 'partition', 'processor', 'provenance', 'scaler', 'schedules', 'schema', 'source', 'target', 'teachers', 'views')))
+            self.assertEqual(trainer.INFERENCE_KEYS,set(('A', 'C', 'mu_train', 'mu_train_provenance', 'arm', 'buffers', 'config', 'fixed_sha256', 'head', 'means', 'numerical_flags', 'processor', 'schema', 'source', 'vision_sha256')))
             targs=SimpleNamespace(execution_sha256=digest,phase='cpu',arm='control',seed=179061)
             tlaunch={'schema':trainer.AUTHORITY_SCHEMA,'execution_sha256':digest,'phase':'cpu',
                 'arm':'control','seed':179061,'nearest':trainer.NEAREST,'fitter':trainer.FITTER,
@@ -941,7 +986,7 @@ class EvaluationTests(unittest.TestCase):
                 'native_authority':descriptor('/tmp/original-native-authority'),
                 'selected_cpu':None,'selected_mechanics':None}
             trainer.check_launch(tlaunch,targs)
-            self.assertEqual(trainer.RECIPE,{'adamw': {'amsgrad': False, 'betas': [0.9, 0.999], 'capturable': False, 'differentiable': False, 'eps': 1e-08, 'foreach': False, 'fused': False, 'lr': 0.0001, 'maximize': False, 'weight_decay': 0.05}, 'batch': 64, 'classes': 1008, 'clip': 1.0, 'core': 'cache/target preparation + both-arm all-positive scoring + both-view forward/backward + every candidate gallery forward/backward + optimizer', 'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means', 'gallery': 'candidate reconstructs connected gallery every micro16 at same pre-update A; both-role backward then release each graph; one optimizer step after eight micros; no serialized gallery', 'initial_scaler': 128.0, 'microbatch': 16, 'mining': 'all6355 canonical rows; control normalize(T); candidate current same-A connected canonical readout; exclude same original image; all same-identity positives; canonical ordinal traversal', 'ranking': 'both arms backward coefficient1; all positives; SmoothAP sum / (2*K)', 'readout': 'original CPU-renormalized genuine features; FP32 all; autocast disabled', 'regression': 'both arms P[label]; both original views coordinate sum / (128*e0)', 'rows': 6355, 'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused', 'seeds': [179061, 179069], 'singletons': 12, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0', 'temperature': 0.01, 'trainable_names': ['A'], 'trainable_scalars': 20480, 'trainable_shapes': [[128, 160]], 'updates': 128, 'views': ['canonical', 'augmented']})
+            self.assertEqual(trainer.RECIPE,{'seeds': [179061, 179069], 'rows': 6355, 'classes': 1008, 'singletons': 12, 'updates': 128, 'batch': 64, 'microbatch': 16, 'views': ['canonical', 'augmented'], 'trainable_names': {'control': ['A'], 'candidate': ['A', 'C']}, 'trainable_shapes': {'control': [[128, 160]], 'candidate': [[128, 160], [128, 1152]]}, 'trainable_scalars': {'control': 20480, 'candidate': 167936}, 'adamw': {'lr': 0.0001, 'betas': [0.9, 0.999], 'eps': 1e-08, 'weight_decay': 0.05, 'amsgrad': False, 'maximize': False, 'foreach': False, 'capturable': False, 'differentiable': False, 'fused': False}, 'clip': 1.0, 'initial_scaler': 128.0, 'regression': 'both arms P[label]; both original views coordinate sum / (128*e0)', 'ranking': 'both arms backward coefficient1; all positives; SmoothAP sum / (2*K)', 'temperature': 0.01, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0', 'mining': 'all6355 canonical rows; both arms current connected canonical readout at same pre-update A/C; exclude same original image; all same-identity positives; canonical ordinal traversal', 'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused', 'readout': 'original CPU-renormalized genuine features; FP32 all; autocast disabled', 'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means/muTRAIN; control C exactzero', 'residual': 'original concat helper once + candidate linear(actual normalized x - canonical TRAIN6355 mu,C); C128x1152 zero; control serialized frozen C bypass; mean FP32 canonical actual CPU domain only', 'gallery': 'both arms reconstruct connected gallery every micro16 at same pre-update A/C; both-role backward then release each graph; one optimizer step after eight micros; no serialized gallery', 'core': 'cache/target preparation + both-arm all-positive scoring + both-view forward/backward + every both-arm gallery forward/backward + candidate fullfeature centering/transfers + optimizer'})
             with self.assertRaises(ValueError):
                 trainer.check_launch({**tlaunch,'recipe':{'adamw': {'amsgrad': False, 'betas': [0.9, 0.999], 'capturable': False, 'differentiable': False, 'eps': 1e-08, 'foreach': False, 'fused': False, 'lr': 0.0001, 'maximize': False, 'weight_decay': 0.05}, 'batch': 64, 'classes': 1008, 'clip': 1.0, 'core': 'cache/target preparation + both-arm all-positive scoring + both-view forward/backward + optimizer', 'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means', 'initial_scaler': 128.0, 'microbatch': 16, 'mining': 'all6355 canonical frozen bank; exclude same original image; all same-identity positives; canonical ordinal traversal', 'ranking': 'both arms backward coefficient1; all positives; SmoothAP sum / (2*K)', 'readout': 'original CPU-renormalized genuine features; FP32 all; autocast disabled', 'regression': 'control P[label]; candidate canonical T[image]; both original views coordinate sum / (128*e0)', 'rows': 6355, 'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused', 'seeds': [179061, 179069], 'singletons': 12, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0', 'temperature': 0.01, 'trainable_names': ['A'], 'trainable_scalars': 20480, 'trainable_shapes': [[128, 160]], 'updates': 128, 'views': ['canonical', 'augmented']}},targs)
             for field,legacy in (('schema','siglip2-compact-ranking-launch-v1'),('recipe',{'seeds': [179061, 179069], 'rows': 6355, 'classes': 1008, 'singletons': 12, 'updates': 128, 'batch': 64, 'microbatch': 16, 'views': ['canonical', 'augmented'], 'trainable_names': ['A'], 'trainable_shapes': [[128, 160]], 'trainable_scalars': 20480, 'adamw': {'lr': 0.0001, 'betas': [0.9, 0.999], 'eps': 1e-08, 'weight_decay': 0.05, 'amsgrad': False, 'maximize': False, 'foreach': False, 'capturable': False, 'differentiable': False, 'fused': False}, 'clip': 1.0, 'initial_scaler': 128.0, 'regression': 'both same-row views coordinate sum / (128*e0)', 'ranking': 'candidate coefficient1; both mine; hinge sum / (2*K*.05)', 'margin': 0.05, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0', 'mining': 'all6355; other original image positive; wrong identity negative; ascending original-row ties', 'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused', 'readout': 'original CPU-renormalized genuine features; FP32 all; autocast disabled', 'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means', 'core': 'cache/target preparation + both-arm mining + both-view forward/backward + optimizer'})):
@@ -1112,7 +1157,8 @@ class EvaluationTests(unittest.TestCase):
         expected={'vision_sha256':f.fingerprint(f.vision),'members':{
             'config':f.fingerprint(f.frozen),'buffers':f.fingerprint(f.buffers),
             'processor_config':f.fingerprint(f.processor),'head':f.fingerprint(f.head),
-            'A':f.fingerprint(f.state['A']),'means':f.fingerprint(f.state['means'])}}
+            'A':f.fingerprint(f.state['A']),'means':f.fingerprint(f.state['means']),
+            **{k:f.fingerprint(f.state[k]) for k in ('C','mu_train','mu_train_provenance','arm')}}}
         for _ in range(3):self.assertEqual(f.facts(),expected)
         self.assertEqual(EndpointFactsFixture().facts(),expected)
         self.assertEqual(live,original_live);self.assertEqual(f.frozen,original_frozen)
@@ -2432,7 +2478,10 @@ class EvaluationTests(unittest.TestCase):
             'synthetic_bootstrap':{},'files':{},'quality_read':False,'metadata_only':True,
             'updated_payloads_authenticated':True,'malformed_inference_rejected':True,
             'payload_facts':{e.label(v):{} for v in value['endpoints']},
-            'calibration':{'same_role_forward_exact':True,'raw_unit_packed_exact':True}}
+            'calibration':{'same_role_forward_exact':True,'raw_unit_packed_exact':True,
+                'residual_oracles':{e.label(v):{'C_exact_zero':v['arm']=='control',
+                    'residual_nonzero_witness':v['arm']=='candidate','omitted_C_mutant_rejected':v['arm']=='candidate',
+                    'wrong_mu_mutant_rejected':v['arm']=='candidate'} for v in value['endpoints']}}}
         for key in ('pass','engineering_admission_pass','integrity_pass','resources_pass','exit_rehash_pass',
             'sequential_model_ownership','rng_flags_preserved','both_locks_held_in_parent_authority'):record[key]=True
         for key in ('official_read','global_production_goal_met','public_latency_measured','product_go'):record[key]=False
@@ -2601,10 +2650,14 @@ class InferenceContractFixture:
     def __init__(self):
         self.grad=True;self.flags=dict(INFERENCE_FLAGS);self.entries=[];self.operations=[]
         self.closed=[];self.fail=None;owner=self
+        class Device:
+            type='cuda'
+            def __str__(self):return self.type
+        self.device=Device()
         class Tensor:
-            dtype='float32'
+            dtype='torch.float32';layout='torch.strided'
             def __init__(self,shape=(),value=1.,requires_grad=None):
-                self.shape=shape;self.value=value
+                self.shape=shape;self.value=value;self.device=owner.device
                 self.requires_grad=owner.grad if requires_grad is None else requires_grad
                 self.grad_fn='stand-in autograd' if self.requires_grad else None
             def clone(self):return Tensor(self.shape,self.value,self.requires_grad)
@@ -2619,9 +2672,16 @@ class InferenceContractFixture:
             def __getitem__(self,key):return Tensor(self.shape[1:],self.value,self.requires_grad)
             def __setitem__(self,key,value):
                 assert not value.requires_grad and value.grad_fn is None
+                self.value=value.value
             def __sub__(self,other):return Tensor(self.shape,self.value-other.value,owner.grad and (self.requires_grad or other.requires_grad))
+            def __add__(self,other):
+                value=other.value if isinstance(other,Tensor) else other
+                return Tensor(self.shape,self.value+value,owner.grad and self.requires_grad)
+            def abs(self):return Tensor(self.shape,abs(self.value),self.requires_grad)
+            def argmax(self):return Tensor((),0.,False)
+            def max(self):return Tensor((),abs(self.value),False)
             def __mul__(self,other):return Tensor(self.shape,self.value*other.value,owner.grad and (self.requires_grad or other.requires_grad))
-            def sum(self):return Tensor((),self.value,self.requires_grad)
+            def sum(self,**kwargs):return Tensor((),self.value,self.requires_grad)
             def __float__(self):return float(self.value)
         self.Tensor=Tensor
         @contextmanager
@@ -2638,10 +2698,14 @@ class InferenceContractFixture:
             if owner.fail == name:raise ValueError('injected '+name)
             return Tensor(shape,requires_grad=autograd)
         def normalize(value,**k):return operation('normalize',value.shape)
-        self.functional=SimpleNamespace(normalize=normalize)
+        def linear(features,C):
+            result=operation('residual',(features.shape[0],128));result.value=features.value*C.value
+            return result
+        self.functional=SimpleNamespace(normalize=normalize,linear=linear)
         self.nn=SimpleNamespace(functional=self.functional,Parameter=lambda value:value)
         self.torch=SimpleNamespace(no_grad=no_grad,autocast=autocast,nn=self.nn,
-            float32='float32',float16='float16',empty=lambda shape,**k:Tensor(shape,requires_grad=False),
+            float32='torch.float32',float16='torch.float16',
+            count_nonzero=lambda value:Tensor((),int(value.value!=0),False),empty=lambda shape,**k:Tensor(shape,requires_grad=False),
             empty_like=lambda value:Tensor(value.shape,requires_grad=False),
             random=SimpleNamespace(get_rng_state=lambda:Tensor((),requires_grad=False)),
             isfinite=lambda value:Tensor((),requires_grad=False),equal=lambda a,b:a.value == b.value)
@@ -2657,7 +2721,7 @@ class InferenceContractFixture:
             current={**owner.flags,'grad_enabled':owner.grad}
             owner.entries.append(current)
             return current
-        def model(*,pixel_values):return SimpleNamespace(pooler_output=operation('vision',(pixel_values.shape[0],160)))
+        def model(*,pixel_values):return SimpleNamespace(pooler_output=operation('vision',(pixel_values.shape[0],1152)))
         model.modules=lambda:[SimpleNamespace(training=False,_forward_hooks={},_forward_pre_hooks={},_backward_hooks={})]
         def raw_features(features,*a):return operation('readout',(features.shape[0],128))
         def pack(value):
@@ -2665,33 +2729,49 @@ class InferenceContractFixture:
             return SimpleNamespace(codes=result,inverse_norms=Tensor((value.shape[0],),requires_grad=result.requires_grad),to_bytes=lambda:b'wire')
         self.state={'device':'cuda','flags':dict(INFERENCE_FLAGS),'model':model,
             'processor_object':lambda *,images,return_tensors:{'pixel_values':Tensor((len(images),3,256,256),requires_grad=False)},
-            'head_object':object(),'A':Tensor((128,160),requires_grad=True),'means':{},
+            'head_object':SimpleNamespace(state_dict=lambda:{'weight':b'head'}),
+            'A':Tensor((128,160),requires_grad=True),'means':{},'C':Tensor((128,1152),.5,True),
+            'mu_train':Tensor((1152,),.25,False),'mu_train_provenance':{'rows':6355},'arm':'candidate',
             'modules':{'qualify_siglip2_substrate_cpu.py':SimpleNamespace(numerical_flags=flags),
                 'prototype_residual_readout.py':SimpleNamespace(raw_features=raw_features),
-                'quadratic_readout.py':object(),'joint_relational_compaction.py':SimpleNamespace(pack_int8_unit_embeddings=pack)}}
+                'quadratic_readout.py':SimpleNamespace(),
+                'joint_relational_compaction.py':SimpleNamespace(pack_int8_unit_embeddings=pack)}}
+        extracted_functions(PATH.with_name('quadratic_readout.py'),{'_check_tensor'},
+            namespace:={'_require':e.require})
+        self.state['modules']['quadratic_readout.py']._check_tensor=namespace['_check_tensor']
         trainer_path=PATH.with_name('train_siglip2_compact_ranking.py')
         inference=next(n for n in ast.parse(trainer_path.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='inference_outputs')
-        assert hashlib.sha256(ast.dump(inference,include_attributes=False).encode()).hexdigest() == '21eea2a294a3609d767957a93f6f77fd9f51b7751782064a1e12db97023b8b2f'
-        public={'require':e.require}
-        extracted_functions(trainer_path,{'inference_outputs'},public)
+        assert hashlib.sha256(ast.dump(inference,include_attributes=False).encode()).hexdigest() == 'e02047621095dd855ef0e54bb78d84b346e0770bae1dae881561550467b6ca26'
+        public={'require':e.require,'ARMS':e.ARMS}
+        extracted_functions(trainer_path,{'inference_outputs','parameter_roles','fullfeature_raw_features',
+            'inference_readout_tree'},public)
         self.public=public['inference_outputs']
         @contextmanager
         def bundle_reads_only(context,endpoint):yield
-        def fingerprint(context,value):return 'unchanged stand-in fingerprint'
+        def fingerprint(context,value):
+            def plain(v):
+                if isinstance(v,Tensor):return {'shape':v.shape,'value':v.value,'dtype':v.dtype}
+                if isinstance(v,dict):return {k:plain(child) for k,child in v.items()}
+                if isinstance(v,bytes):return v.hex()
+                return v
+            return hashlib.sha256(json.dumps(plain(value),sort_keys=True).encode()).hexdigest()
+        self.state['modules']['train_siglip2_substrate_adaptation.py']=SimpleNamespace(fingerprint=lambda v:fingerprint(None,v))
+        self.state['readout_sha256']=fingerprint(None,public['inference_readout_tree'](self.state))
         training={'legacy':{'packing':SimpleNamespace(pack_int8_unit_embeddings=pack),'quadratic':object()}}
         self.context={'guards':{},'training_context':training,
             'trainer':SimpleNamespace(fingerprint=fingerprint,helper_guard=lambda _:SimpleNamespace(raw_features=raw_features)),
             'portable_entry':(SimpleNamespace(inference_outputs=self.public),object()),
             'reference':SimpleNamespace(json_digest=lambda _: 'triples'),
             'helper':SimpleNamespace(exact=self.exact)}
-        namespace={'require':e.require,'hashlib':hashlib,'math':__import__('math'),
+        namespace={'require':e.require,'check_residual_oracle':e.check_residual_oracle,'ARMS':e.ARMS,
+            'hashlib':hashlib,'math':__import__('math'),
             'json':json,'time':time,'UNIT_STARTED':e.UNIT_STARTED,
             'bound_file':lambda guards,path,digest:path,'bundle_reads_only':bundle_reads_only,
             'train_rows':lambda context,ids:self.rows(ids),'batch_sizes':e.batch_sizes,
             'tuple_outputs':e.tuple_outputs,
             'packed_outputs':lambda context,raw:{'raw':raw,'unit':normalize(raw,dim=1),
-                'codes':Tensor(raw.shape),'inverse_norms':Tensor((raw.shape[0],))}}
-        extracted_functions(PATH,{'images_outputs','train_diagnostic','export_pass'},namespace)
+                'codes':Tensor(raw.shape),'inverse_norms':Tensor((raw.shape[0],)),'wire':b'wire'}}
+        extracted_functions(PATH,{'images_outputs','train_diagnostic','export_pass','fullfeature_oracle'},namespace)
         self.functions=namespace
 
     def exact(self,left,right):
@@ -3305,6 +3385,230 @@ class ProspectiveExportEnvelopeTests(unittest.TestCase):
         tree=inverse_export_seconds(ast.parse(PATH.read_text()))
         self.assertEqual(hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest(),
             '190acd12ea0d4962ed7dceac47a0e6b312a7bcb10ac14b1097669380b437406f')
+
+
+class FullfeatureResidualTests(unittest.TestCase):
+
+    def test_exact_declared_delta_restores_original_source_and_AST(self):
+        source=PATH.read_text();restored=inverse_fullfeature_source(source)
+        self.assertEqual(hashlib.sha256(restored.encode()).hexdigest(),
+            '0128c543768d8f9eb964231777f5b1fe30e1c39b34c41dc5065441fe2d92c294')
+        tree=inverse_fullfeature_authority(ast.parse(source))
+        self.assertEqual(ast.dump(tree,include_attributes=False),ast.dump(ast.parse(restored),include_attributes=False))
+        self.assertEqual(hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest(),
+            'e9da7ece9374c331eae89b8d2b1c199f6e4195fc4cfd2840a84a6ee17477ce47')
+        for name in ('check_paired_initialization','check_residual_oracle','fullfeature_oracle'):
+            changed=ast.parse(source)
+            next(n for n in changed.body if isinstance(n,ast.FunctionDef) and n.name==name).body.append(ast.Pass())
+            with self.subTest(helper=name),self.assertRaises(AssertionError):inverse_fullfeature_authority(changed)
+        changed=ast.parse(source)
+        next(n for n in changed.body if isinstance(n,ast.FunctionDef) and n.name=='decide').body.append(ast.Pass())
+        self.assertNotEqual(ast.dump(inverse_fullfeature_authority(changed),include_attributes=False),
+            ast.dump(tree,include_attributes=False))
+
+    def pair(self):
+        common={k:'a'*64 for k in ('initial_A_sha256','initial_C_sha256','mu_train_sha256',
+            'mu_train_provenance_sha256','initial_raw_unit_packed_sha256')}
+        common.update(source={'original':'source'},numerical_flags={'threads':8})
+        identity={k:'b'*64 for k in ('static_sha256','initial_A_sha256','initial_C_sha256',
+            'mu_train_sha256','mu_train_provenance_sha256','initial_cpu_rng_sha256','initial_cuda_rng_sha256')}
+        identity.update(source=common['source'],numerical_flags=common['numerical_flags'])
+        result=[]
+        for arm,names,shapes in [('control',['A'],[[128,160]]),
+                ('candidate',['A','C'],[[128,160],[128,1152]])]:
+            result.append({**copy.deepcopy(common),'arm':arm,'identity':{**copy.deepcopy(identity),
+                'arm':arm,'parameter_names':names,'parameter_shapes':shapes},'steps':[{'batch':[3,7]}]})
+        return result
+
+    def test_exact_role_inventory_preserves_all_common_initialization_guards(self):
+        c,a=self.pair();e.check_paired_initialization(c,a)
+        for index,key,value in [(0,'parameter_names',['A','C']),(1,'parameter_names',['C','A']),
+                (1,'parameter_shapes',[[128,160],[128,1151]]),
+                (1,'parameter_shapes',[[128.,160],[128,1152]]),(0,'arm','candidate')]:
+            changed=copy.deepcopy([c,a]);changed[index]['identity'][key]=value
+            with self.subTest(role=index,key=key),self.assertRaises(ValueError):
+                e.check_paired_initialization(*changed)
+        for location in ('record','identity'):
+            for key in (c if location=='record' else c['identity']):
+                if key in ('identity','steps','arm','parameter_names','parameter_shapes'):continue
+                changed=copy.deepcopy(a)
+                (changed if location=='record' else changed['identity'])[key]='changed'
+                with self.subTest(location=location,key=key),self.assertRaises(ValueError):
+                    e.check_paired_initialization(c,changed)
+        changed=copy.deepcopy(a);changed['steps'][0]['batch'].reverse()
+        with self.assertRaises(ValueError):e.check_paired_initialization(c,changed)
+
+    def test_typed_live_C_mu_provenance_and_arm_fingerprints_change(self):
+        f=EndpointFactsFixture()
+        f.state.update(C=b'updated C',mu_train=(.25,.5),mu_train_provenance={'rows':6355},arm='candidate')
+        original=f.facts()
+        for key,value in [('C',b'tampered C'),('mu_train',(.25,.75)),
+                ('mu_train_provenance',{'rows':6355.0}),('arm','control')]:
+            saved=f.state[key];f.state[key]=value
+            with self.subTest(member=key):self.assertNotEqual(f.facts()['members'][key],original['members'][key])
+            f.state[key]=saved
+        del f.state['C']
+        with self.assertRaises(KeyError):f.facts()
+
+
+
+
+    def test_checkpoint_to_bundle_C_mu_provenance_and_arm_substitution_rejected(self):
+        class Tensor:
+            dtype='torch.float32';device='cpu';layout='torch.strided';requires_grad=False;grad_fn=None;_version=0
+            def __init__(self,shape,byte=0):self.shape=shape;self.data=bytearray([byte])*4*__import__('math').prod(shape)
+            def data_ptr(self):return id(self.data)
+            def detach(self):return self
+            def cpu(self):return self
+            def contiguous(self):return self
+            def reshape(self,*a):return self
+            def view(self,*a):return self
+            def numpy(self):return self.data
+        class Pages:
+            def __init__(self,*a):pass
+            def consume(self,*a):pass
+        f=EndpointFactsFixture();namespace={'hashlib':hashlib}
+        fn=next(n for n in ast.parse(PATH.with_name('train_siglip2_substrate_adaptation.py').read_text()).body
+            if isinstance(n,ast.FunctionDef) and n.name=='fingerprint')
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),'<original complete serializer>','exec'),namespace)
+        tensor_check={'_require':e.require}
+        extracted_functions(PATH.with_name('quadratic_readout.py'),{'_check_tensor'},tensor_check)
+        fp=lambda _,value,**kw:namespace['fingerprint'](value,**kw)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);checkpoint=root/'resume.pt';checkpoint.write_bytes(b'authenticated storage fixture')
+            ident={'arm':'candidate','initial_C_sha256':'a'*64}
+            saved={'config':{'id2label':{'0':'label'}},'buffers':{},'processor':{'config':{'size':256}},
+                'head':{},'A':Tensor((128,160),1),'means':{},'C':Tensor((128,1152),1),
+                'mu_train':Tensor((1152,),1),'mu_train_provenance':{'rows':6355},'identity':ident}
+            keys={'config','buffers','processor','head','A','means','C','mu_train','mu_train_provenance'}
+            disk={k:copy.deepcopy(saved[k]) for k in keys}
+            disk.update(schema='prospective-inference',arm='candidate',numerical_flags={'threads':8},
+                vision_sha256='c'*64,source={'accepted_A_sha256':'d'*64,'encoder_checkpoint_sha256':'e'*64,
+                    'readout_sha256':'f'*64,'initial_C_sha256':'a'*64})
+            torch=SimpleNamespace(Tensor=Tensor,uint8='uint8',
+                load=lambda path,**kw:saved if Path(path)==checkpoint else disk,
+                count_nonzero=lambda value:SimpleNamespace(item=lambda:sum(x!=0 for x in value.data)))
+            with patch.dict(sys.modules,{'torch':torch}):
+                for name in ('mu_train','mu_train_provenance'):
+                    ident[name+'_sha256']=disk['source'][name+'_sha256']=fp(None,saved[name])
+                trainer=SimpleNamespace(fingerprint=fp,clone=lambda _,v:copy.deepcopy(v),
+                    check_payload=lambda *a:None,INFERENCE_KEYS=set(disk)|{'fixed_sha256'},
+                    INFERENCE_SCHEMA='prospective-inference',READOUT={'sha256':'f'*64})
+                disk['fixed_sha256']=fp(None,disk)
+                manifest={'endpoint_state_sha256':fp(None,disk),'files':{'vision.pt':'e'*64},'vision_inventory':[]}
+                trainer.admit_bundle=lambda *a:(manifest,{})
+                endpoint={'seed':179061,'arm':'candidate','checkpoint':descriptor(checkpoint,hashlib.sha256(checkpoint.read_bytes()).hexdigest()),
+                    'bundle':descriptor(root/'bundle.json'),'terminal_state_sha256':fp(None,saved),
+                    'inference_state_sha256':fp(None,disk)}
+                t={'legacy':{'original':SimpleNamespace(CheckpointPages=Pages),
+                        'quadratic':SimpleNamespace(_check_tensor=tensor_check['_check_tensor'])},
+                    'flags':disk['numerical_flags'],'initial_A_sha256':'d'*64,
+                    'initial':{'provenance':{'encoder':{'checkpoint':{'sha256':'e'*64},'inventory':[]}}},
+                    'old':SimpleNamespace(finite_tree=lambda _:None)}
+                context={'trainer':trainer,'training_context':t,'guards':{},'records':{(179061,'candidate'):{'identity':e.json_form(ident)}}}
+                original=e.authenticate_payloads(context,endpoint)
+                self.assertEqual(original['members'].get('C'),fp(t,saved['C']))
+                for key,value in [('C',Tensor((128,1152),2)),('mu_train',Tensor((1152,),2)),
+                        ('mu_train_provenance',{'rows':6355.0}),('arm','control')]:
+                    prior=disk[key];disk[key]=value
+                    disk['fixed_sha256']=fp(t,{k:v for k,v in disk.items() if k!='fixed_sha256'})
+                    manifest['endpoint_state_sha256']=endpoint['inference_state_sha256']=fp(t,disk)
+                    with self.subTest(substitution=key),self.assertRaisesRegex(ValueError,'bundle substitutes'):
+                        e.authenticate_payloads(context,endpoint)
+                    disk[key]=prior
+                disk['fixed_sha256']=fp(t,{k:v for k,v in disk.items() if k!='fixed_sha256'})
+                manifest['endpoint_state_sha256']=endpoint['inference_state_sha256']=fp(t,disk)
+                disk['C'].data[0]^=1
+                with self.assertRaisesRegex(ValueError,'bundle substitutes'):e.authenticate_payloads(context,endpoint)
+
+    def test_current_typed_tensor_bytes_detect_data_tamper_without_version_change(self):
+        class Tensor:
+            dtype='torch.float32';_version=0
+            def __init__(self,shape):self.shape=shape;self.data=bytearray(4*__import__('math').prod(shape))
+            def data_ptr(self):return id(self.data)
+            def detach(self):return self
+            def cpu(self):return self
+            def contiguous(self):return self
+            def reshape(self,*args):return self
+            def view(self,dtype):return self
+            def numpy(self):return self.data
+        f=EndpointFactsFixture()
+        # The original typed serializer reads fresh storage bytes on every call.
+        fn=next(n for n in ast.parse(PATH.with_name('train_siglip2_substrate_adaptation.py').read_text()).body
+            if isinstance(n,ast.FunctionDef) and n.name=='fingerprint')
+        namespace={'hashlib':hashlib}
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),'<original current bytes>','exec'),namespace)
+        f.context['trainer'].fingerprint=lambda _,value:namespace['fingerprint'](value)
+        f.state.update(C=Tensor((128,1152)),mu_train=Tensor((1152,)),
+            mu_train_provenance={'rows':6355},arm='candidate')
+        with patch.dict(sys.modules,{'torch':SimpleNamespace(Tensor=Tensor,uint8='uint8')}):
+            original=f.facts()
+            for key in ('C','mu_train'):
+                tensor=f.state[key];pointer=tensor.data_ptr();version=tensor._version
+                tensor.data[0]^=1
+                with self.subTest(member=key):
+                    self.assertEqual((tensor.data_ptr(),tensor._version),(pointer,version))
+                    self.assertNotEqual(f.facts()['members'][key],original['members'][key])
+                tensor.data[0]^=1
+            self.assertEqual(f.facts(),original)
+
+    def test_independent_oracle_executes_centered_nonzero_residual_and_rejects_mutants(self):
+        class Tensor:
+            def __init__(self,data):self.data=copy.deepcopy(data)
+            def detach(self):return self
+            def clone(self):return Tensor(self.data)
+            def abs(self):
+                return Tensor([[abs(v) for v in row] for row in self.data] if isinstance(self.data[0],list)
+                    else [abs(v) for v in self.data])
+            def sum(self,dim):
+                assert dim==0;return Tensor([sum(row[i] for row in self.data) for i in range(len(self.data[0]))])
+            def argmax(self):return SimpleNamespace(item=lambda:max(range(len(self.data)),key=self.data.__getitem__))
+            def max(self):return SimpleNamespace(item=lambda:max(self.data))
+            def __getitem__(self,key):
+                if isinstance(key,tuple):return Tensor([row[key[1]] for row in self.data])
+                return self.data[key]
+            def __setitem__(self,key,value):self.data[key]=value
+            def __sub__(self,other):return Tensor([[v-other.data[i] for i,v in enumerate(row)] for row in self.data])
+            def __add__(self,other):return Tensor([[v+other.data[j][i] for i,v in enumerate(row)] for j,row in enumerate(self.data)])
+        def linear(features,C):return Tensor([[sum(x*w for x,w in zip(row,weight)) for weight in C.data] for row in features.data])
+        torch=SimpleNamespace(nn=SimpleNamespace(Parameter=lambda x:x),
+            count_nonzero=lambda C:SimpleNamespace(item=lambda:sum(v!=0 for row in C.data for v in row)))
+        F=SimpleNamespace(linear=linear)
+        calls=[];base=Tensor([[1.,2.],[3.,4.]])
+        readout=lambda *args:(calls.append(args) or base.clone())
+        fingerprint=lambda _,value:json.dumps(value['raw'].data,sort_keys=True)
+        context={'trainer':SimpleNamespace(helper_guard=lambda _:SimpleNamespace(raw_features=readout),fingerprint=fingerprint),
+            'training_context':{'legacy':{'quadratic':object()}}}
+        state={'head_object':object(),'A':Tensor([[1.]]),'means':{},'arm':'candidate',
+            'C':Tensor([[.2,-.3],[.1,.4]]),'mu_train':Tensor([.5,1.])}
+        features=Tensor([[2.,3.],[4.,5.]])
+        imports={'torch':torch,'torch.nn':SimpleNamespace(functional=F),'torch.nn.functional':F}
+        with patch.dict(sys.modules,imports),patch.object(e,'packed_outputs',lambda _,raw:{'raw':raw}):
+            output,proof=e.fullfeature_oracle(context,state,features)
+            for row,expected in zip(output['raw'].data,[[.7,2.95],[2.5,5.95]],strict=True):
+                for value,wanted in zip(row,expected,strict=True):self.assertAlmostEqual(value,wanted)
+            self.assertEqual(len(calls),1);e.check_residual_oracle(proof,'candidate')
+            self.assertEqual(state['mu_train'].data,[.5,1.])
+            state['C']=Tensor([[0.,0.],[0.,0.]])
+            with self.assertRaisesRegex(ValueError,'nonzero'):e.fullfeature_oracle(context,state,features)
+            state['arm']='control';calls.clear()
+            output,proof=e.fullfeature_oracle(context,state,features)
+            self.assertEqual(output['raw'].data,base.data);self.assertEqual(len(calls),1)
+            e.check_residual_oracle(proof,'control')
+            state['C']=Tensor([[0.,.1],[0.,0.]])
+            with self.assertRaisesRegex(ValueError,'zero'):e.fullfeature_oracle(context,state,features)
+
+    def test_candidate_oracle_receipt_cannot_use_zero_only_or_partial_proof(self):
+        candidate={'C_exact_zero':False,'residual_nonzero_witness':True,
+            'omitted_C_mutant_rejected':True,'wrong_mu_mutant_rejected':True}
+        control={key:not value for key,value in candidate.items()}
+        e.check_residual_oracle(candidate,'candidate');e.check_residual_oracle(control,'control')
+        for key in candidate:
+            for mutant in ({**candidate,key:not candidate[key]},
+                    {k:v for k,v in candidate.items() if k!=key},{**candidate,key:int(candidate[key])}):
+                with self.subTest(field=key),self.assertRaises(ValueError):e.check_residual_oracle(mutant,'candidate')
+        with self.assertRaises(ValueError):e.check_residual_oracle(candidate,'control')
+        with self.assertRaises(ValueError):e.check_residual_oracle(candidate,'foreign')
 
 
 if __name__ == '__main__':
