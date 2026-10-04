@@ -1,0 +1,9 @@
+{
+  "pass": false,
+  "service_seconds": 16.079,
+  "error": "denied scipy/sparse/csgraph/_validation.py import",
+  "charset_import_passed_without_new_native": true,
+  "native_not_in_original_proof": [],
+  "model_constructed": false,
+  "quality_read": false
+}
