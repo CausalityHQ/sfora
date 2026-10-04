@@ -1,0 +1,48 @@
+{
+  "schema": "compact-tqdm-logging-runtime-contract-v1",
+  "base": "595a821af2a21efc286345e1c7aeb79a4149b54b",
+  "owner_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "production_change": "RUNTIME_SOURCES tqdm only: exact tqdm/contrib/logging.py",
+  "inventory_additions": [
+    "tqdm/contrib/logging.py"
+  ],
+  "source_evidence": {
+    "path": "/tmp/sfora-compact-tqdm-metadata-context-20261004.json",
+    "sha256": "ac5dccd050873241fbb9c7b8cf40d9e9440966adfcb225485f73e1532eb026f0",
+    "source": "tqdm/contrib/logging.py",
+    "sha256_source": "7255be03168dc1aca7c3d4065950728ca801dd62542daa1ca06ffd0b7709faa7",
+    "size": 3791,
+    "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+    "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+    "original_cpu5_and_identity_record_digest_match": true,
+    "actual_logging_record_row_supplied": false
+  },
+  "all_imports": [
+    "import logging",
+    "import sys",
+    "from contextlib import contextmanager",
+    "from ..std import tqdm as std_tqdm",
+    "from typing import Iterator, List, Optional, Type"
+  ],
+  "already_admitted_dependency": "tqdm/std.py",
+  "additional_source_or_asset_dependencies": [],
+  "runtime_observation": {
+    "error": {
+      "message": "bundle-only loader attempted external dependency: /home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/contrib/__pycache__/logging.cpython-313.pyc",
+      "type": "ValueError"
+    },
+    "native_not_in_original_proof": []
+  },
+  "regression": "Extend existing stdlib synthetic SourceFileLoader/Hub/filelock regression with explicit logging module import and original tqdm.std source edge; poisoned caches, mutation/RECORD/origin/write/optional/history denials. Installed third-party/native code is not executed.",
+  "preserved": "All production AST outside RUNTIME_SOURCES; all existing entries; metadata helpers; native/source four predicates; science/math/quality/cost/caps/protocol/full uncached exit",
+  "limits": {
+    "final_suite_seconds": 55,
+    "one_final_suite": true,
+    "no_native_imports": true,
+    "no_ssh_reviews_children_operator_contact": true
+  },
+  "parent_owns_next_import_diagnostic": true
+}
