@@ -77,7 +77,18 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES},
   'httpx/_multipart.py httpx/_status_codes.py httpx/_transports/__init__.py httpx/_transports/asgi.py '
   'httpx/_transports/base.py httpx/_transports/default.py httpx/_transports/mock.py '
   'httpx/_transports/wsgi.py httpx/_types.py httpx/_urlparse.py httpx/_urls.py httpx/_utils.py').split()),
- 'huggingface_hub':set(('huggingface_hub/__init__.py huggingface_hub/dataclasses.py huggingface_hub/errors.py').split()),
+ 'huggingface_hub':set(('huggingface_hub/__init__.py huggingface_hub/constants.py huggingface_hub/dataclasses.py '
+  'huggingface_hub/errors.py huggingface_hub/serialization/__init__.py huggingface_hub/serialization/_base.py '
+  'huggingface_hub/serialization/_torch.py huggingface_hub/utils/__init__.py huggingface_hub/utils/_auth.py '
+  'huggingface_hub/utils/_cache_assets.py huggingface_hub/utils/_cache_manager.py huggingface_hub/utils/_chunk_utils.py '
+  'huggingface_hub/utils/_datetime.py huggingface_hub/utils/_detect_agent.py huggingface_hub/utils/_experimental.py '
+  'huggingface_hub/utils/_fixes.py huggingface_hub/utils/_git_credential.py huggingface_hub/utils/_headers.py '
+  'huggingface_hub/utils/_hf_uris.py huggingface_hub/utils/_http.py huggingface_hub/utils/_lfs.py '
+  'huggingface_hub/utils/_pagination.py huggingface_hub/utils/_parsing.py huggingface_hub/utils/_paths.py '
+  'huggingface_hub/utils/_runtime.py huggingface_hub/utils/_safetensors.py huggingface_hub/utils/_subprocess.py '
+  'huggingface_hub/utils/_telemetry.py huggingface_hub/utils/_terminal.py huggingface_hub/utils/_typing.py '
+  'huggingface_hub/utils/_validators.py huggingface_hub/utils/_xet.py huggingface_hub/utils/logging.py '
+  'huggingface_hub/utils/tqdm.py').split()),
  'idna':set(('idna/__init__.py idna/core.py idna/idnadata.py idna/intranges.py idna/package_data.py').split()),
  'jinja2':set(('jinja2/__init__.py jinja2/_identifier.py jinja2/async_utils.py jinja2/bccache.py jinja2/compiler.py '
   'jinja2/defaults.py jinja2/environment.py jinja2/exceptions.py jinja2/ext.py jinja2/filters.py '

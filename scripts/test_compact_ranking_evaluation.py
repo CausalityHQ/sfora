@@ -138,7 +138,9 @@ class PortableRuntimeFixture:
             'idna':{'idna/__init__.py':b'value = 106\n'},'jinja2':{'jinja2/__init__.py':b'value = 107\n'},
             'markupsafe':{'markupsafe/__init__.py':b'value = 108\n'},
             'huggingface_hub':{'huggingface_hub/__init__.py':b'from .dataclasses import value\n',
-                'huggingface_hub/dataclasses.py':b'from .errors import value\n','huggingface_hub/errors.py':b'value = 109\n'}}
+                'huggingface_hub/dataclasses.py':b'from .errors import value\n','huggingface_hub/errors.py':b'value = 109\n',
+                'huggingface_hub/utils/__init__.py':b"from ._http import value\nmarker = 'source'\n",
+                'huggingface_hub/utils/_http.py':b"from ..errors import value\nmarker = 'source'\n"}}
         self.extra_sources={};self.extra_records={};self.natives=[self.native]
         for distribution in examples:
             sources={self.site/n:b'' for n in getattr(e,'RUNTIME_SOURCES',{}).get(distribution,())}
@@ -546,6 +548,83 @@ class EvaluationTests(unittest.TestCase):
         finally:
             for name in tuple(sys.modules):
                 if name.split('.')[0] in expected:sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_hub_runtime_source_contract_is_finite(self):
+        names=('__init__.py constants.py dataclasses.py errors.py serialization/__init__.py serialization/_base.py '
+            'serialization/_torch.py utils/__init__.py utils/_auth.py utils/_cache_assets.py utils/_cache_manager.py '
+            'utils/_chunk_utils.py utils/_datetime.py utils/_detect_agent.py utils/_experimental.py utils/_fixes.py '
+            'utils/_git_credential.py utils/_headers.py utils/_hf_uris.py utils/_http.py utils/_lfs.py '
+            'utils/_pagination.py utils/_parsing.py utils/_paths.py utils/_runtime.py utils/_safetensors.py '
+            'utils/_subprocess.py utils/_telemetry.py utils/_terminal.py utils/_typing.py utils/_validators.py '
+            'utils/_xet.py utils/logging.py utils/tqdm.py').split()
+        self.assertEqual(e.RUNTIME_SOURCES['huggingface_hub'],{'huggingface_hub/'+n for n in names})
+
+    def test_hub_runtime_sources_require_original_record_hash_and_size(self):
+        for case in ('missing_guard','foreign_guard','mutated_record','missing_row','wrong_hash','wrong_size'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory));record=f.extra_records['huggingface_hub']
+                if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                elif case=='mutated_record':record.write_bytes(record.read_bytes()+b'\n')
+                else:
+                    rows=list(csv.reader(record.read_text().splitlines()))
+                    row=next(r for r in rows if r[0]=='huggingface_hub/utils/__init__.py')
+                    if case=='missing_row':rows.remove(row)
+                    elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                    else:row[2]='999'
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                with self.assertRaises(ValueError):
+                    with f.boundary():pass
+
+    def test_bundle_boundary_hub_utils_cached_source_fallback_and_denials(self):
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0]=='huggingface_hub'}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root)
+                sources={p:raw for p,raw in f.extra_sources.items() if p.relative_to(f.site).as_posix() in
+                    ('huggingface_hub/utils/__init__.py','huggingface_hub/utils/_http.py')}
+                for path,raw in sources.items():
+                    prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached'))
+                    py_compile.compile(str(path),doraise=True)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                history=[f.site/'huggingface_hub'/name for name in
+                    ('utils/resume.pt','utils/optimizer.pt','utils/teachers.npy','utils/unqualified.py','hf_api.py')]
+                foreign=root/'foreign.py';foreign.write_bytes(b'forbidden')
+                for path in history:path.write_bytes(b'forbidden')
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name.split('.')[0]=='huggingface_hub':sys.modules.pop(name)
+                        with f.boundary():
+                            path=f.site/'huggingface_hub/utils/__init__.py'
+                            utils=module('huggingface_hub.utils',path) if direct_loader else importlib.import_module('huggingface_hub.utils')
+                            sibling=sys.modules['huggingface_hub.utils._http']
+                            self.assertEqual((utils.value,utils.marker,sibling.marker),(109,'source','source'))
+                            for name,value in (('huggingface_hub.utils',utils),('huggingface_hub.utils._http',sibling)):
+                                origin=f.site/(name.replace('.','/')+('/__init__.py' if value is utils else '.py'))
+                                self.assertIsInstance(value.__loader__,importlib.machinery.SourceFileLoader)
+                                self.assertEqual(value.__file__,str(origin));self.assertEqual(value.__spec__.origin,str(origin))
+                                with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(origin))).read_bytes()
+                                with self.assertRaisesRegex(ValueError,'attempted write'):origin.write_bytes(b'changed')
+                            for path in (*history,foreign,f.extra_records['huggingface_hub']):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                fake=SimpleNamespace(__file__=str(foreign),__spec__=SimpleNamespace(origin=str(foreign)))
+                for name in ('huggingface_hub.utils','huggingface_hub.utils._http'):
+                    with patch.dict(sys.modules,{name:fake}),self.assertRaisesRegex(ValueError,'origin differs'):
+                        with f.boundary():pass
+                for path in (f.site/'huggingface_hub/constants.py',*sources,f.site/'huggingface_hub/serialization/_torch.py'):
+                    raw=path.read_bytes();prior=path.stat();path.write_bytes(raw+b'# mutation\n')
+                    os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0]=='huggingface_hub':sys.modules.pop(name)
             sys.modules.update(saved)
 
     def test_bundle_boundary_native_grants_require_record_guard_and_original_cpu_origin(self):
