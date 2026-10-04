@@ -85,7 +85,7 @@ def intervals(q):
 
 class PortableRuntimeFixture:
     """Installed sources and a previously admitted RECORD; no native imports."""
-    def __init__(self,root):
+    def __init__(self,root,*,yaml_native=False):
         self.site=root/'site-packages';self.site.mkdir()
         packages={}
         for name in ('torch','numpy','PIL','transformers','safetensors','torchvision'):
@@ -157,15 +157,33 @@ class PortableRuntimeFixture:
                 'huggingface_hub/utils/__init__.py':b"from ._http import value\nmarker = 'source'\n",
                 'huggingface_hub/utils/_http.py':b"from ..errors import value\nmarker = 'source'\n",
                 'huggingface_hub/utils/_runtime.py':b"import importlib.metadata\n_package_versions = {}\nfor name in ('aiohttp', 'hf_xet', 'Jinja2', 'httpx', 'numpy', 'Pillow', 'pydantic', 'safetensors', 'torch', 'fastai'):\n    try:\n        _package_versions[name] = importlib.metadata.version(name)\n    except importlib.metadata.PackageNotFoundError:\n        _package_versions[name] = 'N/A'\n"}}
+        # Synthetic definition-time PyYAML graph, independent of the runtime list.
+        yaml_imports={'__init__':'from .error import *\nfrom .tokens import *\nfrom .events import *\nfrom .nodes import *\nfrom .loader import *\nfrom .dumper import *\ntry:\n    from .cyaml import *\n    __with_libyaml__ = True\nexcept ImportError:\n    __with_libyaml__ = False\n',
+            'loader':'from .reader import *\nfrom .scanner import *\nfrom .parser import *\nfrom .composer import *\nfrom .constructor import *\nfrom .resolver import *\n',
+            'dumper':'from .emitter import *\nfrom .serializer import *\nfrom .representer import *\nfrom .resolver import *\n',
+            'cyaml':'from yaml._yaml import CParser, CEmitter\nfrom .constructor import *\nfrom .serializer import *\nfrom .representer import *\nfrom .resolver import *\n',
+            'composer':'from .error import *\nfrom .events import *\nfrom .nodes import *\n',
+            'constructor':'from .error import *\nfrom .nodes import *\n',
+            'emitter':'from .error import *\nfrom .events import *\n',
+            'parser':'from .error import *\nfrom .tokens import *\nfrom .events import *\nfrom .scanner import *\n',
+            'reader':'from .error import *\n','representer':'from .error import *\nfrom .nodes import *\n',
+            'resolver':'from .error import *\nfrom .nodes import *\n',
+            'scanner':'from .error import *\nfrom .tokens import *\n',
+            'serializer':'from .error import *\nfrom .events import *\nfrom .nodes import *\n',
+            'error':'','events':'','nodes':'value = 113\n','tokens':''}
+        examples['pyyaml']={'yaml/'+n+'.py':(imports+"marker = 'source'\n").encode()
+            for n,imports in yaml_imports.items()}
         self.extra_sources={};self.extra_records={};self.natives=[self.native]
         for distribution in examples:
             sources={self.site/n:b'' for n in getattr(e,'RUNTIME_SOURCES',{}).get(distribution,())}
             sources.update({self.site/n:raw for n,raw in examples[distribution].items()})
             for path,raw in sources.items():path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
             self.extra_sources.update(sources)
-            if distribution in ('tokenizers','markupsafe'):
-                name='tokenizers.abi3.so' if distribution=='tokenizers' else '_speedups.cpython-313-aarch64-linux-gnu.so'
-                path=self.site/distribution/name;path.write_bytes(b'original exact native file; never executed')
+            if distribution in ('tokenizers','markupsafe') or (distribution=='pyyaml' and yaml_native):
+                name={'tokenizers':'tokenizers/tokenizers.abi3.so',
+                    'markupsafe':'markupsafe/_speedups.cpython-313-aarch64-linux-gnu.so',
+                    'pyyaml':'yaml/_yaml.cpython-313-aarch64-linux-gnu.so'}[distribution]
+                path=self.site/name;path.write_bytes(b'original exact native file; never executed')
                 sources[path]=path.read_bytes();self.natives.append(path)
                 digest=hashlib.sha256(path.read_bytes()).hexdigest()
                 self.context['guards'][str(path)]=self.context['required_guards'][str(path)]=digest
@@ -661,6 +679,146 @@ class EvaluationTests(unittest.TestCase):
             for name in tuple(sys.modules):
                 if name.split('.')[0]=='huggingface_hub':sys.modules.pop(name)
             sys.modules.update(saved)
+
+    def test_bundle_boundary_yaml_transitive_source_fallback_and_denials(self):
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0]=='yaml'}
+        try:
+            for name in saved:sys.modules.pop(name)
+            for observed_native in (False,True):
+                with self.subTest(observed_native=observed_native),tempfile.TemporaryDirectory() as directory:
+                    root=Path(directory);f=PortableRuntimeFixture(root,yaml_native=observed_native)
+                    sources={p:raw for p,raw in f.extra_sources.items() if p.parent.name=='yaml'}
+                    for path,raw in sources.items():
+                        prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached').replace(b'113',b'999'))
+                        py_compile.compile(str(path),doraise=True)
+                        path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    forbidden=[f.site/'yaml'/n for n in ('resume.pt','optimizer.pt','teachers.npy','unqualified.py','foreign.so')]
+                    forbidden.append(root/'foreign.py')
+                    for path in forbidden:path.write_bytes(b'forbidden')
+                    native=f.site/'yaml/_yaml.cpython-313-aarch64-linux-gnu.so'
+                    original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                    original_before=copy.deepcopy(original);required_before=dict(f.context['required_guards'])
+                    # Represent an already mapped original module; never load an extension.
+                    mapped=SimpleNamespace(__file__=str(native),__spec__=SimpleNamespace(origin=str(native)),
+                        CParser=object(),CEmitter=object())
+                    with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                        for direct_loader in (True,False):
+                            for name in tuple(sys.modules):
+                                if name.split('.')[0]=='yaml':sys.modules.pop(name)
+                            with patch.dict(sys.modules,{'yaml._yaml':mapped} if observed_native else {}),f.boundary():
+                                yaml=module('yaml',f.site/'yaml/__init__.py') if direct_loader else importlib.import_module('yaml')
+                                self.assertEqual((yaml.value,yaml.marker,yaml.__with_libyaml__),(113,'source',observed_native))
+                                expected={'yaml'+('' if p.stem=='__init__' else '.'+p.stem) for p in sources}
+                                if not observed_native:expected.remove('yaml.cyaml')
+                                self.assertEqual({n for n in sys.modules if n.split('.')[0]=='yaml' and n!='yaml._yaml'},expected)
+                                for name in expected:
+                                    value=sys.modules[name];path=f.site/'yaml'/('__init__.py' if name=='yaml' else name.split('.')[1]+'.py')
+                                    self.assertIsInstance(value.__loader__,importlib.machinery.SourceFileLoader)
+                                    self.assertEqual((value.__file__,value.__spec__.origin,value.marker),(str(path),str(path),'source'))
+                                for path,raw in sources.items():
+                                    self.assertEqual(path.read_bytes(),raw)
+                                    with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                                    with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
+                                for path in (*forbidden,f.extra_records['pyyaml']):
+                                    with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                                with self.assertRaisesRegex(ValueError,'external dependency'):
+                                    importlib.import_module('yaml.unqualified')
+                                if observed_native:
+                                    self.assertEqual(native.read_bytes(),b'original exact native file; never executed')
+                                    with self.assertRaisesRegex(ValueError,'attempted write'):native.write_bytes(b'changed')
+                                else:
+                                    with self.assertRaisesRegex(ValueError,'external dependency'):native.read_bytes()
+                    self.assertEqual(original,original_before);self.assertEqual(f.context['required_guards'],required_before)
+                    foreign=SimpleNamespace(__file__=str(forbidden[-1]),__spec__=SimpleNamespace(origin=str(forbidden[-1])))
+                    for name in ('yaml','yaml.loader','yaml.cyaml','yaml.nodes'):
+                        with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
+                            with f.boundary():pass
+                    for name in tuple(sys.modules):
+                        if name.split('.')[0]=='yaml':sys.modules.pop(name)
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0]=='yaml':sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_yaml_runtime_requires_original_record_hash_and_complete_rows(self):
+        for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row','wrong_hash','wrong_size'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root);record=f.extra_records['pyyaml']
+                if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                elif case=='mutated_record':record.write_bytes(record.read_bytes()+b'\n')
+                elif case=='foreign_record':
+                    foreign=root/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True)
+                    foreign.write_bytes(record.read_bytes());h=hashlib.sha256(foreign.read_bytes()).hexdigest()
+                    f.context['required_guards'].pop(str(record))
+                    f.context['guards'][str(foreign)]=f.context['required_guards'][str(foreign)]=h
+                else:
+                    rows=list(csv.reader(record.read_text().splitlines()))
+                    row=next(r for r in rows if r[0]=='yaml/loader.py')
+                    if case=='missing_row':rows.remove(row)
+                    elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                    else:row[2]='999'
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                with self.assertRaises(ValueError):
+                    with f.boundary():pass
+
+    def test_yaml_current_source_and_record_bytes_rechecked_with_restored_mtime(self):
+        for cached in (False,True):
+            with self.subTest(cached=cached),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory))
+                if cached:
+                    with f.boundary():pass
+                paths=[p for p in f.extra_sources if p.parent.name=='yaml']+[f.extra_records['pyyaml'],f.metadata['pyyaml']]
+                for path in paths:
+                    raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.subTest(path=path.name),self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+
+    def test_yaml_native_authority_stays_exact_and_optional(self):
+        for case in ('unobserved','missing_guard','foreign_guard','foreign_origin','not_native_files',
+                     'record_hash','record_size','record_missing','module_origin','cached_guard','cached_origin','cached_bytes'):
+            with self.subTest(case=case),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory),yaml_native=case!='unobserved')
+                native=f.site/'yaml/_yaml.cpython-313-aarch64-linux-gnu.so';record=f.extra_records['pyyaml']
+                original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                if case.startswith('cached_'):
+                    with f.boundary():pass
+                if case=='unobserved':
+                    native.write_bytes(b'unobserved')
+                    h=hashlib.sha256(native.read_bytes()).hexdigest()
+                    f.context['guards'][str(native)]=f.context['required_guards'][str(native)]=h
+                    with record.open('a') as stream:
+                        csv.writer(stream).writerow([str(native.relative_to(f.site)),
+                            'sha256='+base64.urlsafe_b64encode(bytes.fromhex(h)).decode().rstrip('='),'10'])
+                elif case=='missing_guard':f.context['required_guards'].pop(str(native))
+                elif case in ('foreign_guard','cached_guard'):f.context['required_guards'][str(native)]='a'*64
+                elif case in ('foreign_origin','cached_origin'):original['files'][str(native)]='a'*64
+                elif case=='not_native_files':original['native_files'].remove(str(native))
+                elif case=='cached_bytes':
+                    prior=native.stat();native.write_bytes(b'x'*prior.st_size)
+                    os.utime(native,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                elif case.startswith('record_'):
+                    rows=list(csv.reader(record.read_text().splitlines()))
+                    row=next(r for r in rows if r[0]==str(native.relative_to(f.site)))
+                    if case=='record_hash':row[1]='sha256='+'A'*43
+                    elif case=='record_size':row[2]='1'
+                    else:rows.remove(row)
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                if case.startswith('record_') or case=='unobserved':
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                foreign=SimpleNamespace(__file__=str(native),__spec__=SimpleNamespace(origin=str(f.site/'yaml/foreign.so')))
+                with patch.dict(sys.modules,{'yaml._yaml':foreign} if case=='module_origin' else {}):
+                    if case in ('unobserved','not_native_files'):
+                        with f.boundary():
+                            with self.assertRaisesRegex(ValueError,'external dependency'):native.read_bytes()
+                    else:
+                        with self.assertRaises(ValueError):
+                            with f.boundary():pass
 
     def test_bundle_boundary_tqdm_auto_source_fallback_and_metadata_reads(self):
         import importlib.metadata

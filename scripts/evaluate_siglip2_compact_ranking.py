@@ -107,6 +107,10 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
   'tokenizers/models/__init__.py tokenizers/normalizers/__init__.py tokenizers/pre_tokenizers/__init__.py '
   'tokenizers/processors/__init__.py tokenizers/trainers/__init__.py tokenizers-0.22.2.dist-info/METADATA').split()),
  'typing_extensions':set(('typing_extensions.py').split()),
+ 'pyyaml':set(('yaml/__init__.py yaml/composer.py yaml/constructor.py yaml/cyaml.py yaml/dumper.py '
+  'yaml/emitter.py yaml/error.py yaml/events.py yaml/loader.py yaml/nodes.py yaml/parser.py '
+  'yaml/reader.py yaml/representer.py yaml/resolver.py yaml/scanner.py yaml/serializer.py yaml/tokens.py '
+  'pyyaml-6.0.3.dist-info/METADATA').split()),
  # Definition-time version checks read identity bytes, without granting package code.
  'accelerate':{'accelerate-1.14.0.dist-info/METADATA'},
  'aiohttp':{'aiohttp-3.14.1.dist-info/METADATA'},
@@ -115,7 +119,6 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
  'numpy':{'numpy-2.5.0.dist-info/METADATA'},
  'pillow':{'pillow-12.2.0.dist-info/METADATA'},
  'pydantic':{'pydantic-2.13.4.dist-info/METADATA'},
- 'pyyaml':{'pyyaml-6.0.3.dist-info/METADATA'},
  'safetensors':{'safetensors-0.8.0.dist-info/METADATA'},
  'torch':{'torch-2.12.1.dist-info/METADATA'},
 }
