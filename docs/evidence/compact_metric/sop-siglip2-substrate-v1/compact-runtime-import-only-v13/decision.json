@@ -1,0 +1,9 @@
+{
+  "pass": false,
+  "service_seconds": 18.828,
+  "error": "accelerate source denial",
+  "tqdm_logging_passed": true,
+  "native_not_in_original_proof": [],
+  "model_constructed": false,
+  "quality_read": false
+}
