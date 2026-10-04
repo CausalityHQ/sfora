@@ -123,6 +123,476 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
   'yaml/emitter.py yaml/error.py yaml/events.py yaml/loader.py yaml/nodes.py yaml/parser.py '
   'yaml/reader.py yaml/representer.py yaml/resolver.py yaml/scanner.py yaml/serializer.py yaml/tokens.py '
   'pyyaml-6.0.3.dist-info/METADATA').split()),
+ # Eager scientific imports reached by the pinned Transformers candidate generator.
+ 'scipy':{'scipy/'+n for n in (  '__config__.py __init__.py _distributor_init.py _external/_array_api_compat_vendor.py '
+
+  '_external/array_api_compat/__init__.py _external/array_api_compat/_internal.py '
+
+  '_external/array_api_compat/common/__init__.py _external/array_api_compat/common/_aliases.py '
+
+  '_external/array_api_compat/common/_fft.py _external/array_api_compat/common/_helpers.py '
+
+  '_external/array_api_compat/common/_linalg.py _external/array_api_compat/common/_typing.py '
+
+  '_external/array_api_compat/numpy/__init__.py _external/array_api_compat/numpy/_aliases.py '
+
+  '_external/array_api_compat/numpy/_info.py _external/array_api_compat/numpy/_typing.py '
+
+  '_external/array_api_compat/numpy/fft.py _external/array_api_compat/numpy/linalg.py '
+
+  '_external/array_api_extra/__init__.py _external/array_api_extra/_delegation.py '
+
+  '_external/array_api_extra/_lib/__init__.py _external/array_api_extra/_lib/_at.py '
+
+  '_external/array_api_extra/_lib/_funcs.py _external/array_api_extra/_lib/_lazy.py '
+
+  '_external/array_api_extra/_lib/_utils/__init__.py _external/array_api_extra/_lib/_utils/_compat.py '
+
+  '_external/array_api_extra/_lib/_utils/_helpers.py _external/array_api_extra/_lib/_utils/_typing.py '
+
+  '_external/array_api_extra/testing.py _external/packaging_version/_structures.py '
+
+  '_external/packaging_version/version.py _lib/__init__.py _lib/_array_api.py _lib/_array_api_override.py '
+
+  '_lib/_bunch.py _lib/_ccallback.py _lib/_docscrape.py _lib/_elementwise_iterative_method.py '
+
+  '_lib/_sparse.py _lib/_testutils.py _lib/_uarray/__init__.py _lib/_uarray/_backend.py _lib/_util.py '
+
+  '_lib/deprecation.py _lib/doccer.py _lib/uarray.py constants/__init__.py constants/_codata.py '
+
+  'constants/_constants.py constants/codata.py constants/constants.py fft/__init__.py fft/_backend.py '
+
+  'fft/_basic.py fft/_basic_backend.py fft/_duccfft/__init__.py fft/_duccfft/basic.py fft/_duccfft/helper.py '
+
+  'fft/_duccfft/realtransforms.py fft/_fftlog.py fft/_fftlog_backend.py fft/_helper.py '
+
+  'fft/_realtransforms.py fft/_realtransforms_backend.py integrate/__init__.py integrate/_bvp.py '
+
+  'integrate/_cubature.py integrate/_ivp/__init__.py integrate/_ivp/base.py integrate/_ivp/bdf.py '
+
+  'integrate/_ivp/common.py integrate/_ivp/dop853_coefficients.py integrate/_ivp/ivp.py '
+
+  'integrate/_ivp/lsoda.py integrate/_ivp/radau.py integrate/_ivp/rk.py integrate/_lebedev.py '
+
+  'integrate/_ode.py integrate/_odepack_py.py integrate/_quad_vec.py integrate/_quadpack_py.py '
+
+  'integrate/_quadrature.py integrate/_rules/__init__.py integrate/_rules/_base.py '
+
+  'integrate/_rules/_gauss_kronrod.py integrate/_rules/_gauss_legendre.py integrate/_rules/_genz_malik.py '
+
+  'integrate/_tanhsinh.py integrate/dop.py integrate/lsoda.py integrate/odepack.py integrate/quadpack.py '
+
+  'integrate/vode.py interpolate/__init__.py interpolate/_bary_rational.py interpolate/_bsplines.py '
+
+  'interpolate/_cubic.py interpolate/_fitpack2.py interpolate/_fitpack_impl.py interpolate/_fitpack_py.py '
+
+  'interpolate/_fitpack_repro.py interpolate/_interpolate.py interpolate/_ndbspline.py '
+
+  'interpolate/_ndgriddata.py interpolate/_pade.py interpolate/_polyint.py interpolate/_rbf.py '
+
+  'interpolate/_rbfinterp.py interpolate/_rbfinterp_common.py interpolate/_rbfinterp_np.py '
+
+  'interpolate/_rbfinterp_xp.py interpolate/_rgi.py interpolate/fitpack.py interpolate/fitpack2.py '
+
+  'interpolate/interpnd.py interpolate/interpolate.py interpolate/ndgriddata.py interpolate/polyint.py '
+
+  'interpolate/rbf.py linalg/__init__.py linalg/_basic.py linalg/_decomp.py linalg/_decomp_cholesky.py '
+
+  'linalg/_decomp_cossin.py linalg/_decomp_ldl.py linalg/_decomp_lu.py linalg/_decomp_polar.py '
+
+  'linalg/_decomp_qr.py linalg/_decomp_qz.py linalg/_decomp_schur.py linalg/_decomp_svd.py '
+
+  'linalg/_expm_frechet.py linalg/_matfuncs.py linalg/_misc.py linalg/_procrustes.py linalg/_sketches.py '
+
+  'linalg/_solvers.py linalg/_special_matrices.py linalg/basic.py linalg/blas.py linalg/decomp.py '
+
+  'linalg/decomp_cholesky.py linalg/decomp_lu.py linalg/decomp_qr.py linalg/decomp_schur.py '
+
+  'linalg/decomp_svd.py linalg/interpolative.py linalg/lapack.py linalg/matfuncs.py linalg/misc.py '
+
+  'linalg/special_matrices.py ndimage/__init__.py ndimage/_delegators.py ndimage/_filters.py '
+
+  'ndimage/_fourier.py ndimage/_interpolation.py ndimage/_measurements.py ndimage/_morphology.py '
+
+  'ndimage/_ndimage_api.py ndimage/_ni_docstrings.py ndimage/_ni_support.py '
+
+  'ndimage/_support_alternative_backends.py ndimage/filters.py ndimage/fourier.py ndimage/interpolation.py '
+
+  'ndimage/measurements.py ndimage/morphology.py optimize/__init__.py optimize/_basinhopping.py '
+
+  'optimize/_bracket.py optimize/_chandrupatla.py optimize/_cobyla_py.py optimize/_cobyqa_py.py '
+
+  'optimize/_constraints.py optimize/_dcsrch.py optimize/_differentiable_functions.py '
+
+  'optimize/_differentialevolution.py optimize/_direct_py.py optimize/_dual_annealing.py '
+
+  'optimize/_elementwise.py optimize/_hessian_update_strategy.py optimize/_highspy/__init__.py '
+
+  'optimize/_highspy/_highs_wrapper.py optimize/_isotonic.py optimize/_lbfgsb_py.py optimize/_linesearch.py '
+
+  'optimize/_linprog.py optimize/_linprog_doc.py optimize/_linprog_highs.py optimize/_linprog_ip.py '
+
+  'optimize/_linprog_rs.py optimize/_linprog_simplex.py optimize/_linprog_util.py optimize/_lsq/__init__.py '
+
+  'optimize/_lsq/bvls.py optimize/_lsq/common.py optimize/_lsq/dogbox.py optimize/_lsq/least_squares.py '
+
+  'optimize/_lsq/lsq_linear.py optimize/_lsq/trf.py optimize/_lsq/trf_linear.py optimize/_milp.py '
+
+  'optimize/_minimize.py optimize/_minpack_py.py optimize/_nnls.py optimize/_nonlin.py optimize/_numdiff.py '
+
+  'optimize/_optimize.py optimize/_qap.py optimize/_remove_redundancy.py optimize/_root.py '
+
+  'optimize/_root_scalar.py optimize/_shgo.py optimize/_shgo_lib/__init__.py optimize/_shgo_lib/_complex.py '
+
+  'optimize/_shgo_lib/_vertex.py optimize/_slsqp_py.py optimize/_spectral.py optimize/_tnc.py '
+
+  'optimize/_trlib/__init__.py optimize/_trustregion.py optimize/_trustregion_constr/__init__.py '
+
+  'optimize/_trustregion_constr/canonical_constraint.py '
+
+  'optimize/_trustregion_constr/equality_constrained_sqp.py '
+
+  'optimize/_trustregion_constr/minimize_trustregion_constr.py optimize/_trustregion_constr/projections.py '
+
+  'optimize/_trustregion_constr/qp_subproblem.py optimize/_trustregion_constr/report.py '
+
+  'optimize/_trustregion_constr/tr_interior_point.py optimize/_trustregion_dogleg.py '
+
+  'optimize/_trustregion_exact.py optimize/_trustregion_krylov.py optimize/_trustregion_ncg.py '
+
+  'optimize/_zeros_py.py optimize/cobyla.py optimize/elementwise.py optimize/lbfgsb.py '
+
+  'optimize/linesearch.py optimize/minpack.py optimize/minpack2.py optimize/moduleTNC.py optimize/nonlin.py '
+
+  'optimize/optimize.py optimize/slsqp.py optimize/tnc.py optimize/zeros.py sparse/__init__.py '
+
+  'sparse/_base.py sparse/_bsr.py sparse/_compressed.py sparse/_construct.py sparse/_coo.py sparse/_csc.py '
+
+  'sparse/_csr.py sparse/_data.py sparse/_dia.py sparse/_dok.py sparse/_extract.py sparse/_index.py '
+
+  'sparse/_lil.py sparse/_matrix.py sparse/_matrix_io.py sparse/_sputils.py sparse/base.py sparse/bsr.py '
+
+  'sparse/compressed.py sparse/construct.py sparse/coo.py sparse/csc.py sparse/csgraph/__init__.py '
+
+  'sparse/csgraph/_laplacian.py sparse/csr.py sparse/data.py sparse/dia.py sparse/dok.py sparse/extract.py '
+
+  'sparse/lil.py sparse/linalg/__init__.py sparse/linalg/_dsolve/__init__.py '
+
+  'sparse/linalg/_dsolve/_add_newdocs.py sparse/linalg/_dsolve/linsolve.py sparse/linalg/_eigen/__init__.py '
+
+  'sparse/linalg/_eigen/_svds.py sparse/linalg/_eigen/arpack/__init__.py '
+
+  'sparse/linalg/_eigen/arpack/arpack.py sparse/linalg/_eigen/lobpcg/__init__.py '
+
+  'sparse/linalg/_eigen/lobpcg/lobpcg.py sparse/linalg/_expm_multiply.py '
+
+  'sparse/linalg/_funm_multiply_krylov.py sparse/linalg/_interface.py sparse/linalg/_isolve/__init__.py '
+
+  'sparse/linalg/_isolve/_gcrotmk.py sparse/linalg/_isolve/iterative.py sparse/linalg/_isolve/lgmres.py '
+
+  'sparse/linalg/_isolve/lsmr.py sparse/linalg/_isolve/lsqr.py sparse/linalg/_isolve/minres.py '
+
+  'sparse/linalg/_isolve/tfqmr.py sparse/linalg/_isolve/utils.py sparse/linalg/_matfuncs.py '
+
+  'sparse/linalg/_norm.py sparse/linalg/_onenormest.py sparse/linalg/_special_sparse_arrays.py '
+
+  'sparse/linalg/_svdp.py sparse/linalg/dsolve.py sparse/linalg/eigen.py sparse/linalg/interface.py '
+
+  'sparse/linalg/isolve.py sparse/linalg/matfuncs.py sparse/sparsetools.py sparse/sputils.py '
+
+  'spatial/__init__.py spatial/_geometric_slerp.py spatial/_kdtree.py spatial/_plotutils.py '
+
+  'spatial/_procrustes.py spatial/_spherical_voronoi.py spatial/ckdtree.py spatial/distance.py '
+
+  'spatial/kdtree.py spatial/qhull.py spatial/transform/__init__.py spatial/transform/_rigid_transform.py '
+
+  'spatial/transform/_rigid_transform_xp.py spatial/transform/_rotation.py '
+
+  'spatial/transform/_rotation_groups.py spatial/transform/_rotation_spline.py '
+
+  'spatial/transform/_rotation_xp.py spatial/transform/rotation.py special/__init__.py special/_basic.py '
+
+  'special/_ellip_harm.py special/_input_validation.py special/_lambertw.py special/_logsumexp.py '
+
+  'special/_multiufuncs.py special/_orthogonal.py special/_sf_error.py special/_spfun_stats.py '
+
+  'special/_spherical_bessel.py special/_support_alternative_backends.py special/_ufunc_tools.py '
+
+  'special/add_newdocs.py special/basic.py special/orthogonal.py special/sf_error.py special/specfun.py '
+
+  'special/spfun_stats.py stats/__init__.py stats/_axis_nan_policy.py stats/_binned_statistic.py '
+
+  'stats/_binomtest.py stats/_bws_test.py stats/_censored_data.py stats/_common.py stats/_constants.py '
+
+  'stats/_continuous_distns.py stats/_correlation.py stats/_covariance.py stats/_crosstab.py '
+
+  'stats/_discrete_distns.py stats/_distn_infrastructure.py stats/_distr_params.py '
+
+  'stats/_distribution_infrastructure.py stats/_entropy.py stats/_finite_differences.py stats/_fit.py '
+
+  'stats/_hypotests.py stats/_kde.py stats/_ksstats.py stats/_levy_stable/__init__.py stats/_mannwhitneyu.py '
+
+  'stats/_mgc.py stats/_morestats.py stats/_mstats_basic.py stats/_mstats_extras.py stats/_multicomp.py '
+
+  'stats/_multivariate.py stats/_new_distributions.py stats/_odds_ratio.py stats/_page_trend_test.py '
+
+  'stats/_probability_distribution.py stats/_qmc.py stats/_qmvnt.py stats/_quantile.py '
+
+  'stats/_rcont/__init__.py stats/_relative_risk.py stats/_resampling.py stats/_sensitivity_analysis.py '
+
+  'stats/_stats_mstats_common.py stats/_stats_py.py stats/_survival.py stats/_tukeylambda_stats.py '
+
+  'stats/_variation.py stats/_warnings_errors.py stats/_wilcoxon.py stats/biasedurn.py stats/contingency.py '
+
+  'stats/distributions.py stats/kde.py stats/morestats.py stats/mstats.py stats/mstats_basic.py '
+
+  'stats/mstats_extras.py stats/mvn.py stats/qmc.py stats/stats.py version.py ').split()},
+ 'scikit_learn':{'sklearn/'+n for n in (  '__check_build/__init__.py __init__.py _config.py _distributor_init.py base.py callback/__init__.py '
+
+  'callback/_base.py callback/_callback_context.py callback/_callback_support.py callback/_progressbar.py '
+
+  'callback/_scoring_monitor.py callback/_transport.py exceptions.py externals/__init__.py '
+
+  'externals/_array_api_compat_vendor.py externals/_numpydoc/docscrape.py externals/_packaging/__init__.py '
+
+  'externals/_packaging/_structures.py externals/_packaging/version.py '
+
+  'externals/array_api_compat/__init__.py externals/array_api_compat/_internal.py '
+
+  'externals/array_api_compat/common/__init__.py externals/array_api_compat/common/_aliases.py '
+
+  'externals/array_api_compat/common/_fft.py externals/array_api_compat/common/_helpers.py '
+
+  'externals/array_api_compat/common/_linalg.py externals/array_api_compat/common/_typing.py '
+
+  'externals/array_api_compat/numpy/__init__.py externals/array_api_compat/numpy/_aliases.py '
+
+  'externals/array_api_compat/numpy/_info.py externals/array_api_compat/numpy/_typing.py '
+
+  'externals/array_api_compat/numpy/fft.py externals/array_api_compat/numpy/linalg.py '
+
+  'externals/array_api_extra/__init__.py externals/array_api_extra/_delegation.py '
+
+  'externals/array_api_extra/_lib/__init__.py externals/array_api_extra/_lib/_at.py '
+
+  'externals/array_api_extra/_lib/_funcs.py externals/array_api_extra/_lib/_lazy.py '
+
+  'externals/array_api_extra/_lib/_utils/__init__.py externals/array_api_extra/_lib/_utils/_compat.py '
+
+  'externals/array_api_extra/_lib/_utils/_helpers.py externals/array_api_extra/_lib/_utils/_typing.py '
+
+  'metrics/__init__.py metrics/_base.py metrics/_classification.py '
+
+  'metrics/_pairwise_distances_reduction/__init__.py metrics/_pairwise_distances_reduction/_dispatcher.py '
+
+  'metrics/_plot/__init__.py metrics/_plot/confusion_matrix.py metrics/_plot/det_curve.py '
+
+  'metrics/_plot/precision_recall_curve.py metrics/_plot/regression.py metrics/_plot/roc_curve.py '
+
+  'metrics/_ranking.py metrics/_regression.py metrics/_scorer.py metrics/cluster/__init__.py '
+
+  'metrics/cluster/_bicluster.py metrics/cluster/_supervised.py metrics/cluster/_unsupervised.py '
+
+  'metrics/pairwise.py preprocessing/__init__.py preprocessing/_data.py preprocessing/_discretization.py '
+
+  'preprocessing/_encoders.py preprocessing/_function_transformer.py preprocessing/_label.py '
+
+  'preprocessing/_polynomial.py preprocessing/_target_encoder.py utils/__init__.py utils/_array_api.py '
+
+  'utils/_available_if.py utils/_bunch.py utils/_chunking.py utils/_dataframe.py utils/_encode.py '
+
+  'utils/_indexing.py utils/_mask.py utils/_metadata_requests.py utils/_missing.py '
+
+  'utils/_optional_dependencies.py utils/_param_validation.py utils/_plotting.py '
+
+  'utils/_repr_html/__init__.py utils/_repr_html/base.py utils/_repr_html/common.py '
+
+  'utils/_repr_html/estimator.css utils/_repr_html/estimator.py utils/_repr_html/features.css '
+
+  'utils/_repr_html/features.py utils/_repr_html/fitted_attributes.py utils/_repr_html/params.css '
+
+  'utils/_repr_html/params.py utils/_response.py utils/_set_output.py utils/_show_versions.py '
+
+  'utils/_sparse.py utils/_tags.py utils/_unique.py utils/class_weight.py utils/deprecation.py '
+
+  'utils/discovery.py utils/extmath.py utils/fixes.py utils/metadata_routing.py utils/metaestimators.py '
+
+  'utils/multiclass.py utils/parallel.py utils/sparsefuncs.py utils/stats.py utils/validation.py ').split()},
+ 'joblib':{'joblib/'+n for n in (  '__init__.py _cloudpickle_wrapper.py _memmapping_reducer.py _multiprocessing_helpers.py '
+
+  '_parallel_backends.py _store_backends.py _utils.py backports.py compressor.py disk.py executor.py '
+
+  'externals/__init__.py externals/cloudpickle/__init__.py externals/cloudpickle/cloudpickle.py '
+
+  'externals/loky/__init__.py externals/loky/_base.py externals/loky/backend/__init__.py '
+
+  'externals/loky/backend/_posix_reduction.py externals/loky/backend/context.py '
+
+  'externals/loky/backend/process.py externals/loky/backend/queues.py externals/loky/backend/reduction.py '
+
+  'externals/loky/backend/resource_tracker.py externals/loky/backend/spawn.py '
+
+  'externals/loky/backend/utils.py externals/loky/cloudpickle_wrapper.py externals/loky/initializers.py '
+
+  'externals/loky/process_executor.py externals/loky/reusable_executor.py func_inspect.py hashing.py '
+
+  'logger.py memory.py numpy_pickle.py numpy_pickle_compat.py numpy_pickle_utils.py parallel.py pool.py ').split()},
+ 'threadpoolctl':{'threadpoolctl.py'},
+ 'pandas':{'pandas/'+n for n in (  '__init__.py _config/__init__.py _config/config.py _config/dates.py _config/display.py '
+
+  '_config/localization.py _libs/__init__.py _libs/tslibs/__init__.py _libs/window/__init__.py '
+
+  '_testing/__init__.py _testing/_io.py _testing/_warnings.py _testing/asserters.py _testing/compat.py '
+
+  '_testing/contexts.py _typing.py _version_meson.py api/__init__.py api/executors/__init__.py '
+
+  'api/extensions/__init__.py api/indexers/__init__.py api/interchange/__init__.py api/types/__init__.py '
+
+  'api/typing/__init__.py arrays/__init__.py compat/__init__.py compat/_constants.py compat/_optional.py '
+
+  'compat/numpy/__init__.py compat/numpy/function.py compat/pickle_compat.py compat/pyarrow.py '
+
+  'core/__init__.py core/_numba/__init__.py core/_numba/executor.py core/accessor.py core/algorithms.py '
+
+  'core/api.py core/apply.py core/array_algos/__init__.py core/array_algos/datetimelike_accumulations.py '
+
+  'core/array_algos/masked_accumulations.py core/array_algos/masked_reductions.py '
+
+  'core/array_algos/putmask.py core/array_algos/quantile.py core/array_algos/replace.py '
+
+  'core/array_algos/take.py core/array_algos/transforms.py core/arraylike.py core/arrays/__init__.py '
+
+  'core/arrays/_arrow_string_mixins.py core/arrays/_mixins.py core/arrays/_ranges.py core/arrays/_utils.py '
+
+  'core/arrays/arrow/__init__.py core/arrays/arrow/accessors.py core/arrays/arrow/array.py '
+
+  'core/arrays/base.py core/arrays/boolean.py core/arrays/categorical.py core/arrays/datetimelike.py '
+
+  'core/arrays/datetimes.py core/arrays/floating.py core/arrays/integer.py core/arrays/interval.py '
+
+  'core/arrays/masked.py core/arrays/numeric.py core/arrays/numpy_.py core/arrays/period.py '
+
+  'core/arrays/sparse/__init__.py core/arrays/sparse/accessor.py core/arrays/sparse/array.py '
+
+  'core/arrays/string_.py core/arrays/string_arrow.py core/arrays/timedeltas.py core/base.py core/col.py '
+
+  'core/common.py core/computation/__init__.py core/computation/align.py core/computation/api.py '
+
+  'core/computation/check.py core/computation/common.py core/computation/engines.py core/computation/eval.py '
+
+  'core/computation/expr.py core/computation/expressions.py core/computation/ops.py '
+
+  'core/computation/parsing.py core/computation/pytables.py core/computation/scope.py core/config_init.py '
+
+  'core/construction.py core/dtypes/__init__.py core/dtypes/api.py core/dtypes/astype.py core/dtypes/base.py '
+
+  'core/dtypes/cast.py core/dtypes/common.py core/dtypes/concat.py core/dtypes/dtypes.py '
+
+  'core/dtypes/generic.py core/dtypes/inference.py core/dtypes/missing.py core/flags.py core/frame.py '
+
+  'core/generic.py core/groupby/__init__.py core/groupby/base.py core/groupby/categorical.py '
+
+  'core/groupby/generic.py core/groupby/groupby.py core/groupby/grouper.py core/groupby/indexing.py '
+
+  'core/groupby/numba_.py core/groupby/ops.py core/indexers/__init__.py core/indexers/objects.py '
+
+  'core/indexers/utils.py core/indexes/__init__.py core/indexes/accessors.py core/indexes/api.py '
+
+  'core/indexes/base.py core/indexes/category.py core/indexes/datetimelike.py core/indexes/datetimes.py '
+
+  'core/indexes/extension.py core/indexes/frozen.py core/indexes/interval.py core/indexes/multi.py '
+
+  'core/indexes/period.py core/indexes/range.py core/indexes/timedeltas.py core/indexing.py '
+
+  'core/interchange/__init__.py core/interchange/dataframe_protocol.py core/interchange/from_dataframe.py '
+
+  'core/interchange/utils.py core/internals/__init__.py core/internals/api.py core/internals/blocks.py '
+
+  'core/internals/concat.py core/internals/construction.py core/internals/managers.py core/internals/ops.py '
+
+  'core/methods/__init__.py core/methods/describe.py core/methods/selectn.py core/missing.py core/nanops.py '
+
+  'core/ops/__init__.py core/ops/array_ops.py core/ops/common.py core/ops/dispatch.py core/ops/docstrings.py '
+
+  'core/ops/invalid.py core/ops/mask_ops.py core/ops/missing.py core/resample.py core/reshape/__init__.py '
+
+  'core/reshape/api.py core/reshape/concat.py core/reshape/encoding.py core/reshape/melt.py '
+
+  'core/reshape/merge.py core/reshape/pivot.py core/reshape/tile.py core/roperator.py core/sample.py '
+
+  'core/series.py core/shared_docs.py core/sorting.py core/strings/__init__.py core/strings/accessor.py '
+
+  'core/strings/object_array.py core/tools/__init__.py core/tools/datetimes.py core/tools/numeric.py '
+
+  'core/tools/timedeltas.py core/tools/times.py core/util/__init__.py core/util/hashing.py '
+
+  'core/util/numba_.py core/window/__init__.py core/window/common.py core/window/ewm.py '
+
+  'core/window/expanding.py core/window/numba_.py core/window/online.py core/window/rolling.py '
+
+  'errors/__init__.py errors/cow.py io/__init__.py io/_util.py io/api.py io/clipboards.py io/common.py '
+
+  'io/excel/__init__.py io/excel/_base.py io/excel/_calamine.py io/excel/_odfreader.py '
+
+  'io/excel/_odswriter.py io/excel/_openpyxl.py io/excel/_pyxlsb.py io/excel/_util.py io/excel/_xlrd.py '
+
+  'io/excel/_xlsxwriter.py io/feather_format.py io/formats/__init__.py io/formats/console.py '
+
+  'io/formats/format.py io/formats/info.py io/formats/printing.py io/html.py io/iceberg.py '
+
+  'io/json/__init__.py io/json/_json.py io/json/_normalize.py io/json/_table_schema.py io/orc.py '
+
+  'io/parquet.py io/parsers/__init__.py io/parsers/arrow_parser_wrapper.py io/parsers/base_parser.py '
+
+  'io/parsers/c_parser_wrapper.py io/parsers/python_parser.py io/parsers/readers.py io/pickle.py '
+
+  'io/pytables.py io/sas/__init__.py io/sas/sasreader.py io/spss.py io/sql.py io/stata.py io/xml.py '
+
+  'plotting/__init__.py plotting/_core.py plotting/_misc.py testing.py tseries/__init__.py tseries/api.py '
+
+  'tseries/frequencies.py tseries/offsets.py util/__init__.py util/_decorators.py util/_exceptions.py '
+
+  'util/_print_versions.py util/_tester.py util/_validators.py util/version/__init__.py ').split()},
+ 'python_dateutil':{'dateutil/'+n for n in (  '__init__.py _common.py _version.py parser/__init__.py parser/_parser.py parser/isoparser.py '
+
+  'relativedelta.py tz/__init__.py tz/_common.py tz/_factories.py tz/tz.py tz/win.py ').split()},
+ 'six':{'six.py'},
+ 'narwhals':{'narwhals/'+n for n in (  '__init__.py _compliant/__init__.py _compliant/any_namespace.py _compliant/column.py '
+
+  '_compliant/dataframe.py _compliant/expr.py _compliant/group_by.py _compliant/namespace.py '
+
+  '_compliant/selectors.py _compliant/series.py _compliant/typing.py _compliant/window.py _constants.py '
+
+  '_enum.py _exceptions.py _expression_parsing.py _native.py _translate.py _typing.py _typing_compat.py '
+
+  '_utils.py dataframe.py dependencies.py dtypes.py exceptions.py expr.py expr_cat.py expr_dt.py '
+
+  'expr_list.py expr_name.py expr_str.py expr_struct.py functions.py plugins.py schema.py selectors.py '
+
+  'series.py series_cat.py series_dt.py series_list.py series_str.py series_struct.py stable/__init__.py '
+
+  'stable/v1/__init__.py stable/v1/_dtypes.py stable/v1/dependencies.py stable/v1/dtypes.py '
+
+  'stable/v1/selectors.py stable/v1/typing.py stable/v2/__init__.py stable/v2/dependencies.py '
+
+  'stable/v2/dtypes.py stable/v2/selectors.py stable/v2/typing.py translate.py typing.py ').split()},
+ 'psutil':{'psutil/'+n for n in (  '__init__.py _common.py _ntuples.py _pslinux.py _psposix.py ').split()},
+ 'pyarrow':{'pyarrow/'+n for n in (  '__init__.py _compute_docstrings.py _generated_version.py compute.py ipc.py types.py util.py '
+
+  'vendored/__init__.py vendored/docscrape.py ').split()},
+ 'rich':{'rich/'+n for n in (  '__init__.py _emoji_replace.py _export_format.py _extension.py _fileno.py _log_render.py _loop.py '
+
+  '_null_file.py _palettes.py _pick.py _ratio.py _spinners.py _unicode_data/__init__.py '
+
+  '_unicode_data/_versions.py _wrap.py align.py ansi.py box.py cells.py color.py color_triplet.py console.py '
+
+  'constrain.py containers.py control.py default_styles.py emoji.py errors.py file_proxy.py filesize.py '
+
+  'highlighter.py jupyter.py live.py live_render.py markup.py measure.py padding.py pager.py palette.py '
+
+  'progress.py progress_bar.py protocol.py region.py repr.py screen.py segment.py spinner.py style.py '
+
+  'styled.py table.py terminal_theme.py text.py theme.py themes.py ').split()},
  # Definition-time version checks read identity bytes, without granting package code.
  'accelerate':{'accelerate-1.14.0.dist-info/METADATA'},
  'aiohttp':{'aiohttp-3.14.1.dist-info/METADATA'},

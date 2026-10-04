@@ -4,7 +4,7 @@ import ast
 import base64
 import copy
 import csv
-from contextlib import redirect_stdout
+from contextlib import contextmanager, redirect_stdout
 import hashlib
 import importlib.util
 import io
@@ -118,9 +118,118 @@ HUB_IMPORTS = {
     'utils/insecure_hashlib':'', 'utils/sha':'from .insecure_hashlib import *\n'}
 
 
+SCIENTIFIC_DISTRIBUTIONS = {
+    'scipy':('scipy','1.18.0'), 'scikit_learn':('sklearn','1.9.0'),
+    'joblib':('joblib','1.5.3'), 'threadpoolctl':('threadpoolctl','3.6.0'),
+    'pandas':('pandas','3.0.3'), 'python_dateutil':('dateutil','2.9.0.post0'),
+    'six':('six','1.17.0'), 'narwhals':('narwhals','2.22.1'),
+    'psutil':('psutil','7.2.2'), 'pyarrow':('pyarrow','24.0.0'), 'rich':('rich','15.0.0'),
+}
+# Representative eager edges from the installed ASTs; bodies are synthetic.
+SCIENTIFIC_IMPORTS = {
+    'sklearn/__init__.py':'from . import __check_build\nfrom . import base\n',
+    'sklearn/__check_build/__init__.py':'from ._check_build import value\n',
+    'sklearn/base.py':'from .utils import fixes, validation\nfrom .utils._repr_html import estimator\n',
+    'sklearn/utils/__init__.py':'',
+    'sklearn/utils/fixes.py':'import pandas\nimport scipy.sparse.linalg\n',
+    'sklearn/utils/validation.py':'import joblib\nimport narwhals.stable.v2\nimport scipy.sparse\n',
+    'sklearn/utils/_repr_html/__init__.py':'',
+    'sklearn/utils/_repr_html/estimator.py':
+        'from pathlib import Path\ncss = "".join((Path(__file__).parent / name).read_text() for name in ("estimator.css", "params.css", "features.css"))\n',
+    'sklearn/metrics/__init__.py':'from . import _ranking\n',
+    'sklearn/metrics/_ranking.py':'import scipy.integrate\nimport scipy.stats\nimport sklearn.preprocessing\n',
+    'sklearn/preprocessing/__init__.py':'import sklearn.callback\n',
+    'sklearn/callback/__init__.py':'from . import _progressbar\n',
+    'sklearn/callback/_progressbar.py':'import rich.progress\n',
+    'scipy/__init__.py':'from ._lib import _ccallback\n',
+    'scipy/_lib/__init__.py':'',
+    'scipy/_lib/_ccallback.py':'from ._ccallback_c import value\n',
+    'scipy/sparse/__init__.py':'from . import _base\n',
+    'scipy/sparse/_base.py':'import scipy.sparse.linalg\n',
+    'scipy/sparse/linalg/__init__.py':'from . import _interface\n',
+    'scipy/sparse/linalg/_interface.py':'import scipy.linalg\n',
+    'scipy/linalg/__init__.py':'from . import _misc\n',
+    'scipy/linalg/_misc.py':'from . import blas\n',
+    'scipy/linalg/blas.py':'from ._fblas import value\n',
+    'scipy/integrate/__init__.py':'from . import _quadrature\n',
+    'scipy/integrate/_quadrature.py':'import scipy.stats\n',
+    'scipy/stats/__init__.py':'from . import _stats_py\n',
+    'scipy/stats/_stats_py.py':'import scipy.optimize\nimport scipy.special\n',
+    'scipy/optimize/__init__.py':'from . import _optimize\n',
+    'scipy/optimize/_optimize.py':'',
+    'scipy/special/__init__.py':'from . import _basic\n',
+    'scipy/special/_basic.py':'',
+    'joblib/__init__.py':'from . import _parallel_backends, parallel\n',
+    'joblib/_parallel_backends.py':'from .externals import loky\n',
+    'joblib/parallel.py':'from .externals.loky import process_executor\nimport threadpoolctl\n',
+    'joblib/externals/__init__.py':'',
+    'joblib/externals/loky/__init__.py':'from . import process_executor\n',
+    'joblib/externals/loky/process_executor.py':'from .backend import utils\nimport psutil\n',
+    'joblib/externals/loky/backend/__init__.py':'',
+    'joblib/externals/loky/backend/utils.py':'import psutil\n',
+    'threadpoolctl.py':'',
+    'pandas/__init__.py':'from . import compat\nfrom ._libs import tslibs\nimport dateutil\n',
+    'pandas/compat/__init__.py':'from . import pyarrow\n',
+    'pandas/compat/pyarrow.py':'import pyarrow\nimport pyarrow.compute\n',
+    'pandas/_libs/__init__.py':'from . import tslibs\n',
+    # Simulate the three original native initializer dependencies without loading a native.
+    'pandas/_libs/tslibs/__init__.py':'from .parsing import value\nimport dateutil.parser\nimport dateutil.tz\nimport dateutil.relativedelta\n',
+    'dateutil/__init__.py':'from . import _version\n',
+    'dateutil/_version.py':'',
+    'dateutil/parser/__init__.py':'from . import _parser, isoparser\n',
+    'dateutil/parser/_parser.py':'import six\nfrom .. import relativedelta, tz\n',
+    'dateutil/parser/isoparser.py':'import six\nfrom .. import tz\n',
+    'dateutil/relativedelta.py':'import six\nfrom . import _common\n',
+    'dateutil/_common.py':'',
+    'dateutil/tz/__init__.py':'from . import tz\n',
+    'dateutil/tz/tz.py':'import six\nfrom . import _common, _factories\n',
+    'dateutil/tz/_common.py':'import six\n',
+    'dateutil/tz/_factories.py':'',
+    'six.py':'',
+    'narwhals/__init__.py':'from . import dataframe, series\n',
+    'narwhals/dataframe.py':'from . import dtypes\n',
+    'narwhals/series.py':'from . import dtypes\n',
+    'narwhals/dtypes.py':'',
+    'narwhals/stable/__init__.py':'',
+    'narwhals/stable/v2/__init__.py':'import narwhals\nfrom . import dependencies\n',
+    'narwhals/stable/v2/dependencies.py':'',
+    'psutil/__init__.py':'from . import _pslinux, _common, _ntuples\n',
+    'psutil/_pslinux.py':'from ._psutil_linux import value\nfrom . import _psposix\n',
+    'psutil/_common.py':'',
+    'psutil/_ntuples.py':'',
+    'psutil/_psposix.py':'',
+    'pyarrow/__init__.py':'from .lib import value\nfrom . import ipc, types\n',
+    'pyarrow/ipc.py':'from ._ipc import value\nfrom . import util\n',
+    'pyarrow/types.py':'from .lib import value\n',
+    'pyarrow/util.py':'',
+    'pyarrow/compute.py':'from ._compute import value\n',
+    'rich/__init__.py':'',
+    'rich/progress.py':'from . import console, live, table\n',
+    'rich/console.py':'from . import style, text\n',
+    'rich/live.py':'from . import console\n',
+    'rich/table.py':'from . import text\n',
+    'rich/style.py':'',
+    'rich/text.py':'',
+}
+SCIENTIFIC_NATIVE_IMPORTS = {
+    'sklearn.__check_build._check_build':'sklearn/__check_build/_check_build.cpython-313-aarch64-linux-gnu.so',
+    'scipy._lib._ccallback_c':'scipy/_lib/_ccallback_c.cpython-313-aarch64-linux-gnu.so',
+    'scipy.linalg._fblas':'scipy/linalg/_fblas.cpython-313-aarch64-linux-gnu.so',
+    'pandas._libs.tslibs.parsing':'pandas/_libs/tslibs/parsing.cpython-313-aarch64-linux-gnu.so',
+    'psutil._psutil_linux':'psutil/_psutil_linux.abi3.so',
+    'pyarrow.lib':'pyarrow/lib.cpython-313-aarch64-linux-gnu.so',
+    'pyarrow._ipc':'pyarrow/_ipc.cpython-313-aarch64-linux-gnu.so',
+    'pyarrow._compute':'pyarrow/_compute.cpython-313-aarch64-linux-gnu.so',
+}
+
+
 class PortableRuntimeFixture:
     """Installed sources and a previously admitted RECORD; no native imports."""
-    def __init__(self,root,*,yaml_native=False):
+    def __init__(self,root,*,yaml_native=False,scientific=False):
+        # Legacy falsifiers keep their established installed distributions.
+        # The scientific regression below uses the entire production inventory.
+        self.runtime_sources={d:paths for d,paths in e.RUNTIME_SOURCES.items()
+            if scientific or d not in SCIENTIFIC_DISTRIBUTIONS}
         self.site=root/'site-packages';self.site.mkdir()
         packages={}
         for name in ('torch','numpy','PIL','transformers','safetensors','torchvision'):
@@ -215,10 +324,17 @@ class PortableRuntimeFixture:
         examples['huggingface_hub']['huggingface_hub/utils/_fixes.py']=b'from filelock import value\n'
         examples['tqdm'].update({'tqdm/contrib/__init__.py':b"from ..auto import value\nmarker = 'source'\n",
             'tqdm/contrib/concurrent.py':b"from ..auto import value\nmarker = 'source'\n"})
+        if scientific:
+            for distribution,(package,version) in SCIENTIFIC_DISTRIBUTIONS.items():
+                self.metadata_versions[distribution]=version
+                examples[distribution]={n:(imports+"value = 137\nmarker = 'source'\n").encode()
+                    for n,imports in SCIENTIFIC_IMPORTS.items() if n.split('/')[0].removesuffix('.py')==package}
+            examples['scikit_learn'].update({'sklearn/utils/_repr_html/'+n+'.css':b'/* pinned definition-time style */'
+                for n in ('estimator','params','features')})
         for distribution in examples:self.metadata_versions.setdefault(distribution,'1.0')
         self.extra_sources={};self.extra_records={};self.natives=[self.native]
         for distribution in examples:
-            sources={self.site/n:b'' for n in getattr(e,'RUNTIME_SOURCES',{}).get(distribution,())}
+            sources={self.site/n:b'' for n in self.runtime_sources.get(distribution,())}
             sources.update({self.site/n:raw for n,raw in examples[distribution].items()})
             for path,raw in sources.items():path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
             self.extra_sources.update(sources)
@@ -232,6 +348,17 @@ class PortableRuntimeFixture:
                 self.context['guards'][str(path)]=self.context['required_guards'][str(path)]=digest
                 original=self.context['training_context']['legacy']['selected']['source_cpu']['origins']
                 original['files'][str(path)]=digest;original['native_files'].append(str(path))
+            if scientific:
+                package=SCIENTIFIC_DISTRIBUTIONS.get(distribution,('',None))[0]
+                for name in SCIENTIFIC_NATIVE_IMPORTS.values():
+                    if name.split('/')[0]!=package:continue
+                    path=self.site/name;path.parent.mkdir(parents=True,exist_ok=True)
+                    path.write_bytes(b'original scientific native bytes; never executed')
+                    sources[path]=path.read_bytes();self.natives.append(path)
+                    digest=hashlib.sha256(sources[path]).hexdigest()
+                    self.context['guards'][str(path)]=self.context['required_guards'][str(path)]=digest
+                    original=self.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                    original['files'][str(path)]=digest;original['native_files'].append(str(path))
             record=self.site/(distribution+'-'+self.metadata_versions.get(distribution,'1.0')+'.dist-info')/'RECORD'
             record.parent.mkdir(exist_ok=True)
             rows=[[str(path.relative_to(self.site)),
@@ -262,8 +389,10 @@ class PortableRuntimeFixture:
             digest=hashlib.sha256(record.read_bytes()).hexdigest()
             self.context['guards'][str(record)]=self.context['required_guards'][str(record)]=digest
 
+    @contextmanager
     def boundary(self):
-        return e.bundle_reads_only(self.context,self.endpoint)
+        with patch.dict(e.RUNTIME_SOURCES,self.runtime_sources,clear=True),e.bundle_reads_only(self.context,self.endpoint):
+            yield
 
     def add_identity_distribution(self,name,version,declared):
         package=self.site/name.replace('-','_');package.mkdir()
@@ -843,6 +972,160 @@ class EvaluationTests(unittest.TestCase):
                             with f.boundary():pass
                     finally:
                         path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+
+    def test_scientific_runtime_inventory_is_finite(self):
+        counts={'scipy':408,'scikit_learn':109,'joblib':38,'threadpoolctl':1,'pandas':250,
+            'python_dateutil':12,'six':1,'narwhals':56,'psutil':5,'pyarrow':9,'rich':54}
+        for distribution,count in counts.items():
+            paths=e.RUNTIME_SOURCES[distribution]
+            self.assertEqual(sum(n.endswith('.py') for n in paths),count)
+            self.assertTrue(all('..' not in Path(n).parts and not Path(n).is_absolute() for n in paths))
+            self.assertTrue(all(n.endswith(('.py','.css')) for n in paths))
+        selected=set().union(*(e.RUNTIME_SOURCES[d] for d in counts))
+        self.assertEqual({n for n in selected if n.endswith('.css')},
+            {'sklearn/utils/_repr_html/'+n+'.css' for n in ('estimator','params','features')})
+        self.assertTrue(set(SCIENTIFIC_IMPORTS)<=selected)
+        self.assertTrue({'scipy/_external/array_api_compat/numpy/fft.py',
+            'sklearn/externals/array_api_compat/numpy/fft.py'}<=selected)
+        forbidden={'sklearn/cluster/__init__.py','sklearn/ensemble/__init__.py',
+            'sklearn/datasets/__init__.py','scipy/datasets/__init__.py','scipy/io/__init__.py',
+            'pandas/plotting/_matplotlib/__init__.py','pandas/_version.py','dateutil/rrule.py',
+            'dateutil/zoneinfo/__init__.py','narwhals/_arrow/dataframe.py','narwhals/_pandas_like/dataframe.py',
+            'rich/markdown.py','rich/syntax.py','pyarrow/parquet/__init__.py'}
+        self.assertFalse(selected & forbidden)
+        for distribution in ('markdown_it_py','mdurl','pygments','tzdata'):
+            self.assertNotIn(distribution,e.RUNTIME_SOURCES)
+
+    def test_bundle_boundary_scientific_transitive_source_fallback_and_denials(self):
+        prefixes=tuple(package for package,_ in SCIENTIFIC_DISTRIBUTIONS.values())
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0] in prefixes}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root,scientific=True)
+                sources={f.site/n:f.extra_sources[f.site/n] for n in SCIENTIFIC_IMPORTS}
+                for path,raw in sources.items():
+                    prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached'))
+                    py_compile.compile(str(path),doraise=True)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                forbidden=[f.site/n for n in ('sklearn/resume.pt','scipy/optimizer.pt','pandas/teachers.npy',
+                    'sklearn/cluster/__init__.py','scipy/io/__init__.py','pandas/plotting/_matplotlib/__init__.py',
+                    'narwhals/_arrow/dataframe.py','rich/markdown.py','pyarrow/parquet/__init__.py',
+                    'sklearn/utils/_repr_html/estimator.js','scipy/foreign.so')]+[root/'foreign.py',root/'proc/stat']
+                for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
+                # Extra rows in an original RECORD still confer no optional code/native access.
+                record=f.extra_records['scipy'];raw=forbidden[-3].read_bytes()
+                record.write_text(record.read_text()+'scipy/foreign.so,sha256='+
+                    base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('=')+','+str(len(raw))+'\n')
+                h=hashlib.sha256(record.read_bytes()).hexdigest()
+                f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                originals=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+                original_before=copy.deepcopy(originals);required_before=dict(f.context['required_guards'])
+                natives={name:SimpleNamespace(value=137,__file__=str(f.site/path),
+                    __spec__=SimpleNamespace(origin=str(f.site/path))) for name,path in SCIENTIFIC_NATIVE_IMPORTS.items()}
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name.split('.')[0] in prefixes:sys.modules.pop(name)
+                        with patch.dict(sys.modules,natives),f.boundary():
+                            loaded=module('sklearn',f.site/'sklearn/__init__.py') if direct_loader else importlib.import_module('sklearn')
+                            self.assertEqual((loaded.value,loaded.marker),(137,'source'))
+                            importlib.import_module('sklearn.metrics')
+                            for path,raw in sources.items():
+                                name=str(path.relative_to(f.site)).removesuffix('.py').replace('/','.').removesuffix('.__init__')
+                                loaded=sys.modules[name]
+                                self.assertIsInstance(loaded.__loader__,importlib.machinery.SourceFileLoader)
+                                self.assertEqual((loaded.__file__,loaded.__spec__.origin,loaded.marker),(str(path),str(path),'source'))
+                                self.assertEqual(path.read_bytes(),raw)
+                                with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                                with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
+                            for path in (*forbidden,*(f.extra_records[d] for d in SCIENTIFIC_DISTRIBUTIONS)):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                            for name in ('sklearn.cluster','scipy.io','rich.markdown'):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):importlib.import_module(name)
+                # The complete inventory, including modules absent from the small graph,
+                # has been authenticated to the fixture's original RECORD bytes.
+                for distribution in SCIENTIFIC_DISTRIBUTIONS:
+                    for name in e.RUNTIME_SOURCES[distribution]:
+                        path=f.site/name
+                        self.assertEqual(f.context['guards'][str(path)],hashlib.sha256(path.read_bytes()).hexdigest())
+                self.assertEqual(originals,original_before);self.assertEqual(f.context['required_guards'],required_before)
+                foreign=SimpleNamespace(__file__=str(forbidden[-2]),__spec__=SimpleNamespace(origin=str(forbidden[-2])))
+                for name in ('sklearn.utils.validation','scipy.stats._stats_py','pandas.compat.pyarrow',
+                        'dateutil.parser._parser','narwhals.stable.v2','psutil._pslinux','rich.console'):
+                    with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
+                        with f.boundary():pass
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0] in prefixes:sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_scientific_runtime_mutations_and_original_authority(self):
+        with tempfile.TemporaryDirectory() as directory:
+            f=PortableRuntimeFixture(Path(directory),scientific=True)
+            paths=[f.site/n for n in ('sklearn/utils/validation.py','scipy/stats/_stats_py.py',
+                'pandas/compat/pyarrow.py','dateutil/parser/_parser.py','narwhals/stable/v2/__init__.py',
+                'joblib/externals/loky/process_executor.py','psutil/_pslinux.py','pyarrow/compute.py',
+                'rich/console.py','threadpoolctl.py','six.py','sklearn/utils/_repr_html/estimator.css')]
+            for cached in (False,True):
+                f.context.pop('portable_audits',None)
+                if cached:
+                    with f.boundary():pass
+                for path in paths:
+                    raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    try:
+                        with self.subTest(path=path.name,cached=cached),self.assertRaisesRegex(ValueError,'SHA256'):
+                            with f.boundary():pass
+                    finally:path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+            f.context.pop('portable_audits',None)
+            record=f.extra_records['scipy'];record_raw=record.read_bytes();record_sha=f.context['required_guards'][str(record)]
+            source='scipy/stats/_stats_py.py'
+            for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row','wrong_hash','wrong_size'):
+                guards=dict(f.context['guards']);required=dict(f.context['required_guards'])
+                if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                elif case=='mutated_record':record.write_bytes(record_raw+b'\n')
+                elif case=='foreign_record':
+                    foreign=f.site.parent/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True)
+                    foreign.write_bytes(record_raw);f.context['required_guards'].pop(str(record))
+                    f.context['guards'][str(foreign)]=f.context['required_guards'][str(foreign)]=record_sha
+                else:
+                    rows=list(csv.reader(record_raw.decode().splitlines()));row=next(r for r in rows if r[0]==source)
+                    if case=='missing_row':rows.remove(row)
+                    elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                    else:row[2]='999'
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                try:
+                    with self.subTest(record=case),self.assertRaises(ValueError):
+                        with f.boundary():pass
+                finally:
+                    record.write_bytes(record_raw);f.context['guards']=guards;f.context['required_guards']=required
+            native=f.site/SCIENTIFIC_NATIVE_IMPORTS['scipy._lib._ccallback_c']
+            original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+            for case in ('unobserved','original_hash','required_guard','record_hash','record_size'):
+                saved=copy.deepcopy(original);guards=dict(f.context['guards']);required=dict(f.context['required_guards'])
+                if case=='unobserved':original['native_files'].remove(str(native))
+                elif case=='original_hash':original['files'][str(native)]='a'*64
+                elif case=='required_guard':f.context['required_guards'][str(native)]='a'*64
+                else:
+                    rows=list(csv.reader(record_raw.decode().splitlines()));row=next(r for r in rows if r[0]==str(native.relative_to(f.site)))
+                    if case=='record_hash':row[1]='sha256='+'A'*43
+                    else:row[2]='999'
+                    record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                    h=hashlib.sha256(record.read_bytes()).hexdigest()
+                    f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                try:
+                    if case=='unobserved':
+                        with f.boundary(),self.assertRaisesRegex(ValueError,'external dependency'):native.read_bytes()
+                    else:
+                        with self.subTest(native=case),self.assertRaises(ValueError):
+                            with f.boundary():pass
+                finally:
+                    original.clear();original.update(saved);record.write_bytes(record_raw)
+                    f.context['guards']=guards;f.context['required_guards']=required;f.context.pop('portable_audits',None)
 
     def test_bundle_boundary_distribution_identity_scan_and_versions(self):
         import importlib.metadata
