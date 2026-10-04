@@ -1,0 +1,46 @@
+{
+  "control": {
+    "log_sha256": "391e98fd6edb1ec63fa69c51d18e2257002eea29d4a9bd9bfe6efbb64ff542b8",
+    "runtime_hash_calls": 246,
+    "sum_runtime_hash_seconds": 79.32694675214589,
+    "completed_phase_events": [
+      {
+        "event": "COMPACT_PHASE",
+        "phase": "shared_source_preparation",
+        "boundary": "end",
+        "delta_seconds": 20.626299578230828,
+        "seconds": 168.8675065706484
+      },
+      {
+        "event": "COMPACT_PHASE",
+        "phase": "cache_target_preparation",
+        "boundary": "end",
+        "delta_seconds": 2.454000897705555,
+        "seconds": 171.32157180458307
+      }
+    ],
+    "measurement_scope": "sum of recorded boundary hash durations, included in whole service; not public latency or pure GPU compute"
+  },
+  "candidate": {
+    "log_sha256": "d2bcdd6c8a736ea113b04a14a9237f76d9f8ec7e894fb7af18f806ccd62deb38",
+    "runtime_hash_calls": 246,
+    "sum_runtime_hash_seconds": 78.5876678423956,
+    "completed_phase_events": [
+      {
+        "event": "COMPACT_PHASE",
+        "phase": "shared_source_preparation",
+        "boundary": "end",
+        "delta_seconds": 25.670071413740516,
+        "seconds": 172.232669796329
+      },
+      {
+        "event": "COMPACT_PHASE",
+        "phase": "cache_target_preparation",
+        "boundary": "end",
+        "delta_seconds": 2.344962313771248,
+        "seconds": 174.5776839023456
+      }
+    ],
+    "measurement_scope": "sum of recorded boundary hash durations, included in whole service; not public latency or pure GPU compute"
+  }
+}
