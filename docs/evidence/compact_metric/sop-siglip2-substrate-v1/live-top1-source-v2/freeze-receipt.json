@@ -1,0 +1,13 @@
+{
+  "authority_sha256": "07213b4b879439eaaa888c1e15381dbc8f2ea43011140e42b25bbeccc7dd2f75",
+  "code": {
+    "test_siglip2_compact_ranking.py": "70f86f22065888d569f834fc1b4b70f47e3a5d10331b013e158e220c2892a92e",
+    "train_siglip2_compact_ranking.py": "80db5701d05091b0b0412c6bb18cc8d17f486f5ca52ef5a60a06a028a736f218"
+  },
+  "command_sha256": "b0ee782f5d8eeaa247d1b35194bc96f666fd19196d34cf652f9b8ce31da080ab",
+  "execution_sha256": "3a7e7a42866e44ada935287fb15025fd0ab3469acea1a4579ca90e3ab8584f88",
+  "launch_sha256": "7298d2ad0079068c279903df062281092aed28120e02926bddfa5c8f16c28375",
+  "native_launched": false,
+  "original_guards_retained": 32,
+  "root": "/home/riomus/runs/sfora-so400-live-top1-train-source-v2"
+}

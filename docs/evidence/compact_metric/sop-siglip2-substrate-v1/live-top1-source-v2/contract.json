@@ -1,0 +1,314 @@
+{
+  "ACTIVE_OBJECTIVE_SOURCE": {
+    "code": {
+      "test_siglip2_compact_ranking.py": "6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b",
+      "train_siglip2_compact_ranking.py": "ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad"
+    },
+    "execution_sha256": "996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15",
+    "root": "/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1"
+  },
+  "APIs": {
+    "check_cpu_gradient": "(g, bank)",
+    "check_launch": "(launch, args)",
+    "check_optimizer": "(saved, ident, step)",
+    "check_payload": "(context, saved, ident, step)",
+    "check_steps": "(rows, start, count, bank)",
+    "check_terminal_record": "(record, launch, phase, arm, seed)",
+    "cli": "(root, authority, sha, execution, phase, arm, seed, output)",
+    "fullfeature_raw_features": "(features, head, A, means, C, mu_train, arm, primitive, readout)",
+    "inference_outputs": "(endpoint, images)",
+    "live_top1_hinge": "(scores, bank, anchors, full_valid)",
+    "live_top1_indices": "(scores, bank, anchors)",
+    "load_inference": "(directory, bundle_sha256, device)",
+    "loss_terms": "(context, state, raw, anchors, full_valid)",
+    "release_inference": "(endpoint)"
+  },
+  "CLI": "unchanged cli(root,authority,sha,execution,phase,arm,seed,output); --execution-sha256 --authority --authority-sha256 --phase cpu|mechanics|train --arm control|candidate --seed 179061|179069 --output",
+  "CPU_receipt_fields": {
+    "SmoothAP_role_keys": [
+      "initial:candidate:A",
+      "initial:candidate:C",
+      "initial:control:A",
+      "initial:control:C",
+      "nonzero:candidate:A",
+      "nonzero:candidate:C",
+      "nonzero:control:A",
+      "nonzero:control:C"
+    ],
+    "arm_keys": [
+      "active",
+      "augmented_mse",
+      "canonical_mse",
+      "gradients",
+      "hinge",
+      "hinge_active",
+      "loss",
+      "micro16_global_reduction_exact",
+      "mse",
+      "rank"
+    ],
+    "gradient_components": [
+      "augmented_regression",
+      "canonical_regression",
+      "hinge",
+      "ranking",
+      "regression",
+      "total"
+    ],
+    "gradient_keys": [
+      "C_candidate_minus_control_gradient_norm",
+      "K",
+      "active",
+      "arms",
+      "base_losses_and_A_C_gradients_matched",
+      "batch",
+      "candidate_C_gradient_norm",
+      "candidate_gradient_norm",
+      "candidate_minus_control_equals_hinge",
+      "candidate_minus_control_gradient_norm",
+      "control_C_gradient_norm",
+      "control_gradient_norm",
+      "detached_gallery_mutant_rejected",
+      "frozen_bytes_exact",
+      "gallery_gradient_norm",
+      "gallery_gradient_sha256",
+      "gradient_alignment",
+      "hinge",
+      "hinge_active",
+      "hinge_gradient_norm",
+      "hinge_only_gallery_detached_mutant_rejected",
+      "hinge_roles",
+      "initial_gallery_scores_matched",
+      "initial_raw_unit_packed_exact",
+      "live_top1_selection_exact",
+      "membership_sha256",
+      "micro16_global_reduction_exact",
+      "mse",
+      "multi_positive_anchors",
+      "native_mask_self_ties_singletons_exact",
+      "nonnearest_gradient_norm",
+      "nonnearest_loss",
+      "nonnearest_positive_terms",
+      "nonzero_C_oracle_exact",
+      "omitted_C_mutant_rejected",
+      "original_active_objective_exact",
+      "query_gradient_norm",
+      "query_gradient_sha256",
+      "rank",
+      "ranking_gradient_norm",
+      "regression_difference_gradient_norm",
+      "regression_gradients_identical",
+      "roles",
+      "seed",
+      "tied_gradient_equals_query_plus_gallery",
+      "wrong_mu_mutant_rejected"
+    ],
+    "hinge_role_keys": [
+      "initial:candidate:A",
+      "initial:candidate:C",
+      "nonzero:candidate:A",
+      "nonzero:candidate:C"
+    ],
+    "parameter_keys": [
+      "A",
+      "C"
+    ],
+    "role_fields": [
+      "detached_gallery_mutant_rejected",
+      "full64_micro16_exact",
+      "gallery_gradient_norm",
+      "gallery_gradient_sha256",
+      "query_gradient_norm",
+      "query_gradient_sha256",
+      "query_plus_gallery_exact",
+      "tied_gradient_norm",
+      "tied_gradient_sha256"
+    ]
+  },
+  "CPU_receipts": "both A/C per-term gradients; control exact archived fullfeature candidate objective and A/C gradients; candidate-control preclip=hinge; separate SmoothAP and hinge query/gallery decompositions; hinge-only gallery-detached mutant; both arms nonzeroC oracle; initial raw/unit/packed, full64/micro16, nonnearest SmoothAP and singleton/invalid/tie witnesses; graphs/copies sequentially released",
+  "base": "0708ba553025bc3c368a2e66008ade162b5f93a2",
+  "code": {
+    "test_siglip2_compact_ranking.py": "70f86f22065888d569f834fc1b4b70f47e3a5d10331b013e158e220c2892a92e",
+    "train_siglip2_compact_ranking.py": "80db5701d05091b0b0412c6bb18cc8d17f486f5ca52ef5a60a06a028a736f218"
+  },
+  "execution": {
+    "path": "/tmp/live-top1-final-source/execution.json",
+    "sha256": "3a7e7a42866e44ada935287fb15025fd0ab3469acea1a4579ca90e3ab8584f88"
+  },
+  "files": [
+    "test_siglip2_compact_ranking.py",
+    "train_siglip2_compact_ranking.py"
+  ],
+  "hinge_API": "live_top1_hinge(scores,bank,anchors,full_valid) -> connected hinge, active count",
+  "inference_APIs": {
+    "admit_bundle": "(directory, sha)",
+    "fullfeature_raw_features": "(features, head, A, means, C, mu_train, arm, primitive, readout)",
+    "inference_members": "(context, state)",
+    "inference_outputs": "(endpoint, images)",
+    "inference_readout_tree": "(endpoint)",
+    "load_inference": "(directory, bundle_sha256, device)",
+    "parameter_roles": "(arm)",
+    "release_inference": "(endpoint)"
+  },
+  "inference_keys": [
+    "A",
+    "C",
+    "arm",
+    "buffers",
+    "config",
+    "fixed_sha256",
+    "head",
+    "means",
+    "mu_train",
+    "mu_train_provenance",
+    "numerical_flags",
+    "processor",
+    "schema",
+    "source",
+    "vision_sha256"
+  ],
+  "loss_API": "loss_terms(context,state,raw,anchors,full_valid) -> mse, rank (unchanged SmoothAP), hinge (zero control), membership with active (SmoothAP) and hinge_active; candidate same connected scores",
+  "native_status": "UNRUN; root owns native qualification. New source hashes supplied only after final exact2 bytes exist.",
+  "payload_keys": [
+    "A",
+    "C",
+    "buffers",
+    "classifier",
+    "config",
+    "counter",
+    "cpu_rng",
+    "cuda_rng",
+    "head",
+    "identity",
+    "means",
+    "mu_train",
+    "mu_train_provenance",
+    "numerical_flags",
+    "optimizer",
+    "original_rows",
+    "partition",
+    "processor",
+    "provenance",
+    "scaler",
+    "schedules",
+    "schema",
+    "source",
+    "target",
+    "teachers",
+    "views"
+  ],
+  "recipe": {
+    "adamw": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "capturable": false,
+      "differentiable": false,
+      "eps": 1e-08,
+      "foreach": false,
+      "fused": false,
+      "lr": 0.0001,
+      "maximize": false,
+      "weight_decay": 0.05
+    },
+    "batch": 64,
+    "classes": 1008,
+    "clip": 1.0,
+    "core": "cache/target preparation + both-arm all-positive scoring + both-view forward/backward + every both-arm gallery forward/backward + both-arm fullfeature centering/transfers + candidate hinge selection/transfers/backward + optimizer",
+    "frozen": "complete encoder448/config/buffers/processor/head/classifier/means/muTRAIN",
+    "gallery": "both arms reconstruct connected gallery every micro16 at same pre-update A/C; both-role backward then release each graph; one optimizer step after eight micros; no serialized gallery",
+    "hinge": "candidate coefficient1 relu(.05+s_nearest_wrong-s_nearest_positive) sum / (.05*2*K); control connected zero; K counts full scheduled B64 valid occurrences bothviews/micro16",
+    "hinge_coefficient": 1.0,
+    "hinge_margin": 0.05,
+    "initial_scaler": 128.0,
+    "microbatch": 16,
+    "mining": "all6355 canonical rows; both arms current connected canonical readout at same pre-update A/C; exclude same original image; all same-identity positives; canonical ordinal traversal",
+    "ranking": "both arms backward coefficient1; all positives; SmoothAP sum / (2*K)",
+    "readout": "original CPU-renormalized genuine features; FP32 all; autocast disabled",
+    "regression": "both arms P[label]; both original views coordinate sum / (128*e0)",
+    "residual": "both arms original concat helper once + linear(actual normalized x - canonical TRAIN6355 mu,C); fresh accepted A0/zeroC; mean FP32 canonical actual CPU domain only",
+    "rows": 6355,
+    "schedule": "original first128 B64 per seed; warm-authenticated; masks unused",
+    "seeds": [
+      179061,
+      179069
+    ],
+    "selection": "detached scores for indices only; filter invalid anchors before indexing; exclude original-row self; highest score then ascending original row; gather same connected scorematrix; singleton gallery negatives connected",
+    "singletons": 12,
+    "teacher": "accepted canonical T; member-inclusive P; normalize(T); both-view e0",
+    "temperature": 0.01,
+    "trainable_names": {
+      "candidate": [
+        "A",
+        "C"
+      ],
+      "control": [
+        "A",
+        "C"
+      ]
+    },
+    "trainable_scalars": {
+      "candidate": 167936,
+      "control": 167936
+    },
+    "trainable_shapes": {
+      "candidate": [
+        [
+          128,
+          160
+        ],
+        [
+          128,
+          1152
+        ]
+      ],
+      "control": [
+        [
+          128,
+          160
+        ],
+        [
+          128,
+          1152
+        ]
+      ]
+    },
+    "updates": 128,
+    "views": [
+      "canonical",
+      "augmented"
+    ]
+  },
+  "recipe_sha256": "76040dc2d5e16a40d9e33dd6b827af3fc847b6361e1a6599e5da77e01320dc26",
+  "resource_policy": {
+    "cpu": {
+      "cuda_allocated_bytes_exclusive": 10000000000,
+      "host_bytes": 8589934592,
+      "seconds": 500,
+      "swap_bytes": 0
+    },
+    "mechanics": {
+      "cuda_allocated_bytes_exclusive": 10000000000,
+      "host_bytes": 8589934592,
+      "seconds": 600,
+      "swap_bytes": 0
+    },
+    "train": {
+      "cuda_allocated_bytes_exclusive": 10000000000,
+      "host_bytes": 8589934592,
+      "seconds": 600,
+      "swap_bytes": 0
+    }
+  },
+  "schemas": {
+    "AUTHORITY_SCHEMA": "siglip2-compact-live-top1-launch-v1",
+    "BUNDLE_SCHEMA": "siglip2-compact-live-top1-bundle-v1",
+    "INFERENCE_SCHEMA": "siglip2-compact-live-top1-inference-v1",
+    "SCHEMA": "siglip2-compact-live-top1-v1"
+  },
+  "selection_API": "live_top1_indices(scores, bank, anchors) -> (offset, positive_column, wrong_column) triples; scores detached once to CPU, deterministic original-row ties",
+  "status": "SOURCE ONLY; native UNRUN. Final suite result and commit in worker receipt after completion.",
+  "step_receipts": "retain rank and active_anchors for SmoothAP and <=1 bound; add hinge, hinge_active_anchors, hinge_gradient_norm, ranking_C_gradient_norm, hinge_C_gradient_norm; loss=mse+rank+hinge; membership adds hinge_active; both arms C gradient>0 and changed C"
+}
