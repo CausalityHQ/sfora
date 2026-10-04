@@ -1127,6 +1127,71 @@ class EvaluationTests(unittest.TestCase):
                     original.clear();original.update(saved);record.write_bytes(record_raw)
                     f.context['guards']=guards;f.context['required_guards']=required;f.context.pop('portable_audits',None)
 
+    def test_numpy_distribution_origin_preserves_missing_metadata(self):
+        import importlib.metadata
+        with tempfile.TemporaryDirectory() as directory:
+            f=PortableRuntimeFixture(Path(directory));probe=f.metadata['numpy'].with_name('direct_url.json')
+            required_before=dict(f.context['required_guards'])
+            other=f.metadata['packaging'].with_name('direct_url.json');other.write_text('{}')
+            unknown=probe.with_name('foreign.json');unknown.write_text('{}')
+            for cached in (False,True):
+                with self.subTest(cached=cached),patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]),f.boundary():
+                    distribution=importlib.metadata.distribution('numpy')
+                    self.assertIsNone(distribution.read_text('direct_url.json'))
+                    self.assertIsNone(distribution.origin)
+                    # The exact installed NumPy >=3.13 expression handles None
+                    # by its normal AttributeError path, without importing NumPy.
+                    try:editable=distribution.origin.dir_info.editable
+                    except AttributeError:editable=False
+                    self.assertFalse(editable)
+                    with self.assertRaises(FileNotFoundError):probe.read_bytes()
+                    with self.assertRaisesRegex(ValueError,'attempted write'):probe.write_text('{}')
+                    for path in (other,unknown):
+                        with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                    with self.assertRaisesRegex(ValueError,'external dependency'):
+                        importlib.metadata.distribution('packaging').origin
+            self.assertFalse(probe.exists());self.assertNotIn(str(probe),f.context['guards'])
+            self.assertEqual(f.context['required_guards'],required_before)
+
+    def test_numpy_missing_origin_rejects_new_files_symlinks_and_record_rows(self):
+        import importlib.metadata
+        for cached in (False,True):
+            for case in ('regular','empty','symlink','dangling'):
+                with self.subTest(cached=cached,case=case),tempfile.TemporaryDirectory() as directory:
+                    f=PortableRuntimeFixture(Path(directory));probe=f.metadata['numpy'].with_name('direct_url.json')
+                    if cached:
+                        with f.boundary():pass
+                    target=f.bundle/'original.json';target.write_text('{}')
+                    if case=='regular':probe.write_text('{"dir_info":{"editable":true}}')
+                    elif case=='empty':probe.write_bytes(b'')
+                    else:probe.symlink_to(target if case=='symlink' else target.with_name('missing.json'))
+                    with self.assertRaisesRegex(ValueError,'absent distribution identity changed'):
+                        with f.boundary():pass
+        for case in ('regular','symlink'):
+            with self.subTest(live=case),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory));probe=f.metadata['numpy'].with_name('direct_url.json')
+                replacement=f.bundle/'replacement.json';target=f.bundle/'original.json';target.write_text('{}')
+                if case=='regular':replacement.write_text('{"dir_info":{"editable":true}}')
+                else:replacement.symlink_to(target)
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]),self.assertRaisesRegex(ValueError,'absent distribution identity changed'):
+                    with f.boundary():
+                        # A rename simulates an external concurrent replacement;
+                        # the existing write-open denial remains active.
+                        replacement.replace(probe)
+                        with self.assertRaisesRegex(ValueError,'absent distribution identity changed'):
+                            importlib.metadata.distribution('numpy').origin
+        for present in (False,True):
+            with self.subTest(declared=present),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory));probe=f.metadata['numpy'].with_name('direct_url.json')
+                raw=b'{"dir_info":{"editable":true}}'
+                if present:probe.write_bytes(raw)
+                record=f.extra_records['numpy'];record.write_text(record.read_text()+str(probe.relative_to(f.site))+
+                    ',sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('=')+','+str(len(raw))+'\n')
+                h=hashlib.sha256(record.read_bytes()).hexdigest()
+                f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                with self.assertRaisesRegex(ValueError,'absent distribution identity changed'):
+                    with f.boundary():pass
+
     def test_bundle_boundary_distribution_identity_scan_and_versions(self):
         import importlib.metadata
         with tempfile.TemporaryDirectory() as directory:

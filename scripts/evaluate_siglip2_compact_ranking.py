@@ -1371,6 +1371,12 @@ def distribution_identity_files(context,site):
             require(top.resolve() == top and not top.exists() and not top.is_symlink(),
                 'absent distribution identity changed: '+str(top))
             absent.add(top)
+        if record.parent.name == 'numpy-2.5.0.dist-info':
+            origin=record.parent/'direct_url.json'
+            require(str(origin.relative_to(site)) not in seen and origin.resolve() == origin and
+                not origin.exists() and not origin.is_symlink(),
+                'absent distribution identity changed: '+str(origin))
+            absent.add(origin)
         if not declared:
             record_reads.add(record)
     return files,absent,record_reads
