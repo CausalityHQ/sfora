@@ -1,0 +1,10 @@
+{
+  "pass": true,
+  "service_seconds": 223.076,
+  "host_peak_bytes": 1580015616,
+  "rss_kib": 1156068,
+  "invocation_id": "a2c4e7b22f2944589331a9f7dd7b3832",
+  "quality_read": false,
+  "receipt_sha256": "1924dffe2fe3a42aa51d53764a170daae630da3863760046e3c3ffeaf79b31f2",
+  "log_sha256": "3acfa1a518d6f38900cf2ed172d568a4326ea7951cbf330cc030b1472d450deb"
+}
