@@ -1,0 +1,45 @@
+{
+  "schema": "compact-runtime-import-closure-source-receipt-v1",
+  "time_utc": "2026-10-04T00:12:24.751232+00:00",
+  "base": "6835bd67dc9e614fe7f401d57fef124c18874cef",
+  "files": {
+    "scripts/evaluate_siglip2_compact_ranking.py": "4adf432ac2c32cdcabc0c4571db8e470620747cfe3bc5b6a2e51468b069b9add",
+    "scripts/test_compact_ranking_evaluation.py": "afaf8c47af2b4c9ff51cd6dc79f109c9461142508d29a11e45bd26ae6cd12de2"
+  },
+  "contract": {
+    "path": "/tmp/sfora-compact-runtime-contract-20261003.json",
+    "sha256": "67e54db9afbf7f7685e68e0564cbe3ba8208caf7b8aaae1e5315af2c6513bf42"
+  },
+  "verification": {
+    "command": "timeout 55s python3 -B -m unittest -v test_compact_ranking_evaluation",
+    "cwd": "/home/rb/worktrees/sfora-compact-runtime-import-closure-20261003/scripts",
+    "exit_code": 0,
+    "test_count": 19,
+    "seconds": 25.465,
+    "full_suite_runs": 1,
+    "log": {
+      "path": "/tmp/sfora-compact-runtime-stdlib-suite-20261003.log",
+      "sha256": "371cd5e421feb1012139b4608f6f3c8ffd5fc54d97f92d2218a08f90d217fd1a"
+    },
+    "diff_check": true,
+    "unrelated_evaluator_ast_unchanged": true,
+    "retained_ast_sha256": "d188ed50e8a82a19bd8f321cd3d19f56dd60098c917a43f6101d8ebf6b4161f6",
+    "red_regression_observed": "SourceFileLoader rejected regex/__pycache__/__init__.cpython-314.pyc before fix; singleton typing_extensions cache read also rejected before finite dependency extension",
+    "source_bytes_independently_record_verified": 144,
+    "commit_exact_two_files_verified": true,
+    "clean_worktree": true
+  },
+  "scope": {
+    "only_exact_two_files": true,
+    "stdlib_source_tests_only": true,
+    "native_qualification_pass": false,
+    "quality_read": false,
+    "no_push_or_integration": true,
+    "root_import_only_qualification_outstanding": true
+  },
+  "operator_git_identity": {
+    "name": "Roman Bartusiak",
+    "email": "riomus@gmail.com"
+  },
+  "commit": "83d5426af47b46b174fc7c0fba79f18fb261829a"
+}

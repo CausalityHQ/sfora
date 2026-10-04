@@ -1,0 +1,41 @@
+{
+  "both_locks": true,
+  "host_bytes": 8589934592,
+  "inputs": {
+    "bundle": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-control-179061-v3/bundle/bundle.json",
+      "sha256": "097169fbeec8b19fa6194d470e6613a83f84e967201fc72793e3b2f53a3609d2"
+    },
+    "cpu_receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-first-cpu-v5/receipt.json",
+      "sha256": "55159154c0ca26766c6ad56685a88d426aa190642aa894ff359632ce47d5f8ec"
+    },
+    "evaluator": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v6/evaluate_siglip2_compact_ranking.py",
+      "sha256": "4adf432ac2c32cdcabc0c4571db8e470620747cfe3bc5b6a2e51468b069b9add"
+    },
+    "execution": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v6/execution.json",
+      "sha256": "959d4e7908a48c6b979b3a29b6bfb3889f5f9e9591fe69e22180f89fdbd2113e"
+    },
+    "source_proof": {
+      "path": "/home/riomus/runs/sfora-native256-source-cpu-so400-v4/proof.json",
+      "sha256": "e8a1e02e27ed4e4726682c0a61e547d097912b98e3535ddb3da8c1bb4e144cbf"
+    },
+    "test": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v6/test_compact_ranking_evaluation.py",
+      "sha256": "afaf8c47af2b4c9ff51cd6dc79f109c9461142508d29a11e45bd26ae6cd12de2"
+    },
+    "trainer": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/train_siglip2_compact_ranking.py",
+      "sha256": "880a8e40a1b32e97786d6dcf2449e4ecbdc98a0a5d9e5a35d9c6a2519d7cb53c"
+    }
+  },
+  "qualification_eligible": false,
+  "schema": "compact-lazy-import-diagnostic-authority-v1",
+  "seconds": 300,
+  "source_execution_sha256": "959d4e7908a48c6b979b3a29b6bfb3889f5f9e9591fe69e22180f89fdbd2113e",
+  "state_reuse_eligible": false,
+  "stop": "One original import-only invocation; no model construction/images/quality; collect error or import success before fresh CPU.",
+  "swap_bytes": 0
+}
