@@ -1,0 +1,500 @@
+{
+  "schema": "compact-hub-utils-runtime-contract-v1",
+  "base": "1ef6e136fff932bd14c8cf34d936bfaacb9ddb95",
+  "evidence": "/tmp/sfora-compact-hub-source-closure-20261004.json",
+  "evidence_sha256": "f85bccd312cdb08189f3f408dc57a4bdc0279d47c8389102e6dfb9f8e26bfc94",
+  "status": "implemented and stdlib verified; parent native import-only qualification outstanding",
+  "hub_sources": [
+    "huggingface_hub/__init__.py",
+    "huggingface_hub/constants.py",
+    "huggingface_hub/dataclasses.py",
+    "huggingface_hub/errors.py",
+    "huggingface_hub/serialization/__init__.py",
+    "huggingface_hub/serialization/_base.py",
+    "huggingface_hub/serialization/_torch.py",
+    "huggingface_hub/utils/__init__.py",
+    "huggingface_hub/utils/_auth.py",
+    "huggingface_hub/utils/_cache_assets.py",
+    "huggingface_hub/utils/_cache_manager.py",
+    "huggingface_hub/utils/_chunk_utils.py",
+    "huggingface_hub/utils/_datetime.py",
+    "huggingface_hub/utils/_detect_agent.py",
+    "huggingface_hub/utils/_experimental.py",
+    "huggingface_hub/utils/_fixes.py",
+    "huggingface_hub/utils/_git_credential.py",
+    "huggingface_hub/utils/_headers.py",
+    "huggingface_hub/utils/_hf_uris.py",
+    "huggingface_hub/utils/_http.py",
+    "huggingface_hub/utils/_lfs.py",
+    "huggingface_hub/utils/_pagination.py",
+    "huggingface_hub/utils/_parsing.py",
+    "huggingface_hub/utils/_paths.py",
+    "huggingface_hub/utils/_runtime.py",
+    "huggingface_hub/utils/_safetensors.py",
+    "huggingface_hub/utils/_subprocess.py",
+    "huggingface_hub/utils/_telemetry.py",
+    "huggingface_hub/utils/_terminal.py",
+    "huggingface_hub/utils/_typing.py",
+    "huggingface_hub/utils/_validators.py",
+    "huggingface_hub/utils/_xet.py",
+    "huggingface_hub/utils/logging.py",
+    "huggingface_hub/utils/tqdm.py"
+  ],
+  "new_sources": [
+    "huggingface_hub/constants.py",
+    "huggingface_hub/serialization/__init__.py",
+    "huggingface_hub/serialization/_base.py",
+    "huggingface_hub/serialization/_torch.py",
+    "huggingface_hub/utils/__init__.py",
+    "huggingface_hub/utils/_auth.py",
+    "huggingface_hub/utils/_cache_assets.py",
+    "huggingface_hub/utils/_cache_manager.py",
+    "huggingface_hub/utils/_chunk_utils.py",
+    "huggingface_hub/utils/_datetime.py",
+    "huggingface_hub/utils/_detect_agent.py",
+    "huggingface_hub/utils/_experimental.py",
+    "huggingface_hub/utils/_fixes.py",
+    "huggingface_hub/utils/_git_credential.py",
+    "huggingface_hub/utils/_headers.py",
+    "huggingface_hub/utils/_hf_uris.py",
+    "huggingface_hub/utils/_http.py",
+    "huggingface_hub/utils/_lfs.py",
+    "huggingface_hub/utils/_pagination.py",
+    "huggingface_hub/utils/_parsing.py",
+    "huggingface_hub/utils/_paths.py",
+    "huggingface_hub/utils/_runtime.py",
+    "huggingface_hub/utils/_safetensors.py",
+    "huggingface_hub/utils/_subprocess.py",
+    "huggingface_hub/utils/_telemetry.py",
+    "huggingface_hub/utils/_terminal.py",
+    "huggingface_hub/utils/_typing.py",
+    "huggingface_hub/utils/_validators.py",
+    "huggingface_hub/utils/_xet.py",
+    "huggingface_hub/utils/logging.py",
+    "huggingface_hub/utils/tqdm.py"
+  ],
+  "definition_time_edges": {
+    "huggingface_hub/utils/__init__.py": [
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_auth.py",
+      "huggingface_hub/utils/_cache_assets.py",
+      "huggingface_hub/utils/_cache_manager.py",
+      "huggingface_hub/utils/_chunk_utils.py",
+      "huggingface_hub/utils/_datetime.py",
+      "huggingface_hub/utils/_detect_agent.py",
+      "huggingface_hub/utils/_experimental.py",
+      "huggingface_hub/utils/_fixes.py",
+      "huggingface_hub/utils/_git_credential.py",
+      "huggingface_hub/utils/_headers.py",
+      "huggingface_hub/utils/_hf_uris.py",
+      "huggingface_hub/utils/_http.py",
+      "huggingface_hub/utils/_pagination.py",
+      "huggingface_hub/utils/_paths.py",
+      "huggingface_hub/utils/_runtime.py",
+      "huggingface_hub/utils/_safetensors.py",
+      "huggingface_hub/utils/_subprocess.py",
+      "huggingface_hub/utils/_telemetry.py",
+      "huggingface_hub/utils/_terminal.py",
+      "huggingface_hub/utils/_typing.py",
+      "huggingface_hub/utils/_validators.py",
+      "huggingface_hub/utils/_xet.py",
+      "huggingface_hub/utils/tqdm.py"
+    ],
+    "huggingface_hub/utils/_datetime.py": [],
+    "huggingface_hub/utils/_git_credential.py": [
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/_subprocess.py"
+    ],
+    "huggingface_hub/constants.py": [],
+    "huggingface_hub/utils/_cache_assets.py": [
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/_experimental.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/_telemetry.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py"
+    ],
+    "huggingface_hub/utils/tqdm.py": [
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/_auth.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/_runtime.py"
+    ],
+    "huggingface_hub/utils/_typing.py": [],
+    "huggingface_hub/utils/_terminal.py": [
+      "huggingface_hub/utils/_detect_agent.py"
+    ],
+    "huggingface_hub/utils/_hf_uris.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/_validators.py"
+    ],
+    "huggingface_hub/utils/_validators.py": [
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/_typing.py"
+    ],
+    "huggingface_hub/utils/_runtime.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/_cache_manager.py": [
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_parsing.py",
+      "huggingface_hub/utils/_terminal.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_parsing.py": [],
+    "huggingface_hub/utils/logging.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py"
+    ],
+    "huggingface_hub/utils/_pagination.py": [
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_xet.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py"
+    ],
+    "huggingface_hub/utils/_fixes.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_chunk_utils.py": [],
+    "huggingface_hub/utils/_safetensors.py": [],
+    "huggingface_hub/utils/_headers.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/_auth.py",
+      "huggingface_hub/utils/_detect_agent.py",
+      "huggingface_hub/utils/_runtime.py",
+      "huggingface_hub/utils/_validators.py"
+    ],
+    "huggingface_hub/utils/_subprocess.py": [
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_detect_agent.py": [],
+    "huggingface_hub/utils/_http.py": [
+      "huggingface_hub/__init__.py",
+      "huggingface_hub/constants.py",
+      "huggingface_hub/errors.py",
+      "huggingface_hub/utils/__init__.py",
+      "huggingface_hub/utils/_lfs.py",
+      "huggingface_hub/utils/_typing.py",
+      "huggingface_hub/utils/logging.py"
+    ],
+    "huggingface_hub/utils/_lfs.py": [],
+    "huggingface_hub/utils/_paths.py": [],
+    "huggingface_hub/__init__.py": [],
+    "huggingface_hub/dataclasses.py": [
+      "huggingface_hub/errors.py"
+    ],
+    "huggingface_hub/errors.py": [],
+    "huggingface_hub/serialization/__init__.py": [
+      "from ._base import StateDictSplit, split_state_dict_into_shards_factory",
+      "from ._torch import get_torch_storage_id, get_torch_storage_size, load_state_dict_from_file, load_torch_model, save_torch_model, save_torch_state_dict, split_torch_state_dict_into_shards"
+    ],
+    "huggingface_hub/serialization/_base.py": [
+      "from collections.abc import Callable",
+      "from dataclasses import dataclass, field",
+      "from typing import Any, TypeVar",
+      "from .. import logging"
+    ],
+    "huggingface_hub/serialization/_torch.py": [
+      "import importlib",
+      "import importlib.util",
+      "import json",
+      "import os",
+      "import re",
+      "from collections import defaultdict, namedtuple",
+      "from collections.abc import Iterable",
+      "from functools import lru_cache",
+      "from pathlib import Path, PureWindowsPath",
+      "from typing import TYPE_CHECKING, Any, NamedTuple, Union",
+      "from packaging import version",
+      "from .. import constants, logging",
+      "from ._base import MAX_SHARD_SIZE, StateDictSplit, split_state_dict_into_shards_factory"
+    ]
+  },
+  "files": {
+    "huggingface_hub/__init__.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/__init__.py",
+      "sha256": "1515e1c7cab31e44790007afe6bdf1ee0c198c67c30b90e2052e00ab8a930cbd",
+      "size_bytes": 58591,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/constants.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/constants.py",
+      "sha256": "5611881abf1c7aa3819b6c7d85b87b315d56292f13dd1de9f3b46cc21041ed1c",
+      "size_bytes": 11870,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/dataclasses.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/dataclasses.py",
+      "sha256": "2e810e3d14135e0afd57b38f5af89e0032ee7e55b8ee5e931c669dba7b65ab1e",
+      "size_bytes": 26047,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/errors.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/errors.py",
+      "sha256": "39576bbff5a97f23878a714feff46166773069f544d02a05363d2d4ec1c40bc0",
+      "size_bytes": 14739,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/__init__.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/__init__.py",
+      "sha256": "5d6c15834508df977546625cfa3c262ea50638f76ecfb35c18e8c480088c063f",
+      "size_bytes": 4061,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_auth.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_auth.py",
+      "sha256": "ae2fa761d0b30c61a6e3fb0362ec7605454247d8f193f416166678098fe51606",
+      "size_bytes": 8855,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_cache_assets.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_cache_assets.py",
+      "sha256": "9e7cc746d400479d1d41e20aeaa29d76c9a38d35bdbfd1d9edbf5babb3c9aacb",
+      "size_bytes": 5691,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_cache_manager.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_cache_manager.py",
+      "sha256": "2b731fc51db07bfb94da3e712c3d5b32bbbace28730c39726599ba98650ec6d3",
+      "size_bytes": 33023,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_chunk_utils.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_chunk_utils.py",
+      "sha256": "a538f2f19f8a2d4e16ffa0f739487713c942a1d58309de9a2708cd0d4d02e54f",
+      "size_bytes": 2121,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_datetime.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_datetime.py",
+      "sha256": "b5b3722340e4876ee849c3d4b4b213ffc6a9a882245d961b8a08ce9fd4b768cc",
+      "size_bytes": 2755,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_detect_agent.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_detect_agent.py",
+      "sha256": "b527c966c233acf65660757bed4258d3b28b88d91aa3101768e985f4c5d691d2",
+      "size_bytes": 3029,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_experimental.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_experimental.py",
+      "sha256": "abdbd4bdcd49c9b545450d06451106f812e8b991090bfe343317306c094eb9dd",
+      "size_bytes": 2464,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_fixes.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_fixes.py",
+      "sha256": "8d32b554b99cd190bd44e4978caa0be45ea4399141cb38ab45621d5f18417d65",
+      "size_bytes": 4124,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_git_credential.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_git_credential.py",
+      "sha256": "d41863bc849c08e013a033912ce2ab4774b3b3e9b41390181cf982d120fb36bb",
+      "size_bytes": 4548,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_headers.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_headers.py",
+      "sha256": "7c777c25f955d6c5f4da67509f073b935ce597765771ebbe1e6986cf450e105a",
+      "size_bytes": 8090,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_hf_uris.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_hf_uris.py",
+      "sha256": "8bfb746969852129e1815f3858cbbb5d762ce871d3f9ae8fe9a31d0176d1ec1c",
+      "size_bytes": 16797,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_http.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_http.py",
+      "sha256": "4824cc7998ca33d6a06067d57d18ed4ff79728c34af6ed7e4424b30627ffa23b",
+      "size_bytes": 42652,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_lfs.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_lfs.py",
+      "sha256": "c4c53e44e80d014a439336c7eb2459b04f9e5585184cd306ae055bfd0753bfe9",
+      "size_bytes": 3942,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_pagination.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_pagination.py",
+      "sha256": "6ee20a1114b258e26a55263d9eff212260e6344ac3f8f3ce9d7a2c5e6d8ef3b6",
+      "size_bytes": 1832,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_parsing.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_parsing.py",
+      "sha256": "14a9da28fa75ebd68efcf2132faf3e7816fe8905f1c7cf6759b0d442541b6dd0",
+      "size_bytes": 3461,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_paths.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_paths.py",
+      "sha256": "65c785f499d1ccdaefacc4af3db82b8ae450dff2e92dadc413c5b6d5bbc1c5a5",
+      "size_bytes": 5265,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_runtime.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_runtime.py",
+      "sha256": "19527f0edeb2ff8f13656974ba2f723dd5bc33baea19b9511b252a29a5f1902a",
+      "size_bytes": 13493,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_safetensors.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_safetensors.py",
+      "sha256": "a8513b380faf8d4f17d33041b4e78d4732eed78eca17e3dd1686b19187d60783",
+      "size_bytes": 4426,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_subprocess.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_subprocess.py",
+      "sha256": "b4554104da2dfc72d5a90efdcbcef74c66f5d82e0f513330b9bf868730d37a61",
+      "size_bytes": 4542,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_telemetry.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_telemetry.py",
+      "sha256": "4e96b762638b84afcc1272f68b67d12d0cbc6aa0046566e3e8c282d7c1ecf010",
+      "size_bytes": 4824,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_terminal.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_terminal.py",
+      "sha256": "042ca866ff03bf5b5b01868822746f4fe5e5f6df4404c339e80c66250d8a8990",
+      "size_bytes": 3715,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_typing.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_typing.py",
+      "sha256": "d4b784efce5879da695d247d6b57d00eee6b853c57e6ff6405805a1eb3fae6b0",
+      "size_bytes": 3542,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_validators.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_validators.py",
+      "sha256": "b6e0b5538cb107ee172886a364c9ca65448abd9eaa3e9c9d63c2c8b5f6b4838d",
+      "size_bytes": 8419,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/_xet.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_xet.py",
+      "sha256": "bf6548fe2546229e3e9864f8e0bf6763d4787dd05e55ea63501cec5487904b58",
+      "size_bytes": 9834,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/logging.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/logging.py",
+      "sha256": "59a5e4e6045af0c97f2d4207df8402afcb2e623f22ffc5a8b782039d82725b23",
+      "size_bytes": 4870,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/utils/tqdm.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/tqdm.py",
+      "sha256": "29b1e1901e60efa26018e18272301039a47ea1cfb0cdde12af7c2a778d67cbb9",
+      "size_bytes": 13350,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/serialization/__init__.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/serialization/__init__.py",
+      "sha256": "8c28b0fef550616e7683055f5a2aa0a1c7f6435f641934254465697fee122cff",
+      "size_bytes": 963,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/serialization/_base.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/serialization/_base.py",
+      "sha256": "f9b8515b6d5922acdae6013f91690bf1ac7e104e8beb169b2a490adf9c0e5f46",
+      "size_bytes": 8176,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    },
+    "huggingface_hub/serialization/_torch.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/serialization/_torch.py",
+      "sha256": "06d6823fe1b7a1844fe8f8fd32123eca006c93725b04f9d50d6f61b923a0b649",
+      "size_bytes": 46897,
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974"
+    }
+  },
+  "mechanism": "RUNTIME_SOURCES Hub list only; helpers, native grants, RECORD equality and serving boundary unchanged",
+  "qualification_owner": "parent",
+  "native_qualification_pass": false,
+  "direct_transformer_imports": {
+    "modeling_utils.py": "from huggingface_hub import is_offline_mode, split_torch_state_dict_into_shards",
+    "processing_utils.py": "from huggingface_hub import is_offline_mode; from huggingface_hub.dataclasses import validate_typed_dict; from huggingface_hub.errors import EntryNotFoundError"
+  },
+  "excluded": "No Hub SDK/API/CLI/inference/jobs/buckets/login/optional package grants; _dduf is not imported by serialization initializer.",
+  "source_count": 199,
+  "record_count": 13,
+  "native_file_count": 3,
+  "production_ast_verification": "Complete production AST identical to 1ef6e136 after replacing only huggingface_hub value inside RUNTIME_SOURCES; every other entry/node unchanged.",
+  "source_files": {
+    "scripts/evaluate_siglip2_compact_ranking.py": "f7436bcd4176f6f21d2a9f14eeb0204a4a4d83e22170e7723a16c6e872617672",
+    "scripts/test_compact_ranking_evaluation.py": "54d6914d6ddc0175aec661925c406931f470392c06d8b6364be0b4c44dd80332"
+  },
+  "commit": "61f27b06fe98c6dbc1458d4b5cfea7076b6268f8",
+  "verification": {
+    "command": "timeout 55s python3 -B scripts/test_compact_ranking_evaluation.py",
+    "exit_code": 0,
+    "tests": 22,
+    "seconds": 22.577,
+    "narrow_regression_red": "Before production change, real stdlib SourceFileLoader failed with external dependency at huggingface_hub/utils/__pycache__/__init__.cpython-314.pyc",
+    "narrow_regression_green": true,
+    "git_diff_check": true,
+    "clean_worktree": true
+  }
+}
