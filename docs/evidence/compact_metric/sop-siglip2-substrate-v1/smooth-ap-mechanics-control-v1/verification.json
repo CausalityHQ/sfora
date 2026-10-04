@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "phase": "mechanics",
+  "arm": "control",
+  "service_seconds": 231.366,
+  "invocation_id": "81bf95311a0847d7968900007e20c9ac",
+  "host_peak_bytes": 7307542528,
+  "rss_kib": 4591324,
+  "quality_read": false,
+  "receipt_sha256": "c764c105e300d155ea2c6cd0cf40dd6e09d260a7cd99cb85ba8d3f0030e18513",
+  "log_sha256": "c5032422700230382c4479b36503d72cad01b4169cd55fabbcd226d5111dc258"
+}
