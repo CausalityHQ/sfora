@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "cpu",
+  "arm": "control",
+  "service_seconds": 213.245,
+  "invocation_id": "09604164bcdb412e8c46fb99b311e803",
+  "host_peak_bytes": 8495210496,
+  "rss_kib": 5726872,
+  "unit": "sfora-so400-fullfeature-residual-cpu-v1",
+  "quality_read": false,
+  "receipt_sha256": "232e9a821b61b8420ae7328395a33b9878a0fcd834473c348e8a062448bcf7ec",
+  "log_sha256": "4ff36c8e587eea20ef3db4c2cc51e495f18ae72bf9f52f784ff5a9bc61e458ea"
+}
