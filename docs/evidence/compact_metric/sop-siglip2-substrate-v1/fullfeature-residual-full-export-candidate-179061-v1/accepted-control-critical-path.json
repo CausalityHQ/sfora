@@ -1,0 +1,29 @@
+{
+  "schema": "fullfeature-export-critical-path-v1",
+  "engineering_only": true,
+  "public_latency_measured": false,
+  "dataset_split": "InShop TRAIN selection1734query/1715gallery/498groups",
+  "arm": "control",
+  "seed": 179061,
+  "log_sha256": "33637ffd8cd57fedd1c3b0f67b27c15a69a86dda90b8b95a7f4d3433b4f94959",
+  "whole_service_seconds": 683.575,
+  "admission_marker_seconds": 247.30466569401324,
+  "exit_rehash_begin_seconds": 574.8003802597523,
+  "service_remaining_after_exit_rehash_begin_seconds": 108.77461974024777,
+  "export_passes": [
+    {
+      "pass_index": 0,
+      "begin_seconds": 292.2049313890748,
+      "end_seconds": 413.9462290080264,
+      "duration_seconds": 121.74129761895165
+    },
+    {
+      "pass_index": 1,
+      "begin_seconds": 446.791372762993,
+      "end_seconds": 566.4533765669912,
+      "duration_seconds": 119.66200380399823
+    }
+  ],
+  "two_pass_region_seconds": 241.40330142294988,
+  "scope": "Actual phase regions include repeated audit/packing/transfer; neither pure GPU time nor public image-to-top-k. Regions do not partition every overhead."
+}
