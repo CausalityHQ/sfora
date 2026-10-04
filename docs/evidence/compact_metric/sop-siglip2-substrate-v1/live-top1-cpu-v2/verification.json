@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "cpu",
+  "arm": "control",
+  "service_seconds": 243.15,
+  "invocation_id": "3668aa9678f948df90db47e8e2daf47e",
+  "host_peak_bytes": 8569044992,
+  "rss_kib": 5799532,
+  "unit": "sfora-so400-live-top1-cpu-v2",
+  "quality_read": false,
+  "receipt_sha256": "848d4859abd8ba851b8be224ee6f19dd64b247a6cf10edb54a8eaa55aa2007a7",
+  "log_sha256": "274137575c32b3fc7b911b727034e44a528b661b631bc0a8da63fe06ddbc33ec"
+}
