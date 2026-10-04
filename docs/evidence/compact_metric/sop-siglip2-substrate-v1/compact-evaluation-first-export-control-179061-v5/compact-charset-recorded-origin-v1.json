@@ -1,0 +1,14 @@
+{
+  "schema": "compact-charset-recorded-origin-v1",
+  "module": {
+    "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/md.cpython-313-aarch64-linux-gnu.so",
+    "origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/md.cpython-313-aarch64-linux-gnu.so"
+  },
+  "native_paths": [
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so",
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/cd.cpython-313-aarch64-linux-gnu.so"
+  ],
+  "native_not_in_original_proof": [],
+  "import_pass": true,
+  "qualification_eligible": false
+}

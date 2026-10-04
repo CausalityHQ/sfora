@@ -1,0 +1,14 @@
+{
+  "schema": "charset-grouped-initializer-static-evidence-v1",
+  "native_executed": false,
+  "shared_path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so",
+  "shared_sha256": "43ec7be7cd6f9b15bd3e29fca57a6e3be6fbe7f8152cc7b27a0eda754560f956",
+  "shared_size": 544192,
+  "selected_static_strings": [
+    "CPyInit_charset_normalizer___md",
+    "CPyInit_charset_normalizer___cd",
+    "src/charset_normalizer/md.py",
+    "charset_normalizer.md"
+  ],
+  "method": "stdlib raw ELF byte printable-string scan on DGX; no imports or binary execution"
+}
