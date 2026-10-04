@@ -1,0 +1,38 @@
+{
+  "pass": true,
+  "decision": "CONTINUE",
+  "quality": {
+    "control": {
+      "recall_at_1": 0.9636678200692042,
+      "map_at_r": 0.816869575719348
+    },
+    "candidate": {
+      "recall_at_1": 0.9682814302191465,
+      "map_at_r": 0.8273301284197361
+    }
+  },
+  "deltas": {
+    "per_query_ap": 0.010460552700388115,
+    "per_query_r1": 0.00461361014994233
+  },
+  "cost": {
+    "179061": {
+      "candidate": {
+        "service_seconds": 417.247,
+        "total_training_core_seconds": 102.11744439089671
+      },
+      "control": {
+        "service_seconds": 423.604,
+        "total_training_core_seconds": 108.46391960280016
+      },
+      "pass": true,
+      "total_training_core_ratio": 0.9414876833223017,
+      "whole_service_ratio": 0.9849930595556228
+    }
+  },
+  "service_seconds": 303.282,
+  "host_peak_bytes": 1313832960,
+  "invocation_id": "ba81beb6caaa4c72bb766774e867181e",
+  "receipt_sha256": "02f79083cecd1ddf4d9f8c28996df305c517be8af65abbfd47e1e8d866e44392",
+  "log_sha256": "a14e340b59c6cdb704ee86e26c2d607db84746a4dafe25fb0b7f883263941c87"
+}
