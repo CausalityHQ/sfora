@@ -1,0 +1,113 @@
+{
+  "schema": "compact-dateutil-zoneinfo-source-worker-receipt-v1",
+  "status": "implementation_and_stdlib_verification_complete",
+  "base": "aef9010176432434dbbf3dcada31a66836d96cab",
+  "commit": "a84a264c8ba4c58708a4ed6c6b898f6545689d3f",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "clean": true,
+  "production_change": "Exact dateutil/zoneinfo/__init__.py and dateutil/zoneinfo/dateutil-zoneinfo.tar.gz RUNTIME_SOURCES paths only; all other production AST and prior entries identical",
+  "native_policy": "Original native authority and source predicates unchanged; no new native or installed native execution",
+  "actual_installed_runtime_success_claimed": false,
+  "full_suite": {
+    "tests": 42,
+    "seconds": 43.067,
+    "whole_seconds": 43.475899940007366,
+    "timeout_seconds": 55,
+    "exit_code": 0
+  },
+  "targeted_suite": {
+    "tests": 3,
+    "seconds": 5.356,
+    "exit_code": 0
+  },
+  "red_regressions": [
+    {
+      "tests": 1,
+      "exit_code": 1,
+      "expected": "Original zoneinfo/__init__.pyc boundary denial reproduced"
+    },
+    {
+      "tests": 1,
+      "exit_code": 1,
+      "expected": "With initializer only, exact packaged archive denied through real pkgutil.get_data/SourceFileLoader"
+    }
+  ],
+  "artifacts": {
+    "contract": {
+      "path": "/tmp/sfora-compact-dateutil-zoneinfo-runtime-20261004.contract.json",
+      "sha256": "66a62bd4f7abc932b82f35be1fe58cfce21021919e3b74b5aa8ee57ad0a8d657"
+    },
+    "ast_ledger": {
+      "path": "/tmp/sfora-compact-dateutil-zoneinfo-runtime-20261004.ast-ledger.json",
+      "sha256": "2ed5d40a639d9745babbddfd540148a3bae9b3fd2ad54631f47f98d0bb37a64d"
+    },
+    "verification": {
+      "path": "/tmp/sfora-compact-dateutil-zoneinfo-runtime-20261004.verification.json",
+      "sha256": "bc50cdfada236888eea285c960dbe4690c8e84bcdeeac1906818162b77b57d48"
+    },
+    "full_log": {
+      "path": "/tmp/sfora-compact-dateutil-zoneinfo-runtime-20261004.final.log",
+      "sha256": "7a32979d9db8e5469cfd88691ccbbe15e4690c9d4eb470bb66425e4ae01d8442"
+    },
+    "targeted_log": {
+      "path": "/tmp/sfora-compact-dateutil-zoneinfo-runtime-20261004.layer.log",
+      "sha256": "f6f2bcd87c3996033b85af97872c12462671e5da93401e7bd30e75c1a0123fac"
+    },
+    "source_red_log": {
+      "path": "/tmp/sfora-compact-dateutil-zoneinfo-runtime-20261004.red.log",
+      "sha256": "d360a20fa6a736e01dbe5e363d7aa7ee72e7864207af49b8670f271d7c438669"
+    },
+    "asset_red_log": {
+      "path": "/tmp/sfora-compact-dateutil-zoneinfo-runtime-20261004.asset-red.log",
+      "sha256": "918d3496801e3c5a440b893db4232f4edc368da1ffcb28ad77dc12a227ef10a8"
+    }
+  },
+  "source_evidence": {
+    "path": "/tmp/sfora-compact-dateutil-zoneinfo-context-20261004.json",
+    "sha256": "b9b7ca48dae0142ce3416db8457837386a368336540d3c7f1e631edf56e8cff2",
+    "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/python_dateutil-2.9.0.post0.dist-info/RECORD",
+    "record_sha256": "e15e868a50b9c4e71df17b31369843617780146ac5adb1bbfdcced0ebe501824",
+    "original_cpu5_required_guard_match": true
+  },
+  "sources_and_asset": [
+    {
+      "path": "dateutil/zoneinfo/__init__.py",
+      "sha256": "298834a6d842323729e4c5d21220499f79cc8d978d65abfbae5270e7eb73d52e",
+      "size": 5889,
+      "record_row": [
+        "dateutil/zoneinfo/__init__.py",
+        "sha256=KYg0pthCMjcp5MXSEiBJn3nMjZeNZav7rlJw5-tz1S4",
+        "5889"
+      ]
+    },
+    {
+      "path": "dateutil/zoneinfo/dateutil-zoneinfo.tar.gz",
+      "sha256": "d3ea52e7b6e968de0d884df1288193596fa95b803db4f92a18279a7398004475",
+      "size": 156400,
+      "record_row": [
+        "dateutil/zoneinfo/dateutil-zoneinfo.tar.gz",
+        "sha256=0-pS57bpaN4NiE3xKIGTWW-pW4A9tPkqGCeac5gARHU",
+        "156400"
+      ]
+    }
+  ],
+  "definition_time_read_inference": "Observed tz.gettz fallback reaches dateutil.zoneinfo; installed tz.py immediately calls get_zonefile_instance().get(name), whose ZoneInfoFile(getzoneinfofile_stream()) reads exact ZONEFILENAME through pkgutil.get_data. This post-import edge is inferred from supplied source, not executed locally.",
+  "excluded": [
+    "dateutil/zoneinfo/rebuild.py",
+    "dateutil/rrule.py",
+    "tzdata modules and data",
+    "generic system zoneinfo directories",
+    "unrelated archive/metadata files"
+  ],
+  "all_helpers_science_absence_native_source_four_predicates_math_caps_full_uncached_exit_unchanged": true,
+  "all_prior_test_names_and_other_test_methods_preserved": true,
+  "control_and_prior_receipts_untouched": true,
+  "control_sha256": "334ce9d6f12e1f8a88d63fc261ab7a6ed1a26ec75b6f13314e16482da1cf1566",
+  "forbidden_actions_executed": [],
+  "push_merge_performed": false,
+  "next_parent_action": "Independently verify and integrate; parent owns next original import-v11 diagnostic, qualification, and retained exports."
+}
