@@ -1,0 +1,54 @@
+{
+  "schema": "compact-grouped-md-metadata-implementation-v1",
+  "base": "049f8435bac7c7072ecb43faeacb0aab891c1978",
+  "commit": "4aaf56424a540efb64d1accc0898223b2a30fdd9",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "worktree_clean": true,
+  "consumed_implementation_instruction": "1791092098486916252",
+  "map_reader_constraint_resolution": "1791092613275936018",
+  "control_file_unchanged_sha256": "334ce9d6f12e1f8a88d63fc261ab7a6ed1a26ec75b6f13314e16482da1cf1566",
+  "behavior": "Only the exact charset_normalizer.md file/spec metadata pair may name the RECORD-labelled compiled wrapper when original cd/shared bindings and a fresh authenticated map witness pass.",
+  "physical_md_wrapper_open_hash_map_native_and_guard_authority_added": false,
+  "fresh_cached_map_negatives_before_any_bound_file_call": true,
+  "md_wrapper_bytes_read_by_fixtures": 0,
+  "all_other_production_ast_exact": true,
+  "all_existing_48_tests_ast_exact": true,
+  "original_canonical_and_map_loop_ast_exact": true,
+  "full_gate": {
+    "command": [
+      "timeout",
+      "55s",
+      "python3",
+      "scripts/test_compact_ranking_evaluation.py"
+    ],
+    "exit_code": 0,
+    "whole_wall_seconds": 49.48890674201539,
+    "evaluator_sha256": "052235f81b19c3121fa86a88bc9e4f7d6b37b83868a23e37b91fc22118615ece",
+    "test_sha256": "2b1b453d36504847992d8ec7f005191867ece1cca933c07d38a9621cc7a141c7",
+    "log": "/tmp/sfora-compact-charset-origin-runtime-20261004.final.log",
+    "tests": 51,
+    "unittest_seconds": 48.967
+  },
+  "root_correspondence_evidence": {
+    "path": "/tmp/compact-charset-root-review-v1.json",
+    "sha256": "789abc3cddb51eba7b5ed66385dd85e6b77ad49bafefebd971031ad56573f07f",
+    "source_matches_final": true
+  },
+  "artifacts_sha256": {
+    "/tmp/sfora-compact-charset-origin-runtime-20261004.contract.json": "aea09202b63021b074d1b11298c215d36477b7839a8e40e06b9c0c2aedeb7d23",
+    "/tmp/sfora-compact-charset-origin-runtime-20261004.map-reader-authorization.json": "aa4082b9ae174cae86121139ddf11ec9e1acdcde7791f7be1681059facf1a689",
+    "/tmp/sfora-compact-charset-origin-runtime-20261004.ast-ledger.json": "f6d35410c09720d263d43c93ccf6b071e733e9886f30078552bf2df0c9df0cf2",
+    "/tmp/sfora-compact-charset-origin-runtime-20261004.verify-ast.py": "22683e5f6f0fb523afa3a29e74927526b1dab454cdcd0ce07b4748ee1f63701f",
+    "/tmp/sfora-compact-charset-origin-runtime-20261004.red.log": "73a8bb04267caaecc05e061f4baccad258a5b7d4633f6210deb84ff18423b428",
+    "/tmp/sfora-compact-charset-origin-runtime-20261004.layer.log": "a9c281ec3ade04c7f572868bc6e29cb3e474e28a0a994273e2b543b2e22f06e8",
+    "/tmp/sfora-compact-charset-origin-runtime-20261004.layer-final.log": "d0702a61ced552aaaf03bdf3ca6f1cfa9381a57816907e26e5f544289fbc83f9",
+    "/tmp/sfora-compact-charset-origin-runtime-20261004.final.log": "9bd14ac86ce3bce6bf794444947cdd9d617dc4aab933943267de25a0f2525189",
+    "/tmp/sfora-compact-charset-origin-runtime-20261004.verification.json": "d7b74ffb1a33aa36fa9bf47b3ef6076139b3db3e21467bf005e290943adc0944"
+  },
+  "scope": "stdlib-only engineering fixtures; parent owns fresh CPU/export/quality; accepted TRAIN pair untouched",
+  "unchanged": "original native API/exact-four, write rejection and file permissions, full uncached exit, runtime inventories, model math, equality gates, science, resource and cost caps"
+}

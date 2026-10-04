@@ -1,0 +1,10 @@
+{
+  "schema": "compact-export-freeze-v1",
+  "arm": "candidate",
+  "seed": 179061,
+  "source_execution_sha256": "a16a9955b89c912fef02b9fac091725f6e8c3e0a317a5c68d651f0d6a18cf59d",
+  "authority_sha256": "4db71326ad6cd1231b960aee752e400f334cd6f7c960406b170d3130d8a6db0e",
+  "command_sha256": "9025ce28022f68b41600c8b73be52cfb08da6cd9dac031f31c55fa44f835679f",
+  "launch_sha256": "b78bda9335a40737d92f2cbd9064527bfa317bd8d67b9ce12ff87d42420b3f75",
+  "stop_rule": "export300/8GiB/zeroSwap/events/CUDA<10GB/bothlocks/unchanged full source/native/parity checks; candidate launches only after accepted original control export; no quality score until both wires accepted"
+}
