@@ -1,0 +1,28 @@
+{
+  "179061": {
+    "whole_service_ratio": 0.9849930595556228,
+    "total_training_core_ratio": 0.9414876833223017,
+    "pass": true,
+    "control": {
+      "service_seconds": 423.604,
+      "total_training_core_seconds": 108.46391960280016
+    },
+    "candidate": {
+      "service_seconds": 417.247,
+      "total_training_core_seconds": 102.11744439089671
+    }
+  },
+  "179069": {
+    "whole_service_ratio": 0.9359987584718086,
+    "total_training_core_ratio": 0.9099643972304193,
+    "pass": true,
+    "control": {
+      "service_seconds": 431.726,
+      "total_training_core_seconds": 109.8174746511504
+    },
+    "candidate": {
+      "service_seconds": 404.095,
+      "total_training_core_seconds": 99.92999212630093
+    }
+  }
+}

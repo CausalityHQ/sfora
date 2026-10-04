@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "train",
+  "arm": "control",
+  "service_seconds": 431.726,
+  "invocation_id": "02b355f04ea246b88bbb29465c1301bf",
+  "host_peak_bytes": 7383334912,
+  "rss_kib": 4632640,
+  "unit": "sfora-so400-fullfeature-residual-train-control-179069-v2",
+  "quality_read": false,
+  "receipt_sha256": "69488a65dc1dfcfd802aeaae5dfaf522fb91f8f31d802ef7cd03170fd53c5bbf",
+  "log_sha256": "bfa73c55eab7ce446effbe12327b2babb4f2b05f58fd8bdc96cf267b0128f90b"
+}
