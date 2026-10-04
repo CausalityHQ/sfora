@@ -1,0 +1,19 @@
+{
+  "engineering_only": true,
+  "export_seconds": 900,
+  "cpu_score_seconds": 500,
+  "host_bytes": 8589934592,
+  "swap_bytes": 0,
+  "cuda_peak_limit_exclusive_bytes": 10000000000,
+  "both_locks_required": true,
+  "historical_export_600_verdict": "FAIL preserved",
+  "order": [
+    "fresh CPU v2 qualification",
+    "one control export v2",
+    "candidate export only if complete control PASS",
+    "paired first selection score"
+  ],
+  "failure": "stop this prospective route; no automatic further cap increase",
+  "scientific_quality_cost_parity_gates": "unchanged",
+  "training_reuse": "accepted fresh128 pair unchanged; no retraining"
+}

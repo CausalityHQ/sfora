@@ -1,0 +1,34 @@
+{
+  "all_22_regular_reference_helpers_unchanged": true,
+  "all_top_level_test_constants_imports_excluded_node_sets": "AST unchanged; no excluded nodes added",
+  "base_commit": "7d662bb334680da84fc79f05a0f9d22e46c69cb6",
+  "changed_existing_test_helpers_and_bodies": [
+    "EvaluationTests.test_exact_image_anchor_authority_inverse_preserves_entire_source",
+    "EvaluationTests.test_exact_smooth_ap_authority_inverse_preserves_entire_source",
+    "ProspectiveExportEnvelopeTests.test_whole_unit_deadlines_and_unchanged_resource_predicates",
+    "inverse_export_seconds"
+  ],
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede",
+    "test_compact_ranking_evaluation.py": "9d0f2c983051deec30b869f6255166eb4265783cd177c62556f1538909d774dc"
+  },
+  "diff_check_exit_code": 0,
+  "execution_sha256": "09415ae900226b2a89e639ae890005116f2b38c911c091fde15b38b12522c1d2",
+  "final_syntax": "PASS both actual final sources",
+  "inverse_ast_sha256": "2c6725aa5763b221e70d4fbd4317a470044ec0f20062e42ae1a38b0c59f412c7",
+  "inverse_source_sha256": "040659957c3f79dfea9ec42c6626a9909193e7cc032386a157db1dacd5ed2273",
+  "new_test_functions": [
+    "ProspectiveExportEnvelopeTests.test_cpu_source_admission_rejects_historical_code_and_execution",
+    "ProspectiveExportEnvelopeTests.test_cpu_source_admission_rejects_historical_code_and_execution.admit",
+    "ProspectiveExportEnvelopeTests.test_exact_900_to_600_inverse_restores_complete_source_and_ast",
+    "ProspectiveExportEnvelopeTests.test_export_accepts_extended_interval_and_rejects_900_boundary",
+    "ProspectiveExportEnvelopeTests.test_launch_rejects_historical_and_further_increased_export_caps",
+    "inverse_export_envelope",
+    "inverse_export_envelope_source"
+  ],
+  "sole_production_delta": "policy export literal600->900",
+  "unchanged_existing_production_functions": 63,
+  "unchanged_existing_test_functions": 170,
+  "whole_source_ast_inverse": "PASS exact baseline AST",
+  "whole_source_byte_inverse": "PASS exact baseline bytes"
+}

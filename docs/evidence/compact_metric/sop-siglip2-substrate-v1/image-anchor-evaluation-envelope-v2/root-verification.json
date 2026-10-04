@@ -1,0 +1,39 @@
+{
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede",
+    "test_compact_ranking_evaluation.py": "9d0f2c983051deec30b869f6255166eb4265783cd177c62556f1538909d774dc"
+  },
+  "worker_commit": "ce811282b83331a3dab1dcd0b00f131f3e8d1c4c",
+  "integrated_commit": "5e7e7e60dcdd0c50ec19ca15ec9b685093eb5e3a",
+  "complete_source_inverse_pass": true,
+  "final_suite": {
+    "command": [
+      "timeout",
+      "120",
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/home/rb/worktrees/sfora-image-anchor-export-envelope-20261004/scripts",
+      "-p",
+      "test_compact_ranking_evaluation.py",
+      "-v"
+    ],
+    "exit_code": 0,
+    "seconds": 109.40464753797278,
+    "virtual_memory_limit_bytes": 1073741824,
+    "peak_rss_kib": 214868,
+    "code_before": {
+      "evaluate_siglip2_compact_ranking.py": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede",
+      "test_compact_ranking_evaluation.py": "9d0f2c983051deec30b869f6255166eb4265783cd177c62556f1538909d774dc"
+    },
+    "code_after": {
+      "evaluate_siglip2_compact_ranking.py": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede",
+      "test_compact_ranking_evaluation.py": "9d0f2c983051deec30b869f6255166eb4265783cd177c62556f1538909d774dc"
+    },
+    "source_unchanged": true,
+    "execution_sha256": "09415ae900226b2a89e639ae890005116f2b38c911c091fde15b38b12522c1d2",
+    "log_sha256": "172ed7df67fe3b7a56bdfdee6e0d8be7d1175035f05aa8d6f69851dfbc9f4320"
+  }
+}

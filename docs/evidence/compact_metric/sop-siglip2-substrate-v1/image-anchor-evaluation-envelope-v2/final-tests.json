@@ -1,0 +1,30 @@
+{
+  "command": [
+    "timeout",
+    "120",
+    "python3",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "/home/rb/worktrees/sfora-image-anchor-export-envelope-20261004/scripts",
+    "-p",
+    "test_compact_ranking_evaluation.py",
+    "-v"
+  ],
+  "exit_code": 1,
+  "seconds": 101.23092934302986,
+  "virtual_memory_limit_bytes": 1073741824,
+  "peak_rss_kib": 214020,
+  "code_before": {
+    "evaluate_siglip2_compact_ranking.py": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede",
+    "test_compact_ranking_evaluation.py": "71d9696855b0bb6a1e143038b18bea9646df04a3b857481f1a9b1135d07361f4"
+  },
+  "code_after": {
+    "evaluate_siglip2_compact_ranking.py": "8604043becd1d430bf90d0b5f99e02bf1c35fbd278fb755036130e811b4ddede",
+    "test_compact_ranking_evaluation.py": "71d9696855b0bb6a1e143038b18bea9646df04a3b857481f1a9b1135d07361f4"
+  },
+  "source_unchanged": true,
+  "execution_sha256": "b2d0a8503f6c466ae68707344a1468a5e5236baeb32ee14b59db2a1183b16f64",
+  "log_sha256": "9fb2df10d84a6f3e26f0d87bd423c25bad605371aa52612bbbb2b75229c665b0"
+}
