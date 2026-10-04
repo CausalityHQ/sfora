@@ -1,0 +1,52 @@
+/home/riomus/runs/sfora-so400-identity-diversity-view-source-v1/startup-candidate-v1-command.sh: OK
+Running as unit: sfora-so400-identity-diversity-view-startup-candidate-v1.service; invocation ID: 6749fe2b6d924a1b9592a6f88ff48696
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/freeze_identity_diversity_scope.py: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/mapping.json: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/official-partition.txt: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/plan.json: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/preflight.json: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/roles.json: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/schedule-consumer.py: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/schedule-source.py: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/scope.json: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/runs/sfora-so400-genuine-view-export-source-v1/train_sop_siglip2_compact.py: OK
+/home/riomus/runs/sfora-so400-identity-diversity-view-source-v1/authority.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-view-source-v1/execution.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-view-source-v1/export_siglip2_identity_diversity_views.py: OK
+/home/riomus/runs/sfora-so400-identity-diversity-view-source-v1/test_siglip2_identity_diversity_views.py: OK
+Identity diversity view export rejected: canonical regular file required
+FINAL_CGROUP {"command_exit_status": 1, "invocation_id": "6749fe2b6d924a1b9592a6f88ff48696", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-identity-diversity-view-startup-candidate-v1.service", "values": {"memory.current": "123543552", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "232177664", "memory.stat": "anon 5996544\nfile 90230784\nkernel 27099136\nkernel_stack 65536\npagetables 331776\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1097728\nfile_dirty 8192\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5828608\ninactive_file 86364160\nactive_file 3850240\nunevictable 0\nslab_reclaimable 26580704\nslab_unreclaimable 109776\nslab 26690480\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 45413\npgmajfault 52\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 0\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Command exited with non-zero status 1
+	Command being timed: "/bin/bash -c set -e; sudo -n /bin/sync; sudo -n /bin/sh -c "echo 3 > /proc/sys/vm/drop_caches"; exec /bin/bash /home/riomus/runs/sfora-so400-identity-diversity-view-source-v1/startup-candidate-v1-command.sh"
+	User time (seconds): 5.71
+	System time (seconds): 1.42
+	Percent of CPU this job got: 30%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:23.51
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 128788
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 51
+	Minor (reclaiming a frame) page faults: 45194
+	Voluntary context switches: 59213
+	Involuntary context switches: 96
+	Swaps: 0
+	File system inputs: 21651480
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+STOP_CGROUP {"exit_code": "exited", "exit_status": "1", "invocation_id": "6749fe2b6d924a1b9592a6f88ff48696", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-identity-diversity-view-startup-candidate-v1.service", "service_result": "exit-code", "values": {"memory.current": "123392000", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "232177664", "memory.stat": "anon 5423104\nfile 90234880\nkernel 26750976\nkernel_stack 0\npagetables 90112\nsec_pagetables 0\npercpu 352\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1118208\nfile_dirty 12288\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5328896\ninactive_file 86364160\nactive_file 3850240\nunevictable 0\nslab_reclaimable 26584840\nslab_unreclaimable 61840\nslab 26646680\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 46929\npgmajfault 52\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 0\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 23.553s
+CPU time consumed: 7.155s
+Memory peak: 221.4M
+Memory swap peak: 0B

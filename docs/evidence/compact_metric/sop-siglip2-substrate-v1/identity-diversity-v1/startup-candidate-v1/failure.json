@@ -1,0 +1,18 @@
+{
+  "schema": "identity-diversity-view-startup-failure-v1",
+  "unit": "sfora-so400-identity-diversity-view-startup-candidate-v1",
+  "invocation_id": "6749fe2b6d924a1b9592a6f88ff48696",
+  "session": 73929,
+  "original_exit": 1,
+  "service_seconds": 23.553,
+  "host_peak_bytes": 232177664,
+  "native_peak_rss_kib": 128788,
+  "swap_peak_bytes": 0,
+  "memory_events_zero": true,
+  "failure": "canonical regular file required",
+  "culprit_path_unproven": true,
+  "native_imported": false,
+  "gpu_job_launched": false,
+  "quality_read": false,
+  "log_sha256": "78cc436119a20d7dd7bad6b5a203949518abacf79a4dfa5b8976acdad499acd3"
+}
