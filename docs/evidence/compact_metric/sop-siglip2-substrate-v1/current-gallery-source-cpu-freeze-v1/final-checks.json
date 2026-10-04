@@ -1,0 +1,94 @@
+{
+  "complete_historical_chain_AST_SHA256": "08bdc0910571d5638f9e49ba9b6fae585d47374ee1759020151b9cdd704ec2d2",
+  "diff_check": "PASS",
+  "help": {
+    "exit": 0,
+    "log_sha256": "b73cdf10dcd54768a30577305b24dbccae826cd7a99db4fe92e091a8a5332570"
+  },
+  "historical_pin_assignments_unchanged": true,
+  "new_source_inverse_AST_SHA256": "7c29058aabd5045705cf32e009114def4bdb87cf235908b3fee7244cd3e39dc3",
+  "new_test_inverse_AST_SHA256": "081a64fc4fb79b0adaaefb93906d02c15104503c6e54c5594236f9154e239194",
+  "optimized": {
+    "O": {
+      "exit": 1,
+      "log_sha256": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03",
+      "message": "Qualification requires assertions; optimized mode is forbidden"
+    },
+    "OO": {
+      "exit": 1,
+      "log_sha256": "645aaa60a83769dd704fdeec34b9aef107c340657a7550cad92e6481e5833a03",
+      "message": "Qualification requires assertions; optimized mode is forbidden"
+    }
+  },
+  "regular_identical_helpers": 20,
+  "retained_source": {
+    "anchor_displacement_witness": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "21e34e60a6f3bc87d5c16f4e3fcccf0c9a4267fa57ea6e46c1fc37460651e521"
+    },
+    "authenticate_anchor_endpoint": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "822d080d2b1684a7175a5051ab1e4a85dcf6e66590a9da82c1b77fb9d9981d43"
+    },
+    "check_optimizer": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "c29c0442accbc049954282dbc0703765c303f3c7e87ba99a7a834d71f669e21c"
+    },
+    "check_payload": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "5268569cd45c0d3425dd6305982867b7732a7fc6f4b9de5745cb189d77f562ab"
+    },
+    "exit_rehash": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "ab782b58b66388b7cee066836931e3ef9a4f1713729a1dadad33e8b87fa28a99"
+    },
+    "fresh": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "ad64f0ce196df219fb662cebfdd33bfd1d21839e538fc61da748875718bd2726"
+    },
+    "inference_outputs": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "f70bc9d6f0eff722879b64289c270288f772605f2666fa70c9270fce8e93c359"
+    },
+    "integrity": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "3d71fae9762af6c143eece11d51dd66448189d649ca92d492a5be05becde9327"
+    },
+    "load_inference": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "7465c2542f3e4543c382dabea4c542c3ebdf23dc791afb7c0dedcab176fa5f50"
+    },
+    "prepare_native": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "f61053e3a049bd0da966ded0096ab6252e9c43584cf41318abec9dc16556cb25"
+    },
+    "restore": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "62b200870969b39497801e51645abdcb81a6d2be60ddc1014a5497a4b9be9559"
+    },
+    "smooth_ap_terms": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "1a073afbc4ff567ba62dbf182759b685cbc645fa6ca336d7bebaeee8e0b3ca6d"
+    },
+    "test_siglip2_compact_ranking.py": "syntax PASS",
+    "train_siglip2_compact_ranking.py": "syntax PASS",
+    "update": {
+      "AST_unchanged": true,
+      "bytes_unchanged": true,
+      "sha256": "2b793ef162e9f80939faa4d0eb3f51bf4807886b0b7d0b27b9fb8ed068f2134c"
+    }
+  },
+  "syntax": "PASS owned2 compile"
+}

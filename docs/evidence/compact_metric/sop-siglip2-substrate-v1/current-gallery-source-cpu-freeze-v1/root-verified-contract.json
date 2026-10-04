@@ -1,0 +1,256 @@
+{
+  "API": {
+    "authenticate_active_objective": "(context) -> original authenticated fixed-gallery SmoothAP trainer; source-only",
+    "cpu_gradients": "fixed firstB64 both views per seed, at acceptedA0; original active exact; full64/micro16; tied vs independent equal query/galleryA; detached mutant rejected",
+    "loss_terms": "(context, state, raw, anchors, full_valid) -> mse, rank, membership",
+    "portable_inference": [
+      "admit_bundle(directory, sha)",
+      "load_inference(directory, bundle_sha256, device)",
+      "inference_outputs(endpoint, images)",
+      "release_inference(endpoint)"
+    ],
+    "ranking_gallery": "(context,state) -> FP32 unit all-canonical gallery; candidate connected same state A"
+  },
+  "INFERENCE_KEYS": [
+    "A",
+    "buffers",
+    "config",
+    "fixed_sha256",
+    "head",
+    "means",
+    "numerical_flags",
+    "processor",
+    "schema",
+    "source",
+    "vision_sha256"
+  ],
+  "PAYLOAD_KEYS": [
+    "A",
+    "buffers",
+    "classifier",
+    "config",
+    "counter",
+    "cpu_rng",
+    "cuda_rng",
+    "head",
+    "identity",
+    "means",
+    "numerical_flags",
+    "optimizer",
+    "original_rows",
+    "partition",
+    "processor",
+    "provenance",
+    "scaler",
+    "schedules",
+    "schema",
+    "source",
+    "target",
+    "teachers",
+    "views"
+  ],
+  "STATIC_KEYS": [
+    "provenance",
+    "config",
+    "buffers",
+    "processor",
+    "head",
+    "classifier",
+    "means",
+    "partition",
+    "original_rows",
+    "target",
+    "schedules",
+    "views",
+    "teachers"
+  ],
+  "ast_delta_ledger": {
+    "added": [
+      "ranking_gallery",
+      "authenticate_active_objective"
+    ],
+    "changed": [
+      "SCHEMA",
+      "AUTHORITY_SCHEMA",
+      "INFERENCE_SCHEMA",
+      "BUNDLE_SCHEMA",
+      "RECIPE",
+      "loss_terms",
+      "cpu_gradients",
+      "cpu_witnesses",
+      "check_cpu_gradient",
+      "check_terminal_record"
+    ],
+    "unchanged": [
+      "smooth_ap_terms",
+      "update",
+      "PAYLOAD_KEYS",
+      "INFERENCE_KEYS",
+      "STATIC_KEYS",
+      "policy",
+      "prepare_native",
+      "fresh",
+      "check_payload",
+      "check_optimizer",
+      "integrity",
+      "restore",
+      "inference_outputs",
+      "load_inference",
+      "exit_rehash",
+      "authenticate_anchor_endpoint",
+      "anchor_displacement_witness"
+    ]
+  },
+  "base": "5f7d7b7a",
+  "cli": {
+    "arms": [
+      "control",
+      "candidate"
+    ],
+    "flags": [
+      "--execution-sha256",
+      "--authority",
+      "--authority-sha256",
+      "--phase",
+      "--arm",
+      "--seed",
+      "--output"
+    ],
+    "phases": [
+      "cpu",
+      "mechanics",
+      "train"
+    ],
+    "seeds": [
+      179061,
+      179069
+    ]
+  },
+  "code": {
+    "test_siglip2_compact_ranking.py": "32f9ade5717d98e9aa5f6644ad7ac0dc5992bb21e0861730e154d0d78c8a7744",
+    "train_siglip2_compact_ranking.py": "affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480"
+  },
+  "commit": "9a17e67104bdb18279b93dbcc1e5d32e232a180b",
+  "historical_inverses": "exact new named-node inversion before original image_anchor -> smooth_ap -> fresh batch -> completion chains; all old hashes preserved",
+  "launch_keys": [
+    "accepted",
+    "arm",
+    "both_locks_held",
+    "execution_sha256",
+    "fitter",
+    "native_authority",
+    "nearest",
+    "phase",
+    "readout",
+    "recipe",
+    "resource_policy",
+    "schema",
+    "seed",
+    "selected_cpu",
+    "selected_mechanics"
+  ],
+  "method_keys": [
+    "execution_sha256",
+    "nearest",
+    "fitter",
+    "accepted",
+    "readout",
+    "recipe",
+    "native_authority"
+  ],
+  "owned_files": [
+    "test_siglip2_compact_ranking.py",
+    "train_siglip2_compact_ranking.py"
+  ],
+  "receipt": {
+    "cpu_record": "active_objective_source = ANCHOR_ENDPOINT[source], replaces anchor_endpoint",
+    "gradient_flags": [
+      "initial_raw_unit_packed_exact",
+      "initial_gallery_scores_matched",
+      "regression_gradients_identical",
+      "original_active_objective_exact",
+      "tied_gradient_equals_query_plus_gallery",
+      "candidate_minus_control_equals_gallery",
+      "detached_gallery_mutant_rejected",
+      "frozen_bytes_exact",
+      "native_mask_self_ties_singletons_exact",
+      "micro16_global_reduction_exact"
+    ],
+    "gradient_hashes": [
+      "gallery_gradient_sha256",
+      "query_gradient_sha256"
+    ],
+    "gradient_scalars": [
+      "gallery_gradient_norm",
+      "query_gradient_norm",
+      "regression_difference_gradient_norm (zero)"
+    ],
+    "preserved": "all unrelated receipt fields and complete checkpoint/inference keys",
+    "replacement": "closed image-anchor zero-target/displacement semantics explicitly replaced; historical helpers retained but never invoked by prospective CPU"
+  },
+  "recipe": {
+    "adamw": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "capturable": false,
+      "differentiable": false,
+      "eps": 1e-08,
+      "foreach": false,
+      "fused": false,
+      "lr": 0.0001,
+      "maximize": false,
+      "weight_decay": 0.05
+    },
+    "batch": 64,
+    "classes": 1008,
+    "clip": 1.0,
+    "core": "cache/target preparation + both-arm all-positive scoring + both-view forward/backward + every candidate gallery forward/backward + optimizer",
+    "frozen": "complete encoder448/config/buffers/processor/head/classifier/means",
+    "gallery": "candidate reconstructs connected gallery every micro16 at same pre-update A; both-role backward then release each graph; one optimizer step after eight micros; no serialized gallery",
+    "initial_scaler": 128.0,
+    "microbatch": 16,
+    "mining": "all6355 canonical rows; control normalize(T); candidate current same-A connected canonical readout; exclude same original image; all same-identity positives; canonical ordinal traversal",
+    "ranking": "both arms backward coefficient1; all positives; SmoothAP sum / (2*K)",
+    "readout": "original CPU-renormalized genuine features; FP32 all; autocast disabled",
+    "regression": "both arms P[label]; both original views coordinate sum / (128*e0)",
+    "rows": 6355,
+    "schedule": "original first128 B64 per seed; warm-authenticated; masks unused",
+    "seeds": [
+      179061,
+      179069
+    ],
+    "singletons": 12,
+    "teacher": "accepted canonical T; member-inclusive P; normalize(T); both-view e0",
+    "temperature": 0.01,
+    "trainable_names": [
+      "A"
+    ],
+    "trainable_scalars": 20480,
+    "trainable_shapes": [
+      [
+        128,
+        160
+      ]
+    ],
+    "updates": 128,
+    "views": [
+      "canonical",
+      "augmented"
+    ]
+  },
+  "schemas": {
+    "AUTHORITY_SCHEMA": "siglip2-compact-current-gallery-smooth-ap-launch-v1",
+    "BUNDLE_SCHEMA": "siglip2-compact-current-gallery-smooth-ap-bundle-v1",
+    "INFERENCE_SCHEMA": "siglip2-compact-current-gallery-smooth-ap-inference-v1",
+    "SCHEMA": "siglip2-compact-current-gallery-smooth-ap-v1"
+  },
+  "state": "root-verified-committed-source",
+  "verification": {
+    "local": "ONE affected stdlib unittest suite; 120s; address-space 1GiB; original exit/log/SHA/RSS preserved; one failing-layer then final replacement if needed",
+    "native": "UNRUN; root CPU500, both mechanics600 discarded17/independent8+9, fresh TRAIN128 control061 then candidate061600; 8GiB swap0 events0 CUDA<10GB bothlocks; evaluator new pins; exports900 score500 and frozen quality gates",
+    "syntax_help_optimized": "stdlib compile; CLI help; -O/-OO failclosed; diff check; exact2 commit"
+  }
+}

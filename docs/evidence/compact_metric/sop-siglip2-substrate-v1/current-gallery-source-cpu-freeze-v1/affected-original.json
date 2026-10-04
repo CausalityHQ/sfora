@@ -1,0 +1,31 @@
+{
+  "address_space_bytes": 1073741824,
+  "command": [
+    "/usr/bin/python3",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "scripts",
+    "-p",
+    "test_siglip2_compact_ranking.py",
+    "-v"
+  ],
+  "cwd": "/home/rb/worktrees/sfora-current-gallery-smooth-ap-trainer-20261004",
+  "elapsed_seconds": 50.87192191905342,
+  "log": "/tmp/current-gallery-trainer-20261004/affected-original.log",
+  "log_sha256": "fcc55323350d53514f2fe42c0864c13f4375f4eb91cbe78e448d0481dc98ce60",
+  "max_rss_kib": 168632,
+  "native": "UNRUN",
+  "original_exit_code": 0,
+  "source_after": {
+    "scripts/test_siglip2_compact_ranking.py": "32f9ade5717d98e9aa5f6644ad7ac0dc5992bb21e0861730e154d0d78c8a7744",
+    "scripts/train_siglip2_compact_ranking.py": "affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480"
+  },
+  "source_before": {
+    "scripts/test_siglip2_compact_ranking.py": "32f9ade5717d98e9aa5f6644ad7ac0dc5992bb21e0861730e154d0d78c8a7744",
+    "scripts/train_siglip2_compact_ranking.py": "affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480"
+  },
+  "timeout": false,
+  "wall_cap_seconds": 120
+}

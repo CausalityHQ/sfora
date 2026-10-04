@@ -1,0 +1,34 @@
+{
+  "production": {
+    "AUTHORITY_SCHEMA": "7c01bf4343dab1263fcbbbf959ead2b0b87e2f0b30958cd7304e32e295993ffc",
+    "BUNDLE_SCHEMA": "d6bf92ff37477b6bc9cb1967fb285e6b43a297e8f2876510a75253aef8f2e859",
+    "INFERENCE_SCHEMA": "c101dfc275d33985c04870b7d55d770b25bdd09b64f64d36912713066d483c32",
+    "RECIPE": "6cdd22f7573f9124acd5799d760d8bc18ca88bee2879024796be6cbc041f32b1",
+    "SCHEMA": "5bf925cba82c5d7ab5666d4dc9d1aec568a8b1b13ef4c3ffbdf4239571c8b142",
+    "authenticate_active_objective": "84c40f0be0fc3586d150f6d736269bf40cc7f497b99f23572466431db875464d",
+    "check_cpu_gradient": "6d091ad32e6d29f8d6b8437442df1a00b404d011b48d0bea31edf4b0669cca1b",
+    "check_terminal_record": "fd57ff78bd01a96769c70e1dda424a5eb2278bdd9bf91e31f290c5ebafae11df",
+    "cpu_gradients": "2c5d10239771d1d2663741affa9f0c5891a57e90dd270d2f64fa491e091a8145",
+    "cpu_witnesses": "21f97ff18d31f1615476ea9de37e2e60ba49ebcf47709a24b6ba24c94ef0c64e",
+    "loss_terms": "dbbc041853c44aa9e6c9a51e42f68ae1514a5620e2f3e6c5073386b57bc8f300",
+    "ranking_gallery": "5a4f329d0dbee85f1e5b0edd9ff6d6cd2000e921139046a883575ecaf2fdf762"
+  },
+  "production_base_AST_SHA256": "7c29058aabd5045705cf32e009114def4bdb87cf235908b3fee7244cd3e39dc3",
+  "test": {
+    "ContractTests.test_terminal_rejects_partial_false_and_nonfinite_cpu_proof": "80f582b1f5db36e5a0535752faec9d43c38ba0c58a7401ea2c471a14327b4fc0",
+    "CurrentGalleryTests": "a05bed474f7079aa12096493d077787da85b2d4d39c5d30ddec49cf88d906cf1",
+    "GalleryDual": "cc7ac595232c679ac4e84d8c17680080919e10da52371b916f368b2492d8b52c",
+    "GalleryTensor": "3cdb638294bb218666d0b67c16b8af88180ee24182f5c987658ff476c444c8ab",
+    "ImageAnchorTests.test_both_arm_receipts_zero_and_target_difference_are_authenticated": "d01ae35e197c5d28c12ed140af5e863f66bc917813722a01347bc5cd3b6133fc",
+    "ImageAnchorTests.test_both_original_views_regress_to_canonical_image_with_common_e0": "1cf67304767ce907ea30a210b41cf89c0cc8cffd7aed056f439ef6130772f151",
+    "ImageAnchorTests.test_previous_stdlib_cases_preserved_by_exact_required_inverses": "0557651d14ab59927b3070ccfa098367dbd0f9b35fbb8c028a0d8627f1438303",
+    "ImageAnchorTests.test_prospective_schemas_and_both_arm_ranking": "16d61a4dc2943d2129fd601c3dbd82915298172b02145f2640f6af98994a4caf",
+    "SmoothAPTests.test_cpu_witness_requires_positive_nonnearest_loss_and_total_difference": "e90f3b5bc49a3391aec6348678394b6facda6d4c122ab2d4ce956749686fb5d3",
+    "_current_gallery_inverse": "803121764d9f36127d95050f93d8281c2b9c5fad306dcc165873d7e8fd2d616a",
+    "current_gallery_source_boundary": "b50dd6c0146909387aa498924fcfeed47bbf336c900964afaeb6660993f2e5bd",
+    "current_gallery_test_boundary": "ecba63be5896f222385c699503f5518128d8a8e047c42a43caaef40a2f663849",
+    "image_anchor_gradient_fixture": "9ac5089dd8b21fda88dd268f7c7347bc2a91cc622be4951a00ce2c9584adf488",
+    "image_anchor_source_boundary": "568c49dd16361ba72276d2ca61e8e6efc24c136046d01f8bbededccadf03e41b"
+  },
+  "test_base_AST_SHA256": "081a64fc4fb79b0adaaefb93906d02c15104503c6e54c5594236f9154e239194"
+}
