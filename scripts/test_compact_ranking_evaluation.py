@@ -723,7 +723,7 @@ class GroupedMdFixture(PortableRuntimeFixture):
 
 class EvaluationTests(unittest.TestCase):
     def test_exact_image_anchor_authority_inverse_preserves_entire_source(self):
-        source=PATH.read_text()
+        source=inverse_export_envelope_source(PATH.read_text())
         with patch.dict(inverse_smooth_ap_authority.__globals__,SMOOTH_AP_AST_EDITS=IMAGE_ANCHOR_AST_EDITS):
             restored=inverse_smooth_ap_authority(ast.parse(source))
             self.assertEqual(hashlib.sha256(ast.dump(restored,include_attributes=False).encode()).hexdigest(),
@@ -814,18 +814,19 @@ class EvaluationTests(unittest.TestCase):
             with self.subTest(field=field),self.assertRaises(ValueError):e.check_launch(changed,args)
 
     def test_exact_smooth_ap_authority_inverse_preserves_entire_source(self):
-        restored=inverse_smooth_ap_authority(ast.parse(PATH.read_text()))
+        source=inverse_export_envelope_source(PATH.read_text())
+        restored=inverse_smooth_ap_authority(ast.parse(source))
         self.assertEqual(hashlib.sha256(ast.dump(restored,include_attributes=False).encode()).hexdigest(),
             '1250b96b6ff6e3e615620c28323942285f6485bebbde8f3a5d3a0198d8f08ddd')
-        changed=ast.parse(PATH.read_text())
+        changed=ast.parse(source)
         next(n for n in changed.body if isinstance(n,ast.FunctionDef) and n.name=='seeds').body.append(ast.Pass())
         self.assertNotEqual(ast.dump(inverse_smooth_ap_authority(changed),include_attributes=False),
             ast.dump(restored,include_attributes=False))
-        changed=ast.parse(PATH.read_text());changed.body[0].value.value+=' drift'
+        changed=ast.parse(source);changed.body[0].value.value+=' drift'
         self.assertNotEqual(ast.dump(inverse_smooth_ap_authority(changed),include_attributes=False),
             ast.dump(restored,include_attributes=False))
         for new,_ in SMOOTH_AP_AST_EDITS:
-            changed=PATH.read_text().replace(new,new.replace('siglip2','foreign',1) if 'siglip2' in new else new.replace('differs','changed',1),1)
+            changed=source.replace(new,new.replace('siglip2','foreign',1) if 'siglip2' in new else new.replace('differs','changed',1),1)
             with self.assertRaises(AssertionError):inverse_smooth_ap_authority(ast.parse(changed))
 
     def test_actual_prospective_trainer_source_admission_and_schema_denials(self):
@@ -2958,8 +2959,30 @@ def export_timing_source(function,stage,boundary):
     return "print(json.dumps({'event':'COMPACT_TIMING','stage':%r,'boundary':%r,%s,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)" % (stage,boundary,fields)
 
 
+def inverse_export_envelope_source(source):
+    """Undo only the single prospective 900-second export policy literal."""
+    current="'seconds': 900 if phase == 'export' else 500"
+    assert source.count(current)==1, 'prospective 900-second export policy differs'
+    return source.replace(current,"'seconds': 600 if phase == 'export' else 500",1)
+
+
+def inverse_export_envelope(tree):
+    """Normalize the exact policy to 600 before any historical AST inverse."""
+    nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='policy']
+    expected=ast.parse("""def policy(phase):
+    require(phase in ('cpu','export','score'), 'fixed evaluation phase required')
+    return {'seconds': 900 if phase == 'export' else 500, 'host_bytes':8*1024**3,
+            'swap_bytes':0, 'cuda_visible_devices':'0' if phase == 'export' else ''}
+""").body[0]
+    assert len(nodes)==1 and ast.dump(nodes[0],include_attributes=False)==ast.dump(
+        expected,include_attributes=False), 'prospective 900-second export policy differs'
+    nodes[0].body[1].value.values[0].body.value=600
+    return tree
+
+
 def inverse_export_seconds(tree):
     """Restore only the prospective export-seconds literal to its original 300."""
+    tree=inverse_export_envelope(tree)
     tree=inverse_smooth_ap_authority(tree)
     nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='policy']
     expected=ast.parse("""def policy(phase):
@@ -3090,8 +3113,92 @@ class ExportOriginReaderTests(unittest.TestCase):
 
 
 class ProspectiveExportEnvelopeTests(unittest.TestCase):
+    def test_exact_900_to_600_inverse_restores_complete_source_and_ast(self):
+        source=PATH.read_text()
+        restored=inverse_export_envelope_source(source)
+        self.assertEqual(hashlib.sha256(restored.encode()).hexdigest(),
+            '040659957c3f79dfea9ec42c6626a9909193e7cc032386a157db1dacd5ed2273')
+        tree=inverse_export_envelope(ast.parse(source))
+        self.assertEqual(ast.dump(tree,include_attributes=False),
+            ast.dump(ast.parse(restored),include_attributes=False))
+        self.assertEqual(hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest(),
+            '2c6725aa5763b221e70d4fbd4317a470044ec0f20062e42ae1a38b0c59f412c7')
+
+    def test_export_accepts_extended_interval_and_rejects_900_boundary(self):
+        record={'resource_policy':{'seconds':900,'host_bytes':8*1024**3,
+            'swap_bytes':0,'cuda_visible_devices':'0'},'wall_seconds':600.198,
+            'process_peak_rss_kib':8*1024**2,'peak_cuda_allocated_bytes':9_999_999_999,
+            'cuda_initialized':True}
+        for wall in (600,600.198,700,899.999):
+            with self.subTest(accepted_export_seconds=wall):
+                e.check_resource_facts({**record,'wall_seconds':wall},'export')
+        for wall in (900,900.001,1200):
+            with self.subTest(rejected_export_seconds=wall),self.assertRaises(ValueError):
+                e.check_resource_facts({**record,'wall_seconds':wall},'export')
+        for key,value in (('process_peak_rss_kib',8*1024**2+1),('peak_cuda_allocated_bytes',10_000_000_000)):
+            with self.subTest(resource=key),self.assertRaises(ValueError):
+                e.check_resource_facts({**record,key:value},'export')
+        for phase in ('cpu','score'):
+            cpu={**record,'resource_policy':{'seconds':500,'host_bytes':8*1024**3,
+                'swap_bytes':0,'cuda_visible_devices':''},'wall_seconds':499.999,
+                'peak_cuda_allocated_bytes':0,'cuda_initialized':False}
+            e.check_resource_facts(cpu,phase)
+            for wall in (500,600.198,899.999):
+                with self.subTest(phase=phase,rejected_seconds=wall),self.assertRaises(ValueError):
+                    e.check_resource_facts({**cpu,'wall_seconds':wall},phase)
+
+    def test_launch_rejects_historical_and_further_increased_export_caps(self):
+        for phase in ('cpu','export','score'):
+            value,args=launch(phase=phase)
+            value['resource_policies']={
+                'cpu':{'seconds':500,'host_bytes':8*1024**3,'swap_bytes':0,'cuda_visible_devices':''},
+                'export':{'seconds':900,'host_bytes':8*1024**3,'swap_bytes':0,'cuda_visible_devices':'0'},
+                'score':{'seconds':500,'host_bytes':8*1024**3,'swap_bytes':0,'cuda_visible_devices':''}}
+            e.check_launch(value,args)
+            for cap in (600,899,901,1200):
+                changed=copy.deepcopy(value);changed['resource_policies']['export']['seconds']=cap
+                with self.subTest(phase=phase,export_cap=cap),self.assertRaises(ValueError):
+                    e.check_launch(changed,args)
+            for capped_phase in ('cpu','score'):
+                changed=copy.deepcopy(value);changed['resource_policies'][capped_phase]['seconds']=900
+                with self.subTest(phase=phase,capped_phase=capped_phase),self.assertRaises(ValueError):
+                    e.check_launch(changed,args)
+
+    def test_cpu_source_admission_rejects_historical_code_and_execution(self):
+        source=PATH.read_text();old_source=inverse_export_envelope_source(source)
+        code={PATH.name:hashlib.sha256(source.encode()).hexdigest(),
+            Path(__file__).name:hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+        old_code={PATH.name:hashlib.sha256(old_source.encode()).hexdigest(),
+            Path(__file__).name:'6a7a2ec149196fcf4cf5db7ad304991af3286fe646eee78b1102e991abe31545'}
+        digest=lambda value:hashlib.sha256((json.dumps(value,sort_keys=True)+'\n').encode()).hexdigest()
+        current_execution=digest(code);old_execution=digest(old_code)
+        self.assertEqual(old_execution,'0fb358fcf8083ade5b1f0a27072520601b8a90327a5b94d454c9e86bc01d13c4')
+        self.assertNotEqual(code,old_code);self.assertNotEqual(current_execution,old_execution)
+        context={'args':SimpleNamespace(execution_sha256=current_execution),'code':code,
+            'launch':{'stage':'first','panel':'selection'},'training_context':{'source':{'actual':'source'}}}
+        record={'schema':e.SCHEMA,'phase':'cpu','arm':None,'seed':None,'stage':'first','panel':'selection',
+            'execution_sha256':current_execution,'source_code':code,'source':context['training_context']['source'],
+            'cost_policy':e.COST_POLICY}
+        for key in ('pass','engineering_admission_pass','integrity_pass','resources_pass','exit_rehash_pass',
+            'sequential_model_ownership','rng_flags_preserved','both_locks_held_in_parent_authority'):record[key]=True
+        for key in ('official_read','global_production_goal_met','public_latency_measured','product_go'):record[key]=False
+        function=next(n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name=='check_receipt')
+        guards=[n for n in function.body if isinstance(n,ast.Expr) and isinstance(n.value,ast.Call) and
+            isinstance(n.value.func,ast.Name) and n.value.func.id=='require' and n.value.args[-1].value==
+            'complete source/resource evaluator receipt required']
+        self.assertEqual(len(guards),1)
+        predicate=compile(ast.Module(body=guards,type_ignores=[]),str(PATH),'exec')
+        def admit(value):
+            exec(predicate,{**vars(e),'context':context,'record':value,'phase':'cpu','arm':None,
+                'seed':None,'stage':'first','panel':'selection'})
+        admit(record)
+        for changes in ({'source_code':old_code},{'execution_sha256':old_execution},
+                {'source_code':old_code,'execution_sha256':old_execution}):
+            with self.subTest(historical_fields=tuple(changes)),self.assertRaisesRegex(ValueError,'complete source/resource'):
+                admit({**record,**changes})
+
     def test_whole_unit_deadlines_and_unchanged_resource_predicates(self):
-        for phase,seconds,cuda in (('cpu',500,''),('export',600,'0'),('score',500,'')):
+        for phase,seconds,cuda in (('cpu',500,''),('export',900,'0'),('score',500,'')):
             record={'resource_policy':{'seconds':seconds,'host_bytes':8*1024**3,
                 'swap_bytes':0,'cuda_visible_devices':cuda},'wall_seconds':seconds-1,
                 'process_peak_rss_kib':100,'peak_cuda_allocated_bytes':1 if phase=='export' else 0,

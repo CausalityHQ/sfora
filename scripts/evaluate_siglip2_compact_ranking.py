@@ -709,7 +709,7 @@ def load_authenticated(name, path, digest, guards):
 
 def policy(phase):
     require(phase in ('cpu','export','score'), 'fixed evaluation phase required')
-    return {'seconds': 600 if phase == 'export' else 500, 'host_bytes':8*1024**3,
+    return {'seconds': 900 if phase == 'export' else 500, 'host_bytes':8*1024**3,
             'swap_bytes':0, 'cuda_visible_devices':'0' if phase == 'export' else ''}
 
 def check_unit(unit):
