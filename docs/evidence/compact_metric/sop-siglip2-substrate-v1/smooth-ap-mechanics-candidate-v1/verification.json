@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "phase": "mechanics",
+  "arm": "candidate",
+  "service_seconds": 238.895,
+  "invocation_id": "8a83569dc38c4b5380cdd91f2f2b8216",
+  "host_peak_bytes": 7306907648,
+  "rss_kib": 4591224,
+  "quality_read": false,
+  "receipt_sha256": "d3eef6150ad6c11b4b4f9839eb42443877dd2f07b37c52ce1be07ba03ce37ad4",
+  "log_sha256": "27975f989bd65024753c7881ba56d6f3a7f2140565e8a87bcfd8cc00bdf3c19c"
+}
