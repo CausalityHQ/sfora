@@ -14,7 +14,7 @@ seen=False;context=None;serialized_config=None;run_namespace=None;before=None
 class DiagnosticStop(ValueError):pass
 def trace(frame,event,arg):
  global seen,context,serialized_config,run_namespace,before
- if frame.f_code.co_filename!=str(SOURCE):return trace
+ if frame.f_code.co_filename!=str(SOURCE) or frame.f_code.co_name not in ('run','authenticate_payloads','native_export'):return None
  if frame.f_code.co_name=='run' and event=='line' and 'context' in frame.f_locals:
   context=frame.f_locals['context'];run_namespace=frame.f_globals;before=frame.f_locals.get('before')
  if frame.f_code.co_name=='authenticate_payloads' and event=='line':

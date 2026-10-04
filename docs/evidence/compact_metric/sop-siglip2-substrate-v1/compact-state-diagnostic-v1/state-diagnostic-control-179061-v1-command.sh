@@ -3,7 +3,7 @@ set -euo pipefail
 trap 'sfora_command_status=$?; trap - EXIT; set +e; export SFORA_COMMAND_STATUS=$sfora_command_status; /usr/bin/python3 /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py; sfora_footer_status=$?; if (( sfora_command_status != 0 )); then exit "$sfora_command_status"; fi; exit "$sfora_footer_status"' EXIT
 sha256sum -c <<'HASHES'
 3e125a3972d4026186964d99253adea391bbb9a2f6754718802c1f9ca98196c3  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v20/endpoint-state-mismatch-report-v1.py
-a94ce57c3ce96698b10b0326ca10eeb48a98e25d334343430b2197b1607615fe  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v20/compact-state-diagnostic-v1.py
+94a03acc94fced8b5b3d48e9148a2a1458ec13bc7ed8cb615c45ec34b751fec6  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v20/compact-state-diagnostic-v1.py
 9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b  /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13
 bfe7cd329ad359bdcbc077e732ce654a94ef248b8567f0f32fd4234652df1995  /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py
 e5f08a75c38ee6579ccc9681aee4946fbc59ddfa36e376a3fb81e27d9e58ef45  /home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py
@@ -37,7 +37,7 @@ HASHES
 /home/riomus/group-learning/.venv/bin/python -B /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v20/compact-state-diagnostic-v1.py --execution-sha256 b5940d3791344fba6fa65f7bd6051c7eb0a550bb4ac39218cdadb878b272750a --authority /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v20/authority-first-export-control-179061-v4.json --authority-sha256 97379f8624a602c77288403ff69f4b3bef928336d2b8bd3fa0b8c4a966ac1a9c --phase export --seed 179061 --arm control --output /home/riomus/runs/sfora-so400-compact-ranking-evaluation-state-diagnostic-control-179061-v1
 sha256sum -c <<'HASHES'
 3e125a3972d4026186964d99253adea391bbb9a2f6754718802c1f9ca98196c3  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v20/endpoint-state-mismatch-report-v1.py
-a94ce57c3ce96698b10b0326ca10eeb48a98e25d334343430b2197b1607615fe  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v20/compact-state-diagnostic-v1.py
+94a03acc94fced8b5b3d48e9148a2a1458ec13bc7ed8cb615c45ec34b751fec6  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v20/compact-state-diagnostic-v1.py
 9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b  /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13
 bfe7cd329ad359bdcbc077e732ce654a94ef248b8567f0f32fd4234652df1995  /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py
 e5f08a75c38ee6579ccc9681aee4946fbc59ddfa36e376a3fb81e27d9e58ef45  /home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py
