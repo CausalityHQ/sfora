@@ -1,0 +1,19 @@
+{
+  "decision": "FAIL_IMPORT_BOUNDARY",
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "images": 0,
+  "quality_read": false,
+  "session": 7339,
+  "invocation_id": "e4d37996536744baacc72afcf4acda8b",
+  "service_seconds": 10.852,
+  "host_peak_bytes": 949526528,
+  "events": 0,
+  "swap_bytes": 0,
+  "native_unqualified": [],
+  "error": {
+    "message": "bundle-only loader attempted external dependency: /home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/__pycache__/__init__.cpython-313.pyc",
+    "type": "ValueError"
+  },
+  "log_sha256": "4e9e683b8fbce695eaf3720113b391c01411bed4a56e8d1ac249717916e9c76a"
+}
