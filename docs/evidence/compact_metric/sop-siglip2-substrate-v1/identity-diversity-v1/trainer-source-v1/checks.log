@@ -1,0 +1,18 @@
+test_complete_nested_source_guard_correspondence (__main__.DiversityAdmissions.test_complete_nested_source_guard_correspondence) ... ok
+test_complete_schedule_and_update_mutants (__main__.DiversityAdmissions.test_complete_schedule_and_update_mutants) ... ok
+test_json_and_resource_contract (__main__.DiversityAdmissions.test_json_and_resource_contract) ... ok
+test_launch_scope_cache_and_prerequisite_mutants (__main__.DiversityAdmissions.test_launch_scope_cache_and_prerequisite_mutants) ... ok
+test_new_exact2_and_method (__main__.DiversityAdmissions.test_new_exact2_and_method) ... ok
+test_no_scope_gradient_equality_or_hinge_dispatch (__main__.DiversityAdmissions.test_no_scope_gradient_equality_or_hinge_dispatch) ... ok
+test_original_image_self_and_singletons (__main__.DiversityAdmissions.test_original_image_self_and_singletons) ... ok
+test_owned_closure_tamper_and_extra_file (__main__.DiversityAdmissions.test_owned_closure_tamper_and_extra_file) ... ok
+test_retained_admission_and_loader_ast (__main__.DiversityAdmissions.test_retained_admission_and_loader_ast) ... ok
+test_retained_update_and_vision_predicate_order (__main__.DiversityAdmissions.test_retained_update_and_vision_predicate_order) ... ok
+test_scope_bundle_swap (__main__.DiversityAdmissions.test_scope_bundle_swap) ... ok
+test_scope_namespaces_and_mutants (__main__.DiversityAdmissions.test_scope_namespaces_and_mutants) ... ok
+test_visit_arithmetic_scope_counts (__main__.DiversityAdmissions.test_visit_arithmetic_scope_counts) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 2.055s
+
+OK

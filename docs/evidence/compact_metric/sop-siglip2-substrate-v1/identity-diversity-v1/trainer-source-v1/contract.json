@@ -1,0 +1,161 @@
+{
+  "API": [
+    "load_inference(directory,bundle_sha256,device)",
+    "inference_outputs(endpoint,images)",
+    "release_inference(endpoint)",
+    "admit_bundle(directory,sha)",
+    "inference_readout_tree(endpoint)"
+  ],
+  "CLI": "python3 ROOT/train_siglip2_identity_diversity.py --execution-sha256 SHA --authority FILE --authority-sha256 SHA --phase cpu|mechanics|train --arm control|candidate --seed 179061|179069 --output NEWDIR",
+  "CPU_receipt_extension": "qualifications4/gradients4 in control061,control069,candidate061,candidate069 order; each complete bank/schedule/masks/RNG/provenance, scope initial artifact/reload+bundle; shared-input/commonstats exact; no cross-scope gradients equality",
+  "ROOT_next_gate": "Fresh candidate startup/export UNITs after Img alias source correction; frozen new trainer exact2 and actual launch/native installed inputs; CPU500 sequential all4 firstB64+full payload/portable initial reload; discarded17/8+9/mechanics600 bothscopes; fresh128 TRAIN600; root only. No resource/quality eligibility from stdlib tests.",
+  "base_commit": "e15b0fdb97078f5841f05a9962437ffd1b0a67b9",
+  "candidate_cache_admission": "new exact2 authenticated before import; reuse unchanged already-admitted reference/prior context, full independent metadata reconstruction and image bytes, full startup+export admit_terminal/log/cgroup/pins/cache semantic scan; no exporter factory or second native model; oldcontrol authority retained",
+  "caps": {
+    "both_lifetime_locks": true,
+    "cpu_seconds": 500,
+    "cuda_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "mechanics_seconds": 600,
+    "swap_bytes": 0,
+    "train_seconds": 600
+  },
+  "checks": {
+    "child_peak_rss_kib": 78980,
+    "command": [
+      "/usr/bin/python3",
+      "-B",
+      "scripts/test_siglip2_identity_diversity.py",
+      "-v"
+    ],
+    "exit_code": 0,
+    "log": {
+      "path": "/tmp/sfora-identity-diversity-trainer-checks.log",
+      "sha256": "11f90fcbd4369e36f2c5d5fcc968958ae907eca4d0dc5f16152237b7ad32fd1f"
+    },
+    "memory_cap_bytes": 1073741824,
+    "native_imports": false,
+    "pass": true,
+    "path": "/tmp/sfora-identity-diversity-trainer-checks.json",
+    "schema": "sfora-identity-diversity-trainer-checks-v1",
+    "sha256": "ef112a7492e08377536e79f4bf4ac1c6cd46fe4b3da7f33f86f642f4f8c2808a",
+    "source_files": {
+      "scripts/test_siglip2_identity_diversity.py": "10cc9bd05cfe5d07c436bc05f62a9e6b3fda4b24127cbdfbb6ce870377633d85",
+      "scripts/train_siglip2_identity_diversity.py": "28c78d9d3ce58a97042ca60a32b183b663af77099964456c2c18d6ec10869c8c"
+    },
+    "timeout_seconds": 120,
+    "wall_seconds": 2.216616263031028
+  },
+  "commit": "7809ca7db1b51113eb40ed27adf1ca8f523c33a4",
+  "common_statistics": "authenticated old control cache CPU renormalization; original fitted A0/means/zeroC/frozen1008classifier; original canonical muTRAIN and bothview e0; canonical common witness raw/unit/packed exact on identical inputs; candidate residual energy diagnostic only",
+  "early_contract": {
+    "path": "/tmp/sfora-identity-diversity-trainer-contract-early.json",
+    "sha256": "dde3226dbf1fa7b44cff59394919b5a28a6db9b12ae015ac4b9d88fb90421c05"
+  },
+  "execution_manifest": "execution.json exact2 basename to actual SHA256; original compact source unchanged80db5701d05091b0b0412c6bb18cc8d17f486f5ca52ef5a60a06a028a736f218",
+  "identity_extension": [
+    "scope",
+    "common_initial_sha256",
+    "common_statistics_sha256",
+    "schedule_provenance_sha256"
+  ],
+  "launch_extension": {
+    "candidate_cache": {
+      "authority": "FILE new exporter launch",
+      "exporter": "root/execution_sha256/code exact2 new exporter; actual pins root-supplied",
+      "terminal": "UNIT exact proof/log/unit/invocation_id/service_seconds/native_peak_rss_kib/both_locks_held; exporter proof descriptor (not trainer receipt); startup terminal admitted transitively before export"
+    },
+    "other_fields": "original nearest/fitter/accepted/readout/native_authority/resources retained; distinct recipe; selected_cpu one bothseed/bothscope CPU UNIT; selected_mechanics both scopes061 UNIT",
+    "scope": "FILE SHA55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+  },
+  "launch_keys": [
+    "accepted",
+    "arm",
+    "both_locks_held",
+    "candidate_cache",
+    "execution_sha256",
+    "fitter",
+    "native_authority",
+    "nearest",
+    "phase",
+    "readout",
+    "recipe",
+    "resource_policy",
+    "schema",
+    "scope",
+    "seed",
+    "selected_cpu",
+    "selected_mechanics"
+  ],
+  "lifetime": "bootstrap oldcontrol common stats then release old views,teachers,graphs before candidate cache load; one scope context initial/model/cache lifetime; CPU serial scopes/seeds and per-scope bundle qualification; no helper globals rebound",
+  "native_eligibility": false,
+  "native_jobs_launched": false,
+  "objective": "both scopes complete archived fullfeature CONTROL prototype regression + connected current canonical gallery SmoothAP; no hinge computation/activity; ordered A,C AdamW unchanged; preserve smooth_ap_terms/update/global2K arithmetic",
+  "original_trainer": {
+    "path": "scripts/train_siglip2_compact_ranking.py",
+    "sha256": "80db5701d05091b0b0412c6bb18cc8d17f486f5ca52ef5a60a06a028a736f218"
+  },
+  "owned_files": [
+    "scripts/train_siglip2_identity_diversity.py",
+    "scripts/test_siglip2_identity_diversity.py"
+  ],
+  "payload_static_keys": [
+    "provenance",
+    "config",
+    "buffers",
+    "processor",
+    "head",
+    "classifier",
+    "means",
+    "partition",
+    "original_rows",
+    "target",
+    "schedules",
+    "views",
+    "teachers",
+    "mu_train",
+    "mu_train_provenance",
+    "scope",
+    "common_statistics",
+    "cache_provenance",
+    "masks",
+    "schedule_provenance"
+  ],
+  "quality_read": false,
+  "schema": "sfora-identity-diversity-trainer-contract-v1",
+  "schemas": {
+    "bundle": "siglip2-identity-diversity-bundle-v1",
+    "inference": "siglip2-identity-diversity-inference-v1",
+    "launch": "siglip2-identity-diversity-launch-v1",
+    "payload_receipt": "siglip2-identity-diversity-v1"
+  },
+  "scope_binding": "complete arm scope + frozen whole-scope FILE + common_statistics in initial,static payload,identity,checkpoint,inference,bundle; original_rows = official TRAIN ordinals; targets = dense scope labels; cache ordinal only index",
+  "scope_row_namespaces": "old common mu provenance retains historical FIT-ordinal bytes; control cache mapping independently maps old original_fit_indices through fit.rows[*].train_row to official ordinals; state original_rows strictly official TRAIN, dense targets scoped, array indexes cache-only",
+  "source_files": {
+    "scripts/test_siglip2_identity_diversity.py": {
+      "bytes": 44021,
+      "sha256": "10cc9bd05cfe5d07c436bc05f62a9e6b3fda4b24127cbdfbb6ce870377633d85"
+    },
+    "scripts/train_siglip2_identity_diversity.py": {
+      "bytes": 175518,
+      "sha256": "28c78d9d3ce58a97042ca60a32b183b663af77099964456c2c18d6ec10869c8c"
+    }
+  },
+  "status": "source complete; 13 bounded stdlib checks pass; native CPU/mechanics/TRAIN/cache UNQUALIFIED",
+  "test_names": [
+    "test_new_exact2_and_method",
+    "test_scope_namespaces_and_mutants",
+    "test_visit_arithmetic_scope_counts",
+    "test_original_image_self_and_singletons",
+    "test_scope_bundle_swap",
+    "test_owned_closure_tamper_and_extra_file",
+    "test_json_and_resource_contract",
+    "test_retained_admission_and_loader_ast",
+    "test_launch_scope_cache_and_prerequisite_mutants",
+    "test_complete_schedule_and_update_mutants",
+    "test_complete_nested_source_guard_correspondence",
+    "test_retained_update_and_vision_predicate_order",
+    "test_no_scope_gradient_equality_or_hinge_dispatch"
+  ],
+  "training_receipt_extension": "scope bank and complete first128 schedules/masks/RNG provenance; diagnostic scope residual energy; same common_input witness and commonstats; genuine A,C updates and no hinge keys; discarded mechanics17 vs independent8+9 + strict updated reload; existing whole service terminal gates"
+}
