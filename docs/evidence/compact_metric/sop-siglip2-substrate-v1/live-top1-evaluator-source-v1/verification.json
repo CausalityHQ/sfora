@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "native_eligible": false,
+  "reason": "trainer CPUv1 failed; prospective corrected trainer pins required",
+  "worker_commit": "0246dd87dfbe5f2369a14f7d4c31e309435bdeb8",
+  "integration_commit": "fe9b6c0a",
+  "tests": 96,
+  "wall_seconds": 108.72,
+  "peak_rss_kib": 205248,
+  "swaps": 0,
+  "exit_status": 0
+}
