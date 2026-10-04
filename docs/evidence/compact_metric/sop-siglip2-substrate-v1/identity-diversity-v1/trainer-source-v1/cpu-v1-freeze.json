@@ -1,0 +1,23 @@
+{
+  "code": {
+    "test_siglip2_identity_diversity.py": "10cc9bd05cfe5d07c436bc05f62a9e6b3fda4b24127cbdfbb6ce870377633d85",
+    "train_siglip2_identity_diversity.py": "28c78d9d3ce58a97042ca60a32b183b663af77099964456c2c18d6ec10869c8c"
+  },
+  "execution_sha256": "04368bc364b331a11d3f7756266ead0af12231a5dc0966b10787f48cb3c75c41",
+  "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v1",
+  "authority_sha256": "fdfdc9169fe1b3da6949cf4c1d4db6a3767e3cbe34ce9889361c6323b80971f0",
+  "phase": "cpu",
+  "arm": "control",
+  "seed": 179061,
+  "unit": "sfora-so400-identity-diversity-cpu-v1",
+  "output": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v1",
+  "command_sha256": "c0382722012edb094b49049e692aa408089821db1bc9bcc5e2149a356e11e2a6",
+  "launch_sha256": "c6a7c5f9122f7318e027a13ed6cfb69422937084908a6d14ccafe59163ea9758",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "stop_rule": "ONE CPU500 gate; any full authority/cache/source/gradient/common parity/complete updated reload/portable bundle/role/RNG/resource/integrity violation closes original CPU; no mechanics or TRAIN before accepted full terminal."
+}
