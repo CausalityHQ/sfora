@@ -33,7 +33,10 @@ math_helper=module('_compact_math_tests',PATH.with_name('evaluate_siglip2_genuin
 
 
 # Exact complete statements: only prospective schemas and trainer authority change.
-SMOOTH_AP_AST_EDITS = (("SCHEMA = 'siglip2-compact-smooth-ap-evaluation-v1'", "SCHEMA = 'siglip2-compact-ranking-evaluation-v1'"), ("AUTHORITY_SCHEMA = 'siglip2-compact-smooth-ap-evaluation-launch-v1'", "AUTHORITY_SCHEMA = 'siglip2-compact-ranking-evaluation-launch-v1'"), ("TRAINING = {'root': '/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1', 'code': {'test_siglip2_compact_ranking.py': '5834df438ac32dd98244d7b24bb19e94e173169b19ea6770ba7db2eff0c0f72b', 'train_siglip2_compact_ranking.py': '74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679'}, 'execution_sha256': 'bf3efd0040a6cccefde9414839a8cf4943e6a2a52c49f701b865a771def7e272'}", "TRAINING = {'root': '/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7', 'execution_sha256': 'ee9f77da0bac2a90b09f87fdcd7e7935de9c8dd38b663d84ca8c57271f43ce26', 'code': {'train_siglip2_compact_ranking.py': '880a8e40a1b32e97786d6dcf2449e4ecbdc98a0a5d9e5a35d9c6a2519d7cb53c', 'test_siglip2_compact_ranking.py': '544dc5fc63adb53f312e9d0b7eae2419958adef71cc8318092bd733941654274'}}"), ("require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-smooth-ap-v1' and\n        trainer.AUTHORITY_SCHEMA == 'siglip2-compact-smooth-ap-launch-v1' and\n        trainer.INFERENCE_SCHEMA == 'siglip2-compact-smooth-ap-inference-v1' and\n        trainer.BUNDLE_SCHEMA == 'siglip2-compact-smooth-ap-bundle-v1' and math_helper.ORDER == ORDER and\n        math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')", "require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-ranking-v1' and\n        trainer.BUNDLE_SCHEMA == 'siglip2-compact-ranking-bundle-v1' and math_helper.ORDER == ORDER and\n        math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')"))
+SMOOTH_AP_AST_EDITS = (("SCHEMA = 'siglip2-compact-image-anchor-smooth-ap-evaluation-v1'", "SCHEMA = 'siglip2-compact-ranking-evaluation-v1'"), ("AUTHORITY_SCHEMA = 'siglip2-compact-image-anchor-smooth-ap-evaluation-launch-v1'", "AUTHORITY_SCHEMA = 'siglip2-compact-ranking-evaluation-launch-v1'"), ("TRAINING = {'root': '/home/riomus/runs/sfora-so400-image-anchor-smooth-ap-train-source-v2', 'code': {'test_siglip2_compact_ranking.py': 'b56265f631a589cc40aa5e0b7cc779bb54d84451eabd87628cc850b704eeba9d', 'train_siglip2_compact_ranking.py': '40c271217c74b89d3b7c20d0dfe05571746303ed6f75f7dcdcffbef3f77a2004'}, 'execution_sha256': '1ed4790f6716ded3972a0e6fd86cffdd45edb7d2060cf949d07da2d4a1adf141'}", "TRAINING = {'root': '/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7', 'execution_sha256': 'ee9f77da0bac2a90b09f87fdcd7e7935de9c8dd38b663d84ca8c57271f43ce26', 'code': {'train_siglip2_compact_ranking.py': '880a8e40a1b32e97786d6dcf2449e4ecbdc98a0a5d9e5a35d9c6a2519d7cb53c', 'test_siglip2_compact_ranking.py': '544dc5fc63adb53f312e9d0b7eae2419958adef71cc8318092bd733941654274'}}"), ("require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-image-anchor-smooth-ap-v1' and\n        trainer.AUTHORITY_SCHEMA == 'siglip2-compact-image-anchor-smooth-ap-launch-v1' and\n        trainer.INFERENCE_SCHEMA == 'siglip2-compact-image-anchor-smooth-ap-inference-v1' and\n        trainer.BUNDLE_SCHEMA == 'siglip2-compact-image-anchor-smooth-ap-bundle-v1' and math_helper.ORDER == ORDER and\n        math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')", "require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-ranking-v1' and\n        trainer.BUNDLE_SCHEMA == 'siglip2-compact-ranking-bundle-v1' and math_helper.ORDER == ORDER and\n        math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')"))
+
+# Undo only the four prospective statements to the exact pre-image-anchor source.
+IMAGE_ANCHOR_AST_EDITS = (("SCHEMA = 'siglip2-compact-image-anchor-smooth-ap-evaluation-v1'", "SCHEMA = 'siglip2-compact-smooth-ap-evaluation-v1'"), ("AUTHORITY_SCHEMA = 'siglip2-compact-image-anchor-smooth-ap-evaluation-launch-v1'", "AUTHORITY_SCHEMA = 'siglip2-compact-smooth-ap-evaluation-launch-v1'"), ("TRAINING = {'root': '/home/riomus/runs/sfora-so400-image-anchor-smooth-ap-train-source-v2', 'code': {'test_siglip2_compact_ranking.py': 'b56265f631a589cc40aa5e0b7cc779bb54d84451eabd87628cc850b704eeba9d', 'train_siglip2_compact_ranking.py': '40c271217c74b89d3b7c20d0dfe05571746303ed6f75f7dcdcffbef3f77a2004'}, 'execution_sha256': '1ed4790f6716ded3972a0e6fd86cffdd45edb7d2060cf949d07da2d4a1adf141'}", "TRAINING = {'root': '/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1', 'code': {'test_siglip2_compact_ranking.py': '5834df438ac32dd98244d7b24bb19e94e173169b19ea6770ba7db2eff0c0f72b', 'train_siglip2_compact_ranking.py': '74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679'}, 'execution_sha256': 'bf3efd0040a6cccefde9414839a8cf4943e6a2a52c49f701b865a771def7e272'}"), ("require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-image-anchor-smooth-ap-v1' and\n        trainer.AUTHORITY_SCHEMA == 'siglip2-compact-image-anchor-smooth-ap-launch-v1' and\n        trainer.INFERENCE_SCHEMA == 'siglip2-compact-image-anchor-smooth-ap-inference-v1' and\n        trainer.BUNDLE_SCHEMA == 'siglip2-compact-image-anchor-smooth-ap-bundle-v1' and math_helper.ORDER == ORDER and\n        math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')", "require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and\n        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-smooth-ap-v1' and\n        trainer.AUTHORITY_SCHEMA == 'siglip2-compact-smooth-ap-launch-v1' and\n        trainer.INFERENCE_SCHEMA == 'siglip2-compact-smooth-ap-inference-v1' and\n        trainer.BUNDLE_SCHEMA == 'siglip2-compact-smooth-ap-bundle-v1' and math_helper.ORDER == ORDER and\n        math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')"))
 
 def inverse_smooth_ap_authority(tree):
     dump=lambda n:ast.dump(n,include_attributes=False)
@@ -719,20 +722,93 @@ class GroupedMdFixture(PortableRuntimeFixture):
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_exact_image_anchor_authority_inverse_preserves_entire_source(self):
+        source=PATH.read_text()
+        with patch.dict(inverse_smooth_ap_authority.__globals__,SMOOTH_AP_AST_EDITS=IMAGE_ANCHOR_AST_EDITS):
+            restored=inverse_smooth_ap_authority(ast.parse(source))
+            self.assertEqual(hashlib.sha256(ast.dump(restored,include_attributes=False).encode()).hexdigest(),
+                '394c36d476ae5df03ed0ec05a8fd6ad0d9b5fad06f75692a211db258a34cdd94')
+            for kind in ('function','docstring'):
+                changed=ast.parse(source)
+                if kind=='function':
+                    next(n for n in changed.body if isinstance(n,ast.FunctionDef) and n.name=='seeds').body.append(ast.Pass())
+                else:changed.body[0].value.value+=' drift'
+                with self.subTest(unrelated=kind):
+                    self.assertNotEqual(ast.dump(inverse_smooth_ap_authority(changed),include_attributes=False),
+                        ast.dump(restored,include_attributes=False))
+            restored_source=source
+            for new,old in IMAGE_ANCHOR_AST_EDITS:
+                changed=source.replace(new,new.replace('siglip2','foreign',1),1)
+                with self.subTest(statement=new),self.assertRaises(AssertionError):
+                    inverse_smooth_ap_authority(ast.parse(changed))
+                self.assertEqual(source.count(new),1)
+                restored_source=restored_source.replace(new,old,1)
+            self.assertEqual(hashlib.sha256(restored_source.encode()).hexdigest(),
+                '2d9198924fe7004730f25ee8929900e0360d73a32442ad7444426cb0c447d317')
+
+    def test_current_trainer_full_payload_and_inference_schema_denials(self):
+        path=PATH.with_name('train_siglip2_compact_ranking.py')
+        trainer=e.load_authenticated('_image_anchor_payload_trainer',path,
+            e.TRAINING['code'][path.name],{})
+        launch={name:getattr(trainer,name.upper()) for name in ('nearest','fitter','accepted','readout','recipe')}
+        launch.update(execution_sha256=e.TRAINING['execution_sha256'],native_authority=descriptor('/tmp/native'))
+        ident={'source':{'owned':'source'},'method':trainer.method(launch),'parameter_names':['A'],
+            'parameter_shapes':[[128,160]],'arm':'control','seed':179061,'device':'cpu','numerical_flags':{}}
+        context={'launch':launch,'source':ident['source'],'flags':ident['numerical_flags']}
+        payload=dict.fromkeys(trainer.PAYLOAD_KEYS)
+        payload.update(schema=trainer.SCHEMA,identity=ident,source=ident['source'],counter=128,numerical_flags={})
+        node=next(n for n in ast.parse(path.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='check_payload')
+        guard=next(n for n in node.body if isinstance(n,ast.Expr) and 'complete payload identity differs' in ast.unparse(n))
+        predicate=compile(ast.Module(body=[guard],type_ignores=[]),str(path),'exec')
+        def admit(saved):
+            exec(predicate,{**vars(trainer),'context':context,'saved':saved,'ident':ident,'step':128})
+        admit(payload)
+        for schema in ('siglip2-compact-smooth-ap-v1','siglip2-compact-ranking-v1','foreign'):
+            with self.subTest(payload_schema=schema),self.assertRaises(ValueError):
+                admit({**payload,'schema':schema})
+        for key in trainer.PAYLOAD_KEYS:
+            changed=payload.copy();changed.pop(key)
+            with self.subTest(missing_payload=key),self.assertRaises(ValueError):admit(changed)
+        with self.assertRaises(ValueError):admit({**payload,'foreign':None})
+        for key,bad in (('source',{}),('identity',{}),('counter',True),('numerical_flags',{'changed':True})):
+            with self.subTest(payload_field=key),self.assertRaises(ValueError):admit({**payload,key:bad})
+        inference=dict.fromkeys(trainer.INFERENCE_KEYS);inference['schema']=trainer.INFERENCE_SCHEMA
+        e.check_inference_members(trainer,inference)
+        for schema in ('siglip2-compact-smooth-ap-inference-v1','siglip2-compact-ranking-inference-v1',trainer.SCHEMA,'foreign'):
+            with self.subTest(inference_schema=schema),self.assertRaises(ValueError):
+                e.check_inference_members(trainer,{**inference,'schema':schema})
+        for key in trainer.INFERENCE_KEYS:
+            changed=inference.copy();changed.pop(key)
+            with self.subTest(missing_inference=key),self.assertRaises(ValueError):
+                e.check_inference_members(trainer,changed)
+        with self.assertRaises(ValueError):e.check_inference_members(trainer,{**inference,'optimizer':None})
+        self.assertFalse(any(n.split('.')[0] in e.NATIVE for n in sys.modules))
+
     def test_prospective_frozen_training_and_retired_authority(self):
-        self.assertEqual(e.SCHEMA,'siglip2-compact-smooth-ap-evaluation-v1')
-        self.assertEqual(e.AUTHORITY_SCHEMA,'siglip2-compact-smooth-ap-evaluation-launch-v1')
+        self.assertEqual(e.SCHEMA,'siglip2-compact-image-anchor-smooth-ap-evaluation-v1')
+        self.assertEqual(e.AUTHORITY_SCHEMA,'siglip2-compact-image-anchor-smooth-ap-evaluation-launch-v1')
         value,args=launch()
         e.check_launch(value,args)
         changed=copy.deepcopy(value)
         changed['training']={'root':'/tmp/another-actual-trainer','execution_sha256':'1'*64,
             'code':dict.fromkeys(e.TRAIN_FILES,'2'*64)}
         with self.assertRaisesRegex(ValueError,'parent-frozen'):e.check_launch(changed,args)
-        for bad in ('siglip2-compact-ranking-evaluation-launch-v1', 'siglip2-compact-ranking-launch-v1'):
+        for bad in ('siglip2-compact-ranking-evaluation-launch-v1', 'siglip2-compact-ranking-launch-v1',
+                'siglip2-compact-smooth-ap-evaluation-launch-v1','siglip2-compact-smooth-ap-launch-v1'):
             with self.subTest(schema=bad),self.assertRaises(ValueError):
                 e.check_launch({**value,'schema':bad},args)
         with self.assertRaisesRegex(ValueError,'parent-frozen'):
             e.check_launch({**value,'training':{'root': '/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7', 'execution_sha256': 'ee9f77da0bac2a90b09f87fdcd7e7935de9c8dd38b663d84ca8c57271f43ce26', 'code': {'train_siglip2_compact_ranking.py': '880a8e40a1b32e97786d6dcf2449e4ecbdc98a0a5d9e5a35d9c6a2519d7cb53c', 'test_siglip2_compact_ranking.py': '544dc5fc63adb53f312e9d0b7eae2419958adef71cc8318092bd733941654274'}}},args)
+        with self.assertRaisesRegex(ValueError,'parent-frozen'):
+            e.check_launch({**value,'training':{'root': '/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1',
+                'code': {'test_siglip2_compact_ranking.py': '5834df438ac32dd98244d7b24bb19e94e173169b19ea6770ba7db2eff0c0f72b',
+                    'train_siglip2_compact_ranking.py': '74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679'},
+                'execution_sha256': 'bf3efd0040a6cccefde9414839a8cf4943e6a2a52c49f701b865a771def7e272'}},args)
+        for field,bad in (('root','/tmp/another-actual-trainer'),('execution_sha256','1'*64),
+                ('code',{**value['training']['code'],'train_siglip2_compact_ranking.py':'2'*64})):
+            changed=copy.deepcopy(value);changed['training'][field]=bad
+            with self.subTest(frozen_field=field),self.assertRaisesRegex(ValueError,'parent-frozen'):
+                e.check_launch(changed,args)
         for field,bad in (('root','relative'),('execution_sha256','not-a-hash'),('code',{})):
             changed=copy.deepcopy(value);changed['training'][field]=bad
             with self.subTest(field=field),self.assertRaises(ValueError):e.check_launch(changed,args)
@@ -785,10 +861,23 @@ class EvaluationTests(unittest.TestCase):
                 'native_authority':descriptor('/tmp/original-native-authority'),
                 'selected_cpu':None,'selected_mechanics':None}
             trainer.check_launch(tlaunch,targs)
-            self.assertEqual(trainer.RECIPE,{'adamw': {'amsgrad': False, 'betas': [0.9, 0.999], 'capturable': False, 'differentiable': False, 'eps': 1e-08, 'foreach': False, 'fused': False, 'lr': 0.0001, 'maximize': False, 'weight_decay': 0.05}, 'batch': 64, 'classes': 1008, 'clip': 1.0, 'core': 'cache/target preparation + both-arm all-positive scoring + both-view forward/backward + optimizer', 'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means', 'initial_scaler': 128.0, 'microbatch': 16, 'mining': 'all6355 canonical frozen bank; exclude same original image; all same-identity positives; canonical ordinal traversal', 'ranking': 'candidate coefficient1; both score all positives; SmoothAP sum / (2*K)', 'readout': 'original CPU-renormalized genuine features; FP32 all; autocast disabled', 'regression': 'both same-row views coordinate sum / (128*e0)', 'rows': 6355, 'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused', 'seeds': [179061, 179069], 'singletons': 12, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0', 'temperature': 0.01, 'trainable_names': ['A'], 'trainable_scalars': 20480, 'trainable_shapes': [[128, 160]], 'updates': 128, 'views': ['canonical', 'augmented']} )
+            self.assertEqual(trainer.RECIPE,{'adamw': {'amsgrad': False, 'betas': [0.9, 0.999], 'capturable': False, 'differentiable': False, 'eps': 1e-08, 'foreach': False, 'fused': False, 'lr': 0.0001, 'maximize': False, 'weight_decay': 0.05}, 'batch': 64, 'classes': 1008, 'clip': 1.0, 'core': 'cache/target preparation + both-arm all-positive scoring + both-view forward/backward + optimizer', 'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means', 'initial_scaler': 128.0, 'microbatch': 16, 'mining': 'all6355 canonical frozen bank; exclude same original image; all same-identity positives; canonical ordinal traversal', 'ranking': 'both arms backward coefficient1; all positives; SmoothAP sum / (2*K)', 'readout': 'original CPU-renormalized genuine features; FP32 all; autocast disabled', 'regression': 'control P[label]; candidate canonical T[image]; both original views coordinate sum / (128*e0)', 'rows': 6355, 'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused', 'seeds': [179061, 179069], 'singletons': 12, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0', 'temperature': 0.01, 'trainable_names': ['A'], 'trainable_scalars': 20480, 'trainable_shapes': [[128, 160]], 'updates': 128, 'views': ['canonical', 'augmented']} )
             for field,legacy in (('schema','siglip2-compact-ranking-launch-v1'),('recipe',{'seeds': [179061, 179069], 'rows': 6355, 'classes': 1008, 'singletons': 12, 'updates': 128, 'batch': 64, 'microbatch': 16, 'views': ['canonical', 'augmented'], 'trainable_names': ['A'], 'trainable_shapes': [[128, 160]], 'trainable_scalars': 20480, 'adamw': {'lr': 0.0001, 'betas': [0.9, 0.999], 'eps': 1e-08, 'weight_decay': 0.05, 'amsgrad': False, 'maximize': False, 'foreach': False, 'capturable': False, 'differentiable': False, 'fused': False}, 'clip': 1.0, 'initial_scaler': 128.0, 'regression': 'both same-row views coordinate sum / (128*e0)', 'ranking': 'candidate coefficient1; both mine; hinge sum / (2*K*.05)', 'margin': 0.05, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0', 'mining': 'all6355; other original image positive; wrong identity negative; ascending original-row ties', 'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused', 'readout': 'original CPU-renormalized genuine features; FP32 all; autocast disabled', 'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means', 'core': 'cache/target preparation + both-arm mining + both-view forward/backward + optimizer'})):
                 with self.subTest(field=field),self.assertRaises(ValueError):
                     trainer.check_launch({**tlaunch,field:legacy},targs)
+            retired_recipe=copy.deepcopy(trainer.RECIPE)
+            retired_recipe.update(regression='both same-row views coordinate sum / (128*e0)',
+                ranking='candidate coefficient1; both score all positives; SmoothAP sum / (2*K)')
+            for recipe in (retired_recipe,
+                    {**trainer.RECIPE,'regression':retired_recipe['regression']},
+                    {**trainer.RECIPE,'ranking':retired_recipe['ranking']}):
+                with self.subTest(retired_recipe=recipe),self.assertRaises(ValueError):
+                    trainer.check_launch({**tlaunch,'recipe':recipe},targs)
+            for name,legacy in (('SCHEMA','siglip2-compact-smooth-ap-v1'),
+                    ('AUTHORITY_SCHEMA','siglip2-compact-smooth-ap-launch-v1'),
+                    ('INFERENCE_SCHEMA','siglip2-compact-smooth-ap-inference-v1'),
+                    ('BUNDLE_SCHEMA','siglip2-compact-smooth-ap-bundle-v1')):
+                with self.subTest(retired_schema=name),patch.object(trainer,name,legacy),self.assertRaises(ValueError):admit()
             for name,legacy in (('SCHEMA','siglip2-compact-ranking-v1'),
                     ('AUTHORITY_SCHEMA','siglip2-compact-ranking-launch-v1'),
                     ('INFERENCE_SCHEMA','siglip2-compact-ranking-inference-v1'),
