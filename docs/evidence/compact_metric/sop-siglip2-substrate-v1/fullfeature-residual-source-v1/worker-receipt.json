@@ -1,0 +1,81 @@
+{
+  "base": "030203a532d23b3403a9f83683d181674b4153a8",
+  "code": {
+    "train_siglip2_compact_ranking.py": "ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad",
+    "test_siglip2_compact_ranking.py": "6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b"
+  },
+  "execution": {
+    "path": "/tmp/fullfeature-residual-final-source/execution.json",
+    "sha256": "996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15"
+  },
+  "contract": {
+    "path": "/tmp/sfora-fullfeature-residual-trainer-20261004.contract.json",
+    "sha256": "360aec523dc5e7fbfa632ae51c54581381eac61493183d6e91433c4921397f4a"
+  },
+  "diff": {
+    "path": "/tmp/fullfeature-residual-final.diff",
+    "sha256": "b4c1dc2a5a45db8460c98ffc86cabbf46a3d4b9626855bf9f6565f3c278ff01c"
+  },
+  "AST_ledger": {
+    "path": "/tmp/fullfeature-residual-AST-ledger.json",
+    "sha256": "5873b7997ab482bc59c73e76e1357697b98f8d7c083596100cb9d46b582f0c5a"
+  },
+  "checks": {
+    "source2_syntax": true,
+    "diff_check": true,
+    "affected_tests": 54,
+    "final_exit_status": 0,
+    "final_wall_seconds": 67.7,
+    "final_peak_rss_kib": 181732,
+    "VM_limit_kib": 1048576,
+    "timeout_seconds": 120,
+    "swaps": 0,
+    "original_affected_exit_status": 1,
+    "original_affected_wall_seconds": 70.09,
+    "original_affected_peak_rss_kib": 180780,
+    "original_affected_failure": "historical A-only FunctionType fixture keyword defaults; fixed without changing production defaults"
+  },
+  "logs": {
+    "red": {
+      "path": "/tmp/fullfeature-residual-red.log",
+      "sha256": "6c83e2eeb56e19225d5111e6c881b3b45fa0de51651ef126c885340dd77159c7"
+    },
+    "green": {
+      "path": "/tmp/fullfeature-residual-green.log",
+      "sha256": "55dcf2e826426fe198e7276ae9851c0affc29aa96e1796fba613cef7219688e9"
+    },
+    "green-extended": {
+      "path": "/tmp/fullfeature-residual-green-extended.log",
+      "sha256": "c82f69541b14c8608af752965167575939c39d345526fc2e4d4db0f4abc1fe25"
+    },
+    "green-final-narrow": {
+      "path": "/tmp/fullfeature-residual-green-final-narrow.log",
+      "sha256": "146d5504edcdf323b91bde5ea4348b92ed9f2e89eb05ea48ee8b960593971a3f"
+    },
+    "affected-suite-original": {
+      "path": "/tmp/fullfeature-residual-affected-suite-original.log",
+      "sha256": "5dee36c7b59277fd6ef7fd93baec1314116ecbe1dd8e387cad77baa855b23f09"
+    },
+    "failing-layer": {
+      "path": "/tmp/fullfeature-residual-failing-layer.log",
+      "sha256": "76d120b1a6163a1a680cd4629d0aed2045657cd0df4b062a8074bda2fc45157a"
+    },
+    "affected-suite-final": {
+      "path": "/tmp/fullfeature-residual-affected-suite-final.log",
+      "sha256": "0f9a74f258849220bbfd5dfa570a15ef87ca14dcbc14588a5ba7615837930da3"
+    }
+  },
+  "native": "UNRUN; no Torch/native/third-party/GPU/SSH/train/eval/quality/reviews/children/operator/push/merge invoked",
+  "operator_identity": {
+    "name": "Roman Bartusiak",
+    "email": "riomus@gmail.com"
+  },
+  "commit": "80872beccc27ee6aedff0e25a2bfc2446ceccc09",
+  "parent": "030203a532d23b3403a9f83683d181674b4153a8",
+  "clean_worktree": true,
+  "commit_files": [
+    "scripts/test_siglip2_compact_ranking.py",
+    "scripts/train_siglip2_compact_ranking.py"
+  ],
+  "no_AI_attribution": true
+}

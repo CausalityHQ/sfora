@@ -1,0 +1,37 @@
+{
+  "schema": "fullfeature-residual-root-source-freeze-v1",
+  "training": {
+    "root": "/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1",
+    "execution_sha256": "996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15",
+    "code": {
+      "train_siglip2_compact_ranking.py": "ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad",
+      "test_siglip2_compact_ranking.py": "6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b"
+    }
+  },
+  "worker_commit": "80872beccc27ee6aedff0e25a2bfc2446ceccc09",
+  "integrated_commit": "e4b94003",
+  "source_stdlib_tests": 54,
+  "source_stdlib_wall_seconds": 67.7,
+  "source_stdlib_peak_rss_kib": 181732,
+  "source_stdlib_swap": 0,
+  "cpu_policy": {
+    "seconds": 500,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "both_locks_held_required": true,
+    "cuda_hidden": true
+  },
+  "native_qualification": "UNRUN",
+  "quality": "UNREAD",
+  "files": {
+    "authority-cpu-v1.json": "1c963e44b14740d9eaca073cb3e381e58a31440c24dc405189a4d2c04e12c62d",
+    "worker-receipt.json": "8542767ac56936ceab72dca5db5a6107b4c304429fb951d074e3ec690c7d3f5d",
+    "cpu-v1-command.sh": "d5515bd0758a21ad80f57cb63000aedc59bec72df7fe85f81e58c894e10e3a93",
+    "AST-ledger.json": "5873b7997ab482bc59c73e76e1357697b98f8d7c083596100cb9d46b582f0c5a",
+    "execution.json": "996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15",
+    "cpu-v1-launch.sh": "6d7ea6581381e2b35cdabd92d86d0951669db24fe528fa0ca38f44d0c84715ea",
+    "original-stdlib.log": "5dee36c7b59277fd6ef7fd93baec1314116ecbe1dd8e387cad77baa855b23f09",
+    "contract.json": "360aec523dc5e7fbfa632ae51c54581381eac61493183d6e91433c4921397f4a",
+    "final-stdlib.log": "0f9a74f258849220bbfd5dfa570a15ef87ca14dcbc14588a5ba7615837930da3"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "base_commit": "030203a5",
+  "status": "source verified with stdlib only; native qualification UNRUN",
+  "owned_files": [
+    "scripts/train_siglip2_compact_ranking.py",
+    "scripts/test_siglip2_compact_ranking.py"
+  ],
+  "schemas": {
+    "SCHEMA": "siglip2-compact-fullfeature-residual-v1",
+    "AUTHORITY_SCHEMA": "siglip2-compact-fullfeature-residual-launch-v1",
+    "INFERENCE_SCHEMA": "siglip2-compact-fullfeature-residual-inference-v1",
+    "BUNDLE_SCHEMA": "siglip2-compact-fullfeature-residual-bundle-v1"
+  },
+  "cli": "unchanged --execution-sha256 SHA --authority FILE --authority-sha256 SHA --phase cpu|mechanics|train --arm control|candidate --seed 179061|179069 --output ABSENT_ABSOLUTE_DIRECTORY",
+  "launch": "same exact LAUNCH_KEYS, native_authority and guards; new schema, exact fullfeature RECIPE. CPU control/179061, mechanics both arms/179061, train both discarded mechanics plus CPU. No new authority fields or caps.",
+  "raw": "fullfeature_raw_features(features, head, A, means, C, mu_train, arm, primitive, readout): call authenticated original concat helper exactly once, candidate adds FP32 F.linear(features-mu_train,C), control returns helper result after verifying serialized frozen C exactzero; no dummy matmul.",
+  "mean": {
+    "key": "mu_train",
+    "shape": [
+      1152
+    ],
+    "dtype": "torch.float32",
+    "device": "CPU static, copied to active device",
+    "source": "actual CPU-renormalized canonical TRAIN6355 views, mean(dim=0), detached contiguous; no held fitting",
+    "provenance_key": "mu_train_provenance",
+    "provenance_fields": [
+      "domain",
+      "rows",
+      "view",
+      "reduction",
+      "canonical_features_sha256",
+      "original_rows_sha256",
+      "target_sha256",
+      "partition_sha256",
+      "accepted_checkpoint",
+      "canonical_cache"
+    ]
+  },
+  "C": {
+    "shape": [
+      128,
+      1152
+    ],
+    "dtype": "torch.float32",
+    "initial": "exactzero both arms; initial_C_sha256 typed fingerprint",
+    "control": "serialized frozen exactzero; requires_grad=False; no optimizer state or moments; raw bypass",
+    "candidate": "trainable; ordered sole group [A,C], nonzero current C after update"
+  },
+  "optimizer": {
+    "control": {
+      "parameter_names": [
+        "A"
+      ],
+      "parameter_shapes": [
+        [
+          128,
+          160
+        ]
+      ],
+      "optimizer_members": 1,
+      "trainable_scalars": 20480
+    },
+    "candidate": {
+      "parameter_names": [
+        "A",
+        "C"
+      ],
+      "parameter_shapes": [
+        [
+          128,
+          160
+        ],
+        [
+          128,
+          1152
+        ]
+      ],
+      "optimizer_members": 2,
+      "trainable_scalars": 167936
+    },
+    "defaults": "original ADAM unchanged; one group; one clip_grad_norm_(actual optimizer members,1.); every member FP32 moments and exact CPU step; scaler/RNG unchanged"
+  },
+  "payload": "same full payload plus C; STATIC_KEYS additionally mu_train/mu_train_provenance. Identity adds initial_C_sha256, mu_train_sha256, mu_train_provenance_sha256 and role-aware parameter_names/shapes. Strict fullstate restore loads both members/moments/step; no refit.",
+  "endpoint": "INFERENCE_KEYS additionally arm,C,mu_train,mu_train_provenance. source additionally initial_C_sha256,mu_train_sha256,mu_train_provenance_sha256. Manifest schema changes only; copied independent public loader owns C/mu; inference_outputs executes fullfeature_raw_features. No TRAIN dependencies.",
+  "receipts": "role-aware optimizer_members/trainable_scalars; current_C_sha256,initial_C_sha256,mu_train_sha256,mu_train_provenance_sha256,C_exact_zero,C_trainable; bundle oracle records residual_nonzero_witness,omitted_C_mutant_rejected,wrong_mu_mutant_rejected (candidate nonzero mechanics/train mandatory; zero CPU records false residual witness and true exactzero parity).",
+  "cpu_witnesses": "both fixed firstB64 seeds; zeroC original concat raw/unit/packed exact, same current-connected both-arm losses and unclipped A gradients, authenticated old candidate objective; A and C independent query/gallery decomposition plus full64/micro16 fixed1e-5/1e-6, gallery-detach mutants for both roles, nonzeroC explicit oracle/omittedC/wrongmu mutants. Preserve nonnearest/masks/self/ties/singletons/frozen guards.",
+  "cpu_gradient_record": "replace obsolete candidate_minus_control_equals_gallery with initial_losses_and_A_gradients_matched; initial A difference norm zero; roles dict A/C containing query/gallery/tied gradient norms/hashes, decomposition/fullmicro/detach booleans; C initial roles finite/nonzero; candidate_C_gradient_norm; nonzero_C_oracle_exact/omitted_C_mutant_rejected/wrong_mu_mutant_rejected. Other current objective evidence remains.",
+  "limits": "local stdlib only, timeout120 and virtual memory<=1GiB; narrow RED/GREEN then one affected suite; no native/Torch/GPU/SSH/children/reviews/operator/push/merge",
+  "original_source_sha256": "affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480",
+  "final_source_code": {
+    "train_siglip2_compact_ranking.py": "ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad",
+    "test_siglip2_compact_ranking.py": "6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b"
+  },
+  "final_execution_sha256": "996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15",
+  "final_execution_path": "/tmp/fullfeature-residual-final-source/execution.json",
+  "active_objective_source": {
+    "root": "/home/riomus/runs/sfora-so400-current-gallery-smooth-ap-train-source-v1",
+    "execution_sha256": "73cbc39e857ad99e2962a6252c8c158b232636889b5023c28a97b1be7edda68e",
+    "code": {
+      "train_siglip2_compact_ranking.py": "affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480",
+      "test_siglip2_compact_ranking.py": "32f9ade5717d98e9aa5f6644ad7ac0dc5992bb21e0861730e154d0d78c8a7744"
+    }
+  },
+  "cpu_gradient_roles_keys": [
+    "initial:control:A",
+    "initial:candidate:A",
+    "initial:candidate:C",
+    "nonzero:candidate:A",
+    "nonzero:candidate:C"
+  ]
+}
