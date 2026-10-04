@@ -1,0 +1,345 @@
+{
+  "id": "030d38793d0d4ba2",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791149837,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791151037,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded Sfora plan at /home/rb/worktrees/sfora-positive-causality master9b14c960. Full goal remains production official SOP+InShop quality AND matched public speed. Latest committed docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-first-selection-score-v1 receipt/decision: InShop TRAIN selection1734q1715g498products seed061 control/candidate R1 both.9682814302191465; AP.8273301284197361/.8249859928208239. KILL firstgate; core125.1796/101.1930=1.2370, whole437.753/419.282=1.0441. Fullfeature prior two-seed meanR1+.002018/AP+.009714 but069 losesoneR1query; preserve Pareto, no universal architecture KILL. Read docs/inshop_live_top1_recipe_2026-10-04.md and relevant existing representation/source/identity-partition evidence. Recommend ONE cheapest causally distinct intervention with useful FULL-trained-model/production path, addressing representation/data/supervision cause; do NOT recommend another ranking-loss tweak/grid/theorem-like probes or extending failed arm. Distinguish observed cause vs hypothesis. Strongly assess whether frozen encoder/current small TRAIN readout is now the responsible bottleneck versus objective, and propose decisive TRAIN-only falsifier with matched costs and scientific stop rule. Include concrete files/APIs, qualification steps and realistic time-to-decision; minimize source-admission engineering churn. No edits, SSH/Torch/native/GPU/cloud/new quality reads/jobs/children/consults/operator contact/full suite. Use archived evidence only; return compact decision and production bridge.",
+  "prompt_sha256": "d030a7f6cc379e9d5f68acc643136086190b992d3a1c5c365f219e712d39a568",
+  "prompt_bytes": 1847,
+  "fingerprint": "f5031fdc4e5157bd09c00a0d0af25a589eb1302e141186808f73f6468a4fb8c2",
+  "evidence": {
+    "git_commit": "9b14c9601e9013e1ede764ecbf333c7d95c03468",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "c6fc56d274dfc3648294b425fd04ed1585f5c9b053a3cb6e83f06ca9f30cb2b4",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "source": "fallback"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-030d38793d0d4ba2.service",
+  "pid": 2311173,
+  "pgid": 2311173,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "budget_usd": null,
+      "timeout_seconds": 1200,
+      "started_at": 1791149837
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791150215,
+  "event_cursor": 107,
+  "events": [
+    {
+      "seq": 84,
+      "at": 1791150036,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 85,
+      "at": 1791150036,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 86,
+      "at": 1791150036,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 87,
+      "at": 1791150094,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 88,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 89,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 90,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 91,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 92,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 93,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 94,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 95,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 96,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 97,
+      "at": 1791150101,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 98,
+      "at": 1791150136,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 99,
+      "at": 1791150136,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 100,
+      "at": 1791150137,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 101,
+      "at": 1791150137,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 102,
+      "at": 1791150137,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 103,
+      "at": 1791150137,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 104,
+      "at": 1791150137,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 105,
+      "at": 1791150138,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 106,
+      "at": 1791150214,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 107,
+      "at": 1791150214,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 100,
+        "at": 1791150137,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 101,
+        "at": 1791150137,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 102,
+        "at": 1791150137,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 103,
+        "at": 1791150137,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 104,
+        "at": 1791150137,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 105,
+        "at": 1791150138,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 106,
+        "at": 1791150214,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 107,
+        "at": 1791150214,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Recommend one fixed-cost data intervention: double TRAIN identity diversity from 1,008 to 2,016 products while keeping 6,355 cached images and the existing full-feature control objective.** Keep the encoder frozen. This tests whether narrow supervised coverage limits the readout before paying for another native-adaptation procedure.\n\nThe evidence supports deprioritizing objective changes, but **does not identify a frozen-encoder ceiling**. Live-top1 produced zero recall gain and −0.2344pp AP at 1.237× core cost. Conversely, full-feature allocation previously improved mean recall/AP while failing the seed069 recall gate. Those remain useful Pareto results. The strongest positive data precedent is the earlier Large coverage comparison: +0.5064pp recall/+0.5035pp AP at matched updates, although it failed production quality and used a different substrate. Broader coverage helping the current So400 readout is a hypothesis. [Latest decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-first-selection-score-v1/decision.md), [coverage evidence](/home/rb/worktrees/sfora-positive-causality/docs/inshop_large_coverage_gate_2026-09-29.md).\n\n1. **Freeze the data contrast using metadata only.** Control retains the existing 6,355 images/1,008 products. Candidate retains those 1,008 product identities and adds exactly 1,008 nonsingleton identities from the former outer TRAIN-held population of 1,993 products. Select additional identities by a fixed hash ordering, independent of retrieval outcomes. Construct exactly 6,355 distinct candidate rows by deterministic round-robin allocation across products; retain the original 12 singletons and require at least two rows for every other product. Preserve the existing 498-product selection and 498-product validation panels entirely outside fitting. Former outer-held identities consumed by candidate become training data and lose held-out status.\n\n   This estimates **identity diversity versus within-product image depth at fixed image budget**. It cannot attribute an effect solely to identity count.\n\n2. **Keep model and objective fixed.** Both arms start fresh from accepted concat `A0`, zero `C`, identical frozen encoder/head/classifier, accepted basis means and common original TRAIN centering vector. Train only `[A,C]` with the archived live-top1 **control** objective: prototype regression plus connected-gallery SmoothAP; no hinge. Construct each scope’s prototypes by the same initial-descriptor averaging rule, but retain the common control regression normalizer so data dispersion does not silently change loss weighting. Preserve AdamW, clipping, both cached views, B64/micro16 and 128 updates. Generalize the existing class-permutation schedule mechanically to 2,016 classes; report changed revisit frequency rather than claiming identical anchor inputs.\n\n3. **Implement through a narrow scope adapter.** Use:\n   - [export_siglip2_genuine_views.py](/home/rb/worktrees/sfora-positive-causality/scripts/export_siglip2_genuine_views.py): extend manifest admission to the new official-TRAIN row inventory; preserve `isolated_view()` and image/processor/source arithmetic.\n   - [train_siglip2_compact_ranking.py](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py): reuse `fullfeature_raw_features()` and `smooth_ap_terms()`; add explicit scope-aware bank/prototype/schedule validation in a separate driver.\n   - [evaluate_siglip2_compact_ranking.py](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_compact_ranking.py): reuse packed metrics and paired-cost mathematics under a new scope-bound receipt.\n\n   Authenticate historical authorities unchanged; do not patch helper globals or generalize the entire admission stack. Export the candidate’s two views once. The archived cache authority covers the original subset, so broader features require fresh qualification.\n\n4. **Run one decisive TRAIN-only falsifier.** First qualify row/identity exclusion, common initial inference, finite `[A,C]` gradients, connected gallery gradients, and discarded17 versus independent8+9 complete resume/reload. Execute fresh control061 then candidate061; charge actual whole service and training core, requiring both ratios ≤1.50. Report candidate cache preparation separately and include it in total experiment expenditure.\n\n   **Stop immediately if candidate ΔR1≤0, ΔAP<0, retained source floors fail, or any integrity/resource gate fails.** No069, bootstrap, validation, budget extension or sampling rescue follows. A pass alone admits069 and the existing per-seed signs, both mean gains ≥0.002 and both product-bootstrap95% lower bounds >0. Only full selection GO admits sealed validation. Failure rejects this fixed diversity intervention—not every broader-data method or the encoder architecture.\n\nThe principal risks are weaker positive support per product, fewer revisits, and prototype targets inheriting the narrow source’s geometry. Resource headroom is also tight: the latest CPU proof peaked only about **20MiB below8GiB**. Keep arm caches, witness graphs and independent models sequential; preserve caps and stop an overrun. [CPU evidence](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-cpu-v2/verification.json).\n\nBudget **1–2 engineering days**, then roughly **70–100 minutes to the first quality decision**, with a prospectively capped serial envelope around two hours. These are planning estimates, not admission evidence.\n\nA survivor proceeds directly to the same frozen method trained on full official TRAIN—25,882/3,997 for InShop and the separately authenticated SOP inventory—with fixed terminal selection. Integrate its complete1152-feature readout through [siglip2_compact_serving.py](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py), including public gallery construction and image-to-packed parity. Confirm both official protocols against frozen comparator manifests, then measure matched public B1/B32 image-to-top-k speed with10,000 paired calls and p99 intervals. This intervention adds no serving operation; it supplies no speed-win evidence.\n\nRead-only assessment completed; no files changed or jobs launched.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Recommend one fixed-cost data intervention: double TRAIN identity diversity from 1,008 to 2,016 products while keeping 6,355 cached images and the existing full-feature control objective.** Keep the encoder frozen. This tests whether narrow supervised coverage limits the readout before paying for another native-adaptation procedure.\n\nThe evidence supports deprioritizing objective changes, but **does not identify a frozen-encoder ceiling**. Live-top1 produced zero recall gain and −0.2344pp AP at 1.237× core cost. Conversely, full-feature allocation previously improved mean recall/AP while failing the seed069 recall gate. Those remain useful Pareto results. The strongest positive data precedent is the earlier Large coverage comparison: +0.5064pp recall/+0.5035pp AP at matched updates, although it failed production quality and used a different substrate. Broader coverage helping the current So400 readout is a hypothesis. [Latest decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-first-selection-score-v1/decision.md), [coverage evidence](/home/rb/worktrees/sfora-positive-causality/docs/inshop_large_coverage_gate_2026-09-29.md).\n\n1. **Freeze the data contrast using metadata only.** Control retains the existing 6,355 images/1,008 products. Candidate retains those 1,008 product identities and adds exactly 1,008 nonsingleton identities from the former outer TRAIN-held population of 1,993 products. Select additional identities by a fixed hash ordering, independent of retrieval outcomes. Construct exactly 6,355 distinct candidate rows by deterministic round-robin allocation across products; retain the original 12 singletons and require at least two rows for every other product. Preserve the existing 498-product selection and 498-product validation panels entirely outside fitting. Former outer-held identities consumed by candidate become training data and lose held-out status.\n\n   This estimates **identity diversity versus within-product image depth at fixed image budget**. It cannot attribute an effect solely to identity count.\n\n2. **Keep model and objective fixed.** Both arms start fresh from accepted concat `A0`, zero `C`, identical frozen encoder/head/classifier, accepted basis means and common original TRAIN centering vector. Train only `[A,C]` with the archived live-top1 **control** objective: prototype regression plus connected-gallery SmoothAP; no hinge. Construct each scope’s prototypes by the same initial-descriptor averaging rule, but retain the common control regression normalizer so data dispersion does not silently change loss weighting. Preserve AdamW, clipping, both cached views, B64/micro16 and 128 updates. Generalize the existing class-permutation schedule mechanically to 2,016 classes; report changed revisit frequency rather than claiming identical anchor inputs.\n\n3. **Implement through a narrow scope adapter.** Use:\n   - [export_siglip2_genuine_views.py](/home/rb/worktrees/sfora-positive-causality/scripts/export_siglip2_genuine_views.py): extend manifest admission to the new official-TRAIN row inventory; preserve `isolated_view()` and image/processor/source arithmetic.\n   - [train_siglip2_compact_ranking.py](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py): reuse `fullfeature_raw_features()` and `smooth_ap_terms()`; add explicit scope-aware bank/prototype/schedule validation in a separate driver.\n   - [evaluate_siglip2_compact_ranking.py](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_compact_ranking.py): reuse packed metrics and paired-cost mathematics under a new scope-bound receipt.\n\n   Authenticate historical authorities unchanged; do not patch helper globals or generalize the entire admission stack. Export the candidate’s two views once. The archived cache authority covers the original subset, so broader features require fresh qualification.\n\n4. **Run one decisive TRAIN-only falsifier.** First qualify row/identity exclusion, common initial inference, finite `[A,C]` gradients, connected gallery gradients, and discarded17 versus independent8+9 complete resume/reload. Execute fresh control061 then candidate061; charge actual whole service and training core, requiring both ratios ≤1.50. Report candidate cache preparation separately and include it in total experiment expenditure.\n\n   **Stop immediately if candidate ΔR1≤0, ΔAP<0, retained source floors fail, or any integrity/resource gate fails.** No069, bootstrap, validation, budget extension or sampling rescue follows. A pass alone admits069 and the existing per-seed signs, both mean gains ≥0.002 and both product-bootstrap95% lower bounds >0. Only full selection GO admits sealed validation. Failure rejects this fixed diversity intervention—not every broader-data method or the encoder architecture.\n\nThe principal risks are weaker positive support per product, fewer revisits, and prototype targets inheriting the narrow source’s geometry. Resource headroom is also tight: the latest CPU proof peaked only about **20MiB below8GiB**. Keep arm caches, witness graphs and independent models sequential; preserve caps and stop an overrun. [CPU evidence](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-cpu-v2/verification.json).\n\nBudget **1–2 engineering days**, then roughly **70–100 minutes to the first quality decision**, with a prospectively capped serial envelope around two hours. These are planning estimates, not admission evidence.\n\nA survivor proceeds directly to the same frozen method trained on full official TRAIN—25,882/3,997 for InShop and the separately authenticated SOP inventory—with fixed terminal selection. Integrate its complete1152-feature readout through [siglip2_compact_serving.py](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py), including public gallery construction and image-to-packed parity. Confirm both official protocols against frozen comparator manifests, then measure matched public B1/B32 image-to-top-k speed with10,000 paired calls and p99 intervals. This intervention adds no serving operation; it supplies no speed-win evidence.\n\nRead-only assessment completed; no files changed or jobs launched."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 1847,
+  "output_bytes": 6334,
+  "elapsed_seconds": 378,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)",
+  "progress_truncated": false,
+  "result": "**Recommend one fixed-cost data intervention: double TRAIN identity diversity from 1,008 to 2,016 products while keeping 6,355 cached images and the existing full-feature control objective.** Keep the encoder frozen. This tests whether narrow supervised coverage limits the readout before paying for another native-adaptation procedure.\n\nThe evidence supports deprioritizing objective changes, but **does not identify a frozen-encoder ceiling**. Live-top1 produced zero recall gain and −0.2344pp AP at 1.237× core cost. Conversely, full-feature allocation previously improved mean recall/AP while failing the seed069 recall gate. Those remain useful Pareto results. The strongest positive data precedent is the earlier Large coverage comparison: +0.5064pp recall/+0.5035pp AP at matched updates, although it failed production quality and used a different substrate. Broader coverage helping the current So400 readout is a hypothesis. [Latest decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-first-selection-score-v1/decision.md), [coverage evidence](/home/rb/worktrees/sfora-positive-causality/docs/inshop_large_coverage_gate_2026-09-29.md).\n\n1. **Freeze the data contrast using metadata only.** Control retains the existing 6,355 images/1,008 products. Candidate retains those 1,008 product identities and adds exactly 1,008 nonsingleton identities from the former outer TRAIN-held population of 1,993 products. Select additional identities by a fixed hash ordering, independent of retrieval outcomes. Construct exactly 6,355 distinct candidate rows by deterministic round-robin allocation across products; retain the original 12 singletons and require at least two rows for every other product. Preserve the existing 498-product selection and 498-product validation panels entirely outside fitting. Former outer-held identities consumed by candidate become training data and lose held-out status.\n\n   This estimates **identity diversity versus within-product image depth at fixed image budget**. It cannot attribute an effect solely to identity count.\n\n2. **Keep model and objective fixed.** Both arms start fresh from accepted concat `A0`, zero `C`, identical frozen encoder/head/classifier, accepted basis means and common original TRAIN centering vector. Train only `[A,C]` with the archived live-top1 **control** objective: prototype regression plus connected-gallery SmoothAP; no hinge. Construct each scope’s prototypes by the same initial-descriptor averaging rule, but retain the common control regression normalizer so data dispersion does not silently change loss weighting. Preserve AdamW, clipping, both cached views, B64/micro16 and 128 updates. Generalize the existing class-permutation schedule mechanically to 2,016 classes; report changed revisit frequency rather than claiming identical anchor inputs.\n\n3. **Implement through a narrow scope adapter.** Use:\n   - [export_siglip2_genuine_views.py](/home/rb/worktrees/sfora-positive-causality/scripts/export_siglip2_genuine_views.py): extend manifest admission to the new official-TRAIN row inventory; preserve `isolated_view()` and image/processor/source arithmetic.\n   - [train_siglip2_compact_ranking.py](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py): reuse `fullfeature_raw_features()` and `smooth_ap_terms()`; add explicit scope-aware bank/prototype/schedule validation in a separate driver.\n   - [evaluate_siglip2_compact_ranking.py](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_compact_ranking.py): reuse packed metrics and paired-cost mathematics under a new scope-bound receipt.\n\n   Authenticate historical authorities unchanged; do not patch helper globals or generalize the entire admission stack. Export the candidate’s two views once. The archived cache authority covers the original subset, so broader features require fresh qualification.\n\n4. **Run one decisive TRAIN-only falsifier.** First qualify row/identity exclusion, common initial inference, finite `[A,C]` gradients, connected gallery gradients, and discarded17 versus independent8+9 complete resume/reload. Execute fresh control061 then candidate061; charge actual whole service and training core, requiring both ratios ≤1.50. Report candidate cache preparation separately and include it in total experiment expenditure.\n\n   **Stop immediately if candidate ΔR1≤0, ΔAP<0, retained source floors fail, or any integrity/resource gate fails.** No069, bootstrap, validation, budget extension or sampling rescue follows. A pass alone admits069 and the existing per-seed signs, both mean gains ≥0.002 and both product-bootstrap95% lower bounds >0. Only full selection GO admits sealed validation. Failure rejects this fixed diversity intervention—not every broader-data method or the encoder architecture.\n\nThe principal risks are weaker positive support per product, fewer revisits, and prototype targets inheriting the narrow source’s geometry. Resource headroom is also tight: the latest CPU proof peaked only about **20MiB below8GiB**. Keep arm caches, witness graphs and independent models sequential; preserve caps and stop an overrun. [CPU evidence](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-cpu-v2/verification.json).\n\nBudget **1–2 engineering days**, then roughly **70–100 minutes to the first quality decision**, with a prospectively capped serial envelope around two hours. These are planning estimates, not admission evidence.\n\nA survivor proceeds directly to the same frozen method trained on full official TRAIN—25,882/3,997 for InShop and the separately authenticated SOP inventory—with fixed terminal selection. Integrate its complete1152-feature readout through [siglip2_compact_serving.py](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py), including public gallery construction and image-to-packed parity. Confirm both official protocols against frozen comparator manifests, then measure matched public B1/B32 image-to-top-k speed with10,000 paired calls and p99 intervals. This intervention adds no serving operation; it supplies no speed-win evidence.\n\nRead-only assessment completed; no files changed or jobs launched.",
+  "result_truncated": false
+}
