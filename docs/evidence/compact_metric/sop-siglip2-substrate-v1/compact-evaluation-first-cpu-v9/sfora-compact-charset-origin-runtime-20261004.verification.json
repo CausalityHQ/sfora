@@ -1,0 +1,13 @@
+{
+  "command": [
+    "timeout",
+    "55s",
+    "python3",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "exit_code": 0,
+  "whole_wall_seconds": 49.48890674201539,
+  "evaluator_sha256": "052235f81b19c3121fa86a88bc9e4f7d6b37b83868a23e37b91fc22118615ece",
+  "test_sha256": "2b1b453d36504847992d8ec7f005191867ece1cca933c07d38a9621cc7a141c7",
+  "log": "/tmp/sfora-compact-charset-origin-runtime-20261004.final.log"
+}

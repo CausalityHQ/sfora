@@ -1,0 +1,35 @@
+E
+======================================================================
+ERROR: test_bundle_boundary_grouped_md_metadata_fresh_cached_and_source (__main__.EvaluationTests.test_bundle_boundary_grouped_md_metadata_fresh_cached_and_source)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 909, in test_bundle_boundary_grouped_md_metadata_fresh_cached_and_source
+    with f.boundary():
+         ~~~~~~~~~~^^
+  File "/usr/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 688, in boundary
+    patch.dict(sys.modules,recorded),super().boundary():
+                                     ~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 524, in boundary
+    with patch.dict(e.RUNTIME_SOURCES,self.runtime_sources,clear=True),e.bundle_reads_only(self.context,self.endpoint):
+                                                                       ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/evaluate_siglip2_compact_ranking.py", line 1474, in bundle_reads_only
+    require(name in origins and getattr(module,'__file__',None) == origins[name] and
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        getattr(getattr(module,'__spec__',None),'origin',None) == origins[name],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'loaded lazy runtime origin differs: '+name)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/evaluate_siglip2_compact_ranking.py", line 646, in require
+    raise ValueError(message)
+ValueError: loaded lazy runtime origin differs: charset_normalizer.md
+
+----------------------------------------------------------------------
+Ran 1 test in 0.101s
+
+FAILED (errors=1)

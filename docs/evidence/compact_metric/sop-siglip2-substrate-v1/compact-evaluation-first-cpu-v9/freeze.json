@@ -1,0 +1,11 @@
+{
+  "schema": "compact-evaluation-cpu-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v22",
+  "execution_sha256": "a16a9955b89c912fef02b9fac091725f6e8c3e0a317a5c68d651f0d6a18cf59d",
+  "authority_sha256": "8cca05da300ff35868a8666f1b5c9b3e10e073ed829151759ddb19354d461a31",
+  "command_sha256": "811ff4732ffcace51ad9f0a1e09ef10b6fae58f97e3d56770a27b062da23fdc0",
+  "launch_sha256": "9a30f671195f1e8ab14932fc492dee4f9b4eaab5b23821a5c67a7bc2e4cd3969",
+  "stop_rule": "one prospective CPU500 qualification; unchanged8GiB/zeroSwap/events/CUDAhidden/bothlocks/source integrity; no quality reads; fail closes new source before exports",
+  "prior_failures_preserved": true,
+  "training_pair_unchanged": true
+}

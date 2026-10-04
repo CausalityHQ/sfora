@@ -1,0 +1,9 @@
+{
+  "parent_resolution": "immediate-1791092613275936018-3299971 replaces original-API-only requirement with narrower authenticated pure scan metadata witness",
+  "qualifier_sha256": "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38",
+  "canonical_ast_sha256": "aaa5872aad6e1d176afa2736a061441a7a28d9bed6840f56871481f2df0a29b7",
+  "loop_ast_sha256": "d107365dc78927a1263697a4ddafe4ba3c45defa9fd1438e98884f736e0fa927",
+  "reader": "Procedure-owned copy of exact original canonical function and pure map loop; reads only existing /proc/self/maps. No native file hashes. On alias entry group-presence/md-exclusion checks precede all alias source/group/RECORD hashes. Original qualifier source pin authenticated after these no-hash witness checks; the owned evaluator source itself remains frozen.",
+  "alias": "Preflight only when exact md compiled label is present; each fresh/cached entry validates mapped group/no md physical mapping, original group SHA/files/native/required bindings, exact RECORD metadata row and no md byte authority. Then a single finite metadata alternative disjunct in the original origin require; no original predicates removed.",
+  "synthetic_tests": "New native identity constants are substituted ONLY with synthetic byte-file digests in test fixture, while real boundary/procedure logic and exact metadata row run unchanged. Production identity constants independently checked against original proof/RECORD/static ELF evidence. No installed third-party/native execution."
+}
