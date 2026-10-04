@@ -2291,5 +2291,196 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(e.TRAIN_FILES,{'train_siglip2_compact_ranking.py','test_siglip2_compact_ranking.py'})
 
 
+# These stand-ins exercise extracted production functions without importing Torch.
+# Reintroducing either outer no_grad must reject the saved entry flags.
+INFERENCE_FLAGS = {
+    'autocast_cpu':False,'autocast_cpu_dtype':'torch.bfloat16','autocast_cuda':False,
+    'autocast_cuda_dtype':'torch.float16','cudnn_allow_tf32':True,'cudnn_benchmark':False,
+    'cudnn_deterministic':False,'cudnn_enabled':True,'default_device':'cpu',
+    'default_dtype':'torch.float32','deterministic':False,'deterministic_warn_only':False,
+    'float32_matmul_precision':'highest','grad_enabled':True,'inference_mode':False,
+    'interop_threads':20,'matmul_allow_tf32':False,'sdpa_cudnn':True,'sdpa_flash':True,
+    'sdpa_math':True,'sdpa_mem_efficient':True,'threads':8}
+
+
+def extracted_functions(path,names,namespace):
+    tree=ast.parse(path.read_text())
+    nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in names]
+    assert {n.name for n in nodes} == set(names)
+    exec(compile(ast.Module(body=nodes,type_ignores=[]),str(path),'exec'),namespace)
+
+
+class InferenceContractFixture:
+    """Public guard is real; only image/Tensor/native operations are stand-ins."""
+    def __init__(self):
+        self.grad=True;self.flags=dict(INFERENCE_FLAGS);self.entries=[];self.operations=[]
+        self.closed=[];self.fail=None;owner=self
+        class Tensor:
+            dtype='float32'
+            def __init__(self,shape=(),value=1.,requires_grad=None):
+                self.shape=shape;self.value=value
+                self.requires_grad=owner.grad if requires_grad is None else requires_grad
+                self.grad_fn='stand-in autograd' if self.requires_grad else None
+            def clone(self):return Tensor(self.shape,self.value,self.requires_grad)
+            def detach(self):return Tensor(self.shape,self.value,False)
+            def cpu(self):return self
+            def to(self,*a,**k):return self
+            def float(self):return self
+            def norm(self,**k):return Tensor((self.shape[0],),requires_grad=self.requires_grad)
+            def all(self):return self
+            def item(self):return self.value
+            def __gt__(self,other):return self
+            def __getitem__(self,key):return Tensor(self.shape[1:],self.value,self.requires_grad)
+            def __setitem__(self,key,value):
+                assert not value.requires_grad and value.grad_fn is None
+            def __sub__(self,other):return Tensor(self.shape,self.value-other.value,owner.grad and (self.requires_grad or other.requires_grad))
+            def __mul__(self,other):return Tensor(self.shape,self.value*other.value,owner.grad and (self.requires_grad or other.requires_grad))
+            def sum(self):return Tensor((),self.value,self.requires_grad)
+            def __float__(self):return float(self.value)
+        self.Tensor=Tensor
+        @contextmanager
+        def no_grad():
+            previous=owner.grad;owner.grad=False
+            try:yield
+            finally:owner.grad=previous
+        @contextmanager
+        def autocast(*a,**k):yield
+        def operation(name,shape,requires_grad=True):
+            autograd=owner.grad and requires_grad
+            owner.operations.append((name,autograd))
+            assert not autograd, 'native inference operation has autograd enabled'
+            if owner.fail == name:raise ValueError('injected '+name)
+            return Tensor(shape,requires_grad=autograd)
+        def normalize(value,**k):return operation('normalize',value.shape)
+        self.functional=SimpleNamespace(normalize=normalize)
+        self.nn=SimpleNamespace(functional=self.functional,Parameter=lambda value:value)
+        self.torch=SimpleNamespace(no_grad=no_grad,autocast=autocast,nn=self.nn,
+            float32='float32',float16='float16',empty=lambda shape,**k:Tensor(shape,requires_grad=False),
+            empty_like=lambda value:Tensor(value.shape,requires_grad=False),
+            random=SimpleNamespace(get_rng_state=lambda:Tensor((),requires_grad=False)),
+            isfinite=lambda value:Tensor((),requires_grad=False),equal=lambda a,b:a.value == b.value)
+        class Image:
+            size=(256,256)
+            def __enter__(self):return self
+            def __exit__(self,*a):self.close()
+            def convert(self,mode):assert mode == 'RGB';return Image()
+            def tobytes(self):return b'RGB'
+            def close(self):owner.closed.append(self)
+        self.pil=SimpleNamespace(Image=SimpleNamespace(open=lambda path:Image()))
+        def flags():
+            current={**owner.flags,'grad_enabled':owner.grad}
+            owner.entries.append(current)
+            return current
+        def model(*,pixel_values):return SimpleNamespace(pooler_output=operation('vision',(pixel_values.shape[0],160)))
+        model.modules=lambda:[SimpleNamespace(training=False,_forward_hooks={},_forward_pre_hooks={},_backward_hooks={})]
+        def raw_features(features,*a):return operation('readout',(features.shape[0],128))
+        def pack(value):
+            result=operation('pack',value.shape,value.requires_grad)
+            return SimpleNamespace(codes=result,inverse_norms=Tensor((value.shape[0],),requires_grad=result.requires_grad),to_bytes=lambda:b'wire')
+        self.state={'device':'cuda','flags':dict(INFERENCE_FLAGS),'model':model,
+            'processor_object':lambda *,images,return_tensors:{'pixel_values':Tensor((len(images),3,256,256),requires_grad=False)},
+            'head_object':object(),'A':Tensor((128,160),requires_grad=True),'means':{},
+            'modules':{'qualify_siglip2_substrate_cpu.py':SimpleNamespace(numerical_flags=flags),
+                'prototype_residual_readout.py':SimpleNamespace(raw_features=raw_features),
+                'quadratic_readout.py':object(),'joint_relational_compaction.py':SimpleNamespace(pack_int8_unit_embeddings=pack)}}
+        trainer_path=PATH.with_name('train_siglip2_compact_ranking.py')
+        assert hashlib.sha256(trainer_path.read_bytes()).hexdigest() == e.TRAINING['code'][trainer_path.name]
+        public={'require':e.require}
+        extracted_functions(trainer_path,{'inference_outputs'},public)
+        self.public=public['inference_outputs']
+        @contextmanager
+        def bundle_reads_only(context,endpoint):yield
+        def fingerprint(context,value):return 'unchanged stand-in fingerprint'
+        training={'legacy':{'packing':SimpleNamespace(pack_int8_unit_embeddings=pack),'quadratic':object()}}
+        self.context={'guards':{},'training_context':training,
+            'trainer':SimpleNamespace(fingerprint=fingerprint,helper_guard=lambda _:SimpleNamespace(raw_features=raw_features)),
+            'portable_entry':(SimpleNamespace(inference_outputs=self.public),object()),
+            'reference':SimpleNamespace(json_digest=lambda _: 'triples'),
+            'helper':SimpleNamespace(exact=self.exact)}
+        namespace={'require':e.require,'hashlib':hashlib,'math':__import__('math'),
+            'bound_file':lambda guards,path,digest:path,'bundle_reads_only':bundle_reads_only,
+            'train_rows':lambda context,ids:self.rows(ids),'batch_sizes':e.batch_sizes,
+            'tuple_outputs':e.tuple_outputs,
+            'packed_outputs':lambda context,raw:{'raw':raw,'unit':normalize(raw,dim=1),
+                'codes':Tensor(raw.shape),'inverse_norms':Tensor((raw.shape[0],))}}
+        extracted_functions(PATH,{'images_outputs','train_diagnostic','export_pass'},namespace)
+        self.functions=namespace
+
+    def exact(self,left,right):
+        assert len(left) == len(right) == 4
+        for a,b in zip(left,right):assert (a.shape,a.value,a.requires_grad) == (b.shape,b.value,b.requires_grad)
+
+    def rows(self,ids):return [{'path':'/stand-in/'+str(i),'image_sha256':'a'*64} for i in ids]
+
+    @contextmanager
+    def imports(self):
+        with patch.dict(sys.modules,{'torch':self.torch,'torch.nn':self.nn,
+                'torch.nn.functional':self.functional,'PIL':self.pil}):yield
+
+    def call(self,mode):
+        with self.imports():
+            if mode == 'TRAINmicro16':
+                values,fact=self.functions['images_outputs'](self.context,self.state,self.rows(range(16)),oracle=True)
+                assert len(fact['rows']) == 16
+                for value in values.values():
+                    if isinstance(value,self.Tensor):assert not value.requires_grad and value.grad_fn is None
+                return values
+            if mode == 'diagnostic':
+                result=self.functions['train_diagnostic'](self.context,self.state,[[0,i,i+1] for i in range(1,17)])
+                assert result['margins'] == [0.]*16 and result['diagnostic_only'] and not result['utility_veto']
+                return result
+            values,facts,sizes=self.functions['export_pass'](self.context,self.state,self.rows(range(67)),
+                {'query':list(range(33)),'gallery':list(range(33,67))})
+            assert sizes == {'query':[32,1],'gallery':[32,2]}
+            assert [(f['role'],len(f['rows'])) for f in facts] == [('query',32),('query',1),('gallery',32),('gallery',2)]
+            for value in values:assert not value.requires_grad and value.grad_fn is None
+            return values
+
+
+class InferenceBoundaryTests(unittest.TestCase):
+    def test_saved_flags_at_public_entry_and_internal_no_autograd(self):
+        for mode,calls in (('TRAINmicro16',1),('diagnostic',2),('export',4)):
+            with self.subTest(mode=mode):
+                f=InferenceContractFixture();f.call(mode)
+                self.assertEqual(f.entries,[INFERENCE_FLAGS]*calls)
+                self.assertTrue(f.operations)
+                self.assertTrue(all(not grad for _,grad in f.operations))
+                self.assertEqual(f.grad,True)
+                self.assertEqual(len(f.closed),{'TRAINmicro16':32,'diagnostic':36,'export':134}[mode])
+
+    def test_complete_flag_mutations_and_disabled_caller_are_rejected(self):
+        for mode in ('TRAINmicro16','diagnostic','export'):
+            for key,value in INFERENCE_FLAGS.items():
+                with self.subTest(mode=mode,flag=key):
+                    f=InferenceContractFixture()
+                    if key == 'grad_enabled':f.grad=False
+                    else:f.flags[key]=not value if type(value) is bool else value+1 if type(value) is int else value+' changed'
+                    with self.assertRaisesRegex(ValueError,'inference numerical flags changed'):f.call(mode)
+                    self.assertEqual(f.grad,key != 'grad_enabled')
+                    self.assertEqual(f.operations,[])
+                    self.assertTrue(f.closed)
+
+    def test_native_exceptions_restore_entry_mode_and_close_images(self):
+        for mode in ('TRAINmicro16','diagnostic','export'):
+            for stage in ('vision','readout','pack'):
+                with self.subTest(mode=mode,stage=stage):
+                    f=InferenceContractFixture();f.fail=stage
+                    with self.assertRaisesRegex(ValueError,'injected '+stage):f.call(mode)
+                    self.assertTrue(f.grad)
+                    self.assertTrue(f.closed)
+                    self.assertEqual(f.entries,[INFERENCE_FLAGS])
+                    self.assertTrue(all(not grad for _,grad in f.operations))
+
+    def test_exact_production_ast_inverse_of_two_outer_contexts(self):
+        tree=ast.parse(PATH.read_text())
+        for name in ('train_diagnostic','export_pass'):
+            node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name == name)
+            index=next(i for i,n in enumerate(node.body) if isinstance(n,ast.For))
+            scope=ast.parse('with torch.no_grad():\n    pass').body[0]
+            scope.body=[node.body[index]];node.body[index]=scope
+        digest=hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest()
+        self.assertEqual(digest,'9a102dd32044ca1d6dbf2c45f69ed578c2a22237d1477b90ee869e186a6b21ea')
+
+
 if __name__ == '__main__':
     unittest.main()

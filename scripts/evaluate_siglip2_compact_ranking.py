@@ -1657,12 +1657,11 @@ def diagnostic_triples(context,seed):
 def train_diagnostic(context,state,triples):
     import torch
     ids=sorted({i for triple in triples for i in triple}); encoded={}
-    with torch.no_grad():
-        for start in range(0,len(ids),16):
-            batch=ids[start:start+16]
-            values,_=images_outputs(context,state,train_rows(context,batch))
-            encoded.update({i:values['unit'][j].clone() for j,i in enumerate(batch)})
-            del values
+    for start in range(0,len(ids),16):
+        batch=ids[start:start+16]
+        values,_=images_outputs(context,state,train_rows(context,batch))
+        encoded.update({i:values['unit'][j].clone() for j,i in enumerate(batch)})
+        del values
     margins=[float((encoded[a]*(encoded[p]-encoded[n])).sum()) for a,p,n in triples]
     require(all(math.isfinite(v) for v in margins), 'nonfinite fixed TRAIN diagnostic')
     return {'triples':triples,'triples_sha256':context['reference'].json_digest(triples),'margins':margins,
@@ -1673,14 +1672,13 @@ def export_pass(context,state,rows,mapping):
     import torch
     t=context['training_context']; raw=torch.empty((len(rows),128),dtype=torch.float32); unit=torch.empty_like(raw)
     images=[]; sizes={}
-    with torch.no_grad():
-        for role in ('query','gallery'):
-            indices=mapping[role]; sizes[role]=[]
-            for start in range(0,len(indices),32):
-                batch=indices[start:start+32]
-                values,fact=images_outputs(context,state,[rows[i] for i in batch],oracle=start == 0)
-                raw[batch]=values['raw']; unit[batch]=values['unit']; fact['role']=role
-                images.append(fact); sizes[role].append(len(batch)); del values
+    for role in ('query','gallery'):
+        indices=mapping[role]; sizes[role]=[]
+        for start in range(0,len(indices),32):
+            batch=indices[start:start+32]
+            values,fact=images_outputs(context,state,[rows[i] for i in batch],oracle=start == 0)
+            raw[batch]=values['raw']; unit[batch]=values['unit']; fact['role']=role
+            images.append(fact); sizes[role].append(len(batch)); del values
     require(sizes == {r:batch_sizes(len(mapping[r])) for r in ('query','gallery')}, 'complete actual B32 roles/tails differ')
     packed=t['legacy']['packing'].pack_int8_unit_embeddings(unit)
     return (raw,unit,packed.codes,packed.inverse_norms),images,sizes
