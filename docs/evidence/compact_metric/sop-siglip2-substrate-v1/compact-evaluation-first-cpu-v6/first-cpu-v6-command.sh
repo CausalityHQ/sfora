@@ -8,10 +8,10 @@ e5f08a75c38ee6579ccc9681aee4946fbc59ddfa36e376a3fb81e27d9e58ef45  /home/riomus/r
 73e4386256c576329438da805cf6ff71ce67af7b4eae5b1074f2258d7d7029be  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/evaluate_siglip2_nearest_ranking.py
 5c24fe113c03ae26d4ab68f21caf8e3a8d19c1a082e696fdf54abdd8bb73ab59  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/execution.json
 a0e42560d1cce4b7e416e48a09ea27cf531e5e01c035ead5a387fea5cf48d90e  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/test_nearest_ranking_evaluation.py
-66411c6bd8a0f7d32f173eafc13ecf13d5c94e746a546a84b6c6d7c2c169c8ae  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/authority-first-cpu-v6.json
-1d42825c0989535ca27b12b30febee1b4bd969666c60daaa9c29465731443ad0  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/evaluate_siglip2_compact_ranking.py
-83f828858d91bb7e1c535d1d0633c6e9faecf50bda0b4a48d637784c5e8bdd8a  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/execution.json
-0435748f91ab15e53cc86f44279ec73cda71e3528ad64a1592dd025f4a57f088  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/test_compact_ranking_evaluation.py
+66411c6bd8a0f7d32f173eafc13ecf13d5c94e746a546a84b6c6d7c2c169c8ae  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/authority-first-cpu-v6.json
+1d42825c0989535ca27b12b30febee1b4bd969666c60daaa9c29465731443ad0  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/evaluate_siglip2_compact_ranking.py
+83f828858d91bb7e1c535d1d0633c6e9faecf50bda0b4a48d637784c5e8bdd8a  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/execution.json
+0435748f91ab15e53cc86f44279ec73cda71e3528ad64a1592dd025f4a57f088  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/test_compact_ranking_evaluation.py
 1f873fa0f4b48ea7f0fdc3d74390745c6c5751fa2f270925c5e4502a4a15d15c  /home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/bundle/bundle.json
 cabfad45d73b563874cd2b3db0f1bff736c989906e8182b13f5ed54df65191d1  /home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/receipt.json
 dda28fbd4542158e7d9f166d6e32630b84a39fa181496c176256f9605adb31dc  /home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/resume.pt
@@ -32,7 +32,7 @@ e74b944dee26565029a4ec7e6ea2948d0f23e8564e5ee60ffd2f876453f529eb  /home/riomus/r
 c456456c83472526313177fa289ca52228b04f9dff0edf44575933ab45f62970  /home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/execution.json
 5c46839ec6a437387d1309dd72167411cfb8a815ceab837ea21dca81aa43dc49  /home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/test_siglip2_prototype_residual_evaluation.py
 HASHES
-/home/riomus/group-learning/.venv/bin/python -B /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/evaluate_siglip2_compact_ranking.py --execution-sha256 83f828858d91bb7e1c535d1d0633c6e9faecf50bda0b4a48d637784c5e8bdd8a --authority /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/authority-first-cpu-v6.json --authority-sha256 66411c6bd8a0f7d32f173eafc13ecf13d5c94e746a546a84b6c6d7c2c169c8ae --phase cpu --output /home/riomus/runs/sfora-so400-compact-ranking-evaluation-first-cpu-v6
+/home/riomus/group-learning/.venv/bin/python -B /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/evaluate_siglip2_compact_ranking.py --execution-sha256 83f828858d91bb7e1c535d1d0633c6e9faecf50bda0b4a48d637784c5e8bdd8a --authority /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/authority-first-cpu-v6.json --authority-sha256 66411c6bd8a0f7d32f173eafc13ecf13d5c94e746a546a84b6c6d7c2c169c8ae --phase cpu --output /home/riomus/runs/sfora-so400-compact-ranking-evaluation-first-cpu-v6
 sha256sum -c <<'HASHES'
 9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b  /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13
 bfe7cd329ad359bdcbc077e732ce654a94ef248b8567f0f32fd4234652df1995  /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py
@@ -40,10 +40,10 @@ e5f08a75c38ee6579ccc9681aee4946fbc59ddfa36e376a3fb81e27d9e58ef45  /home/riomus/r
 73e4386256c576329438da805cf6ff71ce67af7b4eae5b1074f2258d7d7029be  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/evaluate_siglip2_nearest_ranking.py
 5c24fe113c03ae26d4ab68f21caf8e3a8d19c1a082e696fdf54abdd8bb73ab59  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/execution.json
 a0e42560d1cce4b7e416e48a09ea27cf531e5e01c035ead5a387fea5cf48d90e  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/test_nearest_ranking_evaluation.py
-66411c6bd8a0f7d32f173eafc13ecf13d5c94e746a546a84b6c6d7c2c169c8ae  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/authority-first-cpu-v6.json
-1d42825c0989535ca27b12b30febee1b4bd969666c60daaa9c29465731443ad0  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/evaluate_siglip2_compact_ranking.py
-83f828858d91bb7e1c535d1d0633c6e9faecf50bda0b4a48d637784c5e8bdd8a  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/execution.json
-0435748f91ab15e53cc86f44279ec73cda71e3528ad64a1592dd025f4a57f088  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v5/test_compact_ranking_evaluation.py
+66411c6bd8a0f7d32f173eafc13ecf13d5c94e746a546a84b6c6d7c2c169c8ae  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/authority-first-cpu-v6.json
+1d42825c0989535ca27b12b30febee1b4bd969666c60daaa9c29465731443ad0  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/evaluate_siglip2_compact_ranking.py
+83f828858d91bb7e1c535d1d0633c6e9faecf50bda0b4a48d637784c5e8bdd8a  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/execution.json
+0435748f91ab15e53cc86f44279ec73cda71e3528ad64a1592dd025f4a57f088  /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v19/test_compact_ranking_evaluation.py
 1f873fa0f4b48ea7f0fdc3d74390745c6c5751fa2f270925c5e4502a4a15d15c  /home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/bundle/bundle.json
 cabfad45d73b563874cd2b3db0f1bff736c989906e8182b13f5ed54df65191d1  /home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/receipt.json
 dda28fbd4542158e7d9f166d6e32630b84a39fa181496c176256f9605adb31dc  /home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/resume.pt
