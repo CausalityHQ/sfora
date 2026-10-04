@@ -1,0 +1,15 @@
+{
+  "pass": false,
+  "verdict": "FAIL",
+  "failure": "C role mutation accepted",
+  "service_seconds": 114.523,
+  "invocation_id": "8f99aad8674b44e0851dda04a02ce38a",
+  "unit": "sfora-so400-live-top1-cpu-v1",
+  "ssh_session": 58601,
+  "exit_status": 1,
+  "host_peak_bytes": 1719652352,
+  "zero_swap_events": true,
+  "log_sha256": "043e6790c8a1bfc13c61127848b61fa4899780751e5954bba9ab6f4be9db166d",
+  "mechanics_train_admitted": false,
+  "quality_read": false
+}
