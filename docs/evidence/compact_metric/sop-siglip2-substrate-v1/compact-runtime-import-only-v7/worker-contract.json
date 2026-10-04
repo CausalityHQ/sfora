@@ -1,0 +1,41 @@
+{
+  "schema": "compact-scientific-source-closure-contract-v1",
+  "base": "54fc668abee878e0347a65b8378a7607ce10c198",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "production_change": "RUNTIME_SOURCES finite constant inventory only; all other top-level AST nodes and helpers unchanged",
+  "trace": "/tmp/sfora-compact-scientific-final-trace-20261004.json",
+  "source_count_current": 928,
+  "extra_proven_edges": [
+    "scipy._external.array_api_compat.numpy -> __import__(__package__ + \".fft\")",
+    "sklearn.externals.array_api_compat.numpy -> __import__(__package__ + \".fft\")",
+    "sklearn.utils._repr_html.estimator -> _get_css_style() -> estimator.css/params.css/features.css"
+  ],
+  "pending_precision": null,
+  "native_policy": "Only original native_files with original files digest == original CPU5 required guard == pinned RECORD digest/size; no native authority additions",
+  "test_policy": "Real stdlib synthetic transitive SourceFileLoader graph, poisoned valid bytecodes, cached and uncached byte/RECORD/native/foreign/historical/write/optional-code denial; existing fixture scopes retain existing distribution inventories, new scientific fixture tests full new inventory once, no production helper stubs",
+  "verification": "one final timeout55s suite; narrow failing layer and final rerun permitted",
+  "forbidden": [
+    "third-party execution",
+    "Torch/native execution",
+    "SSH",
+    "GPU/cloud/jobs",
+    "model/images/quality",
+    "children/reviews/operator contact",
+    "merge/push",
+    "control file edits"
+  ],
+  "original_blocker_receipts_preserved": true,
+  "source_count_final": 943,
+  "asset_count_final": 3,
+  "native_initializer_evidence": [
+    "/tmp/sfora-compact-pandas-native-initializer-evidence-20261004.json",
+    "/tmp/sfora-compact-pandas-native-dateutil-token-evidence-20261004.json"
+  ],
+  "initializer_evidence_limitation": "Dateutil native-initializer edges are supported by original SO identity and token evidence, not native execution; root runtime diagnostic resolves actual import success",
+  "new_tests": 3,
+  "targeted_tests": "PASS3 in3.567s",
+  "ast_ledger": "/tmp/sfora-compact-scientific-closure-followup-20261004.ast-ledger.json"
+}

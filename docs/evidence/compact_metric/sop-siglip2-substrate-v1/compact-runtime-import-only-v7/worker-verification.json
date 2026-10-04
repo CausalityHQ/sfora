@@ -1,0 +1,15 @@
+{
+  "command": [
+    "timeout",
+    "55s",
+    "python3",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 37.88376141001936,
+  "log": "/tmp/sfora-compact-scientific-closure-followup-20261004.final.log",
+  "scripts": {
+    "scripts/evaluate_siglip2_compact_ranking.py": "045c27359ff8e670a0596b177f5b119b1304fe56874e27809af2b83c67ea39fd",
+    "scripts/test_compact_ranking_evaluation.py": "2deec95d3ab51a4557afc8750f745889176df37f82c5812174163fc783c1d82c"
+  }
+}

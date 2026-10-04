@@ -1,0 +1,74 @@
+{
+  "schema": "compact-scientific-source-runtime-worker-receipt-v1",
+  "status": "implementation_and_stdlib_verification_complete",
+  "base": "54fc668abee878e0347a65b8378a7607ce10c198",
+  "commit": "1381588915d7f9069fb671982a87c27f6b856710",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "clean_worktree": true,
+  "merge_push_performed": false,
+  "production_change": "RUNTIME_SOURCES only; all other top-level AST and all existing entries unchanged",
+  "source_count": 943,
+  "asset_count": 3,
+  "new_distribution_count": 11,
+  "native_files_selected_from_original_proof": 155,
+  "new_native_authority": false,
+  "actual_installed_runtime_success_claimed": false,
+  "initializer_string_inference_requires_parent_import_diagnostic": true,
+  "full_suite": {
+    "tests": 38,
+    "reported_seconds": 37.434,
+    "whole_seconds": 37.88376141001936,
+    "timeout_seconds": 55,
+    "exit_code": 0
+  },
+  "targeted_suite": {
+    "tests": 3,
+    "seconds": 3.567,
+    "exit_code": 0
+  },
+  "artifacts": {
+    "contract": {
+      "path": "/tmp/sfora-compact-scientific-closure-followup-20261004.contract.json",
+      "sha256": "e4ab07f1794431a8a0b46e9f023babbda802ef977c14df21b3b0a0f050e549b5"
+    },
+    "ast_ledger": {
+      "path": "/tmp/sfora-compact-scientific-closure-followup-20261004.ast-ledger.json",
+      "sha256": "7bada777305a237e7a932ffe99eb869064de699e52b101887afa85e24c4557ce"
+    },
+    "verification": {
+      "path": "/tmp/sfora-compact-scientific-closure-followup-20261004.verification.json",
+      "sha256": "d9ea755582f6faa7ed245799a4ccb0e8cdf09b28ea93d5283de12ab011a75529"
+    },
+    "full_log": {
+      "path": "/tmp/sfora-compact-scientific-closure-followup-20261004.final.log",
+      "sha256": "16756e12e5d669bf1a7afa1bc3ee439216e52217182958f692547d5369d800a8"
+    },
+    "red_log": {
+      "path": "/tmp/sfora-compact-scientific-closure-followup-20261004.red.log",
+      "sha256": "4220d06da39eee5476881afd958264ce6829e03d3708c38bcb4b2e04b88d6d2f"
+    },
+    "targeted_log": {
+      "path": "/tmp/sfora-compact-scientific-closure-followup-20261004.layer.log",
+      "sha256": "6dc23270068671546d48cc1509e791aad45a0469a66b9a71edb0d71fd3f41792"
+    }
+  },
+  "source_evidence": {
+    "/tmp/sfora-compact-scientific-import-context-20261004.json": "507b182b756d728bca6ceb5f3897e85fdf40d798e8435e9bedbdca6f0542fb0e",
+    "/tmp/sfora-compact-pandas-css-import-context-20261004.json": "ae806ccd40bc8084e08439d2c9db9b61eb805e38ef0350e64421030c8a1aaf6d",
+    "/tmp/sfora-compact-six-source-context-20261004.json": "1e19007f38eda1e66213d7032b34e1e082a11b396b90940b2da2b5f0ed4e1196",
+    "/tmp/sfora-compact-scientific-additional-source-context-20261004.json": "07e46cc16c4da77b4bcd105631f4a53d4f02d6997ded2b872d0182b6ffb7a81d",
+    "/tmp/sfora-compact-pandas-native-initializer-evidence-20261004.json": "3769e2f54228c278871440a4b6d0a176d5b80c3f7b8ed1dbaae9a32f62554784",
+    "/tmp/sfora-compact-pandas-native-dateutil-token-evidence-20261004.json": "9ea9a66299b8ca62e5a4e07611058ba9ec5ede0bf3c9a5bf375df2b1eff8da3c",
+    "/tmp/sfora-compact-scientific-final-trace-20261004.json": "7827debf19658f094c5553c007957a500b11ba63614c32c4e8646dbf54178dad",
+    "/tmp/compact-evaluation-first-cpu-v5-receipt.json": "55159154c0ca26766c6ad56685a88d426aa190642aa894ff359632ce47d5f8ec",
+    "/tmp/sfora-native256-source-cpu-so400-v4.json": "e8a1e02e27ed4e4726682c0a61e547d097912b98e3535ddb3da8c1bb4e144cbf"
+  },
+  "original_no_edit_blocker_receipts_preserved": true,
+  "forbidden_actions_executed": [],
+  "control_file_edited": false,
+  "next_parent_action": "Verify exact constant-only AST/record ledger, integrate commit and run parent-owned original import-only v7; qualification and retained export pair stay parent-owned."
+}
