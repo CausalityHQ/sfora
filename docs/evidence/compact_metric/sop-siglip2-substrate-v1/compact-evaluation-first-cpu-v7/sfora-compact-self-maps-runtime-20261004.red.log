@@ -1,0 +1,57 @@
+EE
+======================================================================
+ERROR: test_bundle_boundary_self_maps_reads_and_proc_denials_fresh_and_cached (__main__.EvaluationTests.test_bundle_boundary_self_maps_reads_and_proc_denials_fresh_and_cached) (cached=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 759, in test_bundle_boundary_self_maps_reads_and_proc_denials_fresh_and_cached
+    self.assertIn(b'\n',path.read_bytes())
+                        ~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 778, in read_bytes
+    with self.open(mode='rb', buffering=0) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 772, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/evaluate_siglip2_compact_ranking.py", line 1454, in audit
+    require(path in exact or any(path.is_relative_to(p) for p in roots) or
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        (path.is_relative_to(stdlib) and not {'site-packages','dist-packages'}.intersection(path.parts)) or
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        (event != 'open' and path in directories),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'bundle-only loader attempted external dependency: '+str(path))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/evaluate_siglip2_compact_ranking.py", line 646, in require
+    raise ValueError(message)
+ValueError: bundle-only loader attempted external dependency: /proc/851993/maps
+
+======================================================================
+ERROR: test_bundle_boundary_self_maps_reads_and_proc_denials_fresh_and_cached (__main__.EvaluationTests.test_bundle_boundary_self_maps_reads_and_proc_denials_fresh_and_cached) (cached=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/test_compact_ranking_evaluation.py", line 759, in test_bundle_boundary_self_maps_reads_and_proc_denials_fresh_and_cached
+    self.assertIn(b'\n',path.read_bytes())
+                        ~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 778, in read_bytes
+    with self.open(mode='rb', buffering=0) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 772, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/evaluate_siglip2_compact_ranking.py", line 1454, in audit
+    require(path in exact or any(path.is_relative_to(p) for p in roots) or
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        (path.is_relative_to(stdlib) and not {'site-packages','dist-packages'}.intersection(path.parts)) or
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        (event != 'open' and path in directories),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'bundle-only loader attempted external dependency: '+str(path))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-compact-filelock-runtime-20261004/scripts/evaluate_siglip2_compact_ranking.py", line 646, in require
+    raise ValueError(message)
+ValueError: bundle-only loader attempted external dependency: /proc/851993/maps
+
+----------------------------------------------------------------------
+Ran 1 test in 0.115s
+
+FAILED (errors=2)

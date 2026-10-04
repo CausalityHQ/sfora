@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "base": "2fb0fc697aa4db763261d1b9561ca0597cdc917c",
+  "commit": "0110113938ac843e0d20e8e5edf284edb5f38565",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "exact_two_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "clean_worktree": true,
+  "production_delta": "ONE final permission disjunct: (event == 'open' and path == Path('/proc/self/maps').resolve())",
+  "all_other_production_bytes_ast_identical": true,
+  "original_44_tests_unchanged": true,
+  "focused_red_then_green": true,
+  "final_tests": 45,
+  "verification": {
+    "command": "timeout 55s python3 scripts/test_compact_ranking_evaluation.py",
+    "exit_code": 0,
+    "whole_seconds": 47.28801008302253,
+    "log": "/tmp/sfora-compact-self-maps-runtime-20261004.final.log",
+    "script_sha256": {
+      "scripts/evaluate_siglip2_compact_ranking.py": "9acc2332dc4c2471299f92a634bab65243a9b9addbd3823af3471716dc7eb7d0",
+      "scripts/test_compact_ranking_evaluation.py": "eb8476be0a4fd02e98bbbc7f98757eb619f95c662027f045621b7edf4d388d6b"
+    }
+  },
+  "artifacts_sha256": {
+    "/tmp/sfora-compact-self-maps-runtime-20261004.contract.json": "6b94e4bf9681abdfecf8299d2cdb18cdc29f9552fb1a734fcc77c16363c49dd5",
+    "/tmp/sfora-compact-self-maps-runtime-20261004.ast-ledger.json": "d39942cc6ca7306bc481a9400090fa43db519427902ddb94998bd1d1ec2e2105",
+    "/tmp/sfora-compact-self-maps-runtime-20261004.red.log": "77e2c02a5e59d435c0d56df586bdb892f552f488b0d78f25d305957748e1ede6",
+    "/tmp/sfora-compact-self-maps-runtime-20261004.layer.log": "35ea7414ffb5171809327e897ef69295162f3e674bf08c73a9d47ebe72208f26",
+    "/tmp/sfora-compact-self-maps-runtime-20261004.final.log": "1bba4a27e91874573de05630a9636b65572421d214d42c0f13a55bf4e35193cb",
+    "/tmp/sfora-compact-self-maps-runtime-20261004.verification.json": "5ea2cabcb0e850339f571038ced4f5c001191b633c05e3ecc2de17a0b955cc73"
+  },
+  "control_unchanged": true,
+  "no_actual_thirdparty_native_torch_ssh_gpu_jobs_reviews_children_operator_merge_push": true,
+  "parent_owns": "Freeze, CPU/export qualification and accepted TRAIN pair"
+}

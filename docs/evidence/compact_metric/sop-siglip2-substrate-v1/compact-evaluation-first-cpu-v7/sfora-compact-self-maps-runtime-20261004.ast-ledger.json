@@ -1,0 +1,16 @@
+{
+  "base": "2fb0fc697aa4db763261d1b9561ca0597cdc917c",
+  "production_one_disjunct_only": true,
+  "all_other_production_bytes_identical": true,
+  "all_other_production_ast_identical": true,
+  "original_write_rejection_native_exact_four_uncached_exit_inventory_science_caps_unchanged": true,
+  "original_44_tests_unchanged": true,
+  "new_stdlib_audit_test": "test_bundle_boundary_self_maps_reads_and_proc_denials_fresh_and_cached",
+  "new_disjunct_ast": "BoolOp(op=And(), values=[Compare(left=Name(id='event', ctx=Load()), ops=[Eq()], comparators=[Constant(value='open')]), Compare(left=Name(id='path', ctx=Load()), ops=[Eq()], comparators=[Call(func=Attribute(value=Call(func=Name(id='Path', ctx=Load()), args=[Constant(value='/proc/self/maps')]), attr='resolve', ctx=Load()))])])",
+  "red_fresh_and_cached_current_pid_maps_denial": true,
+  "green_fresh_and_cached_requested_read_and_denials": true,
+  "script_sha256": {
+    "scripts/evaluate_siglip2_compact_ranking.py": "9acc2332dc4c2471299f92a634bab65243a9b9addbd3823af3471716dc7eb7d0",
+    "scripts/test_compact_ranking_evaluation.py": "eb8476be0a4fd02e98bbbc7f98757eb619f95c662027f045621b7edf4d388d6b"
+  }
+}
