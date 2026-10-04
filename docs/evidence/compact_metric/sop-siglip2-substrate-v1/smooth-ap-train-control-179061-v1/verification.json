@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "phase": "train",
+  "arm": "control",
+  "service_seconds": 340.702,
+  "invocation_id": "505edff92340465985fa8d88dfca995e",
+  "host_peak_bytes": 7289307136,
+  "rss_kib": 4620608,
+  "quality_read": false,
+  "receipt_sha256": "0e5eb26ff7853f9ddf09f6ade2dc364f99ce10f007b56977ddf72926a8d5fb85",
+  "log_sha256": "017e99d4fb2fffeac8cb1ba78abc2bd339007d7b7d9e189671154dbcb7a17fd6"
+}
