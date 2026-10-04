@@ -869,6 +869,43 @@ def lazy_runtime_files(context,environment):
     return files
 
 
+def distribution_identity_files(context,site):
+    """Exact declared identity bytes; infer names only from original RECORDs."""
+    files={};absent=set();record_reads=set()
+    for name,digest in context['required_guards'].items():
+        record=Path(name)
+        if record.parent.parent != site or record.name != 'RECORD' or not record.parent.name.endswith('.dist-info'):
+            continue
+        raw=bound_file(context['guards'],record,digest).read_bytes()
+        require(hashlib.sha256(raw).hexdigest() == digest, 'identity RECORD changed before parsing')
+        files[record]=digest;seen=set();declared=False
+        wanted={record.parent.name+'/'+n for n in ('METADATA','top_level.txt')}
+        for row in csv.reader(raw.decode('utf-8').splitlines()):
+            require(len(row) == 3 and row[0] not in seen, 'invalid/duplicate identity RECORD row')
+            seen.add(row[0])
+            if row[0] not in wanted:
+                continue
+            name,encoded,size=row
+            require(re.fullmatch(r'sha256=[A-Za-z0-9_-]{43}',encoded) and
+                re.fullmatch(r'0|[1-9][0-9]*',size), 'identity RECORD hash/size required')
+            value=base64.urlsafe_b64decode(encoded[7:]+'=')
+            require(base64.urlsafe_b64encode(value).decode().rstrip('=') == encoded[7:], 'noncanonical identity RECORD hash')
+            path=bound_file(context['guards'],site/name,value.hex())
+            require(path.stat().st_size == int(size), 'identity RECORD size differs')
+            files[path]=value.hex()
+            if path.name == 'top_level.txt':
+                declared=bool(path.read_text(encoding='utf-8').split())
+        require(record.parent/'METADATA' in files, 'complete pinned distribution METADATA required')
+        top=record.parent/'top_level.txt'
+        if top not in files:
+            require(top.resolve() == top and not top.exists() and not top.is_symlink(),
+                'absent distribution identity changed: '+str(top))
+            absent.add(top)
+        if not declared:
+            record_reads.add(record)
+    return files,absent,record_reads
+
+
 @contextmanager
 def bundle_reads_only(context,endpoint):
     """Independently deny historical file dependencies during copied loading/forward.
@@ -885,6 +922,9 @@ bundle bytes. Native-origin admission remains the original owned API.
         runtime=lazy_runtime_files(context,manifest['environment'])
         sources={p for p in runtime if p.suffix == '.py'}
         site=next(p.parent.parent for p in runtime if p.name == 'RECORD')
+        identities,absent,record_reads=distribution_identity_files(context,site)
+        for path,digest in identities.items():
+            require(runtime.setdefault(path,digest) == digest, 'conflicting distribution identity authority')
         origins={str(p.relative_to(site)).removesuffix('.py').replace('/','.').removesuffix('.__init__'):str(p)
             for p in sources}
         origins.update({str(p.relative_to(site)).split('.',1)[0].replace('/','.'):str(p)
@@ -896,6 +936,7 @@ bundle bytes. Native-origin admission remains the original owned API.
         roots=[directory]
         roots += [Path(v['root']).resolve() for v in manifest['environment']['packages'].values()]
         exact={Path(p).resolve() for p in manifest['environment']['files']}|{p for p in runtime if p.name != 'RECORD'}
+        exact |= record_reads
         active=[False]
         def audit(event,args):
             if not active[0] or event not in ('open','os.listdir','os.scandir'):
@@ -909,6 +950,11 @@ bundle bytes. Native-origin admission remains the original owned API.
                 mode,flags=args[1:3]
                 require((mode is None or not any(c in mode for c in 'wax+')) and
                     not flags & (os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC|os.O_APPEND), 'serving loader attempted write')
+                probe=Path(os.fsdecode(value)).absolute()
+                if path in absent or probe in absent:
+                    require(probe.resolve() == probe and not probe.exists() and not probe.is_symlink(),
+                        'absent distribution identity changed: '+str(probe))
+                    raise FileNotFoundError('undeclared distribution identity: '+str(probe))
                 if path in bytecode:
                     # SourceFileLoader catches OSError and compiles pinned .py.
                     # A timestamp-valid but unpinned cache must never execute.
@@ -917,8 +963,8 @@ bundle bytes. Native-origin admission remains the original owned API.
                 (path.is_relative_to(stdlib) and not {'site-packages','dist-packages'}.intersection(path.parts)) or
                 (event != 'open' and path in directories),
                 'bundle-only loader attempted external dependency: '+str(path))
-        sys.addaudithook(audit);cached[identity]=(active,runtime,origins)
-    active,runtime,origins=cached[identity]
+        sys.addaudithook(audit);cached[identity]=(active,runtime,origins,absent)
+    active,runtime,origins,absent=cached[identity]
     require(active[0] is False, 'nested serving dependency boundary forbidden')
     original=context['training_context']['legacy']['selected']['source_cpu']['origins']
     for path,digest in runtime.items():
@@ -935,11 +981,17 @@ bundle bytes. Native-origin admission remains the original owned API.
             require(name in origins and getattr(module,'__file__',None) == origins[name] and
                 getattr(getattr(module,'__spec__',None),'origin',None) == origins[name],
                 'loaded lazy runtime origin differs: '+name)
+    for path in absent:
+        require(path.resolve() == path and not path.exists() and not path.is_symlink(),
+            'absent distribution identity changed: '+str(path))
     previous=sys.dont_write_bytecode;sys.dont_write_bytecode=True;active[0]=True
     try:
         yield
     finally:
         active[0]=False;sys.dont_write_bytecode=previous
+        for path in absent:
+            require(path.resolve() == path and not path.exists() and not path.is_symlink(),
+                'absent distribution identity changed: '+str(path))
 
 
 def endpoint_facts(context,state):

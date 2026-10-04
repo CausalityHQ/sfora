@@ -215,6 +215,7 @@ class PortableRuntimeFixture:
         examples['huggingface_hub']['huggingface_hub/utils/_fixes.py']=b'from filelock import value\n'
         examples['tqdm'].update({'tqdm/contrib/__init__.py':b"from ..auto import value\nmarker = 'source'\n",
             'tqdm/contrib/concurrent.py':b"from ..auto import value\nmarker = 'source'\n"})
+        for distribution in examples:self.metadata_versions.setdefault(distribution,'1.0')
         self.extra_sources={};self.extra_records={};self.natives=[self.native]
         for distribution in examples:
             sources={self.site/n:b'' for n in getattr(e,'RUNTIME_SOURCES',{}).get(distribution,())}
@@ -250,6 +251,10 @@ class PortableRuntimeFixture:
             name=str(path.relative_to(self.site))
             rows=[r for r in csv.reader(record.read_text().splitlines()) if r[0]!=name] if record.exists() else []
             rows.append([name,'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))])
+            top=path.with_name('top_level.txt')
+            top_raw=({'pillow':'PIL'}.get(distribution,distribution)+'\n').encode();top.write_bytes(top_raw)
+            rows.append([str(top.relative_to(self.site)),
+                'sha256='+base64.urlsafe_b64encode(hashlib.sha256(top_raw).digest()).decode().rstrip('='),str(len(top_raw))])
             record.write_text(''.join(','.join(row)+'\n' for row in rows))
             if distribution=='packaging':self.rows=rows
             elif distribution=='regex':self.regex_rows=rows
@@ -259,6 +264,22 @@ class PortableRuntimeFixture:
 
     def boundary(self):
         return e.bundle_reads_only(self.context,self.endpoint)
+
+    def add_identity_distribution(self,name,version,declared):
+        package=self.site/name.replace('-','_');package.mkdir()
+        source=package/'__init__.py';source.write_bytes(b"raise AssertionError('optional module executed')\n")
+        metadata=self.site/(name.replace('-','_')+'-'+version+'.dist-info')/'METADATA'
+        metadata.parent.mkdir();metadata.write_text('Metadata-Version: 2.1\nName: '+name+'\nVersion: '+version+'\n')
+        paths=[source,metadata];top=metadata.with_name('top_level.txt')
+        if declared is not None:top.write_text(declared);paths.append(top)
+        record=metadata.with_name('RECORD')
+        rows=[[str(p.relative_to(self.site)),
+            'sha256='+base64.urlsafe_b64encode(hashlib.sha256(p.read_bytes()).digest()).decode().rstrip('='),
+            str(p.stat().st_size)] for p in paths]
+        record.write_text(''.join(','.join(row)+'\n' for row in rows))
+        digest=hashlib.sha256(record.read_bytes()).hexdigest()
+        self.context['guards'][str(record)]=self.context['required_guards'][str(record)]=digest
+        return metadata,top,record,source
 
 
 class SourceAdmissionFixture:
@@ -819,6 +840,123 @@ class EvaluationTests(unittest.TestCase):
                     path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
                     try:
                         with self.subTest(name=name,cached=cached),self.assertRaisesRegex(ValueError,'SHA256'):
+                            with f.boundary():pass
+                    finally:
+                        path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+
+    def test_bundle_boundary_distribution_identity_scan_and_versions(self):
+        import importlib.metadata
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);f=PortableRuntimeFixture(root)
+            declared=f.add_identity_distribution('optional-declared','1.2.3','optional_declared\n')
+            inferred=f.add_identity_distribution('optional-inferred','2.3.4',None)
+            empty=f.add_identity_distribution('optional-empty','3.4.5','')
+            original=copy.deepcopy(f.context['training_context']['legacy']['selected']['source_cpu']['origins'])
+            forbidden=[root/'foreign.py',declared[3].with_name('resume.pt'),declared[3].with_name('foreign.so'),
+                declared[0].with_name('entry_points.txt'),declared[0].with_name('PKG-INFO'),
+                declared[3].parent/'_vendor/nested-1.0.dist-info/METADATA']
+            for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
+            # Even a trusted wheel's vendored identity row grants no nested metadata root.
+            vendor=forbidden[-1]
+            with declared[2].open('a') as stream:
+                csv.writer(stream).writerow([str(vendor.relative_to(f.site)),
+                    'sha256='+base64.urlsafe_b64encode(hashlib.sha256(vendor.read_bytes()).digest()).decode().rstrip('='),
+                    str(vendor.stat().st_size)])
+            h=hashlib.sha256(declared[2].read_bytes()).hexdigest()
+            f.context['guards'][str(declared[2])]=f.context['required_guards'][str(declared[2])]=h
+            required=dict(f.context['required_guards'])
+            with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                for cached in (False,True):
+                    with self.subTest(cached=cached),f.boundary():
+                        mapping=importlib.metadata.packages_distributions()
+                        self.assertEqual(mapping['optional_declared'],['optional-declared'])
+                        self.assertEqual(mapping['optional_inferred'],['optional-inferred'])
+                        self.assertEqual(mapping['optional_empty'],['optional-empty'])
+                        for distribution,version in (('optional-declared','1.2.3'),('optional-inferred','2.3.4'),('optional-empty','3.4.5')):
+                            self.assertEqual(importlib.metadata.version(distribution),version)
+                        self.assertEqual(importlib.metadata.version('torch'),'2.12.1')
+                        self.assertEqual(importlib.metadata.version('Pillow'),'12.2.0')
+                        for metadata,top,record,source in (declared,inferred,empty):
+                            self.assertIn(str(metadata),f.context['guards'])
+                            self.assertNotIn(str(source),f.context['guards'])
+                            with self.assertRaisesRegex(ValueError,'external dependency'):source.read_bytes()
+                            with self.assertRaisesRegex(ValueError,'external dependency'):
+                                importlib.import_module(source.parent.name)
+                            with self.assertRaisesRegex(ValueError,'attempted write'):metadata.write_bytes(b'changed')
+                            with self.assertRaisesRegex(ValueError,'attempted write'):top.write_bytes(b'changed')
+                            with self.assertRaisesRegex(ValueError,'attempted write'):record.write_bytes(b'changed')
+                        with self.assertRaises(FileNotFoundError):inferred[1].read_bytes()
+                        self.assertEqual(inferred[2].read_bytes(),inferred[2].read_text().encode())
+                        self.assertEqual(empty[1].read_bytes(),b'')
+                        with self.assertRaisesRegex(ValueError,'external dependency'):declared[2].read_bytes()
+                        for path in forbidden:
+                            with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                # A known absent probe is rechecked on entry, at its read, and on exit.
+                inferred[1].write_text('unqualified\n')
+                with self.assertRaisesRegex(ValueError,'absent distribution identity changed'):
+                    with f.boundary():pass
+                inferred[1].unlink()
+                with self.assertRaisesRegex(ValueError,'absent distribution identity changed'):
+                    with f.boundary():inferred[1].symlink_to(inferred[3])
+                inferred[1].unlink()
+                with f.boundary():
+                    inferred[1].symlink_to(root/'missing')
+                    try:
+                        with self.assertRaisesRegex(ValueError,'absent distribution identity changed'):
+                            inferred[1].read_bytes()
+                    finally:inferred[1].unlink()
+                unknown=f.site/'foreign-1.0.dist-info';unknown.mkdir();(unknown/'METADATA').write_text('Name: foreign\nVersion: 1.0\n')
+                with f.boundary(),self.assertRaisesRegex(ValueError,'external dependency'):
+                    importlib.metadata.packages_distributions()
+            self.assertEqual(f.context['required_guards'],required)
+            self.assertEqual(f.context['training_context']['legacy']['selected']['source_cpu']['origins'],original)
+            for name in ('optional_declared','optional_inferred','optional_empty'):self.assertNotIn(name,sys.modules)
+
+    def test_distribution_identity_requires_original_record_and_exact_rows(self):
+        import importlib.metadata
+        for identity in ('METADATA','top_level.txt'):
+            for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row',
+                         'wrong_hash','wrong_size','duplicate_row','foreign_row','symlink'):
+                with self.subTest(identity=identity,case=case),tempfile.TemporaryDirectory() as directory:
+                    root=Path(directory);f=PortableRuntimeFixture(root)
+                    metadata,top,record,_=f.add_identity_distribution('optional-declared','1.2.3','optional_declared\n')
+                    target=metadata if identity=='METADATA' else top
+                    if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                    elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                    elif case=='mutated_record':record.write_bytes(record.read_bytes()+b'\n')
+                    elif case=='foreign_record':
+                        foreign=root/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True)
+                        foreign.write_bytes(record.read_bytes());h=hashlib.sha256(foreign.read_bytes()).hexdigest()
+                        f.context['required_guards'].pop(str(record))
+                        f.context['guards'][str(foreign)]=f.context['required_guards'][str(foreign)]=h
+                    elif case=='symlink':
+                        foreign=root/'foreign.txt';foreign.write_bytes(target.read_bytes());target.unlink();target.symlink_to(foreign)
+                    else:
+                        rows=list(csv.reader(record.read_text().splitlines()));row=next(r for r in rows if r[0]==str(target.relative_to(f.site)))
+                        if case=='missing_row':rows.remove(row)
+                        elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                        elif case=='wrong_size':row[2]='999'
+                        elif case=='duplicate_row':rows.append(row.copy())
+                        else:row[0]='../foreign/'+row[0]
+                        record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                        h=hashlib.sha256(record.read_bytes()).hexdigest()
+                        f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                    with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]),self.assertRaises(ValueError):
+                        with f.boundary():importlib.metadata.packages_distributions()
+
+    def test_distribution_identity_current_bytes_rechecked_with_restored_mtime(self):
+        for cached in (False,True):
+            with self.subTest(cached=cached),tempfile.TemporaryDirectory() as directory:
+                f=PortableRuntimeFixture(Path(directory))
+                metadata,top,record,_=f.add_identity_distribution('optional-declared','1.2.3','optional_declared\n')
+                inferred=f.add_identity_distribution('optional-inferred','2.3.4',None)
+                if cached:
+                    with f.boundary():pass
+                for path in (metadata,top,record,inferred[0],inferred[2]):
+                    raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    try:
+                        with self.subTest(path=path),self.assertRaisesRegex(ValueError,'SHA256'):
                             with f.boundary():pass
                     finally:
                         path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
