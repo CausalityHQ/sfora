@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "train",
+  "arm": "control",
+  "service_seconds": 356.396,
+  "invocation_id": "f2bac42ee4a44318a67afd396ed3a635",
+  "host_peak_bytes": 7284957184,
+  "rss_kib": 4620336,
+  "unit": "sfora-so400-image-anchor-smooth-ap-train-control-179061-v1",
+  "quality_read": false,
+  "receipt_sha256": "f41553b7a5f0c6310c73a517a275dd9fe9d61fb9564bfb52a00049eb9b4168d2",
+  "log_sha256": "1f774398dec5224b6ea695a2695b93218e0f0a1762529dc434ddd60e7b7b4e3c"
+}
