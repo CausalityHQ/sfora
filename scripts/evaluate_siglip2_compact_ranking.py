@@ -35,11 +35,11 @@ from types import FunctionType, SimpleNamespace
 import weakref
 
 UNIT_STARTED = time.perf_counter()
-SCHEMA = 'siglip2-compact-fullfeature-residual-evaluation-v1'
-AUTHORITY_SCHEMA = 'siglip2-compact-fullfeature-residual-evaluation-launch-v1'
+SCHEMA = 'siglip2-compact-live-top1-evaluation-v1'
+AUTHORITY_SCHEMA = 'siglip2-compact-live-top1-evaluation-launch-v1'
 FILES = {'evaluate_siglip2_compact_ranking.py', 'test_compact_ranking_evaluation.py'}
 TRAIN_FILES = {'train_siglip2_compact_ranking.py', 'test_siglip2_compact_ranking.py'}
-TRAINING = {'root': '/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1', 'execution_sha256': '996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15', 'code': {'train_siglip2_compact_ranking.py': 'ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad', 'test_siglip2_compact_ranking.py': '6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b'}}
+TRAINING = {'root': '/home/riomus/runs/sfora-so400-live-top1-train-source-v1', 'execution_sha256': '0992550a70f38a2efe461abf6d0672fc8608ee976fca155bb16e66305da7cc81', 'code': {'train_siglip2_compact_ranking.py': 'bcabe2691a2a398b8d8a18a58d91fb8a83388b3004c6f5047ee712bcffb8e453', 'test_siglip2_compact_ranking.py': '3a511a3d256bd80e3210b06de2896c0fb93f8cd34a5a539be6f18cb00dbd823c'}}
 ARMS = ('control', 'candidate')
 SEEDS = (179061, 179069)
 ORDER = ((179061,'control'),(179061,'candidate'),(179069,'candidate'),(179069,'control'))
@@ -947,14 +947,14 @@ def guard_helpers(context):
             'authenticated helper live source/global binding changed')
         bound_file({},path,context['guards'][str(path)])
 def check_paired_initialization(c,a):
-    for record,arm,names,shapes in ((c,'control',['A'],[[128,160]]),
+    for record,arm,names,shapes in ((c,'control',['A','C'],[[128,160],[128,1152]]),
             (a,'candidate',['A','C'],[[128,160],[128,1152]])):
         require(record['arm'] == record['identity']['arm'] == arm and
             record['identity']['parameter_names'] == names and record['identity']['parameter_shapes'] == shapes and
             type(record['identity']['parameter_shapes']) is list and
             all(type(shape) is list and all(type(d) is int for d in shape)
                 for shape in record['identity']['parameter_shapes']),
-            'exact control A / candidate A,C optimizer roles differ')
+            'exact both-arm A,C optimizer roles differ')
     require(all(c[k] == a[k] for k in ('source','initial_A_sha256','initial_C_sha256','mu_train_sha256',
             'mu_train_provenance_sha256','initial_raw_unit_packed_sha256','numerical_flags')) and
         all(c['identity'][k] == a['identity'][k] for k in ('static_sha256','initial_A_sha256','initial_C_sha256',
@@ -967,9 +967,9 @@ def check_paired_initialization(c,a):
 def check_residual_oracle(proof,arm):
     keys={'C_exact_zero','residual_nonzero_witness','omitted_C_mutant_rejected','wrong_mu_mutant_rejected'}
     require(arm in ARMS and isinstance(proof,dict) and proof.keys() == keys and
-        proof['C_exact_zero'] is (arm == 'control') and
-        all(proof[k] is (arm == 'candidate') for k in keys-{'C_exact_zero'}),
-        'complete role-specific nonzero C / omitted C / wrong mu oracle required')
+        proof['C_exact_zero'] is False and
+        all(proof[k] is True for k in keys-{'C_exact_zero'}),
+        'complete both-arm nonzero C / omitted C / wrong mu oracle required')
 
 
 def authority(args):
@@ -995,10 +995,10 @@ def authority(args):
         loaded[key] = load_authenticated('_compact_eval_'+key,Path(fact['root'])/filename,fact['code'][filename],guards)
     trainer,native,math_helper,reference = (loaded[k] for k in ('training','nearest_evaluator','genuine_evaluator','reference'))
     require(launch['reference'] == native.REFERENCE and trainer.FILES == TRAIN_FILES and trainer.ARMS == ARMS and
-        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-fullfeature-residual-v1' and
-        trainer.AUTHORITY_SCHEMA == 'siglip2-compact-fullfeature-residual-launch-v1' and
-        trainer.INFERENCE_SCHEMA == 'siglip2-compact-fullfeature-residual-inference-v1' and
-        trainer.BUNDLE_SCHEMA == 'siglip2-compact-fullfeature-residual-bundle-v1' and math_helper.ORDER == ORDER and
+        tuple(trainer.SEEDS) == SEEDS and trainer.SCHEMA == 'siglip2-compact-live-top1-v1' and
+        trainer.AUTHORITY_SCHEMA == 'siglip2-compact-live-top1-launch-v1' and
+        trainer.INFERENCE_SCHEMA == 'siglip2-compact-live-top1-inference-v1' and
+        trainer.BUNDLE_SCHEMA == 'siglip2-compact-live-top1-bundle-v1' and math_helper.ORDER == ORDER and
         math_helper.METRICS == METRICS and math_helper.PANELS == PANELS, 'owned trainer/paired-seed math contract differs')
     first = launch['endpoints'][0]; training = launch['training']
     targs = SimpleNamespace(execution_sha256=training['execution_sha256'],authority=Path(first['launch']['path']),
@@ -1268,8 +1268,8 @@ def authenticate_payloads(context,endpoint):
         'bundle substitutes trained A/C/mu/arm or complete fixed endpoint members')
     for name,shape in (('C',(128,1152)),('mu_train',(1152,))):
         t['legacy']['quadratic']._check_tensor(disk[name],shape,'cpu',frozen=True)
-    require((torch.count_nonzero(disk['C']).item() == 0) is (disk['arm'] == 'control'),
-        'updated candidate C nonzero / frozen exactzero control differs')
+    require(torch.count_nonzero(disk['C']).item() > 0,
+        'updated both-arm C must be nonzero')
     require(disk['source']['initial_C_sha256'] == ident['initial_C_sha256'] and
         disk['source']['mu_train_sha256'] == ident['mu_train_sha256'] == trainer.fingerprint(t,disk['mu_train']) and
         disk['source']['mu_train_provenance_sha256'] == ident['mu_train_provenance_sha256'] ==
@@ -1311,20 +1311,19 @@ def fullfeature_oracle(context,state,features):
         torch.nn.Parameter(state['A'].detach().clone()),state['means'],'concat',t['legacy']['quadratic'])
     C=state['C'].detach().clone();mu=state['mu_train'].detach().clone()
     zero=torch.count_nonzero(C).item() == 0
-    require(zero is (arm == 'control'), 'updated candidate must have nonzero C; control must have exactzero C')
-    raw=base if arm == 'control' else base+F.linear(features-mu,C)
+    require(not zero, 'updated both-arm C must be nonzero')
+    raw=base+F.linear(features-mu,C)
     output=packed_outputs(context,raw)
     proof={'C_exact_zero':zero,'residual_nonzero_witness':False,
         'omitted_C_mutant_rejected':False,'wrong_mu_mutant_rejected':False}
-    if arm == 'candidate':
-        omitted=packed_outputs(context,base)
-        column=int(C.abs().sum(dim=0).argmax().item())
-        wrong_mu=mu.clone();wrong_mu[column]+=1./float(C[:,column].abs().max().item())
-        wrong=packed_outputs(context,base+F.linear(features-wrong_mu,C))
-        digest=trainer.fingerprint(t,output)
-        proof['residual_nonzero_witness']=proof['omitted_C_mutant_rejected']=(
-            digest != trainer.fingerprint(t,omitted))
-        proof['wrong_mu_mutant_rejected']=digest != trainer.fingerprint(t,wrong)
+    omitted=packed_outputs(context,base)
+    column=int(C.abs().sum(dim=0).argmax().item())
+    wrong_mu=mu.clone();wrong_mu[column]+=1./float(C[:,column].abs().max().item())
+    wrong=packed_outputs(context,base+F.linear(features-wrong_mu,C))
+    digest=trainer.fingerprint(t,output)
+    proof['residual_nonzero_witness']=proof['omitted_C_mutant_rejected']=(
+        digest != trainer.fingerprint(t,omitted))
+    proof['wrong_mu_mutant_rejected']=digest != trainer.fingerprint(t,wrong)
     check_residual_oracle(proof,arm)
     return output,proof
 
