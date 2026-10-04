@@ -1,0 +1,84 @@
+{
+  "schema": "compact-dateutil-easter-source-worker-receipt-v1",
+  "status": "implementation_and_stdlib_verification_complete",
+  "base": "0c5a90ca11d576f72fbf23964829ba4dfc340a5c",
+  "commit": "6924c3fdf26c2c4abb7ee3b7591b86352c50e2d6",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "clean": true,
+  "production_change": "Exact dateutil/easter.py RUNTIME_SOURCES path only; all other production AST and prior entries identical",
+  "native_policy": "Original native authority and source predicates unchanged; no new native or installed native execution",
+  "actual_installed_runtime_success_claimed": false,
+  "full_suite": {
+    "tests": 42,
+    "seconds": 43.717,
+    "whole_seconds": 44.104097725998145,
+    "timeout_seconds": 55,
+    "exit_code": 0
+  },
+  "targeted_suite": {
+    "tests": 3,
+    "seconds": 6.194,
+    "exit_code": 0
+  },
+  "red_regression": {
+    "tests": 1,
+    "exit_code": 1,
+    "expected": "Original easter.pyc boundary denial reproduced"
+  },
+  "artifacts": {
+    "contract": {
+      "path": "/tmp/sfora-compact-dateutil-easter-runtime-20261004.contract.json",
+      "sha256": "e04851e251de4013a2d67bd60a55486dbbdbc7ee3c18aaf2851a3afc37b1aa51"
+    },
+    "ast_ledger": {
+      "path": "/tmp/sfora-compact-dateutil-easter-runtime-20261004.ast-ledger.json",
+      "sha256": "829c2696863131ec9159ce5b9f6cdbcffb264ba33a54af1065879d6d4139b682"
+    },
+    "verification": {
+      "path": "/tmp/sfora-compact-dateutil-easter-runtime-20261004.verification.json",
+      "sha256": "896e29f2111e3070802df0e41a79e4c1721b6124c0738e941522e883c038557c"
+    },
+    "full_log": {
+      "path": "/tmp/sfora-compact-dateutil-easter-runtime-20261004.final.log",
+      "sha256": "b76be5a52dbce66452669522fb57b7622f5f5fcae9728c1e2b57d8b8f613f35e"
+    },
+    "targeted_log": {
+      "path": "/tmp/sfora-compact-dateutil-easter-runtime-20261004.layer.log",
+      "sha256": "87ab146f6b10f95caadf7229e15ab90b7899bd40bfad6968a0a866c9e18de1ba"
+    },
+    "red_log": {
+      "path": "/tmp/sfora-compact-dateutil-easter-runtime-20261004.red.log",
+      "sha256": "4aef2506de2a9affb3cfa32a9132a0215ca3264559419975e37f1fcf96e82008"
+    }
+  },
+  "source_evidence": {
+    "path": "/tmp/sfora-compact-pandas-css-import-context-20261004.json",
+    "sha256": "ae806ccd40bc8084e08439d2c9db9b61eb805e38ef0350e64421030c8a1aaf6d",
+    "source": "dateutil/easter.py",
+    "sha256_source": "772062fa52af8a61f5bbf93aa7b6742492bbd9086a56d541b2a072be910f2af7",
+    "size": 2678,
+    "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/python_dateutil-2.9.0.post0.dist-info/RECORD",
+    "record_sha256": "e15e868a50b9c4e71df17b31369843617780146ac5adb1bbfdcced0ebe501824",
+    "record_row": [
+      "dateutil/easter.py",
+      "sha256=dyBi-lKvimH1u_k6p7Z0JJK72QhqVtVBsqByvpEPKvc",
+      "2678"
+    ],
+    "original_cpu5_required_guard_match": true
+  },
+  "all_actual_imports": [
+    "import datetime"
+  ],
+  "additional_source_or_asset_dependencies": [],
+  "all_helpers_science_absence_native_source_four_predicates_math_caps_full_uncached_exit_unchanged": true,
+  "all_prior_test_names_and_other_test_methods_preserved": true,
+  "control_and_prior_receipts_untouched": true,
+  "control_sha256": "334ce9d6f12e1f8a88d63fc261ab7a6ed1a26ec75b6f13314e16482da1cf1566",
+  "forbidden_actions_executed": [],
+  "push_merge_performed": false,
+  "next_parent_action": "Independently verify and integrate; parent owns next original import-v12 diagnostic, qualification, and retained exports."
+}

@@ -1,0 +1,47 @@
+{
+  "schema": "compact-dateutil-easter-runtime-contract-v1",
+  "base": "0c5a90ca11d576f72fbf23964829ba4dfc340a5c",
+  "owner_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "production_change": "RUNTIME_SOURCES python_dateutil only: exact dateutil/easter.py",
+  "inventory_additions": [
+    "dateutil/easter.py"
+  ],
+  "source_evidence": {
+    "path": "/tmp/sfora-compact-pandas-css-import-context-20261004.json",
+    "sha256": "ae806ccd40bc8084e08439d2c9db9b61eb805e38ef0350e64421030c8a1aaf6d",
+    "source": "dateutil/easter.py",
+    "sha256_source": "772062fa52af8a61f5bbf93aa7b6742492bbd9086a56d541b2a072be910f2af7",
+    "size": 2678,
+    "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/python_dateutil-2.9.0.post0.dist-info/RECORD",
+    "record_sha256": "e15e868a50b9c4e71df17b31369843617780146ac5adb1bbfdcced0ebe501824",
+    "record_row": [
+      "dateutil/easter.py",
+      "sha256=dyBi-lKvimH1u_k6p7Z0JJK72QhqVtVBsqByvpEPKvc",
+      "2678"
+    ],
+    "original_cpu5_required_guard_match": true
+  },
+  "all_imports": [
+    "import datetime"
+  ],
+  "additional_source_or_asset_dependencies": [],
+  "runtime_observation": {
+    "error": {
+      "message": "bundle-only loader attempted external dependency: /home/riomus/group-learning/.venv/lib/python3.13/site-packages/dateutil/__pycache__/easter.cpython-313.pyc",
+      "type": "ValueError"
+    },
+    "native_not_in_original_proof": []
+  },
+  "regression": "Extend existing synthetic SourceFileLoader original-initializer graph; poisoned bytecode fallback and cached/uncached source mutation, exact original RECORD hash/size/guard/foreign checks, module origin/write/optional neighbor denial. No installed third-party/native execution.",
+  "preserved": "All production AST outside RUNTIME_SOURCES; all existing entries; metadata helpers; native/source four predicates; science/math/quality/cost/caps/protocol/full uncached exit",
+  "limits": {
+    "final_suite_seconds": 55,
+    "one_final_suite": true,
+    "no_native_imports": true,
+    "no_ssh_reviews_children_operator_contact": true
+  },
+  "parent_owns_next_import_diagnostic": true
+}
