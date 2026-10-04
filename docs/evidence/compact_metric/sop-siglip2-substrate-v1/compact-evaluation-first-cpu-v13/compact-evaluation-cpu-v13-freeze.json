@@ -1,0 +1,11 @@
+{
+  "root": "/tmp/sfora-compact-ranking-evaluation-source-v26",
+  "execution_sha256": "b0a4bab757626ce7a394453d1c3b161b3248e9084066228319a7c45930a3e12e",
+  "authority_sha256": "a451f97658b7bfb34bbdb2714f14fe5ae2b2c3a75753b92da3608c91d475003c",
+  "command_sha256": "2cec65307e480f806f075352fbeee1f49e6c936246204049e4046f4146b54609",
+  "launch_sha256": "ce513717f2824ae2a24ec2b105f8d7bc0e3797bdd81ad8e650ec9607b3298251",
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "ecc3f8753b5d95a4bbe6158b895fa9dd5113cf5ab2a5c704bdb4073238c83889",
+    "test_compact_ranking_evaluation.py": "27ddcc2e927d1f4d31f62a3852de75cdcad22bb84d0d791276df936f6fc51951"
+  }
+}

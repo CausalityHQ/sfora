@@ -1,0 +1,14 @@
+{
+  "engineering_only": true,
+  "cpu_seconds": 500,
+  "prospective_export_seconds": 600,
+  "score_seconds": 500,
+  "host_bytes": 8589934592,
+  "swap_bytes": 0,
+  "cuda_peak_bytes_strict_max": 10000000000,
+  "both_locks_required": true,
+  "all_prior_failures_remain_failures": true,
+  "full_two_pass_parity_and_uncached_exit_required": true,
+  "quality_and_cost_gates_unchanged": true,
+  "one_original_job_at_a_time": true
+}
