@@ -277,7 +277,7 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
 
   'sparse/compressed.py sparse/construct.py sparse/coo.py sparse/csc.py sparse/csgraph/__init__.py '
 
-  'sparse/csgraph/_laplacian.py sparse/csr.py sparse/data.py sparse/dia.py sparse/dok.py sparse/extract.py '
+  'sparse/csgraph/_laplacian.py sparse/csgraph/_validation.py sparse/csr.py sparse/data.py sparse/dia.py sparse/dok.py sparse/extract.py '
 
   'sparse/lil.py sparse/linalg/__init__.py sparse/linalg/_dsolve/__init__.py '
 

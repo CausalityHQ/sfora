@@ -141,7 +141,7 @@ SCIENTIFIC_IMPORTS = {
     'sklearn/__check_build/__init__.py':'from ._check_build import value\n',
     'sklearn/base.py':'from .utils import fixes, validation\nfrom .utils._repr_html import estimator\n',
     'sklearn/utils/__init__.py':'',
-    'sklearn/utils/fixes.py':'import pandas\nimport scipy.sparse.linalg\n',
+    'sklearn/utils/fixes.py':'import pandas\nimport scipy.sparse.linalg\nimport scipy.sparse.csgraph\n',
     'sklearn/utils/validation.py':'import joblib\nimport narwhals.stable.v2\nimport scipy.sparse\n',
     'sklearn/utils/_repr_html/__init__.py':'',
     'sklearn/utils/_repr_html/estimator.py':
@@ -156,6 +156,12 @@ SCIENTIFIC_IMPORTS = {
     'scipy/_lib/_ccallback.py':'from ._ccallback_c import value\n',
     'scipy/sparse/__init__.py':'from . import _base\n',
     'scipy/sparse/_base.py':'import scipy.sparse.linalg\n',
+    'scipy/sparse/_sputils.py':'',
+    # The observed native initializer edge is represented by a synthetic import.
+    'scipy/sparse/csgraph/__init__.py':'from . import _laplacian, _validation\n',
+    'scipy/sparse/csgraph/_laplacian.py':'import scipy.sparse.linalg\nimport scipy.sparse._sputils\n',
+    'scipy/sparse/csgraph/_validation.py':
+        'from scipy.sparse._sputils import value\nfrom ._tools import value\n',
     'scipy/sparse/linalg/__init__.py':'from . import _interface\n',
     'scipy/sparse/linalg/_interface.py':'import scipy.linalg\n',
     'scipy/linalg/__init__.py':'from . import _misc\n',
@@ -225,6 +231,7 @@ SCIENTIFIC_NATIVE_IMPORTS = {
     'sklearn.__check_build._check_build':'sklearn/__check_build/_check_build.cpython-313-aarch64-linux-gnu.so',
     'scipy._lib._ccallback_c':'scipy/_lib/_ccallback_c.cpython-313-aarch64-linux-gnu.so',
     'scipy.linalg._fblas':'scipy/linalg/_fblas.cpython-313-aarch64-linux-gnu.so',
+    'scipy.sparse.csgraph._tools':'scipy/sparse/csgraph/_tools.cpython-313-aarch64-linux-gnu.so',
     'pandas._libs.tslibs.parsing':'pandas/_libs/tslibs/parsing.cpython-313-aarch64-linux-gnu.so',
     'psutil._psutil_linux':'psutil/_psutil_linux.abi3.so',
     'pyarrow.lib':'pyarrow/lib.cpython-313-aarch64-linux-gnu.so',
@@ -988,7 +995,7 @@ class EvaluationTests(unittest.TestCase):
                         path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
 
     def test_scientific_runtime_inventory_is_finite(self):
-        counts={'scipy':408,'scikit_learn':109,'joblib':38,'threadpoolctl':1,'pandas':250,
+        counts={'scipy':409,'scikit_learn':109,'joblib':38,'threadpoolctl':1,'pandas':250,
             'python_dateutil':12,'six':1,'narwhals':56,'psutil':5,'pyarrow':9,'rich':54}
         for distribution,count in counts.items():
             paths=e.RUNTIME_SOURCES[distribution]
@@ -1023,7 +1030,8 @@ class EvaluationTests(unittest.TestCase):
                     py_compile.compile(str(path),doraise=True)
                     path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
                 forbidden=[f.site/n for n in ('sklearn/resume.pt','scipy/optimizer.pt','pandas/teachers.npy',
-                    'sklearn/cluster/__init__.py','scipy/io/__init__.py','pandas/plotting/_matplotlib/__init__.py',
+                    'sklearn/cluster/__init__.py','scipy/io/__init__.py','scipy/sparse/csgraph/_optional.py',
+                    'pandas/plotting/_matplotlib/__init__.py',
                     'narwhals/_arrow/dataframe.py','rich/markdown.py','pyarrow/parquet/__init__.py',
                     'sklearn/utils/_repr_html/estimator.js','scipy/foreign.so')]+[root/'foreign.py',root/'proc/stat']
                 for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
@@ -1055,7 +1063,7 @@ class EvaluationTests(unittest.TestCase):
                                 with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
                             for path in (*forbidden,*(f.extra_records[d] for d in SCIENTIFIC_DISTRIBUTIONS)):
                                 with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
-                            for name in ('sklearn.cluster','scipy.io','rich.markdown'):
+                            for name in ('sklearn.cluster','scipy.io','scipy.sparse.csgraph._optional','rich.markdown'):
                                 with self.assertRaisesRegex(ValueError,'external dependency'):importlib.import_module(name)
                 # The complete inventory, including modules absent from the small graph,
                 # has been authenticated to the fixture's original RECORD bytes.
@@ -1065,7 +1073,7 @@ class EvaluationTests(unittest.TestCase):
                         self.assertEqual(f.context['guards'][str(path)],hashlib.sha256(path.read_bytes()).hexdigest())
                 self.assertEqual(originals,original_before);self.assertEqual(f.context['required_guards'],required_before)
                 foreign=SimpleNamespace(__file__=str(forbidden[-2]),__spec__=SimpleNamespace(origin=str(forbidden[-2])))
-                for name in ('sklearn.utils.validation','scipy.stats._stats_py','pandas.compat.pyarrow',
+                for name in ('sklearn.utils.validation','scipy.stats._stats_py','scipy.sparse.csgraph._validation','pandas.compat.pyarrow',
                         'dateutil.parser._parser','narwhals.stable.v2','psutil._pslinux','rich.console'):
                     with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
                         with f.boundary():pass
@@ -1077,7 +1085,7 @@ class EvaluationTests(unittest.TestCase):
     def test_scientific_runtime_mutations_and_original_authority(self):
         with tempfile.TemporaryDirectory() as directory:
             f=PortableRuntimeFixture(Path(directory),scientific=True)
-            paths=[f.site/n for n in ('sklearn/utils/validation.py','scipy/stats/_stats_py.py',
+            paths=[f.site/n for n in ('sklearn/utils/validation.py','scipy/stats/_stats_py.py','scipy/sparse/csgraph/_validation.py',
                 'pandas/compat/pyarrow.py','dateutil/parser/_parser.py','narwhals/stable/v2/__init__.py',
                 'joblib/externals/loky/process_executor.py','psutil/_pslinux.py','pyarrow/compute.py',
                 'rich/console.py','threadpoolctl.py','six.py','sklearn/utils/_repr_html/estimator.css')]
@@ -1094,7 +1102,7 @@ class EvaluationTests(unittest.TestCase):
                     finally:path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
             f.context.pop('portable_audits',None)
             record=f.extra_records['scipy'];record_raw=record.read_bytes();record_sha=f.context['required_guards'][str(record)]
-            source='scipy/stats/_stats_py.py'
+            source='scipy/sparse/csgraph/_validation.py'
             for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row','wrong_hash','wrong_size'):
                 guards=dict(f.context['guards']);required=dict(f.context['required_guards'])
                 if case=='missing_guard':f.context['required_guards'].pop(str(record))
@@ -1117,7 +1125,7 @@ class EvaluationTests(unittest.TestCase):
                         with f.boundary():pass
                 finally:
                     record.write_bytes(record_raw);f.context['guards']=guards;f.context['required_guards']=required
-            native=f.site/SCIENTIFIC_NATIVE_IMPORTS['scipy._lib._ccallback_c']
+            native=f.site/SCIENTIFIC_NATIVE_IMPORTS['scipy.sparse.csgraph._tools']
             original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
             for case in ('unobserved','original_hash','required_guard','record_hash','record_size'):
                 saved=copy.deepcopy(original);guards=dict(f.context['guards']);required=dict(f.context['required_guards'])
