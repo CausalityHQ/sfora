@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "mechanics",
+  "arm": "control",
+  "service_seconds": 255.942,
+  "invocation_id": "07d7b0af3b724575b5afb5bfc2aa977a",
+  "host_peak_bytes": 7403556864,
+  "rss_kib": 4604408,
+  "unit": "sfora-so400-fullfeature-residual-mechanics-control-v1",
+  "quality_read": false,
+  "receipt_sha256": "c4b8ef60934897b92f6971b60e5f2005267f906e0de920e2ba0b4c072edce5cf",
+  "log_sha256": "d97b914531db90705baa960ff1a1c6a7b17ac276bb4344691ee44428b592b599"
+}
