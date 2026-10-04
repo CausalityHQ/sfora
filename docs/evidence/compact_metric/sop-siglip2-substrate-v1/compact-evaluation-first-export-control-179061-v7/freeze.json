@@ -1,0 +1,27 @@
+{
+  "prospective": true,
+  "unit": "sfora-so400-compact-ranking-evaluation-first-export-control-179061-v7",
+  "files": {
+    "authority-first-export-control-179061-v7.json": "da36a15889b4fc95c02780254de2e2f736ab700e260157ba748957deb3026832",
+    "first-export-control-179061-v7-command.sh": "a855a166bf303a8cacb336f2cc668c446f7704b67c564baeb5b80ab8fbf60ca4",
+    "first-export-control-179061-v7-launch.sh": "e856003580dcb42baaf3bfbddd0bb6efae6dcc33f0694dd8a10c818f2064e862",
+    "execution.json": "b971a8fc28d000d57a3a15b557539aefa0f3f6b624cf0214fdbe072ad6775466"
+  },
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "bf8317d990b74d278934bdc6a12f28e1",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v23/first-cpu-v10.log",
+      "sha256": "554059ade769f7e9e7fceb6788eb9ff1facb846886c2983ac11c890ee15a6575"
+    },
+    "native_peak_rss_kib": 1149392,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-first-cpu-v10/receipt.json",
+      "sha256": "63a8123cd091296b615129cf4dd07da85429013c789d63b57d0eaa038022e704"
+    },
+    "service_seconds": 233.747,
+    "unit": "sfora-so400-compact-ranking-evaluation-first-cpu-v10"
+  },
+  "source_root": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v23",
+  "retained_train_pair_unchanged": true
+}
