@@ -635,6 +635,60 @@ class SourceAdmissionFixture:
         return namespace['s']
 
 
+class GroupedMdFixture(PortableRuntimeFixture):
+    """Recorded metadata, synthetic native bytes/maps; no extension execution."""
+    def __init__(self,root):
+        super().__init__(root)
+        self.md=self.site/'charset_normalizer/md.cpython-313-aarch64-linux-gnu.so'
+        self.md.write_bytes(b'UNAUTHORIZED physical wrapper; never read')
+        self.cd=self.site/'charset_normalizer/cd.cpython-313-aarch64-linux-gnu.so'
+        self.shared=self.site/'81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so'
+        self.shared.write_bytes(b'original grouped initializer stand-in; never executed')
+        original=self.context['training_context']['legacy']['selected']['source_cpu']['origins']
+        original['packages']=self.manifest['environment']['packages']
+        self.context['training_context']['legacy']['warm_record']={'origins':{'native_files':[]}}
+        self.context['training_context']['nearest']=SimpleNamespace(NATIVE_MEMBERS=set())
+        self.group_digests={str(p.relative_to(self.site)):hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in (self.cd,self.shared)}
+        digest=self.group_digests[self.shared.name]
+        original['native_files'].append(str(self.shared));original['files'][str(self.shared)]=digest
+        self.context['guards'][str(self.shared)]=self.context['required_guards'][str(self.shared)]=digest
+        self.record=self.extra_records['charset_normalizer']
+        self.rows=list(csv.reader(self.record.read_text().splitlines()))
+        self.rows.extend([[self.shared.name,'sha256='+base64.urlsafe_b64encode(bytes.fromhex(digest)).decode().rstrip('='),
+            str(self.shared.stat().st_size)],['charset_normalizer/'+self.md.name,
+            'sha256=EYzysjLHjG1gl9fj8mFGIRrs0HPeSgwZw5AWcSxih7A','201304']])
+        self.write_record()
+        source=PATH.with_name('qualify_siglip2_substrate_cpu.py')
+        self.context['training_context']['legacy']['source_driver']=SimpleNamespace(
+            __file__=str(source),__spec__=SimpleNamespace(origin=str(source)))
+        self.context['guards'][str(source)]=self.context['required_guards'][str(source)]=hashlib.sha256(source.read_bytes()).hexdigest()
+        self.maps=[self.cd,self.shared];self.map_reads=0;self.md_reads=0
+    def write_record(self):
+        self.record.write_text(''.join(','.join(row)+'\n' for row in self.rows))
+        digest=hashlib.sha256(self.record.read_bytes()).hexdigest()
+        self.context['guards'][str(self.record)]=self.context['required_guards'][str(self.record)]=digest
+    def module(self,path):return SimpleNamespace(__file__=str(path),__spec__=SimpleNamespace(origin=str(path)))
+    @contextmanager
+    def boundary(self,*,compiled=True,modules=None):
+        recorded={'charset_normalizer.md':self.module(self.md if compiled else self.md.with_name('md.py'))}
+        if modules is not None:recorded=modules
+        original_text,original_bytes=Path.read_text,Path.read_bytes
+        def text(path,*args,**kwargs):
+            if str(path)=='/proc/self/maps':
+                self.map_reads+=1;sys.audit('open',str(path),'r',os.O_RDONLY)
+                return ''.join('1000-2000 r-xp 00000000 00:00 0 '+str(p)+'\n' for p in self.maps)
+            return original_text(path,*args,**kwargs)
+        def raw(path,*args,**kwargs):
+            if path==self.md:
+                self.md_reads+=1;raise AssertionError('unauthorized md wrapper was hashed/read')
+            return original_bytes(path,*args,**kwargs)
+        with patch.object(e,'GROUPED_MD_NATIVE_SHA256',self.group_digests,create=True),\
+                patch.object(Path,'read_text',text),patch.object(Path,'read_bytes',raw),\
+                patch.dict(sys.modules,recorded),super().boundary():
+            yield
+
+
 class EvaluationTests(unittest.TestCase):
     def test_exact_source_stage_seed_and_roles(self):
         for stage in ('first','full'):
@@ -847,6 +901,94 @@ class EvaluationTests(unittest.TestCase):
         live.clear();live.update(copy.deepcopy(saved));del live['nested']
         self.assertNotEqual(f.facts()['members']['config'],expected)
         live.clear();live.update(copy.deepcopy(saved));self.assertEqual(f.facts()['members']['config'],expected)
+
+    def test_bundle_boundary_grouped_md_metadata_fresh_cached_and_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            f=GroupedMdFixture(Path(directory))
+            for _ in range(2):
+                with f.boundary():
+                    for path in (f.md,f.site/'charset_normalizer/foreign.so',f.site/'charset_normalizer/resume.pt'):
+                        with self.assertRaisesRegex(ValueError,'external dependency'):os.open(path,os.O_RDONLY)
+                    with self.assertRaisesRegex(ValueError,'attempted write'):os.open(f.md,os.O_WRONLY)
+            self.assertEqual(f.map_reads,2);self.assertEqual(f.md_reads,0)
+            self.assertNotIn(str(f.md),f.context['guards']);self.assertNotIn(str(f.md),f.context['required_guards'])
+            runtime=next(iter(f.context['portable_audits'].values()))[1]
+            self.assertNotIn(f.md,runtime)
+            with f.boundary(compiled=False):self.assertTrue(f.md.with_name('md.py').read_bytes())
+            self.assertEqual(f.map_reads,2)
+
+    def test_bundle_boundary_grouped_md_map_denials_before_hashing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            f=GroupedMdFixture(Path(directory));foreign=f.site/'foreign.so';foreign.write_bytes(b'foreign')
+            for cached in (False,True):
+                if cached:
+                    with f.boundary():pass
+                for maps in ([],[f.cd],[f.shared],[f.cd,f.shared,f.md],[f.cd,f.shared,foreign],
+                        [f.cd,f.shared,f.site/'missing.so']):
+                    with self.subTest(cached=cached,maps=maps):
+                        f.maps=maps
+                        with patch.object(e,'bound_file',wraps=e.bound_file) as hashes:
+                            with self.assertRaises(ValueError):
+                                with f.boundary():pass
+                            self.assertEqual(hashes.call_count,0,'map denial must precede file hashing')
+                f.maps=[f.cd,f.shared]
+            self.assertEqual(f.md_reads,0)
+
+    def test_bundle_boundary_grouped_md_identity_record_and_origin_denials(self):
+        with tempfile.TemporaryDirectory() as directory:
+            f=GroupedMdFixture(Path(directory));original=f.context['training_context']['legacy']['selected']['source_cpu']['origins']
+            guards=copy.deepcopy(f.context['guards']);required=copy.deepcopy(f.context['required_guards'])
+            proof=copy.deepcopy(original);rows=copy.deepcopy(f.rows);digests=dict(f.group_digests)
+            for cached in (False,True):
+                if cached:
+                    with f.boundary():pass
+                for case in ('group_sha','group_guard','group_native','group_file','record_guard','md_row_hash',
+                        'md_row_size','md_row_missing','md_row_duplicate','md_row_path','md_byte_guard','source_guard',
+                        'mixed_file','mixed_spec','foreign_file','foreign_site','relative_origin','missing_spec',
+                        'foreign_module','source_spec_identity','group_mutation','source_mutation'):
+                    f.context['guards']=copy.deepcopy(guards);f.context['required_guards']=copy.deepcopy(required)
+                    original.clear();original.update(copy.deepcopy(proof));f.rows=copy.deepcopy(rows)
+                    f.group_digests.clear();f.group_digests.update(digests);f.write_record()
+                    modules={'charset_normalizer.md':f.module(f.md)};restore=None
+                    if case=='group_sha':f.group_digests[f.shared.name]='a'*64
+                    elif case=='group_guard':f.context['required_guards'][str(f.shared)]='a'*64
+                    elif case=='group_native':original['native_files'].remove(str(f.shared))
+                    elif case=='group_file':original['files'][str(f.cd)]='a'*64
+                    elif case=='record_guard':f.context['required_guards'][str(f.record)]='a'*64
+                    elif case.startswith('md_row_'):
+                        index=next(i for i,r in enumerate(f.rows) if r[0]=='charset_normalizer/'+f.md.name)
+                        if case=='md_row_hash':f.rows[index][1]='sha256='+'A'*43
+                        elif case=='md_row_size':f.rows[index][2]='1'
+                        elif case=='md_row_missing':f.rows.pop(index)
+                        elif case=='md_row_duplicate':f.rows.append(f.rows[index])
+                        else:f.rows[index][0]='charset_normalizer/foreign.so'
+                        f.write_record()
+                    elif case=='md_byte_guard':f.context['required_guards'][str(f.md)]='a'*64
+                    elif case=='source_guard':
+                        source=f.context['training_context']['legacy']['source_driver'].__file__
+                        f.context['required_guards'][source]='a'*64
+                    elif case=='mixed_file':modules['charset_normalizer.md'].__file__=str(f.md.with_name('md.py'))
+                    elif case=='mixed_spec':modules['charset_normalizer.md'].__spec__.origin=str(f.md.with_name('md.py'))
+                    elif case=='foreign_file':modules['charset_normalizer.md']=f.module(f.md.with_name('other.so'))
+                    elif case=='foreign_site':modules['charset_normalizer.md']=f.module(Path(directory)/f.md.name)
+                    elif case=='relative_origin':modules['charset_normalizer.md']=f.module(Path('charset_normalizer')/f.md.name)
+                    elif case=='missing_spec':modules['charset_normalizer.md'].__spec__=None
+                    elif case=='foreign_module':modules={'charset_normalizer.api':f.module(f.md)}
+                    elif case=='source_spec_identity':
+                        source=f.context['training_context']['legacy']['source_driver']
+                        restore=(source.__spec__,'origin',source.__spec__.origin);source.__spec__.origin='foreign.py'
+                    elif case in ('group_mutation','source_mutation'):
+                        path=f.shared if case=='group_mutation' else f.md.with_name('md.py')
+                        restore=(path,path.read_bytes());path.write_bytes(b'changed')
+                    with self.subTest(cached=cached,case=case),self.assertRaises((ValueError,OSError)):
+                        with f.boundary(modules=modules):pass
+                    if restore:
+                        if len(restore)==3:setattr(restore[0],restore[1],restore[2])
+                        else:restore[0].write_bytes(restore[1])
+                f.context['guards']=copy.deepcopy(guards);f.context['required_guards']=copy.deepcopy(required)
+                original.clear();original.update(copy.deepcopy(proof));f.rows=copy.deepcopy(rows);f.write_record()
+                f.group_digests.clear();f.group_digests.update(digests)
+            self.assertEqual(f.md_reads,0)
 
     def test_bundle_boundary_denies_train_warm_optimizer_reads(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -1398,6 +1398,69 @@ def distribution_identity_files(context,site):
     return files,absent,record_reads
 
 
+GROUPED_MD_NATIVE_SHA256={
+    'charset_normalizer/cd.cpython-313-aarch64-linux-gnu.so':'12fb9cc199fd48481b3ece86aa70bf06aaa469d0f74045d9e5be722d1ef4f216',
+    '81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so':'43ec7be7cd6f9b15bd3e29fca57a6e3be6fbe7f8152cc7b27a0eda754560f956'}
+
+
+def original_native_map_witness():
+    """Pure original qualifier scan; no mapped library bytes are opened."""
+    def canonical(path):
+        path = Path(path)
+        require(path.is_absolute() and path.resolve() == path and path.is_file(),
+                'canonical regular file required: ' + str(path))
+        return path
+    native = set()
+    for line in Path('/proc/self/maps').read_text().splitlines():
+        fields = line.split(maxsplit=5)
+        if len(fields) == 6 and fields[5].startswith('/') and '.so' in fields[5]:
+            path = canonical(Path(fields[5]).resolve())
+            native.add(str(path))
+    return native
+
+
+def grouped_md_origin(context):
+    """Exact grouped initializer metadata label, never physical md.so authority."""
+    module=sys.modules.get('charset_normalizer.md');value=getattr(module,'__file__',None)
+    label='md.cpython-313-aarch64-linux-gnu.so'
+    if not isinstance(value,str) or Path(value).name != label:
+        return None
+    t=context['training_context'];legacy=t['legacy'];original=legacy['selected']['source_cpu']['origins']
+    site=Path(original['packages']['torch']['root']).parent;alias=site/'charset_normalizer'/label
+    require(site.resolve() == site and value == str(alias) and
+        getattr(getattr(module,'__spec__',None),'origin',None) == value, 'grouped md metadata identity differs')
+    group={site/name:digest for name,digest in GROUPED_MD_NATIVE_SHA256.items()}
+    mapped=original_native_map_witness()
+    known=set(original['native_files'])|set(legacy['warm_record']['origins']['native_files'])
+    known|={p for p in context['required_guards'] if Path(p).is_relative_to(site) and
+        Path(p).name in t['nearest'].NATIVE_MEMBERS}
+    require(set(map(str,group)) <= mapped and str(alias) not in mapped and mapped <= known,
+        'grouped md mapped native witness differs')
+    # Map rejection precedes all source, group and RECORD hashing.
+    source=legacy['source_driver'];source_path=Path(source.__file__)
+    source_sha='eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38'
+    require(source_path.name == 'qualify_siglip2_substrate_cpu.py' and
+        getattr(getattr(source,'__spec__',None),'origin',None) == str(source_path) and
+        context['required_guards'].get(str(source_path)) == source_sha, 'grouped md map source identity differs')
+    bound_file(context['guards'],source_path,source_sha)
+    require(str(alias) not in original['native_files'] and str(alias) not in original['files'] and
+        str(alias) not in context['guards'] and str(alias) not in context['required_guards'],
+        'grouped md physical wrapper authority forbidden')
+    for path,digest in group.items():
+        require(str(path) in original['native_files'] and original['files'].get(str(path)) == digest and
+            context['required_guards'].get(str(path)) == digest, 'grouped md original native binding differs')
+        bound_file(context['guards'],path,digest)
+    record=site/'charset_normalizer-3.4.7.dist-info/RECORD'
+    require(str(record) in context['required_guards'], 'grouped md original RECORD required')
+    raw=bound_file(context['guards'],record,context['required_guards'][str(record)]).read_bytes()
+    rows=list(csv.reader(raw.decode('utf-8').splitlines()))
+    require(all(len(row) == 3 for row in rows) and
+        [row for row in rows if row[0] == 'charset_normalizer/'+label] ==
+        [['charset_normalizer/'+label,'sha256=EYzysjLHjG1gl9fj8mFGIRrs0HPeSgwZw5AWcSxih7A','201304']],
+        'grouped md exact RECORD metadata differs')
+    return str(alias)
+
+
 @contextmanager
 def bundle_reads_only(context,endpoint):
     """Independently deny historical file dependencies during copied loading/forward.
@@ -1406,6 +1469,7 @@ One inert-after-use audit hook per bundle avoids rehashing vision weights for
 individual image batches. The public loader and exit still reauthenticate all
 bundle bytes. Native-origin admission remains the original owned API.
 """
+    md_alias=grouped_md_origin(context)
     directory=Path(endpoint['bundle']['path']).parent
     cached=context.setdefault('portable_audits',{})
     identity=(str(directory),endpoint['bundle']['sha256'])
@@ -1471,8 +1535,11 @@ bundle bytes. Native-origin admission remains the original owned API.
         # The finite contract checks its exact modules. Existing packaging
         # admission also continues to reject every unknown packaging module.
         if name in origins or name.split('.')[0] in ('packaging','regex'):
-            require(name in origins and getattr(module,'__file__',None) == origins[name] and
-                getattr(getattr(module,'__spec__',None),'origin',None) == origins[name],
+            require((name in origins and getattr(module,'__file__',None) == origins[name] and
+                getattr(getattr(module,'__spec__',None),'origin',None) == origins[name]) or
+                (name == 'charset_normalizer.md' and md_alias is not None and name in origins and
+                origins[name] == str(Path(md_alias).with_name('md.py')) and
+                getattr(module,'__file__',None) == getattr(getattr(module,'__spec__',None),'origin',None) == md_alias),
                 'loaded lazy runtime origin differs: '+name)
     for path in absent:
         require(path.resolve() == path and not path.exists() and not path.is_symlink(),
