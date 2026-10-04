@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "train",
+  "arm": "candidate",
+  "service_seconds": 363.357,
+  "invocation_id": "d8f547073fea4ea0b96dc98df5148675",
+  "host_peak_bytes": 7285411840,
+  "rss_kib": 4620052,
+  "unit": "sfora-so400-image-anchor-smooth-ap-train-candidate-179061-v1",
+  "quality_read": false,
+  "receipt_sha256": "07a936c20b648135447235374d44b13de8bc092a3ff3386963694039a324a749",
+  "log_sha256": "e2f0183814c2f51cc0349d47034ee26466dc53c960fcb6a4527a91d014597c68"
+}
