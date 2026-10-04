@@ -1,0 +1,15 @@
+{
+  "engineering_only": true,
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "images": 0,
+  "quality_read": false,
+  "runtime_seconds": 300,
+  "host_bytes": 8589934592,
+  "swap": 0,
+  "both_locks": true,
+  "cuda_limit_bytes": 10000000000,
+  "source_execution_sha256": "b5940d3791344fba6fa65f7bd6051c7eb0a550bb4ac39218cdadb878b272750a",
+  "original_equality_predicates_retained": true,
+  "exit_rehash_required": true
+}
