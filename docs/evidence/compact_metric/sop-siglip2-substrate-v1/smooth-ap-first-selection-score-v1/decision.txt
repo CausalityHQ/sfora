@@ -1,0 +1,1 @@
+Verified KILL: cost/integrity/resource PASS, matched-control R1/AP improve, accepted concat floors fail on both. Stop seed069 and VAL for this recipe. Preserve checkpoints and valid Pareto candidates; no architecture ceiling or global product KILL inferred. Next intervention must address residual representation/objective gap, not rescue thresholds or repeat retired arms.

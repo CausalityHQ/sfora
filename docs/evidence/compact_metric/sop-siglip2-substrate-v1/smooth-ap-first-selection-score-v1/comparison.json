@@ -1,0 +1,34 @@
+{
+  "control_exact_vs_retired_hinge_control": true,
+  "candidate_minus_concat": {
+    "recall_at_1": -0.0005767012687428741,
+    "map_at_r": -0.002044909875388856
+  },
+  "candidate_vs_control": {
+    "R1": {
+      "better": 4,
+      "worse": 2,
+      "unchanged": 1728
+    },
+    "AP": {
+      "better": 124,
+      "worse": 141,
+      "unchanged": 1469
+    }
+  },
+  "diagnostic": {
+    "179061": {
+      "candidate_violations": 1,
+      "control_violations": 1,
+      "diagnostic_only": true,
+      "interpretation": "mechanism not demonstrated on this panel",
+      "mechanism_demonstrated": false,
+      "median_margin_delta": 0.0011918842792510986,
+      "remine": false,
+      "triples": 63,
+      "utility_veto": false
+    }
+  },
+  "source_floor_pass": true,
+  "concat_floor_pass": false
+}
