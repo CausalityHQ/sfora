@@ -1,0 +1,26 @@
+test_exclusive_outputs_and_no_old_cache (__main__.Falsifiers.test_exclusive_outputs_and_no_old_cache) ... ok
+test_file_pins_strict_json_and_closure (__main__.Falsifiers.test_file_pins_strict_json_and_closure) ... ok
+test_historical_inventory_and_roles_mutants (__main__.Falsifiers.test_historical_inventory_and_roles_mutants) ... ok
+test_launch_scope_arm_and_terminal (__main__.Falsifiers.test_launch_scope_arm_and_terminal) ... ok
+test_limits_cli_and_no_native_import (__main__.Falsifiers.test_limits_cli_and_no_native_import) ... usage: test_siglip2_identity_diversity_views.py [-h]
+                                                --execution-sha256 EXECUTION_SHA256
+                                                --authority AUTHORITY
+                                                --authority-sha256 AUTHORITY_SHA256
+                                                --arm {control,candidate}
+                                                --phase {startup,export}
+                                                --output OUTPUT
+                                                [--startup-terminal STARTUP_TERMINAL]
+                                                [--startup-terminal-sha256 STARTUP_TERMINAL_SHA256]
+test_siglip2_identity_diversity_views.py: error: the following arguments are required: --arm
+ok
+test_original_provenance_and_staged_file_binding (__main__.Falsifiers.test_original_provenance_and_staged_file_binding) ... ok
+test_original_source_and_complete_native_flow (__main__.Falsifiers.test_original_source_and_complete_native_flow) ... ok
+test_scope_correspondence_and_namespaces (__main__.Falsifiers.test_scope_correspondence_and_namespaces) ... ok
+test_scope_tamper_leak_and_ordinal_substitution (__main__.Falsifiers.test_scope_tamper_leak_and_ordinal_substitution) ... ok
+test_selected_path_bytes_and_exit_recheck (__main__.Falsifiers.test_selected_path_bytes_and_exit_recheck) ... ok
+test_view_mapping_and_rng_namespace (__main__.Falsifiers.test_view_mapping_and_rng_namespace) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 22.101s
+
+OK

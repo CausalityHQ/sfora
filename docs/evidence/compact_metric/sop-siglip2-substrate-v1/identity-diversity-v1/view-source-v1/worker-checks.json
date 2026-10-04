@@ -1,0 +1,20 @@
+{
+  "child_peak_rss_kib": 144844,
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "-S",
+    "scripts/test_siglip2_identity_diversity_views.py"
+  ],
+  "exit_code": 0,
+  "log": {
+    "path": "/tmp/sfora-identity-diversity-view-exporter-suite-initial.log",
+    "sha256": "74012c1673c75657974a84313295b57a2173f923a77de91dd1a1e22ca1dab424"
+  },
+  "memory_cap_bytes": 1073741824,
+  "native_imported": false,
+  "native_qualified": false,
+  "quality_read": false,
+  "timeout_seconds": 90,
+  "wall_seconds": 22.21307627100032
+}

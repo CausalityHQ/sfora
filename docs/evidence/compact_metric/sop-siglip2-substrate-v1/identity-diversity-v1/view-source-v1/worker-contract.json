@@ -1,0 +1,144 @@
+{
+  "CLI": "python3 -B ROOT/export_siglip2_identity_diversity_views.py --execution-sha256 SHA --authority FILE --authority-sha256 SHA --arm control|candidate --phase startup|export --output NEWDIR [--startup-terminal FILE --startup-terminal-sha256 SHA]",
+  "FILE": {
+    "path": "canonical absolute regular file",
+    "sha256": "lowercase actual SHA256"
+  },
+  "UNIT_DESCRIPTOR": "original strict terminal descriptor: proof/log FILE, actual original normal-exit log with single final cgroup footer, whole-unit runtime/RSS/cgroup/CUDA/noreset/zeroSwapEvents and both lifetime locks; new CLI argv includes --arm",
+  "UNIT_DESCRIPTOR_keys": [
+    "proof",
+    "log",
+    "unit",
+    "invocation_id",
+    "service_seconds",
+    "native_peak_rss_kib",
+    "both_locks_held"
+  ],
+  "arm_row_fields": [
+    "original_train_row",
+    "original_fit_index",
+    "product",
+    "relative_path",
+    "image_sha256",
+    "global_product_id",
+    "original_fit_target",
+    "augmentation_id",
+    "augmented_rng_seed",
+    "scoped_target",
+    "train_row"
+  ],
+  "base_commit": "5413cfb13dd7a25fb0486acdba16191650632679",
+  "checks": {
+    "path": "/tmp/sfora-identity-diversity-view-exporter-checks.json",
+    "sha256": "774a8136574ecf9fe7409306b75387c63ff56e7df17e16fab0e2361768418a67"
+  },
+  "execution_manifest": "execution.json exact basename->SHA256 mapping of the assigned two files; separate original reference/source closures unchanged",
+  "export_policy": {
+    "augmentation_seed": 179081,
+    "batch_size": 32,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "fp32_autocast_cosine_min": 0.999,
+    "host_bytes": 8589934592,
+    "native_size": 256,
+    "norm_atol": 1e-05,
+    "seconds": 900,
+    "swap_bytes": 0,
+    "train_identities": {
+      "candidate": 2016,
+      "control": 1008
+    },
+    "train_images": 6355,
+    "views": [
+      "canonical",
+      "augmented"
+    ],
+    "width": 1152
+  },
+  "launch_keys": [
+    "schema",
+    "execution_sha256",
+    "reference",
+    "partition",
+    "image_rows",
+    "scope",
+    "metadata",
+    "startup_policy",
+    "export_policy"
+  ],
+  "launch_schema": "native256-identity-diversity-view-launch-v1",
+  "metadata": {
+    "freezer": "staged FILE actual parent-supplied SHA, equals scope.source_file SHA; original provenance path intentionally may differ",
+    "mapping": "FILE fixed SHAfd0f6cb3376ecce3dc0b27402af2fb3671539a7aaf6246412f4a2009dc098ad6",
+    "official_partition": "FILE fixed SHAcfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+    "plan": "staged FILE fixed SHA21dabd04d9208695b6d3f03e0e6575ee79c53bdb54cc19ccf7f1210eef316fdf",
+    "preflight": "FILE fixed SHA41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293",
+    "roles": "staged FILE matching launch.partition fixed SHA702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c",
+    "schedule_consumer": "staged FILE fixed SHA80db5701d05091b0b0412c6bb18cc8d17f486f5ca52ef5a60a06a028a736f218",
+    "schedule_source": "staged FILE fixed SHA788d672bca384c478881fc8f0b59090efbaf6f84e1c9f27469828bc951b7ec96"
+  },
+  "native_admission": "unchanged original reference/source authority authenticates old FIT, then independently validate full officialTRAIN/preflight/roles mapping + selected scope membership/classes/targets/support/official augmentation IDs/path/SHA; startup selected-image hash admission; before each decode SHA; exit all selected SHA",
+  "native_resource_qualification": "unrun; root owns actual units/logs/locks/jobs and integration",
+  "original_exporter_sha256": "e5e98f9bc85680cab013d53752e7fa140da9d5e7f7ecd4537413b29b1047f65e",
+  "outputs": "startup: exclusive NEWDIR/proof.json; export: exclusive NEWDIR/canonical.npy augmented.npy receipt.json. Never accepted partial output. Features float32[6355,1152].",
+  "owned_files": [
+    "scripts/export_siglip2_identity_diversity_views.py",
+    "scripts/test_siglip2_identity_diversity_views.py"
+  ],
+  "parent_supplied_freezer_sha256": "771ff4d7b0c8bc5007a91756ea5e838e2ecf34cc935b18a4cc678142be77fa5d",
+  "parent_supplied_scope": {
+    "path": "/tmp/sfora-identity-diversity-scope-v1.json",
+    "sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+  },
+  "partition": "FILE with original roles SHA702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c",
+  "path_provenance": "immutable scope original source_file/input_files retain original paths; launch.metadata carries canonical staged FILE paths, bound by equal original SHA; all7+freezer staged files rehashed",
+  "proof_receipt_schema": "siglip2-identity-diversity-views-v1",
+  "qualification": "source preparation only, quality/training/initializer unqualified; no historical cache substitution",
+  "receipt_binding_keys": [
+    "authority_sha256",
+    "execution_sha256",
+    "code",
+    "reference",
+    "source",
+    "partition",
+    "image_rows",
+    "arm",
+    "scope",
+    "metadata",
+    "scope_sha256",
+    "ordered_input_sha256"
+  ],
+  "receipt_schema": "siglip2-identity-diversity-views-v1",
+  "reference": "unchanged original fit-export root, execution SHA and authority FILE constants from original exporter",
+  "schema": "sfora-identity-diversity-view-exporter-contract-v1",
+  "scope": "FILE actual frozen sfora-identity-diversity-scope-v1 output path and SHA supplied by parent; no guessed hashes",
+  "scope_source_path_policy": "source/input provenance original absolute paths preserved verbatim, staged launch actual paths authenticated by corresponding exact SHA",
+  "source_files": {
+    "scripts/export_siglip2_identity_diversity_views.py": {
+      "bytes": 66237,
+      "sha256": "c7bfb5041e889682a37198d60a3d2adb93bc51db146b5167bc8bb6f1199de9ce"
+    },
+    "scripts/test_siglip2_identity_diversity_views.py": {
+      "bytes": 34544,
+      "sha256": "41baafdd4172df88e341ee3ecf716aa2297701e2b5bd7687001c06480fe54c83"
+    }
+  },
+  "startup_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "test_names": [
+    "test_original_source_and_complete_native_flow",
+    "test_scope_correspondence_and_namespaces",
+    "test_scope_tamper_leak_and_ordinal_substitution",
+    "test_historical_inventory_and_roles_mutants",
+    "test_file_pins_strict_json_and_closure",
+    "test_selected_path_bytes_and_exit_recheck",
+    "test_original_provenance_and_staged_file_binding",
+    "test_view_mapping_and_rng_namespace",
+    "test_launch_scope_arm_and_terminal",
+    "test_exclusive_outputs_and_no_old_cache",
+    "test_limits_cli_and_no_native_import"
+  ]
+}

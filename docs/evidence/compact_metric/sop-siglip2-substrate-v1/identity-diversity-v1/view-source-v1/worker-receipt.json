@@ -1,0 +1,61 @@
+{
+  "checks": {
+    "FILE": {
+      "path": "/tmp/sfora-identity-diversity-view-exporter-checks.json",
+      "sha256": "774a8136574ecf9fe7409306b75387c63ff56e7df17e16fab0e2361768418a67"
+    },
+    "child_peak_rss_kib": 144844,
+    "command": [
+      "/usr/bin/python3",
+      "-B",
+      "-S",
+      "scripts/test_siglip2_identity_diversity_views.py"
+    ],
+    "exit_code": 0,
+    "log": {
+      "path": "/tmp/sfora-identity-diversity-view-exporter-suite-initial.log",
+      "sha256": "74012c1673c75657974a84313295b57a2173f923a77de91dd1a1e22ca1dab424"
+    },
+    "memory_cap_bytes": 1073741824,
+    "native_imported": false,
+    "native_qualified": false,
+    "quality_read": false,
+    "tests": 11,
+    "timeout_seconds": 90,
+    "wall_seconds": 22.21307627100032
+  },
+  "commit": "efa55055b93f59185cda0f8b71eab89d59514422",
+  "contract": {
+    "path": "/tmp/sfora-identity-diversity-view-exporter-contract.json",
+    "sha256": "fccbab9c9011e568fcb0e6637889786ea5795a6c866cf88fb07fa506cde10bc9"
+  },
+  "git_identity": [
+    "Roman Bartusiak <riomus@gmail.com>",
+    "Roman Bartusiak <riomus@gmail.com>"
+  ],
+  "merged_or_pushed": false,
+  "native_qualified": false,
+  "notes": "Exact original numerical export AST plus receipt/counter additions; independent complete frozen scope reconstruction; staged original input paths differ but SHA bindings preserved; original reference/source authorities unchanged; no native/SSH/GPU/images/jobs/quality/children/consult/operator contact.",
+  "original_exporter_sha256": "e5e98f9bc85680cab013d53752e7fa140da9d5e7f7ecd4537413b29b1047f65e",
+  "owned_files": {
+    "scripts/export_siglip2_identity_diversity_views.py": {
+      "path": "/home/rb/worktrees/sfora-identity-diversity-view-exporter-20261004/scripts/export_siglip2_identity_diversity_views.py",
+      "sha256": "c7bfb5041e889682a37198d60a3d2adb93bc51db146b5167bc8bb6f1199de9ce"
+    },
+    "scripts/test_siglip2_identity_diversity_views.py": {
+      "path": "/home/rb/worktrees/sfora-identity-diversity-view-exporter-20261004/scripts/test_siglip2_identity_diversity_views.py",
+      "sha256": "41baafdd4172df88e341ee3ecf716aa2297701e2b5bd7687001c06480fe54c83"
+    }
+  },
+  "parent_commit": "5413cfb13dd7a25fb0486acdba16191650632679",
+  "parent_supplied_freezer_sha256": "771ff4d7b0c8bc5007a91756ea5e838e2ecf34cc935b18a4cc678142be77fa5d",
+  "parent_supplied_scope": {
+    "path": "/tmp/sfora-identity-diversity-scope-v1.json",
+    "sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+  },
+  "quality_read": false,
+  "schema": "sfora-identity-diversity-view-exporter-worker-receipt-v1",
+  "source_preparation_only": true,
+  "training_qualified": false,
+  "worktree_clean": true
+}
