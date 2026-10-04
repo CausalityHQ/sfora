@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "mechanics",
+  "arm": "control",
+  "service_seconds": 253.077,
+  "invocation_id": "e2e570daac874bad9be40d2f0150bf29",
+  "host_peak_bytes": 7415160832,
+  "rss_kib": 4613348,
+  "unit": "sfora-so400-live-top1-mechanics-control-v1",
+  "quality_read": false,
+  "receipt_sha256": "7b5d9a2bdff8961142f1b9584c0ea93cb012d67549e67d9fba708e691a4fe97a",
+  "log_sha256": "ef39de87e6eb4281680d715bfdfc4c15c933fdbdd46835cca79c70feff49730a"
+}
