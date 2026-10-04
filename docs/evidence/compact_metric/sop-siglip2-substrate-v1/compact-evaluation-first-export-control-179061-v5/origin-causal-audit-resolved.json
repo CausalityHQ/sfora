@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "base": "69db0712f8b481d36f4bb9c35bee1e114dbabe0b",
+  "supersedes_proof_uncertainty_in": "/tmp/sfora-compact-charset-origin-causal-audit-20261004.result.json",
+  "cause": {
+    "module": "charset_normalizer.md",
+    "expected_source_origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/md.py",
+    "recorded_file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/md.cpython-313-aarch64-linux-gnu.so",
+    "recorded_spec_origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/md.cpython-313-aarch64-linux-gnu.so",
+    "current_predicate": "__file__ == origins[name] AND __spec__.origin == origins[name]",
+    "predicate_line": 1474,
+    "file_comparison": false,
+    "spec_origin_comparison": false,
+    "expected_origin_derivation": "Source md.py appears in finite RUNTIME_SOURCES; runtime native origins overwrite only names of original proof-authorized .so files. No authorized md native exists, so md retains the source-only expected string."
+  },
+  "grouped_initializer_evidence": {
+    "schema": "charset-grouped-initializer-static-evidence-v1",
+    "native_executed": false,
+    "shared_path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so",
+    "shared_sha256": "43ec7be7cd6f9b15bd3e29fca57a6e3be6fbe7f8152cc7b27a0eda754560f956",
+    "shared_size": 544192,
+    "selected_static_strings": [
+      "CPyInit_charset_normalizer___md",
+      "CPyInit_charset_normalizer___cd",
+      "src/charset_normalizer/md.py",
+      "charset_normalizer.md"
+    ],
+    "method": "stdlib raw ELF byte printable-string scan on DGX; no imports or binary execution"
+  },
+  "static_evidence_sha256": "1d887e0261ddc3a71bc7ed26355519d9453a65cc9272d0c2fbc8a2fab93d05ee",
+  "source_supported_resolution": "The original guarded shared mypyc binary contains both md/cd initializer names and md source/module labels. v14 observes exact md.so module metadata while the mapped native inventory contains only original-authorized cd.so/shared group binaries and no md.so. Together these establish the finite grouped initializer metadata alias explanation. No fresh runtime probe needed for this design.",
+  "smallest_predicate_preserving_fix_design": [
+    "Only extend the module-origin metadata predicate for name == charset_normalizer.md. Retain the original exact md.py pair; permit one additional exact pair: (__file__, __spec__.origin) both equal the canonical site-relative charset_normalizer/md.cpython-313-aarch64-linux-gnu.so label recorded in v14. Reject mixed pairs, missing spec/file, other suffix/version/path/module names and symlink/foreign spellings. Do not normalize arbitrary names/origins.",
+    "Tie this finite alias branch to the original grouped initializer authority: md.py remains in runtime with its pinned source RECORD; exact cd.cpython-313-aarch64-linux-gnu.so and 81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so must both be in runtime and satisfy the original native_files + original.files == required_guard == runtime/RECORD checks and fresh bound_file hashing on EACH fresh/cached entry. Their authority is the already admitted original source proof; do not infer authority from __file__, __spec__, installed RECORD membership alone or current map presence. Static evidence identifies the exact original shared SHA above.",
+    "Keep every original native/RECORD/source/filesystem/write/uncached-exit predicate unchanged. The md.so string is only a metadata label. NEVER add its path to runtime, exact filesystem reads, required_guards, original native_files/files, environment native grants or an optional executable inventory. A direct md.so read/import/native mapping remains denied by the original authority. Do not evade the origin check by deleting/relabeling the module or forcing imports to run different code.",
+    "Keep all other module origins under their original exact __file__ AND spec.origin equality. If using an allowed-origin tuple/set, require file == spec.origin == one exact member to prevent accepting a source/native mixed pair. No general .py/.so or package/suffix fallback.",
+    "Implementation acceptance: stdlib-only synthetic grouped initializer registers md metadata for the finite alias without native execution; fresh and cached source/alias pairs pass, mixed/foreign/md.so read/write/optional/historical cases deny, group-native absence/guard/hash/RECORD/mutation/native-proof changes deny; preserve all original native checks and final assigned <=55 suite when implementation is authorized. Root owns approval/implementation followup and all real CPU/export work."
+  ],
+  "not_qualification": "v14 remains import-only observation; v5 original raw failure and prior exact-four failures remain preserved. No actual native imported/executed by this audit.",
+  "owned_files_unchanged": true,
+  "new_commit": null,
+  "root_only_metadata_probe_required": false,
+  "accepted_train_pair_unchanged": true,
+  "candidate_unlaunched": true
+}
