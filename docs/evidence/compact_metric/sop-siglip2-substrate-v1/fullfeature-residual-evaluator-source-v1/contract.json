@@ -1,0 +1,74 @@
+{
+  "base_commit": "030203a5",
+  "status": "source verified with stdlib only; worker native qualification UNRUN",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "schemas": {
+    "SCHEMA": "siglip2-compact-fullfeature-residual-evaluation-v1",
+    "AUTHORITY_SCHEMA": "siglip2-compact-fullfeature-residual-evaluation-launch-v1"
+  },
+  "cli": "unchanged --execution-sha256 SHA --authority FILE --authority-sha256 SHA --phase cpu|export|score --arm control|candidate --seed 179061|179069 --output ABSENT_ABSOLUTE_DIRECTORY",
+  "launch": "exact existing LAUNCH_KEYS unchanged; strict exact TRAINING descriptor restored to parent-supplied actual hashes before final test/commit; no dynamic loose admission or guessed hashes",
+  "roles": {
+    "control": {
+      "parameter_names": [
+        "A"
+      ],
+      "parameter_shapes": [
+        [
+          128,
+          160
+        ]
+      ],
+      "optimizer_members": 1,
+      "trainable_scalars": 20480
+    },
+    "candidate": {
+      "parameter_names": [
+        "A",
+        "C"
+      ],
+      "parameter_shapes": [
+        [
+          128,
+          160
+        ],
+        [
+          128,
+          1152
+        ]
+      ],
+      "optimizer_members": 2,
+      "trainable_scalars": 167936
+    }
+  },
+  "paired": "preserve common source/static/initial A/zero C/mu provenance/RNG/numerical flags/schedule guards; only exact per-arm parameter names/shapes differ",
+  "payload": "authenticate full checkpoint via trainer.check_payload/fingerprint; checkpoint-to-bundle-to-live equality additionally C,mu_train,mu_train_provenance,arm; full typed fingerprints catch .data mutation",
+  "oracle": "actual portable public inference_outputs exactly once per image boundary; independent original pixel/pooled/accepted concat readout once plus explicit FP32 linear(features-mu_train,C) candidate; reject omitted C and wrong mu on nonzero candidate; synthetic CPU no held decode",
+  "receipts": "admit exact updated trainer CPU/mechanics/train receipts and mandatory nonzero mechanics bundle oracle; evaluator calibration carries per-endpoint residual_nonzero_witness/omitted_C_mutant_rejected/wrong_mu_mutant_rejected; native TRAIN witness retains explicit nonzero oracle",
+  "preserved": "B32 two passes/tails6,19; TRAINmicro16; raw/unit/packed/wire readbacks; source/concat per-query replay before candidate quality; whole/core<=1.50 and all first/full uncertainty/VAL gates; native exact-four/runtime boundary/full exit; CPU500/export900/score500 all8GiB noSwap/CUDA rules",
+  "limits": "stdlib narrow RED/GREEN; final affected suite timeout120 VM1GiB only after actual trainer descriptor AND root test slot; no children/reviews/Torch/native/SSH/GPU/quality/operator/push/merge",
+  "new_source_hashes": "unassigned; actual final values only",
+  "actual_training_descriptor": {
+    "root": "/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1",
+    "execution_sha256": "996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15",
+    "code": {
+      "train_siglip2_compact_ranking.py": "ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad",
+      "test_siglip2_compact_ranking.py": "6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b"
+    }
+  },
+  "actual_source_code": {
+    "evaluate_siglip2_compact_ranking.py": "3684268825e8a03592ad355a0752b582245f1d05fd0bcb3ed084a01ef68140b0",
+    "test_compact_ranking_evaluation.py": "426f0fe67434db451a50440b3a2be7b342afea9d2ad2da09616f76ff88e43167"
+  },
+  "actual_execution_sha256": "c7b5916d70432dcd5bd990f007b2dc6a41c4c1912582a6838daf7e4554fa80a4",
+  "residual_proof_keys": [
+    "C_exact_zero",
+    "residual_nonzero_witness",
+    "omitted_C_mutant_rejected",
+    "wrong_mu_mutant_rejected"
+  ],
+  "residual_proof_roles": "control exactzero true, residual/mutants false; candidate exactzero false, all nonzero/mutant witnesses true"
+}

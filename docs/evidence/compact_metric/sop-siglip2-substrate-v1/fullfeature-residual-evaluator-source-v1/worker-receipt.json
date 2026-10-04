@@ -1,0 +1,96 @@
+{
+  "base": "030203a532d23b3403a9f83683d181674b4153a8",
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "3684268825e8a03592ad355a0752b582245f1d05fd0bcb3ed084a01ef68140b0",
+    "test_compact_ranking_evaluation.py": "426f0fe67434db451a50440b3a2be7b342afea9d2ad2da09616f76ff88e43167"
+  },
+  "execution": {
+    "path": "/tmp/sfora-fullfeature-residual-evaluator-source-v1/execution.json",
+    "sha256": "c7b5916d70432dcd5bd990f007b2dc6a41c4c1912582a6838daf7e4554fa80a4"
+  },
+  "source_root": "/tmp/sfora-fullfeature-residual-evaluator-source-v1",
+  "actual_training_descriptor": {
+    "root": "/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1",
+    "execution_sha256": "996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15",
+    "code": {
+      "train_siglip2_compact_ranking.py": "ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad",
+      "test_siglip2_compact_ranking.py": "6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b"
+    }
+  },
+  "parent_descriptor": {
+    "path": "/tmp/sfora-fullfeature-residual-final-training-descriptor.json",
+    "sha256": "f473180b2b88877c8c82970c30a95b67394d24b124d2eec8aebf905f41a0d6d5"
+  },
+  "early_contract": {
+    "path": "/tmp/sfora-fullfeature-residual-evaluator-20261004.contract.json",
+    "sha256": "14d7a311d7ba60e5b8d1c7148fd907aebf33028fdd24b76f838b67c88bf55403"
+  },
+  "final_contract": {
+    "path": "/tmp/sfora-fullfeature-residual-evaluator-20261004.final-contract.json",
+    "sha256": "eff850ec135c9b8cb4e207b633876a12ccba1b75af635eee75d0d1619613e0aa"
+  },
+  "diff": {
+    "path": "/tmp/fullfeature-residual-evaluator-final.diff",
+    "sha256": "9a7445d3806803920796d34b084c0a589b109f9fe5c415d420d40ca0e3b692a2"
+  },
+  "AST_ledger": {
+    "path": "/tmp/fullfeature-residual-evaluator-AST-ledger.json",
+    "sha256": "abd81fe39baa690b1d2ca2fb171f207259f2412499e5ba616dac12c71a9cd83b"
+  },
+  "helper_ledger": {
+    "path": "/tmp/fullfeature-residual-evaluator-helper-ledger.json",
+    "sha256": "9687b95a2baea350f4bae4c2009c3a7bd5909ca86d85537962384422138d257f"
+  },
+  "verification_source_snapshot": "/tmp/fullfeature-residual-evaluator-verification-source-v1",
+  "checks": {
+    "source2_syntax": true,
+    "diff_check": true,
+    "strict_exact_TRAINING": true,
+    "affected_tests": 88,
+    "final_exit_status": 0,
+    "final_wall_seconds": 106.59,
+    "final_peak_rss_kib": 219216,
+    "VM_limit_kib": 1048576,
+    "timeout_seconds": 120,
+    "swaps": 0,
+    "original_affected_tests": 83,
+    "original_affected_exit_status": 1,
+    "original_affected_wall_seconds": 63.02,
+    "original_affected_peak_rss_kib": 124968,
+    "original_failure": "two missing sparse test helper errors and one stale exact recipe assertion; fixed in dependency checkout and declared recipe assertion only",
+    "failing_layer_tests": 7,
+    "failing_layer_exit_status": 0,
+    "failing_layer_wall_seconds": 28.06,
+    "failing_layer_peak_rss_kib": 166468,
+    "new_residual_tests": 7,
+    "narrow_RED_GREEN": true
+  },
+  "logs": {
+    "affected-original": {
+      "path": "/tmp/fullfeature-residual-evaluator-affected-original.log",
+      "sha256": "65e928850123b3eee4bef08c749514d44f3049901aa06bca6507ac791e3b69d7"
+    },
+    "failing-layer": {
+      "path": "/tmp/fullfeature-residual-evaluator-failing-layer.log",
+      "sha256": "410c92f4345ff1cc0285ca658f6408868b37064111d933a8545be1e9fb7f970f"
+    },
+    "affected-final": {
+      "path": "/tmp/fullfeature-residual-evaluator-affected-final.log",
+      "sha256": "ec9d76c70a837ffa3023c09c1d1bf7153eb38d166f220b05683895bd17d67c3a"
+    }
+  },
+  "native": "UNRUN by this worker; no actual Torch/third-party/native/SSH/GPU/quality/jobs/reviews/children/operator/push/merge",
+  "operator_identity": {
+    "name": "Roman Bartusiak",
+    "email": "riomus@gmail.com"
+  },
+  "commit": "d2f9fa66d205a5f8458e8f00f51fdae8ad6058d5",
+  "commit_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "verification_dependencies": "Final suite used exact parent-supplied regular trainer2 copies plus authenticated base helpers; snapshot retained. Unowned trainer/test copies restored to base after suite for owned-two-file-only commit.",
+  "parent": "030203a532d23b3403a9f83683d181674b4153a8",
+  "clean_worktree": true,
+  "no_AI_attribution": true
+}

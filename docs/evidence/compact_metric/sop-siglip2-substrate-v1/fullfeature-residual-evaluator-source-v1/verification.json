@@ -1,0 +1,25 @@
+{
+  "pass": true,
+  "phase": "source-only",
+  "execution_sha256": "c7b5916d70432dcd5bd990f007b2dc6a41c4c1912582a6838daf7e4554fa80a4",
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "3684268825e8a03592ad355a0752b582245f1d05fd0bcb3ed084a01ef68140b0",
+    "test_compact_ranking_evaluation.py": "426f0fe67434db451a50440b3a2be7b342afea9d2ad2da09616f76ff88e43167"
+  },
+  "root": "/home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1",
+  "training": {
+    "root": "/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1",
+    "execution_sha256": "996ae38783d44c0cb01ef3bb8d5ba1817545d5296a0612da07b6c852b69bbf15",
+    "code": {
+      "train_siglip2_compact_ranking.py": "ddbbf0bc02eb62c3bb87fc29768ecbd5ec5e9d885fb53215244029413df00bad",
+      "test_siglip2_compact_ranking.py": "6b2e727d4aacc78e50c616024b37c34584d9b3193b8b8333ca148da57adf2a9b"
+    }
+  },
+  "worker_commit": "d2f9fa66d205a5f8458e8f00f51fdae8ad6058d5",
+  "stdlib_tests": 88,
+  "stdlib_wall_seconds": 106.59,
+  "stdlib_peak_rss_kib": 219216,
+  "stdlib_swap": 0,
+  "native": "UNRUN; fresh pairedTRAIN/cost prerequisite pending",
+  "quality": "UNREAD"
+}
