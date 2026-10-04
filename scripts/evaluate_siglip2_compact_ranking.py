@@ -53,7 +53,7 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
  'regex':{'regex/__init__.py','regex/_main.py','regex/_regex_core.py','regex-2026.6.28.dist-info/METADATA'},
  'tqdm':set(('tqdm/__init__.py tqdm/_monitor.py tqdm/_tqdm_pandas.py tqdm/cli.py tqdm/gui.py tqdm/std.py '
   'tqdm/utils.py tqdm/version.py tqdm/auto.py tqdm/autonotebook.py tqdm/asyncio.py '
-  'tqdm/contrib/__init__.py tqdm/contrib/concurrent.py '
+  'tqdm/contrib/__init__.py tqdm/contrib/concurrent.py tqdm/contrib/logging.py '
   'tqdm-4.68.3.dist-info/METADATA').split()),
  'anyio':set(('anyio/__init__.py anyio/_core/__init__.py anyio/_core/_contextmanagers.py anyio/_core/_eventloop.py '
   'anyio/_core/_exceptions.py anyio/_core/_fileio.py anyio/_core/_resources.py anyio/_core/_signals.py '

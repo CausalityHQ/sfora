@@ -349,7 +349,8 @@ class PortableRuntimeFixture:
             (imports+"value = 131\nmarker = 'source'\n").encode() for n,imports in HUB_IMPORTS.items()})
         examples['huggingface_hub']['huggingface_hub/utils/_fixes.py']=b'from filelock import value\n'
         examples['tqdm'].update({'tqdm/contrib/__init__.py':b"from ..auto import value\nmarker = 'source'\n",
-            'tqdm/contrib/concurrent.py':b"from ..auto import value\nmarker = 'source'\n"})
+            'tqdm/contrib/concurrent.py':b"from ..auto import value\nmarker = 'source'\n",
+            'tqdm/contrib/logging.py':b"import logging\nfrom ..std import value\nmarker = 'source'\n"})
         self.metadata_versions['charset_normalizer']='3.4.7'
         examples['charset_normalizer']={'charset_normalizer/'+n+'.py':
             (imports+"value = 151\nmarker = 'source'\n").encode() for n,imports in CHARSET_IMPORTS.items()}
@@ -920,7 +921,7 @@ class EvaluationTests(unittest.TestCase):
                 root=Path(directory);f=PortableRuntimeFixture(root)
                 names=({'filelock/'+n+'.py' for n in FILELOCK_IMPORTS}|
                     {'huggingface_hub/'+n+'.py' for n in HUB_IMPORTS}|
-                    {'tqdm/contrib/__init__.py','tqdm/contrib/concurrent.py'})
+                    {'tqdm/contrib/__init__.py','tqdm/contrib/concurrent.py','tqdm/contrib/logging.py'})
                 sources={f.site/n:f.extra_sources[f.site/n] for n in names}
                 for path,raw in sources.items():
                     prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached'))
@@ -943,6 +944,7 @@ class EvaluationTests(unittest.TestCase):
                             for name in ('huggingface_hub._snapshot_download','huggingface_hub.repocard'):
                                 self.assertEqual(importlib.import_module(name).value,131)
                             self.assertEqual(sys.modules['tqdm.contrib.concurrent'].value,8)
+                            self.assertEqual(importlib.import_module('tqdm.contrib.logging').value,4)
                             for path,raw in sources.items():
                                 name=str(path.relative_to(f.site)).removesuffix('.py').replace('/','.').removesuffix('.__init__')
                                 value=sys.modules[name]
@@ -957,7 +959,8 @@ class EvaluationTests(unittest.TestCase):
                                 importlib.import_module('filelock.unqualified')
                 self.assertEqual(original,original_before);self.assertEqual(f.context['required_guards'],required_before)
                 foreign=SimpleNamespace(__file__=str(forbidden[-1]),__spec__=SimpleNamespace(origin=str(forbidden[-1])))
-                for name in ('filelock','filelock._api','filelock._soft_rw._sync','huggingface_hub.hf_api','tqdm.contrib.concurrent'):
+                for name in ('filelock','filelock._api','filelock._soft_rw._sync','huggingface_hub.hf_api',
+                        'tqdm.contrib.concurrent','tqdm.contrib.logging'):
                     with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
                         with f.boundary():pass
         finally:
@@ -967,7 +970,8 @@ class EvaluationTests(unittest.TestCase):
 
     def test_filelock_hub_closure_requires_original_record_hash_and_size(self):
         for distribution,name in (('filelock','filelock/_soft_rw/_sync.py'),
-                ('huggingface_hub','huggingface_hub/hf_api.py'),('tqdm','tqdm/contrib/concurrent.py')):
+                ('huggingface_hub','huggingface_hub/hf_api.py'),('tqdm','tqdm/contrib/concurrent.py'),
+                ('tqdm','tqdm/contrib/logging.py')):
             for case in ('missing_guard','foreign_guard','mutated_record','foreign_record','missing_row','wrong_hash','wrong_size'):
                 with self.subTest(distribution=distribution,case=case),tempfile.TemporaryDirectory() as directory:
                     root=Path(directory);f=PortableRuntimeFixture(root);record=f.extra_records[distribution]
@@ -993,7 +997,8 @@ class EvaluationTests(unittest.TestCase):
     def test_filelock_hub_source_mutations_rejected_before_and_after_cached_boundary(self):
         names=({'filelock/'+n+'.py' for n in FILELOCK_IMPORTS}|
             {'huggingface_hub/'+n+'.py' for n in HUB_IMPORTS}|
-            {'tqdm/contrib/__init__.py','tqdm/contrib/concurrent.py','filelock-3.29.4.dist-info/METADATA'})
+            {'tqdm/contrib/__init__.py','tqdm/contrib/concurrent.py','tqdm/contrib/logging.py',
+                'filelock-3.29.4.dist-info/METADATA'})
         for cached in (False,True):
             with tempfile.TemporaryDirectory() as directory:
                 f=PortableRuntimeFixture(Path(directory))
