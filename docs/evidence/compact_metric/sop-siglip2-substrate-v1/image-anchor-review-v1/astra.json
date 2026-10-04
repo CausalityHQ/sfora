@@ -1,0 +1,348 @@
+{
+  "id": "e5722977b0934dfb",
+  "provider": "codex",
+  "model": "gpt-6-astra",
+  "effort": "",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791110059,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791111259,
+  "budget_usd": null,
+  "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only bounded consequential design review, no edits/jobs/children/quality recomputation. Repo /home/rb/worktrees/sfora-positive-causality HEAD2c9af21. Full production SOP+InShop quality AND matched public pipeline speed goal remains mandatory. Evidence docs/inshop_smooth_ap_plan_2026-10-04.md and docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-selection-score-v1/{receipt.json,verification.json,comparison.json,decision.txt}; trainer scripts/train_siglip2_compact_ranking.py actual source74a3cb..., evaluator exact2 458ba8... . Original native CPU, both17 vs8+9/reloads, fresh128 pair, updated two-pass B32 exports and archived per-query replay all PASS. Terminal score303.137s/zeroevents/swap0. Previously observed TRAINselection1734q/1715g/498products. ControlR1 .9630911188004614/AP .8133396538578171; candidate .9642445213379469/.8157304936790067; accepted concat .9648212226066898/.8177754035543956. Frozen KILL despite +.0011534 R1/+.00239084 AP over control, both concat floors fail. Control per-query R1/AP exactly matches prior hinge control. SmoothAP recovers part of common prototype-regression AP loss but no causal attribution/encoder ceiling claim. Source floor passes, diagnostic63triples both1 violation mechanismNOTdemonstrated. TRAIN whole340.702/344.836s core68.83291094/70.15016758s ratios1.01213/1.01914; cached-feature optimization not image-training speed. No069/VAL for closed recipe. Preserve all checkpoints/Pareto.\nChoose ONE production-path intervention addressing demonstrated residual cause, not temperature/LR/coefficient sweeps, more representation-ceiling probes or held selection tuning. Root primary proposal: keep A128x160, frozen encoder/head/classifier/means, fixed6355 canonical teacher bank and same all-positive SmoothAPtau.01/coefficient1/optimizer/schedules/views; change class-prototype regression target to per-image accepted T anchoring (initial zero term is legitimate; avoid dividing by zero by predeclaring common original prototype e0, no epsilon hyperparameter search). Active matched control is completed class-prototype+SmoothAP, not a no-op/dummy-backward denominator. Can the original accepted SmoothAP candidate endpoint be protocol-authenticated as this active control without retraining? Distinguish mathematical/control-reuse correctness, native source qualification and timing comparability. Secondary only if primary is scientifically invalid: fix fixed-teacher vs updated-both-role mismatch through live-gallery SmoothAP; choose at most ONE, not both. Consider a materially different representation intervention only if source evidence rules out these options; no broad research.\nReturn source-supported root-cause uncertainty, GO/KILL for primary, exact single recipe/control/init/numerical reduction/zero-term semantics, cheap decisive native TRAIN-only falsifier and bounded pilot with a useful checkpoint path, gates/resource/cost/selection authority implications and one minimal implementation slice. No new review/research/native jobs. Keep both old KILLs/failures and unchanged8GiB/swap0events0/CUDA<10GB/BOTHlocks, existing prospective CPU500/mech/TRAIN/export600/score500 caps. Scientific final firststage concat/source floors and full paired seed/product95LCB .002 gates remain, sealedVAL unread. Survivor must advance updated-checkpoint serving+fresh confirmation rather than endlessTRAIN development. Prior consultation IDs81cfd3446cb641bc/29e4ea30e0b5480e/30aed6f100d74570 are terminal and already reconciled; do not duplicate them.",
+  "prompt_sha256": "3957f3167309ddf28f7c1b9fd986ccfe4fd8663ee8bb2aa7fb4d1fee09272f9b",
+  "prompt_bytes": 3939,
+  "fingerprint": "93ac6c1cb1c5d8e2a00dcc812993f5a73ccaff5dc962fd6a3240927ed342d493",
+  "evidence": {
+    "git_commit": "2c9af212019e06c787eb03c2b90038731e60972f",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "ed2ce33a650f1e7700e27ea5a537dda47a2fec3fc807d4adcea62e984e7c1321",
+  "reused": false,
+  "critique_id": "15a4055aa45e4942",
+  "critique_role": "engineering_critic",
+  "systemd_unit": "devbox-consult-e5722977b0934dfb.service",
+  "pid": 688153,
+  "pgid": 688153,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "budget_usd": null,
+      "timeout_seconds": 1200,
+      "started_at": 1791110059
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791110429,
+  "event_cursor": 63,
+  "events": [
+    {
+      "seq": 40,
+      "at": 1791110155,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 41,
+      "at": 1791110162,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 42,
+      "at": 1791110174,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 43,
+      "at": 1791110174,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 44,
+      "at": 1791110174,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 45,
+      "at": 1791110174,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 46,
+      "at": 1791110174,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 47,
+      "at": 1791110174,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 48,
+      "at": 1791110205,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 49,
+      "at": 1791110205,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 50,
+      "at": 1791110205,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 51,
+      "at": 1791110205,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 52,
+      "at": 1791110205,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 53,
+      "at": 1791110205,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 54,
+      "at": 1791110240,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 55,
+      "at": 1791110282,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 56,
+      "at": 1791110282,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 57,
+      "at": 1791110282,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 58,
+      "at": 1791110282,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 59,
+      "at": 1791110282,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 60,
+      "at": 1791110282,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 61,
+      "at": 1791110325,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 62,
+      "at": 1791110428,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 63,
+      "at": 1791110428,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 56,
+        "at": 1791110282,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 57,
+        "at": 1791110282,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 58,
+        "at": 1791110282,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 59,
+        "at": 1791110282,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 60,
+        "at": 1791110282,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 61,
+        "at": 1791110325,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 62,
+        "at": 1791110428,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 63,
+        "at": 1791110428,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Conditional GO for one bounded per-image T anchoring trial. No production GO.** Keep fixed-gallery SmoothAP; do not add live-gallery training. The existing hinge and SmoothAP KILLs remain unchanged.\n\nI inspected the source and archived evidence without edits, experiments, children, or quality recomputation. The trainer matches `74a3cb…`; `458ba8…` is the evaluator execution-manifest hash, whose evaluator source is `2d919892…`. Checked receipt/log hashes match their verification records.\n\n1. **[P1] “Initially zero” needs precise view semantics.** The trainer constructs canonical `T` and augmented `U` separately. Replacing `P[label]` with `T[image]` for both views makes canonical anchoring zero mathematically at initialization; augmented anchoring is generally `||U−T||²`, not zero. Using U for augmented targets would define a different intervention. Native arithmetic may also leave small canonical residuals across batch sizes/devices. Do not demand bitwise zero or introduce a replacement normalization constant. [Teacher construction](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:344)\n\n2. **[P1] The existing arm logic and qualification assertions would invalidate this experiment.** Currently only `candidate` backpropagates ranking, and qualification requires candidate-minus-control gradient to equal the ranking contribution. The proposed comparison requires **both arms to backpropagate SmoothAP**; their gradient difference must instead equal the regression-target contribution. Retaining the old logic silently compares against regression-only training. Strictly positive regression assertions also need target-aware treatment. [Update](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:1169), [gradient assertion](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:740), [terminal assertion](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:1485)\n\n3. **[P1] Historical-control reuse is valid scientifically, but requires explicit protocol support.** The authenticated, quality-KILLed SmoothAP candidate is the correct active comparator. Today’s evaluator requires matching trainer methods, CPU qualifications, arm identities, and bundle source closure; simply changing its label to `control` fails that contract. Do not weaken these checks globally. [Endpoint admission](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_compact_ranking.py:977)\n\n4. **[P2] The evidence supports targeting the regression continuation, not claiming its precise causal mechanism.** Regression-only continuation lost AP versus accepted concat; SmoothAP recovered part of that loss but still failed both concat floors. The fixed diagnostic remained one violation in both arms. Moreover, recorded initial regression/ranking gradient cosine is positive, approximately `0.333/0.312`, so initial gradient opposition is not demonstrated. Prototype attraction, augmentation effects, optimizer dynamics, and fixed-teacher versus updated-gallery mismatch remain distinguishable explanations. This trial tests the target choice; it establishes neither an encoder ceiling nor a general collapse mechanism. [Comparison](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-selection-score-v1/comparison.json:1), [CPU witnesses](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-cpu-v1/receipt.json)\n\n**Freeze this single recipe.** Let \\(r_i^v(A)\\) be the existing raw readout, \\(T_i=r_i^{canonical}(A_0)\\), \\(U_i=r_i^{augmented}(A_0)\\), and \\(P_y\\) the original member-inclusive canonical prototype. Preserve the original shared normalization:\n\n\\[\ne_0=\\frac{1}{2N}\\sum_i\\left(\\|T_i-P_{y_i}\\|^2+\\|U_i-P_{y_i}\\|^2\\right),\\qquad N=6355.\n\\]\n\nFor each B64 update:\n\n\\[\nL_{\\rm active}=\n\\frac{\\sum_{v,i}\\|r_i^v(A)-P_{y_i}\\|^2}{128e_0}\n+L_{\\rm SmoothAP},\n\\]\n\n\\[\nL_{\\rm proposed}=\n\\frac{\\sum_{v,i}\\|r_i^v(A)-T_i\\|^2}{128e_0}\n+L_{\\rm SmoothAP}.\n\\]\n\nHere `128 = two views × 64 anchors`; sum coordinates, rather than averaging over descriptor dimensions. Every micro16 contribution uses this same global denominator. Ranking remains the sum of per-anchor, all-positive SmoothAP losses divided by `2K`, using the unchanged frozen `normalize(T)` bank, temperature `.01`, coefficient `1`, original-image exclusion and canonical traversal. Singletons retain regression only. [Current reduction and loss](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:612)\n\nInitialize the proposed arm from accepted concat **A0**, never from either trained endpoint. Preserve A128×160, frozen encoder/head/classifier/means, original caches, schedules, views, numerical flags, AdamW settings, scaler128, clipping1, and 128 updates. No new trainable state or teacher bank.\n\nRequire original `e0` to be finite and positive. Permit zero anchoring loss/gradient when mathematically legitimate, while retaining finite checks, nonzero ranking witnesses, and actual optimizer-update checks. Do not divide by the proposed arm’s initial anchoring loss, clamp it with a new epsilon, or skip its expression when it is zero.\n\n**The existing endpoint can be reused without retraining for the scientific control.** Bind the original candidate checkpoint `4f79c369…`, terminal state `5dcc6ead…`, and inference state `ad7e819a…` through its original authority, receipt, source, and bundle. Preserve its original `arm=candidate` identity and KILL outcome; introduce a prospective *comparison-role mapping* identifying it as this experiment’s active control. [Original endpoint receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-train-candidate-179061-v1/receipt.json)\n\nThe distinctions are:\n\n| Issue | Verdict |\n|---|---|\n| Mathematical comparator | Correct: original prototype regression plus SmoothAP from the same A0 and schedule. |\n| Protocol authentication | Possible through one narrowly pinned historical-endpoint mapping; unsupported by the current evaluator as-is. |\n| Native qualification | Original qualification remains evidence for original bytes. New trainer/evaluator bytes need their own qualification; a rewritten active path needs equivalence evidence. |\n| Timing | Historical timing is usable only after authenticating equivalent runtime and charged boundaries. Endpoint equality alone does not establish that. |\n\nThe relevant historical denominator is **344.836 seconds whole / 70.150167584 seconds core**, not the regression-only control’s costs. Do not award the new ≤1.50 cost PASS until comparability is established; if it cannot be established, measure a fresh active control. Retraining is unnecessary merely to authenticate the existing quality endpoint. Neither option establishes public pipeline speed. [Recorded costs](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-selection-score-v1/verification.json:18)\n\n**Use a cheap native falsifier before the bounded pilot.** On the already-fixed first B64 for each seed, without selection or VAL reads:\n\n- Verify identical A0/raw/unit/packed initialization, original `e0`, T, bank membership, schedules, and frozen state.\n- Verify full64 versus accumulated micro16 loss and pre-clipping gradients at existing tolerances.\n- Require identical ranking terms and gradients between objectives at the same A. Verify  \n  \\[\n  g_{\\rm proposed}-g_{\\rm active}=g_T-g_P\n  =\\frac{2}{128e_0}\\sum_{v,i}(P_{y_i}-T_i)\\phi_i^{v\\top}.\n  \\]\n  This follows directly from the existing affine readout. Check it **before clipping and AdamW**, whose transformations are nonlinear. [Readout](/home/rb/worktrees/sfora-positive-causality/scripts/prototype_residual_readout.py:57)\n- Report canonical and augmented anchoring separately. Preserve finite/nonnearest-positive ranking witnesses. After a fixed actual update, verify that anchoring responds to displacement; do not require an initially positive canonical term.\n\nA failed target identity, reduction, gradient, state, or numerical witness kills qualification without batch search. Passing establishes implementation correctness, not retrieval utility.\n\nThen retain the authenticated historical control’s original mechanics, qualify the new candidate’s discarded 17 versus independent 8+9 replay and strict reload, and run **one fresh candidate061 TRAIN128**. Proposed durable output:\n\n`/home/riomus/runs/sfora-so400-image-anchor-smooth-ap-train-candidate-179061-v1/resume.pt`\n\nwith its independently loadable `bundle/bundle.json`. The useful checkpoint is step128; mechanics remain discarded. No intermediate checkpoint selection. Updated exports and the unchanged first-selection gate are the decisive utility falsifier.\n\nPreserve every resource limit: CPU500, mechanics600, TRAIN600, export600, score500; host ≤8 GiB, swap0, events0, CUDA <10 GB, BOTHlocks, original-job terminal collection and uncached exit checks. There is little room for accidental overhead: recorded CPU qualification leaves about **214 MiB**, and candidate export leaves only **5.892 seconds**. Reuse T and the existing two-pass B32 path; avoid retaining duplicate model or training contexts. [CPU verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-cpu-v1/verification.json), [export verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-export-candidate-179061-v1/verification.json)\n\nFirst selection still requires positive R1/nonnegative AP versus the **active** control, unchanged source floors, R1 strictly above `0.9648212226066898`, and AP at least `0.8177754035543956`. Only CONTINUE admits the new recipe’s seed069 pair. Full gates remain positive R1/nonnegative AP per seed, equal-seed mean gains ≥`.002` for both metrics, and paired-product 95% lower bounds >0 with the original bootstrap. Selection remains adaptive development evidence; sealed VAL remains unread until full selection GO. [Frozen gates](/home/rb/worktrees/sfora-positive-causality/docs/inshop_smooth_ap_plan_2026-10-04.md:21)\n\nA survivor must advance its **updated checkpoint** into serving qualification, fresh confirmation, official SOP/InShop quality, and matched public B1/B32 full-pipeline timing. Preserve all checkpoints/Pareto artifacts and both old KILLs; another TRAIN result cannot substitute for those release requirements.\n\nThe minimal implementation slice is the target lookup, active ranking semantics, corrected gradient/zero-term witnesses, and one exact historical-control admission mapping, with focused negative tests. Keep the loss kernel, runtime closure, serializer and serving arithmetic intact. Also correct the plan’s stale “quality unmeasured” status: engineering `pass=true` alongside scientific `decision=KILL` must remain unmistakable.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Conditional GO for one bounded per-image T anchoring trial. No production GO.** Keep fixed-gallery SmoothAP; do not add live-gallery training. The existing hinge and SmoothAP KILLs remain unchanged.\n\nI inspected the source and archived evidence without edits, experiments, children, or quality recomputation. The trainer matches `74a3cb…`; `458ba8…` is the evaluator execution-manifest hash, whose evaluator source is `2d919892…`. Checked receipt/log hashes match their verification records.\n\n1. **[P1] “Initially zero” needs precise view semantics.** The trainer constructs canonical `T` and augmented `U` separately. Replacing `P[label]` with `T[image]` for both views makes canonical anchoring zero mathematically at initialization; augmented anchoring is generally `||U−T||²`, not zero. Using U for augmented targets would define a different intervention. Native arithmetic may also leave small canonical residuals across batch sizes/devices. Do not demand bitwise zero or introduce a replacement normalization constant. [Teacher construction](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:344)\n\n2. **[P1] The existing arm logic and qualification assertions would invalidate this experiment.** Currently only `candidate` backpropagates ranking, and qualification requires candidate-minus-control gradient to equal the ranking contribution. The proposed comparison requires **both arms to backpropagate SmoothAP**; their gradient difference must instead equal the regression-target contribution. Retaining the old logic silently compares against regression-only training. Strictly positive regression assertions also need target-aware treatment. [Update](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:1169), [gradient assertion](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:740), [terminal assertion](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:1485)\n\n3. **[P1] Historical-control reuse is valid scientifically, but requires explicit protocol support.** The authenticated, quality-KILLed SmoothAP candidate is the correct active comparator. Today’s evaluator requires matching trainer methods, CPU qualifications, arm identities, and bundle source closure; simply changing its label to `control` fails that contract. Do not weaken these checks globally. [Endpoint admission](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_compact_ranking.py:977)\n\n4. **[P2] The evidence supports targeting the regression continuation, not claiming its precise causal mechanism.** Regression-only continuation lost AP versus accepted concat; SmoothAP recovered part of that loss but still failed both concat floors. The fixed diagnostic remained one violation in both arms. Moreover, recorded initial regression/ranking gradient cosine is positive, approximately `0.333/0.312`, so initial gradient opposition is not demonstrated. Prototype attraction, augmentation effects, optimizer dynamics, and fixed-teacher versus updated-gallery mismatch remain distinguishable explanations. This trial tests the target choice; it establishes neither an encoder ceiling nor a general collapse mechanism. [Comparison](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-selection-score-v1/comparison.json:1), [CPU witnesses](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-cpu-v1/receipt.json)\n\n**Freeze this single recipe.** Let \\(r_i^v(A)\\) be the existing raw readout, \\(T_i=r_i^{canonical}(A_0)\\), \\(U_i=r_i^{augmented}(A_0)\\), and \\(P_y\\) the original member-inclusive canonical prototype. Preserve the original shared normalization:\n\n\\[\ne_0=\\frac{1}{2N}\\sum_i\\left(\\|T_i-P_{y_i}\\|^2+\\|U_i-P_{y_i}\\|^2\\right),\\qquad N=6355.\n\\]\n\nFor each B64 update:\n\n\\[\nL_{\\rm active}=\n\\frac{\\sum_{v,i}\\|r_i^v(A)-P_{y_i}\\|^2}{128e_0}\n+L_{\\rm SmoothAP},\n\\]\n\n\\[\nL_{\\rm proposed}=\n\\frac{\\sum_{v,i}\\|r_i^v(A)-T_i\\|^2}{128e_0}\n+L_{\\rm SmoothAP}.\n\\]\n\nHere `128 = two views × 64 anchors`; sum coordinates, rather than averaging over descriptor dimensions. Every micro16 contribution uses this same global denominator. Ranking remains the sum of per-anchor, all-positive SmoothAP losses divided by `2K`, using the unchanged frozen `normalize(T)` bank, temperature `.01`, coefficient `1`, original-image exclusion and canonical traversal. Singletons retain regression only. [Current reduction and loss](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:612)\n\nInitialize the proposed arm from accepted concat **A0**, never from either trained endpoint. Preserve A128×160, frozen encoder/head/classifier/means, original caches, schedules, views, numerical flags, AdamW settings, scaler128, clipping1, and 128 updates. No new trainable state or teacher bank.\n\nRequire original `e0` to be finite and positive. Permit zero anchoring loss/gradient when mathematically legitimate, while retaining finite checks, nonzero ranking witnesses, and actual optimizer-update checks. Do not divide by the proposed arm’s initial anchoring loss, clamp it with a new epsilon, or skip its expression when it is zero.\n\n**The existing endpoint can be reused without retraining for the scientific control.** Bind the original candidate checkpoint `4f79c369…`, terminal state `5dcc6ead…`, and inference state `ad7e819a…` through its original authority, receipt, source, and bundle. Preserve its original `arm=candidate` identity and KILL outcome; introduce a prospective *comparison-role mapping* identifying it as this experiment’s active control. [Original endpoint receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-train-candidate-179061-v1/receipt.json)\n\nThe distinctions are:\n\n| Issue | Verdict |\n|---|---|\n| Mathematical comparator | Correct: original prototype regression plus SmoothAP from the same A0 and schedule. |\n| Protocol authentication | Possible through one narrowly pinned historical-endpoint mapping; unsupported by the current evaluator as-is. |\n| Native qualification | Original qualification remains evidence for original bytes. New trainer/evaluator bytes need their own qualification; a rewritten active path needs equivalence evidence. |\n| Timing | Historical timing is usable only after authenticating equivalent runtime and charged boundaries. Endpoint equality alone does not establish that. |\n\nThe relevant historical denominator is **344.836 seconds whole / 70.150167584 seconds core**, not the regression-only control’s costs. Do not award the new ≤1.50 cost PASS until comparability is established; if it cannot be established, measure a fresh active control. Retraining is unnecessary merely to authenticate the existing quality endpoint. Neither option establishes public pipeline speed. [Recorded costs](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-selection-score-v1/verification.json:18)\n\n**Use a cheap native falsifier before the bounded pilot.** On the already-fixed first B64 for each seed, without selection or VAL reads:\n\n- Verify identical A0/raw/unit/packed initialization, original `e0`, T, bank membership, schedules, and frozen state.\n- Verify full64 versus accumulated micro16 loss and pre-clipping gradients at existing tolerances.\n- Require identical ranking terms and gradients between objectives at the same A. Verify  \n  \\[\n  g_{\\rm proposed}-g_{\\rm active}=g_T-g_P\n  =\\frac{2}{128e_0}\\sum_{v,i}(P_{y_i}-T_i)\\phi_i^{v\\top}.\n  \\]\n  This follows directly from the existing affine readout. Check it **before clipping and AdamW**, whose transformations are nonlinear. [Readout](/home/rb/worktrees/sfora-positive-causality/scripts/prototype_residual_readout.py:57)\n- Report canonical and augmented anchoring separately. Preserve finite/nonnearest-positive ranking witnesses. After a fixed actual update, verify that anchoring responds to displacement; do not require an initially positive canonical term.\n\nA failed target identity, reduction, gradient, state, or numerical witness kills qualification without batch search. Passing establishes implementation correctness, not retrieval utility.\n\nThen retain the authenticated historical control’s original mechanics, qualify the new candidate’s discarded 17 versus independent 8+9 replay and strict reload, and run **one fresh candidate061 TRAIN128**. Proposed durable output:\n\n`/home/riomus/runs/sfora-so400-image-anchor-smooth-ap-train-candidate-179061-v1/resume.pt`\n\nwith its independently loadable `bundle/bundle.json`. The useful checkpoint is step128; mechanics remain discarded. No intermediate checkpoint selection. Updated exports and the unchanged first-selection gate are the decisive utility falsifier.\n\nPreserve every resource limit: CPU500, mechanics600, TRAIN600, export600, score500; host ≤8 GiB, swap0, events0, CUDA <10 GB, BOTHlocks, original-job terminal collection and uncached exit checks. There is little room for accidental overhead: recorded CPU qualification leaves about **214 MiB**, and candidate export leaves only **5.892 seconds**. Reuse T and the existing two-pass B32 path; avoid retaining duplicate model or training contexts. [CPU verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-cpu-v1/verification.json), [export verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-export-candidate-179061-v1/verification.json)\n\nFirst selection still requires positive R1/nonnegative AP versus the **active** control, unchanged source floors, R1 strictly above `0.9648212226066898`, and AP at least `0.8177754035543956`. Only CONTINUE admits the new recipe’s seed069 pair. Full gates remain positive R1/nonnegative AP per seed, equal-seed mean gains ≥`.002` for both metrics, and paired-product 95% lower bounds >0 with the original bootstrap. Selection remains adaptive development evidence; sealed VAL remains unread until full selection GO. [Frozen gates](/home/rb/worktrees/sfora-positive-causality/docs/inshop_smooth_ap_plan_2026-10-04.md:21)\n\nA survivor must advance its **updated checkpoint** into serving qualification, fresh confirmation, official SOP/InShop quality, and matched public B1/B32 full-pipeline timing. Preserve all checkpoints/Pareto artifacts and both old KILLs; another TRAIN result cannot substitute for those release requirements.\n\nThe minimal implementation slice is the target lookup, active ranking semantics, corrected gradient/zero-term witnesses, and one exact historical-control admission mapping, with focused negative tests. Keep the loss kernel, runtime closure, serializer and serving arithmetic intact. Also correct the plan’s stale “quality unmeasured” status: engineering `pass=true` alongside scientific `decision=KILL` must remain unmistakable."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 3939,
+  "output_bytes": 11105,
+  "elapsed_seconds": 370,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)",
+  "progress_truncated": false,
+  "result": "**Conditional GO for one bounded per-image T anchoring trial. No production GO.** Keep fixed-gallery SmoothAP; do not add live-gallery training. The existing hinge and SmoothAP KILLs remain unchanged.\n\nI inspected the source and archived evidence without edits, experiments, children, or quality recomputation. The trainer matches `74a3cb…`; `458ba8…` is the evaluator execution-manifest hash, whose evaluator source is `2d919892…`. Checked receipt/log hashes match their verification records.\n\n1. **[P1] “Initially zero” needs precise view semantics.** The trainer constructs canonical `T` and augmented `U` separately. Replacing `P[label]` with `T[image]` for both views makes canonical anchoring zero mathematically at initialization; augmented anchoring is generally `||U−T||²`, not zero. Using U for augmented targets would define a different intervention. Native arithmetic may also leave small canonical residuals across batch sizes/devices. Do not demand bitwise zero or introduce a replacement normalization constant. [Teacher construction](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:344)\n\n2. **[P1] The existing arm logic and qualification assertions would invalidate this experiment.** Currently only `candidate` backpropagates ranking, and qualification requires candidate-minus-control gradient to equal the ranking contribution. The proposed comparison requires **both arms to backpropagate SmoothAP**; their gradient difference must instead equal the regression-target contribution. Retaining the old logic silently compares against regression-only training. Strictly positive regression assertions also need target-aware treatment. [Update](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:1169), [gradient assertion](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:740), [terminal assertion](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:1485)\n\n3. **[P1] Historical-control reuse is valid scientifically, but requires explicit protocol support.** The authenticated, quality-KILLed SmoothAP candidate is the correct active comparator. Today’s evaluator requires matching trainer methods, CPU qualifications, arm identities, and bundle source closure; simply changing its label to `control` fails that contract. Do not weaken these checks globally. [Endpoint admission](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_compact_ranking.py:977)\n\n4. **[P2] The evidence supports targeting the regression continuation, not claiming its precise causal mechanism.** Regression-only continuation lost AP versus accepted concat; SmoothAP recovered part of that loss but still failed both concat floors. The fixed diagnostic remained one violation in both arms. Moreover, recorded initial regression/ranking gradient cosine is positive, approximately `0.333/0.312`, so initial gradient opposition is not demonstrated. Prototype attraction, augmentation effects, optimizer dynamics, and fixed-teacher versus updated-gallery mismatch remain distinguishable explanations. This trial tests the target choice; it establishes neither an encoder ceiling nor a general collapse mechanism. [Comparison](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-selection-score-v1/comparison.json:1), [CPU witnesses](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-cpu-v1/receipt.json)\n\n**Freeze this single recipe.** Let \\(r_i^v(A)\\) be the existing raw readout, \\(T_i=r_i^{canonical}(A_0)\\), \\(U_i=r_i^{augmented}(A_0)\\), and \\(P_y\\) the original member-inclusive canonical prototype. Preserve the original shared normalization:\n\n\\[\ne_0=\\frac{1}{2N}\\sum_i\\left(\\|T_i-P_{y_i}\\|^2+\\|U_i-P_{y_i}\\|^2\\right),\\qquad N=6355.\n\\]\n\nFor each B64 update:\n\n\\[\nL_{\\rm active}=\n\\frac{\\sum_{v,i}\\|r_i^v(A)-P_{y_i}\\|^2}{128e_0}\n+L_{\\rm SmoothAP},\n\\]\n\n\\[\nL_{\\rm proposed}=\n\\frac{\\sum_{v,i}\\|r_i^v(A)-T_i\\|^2}{128e_0}\n+L_{\\rm SmoothAP}.\n\\]\n\nHere `128 = two views × 64 anchors`; sum coordinates, rather than averaging over descriptor dimensions. Every micro16 contribution uses this same global denominator. Ranking remains the sum of per-anchor, all-positive SmoothAP losses divided by `2K`, using the unchanged frozen `normalize(T)` bank, temperature `.01`, coefficient `1`, original-image exclusion and canonical traversal. Singletons retain regression only. [Current reduction and loss](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py:612)\n\nInitialize the proposed arm from accepted concat **A0**, never from either trained endpoint. Preserve A128×160, frozen encoder/head/classifier/means, original caches, schedules, views, numerical flags, AdamW settings, scaler128, clipping1, and 128 updates. No new trainable state or teacher bank.\n\nRequire original `e0` to be finite and positive. Permit zero anchoring loss/gradient when mathematically legitimate, while retaining finite checks, nonzero ranking witnesses, and actual optimizer-update checks. Do not divide by the proposed arm’s initial anchoring loss, clamp it with a new epsilon, or skip its expression when it is zero.\n\n**The existing endpoint can be reused without retraining for the scientific control.** Bind the original candidate checkpoint `4f79c369…`, terminal state `5dcc6ead…`, and inference state `ad7e819a…` through its original authority, receipt, source, and bundle. Preserve its original `arm=candidate` identity and KILL outcome; introduce a prospective *comparison-role mapping* identifying it as this experiment’s active control. [Original endpoint receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-train-candidate-179061-v1/receipt.json)\n\nThe distinctions are:\n\n| Issue | Verdict |\n|---|---|\n| Mathematical comparator | Correct: original prototype regression plus SmoothAP from the same A0 and schedule. |\n| Protocol authentication | Possible through one narrowly pinned historical-endpoint mapping; unsupported by the current evaluator as-is. |\n| Native qualification | Original qualification remains evidence for original bytes. New trainer/evaluator bytes need their own qualification; a rewritten active path needs equivalence evidence. |\n| Timing | Historical timing is usable only after authenticating equivalent runtime and charged boundaries. Endpoint equality alone does not establish that. |\n\nThe relevant historical denominator is **344.836 seconds whole / 70.150167584 seconds core**, not the regression-only control’s costs. Do not award the new ≤1.50 cost PASS until comparability is established; if it cannot be established, measure a fresh active control. Retraining is unnecessary merely to authenticate the existing quality endpoint. Neither option establishes public pipeline speed. [Recorded costs](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-selection-score-v1/verification.json:18)\n\n**Use a cheap native falsifier before the bounded pilot.** On the already-fixed first B64 for each seed, without selection or VAL reads:\n\n- Verify identical A0/raw/unit/packed initialization, original `e0`, T, bank membership, schedules, and frozen state.\n- Verify full64 versus accumulated micro16 loss and pre-clipping gradients at existing tolerances.\n- Require identical ranking terms and gradients between objectives at the same A. Verify  \n  \\[\n  g_{\\rm proposed}-g_{\\rm active}=g_T-g_P\n  =\\frac{2}{128e_0}\\sum_{v,i}(P_{y_i}-T_i)\\phi_i^{v\\top}.\n  \\]\n  This follows directly from the existing affine readout. Check it **before clipping and AdamW**, whose transformations are nonlinear. [Readout](/home/rb/worktrees/sfora-positive-causality/scripts/prototype_residual_readout.py:57)\n- Report canonical and augmented anchoring separately. Preserve finite/nonnearest-positive ranking witnesses. After a fixed actual update, verify that anchoring responds to displacement; do not require an initially positive canonical term.\n\nA failed target identity, reduction, gradient, state, or numerical witness kills qualification without batch search. Passing establishes implementation correctness, not retrieval utility.\n\nThen retain the authenticated historical control’s original mechanics, qualify the new candidate’s discarded 17 versus independent 8+9 replay and strict reload, and run **one fresh candidate061 TRAIN128**. Proposed durable output:\n\n`/home/riomus/runs/sfora-so400-image-anchor-smooth-ap-train-candidate-179061-v1/resume.pt`\n\nwith its independently loadable `bundle/bundle.json`. The useful checkpoint is step128; mechanics remain discarded. No intermediate checkpoint selection. Updated exports and the unchanged first-selection gate are the decisive utility falsifier.\n\nPreserve every resource limit: CPU500, mechanics600, TRAIN600, export600, score500; host ≤8 GiB, swap0, events0, CUDA <10 GB, BOTHlocks, original-job terminal collection and uncached exit checks. There is little room for accidental overhead: recorded CPU qualification leaves about **214 MiB**, and candidate export leaves only **5.892 seconds**. Reuse T and the existing two-pass B32 path; avoid retaining duplicate model or training contexts. [CPU verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-cpu-v1/verification.json), [export verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/smooth-ap-first-export-candidate-179061-v1/verification.json)\n\nFirst selection still requires positive R1/nonnegative AP versus the **active** control, unchanged source floors, R1 strictly above `0.9648212226066898`, and AP at least `0.8177754035543956`. Only CONTINUE admits the new recipe’s seed069 pair. Full gates remain positive R1/nonnegative AP per seed, equal-seed mean gains ≥`.002` for both metrics, and paired-product 95% lower bounds >0 with the original bootstrap. Selection remains adaptive development evidence; sealed VAL remains unread until full selection GO. [Frozen gates](/home/rb/worktrees/sfora-positive-causality/docs/inshop_smooth_ap_plan_2026-10-04.md:21)\n\nA survivor must advance its **updated checkpoint** into serving qualification, fresh confirmation, official SOP/InShop quality, and matched public B1/B32 full-pipeline timing. Preserve all checkpoints/Pareto artifacts and both old KILLs; another TRAIN result cannot substitute for those release requirements.\n\nThe minimal implementation slice is the target lookup, active ranking semantics, corrected gradient/zero-term witnesses, and one exact historical-control admission mapping, with focused negative tests. Keep the loss kernel, runtime closure, serializer and serving arithmetic intact. Also correct the plan’s stale “quality unmeasured” status: engineering `pass=true` alongside scientific `decision=KILL` must remain unmistakable.",
+  "result_truncated": false
+}
