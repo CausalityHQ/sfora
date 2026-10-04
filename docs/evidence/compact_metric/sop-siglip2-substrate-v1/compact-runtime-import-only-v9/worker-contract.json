@@ -1,0 +1,28 @@
+{
+  "schema": "compact-charset-source-contract-v1",
+  "base": "83734852249acfb2472946fb81defc055ec29e87",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "scope": "RUNTIME_SOURCES only:9 charset_normalizer Python files; all helper/scientific/native/absence/math/cap/exit AST unchanged",
+  "source_trace": "/tmp/sfora-compact-charset-source-trace-20261004.json",
+  "native_frontier": "/tmp/sfora-compact-charset-native-frontier-20261004.json",
+  "md_so_policy": "Denied. No original proof/files/CPU5guard authority. Grouped initialization success is parent diagnostic only, no substitution/masking.",
+  "parent_proceed_message": "1791081754904654555 consumed once",
+  "tests": "Real stdlib SourceFileLoader transitive fake charset graph, poisoned bytecodes,9source mutation/RECORD/native-wrapper/CLI/chardet/history/foreign/write denial; one final55s suite",
+  "forbidden_actions": [
+    "native/Torch/thirdparty execution",
+    "SSH/GPU/cloud/jobs/models/images/quality",
+    "reviews/children/operatorcontact",
+    "merge/push/control edits"
+  ],
+  "targeted_verification": {
+    "tests": 2,
+    "seconds": 0.717,
+    "exit_code": 0
+  },
+  "ast_ledger": "/tmp/sfora-compact-charset-runtime-20261004.ast-ledger.json",
+  "production_added_lines": 3,
+  "new_tests": 2
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "compact-charset-constant-ast-ledger-v1",
+  "base": "83734852249acfb2472946fb81defc055ec29e87",
+  "production_AST_minus_exact_new_inventory_identical": true,
+  "all_prior_runtime_entries_identical": true,
+  "all_helpers_native_science_absence_math_caps_full_uncached_exit_identical": true,
+  "global_rebindings_added": false,
+  "new_native_authority": false,
+  "sources": [
+    "charset_normalizer/__init__.py",
+    "charset_normalizer/api.py",
+    "charset_normalizer/cd.py",
+    "charset_normalizer/constant.py",
+    "charset_normalizer/legacy.py",
+    "charset_normalizer/md.py",
+    "charset_normalizer/models.py",
+    "charset_normalizer/utils.py",
+    "charset_normalizer/version.py"
+  ],
+  "source_count": 9,
+  "all_source_bytes_hashes_sizes_and_RECORD_match": true,
+  "original_native_cd_admitted_by_existing_helper": true,
+  "md_so_denied": true,
+  "grouped_native_initialization_runtime_success_claimed": false
+}
