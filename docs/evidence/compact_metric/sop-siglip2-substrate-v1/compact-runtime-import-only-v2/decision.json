@@ -1,0 +1,20 @@
+{
+  "decision": "FAIL_IMPORT_BOUNDARY",
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "session": 9664,
+  "invocation_id": "e68b61a765264f0097c77214141fcaea",
+  "service_seconds": 9.705,
+  "host_peak_bytes": 951222272,
+  "events": 0,
+  "swap_bytes": 0,
+  "quality_read": false,
+  "images": 0,
+  "model_constructed": false,
+  "native_unqualified": [],
+  "error": {
+    "message": "bundle-only loader attempted external dependency: /home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/__pycache__/auto.cpython-313.pyc",
+    "type": "ValueError"
+  },
+  "log_sha256": "cdcaf21e8d005ce4ebf9adcb23801361edb22ed19261424875b055fe51013d23"
+}
