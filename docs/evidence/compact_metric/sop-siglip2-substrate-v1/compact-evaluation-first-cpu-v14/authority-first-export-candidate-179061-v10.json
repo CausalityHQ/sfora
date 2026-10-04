@@ -1,0 +1,158 @@
+{
+  "arm": "candidate",
+  "both_locks_held": true,
+  "cost_policy": {
+    "core": "both-cache preparation + teacher construction + mining + paired forwards/backward + optimizer",
+    "denominator": "fresh matched control128 per seed; complete cold whole units",
+    "optimization_throughput_is_image_training_throughput": false,
+    "shared_export_in_ratios": false,
+    "shared_export_seconds": 283.636,
+    "total_training_core_ratio_max": 1.5,
+    "whole_service_ratio_max": 1.5
+  },
+  "endpoints": [
+    {
+      "arm": "control",
+      "bundle": {
+        "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-control-179061-v3/bundle/bundle.json",
+        "sha256": "097169fbeec8b19fa6194d470e6613a83f84e967201fc72793e3b2f53a3609d2"
+      },
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-control-179061-v3/resume.pt",
+        "sha256": "016dea3cb3d1d41c216ff93c99b4c8f4d691e112d6da240c04579ed753602473"
+      },
+      "inference_state_sha256": "fbdf5223cd4c5243b5421339a4acbdeaa047f5438dce7e3433eedcbc8cc1dd7b",
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/authority-train-control-179061-v3.json",
+        "sha256": "d46e72f796723414a7ad0237b0f6d8d548fb783f84b97df80e16e3386e05a983"
+      },
+      "seed": 179061,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "871f1bfc5c324f379ce8337d5d571de9",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/train-control-179061-v3.log",
+          "sha256": "cba5da3f7661281ce0231c528022b85603f76323fd23de31cbff15e06f0a4cec"
+        },
+        "native_peak_rss_kib": 4609516,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-control-179061-v3/receipt.json",
+          "sha256": "edb53a7159254ef2809307e6992a6c1d34e84bad562996348553ea9085272eb4"
+        },
+        "service_seconds": 307.394,
+        "unit": "sfora-so400-compact-ranking-train-control-179061-v3"
+      },
+      "terminal_state_sha256": "a40bb9d67d79d42eb2a38519e649a6ec4ea4fe20d2f580c03458369b55cd2403"
+    },
+    {
+      "arm": "candidate",
+      "bundle": {
+        "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/bundle/bundle.json",
+        "sha256": "1f873fa0f4b48ea7f0fdc3d74390745c6c5751fa2f270925c5e4502a4a15d15c"
+      },
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/resume.pt",
+        "sha256": "dda28fbd4542158e7d9f166d6e32630b84a39fa181496c176256f9605adb31dc"
+      },
+      "inference_state_sha256": "2844188978ab19de697b5ca774a2f214a2d63522cbebd86e4798da5032ae8491",
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/authority-train-candidate-179061-v3.json",
+        "sha256": "8e24c0534d2765190285c9da68b234c3bb2de4d50f9dfc66697d42b3abb929d2"
+      },
+      "seed": 179061,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "be35464a807840aa910949b31f2ee885",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/train-candidate-179061-v3.log",
+          "sha256": "7aebd3c6e219647978a40f60d089214794eba4ea51e39749e198bfe79d96825c"
+        },
+        "native_peak_rss_kib": 4609072,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/receipt.json",
+          "sha256": "cabfad45d73b563874cd2b3db0f1bff736c989906e8182b13f5ed54df65191d1"
+        },
+        "service_seconds": 305.38,
+        "unit": "sfora-so400-compact-ranking-train-candidate-179061-v3"
+      },
+      "terminal_state_sha256": "e68b5d2ac896725a6fe5ac1d10083cad6c3de587be45aa4b98438bf64853d616"
+    }
+  ],
+  "execution_sha256": "b0a4bab757626ce7a394453d1c3b161b3248e9084066228319a7c45930a3e12e",
+  "exports": {},
+  "first_selection": null,
+  "genuine_evaluator": {
+    "code": {
+      "evaluate_siglip2_genuine_views.py": "85fd39e08bb676cbfc827576bf5c5bfda7fb5ff0a9da800aa4d35a4d30a2c6aa",
+      "test_siglip2_genuine_view_evaluation.py": "ca558a7d43f753a345e2fe67262e0880a9b82aaa778decc7993bc2a622bd0c35"
+    },
+    "execution_sha256": "82e4e71362a474e58643214380736da606ca5b67a9cd1b50c6dc5fa997a3224f",
+    "root": "/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4"
+  },
+  "nearest_evaluator": {
+    "code": {
+      "evaluate_siglip2_nearest_ranking.py": "73e4386256c576329438da805cf6ff71ce67af7b4eae5b1074f2258d7d7029be",
+      "test_nearest_ranking_evaluation.py": "a0e42560d1cce4b7e416e48a09ea27cf531e5e01c035ead5a387fea5cf48d90e"
+    },
+    "execution_sha256": "5c24fe113c03ae26d4ab68f21caf8e3a8d19c1a082e696fdf54abdd8bb73ab59",
+    "root": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1"
+  },
+  "panel": "selection",
+  "phase": "export",
+  "reference": {
+    "code": {
+      "evaluate_siglip2_prototype_residual.py": "e74b944dee26565029a4ec7e6ea2948d0f23e8564e5ee60ffd2f876453f529eb",
+      "test_siglip2_prototype_residual_evaluation.py": "5c46839ec6a437387d1309dd72167411cfb8a815ceab837ea21dca81aa43dc49"
+    },
+    "execution_sha256": "c456456c83472526313177fa289ca52228b04f9dff0edf44575933ab45f62970",
+    "root": "/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2"
+  },
+  "resource_policies": {
+    "cpu": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 500,
+      "swap_bytes": 0
+    },
+    "export": {
+      "cuda_visible_devices": "0",
+      "host_bytes": 8589934592,
+      "seconds": 600,
+      "swap_bytes": 0
+    },
+    "score": {
+      "cuda_visible_devices": "",
+      "host_bytes": 8589934592,
+      "seconds": 500,
+      "swap_bytes": 0
+    }
+  },
+  "schema": "siglip2-compact-ranking-evaluation-launch-v1",
+  "seed": 179061,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "6ca622cbb84246f1bf0136780fd0513e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v27/first-cpu-v14.log",
+      "sha256": "8af4dbab20293e94a30d692c03256bc652397bddc97d4bb17f39700256904cbf"
+    },
+    "native_peak_rss_kib": 1149724,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-compact-ranking-evaluation-first-cpu-v14/receipt.json",
+      "sha256": "b3bad1f2e5fbe14199887de26d2d624601d8902fc476f1a63d2fb56add6a6d6d"
+    },
+    "service_seconds": 243.22,
+    "unit": "sfora-so400-compact-ranking-evaluation-first-cpu-v14"
+  },
+  "selection_go": null,
+  "selection_previously_exposed": true,
+  "stage": "first",
+  "training": {
+    "code": {
+      "test_siglip2_compact_ranking.py": "544dc5fc63adb53f312e9d0b7eae2419958adef71cc8318092bd733941654274",
+      "train_siglip2_compact_ranking.py": "880a8e40a1b32e97786d6dcf2449e4ecbdc98a0a5d9e5a35d9c6a2519d7cb53c"
+    },
+    "execution_sha256": "ee9f77da0bac2a90b09f87fdcd7e7935de9c8dd38b663d84ca8c57271f43ce26",
+    "root": "/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7"
+  }
+}
