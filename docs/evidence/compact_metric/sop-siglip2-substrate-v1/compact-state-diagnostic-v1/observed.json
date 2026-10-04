@@ -1,0 +1,25 @@
+{
+  "config_differences": {
+    "id2label": {
+      "actual_repr": "{0: 'LABEL_0', 1: 'LABEL_1'}",
+      "actual_type": "dict",
+      "expected_repr": "{'0': 'LABEL_0', '1': 'LABEL_1'}",
+      "expected_type": "dict"
+    }
+  },
+  "event": "COMPACT_ENDPOINT_STATE_MISMATCH",
+  "fields": {
+    "config": {
+      "actual_python_type": "builtins.dict",
+      "actual_typed_sha256": "09f23f1e88209297136a8d564e1be4b6f0b8a9e76d01bc425e201f1887c33aca",
+      "expected_typed_sha256": "9d7cdefe224c1c2277c351be62663dfc3e17f87f8ff86009ebd175ba3d09c06a"
+    }
+  },
+  "tensor_device_and_subclass_are_not_hash_identity": true,
+  "observation_only": true,
+  "qualification_eligible": false,
+  "exit_rehash_pass": false,
+  "exit_blocker": "observed native difference must be exact four before first image forward",
+  "original_service_seconds": 206.429,
+  "original_exit_status": 1
+}
