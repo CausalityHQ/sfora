@@ -1,0 +1,69 @@
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v22/first-export-control-179061-v6-command.sh: OK
+Running as unit: sfora-so400-compact-ranking-evaluation-first-export-control-179061-v6.service; invocation ID: 25bb72c62f134165b84b4762b94d6ced
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/evaluate_siglip2_nearest_ranking.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/execution.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/test_nearest_ranking_evaluation.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v22/authority-first-export-control-179061-v6.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v22/evaluate_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v22/execution.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v22/test_compact_ranking_evaluation.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/bundle/bundle.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/receipt.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-candidate-179061-v3/resume.pt: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-control-179061-v3/bundle/bundle.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-control-179061-v3/receipt.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-control-179061-v3/resume.pt: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/authority-train-candidate-179061-v3.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/authority-train-control-179061-v3.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/execution.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/test_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/train-candidate-179061-v3.log: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/train-control-179061-v3.log: OK
+/home/riomus/runs/sfora-so400-compact-ranking-train-source-v7/train_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/evaluate_siglip2_genuine_views.py: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/execution.json: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/test_siglip2_genuine_view_evaluation.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/evaluate_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/test_siglip2_prototype_residual_evaluation.py: OK
+{"event": "COMPACT_PHASE", "phase": "shared_source_preparation", "boundary": "begin", "seconds": 114.47019954724237}
+{"event": "COMPACT_PHASE", "phase": "shared_source_preparation", "boundary": "end", "delta_seconds": 22.002872369717807, "seconds": 136.47307404503226}
+{"event": "COMPACT_PHASE", "phase": "cache_target_preparation", "boundary": "begin", "seconds": 136.47310900501907}
+{"event": "COMPACT_PHASE", "phase": "cache_target_preparation", "boundary": "end", "delta_seconds": 2.247877310961485, "seconds": 138.72098927618936}
+{"progress": "admitted", "phase": "export", "stage": "first", "seconds": 144.70082039106637}
+Compact-ranking evaluation rejected: inference numerical flags changed
+FINAL_CGROUP {"command_exit_status": 1, "invocation_id": "25bb72c62f134165b84b4762b94d6ced", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-compact-ranking-evaluation-first-export-control-179061-v6.service", "values": {"memory.current": "1272107008", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "4099043328", "memory.stat": "anon 6004736\nfile 1164210176\nkernel 99909632\nkernel_stack 65536\npagetables 344064\nsec_pagetables 0\npercpu 2112\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1097728\nfile_dirty 49152\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5840896\ninactive_file 437198848\nactive_file 727011328\nunevictable 0\nslab_reclaimable 99366984\nslab_unreclaimable 111448\nslab 99478432\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 565255\npgmajfault 9339\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1002\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Command exited with non-zero status 1
+	Command being timed: "/bin/bash -c set -e; sudo -n /bin/sync; sudo -n /bin/sh -c "echo 3 > /proc/sys/vm/drop_caches"; exec /bin/bash /home/riomus/runs/sfora-so400-compact-ranking-evaluation-source-v22/first-export-control-179061-v6-command.sh"
+	User time (seconds): 73.63
+	System time (seconds): 17.18
+	Percent of CPU this job got: 49%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:02.05
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3325644
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 9338
+	Minor (reclaiming a frame) page faults: 539158
+	Voluntary context switches: 601940
+	Involuntary context switches: 735
+	Swaps: 0
+	File system inputs: 210680376
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+STOP_CGROUP {"exit_code": "exited", "exit_status": "1", "invocation_id": "25bb72c62f134165b84b4762b94d6ced", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-compact-ranking-evaluation-first-export-control-179061-v6.service", "service_result": "exit-code", "values": {"memory.current": "1271500800", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "4099043328", "memory.stat": "anon 5410816\nfile 1164210176\nkernel 99557376\nkernel_stack 0\npagetables 102400\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 1118208\nfile_dirty 49152\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5402624\ninactive_file 437198848\nactive_file 727011328\nunevictable 0\nslab_reclaimable 99370176\nslab_unreclaimable 67080\nslab 99437256\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 566770\npgmajfault 9339\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1002\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 3min 2.090s
+CPU time consumed: 1min 30.833s
+Memory peak: 3.8G
+Memory swap peak: 0B
