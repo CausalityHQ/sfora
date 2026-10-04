@@ -2762,8 +2762,23 @@ def export_timing_source(function,stage,boundary):
     return "print(json.dumps({'event':'COMPACT_TIMING','stage':%r,'boundary':%r,%s,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)" % (stage,boundary,fields)
 
 
+def inverse_export_seconds(tree):
+    """Restore only the prospective export-seconds literal to its original 300."""
+    nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='policy']
+    expected=ast.parse("""def policy(phase):
+    require(phase in ('cpu','export','score'), 'fixed evaluation phase required')
+    return {'seconds': 600 if phase == 'export' else 500, 'host_bytes':8*1024**3,
+            'swap_bytes':0, 'cuda_visible_devices':'0' if phase == 'export' else ''}
+""").body[0]
+    assert len(nodes)==1 and ast.dump(nodes[0],include_attributes=False)==ast.dump(
+        expected,include_attributes=False), 'prospective export policy differs'
+    nodes[0].body[1].value.values[0].body.value=300
+    return tree
+
+
 def inverse_export_audit_markers(tree):
     """Undo the single exact admission keyword and 18 explicitly placed prints."""
+    tree=inverse_export_seconds(tree)
     dump=lambda node:ast.dump(node,include_attributes=False)
     functions={n.name:n for n in tree.body if isinstance(n,ast.FunctionDef)}
     audit=ast.parse(NEW_EXPORT_AUDIT).body[0]
@@ -2875,6 +2890,28 @@ class ExportOriginReaderTests(unittest.TestCase):
             [(role,start,size,boundary) for role,start,size in
              [('query',0,32),('query',32,1),('gallery',0,32),('gallery',32,2)] for boundary in ('begin','end')])
         self.assertEqual([m['seconds'] for m in markers],sorted(m['seconds'] for m in markers))
+
+
+class ProspectiveExportEnvelopeTests(unittest.TestCase):
+    def test_whole_unit_deadlines_and_unchanged_resource_predicates(self):
+        for phase,seconds,cuda in (('cpu',500,''),('export',600,'0'),('score',500,'')):
+            record={'resource_policy':{'seconds':seconds,'host_bytes':8*1024**3,
+                'swap_bytes':0,'cuda_visible_devices':cuda},'wall_seconds':seconds-1,
+                'process_peak_rss_kib':100,'peak_cuda_allocated_bytes':1 if phase=='export' else 0,
+                'cuda_initialized':phase=='export'}
+            with self.subTest(phase=phase):
+                e.check_resource_facts(record,phase)
+                for wall in (seconds,seconds+1,0,-1,float('nan'),float('inf')):
+                    with self.subTest(wall=wall),self.assertRaises(ValueError):
+                        e.check_resource_facts({**record,'wall_seconds':wall},phase)
+                for key,value in (('host_bytes',8*1024**3+1),('swap_bytes',1),('cuda_visible_devices','foreign')):
+                    with self.subTest(key=key),self.assertRaises(ValueError):
+                        e.check_resource_facts({**record,'resource_policy':{**record['resource_policy'],key:value}},phase)
+
+    def test_exact_whole_production_ast_inverse_of_export_seconds(self):
+        tree=inverse_export_seconds(ast.parse(PATH.read_text()))
+        self.assertEqual(hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest(),
+            '190acd12ea0d4962ed7dceac47a0e6b312a7bcb10ac14b1097669380b437406f')
 
 
 if __name__ == '__main__':
