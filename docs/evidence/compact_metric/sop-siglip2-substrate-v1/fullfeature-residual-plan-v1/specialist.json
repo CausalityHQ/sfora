@@ -1,0 +1,345 @@
+{
+  "id": "06076038b9814634",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791127245,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791128445,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded next-intervention decision for Sfora repo /home/rb/worktrees/sfora-positive-causality master 6d07b7a8. Full goal remains protocol-matched BOTH SOP/InShop quality plus public image-to-top-k speed; no narrow success. Read docs/inshop_current_gallery_smooth_ap_plan_2026-10-04.md and committed current-gallery-first-selection-score-v1/{verification.json,receipt.json}, current-gallery-review-v1 reviews; locate other relevant prior representation/adaptation decisions with bounded rg, not full suite. New verified previously observed InShop TRAIN1734q/1715g498: fresh control R1 .9642445213/AP .8157304937, candidate .9636678201/.8168695757; retained concat .9648212226/.8177754036. Current-gallery full same-A connected gallery gradients, all CPU/mechanics parity and actual cost whole1.04023/core1.10402 passed; recipe KILL, no069/VAL. Latest image-anchor also KILL; previous finalMLP resource failure is NOT quality ceiling. Select ONE cheapest causally distinct representation/data-coverage/optimization intervention with a concrete trainable model path and fastest falsifier. Do not propose another loss/target grid or theorem-like probes, do not reinterpret old KILL universally. Distinguish evidence from hypotheses; name exact prior receipts/source proving premise and unchanged scientific gates. Include source files reusable, minimal mechanics/quality experiment, cost feasibility on sole DGX Spark host<=8GiB/noSwap/CUDA<10GB; no broader cap request. If evidence cannot select one, give one precise missing comparison resolvable from archived TRAIN data. No edits/imports/native/Torch/SSH/GPU/quality reads/jobs/children/consultations/operator contact. Return concise engineering plan, not new research survey.",
+  "prompt_sha256": "6416861e899fac437a665cc94018ba507ba1b0cd7cc831bec5f4823050fcaefe",
+  "prompt_bytes": 2026,
+  "fingerprint": "c7d3e2a87cb0b00637a984bf6353d4cb13e36623ae5c7efa615313017f19c147",
+  "evidence": {
+    "git_commit": "6d07b7a822c7f13cd53ab0c09db1d1c39cb24ae4",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "4141df43b7e16dc868690209123f9bdd8e5ebcdbd953ed4f7aae85c929673487",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "source": "fallback"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-06076038b9814634.service",
+  "pid": 3895749,
+  "pgid": 3895749,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "budget_usd": null,
+      "timeout_seconds": 1189,
+      "started_at": 1791127256
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791127603,
+  "event_cursor": 62,
+  "events": [
+    {
+      "seq": 39,
+      "at": 1791127356,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 40,
+      "at": 1791127356,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 41,
+      "at": 1791127356,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 42,
+      "at": 1791127356,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 43,
+      "at": 1791127356,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 44,
+      "at": 1791127357,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 45,
+      "at": 1791127397,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 46,
+      "at": 1791127397,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 47,
+      "at": 1791127397,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 48,
+      "at": 1791127397,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 49,
+      "at": 1791127397,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 50,
+      "at": 1791127398,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 51,
+      "at": 1791127485,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 52,
+      "at": 1791127485,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 53,
+      "at": 1791127485,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 54,
+      "at": 1791127485,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 55,
+      "at": 1791127485,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 56,
+      "at": 1791127485,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 57,
+      "at": 1791127511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 58,
+      "at": 1791127511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 59,
+      "at": 1791127511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 60,
+      "at": 1791127511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 61,
+      "at": 1791127602,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 62,
+      "at": 1791127603,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 55,
+        "at": 1791127485,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 56,
+        "at": 1791127485,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 57,
+        "at": 1791127511,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 58,
+        "at": 1791127511,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 59,
+        "at": 1791127511,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 60,
+        "at": 1791127511,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 61,
+        "at": 1791127602,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 62,
+        "at": 1791127603,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "Select **one zero-initialized residual from the full 1152-D pooled features**, added to accepted concat. This expands the trainable correction’s input information while reusing the frozen encoder and existing caches.\n\nThe premise is structural, not a diagnosed quality cause: [prototype_residual_readout.py:57](/home/rb/worktrees/sfora-positive-causality/scripts/prototype_residual_readout.py:57) permits `A` to see only `[Z32,H0_128]`. The [signed-concat decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/signed-concat-selection-score-v1/decision.json) provides limited supporting evidence: expanding the earlier corrective basis improved both point metrics, although its frozen R1 gate failed. Neither observation proves that omitted pooled directions will generalize.\n\nThe [current-gallery verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/current-gallery-first-selection-score-v1/verification.json) preserves its quality KILL. The [final-MLP terminal decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/nearest-ranking-mechanics-control-v2/decision.json) records resource failure and `quality_read:false`; it supplies no quality ceiling. Both [current-gallery reviews](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/current-gallery-review-v1/astra.json) distinguish structural mismatches from demonstrated causes.\n\nThe bounded plan:\n\n1. **Model and comparison.** Start both arms fresh from accepted concat `b702e038…`. Control trains existing `A[128,160]`; candidate additionally trains `C[128,1152]`, initially zero:\n   `raw = accepted_source_raw + phi_centered @ A.T + (x − μTRAIN) @ C.T`.\n   Preserve the existing input normalization; derive only `μTRAIN` from authenticated canonical TRAIN6355. Keep encoder, head, classifier and original means frozen. Both arms use the already qualified connected current-gallery objective, unchanged targets, reductions, optimizer, two views and fixed128 schedules. The estimand is the added full-feature correction allocation; it does not isolate representation from its optimization dynamics.\n\n2. **Fastest falsifier.** Before quality, qualify exact zero-`C` raw/unit/packed correspondence, finite nonzero `C` gradients, both-role gradient accumulation and full64 versus micro16 agreement on the fixed first batches. Then require discarded17 versus independent8+9 complete-state replay and strict reload. Reuse [train_siglip2_compact_ranking.py](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py), its tests, and the existing exporter/evaluator; new schemas must bind `C`, its moments and `μTRAIN`. Failure stops immediately.\n\n3. **One quality experiment.** Fresh cold control061/candidate061 endpoints, portable two-pass exports, then the original TRAIN1734q/1715g/498 first gate. Require positive R1/nonnegative AP versus control, unchanged source floors, **R1 > .9648212226066898 and AP ≥ .8177754035543956**. Failure closes this allocation before069/VAL. No ridge refit, loss change, width grid or intermediate selection.\n\n4. **Feasibility and risk.** `C` adds147,456 scalars—about **2.25MiB** for FP32 weights, gradients and two moments. Existing image caches suffice; gallery matrix multiplication/backward adds real cost. This is a storage estimate, not resource qualification. Retain CPU500/mechanics600/TRAIN600/export900/score500, sole DGX Spark, host≤8GiB, zero swap/events, CUDA<10GB, both locks and sequential jobs. Fresh whole/core ratios must each≤1.50; any failure stops without cap rescue.\n\nPrincipal risks are redundant corrective directions, overfitting and gallery compute exceeding the cost gate. A survivor still owes each-seed signs, mean gains≥.002 in both metrics, positive product95% lower bounds, eligible validation, **both official SOP/InShop quality and matched public image-to-top-k speed**.\n\nStatic inspection only; no files changed or experiments launched.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "Select **one zero-initialized residual from the full 1152-D pooled features**, added to accepted concat. This expands the trainable correction’s input information while reusing the frozen encoder and existing caches.\n\nThe premise is structural, not a diagnosed quality cause: [prototype_residual_readout.py:57](/home/rb/worktrees/sfora-positive-causality/scripts/prototype_residual_readout.py:57) permits `A` to see only `[Z32,H0_128]`. The [signed-concat decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/signed-concat-selection-score-v1/decision.json) provides limited supporting evidence: expanding the earlier corrective basis improved both point metrics, although its frozen R1 gate failed. Neither observation proves that omitted pooled directions will generalize.\n\nThe [current-gallery verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/current-gallery-first-selection-score-v1/verification.json) preserves its quality KILL. The [final-MLP terminal decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/nearest-ranking-mechanics-control-v2/decision.json) records resource failure and `quality_read:false`; it supplies no quality ceiling. Both [current-gallery reviews](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/current-gallery-review-v1/astra.json) distinguish structural mismatches from demonstrated causes.\n\nThe bounded plan:\n\n1. **Model and comparison.** Start both arms fresh from accepted concat `b702e038…`. Control trains existing `A[128,160]`; candidate additionally trains `C[128,1152]`, initially zero:\n   `raw = accepted_source_raw + phi_centered @ A.T + (x − μTRAIN) @ C.T`.\n   Preserve the existing input normalization; derive only `μTRAIN` from authenticated canonical TRAIN6355. Keep encoder, head, classifier and original means frozen. Both arms use the already qualified connected current-gallery objective, unchanged targets, reductions, optimizer, two views and fixed128 schedules. The estimand is the added full-feature correction allocation; it does not isolate representation from its optimization dynamics.\n\n2. **Fastest falsifier.** Before quality, qualify exact zero-`C` raw/unit/packed correspondence, finite nonzero `C` gradients, both-role gradient accumulation and full64 versus micro16 agreement on the fixed first batches. Then require discarded17 versus independent8+9 complete-state replay and strict reload. Reuse [train_siglip2_compact_ranking.py](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py), its tests, and the existing exporter/evaluator; new schemas must bind `C`, its moments and `μTRAIN`. Failure stops immediately.\n\n3. **One quality experiment.** Fresh cold control061/candidate061 endpoints, portable two-pass exports, then the original TRAIN1734q/1715g/498 first gate. Require positive R1/nonnegative AP versus control, unchanged source floors, **R1 > .9648212226066898 and AP ≥ .8177754035543956**. Failure closes this allocation before069/VAL. No ridge refit, loss change, width grid or intermediate selection.\n\n4. **Feasibility and risk.** `C` adds147,456 scalars—about **2.25MiB** for FP32 weights, gradients and two moments. Existing image caches suffice; gallery matrix multiplication/backward adds real cost. This is a storage estimate, not resource qualification. Retain CPU500/mechanics600/TRAIN600/export900/score500, sole DGX Spark, host≤8GiB, zero swap/events, CUDA<10GB, both locks and sequential jobs. Fresh whole/core ratios must each≤1.50; any failure stops without cap rescue.\n\nPrincipal risks are redundant corrective directions, overfitting and gallery compute exceeding the cost gate. A survivor still owes each-seed signs, mean gains≥.002 in both metrics, positive product95% lower bounds, eligible validation, **both official SOP/InShop quality and matched public image-to-top-k speed**.\n\nStatic inspection only; no files changed or experiments launched."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 2026,
+  "output_bytes": 4173,
+  "elapsed_seconds": 358,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)",
+  "progress_truncated": false,
+  "result": "Select **one zero-initialized residual from the full 1152-D pooled features**, added to accepted concat. This expands the trainable correction’s input information while reusing the frozen encoder and existing caches.\n\nThe premise is structural, not a diagnosed quality cause: [prototype_residual_readout.py:57](/home/rb/worktrees/sfora-positive-causality/scripts/prototype_residual_readout.py:57) permits `A` to see only `[Z32,H0_128]`. The [signed-concat decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/signed-concat-selection-score-v1/decision.json) provides limited supporting evidence: expanding the earlier corrective basis improved both point metrics, although its frozen R1 gate failed. Neither observation proves that omitted pooled directions will generalize.\n\nThe [current-gallery verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/current-gallery-first-selection-score-v1/verification.json) preserves its quality KILL. The [final-MLP terminal decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/nearest-ranking-mechanics-control-v2/decision.json) records resource failure and `quality_read:false`; it supplies no quality ceiling. Both [current-gallery reviews](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/current-gallery-review-v1/astra.json) distinguish structural mismatches from demonstrated causes.\n\nThe bounded plan:\n\n1. **Model and comparison.** Start both arms fresh from accepted concat `b702e038…`. Control trains existing `A[128,160]`; candidate additionally trains `C[128,1152]`, initially zero:\n   `raw = accepted_source_raw + phi_centered @ A.T + (x − μTRAIN) @ C.T`.\n   Preserve the existing input normalization; derive only `μTRAIN` from authenticated canonical TRAIN6355. Keep encoder, head, classifier and original means frozen. Both arms use the already qualified connected current-gallery objective, unchanged targets, reductions, optimizer, two views and fixed128 schedules. The estimand is the added full-feature correction allocation; it does not isolate representation from its optimization dynamics.\n\n2. **Fastest falsifier.** Before quality, qualify exact zero-`C` raw/unit/packed correspondence, finite nonzero `C` gradients, both-role gradient accumulation and full64 versus micro16 agreement on the fixed first batches. Then require discarded17 versus independent8+9 complete-state replay and strict reload. Reuse [train_siglip2_compact_ranking.py](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_compact_ranking.py), its tests, and the existing exporter/evaluator; new schemas must bind `C`, its moments and `μTRAIN`. Failure stops immediately.\n\n3. **One quality experiment.** Fresh cold control061/candidate061 endpoints, portable two-pass exports, then the original TRAIN1734q/1715g/498 first gate. Require positive R1/nonnegative AP versus control, unchanged source floors, **R1 > .9648212226066898 and AP ≥ .8177754035543956**. Failure closes this allocation before069/VAL. No ridge refit, loss change, width grid or intermediate selection.\n\n4. **Feasibility and risk.** `C` adds147,456 scalars—about **2.25MiB** for FP32 weights, gradients and two moments. Existing image caches suffice; gallery matrix multiplication/backward adds real cost. This is a storage estimate, not resource qualification. Retain CPU500/mechanics600/TRAIN600/export900/score500, sole DGX Spark, host≤8GiB, zero swap/events, CUDA<10GB, both locks and sequential jobs. Fresh whole/core ratios must each≤1.50; any failure stops without cap rescue.\n\nPrincipal risks are redundant corrective directions, overfitting and gallery compute exceeding the cost gate. A survivor still owes each-seed signs, mean gains≥.002 in both metrics, positive product95% lower bounds, eligible validation, **both official SOP/InShop quality and matched public image-to-top-k speed**.\n\nStatic inspection only; no files changed or experiments launched.",
+  "result_truncated": false
+}
