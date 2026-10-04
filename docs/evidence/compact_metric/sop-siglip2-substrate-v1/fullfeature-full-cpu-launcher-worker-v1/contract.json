@@ -1,0 +1,47 @@
+{
+  "FILE": {
+    "path": "canonical absolute scientific path",
+    "sha256": "actual lowercase SHA256"
+  },
+  "UNIT": "frozen exact evaluator UNIT: receipt,log,unit,invocation_id,service_seconds,native_peak_rss_kib,both_locks_held=true",
+  "base_commit": "af34e66e36d7fea9d71eb8df6615dd01fce1655e",
+  "cli": [
+    "python3",
+    "-B",
+    "scripts/freeze_fullfeature_confirmation_cpu.py",
+    "--inputs",
+    "<canonical absolute JSON file>",
+    "--output",
+    "<canonical absolute NEWDIR>"
+  ],
+  "constraints": "Only two new scripts. Preserve all historical hash rows, append endpoint/CONTINUE rows to both pre/post blocks, path-key conflict rejection. Preserve exact coldprep/BOTHlocks/CPUhidden500/8GiB/noSwap/footers. bash -n only. No SSH/native/Torch/cloud/jobs/consults/children/operator contact.",
+  "copies": "exact map scientific FILE path to canonical absolute local copy for evaluator,evaluator test (execution closure entry),execution,first_cpu3,firstCONTINUE receipt/log and each endpoint launch/receipt/log. Excludes binary checkpoints/bundles; their exact roles and hashes bound to actual TRAIN receipts, native byte admission remains parent evaluator/preflight. No missing/extra/conflicting map rows.",
+  "endpoints": "exact four frozen evaluator endpoint objects ordered (179061,control),(179061,candidate),(179069,candidate),(179069,control). Original 061 objects unchanged. Parent supplies actual 069control; no guessed future hash.",
+  "evaluator": "FILE with fixed remote evaluator2 path and hash; copies supplies exact local bytes",
+  "evaluator_test": "Authenticated exact evaluator TEST copied at execution closure remote path; required in copies, not a new top-level field.",
+  "exact_input_keys": [
+    "schema",
+    "evaluator",
+    "execution",
+    "first_cpu",
+    "first_selection",
+    "endpoints",
+    "verifications",
+    "copies"
+  ],
+  "execution": "FILE with fixed remote execution.json and committed exact evaluator2/test closure; copies supplies bytes",
+  "first_cpu": "exact {authority:FILE,command:FILE,launch:FILE}, committed fullfeature-residual-evaluation-cpu-source-v1 bytes at original evaluator root",
+  "first_selection": "exact {terminal:original first CONTINUE UNIT,verification:FILE}; verification FILE is canonical local metadata, authenticated against committed first verification; receipt/log bytes via copies",
+  "gate": "One <=55 second <=1GiB stdlib fixture gate; adversarial missing/extra/conflict/hash/order/cost and historical-prerequisite-path regressions; no broad suite.",
+  "generated_local_files": [
+    "authority-full-cpu-v1.json",
+    "full-cpu-v1-command.sh",
+    "full-cpu-v1-launch.sh"
+  ],
+  "remote_authority_root": "/home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-source-v1",
+  "remote_output": "/home/riomus/runs/sfora-so400-fullfeature-residual-evaluation-full-cpu-v1",
+  "remote_unit": "sfora-so400-fullfeature-residual-evaluation-full-cpu-v1",
+  "schema": "fullfeature-confirmation-cpu-inputs-v1",
+  "stdout": "JSON source-only freeze receipt with input/source/outputs hashes, exact actual native argv, unit/output binding and per-seed measured costs. No native execution.",
+  "verifications": "four ordered canonical local FILE metadata descriptors; require receipt/log hashes, PASS, invocation/service/host binding; accepted endpoint metadata authenticated by copies"
+}

@@ -1,0 +1,64 @@
+{
+  "actual_inputs": {
+    "path": "/tmp/sfora-fullfeature-confirmation-cpu-actual-inputs.json",
+    "sha256": "018fadde8a48cf6d9675f6470537fe1bca3465c4e6097b16a7b75c76bf8a1907"
+  },
+  "base_commit": "af34e66e36d7fea9d71eb8df6615dd01fce1655e",
+  "changed_files": [
+    "scripts/freeze_fullfeature_confirmation_cpu.py",
+    "scripts/test_freeze_fullfeature_confirmation_cpu.py"
+  ],
+  "clean": true,
+  "commit": "223a1c2715b40bda41851295de47a0a54cdaec98",
+  "contract": {
+    "path": "/tmp/sfora-fullfeature-full-cpu-launcher-20261004-contract.json",
+    "sha256": "87a4e9a79af64bf1f99a9699ed3c509080d3079a39d635511c809534ba989a25"
+  },
+  "exact_keys": [
+    "schema",
+    "evaluator",
+    "execution",
+    "first_cpu",
+    "first_selection",
+    "endpoints",
+    "verifications",
+    "copies"
+  ],
+  "fixture_gate": {
+    "command": "ulimit -v 1048576; timeout 55s /usr/bin/time -v python3 -B scripts/test_freeze_fullfeature_confirmation_cpu.py --inputs /tmp/sfora-fullfeature-confirmation-cpu-actual-inputs.json",
+    "exit_code": 0,
+    "log": "/tmp/sfora-fullfeature-full-cpu-launcher-20261004-fixture-gate.log",
+    "log_sha256": "0a6209a0b49379361db42fe5134eecb243bfeffd37497dc89e6a9d73e56404c9",
+    "peak_rss_kib": 119944,
+    "swaps": 0,
+    "tests": 11,
+    "unittest_seconds": 5.325,
+    "wall_seconds": 5.43
+  },
+  "generator_cli": [
+    "python3",
+    "-B",
+    "scripts/freeze_fullfeature_confirmation_cpu.py",
+    "--inputs",
+    "<canonical absolute JSON>",
+    "--output",
+    "<canonical absolute NEWDIR>"
+  ],
+  "helper_in_scientific_closure": false,
+  "input_schema": "fullfeature-confirmation-cpu-inputs-v1",
+  "merged_or_pushed": false,
+  "native_pass_claimed": false,
+  "native_run": false,
+  "operator_git_identity": "Roman Bartusiak <riomus@gmail.com>",
+  "owned_outputs": [
+    "authority-full-cpu-v1.json",
+    "full-cpu-v1-command.sh",
+    "full-cpu-v1-launch.sh"
+  ],
+  "remaining_parent_actions": "Verify/integrate source commit; run final actual freeze; remote hash preflight and native job using sole root authority.",
+  "schema": "fullfeature-confirmation-cpu-worker-receipt-v1",
+  "source_sha256": {
+    "scripts/freeze_fullfeature_confirmation_cpu.py": "f983400c9898ecbdb9df2c543cd67565ac021263f5e2faa3ee6b937f7ab79615",
+    "scripts/test_freeze_fullfeature_confirmation_cpu.py": "623a516a032f0e97470cc0a18f7965e4ff136d793a0d2c3ee041c0716a9f3705"
+  }
+}
