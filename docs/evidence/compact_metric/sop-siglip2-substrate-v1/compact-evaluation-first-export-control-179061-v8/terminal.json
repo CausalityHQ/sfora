@@ -1,0 +1,29 @@
+{
+  "result": "FAIL_TIMEOUT",
+  "service_seconds": 300.039,
+  "invocation_id": "76faf09a24ef4ad5abe174471e87cdc0",
+  "stop": {
+    "exit_code": "killed",
+    "exit_status": "TERM",
+    "invocation_id": "76faf09a24ef4ad5abe174471e87cdc0",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-compact-ranking-evaluation-first-export-control-179061-v8.service",
+    "service_result": "timeout",
+    "values": {
+      "memory.current": "4251267072",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "4251934720",
+      "memory.stat": "anon 2962411520\nfile 1150119936\nkernel 119140352\nkernel_stack 16384\npagetables 9232384\nsec_pagetables 0\npercpu 1056\nsock 0\nvmalloc 0\nshmem 50794496\nzswap 0\nzswapped 0\nfile_mapped 514125824\nfile_dirty 12288\nfile_writeback 0\nswapcached 0\nanon_thp 1306525696\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 3029848064\ninactive_file 499257344\nactive_file 600068096\nunevictable 0\nslab_reclaimable 101164032\nslab_unreclaimable 992088\nslab 102156120\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 669765\npgmajfault 7654\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1172\nthp_collapse_alloc 16\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "hash_completed": 121,
+  "hash_begun": 122,
+  "hash_seconds_sum": 39.39530858537182,
+  "hash_seconds_median": 0.3169385641813278,
+  "hash_seconds_max": 0.5081185935996473,
+  "log_sha256": "792a9dbdeec8ee14d0cb7a20bf3732f1f3672befb9b47f2755c97c1f9cd04de6",
+  "quality_read": false
+}
