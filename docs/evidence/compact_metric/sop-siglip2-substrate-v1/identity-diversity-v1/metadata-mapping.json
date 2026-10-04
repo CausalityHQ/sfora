@@ -1,0 +1,12 @@
+{
+  "schema": "identity-diversity-metadata-mapping-v1",
+  "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+  "historical_preflight_sha256": "41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293",
+  "official_train_rows": 25882,
+  "products": 3997,
+  "fit_rows": 13283,
+  "outer_rows": 12599,
+  "fit_original_row_mapping_exact": true,
+  "outer_original_rows_recovered_by_exact_partition_path_product": true,
+  "image_bytes_reverified": false
+}
