@@ -1,0 +1,12 @@
+{
+  "qualification": "FAIL",
+  "scientific_quality": "UNREAD",
+  "native_exit_status": 1,
+  "invocation_id": "fb287e6026bb4b12bbf0faaf89b537ee",
+  "service_seconds": 113.006,
+  "host_peak_bytes": 1516048384,
+  "zero_memory_events": true,
+  "swap_bytes": 0,
+  "failure": "complete payload identity differs",
+  "log_sha256": "5b0aa6ce4c5ecebdd8c3bde94671987b89969e3d93da49e888ff5a4945a8a999"
+}
