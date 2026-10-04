@@ -1,0 +1,9 @@
+{
+  "pass": false,
+  "service_seconds": 15.793,
+  "error": "denied numpy-2.5.0.dist-info/direct_url.json",
+  "model_constructed": false,
+  "quality_read": false,
+  "native_not_in_original_proof": [],
+  "next": "SAME worker finite metadata correction then fresh original import check"
+}
