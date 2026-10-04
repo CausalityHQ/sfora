@@ -1691,7 +1691,9 @@ def export_pass(context,state,rows,mapping):
         indices=mapping[role]; sizes[role]=[]
         for start in range(0,len(indices),32):
             batch=indices[start:start+32]
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'images_outputs','boundary':'begin','role':role,'batch_start':start,'batch_size':len(batch),'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
             values,fact=images_outputs(context,state,[rows[i] for i in batch],oracle=start == 0)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'images_outputs','boundary':'end','role':role,'batch_start':start,'batch_size':len(batch),'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
             raw[batch]=values['raw']; unit[batch]=values['unit']; fact['role']=role
             images.append(fact); sizes[role].append(len(batch)); del values
     require(sizes == {r:batch_sizes(len(mapping[r])) for r in ('query','gallery')}, 'complete actual B32 roles/tails differ')
@@ -1711,24 +1713,38 @@ def native_export(context):
     for pass_index in range(2):
         # TRAIN caches, teacher tensors and warm payloads are forbidden loader dependencies.
         portable_name='_compact_export_entry_'+str(pass_index)+'_'+key.replace('-','_')
+        print(json.dumps({'event':'COMPACT_TIMING','stage':'loader','boundary':'begin','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
         with bundle_reads_only(context,endpoint):
             portable=load_authenticated(portable_name,directory/'train_siglip2_compact_ranking.py',
                 context['launch']['training']['code']['train_siglip2_compact_ranking.py'],context['guards'])
             state=portable.load_inference(directory,endpoint['bundle']['sha256'],'cuda')
+        print(json.dumps({'event':'COMPACT_TIMING','stage':'loader','boundary':'end','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
         context['portable_entry']=(portable,endpoint)
         t['live_model']=weakref.ref(state['model'])
         try:
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'endpoint_facts','boundary':'begin','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
             model_facts=endpoint_facts(context,state)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'endpoint_facts','boundary':'end','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
             require(model_facts['vision_sha256'] == facts['vision_sha256'] and
                 all(model_facts['members'][k] == facts['members'][k] for k in ('config','buffers','head','A','means')),
                 'independent complete frozen vision/updated A differs')
             require(model_facts['members']['processor_config'] == facts['processor_config_sha256'],
                 'bundle-owned processor config differs')
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'witness','boundary':'begin','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
             witness=native_train_witness(context,state,args.seed)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'witness','boundary':'end','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'diagnostic','boundary':'begin','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
             diagnostic=train_diagnostic(context,state,triples)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'diagnostic','boundary':'end','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'export_pass','boundary':'begin','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
             current,current_images,current_sizes=export_pass(context,state,rows,mapping)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'export_pass','boundary':'end','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'postpass_endpoint_facts','boundary':'begin','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
             require(endpoint_facts(context,state) == model_facts, 'native forward mutated complete endpoint')
-            t['nearest'].native_source_api(t).audit_origins(t['legacy'],require_exact=True)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'postpass_endpoint_facts','boundary':'end','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'postpass_audit','boundary':'begin','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
+            t['nearest'].native_source_api(t).audit_origins(t['legacy'],require_exact=True,admission=t['legacy']['original'].FlatAdmission())
+            print(json.dumps({'event':'COMPACT_TIMING','stage':'postpass_audit','boundary':'end','pass_index':pass_index,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
             if pass_index == 0:
                 values=current; first_facts=model_facts; first_witness=witness; first_diagnostic=diagnostic
                 images=current_images; sizes=current_sizes
@@ -1898,7 +1914,10 @@ def run(args):
     require(args.phase != 'export' or all(torch.equal(a,b) for a,b in
         zip(cuda_rng,torch.cuda.get_rng_state_all(),strict=True)), 'whole-unit CUDA RNG differs')
     print(json.dumps({'progress':'exit_rehash','seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
-    origins=exit_rehash(context); prior=t['legacy']['selected']['source_cpu']['invocation']
+    print(json.dumps({'event':'COMPACT_TIMING','stage':'exit_rehash','boundary':'begin','phase':args.phase,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
+    origins=exit_rehash(context)
+    print(json.dumps({'event':'COMPACT_TIMING','stage':'exit_rehash','boundary':'end','phase':args.phase,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
+    prior=t['legacy']['selected']['source_cpu']['invocation']
     record={'schema':SCHEMA,'phase':args.phase,'arm':args.arm,'seed':args.seed,'stage':context['launch']['stage'],
         'panel':context['launch']['panel'],'binding':binding(context),'source_code':context['code'],
         'execution_sha256':args.execution_sha256,'source':t['source'],'launch':context['launch'],

@@ -2401,6 +2401,7 @@ class InferenceContractFixture:
             'reference':SimpleNamespace(json_digest=lambda _: 'triples'),
             'helper':SimpleNamespace(exact=self.exact)}
         namespace={'require':e.require,'hashlib':hashlib,'math':__import__('math'),
+            'json':json,'time':time,'UNIT_STARTED':e.UNIT_STARTED,
             'bound_file':lambda guards,path,digest:path,'bundle_reads_only':bundle_reads_only,
             'train_rows':lambda context,ids:self.rows(ids),'batch_sizes':e.batch_sizes,
             'tuple_outputs':e.tuple_outputs,
@@ -2513,6 +2514,7 @@ finally:
 
 def inverse_runtime_hash_batch(tree):
     """Undo only the exact authorized loop replacement, including its markers."""
+    tree=inverse_export_audit_markers(tree)
     node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='bundle_reads_only')
     start=next(i for i,n in enumerate(node.body) if isinstance(n,ast.Assign) and
         ast.unparse(n.targets[0])=='items')
@@ -2727,6 +2729,152 @@ class RuntimeHashBatchTests(unittest.TestCase):
         tree=inverse_runtime_hash_batch(ast.parse(PATH.read_text()))
         digest=hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest()
         self.assertEqual(digest,'a35111879bd1d2a65f72860f3fdddc9db0798185aa5d72df2c22e01ba422b948')
+
+
+# Exact timing statements are the only removable nodes in this inverse.
+EXPORT_TIMING_SPECS = (
+    ('native_export', "portable_name='_compact_export_entry_'+str(pass_index)+'_'+key.replace('-','_')", 'after', 'loader', 'begin'),
+    ('native_export', "context['portable_entry']=(portable,endpoint)", 'before', 'loader', 'end'),
+    ('native_export', 'model_facts=endpoint_facts(context,state)', 'before', 'endpoint_facts', 'begin'),
+    ('native_export', 'model_facts=endpoint_facts(context,state)', 'after', 'endpoint_facts', 'end'),
+    ('native_export', 'witness=native_train_witness(context,state,args.seed)', 'before', 'witness', 'begin'),
+    ('native_export', 'witness=native_train_witness(context,state,args.seed)', 'after', 'witness', 'end'),
+    ('native_export', 'diagnostic=train_diagnostic(context,state,triples)', 'before', 'diagnostic', 'begin'),
+    ('native_export', 'diagnostic=train_diagnostic(context,state,triples)', 'after', 'diagnostic', 'end'),
+    ('native_export', 'current,current_images,current_sizes=export_pass(context,state,rows,mapping)', 'before', 'export_pass', 'begin'),
+    ('native_export', 'current,current_images,current_sizes=export_pass(context,state,rows,mapping)', 'after', 'export_pass', 'end'),
+    ('native_export', "require(endpoint_facts(context,state) == model_facts, 'native forward mutated complete endpoint')", 'before', 'postpass_endpoint_facts', 'begin'),
+    ('native_export', "require(endpoint_facts(context,state) == model_facts, 'native forward mutated complete endpoint')", 'after', 'postpass_endpoint_facts', 'end'),
+    ('native_export', "t['nearest'].native_source_api(t).audit_origins(t['legacy'],require_exact=True)", 'before', 'postpass_audit', 'begin'),
+    ('native_export', "t['nearest'].native_source_api(t).audit_origins(t['legacy'],require_exact=True)", 'after', 'postpass_audit', 'end'),
+    ('export_pass', 'values,fact=images_outputs(context,state,[rows[i] for i in batch],oracle=start == 0)', 'before', 'images_outputs', 'begin'),
+    ('export_pass', 'values,fact=images_outputs(context,state,[rows[i] for i in batch],oracle=start == 0)', 'after', 'images_outputs', 'end'),
+    ('run', 'origins=exit_rehash(context)', 'before', 'exit_rehash', 'begin'),
+    ('run', 'origins=exit_rehash(context)', 'after', 'exit_rehash', 'end'),
+)
+OLD_EXPORT_AUDIT = "t['nearest'].native_source_api(t).audit_origins(t['legacy'],require_exact=True)"
+NEW_EXPORT_AUDIT = OLD_EXPORT_AUDIT[:-1]+",admission=t['legacy']['original'].FlatAdmission())"
+
+
+def export_timing_source(function,stage,boundary):
+    fields = "'pass_index':pass_index" if function=='native_export' else (
+        "'role':role,'batch_start':start,'batch_size':len(batch)" if function=='export_pass' else "'phase':args.phase")
+    return "print(json.dumps({'event':'COMPACT_TIMING','stage':%r,'boundary':%r,%s,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)" % (stage,boundary,fields)
+
+
+def inverse_export_audit_markers(tree):
+    """Undo the single exact admission keyword and 18 explicitly placed prints."""
+    dump=lambda node:ast.dump(node,include_attributes=False)
+    functions={n.name:n for n in tree.body if isinstance(n,ast.FunctionDef)}
+    audit=ast.parse(NEW_EXPORT_AUDIT).body[0]
+    matches=[n for n in ast.walk(functions['native_export']) if dump(n)==dump(audit)]
+    assert len(matches)==1, 'fresh original export admission differs'
+    matches[0].value.keywords.pop()  # Exact expression comparison proved the sole new keyword.
+    for function,anchor,side,stage,boundary in EXPORT_TIMING_SPECS:
+        expected=ast.parse(anchor).body[0]; locations=[]
+        for parent in ast.walk(functions[function]):
+            for _,values in ast.iter_fields(parent):
+                if isinstance(values,list):
+                    locations.extend((values,i) for i,n in enumerate(values) if isinstance(n,ast.stmt) and dump(n)==dump(expected))
+        assert len(locations)==1, 'timing anchor differs: '+stage
+        values,index=locations[0]; index+=1 if side=='after' else -1
+        marker=ast.parse(export_timing_source(function,stage,boundary)).body[0]
+        assert index>=0 and dump(values[index])==dump(marker), 'timing statement differs: '+stage+'/'+boundary
+        del values[index]
+    return tree
+
+
+class ExportOriginReaderTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        fixture_module=module('_export_origin_fixture_tests',PATH.with_name('test_siglip2_compact_ranking.py'))
+        cls.fixture_type=fixture_module.FreshOriginAuditTests
+        cls.fixture_type.setUpClass()
+
+    def setUp(self):
+        # The existing exit test leaves its helper registered; restore it after each fixture.
+        modules=patch.dict(sys.modules);modules.start();self.addCleanup(modules.stop)
+        sys.modules.pop('_prototype_signed_readout',None)
+
+    def fixture(self):
+        return self.fixture_type()
+
+    def audit_call(self):
+        fn=next(n for n in ast.parse(PATH.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='native_export')
+        calls=[n for n in ast.walk(fn) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='audit_origins']
+        self.assertEqual(len(calls),1)
+        return compile(ast.Expression(body=calls[0]),str(PATH),'eval')
+
+    def invoke(self,f):
+        return eval(self.audit_call(),{}, {'t':f.context})
+
+    def test_two_new_readers_preserve_first_sweep_and_identical_guards(self):
+        with self.fixture().composition() as f:
+            f.api.audit_origins(f.legacy,require_exact=True)
+            self.assertCountEqual(f.reads,[(kind,p) for p in f.observed for kind in ('origin_sha','duplicate_sha')])
+            expected=(dict(f.legacy['guards']),dict(f.legacy['prior']['guards']),copy.deepcopy(f.legacy['origins']))
+            f.admission.verified.update(f.observed)
+            for pass_index in range(2):
+                with self.subTest(pass_index=pass_index):
+                    f.reads.clear();self.invoke(f);reader=f.readers[-1]
+                    self.assertIs(type(reader),f.original.FlatAdmission)
+                    self.assertIsNot(reader,f.admission)
+                    self.assertTrue(all(reader is not old for old in f.readers[:-1]))
+                    self.assertEqual(reader.verified,set(f.observed))
+                    self.assertEqual(reader.entries,{p:(h,Path(p).stat().st_size) for p,h in f.observed.items()})
+                    self.assertEqual(reader.json_bytes,{})
+                    self.assertCountEqual(f.reads,[('origin_sha',p) for p in f.observed])
+                    self.assertEqual((dict(f.legacy['guards']),dict(f.legacy['prior']['guards']),f.legacy['origins']),expected)
+            self.assertEqual(len(f.readers),2)
+
+    def test_unknown_map_missing_fourth_and_restored_mtime_reject(self):
+        for case,error in (('unknown_map','unknown or changed'),('missing_fourth','exact four'),('restored_mtime','unknown or changed')):
+            with self.subTest(case=case),self.fixture().composition() as f:
+                self.invoke(f)
+                if case=='unknown_map':
+                    unknown=f.root/'unknown.so';unknown.write_bytes(b'unknown');f.mapped.append(str(unknown))
+                elif case=='missing_fourth':f.mapped.remove(next(iter(f.files)))
+                else:
+                    path=Path(next(iter(f.cpu['files'])));raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    self.assertEqual(path.stat().st_size,len(raw));self.assertEqual(path.stat().st_mtime_ns,prior.st_mtime_ns)
+                with self.assertRaisesRegex(ValueError,error):self.invoke(f)
+                self.assertIsNot(f.readers[0],f.readers[1])
+
+    def test_original_predicates_and_guard_correspondence(self):
+        self.fixture().test_private_audit_predicates_and_guard_correspondence()
+
+    def test_exact_whole_production_ast_inverse(self):
+        tree=inverse_export_audit_markers(ast.parse(PATH.read_text()))
+        self.assertEqual(hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest(),
+            'f499f425a1d9a91333046d61ac2adaa5844680799965f49b4fbe1b5468498799')
+
+    def test_timing_prints_are_flushed_cumulative_and_identify_boundaries(self):
+        source=PATH.read_text();tree=ast.parse(source);dump=lambda n:ast.dump(n,include_attributes=False)
+        for function,anchor,side,stage,boundary in EXPORT_TIMING_SPECS:
+            node=ast.parse(export_timing_source(function,stage,boundary)).body[0]
+            fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name==function)
+            self.assertEqual(sum(dump(n)==dump(node) for n in ast.walk(fn)),1)
+            flushes=[]
+            class Output(io.StringIO):
+                def flush(self):flushes.append(True)
+            output=Output()
+            with redirect_stdout(output):
+                exec(compile(ast.Module(body=[node],type_ignores=[]),str(PATH),'exec'),
+                    {'json':json,'time':SimpleNamespace(perf_counter=lambda:123.5),'UNIT_STARTED':100.,
+                     'pass_index':1,'role':'gallery','start':32,'batch':[1,2],'args':SimpleNamespace(phase='export')})
+            marker=json.loads(output.getvalue());self.assertEqual(marker['seconds'],23.5)
+            self.assertEqual((marker['stage'],marker['boundary']),(stage,boundary));self.assertEqual(flushes,[True])
+            if function=='native_export':self.assertEqual(marker['pass_index'],1)
+            elif function=='export_pass':self.assertEqual((marker['role'],marker['batch_start'],marker['batch_size']),('gallery',32,2))
+            else:self.assertEqual(marker['phase'],'export')
+        output=io.StringIO()
+        with redirect_stdout(output):InferenceContractFixture().call('export')
+        markers=[json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([(m['role'],m['batch_start'],m['batch_size'],m['boundary']) for m in markers],
+            [(role,start,size,boundary) for role,start,size in
+             [('query',0,32),('query',32,1),('gallery',0,32),('gallery',32,2)] for boundary in ('begin','end')])
+        self.assertEqual([m['seconds'] for m in markers],sorted(m['seconds'] for m in markers))
 
 
 if __name__ == '__main__':
