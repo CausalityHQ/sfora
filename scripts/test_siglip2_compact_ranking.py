@@ -273,7 +273,7 @@ IMAGE_ANCHOR_ORIGINAL_NODES = (
     'cKZgjGrtw_=fSJL|NLR`>QnOTho2UoUgNtn&w%8<0Wo4q4d19V7lB-i6yGIfTFTfUz7_D$T-*F89b<U@$+!Ojprrd<'
 )
 IMAGE_ANCHOR_ORIGINAL_SHA256 = '549c67075e3c3891930d6dd88e5107baca896d289a9717d4f14f6da414bad3c5'
-IMAGE_ANCHOR_NODE_SHA256 = {'SCHEMA': '4218e5fed8dc8ccf25947498c501093963bd45c9ac6e600ae1c5ea3ffa3f71cd', 'AUTHORITY_SCHEMA': 'd0267ef02058481201845e0749ff1f32e9956cdf3d6509371df5243090f1784f', 'INFERENCE_SCHEMA': 'a5ffb29526ff524d9a6f350ca5d2a4c8626ba7812d3a6f22d7262c5c790197d1', 'BUNDLE_SCHEMA': 'a44ccb0ecea15bb47bc5c2dd53ae2590a3091fc044214bbe707cecdc9ce8ebbf', 'ANCHOR_ENDPOINT': 'cd7e9da091388fe766f95d82ee3c8b4fcd1a7793e76a97199ae57c778cabfc75', 'RECIPE': 'c661bea4e6031fe8fc4b88b38b840c1a806a3c3d2c1702adf7db2471a5a09456', 'loss_terms': '051c24eef6cb3c07f2e15365a24c15708ad0e9ff707a09fd44c8aea163c5e19f', 'authenticate_anchor_endpoint': 'f87fafbf53652cea35b28baa43cac396ec10316fb2d81c9e5bf534825622b9d6', 'anchor_displacement_witness': 'ad35be405d58e040fb7b0ed48b83d37deec1f73f99757ccf26daca027a8ab5d9', 'cpu_gradients': '8fd57518120408b8de8d0fd93e697c0836909ed2af1212e8c131cec457107fae', 'update': '793d55489d4454f5471c7268481f529bd223c84eb0cdd054e2a3b0f1c84d578c', 'check_steps': 'c4ef99bf95d4592f9f8d96795bfd84ad78ca591eae13d5040aef3f81e56ed052', 'cpu_witnesses': 'aca1bec7408e17521a6d28095ff4257f32a7a7143146e8047ffe044affad80d4', 'check_cpu_gradient': '6b853cd435af926813bfd591218c90d98e5ff4062c8a8e7538f84df042194327', 'check_terminal_record': '72f681866bd458e555c35e01439ed405c149264c3685e6f86e549d6dd879f833'}
+IMAGE_ANCHOR_NODE_SHA256 = {'SCHEMA': '4218e5fed8dc8ccf25947498c501093963bd45c9ac6e600ae1c5ea3ffa3f71cd', 'AUTHORITY_SCHEMA': 'd0267ef02058481201845e0749ff1f32e9956cdf3d6509371df5243090f1784f', 'INFERENCE_SCHEMA': 'a5ffb29526ff524d9a6f350ca5d2a4c8626ba7812d3a6f22d7262c5c790197d1', 'BUNDLE_SCHEMA': 'a44ccb0ecea15bb47bc5c2dd53ae2590a3091fc044214bbe707cecdc9ce8ebbf', 'ANCHOR_ENDPOINT': 'cd7e9da091388fe766f95d82ee3c8b4fcd1a7793e76a97199ae57c778cabfc75', 'RECIPE': 'c661bea4e6031fe8fc4b88b38b840c1a806a3c3d2c1702adf7db2471a5a09456', 'loss_terms': '051c24eef6cb3c07f2e15365a24c15708ad0e9ff707a09fd44c8aea163c5e19f', 'authenticate_anchor_endpoint': 'c40e8e35e917df89f54579a723405a0d30664fd5df951a5d6681ecc6ec3fcf39', 'anchor_displacement_witness': 'ad35be405d58e040fb7b0ed48b83d37deec1f73f99757ccf26daca027a8ab5d9', 'cpu_gradients': '8fd57518120408b8de8d0fd93e697c0836909ed2af1212e8c131cec457107fae', 'update': '793d55489d4454f5471c7268481f529bd223c84eb0cdd054e2a3b0f1c84d578c', 'check_steps': 'c4ef99bf95d4592f9f8d96795bfd84ad78ca591eae13d5040aef3f81e56ed052', 'cpu_witnesses': 'aca1bec7408e17521a6d28095ff4257f32a7a7143146e8047ffe044affad80d4', 'check_cpu_gradient': '6b853cd435af926813bfd591218c90d98e5ff4062c8a8e7538f84df042194327', 'check_terminal_record': '72f681866bd458e555c35e01439ed405c149264c3685e6f86e549d6dd879f833'}
 IMAGE_ANCHOR_TEST_BASE_AST_SHA256 = 'a8259716541ea82e38da84c5eececde611019ed4b25d315ae65492b9d594a602'
 IMAGE_ANCHOR_BASE_AST_SHA256 = '9b87c006e5f46a55ecdb79b015bad185161c5b7ad30fcd0d3c54026dceec5586'
 
@@ -2093,6 +2093,219 @@ def image_anchor_gradient_fixture(g):
 
 
 class ImageAnchorTests(unittest.TestCase):
+    @contextmanager
+    def native_identity_boundary(self):
+        """Run the real boundary and unchanged payload/optimizer checks without native imports."""
+        class Tensor:
+            requires_grad, grad_fn = False, None
+            def __init__(self, value, shape=(), dtype='torch.float32'):
+                self.value, self.shape, self.dtype = value, shape, dtype
+                self.device, self.ndim = SimpleNamespace(type='cpu'), len(shape)
+            def tolist(self): return self.value
+            def __float__(self): return float(self.value)
+
+        def typed(value):
+            if isinstance(value, Tensor):
+                return ('tensor', value.dtype, value.shape, typed(value.value))
+            if isinstance(value, dict):
+                return ('dict', sorted([(typed(k), typed(v)) for k, v in value.items()], key=repr))
+            if isinstance(value, (tuple, list)):
+                return (type(value).__name__, [typed(v) for v in value])
+            return (type(value).__name__, value)
+
+        def digest(value): return hashlib.sha256(repr(typed(value)).encode()).hexdigest()
+        trace = []
+        bank = SmoothAPTests().bank()
+        launch = {k: {} for k in ('nearest', 'fitter', 'accepted', 'readout', 'recipe', 'native_authority')}
+        launch['execution_sha256'] = driver.ANCHOR_ENDPOINT['source']['execution_sha256']
+        static = {k: {} for k in driver.STATIC_KEYS}
+        static.update(provenance={'encoder': {'original': True}},
+                      schedules={str(seed): Tensor([0], (128, 64), 'torch.int64') for seed in driver.SEEDS},
+                      classifier=Tensor([0.], (1008, 128)),
+                      target=Tensor(bank['target'], (6355,), 'torch.int64'),
+                      original_rows=Tensor(bank['original_rows'], (6355,), 'torch.int64'),
+                      teachers={name: Tensor([1.], shape, dtype) for name, shape, dtype in
+                                [('T', (6355, 128), 'torch.float32'), ('V', (6355, 128), 'torch.float32'),
+                                 ('P', (1008, 128), 'torch.float32'), ('counts', (1008,), 'torch.int64'),
+                                 ('e0', (), 'torch.float32')]},
+                      views={view: Tensor([1.], (6355, 1152)) for view in driver.VIEWS})
+        flags = {'grad_enabled': True, 'threads': 8}
+        source = {'original': True}
+        ident = {'method': driver.method(launch), 'source': source, 'arm': 'candidate',
+                 'ranking_bank_sha256': bank['sha256'], 'seed': 179061, 'device': 'cpu',
+                 'parameter_names': ['A'], 'parameter_shapes': [[128, 160]], 'numerical_flags': flags,
+                 'static_sha256': digest(static), 'initial_A_sha256': digest(Tensor([0.], (128, 160))),
+                 'optimizer_defaults': {**driver.ADAM, 'decoupled_weight_decay': True},
+                 'optimizer_groups': [{**driver.ADAM, 'decoupled_weight_decay': True}],
+                 'initial_scaler': {}, 'initial_cpu_rng_sha256': digest(Tensor([1], (1,), 'torch.uint8')),
+                 'initial_cuda_rng_sha256': None}
+        disk = {'schema': 'siglip2-compact-smooth-ap-v1', 'identity': ident, 'source': source, **static,
+                'A': Tensor([1.], (128, 160)), 'counter': 128, 'scaler': {}, 'numerical_flags': flags,
+                'cpu_rng': Tensor([1], (1,), 'torch.uint8'), 'cuda_rng': [],
+                'optimizer': {'param_groups': [{**ident['optimizer_groups'][0], 'params': [0]}],
+                              'state': {0: {'step': Tensor(128.), 'exp_avg': Tensor([.1], (128, 160)),
+                                            'exp_avg_sq': Tensor([.01], (128, 160))}}}}
+        baseline = digest(disk)
+        pin = copy.deepcopy(driver.ANCHOR_ENDPOINT)
+        original_code = copy.deepcopy(pin['source']['code'])
+        pin['terminal_state_sha256'], pin['A_sha256'] = baseline, digest(disk['A'])
+        endpoint = {'schema': 'siglip2-compact-smooth-ap-inference-v1', 'source': source,
+                    **{k: static[k] for k in ('config', 'buffers', 'processor', 'head', 'means')},
+                    'A': copy.deepcopy(disk['A']), 'numerical_flags': flags, 'vision_sha256': 'a'*64}
+        endpoint['fixed_sha256'] = digest(endpoint)
+        pin['inference_state_sha256'] = digest(endpoint)
+        record = {k: copy.deepcopy(pin[k]) for k in
+                  ('authority', 'checkpoint', 'bundle', 'terminal_state_sha256', 'inference_state_sha256')}
+        record.update(identity=json.loads(json.dumps(ident)), initial_A_sha256=ident['initial_A_sha256'])
+
+        def fingerprint(context, value, **kwargs):
+            if value is disk:
+                trace.append('complete typed state')
+                kwargs['consumed'](0, 1)
+            return digest(value)
+
+        def check_tensor(value, shape, device, frozen=True, dtype='torch.float32'):
+            driver.require(value.shape == shape and value.dtype == dtype and
+                           value.device is device and not value.requires_grad and value.grad_fn is None,
+                           'fixture tensor differs')
+
+        native_scope = {**vars(driver), 'SCHEMA': disk['schema'], 'fingerprint': fingerprint,
+                        'helper_guard': lambda context: SimpleNamespace(check_means=lambda *args: None)}
+        nodes = [copy.deepcopy(n) for n in ast.parse(PATH.read_text()).body
+                 if isinstance(n, ast.FunctionDef) and n.name in ('check_payload', 'check_optimizer')]
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), str(PATH), 'exec'), native_scope)
+        native_check = native_scope['check_payload']
+
+        def check_payload(context, saved, identity, step):
+            trace.append(('native check', identity is saved['identity']))
+            return native_check(context, saved, identity, step)
+
+        original = SimpleNamespace(check_payload=check_payload, INFERENCE_SCHEMA=endpoint['schema'],
+                                   admit_terminal=lambda *args: record,
+                                   admit_bundle=lambda *args: ({'endpoint_state_sha256': pin['inference_state_sha256']}, {}))
+        finite = SimpleNamespace(all=lambda: SimpleNamespace(item=lambda: True), item=lambda: True)
+        torch = SimpleNamespace(float32='torch.float32', int64='torch.int64', uint8='torch.uint8',
+                                isfinite=lambda value: finite,
+                                equal=lambda a, b: digest(a) == digest(b))
+        class Pages:
+            def __init__(self, stream): pass
+            def consume(self, *args): trace.append('checkpoint pages consumed')
+
+        def clone(context, value):
+            trace.append('clone admitted A')
+            return copy.deepcopy(value)
+
+        def loaded(name, path, sha, guards):
+            driver.require(name == '_compact_anchor_original' and
+                           path == Path(pin['source']['root']) / 'train_siglip2_compact_ranking.py' and
+                           sha == original_code['train_siglip2_compact_ranking.py'],
+                           'original source substitution')
+            return original
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'resume.pt'; path.write_bytes(b'checkpoint bytes')
+            pin['checkpoint'] = {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+            record['checkpoint'] = copy.deepcopy(pin['checkpoint'])
+            torch.load = lambda filename, **kwargs: disk if Path(filename) == path else endpoint
+            context = {'guards': {}, 'root': Path('/prospective'), 'required_guards': {},
+                       'initial_A_sha256': ident['initial_A_sha256'], 'initial_static_sha256': digest(static),
+                       'source': source, 'flags': flags, 'initial': static,
+                       'legacy': {'original': SimpleNamespace(CheckpointPages=Pages),
+                                  'quadratic': SimpleNamespace(_check_tensor=check_tensor)},
+                       'old': SimpleNamespace(check_encoder=lambda value: None, finite_tree=lambda value: None)}
+            with patch.dict(sys.modules, {'torch': torch}), \
+                 patch.object(driver, 'ANCHOR_ENDPOINT', pin), \
+                 patch.object(driver, 'closure', return_value=original_code), \
+                 patch.object(driver, 'load_authenticated', side_effect=loaded), \
+                 patch.object(driver, 'read_json', return_value=launch), \
+                 patch.object(driver, 'fingerprint', side_effect=fingerprint), \
+                 patch.object(driver, 'clone', side_effect=clone):
+                yield SimpleNamespace(context=context, disk=disk, record=record, pin=pin, original=original,
+                                      native_check=native_check, baseline=baseline, digest=digest, trace=trace)
+
+    def test_native_identity_json_binding_passes_unchanged_strict_payload(self):
+        # Passing the JSON identity directly reproduces the measured tuple/list failure.
+        with self.native_identity_boundary() as case:
+            with self.assertRaisesRegex(ValueError, 'complete payload identity differs'):
+                case.native_check(case.context, case.disk, case.record['identity'], 128)
+            before = case.digest(case.disk)
+            try:
+                A, original = driver.authenticate_anchor_endpoint(case.context)
+            except ValueError as error:
+                self.fail('matching native identity/JSON receipt rejected: ' + str(error))
+            self.assertIs(original, case.original)
+            self.assertEqual(case.digest(A), case.pin['A_sha256'])
+            self.assertEqual(case.digest(case.disk), before)
+            self.assertEqual(case.trace, [('native check', True), 'complete typed state',
+                                         'checkpoint pages consumed', 'clone admitted A'])
+
+    def test_native_identity_binding_rejects_every_field_and_json_type_substitution(self):
+        with self.native_identity_boundary() as case:
+            pristine = copy.deepcopy(case.record['identity'])
+            for key in pristine:
+                case.record['identity'] = copy.deepcopy(pristine)
+                case.record['identity'][key] = 'substituted'
+                case.trace.clear()
+                with self.subTest(field=key), self.assertRaises(ValueError):
+                    driver.authenticate_anchor_endpoint(case.context)
+                self.assertNotIn('clone admitted A', case.trace)
+            for key in pristine:
+                case.record['identity'] = copy.deepcopy(pristine)
+                case.record['identity'].pop(key)
+                with self.subTest(missing=key), self.assertRaises((ValueError, KeyError)):
+                    driver.authenticate_anchor_endpoint(case.context)
+            case.record['identity'] = {**pristine, 'extra': None}
+            with self.assertRaises(ValueError): driver.authenticate_anchor_endpoint(case.context)
+            mutations = [('optimizer_defaults', 'betas', [0.8, 0.999]),
+                         ('optimizer_groups', 'betas', [0.9, 0.99]),
+                         ('optimizer_defaults', 'amsgrad', 0),
+                         ('numerical_flags', 'grad_enabled', 1),
+                         ('numerical_flags', 'threads', 8.0)]
+            for section, key, value in mutations:
+                case.record['identity'] = copy.deepcopy(pristine)
+                member = case.record['identity'][section]
+                if isinstance(member, list): member = member[0]
+                member[key] = value
+                with self.subTest(section=section, key=key), self.assertRaises(ValueError):
+                    driver.authenticate_anchor_endpoint(case.context)
+            case.record['identity'] = copy.deepcopy(pristine)
+            case.record['identity']['seed'] = 179061.0
+            with self.assertRaises(ValueError): driver.authenticate_anchor_endpoint(case.context)
+
+    def test_native_identity_projection_cannot_replace_complete_typed_checkpoint_pin(self):
+        with self.native_identity_boundary() as case:
+            pristine = copy.deepcopy(case.disk)
+            mutations = [lambda d: d['identity']['optimizer_defaults'].__setitem__('betas', [0.9, 0.999]),
+                         lambda d: d['optimizer']['state'][0]['exp_avg'].__setattr__('value', [.2]),
+                         lambda d: d.__setitem__('source', {'original': 1}),
+                         lambda d: d['identity']['optimizer_groups'][0].__setitem__('betas', (0.8, 0.999)),
+                         lambda d: d.__setitem__('counter', True)]
+            for index, mutate in enumerate(mutations):
+                case.disk.clear(); case.disk.update(copy.deepcopy(pristine)); mutate(case.disk)
+                case.trace.clear()
+                with self.subTest(mutation=index), self.assertRaises(ValueError):
+                    driver.authenticate_anchor_endpoint(case.context)
+                self.assertNotIn('clone admitted A', case.trace)
+                if index < 3:
+                    self.assertIn('complete typed state', case.trace)
+            case.disk.clear(); case.disk.update(pristine)
+            terminal_sha = case.pin['terminal_state_sha256']
+            case.pin['terminal_state_sha256'] = case.record['terminal_state_sha256'] = '0'*64
+            case.trace.clear()
+            with self.assertRaisesRegex(ValueError, 'complete typed state differs'):
+                driver.authenticate_anchor_endpoint(case.context)
+            self.assertIn('complete typed state', case.trace)
+            self.assertNotIn('clone admitted A', case.trace)
+            case.pin['terminal_state_sha256'] = case.record['terminal_state_sha256'] = terminal_sha
+            checkpoint_sha = case.pin['checkpoint']['sha256']
+            case.pin['checkpoint']['sha256'] = '0'*64
+            case.record['checkpoint'] = copy.deepcopy(case.pin['checkpoint'])
+            with self.assertRaises(ValueError): driver.authenticate_anchor_endpoint(case.context)
+            case.pin['checkpoint']['sha256'] = checkpoint_sha
+            case.record['checkpoint'] = copy.deepcopy(case.pin['checkpoint'])
+            case.pin['source']['code']['train_siglip2_compact_ranking.py'] = '0'*64
+            with self.assertRaises(ValueError): driver.authenticate_anchor_endpoint(case.context)
+
     def test_both_arm_receipts_zero_and_target_difference_are_authenticated(self):
         self.assertTrue(hasattr(driver, 'ANCHOR_ENDPOINT'), 'discarded historical endpoint must be pinned')
         bank = SmoothAPTests().bank()

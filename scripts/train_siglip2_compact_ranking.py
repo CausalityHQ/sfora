@@ -763,7 +763,12 @@ def authenticate_anchor_endpoint(context):
     disk = torch.load(path, map_location='cpu', weights_only=True, mmap=True)
     with path.open('rb') as stream:
         pages = context['legacy']['original'].CheckpointPages(stream)
-        original.check_payload(historical, disk, record['identity'], 128)
+        # JSON projects native AdamW betas tuples to lists. Bind the complete
+        # receipt representation; the mandatory typed state pin below preserves
+        # tuple/list and all other native types independently of this projection.
+        require(json_sha256(disk['identity']) == json_sha256(record['identity']),
+                'discarded anchor native identity/JSON receipt differs')
+        original.check_payload(historical, disk, disk['identity'], 128)
         require(fingerprint(context, disk, consumed=pages.consume) == pin['terminal_state_sha256'],
                 'discarded anchor complete typed state differs')
         A = clone(context, disk['A'])
