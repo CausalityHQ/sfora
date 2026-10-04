@@ -1,0 +1,10 @@
+{
+  "original_session": 30475,
+  "original_invocation": "1a42a97c622340fa93556fe3f11889db",
+  "original_exit": 1,
+  "cause": "global string substitutions mapped control wire digests to candidate digests when historical wire hashes coincided",
+  "repair": "bind each complete wire path to actual accepted endpoint receipt digest; six rows corrected",
+  "source_authority_model_scientific_gates": "unchanged",
+  "quality_read": false,
+  "next": "one new score-v2 launch after full shell prehash passes"
+}
