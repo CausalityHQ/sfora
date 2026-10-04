@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "train",
+  "arm": "control",
+  "service_seconds": 419.282,
+  "invocation_id": "53febd96033a43cba08c5b3ec414a381",
+  "host_peak_bytes": 7408779264,
+  "rss_kib": 4645796,
+  "unit": "sfora-so400-live-top1-train-control-179061-v1",
+  "quality_read": false,
+  "receipt_sha256": "5c12a68fe86f8c9f05100c767431a22a57468488fe19ad1ea16d5d59893bbc3c",
+  "log_sha256": "d424a62d13e6074ff8ce6945769fbc5e3da570d14563b5489f507c2165138221"
+}
