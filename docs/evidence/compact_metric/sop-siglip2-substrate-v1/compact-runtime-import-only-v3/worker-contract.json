@@ -1,0 +1,446 @@
+{
+  "actual_record_check": {
+    "all_17_metadata_and_11_source_records_sha_and_row_hash_size_match": true,
+    "inventory": "/tmp/sfora-compact-lazy-runtime-inventory-20261003.json",
+    "inventory_sha256": "8376c99362c3b8066336b23850083d661afc04b90b8007dc393acfa43fa1c51d",
+    "record_count": 196
+  },
+  "added_files": [
+    "accelerate-1.14.0.dist-info/METADATA",
+    "aiohttp-3.14.1.dist-info/METADATA",
+    "filelock-3.29.4.dist-info/METADATA",
+    "hf_xet-1.5.1.dist-info/METADATA",
+    "httpx-0.28.1.dist-info/METADATA",
+    "huggingface_hub-1.16.1.dist-info/METADATA",
+    "jinja2-3.1.6.dist-info/METADATA",
+    "numpy-2.5.0.dist-info/METADATA",
+    "packaging-26.2.dist-info/METADATA",
+    "pillow-12.2.0.dist-info/METADATA",
+    "pydantic-2.13.4.dist-info/METADATA",
+    "pyyaml-6.0.3.dist-info/METADATA",
+    "regex-2026.6.28.dist-info/METADATA",
+    "safetensors-0.8.0.dist-info/METADATA",
+    "tokenizers-0.22.2.dist-info/METADATA",
+    "torch-2.12.1.dist-info/METADATA",
+    "tqdm-4.68.3.dist-info/METADATA",
+    "tqdm/__init__.py",
+    "tqdm/_monitor.py",
+    "tqdm/_tqdm_pandas.py",
+    "tqdm/asyncio.py",
+    "tqdm/auto.py",
+    "tqdm/autonotebook.py",
+    "tqdm/cli.py",
+    "tqdm/gui.py",
+    "tqdm/std.py",
+    "tqdm/utils.py",
+    "tqdm/version.py"
+  ],
+  "added_record_groups": [
+    "accelerate",
+    "aiohttp",
+    "filelock",
+    "hf_xet",
+    "numpy",
+    "pillow",
+    "pydantic",
+    "pyyaml",
+    "safetensors",
+    "torch",
+    "tqdm"
+  ],
+  "base_commit": "933e9ea1a485728fc18e6a963a325de6b07c5ced",
+  "check": "timeout 55s python3 scripts/test_compact_ranking_evaluation.py",
+  "clean_worktree": true,
+  "commit": "dcc449cfdd811cb604361af674d6c3c9bf4cf62e",
+  "commit_identity_preserved": true,
+  "commit_parent": "933e9ea1a485728fc18e6a963a325de6b07c5ced",
+  "helper_change_ledger": [],
+  "helpers_changed": [],
+  "metadata": {
+    "accelerate-1.14.0.dist-info/METADATA": {
+      "name_version": [
+        "Name: accelerate",
+        "Version: 1.14.0"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/accelerate-1.14.0.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/accelerate-1.14.0.dist-info/RECORD",
+      "record_sha256": "8d047d874c41ce5f5a162bad06eee5c5f7d9d6ee066132709db25799fab79aa5",
+      "sha256": "ed1c0dd9cca2d1449bbae7d641208431f5fccc7d5e06e20bec802c1d81340f6c",
+      "size_bytes": 19552
+    },
+    "aiohttp-3.14.1.dist-info/METADATA": {
+      "name_version": [
+        "Name: aiohttp",
+        "Version: 3.14.1"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/aiohttp-3.14.1.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/aiohttp-3.14.1.dist-info/RECORD",
+      "record_sha256": "b016e2c6cbac7debccac6ae94d92138e790cc4d7a9f19f47f76631cb8ebc1a11",
+      "sha256": "952aede2d0ed99def28680d24c4ab434da14f1c4838df0c902e38208758a8a5d",
+      "size_bytes": 8262
+    },
+    "filelock-3.29.4.dist-info/METADATA": {
+      "name_version": [
+        "Name: filelock",
+        "Version: 3.29.4"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/filelock-3.29.4.dist-info/RECORD",
+      "record_sha256": "1b5c00d7c2bd762401bc8160b1803b53ea4f7bbe07ce978156a1580532b3b5f0",
+      "sha256": "a4a717e4eec75f68d34d6d63dc6896849718da2f022c3821ac8abc327889cca6",
+      "size_bytes": 1977
+    },
+    "hf_xet-1.5.1.dist-info/METADATA": {
+      "name_version": [
+        "Name: hf-xet",
+        "Version: 1.5.1"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/hf_xet-1.5.1.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/hf_xet-1.5.1.dist-info/RECORD",
+      "record_sha256": "001e22eb2c5c3f1bc034bebd02f942f355a0c49d883497939c4b05e2c66d8cd1",
+      "sha256": "360dcd22eacb566b317c7ad0cc1d2156995459d7c38f23e0381d6f578df353db",
+      "size_bytes": 4882
+    },
+    "httpx-0.28.1.dist-info/METADATA": {
+      "name_version": [
+        "Name: httpx",
+        "Version: 0.28.1"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/httpx-0.28.1.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/httpx-0.28.1.dist-info/RECORD",
+      "record_sha256": "a5449a13631ac2762422f2027fb3731fe1d5f3a4e3fd4103f8cb47bdc9ca0f49",
+      "sha256": "febb9b0f8f3e80d57c8199c304f35c4336e8581d1d18d7983c92766b82793b25",
+      "size_bytes": 7052
+    },
+    "huggingface_hub-1.16.1.dist-info/METADATA": {
+      "name_version": [
+        "Name: huggingface_hub",
+        "Version: 1.16.1"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974",
+      "sha256": "bab9b693ac41ff64ebb8a28136d8224099f608111d3ac4764e1eb7f3dbdef5f0",
+      "size_bytes": 14029
+    },
+    "jinja2-3.1.6.dist-info/METADATA": {
+      "name_version": [
+        "Name: Jinja2",
+        "Version: 3.1.6"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/jinja2-3.1.6.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/jinja2-3.1.6.dist-info/RECORD",
+      "record_sha256": "4551b3fb657b85a9f01e961c0f8a235da65d758149b619400211964b3ac02bdc",
+      "sha256": "68c5548fb67c4132a13898d9b31ec50c6bea2abdd915d921f214355c3a6499c8",
+      "size_bytes": 2871
+    },
+    "numpy-2.5.0.dist-info/METADATA": {
+      "name_version": [
+        "Name: numpy",
+        "Version: 2.5.0"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy-2.5.0.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy-2.5.0.dist-info/RECORD",
+      "record_sha256": "b4a13c4b14794c2d2e68dd696c60d607b92c8d47b910387ebb873da05dfb07b7",
+      "sha256": "981cedfa033b69d5a8e153e42cf5f26f7027dd0b3701c37d8d8a2b83e8315d48",
+      "size_bytes": 6584
+    },
+    "packaging-26.2.dist-info/METADATA": {
+      "name_version": [
+        "Name: packaging",
+        "Version: 26.2"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/packaging-26.2.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/packaging-26.2.dist-info/RECORD",
+      "record_sha256": "34a791dcc687723f1d7601aa68319f6d51aa00e44d85818995dd33a1b7c5a49c",
+      "sha256": "4f9cbcd7933415a4793f7767c98a2b6a512c823fc81c87337815705f230ecabf",
+      "size_bytes": 3543
+    },
+    "pillow-12.2.0.dist-info/METADATA": {
+      "name_version": [
+        "Name: pillow",
+        "Version: 12.2.0"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow-12.2.0.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow-12.2.0.dist-info/RECORD",
+      "record_sha256": "8de925cdea027e23eb79d2ae1db52ed6c485b322395c378699b562de7ba41ad7",
+      "sha256": "f921b97ad0d1c94e6e0fe84ac579c998f2c285a8b35f7f934d3fa0c2657e65ab",
+      "size_bytes": 8814
+    },
+    "pydantic-2.13.4.dist-info/METADATA": {
+      "name_version": [
+        "Name: pydantic",
+        "Version: 2.13.4"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pydantic-2.13.4.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pydantic-2.13.4.dist-info/RECORD",
+      "record_sha256": "d0cbe0f34b294885175920bc8f2ece0b3ed6d9874347dc9cfb2caf4931329272",
+      "sha256": "d1e56c3412492512fb6b59a9dfc25ab7af2a8204585cd7bca000513023133394",
+      "size_bytes": 109397
+    },
+    "pyyaml-6.0.3.dist-info/METADATA": {
+      "name_version": [
+        "Name: PyYAML",
+        "Version: 6.0.3"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyyaml-6.0.3.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyyaml-6.0.3.dist-info/RECORD",
+      "record_sha256": "8818c55650bde56d11ed290d106da43d47183196262fab93fdc665c4528bbff1",
+      "sha256": "03c3b415ed38d09faedc49360e930769b40c58f68585e6de00e2e4916a858d34",
+      "size_bytes": 2351
+    },
+    "regex-2026.6.28.dist-info/METADATA": {
+      "name_version": [
+        "Name: regex",
+        "Version: 2026.6.28"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/regex-2026.6.28.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/regex-2026.6.28.dist-info/RECORD",
+      "record_sha256": "fe3c06cc01b6f611bb04f480ddfd0e5f3bf89b1cba50bcbcabe4ac1c5e38a25f",
+      "sha256": "eedd62bd4a7cbff15d27582b1694f2f0a393207583b54943ee1945e3ea693bc0",
+      "size_bytes": 40469
+    },
+    "safetensors-0.8.0.dist-info/METADATA": {
+      "name_version": [
+        "Name: safetensors",
+        "Version: 0.8.0"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/safetensors-0.8.0.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/safetensors-0.8.0.dist-info/RECORD",
+      "record_sha256": "9592d8bfcc4a9097caddcf2c5d94aeaf974ad063ad52ab82c900c846c7e42857",
+      "sha256": "645be7b8d55e91534f991d144dc9e279581ea8dbea1a8c5b0be14e529d01e345",
+      "size_bytes": 4189
+    },
+    "tokenizers-0.22.2.dist-info/METADATA": {
+      "name_version": [
+        "Name: tokenizers",
+        "Version: 0.22.2"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tokenizers-0.22.2.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tokenizers-0.22.2.dist-info/RECORD",
+      "record_sha256": "7c6dcc4efa10879468557f4d109b8ca3af93e45597e1dfaac1b613ed15377ee5",
+      "sha256": "15a5ddaf489f592b77e0a934c0eeb46b51130a94064ca129232afdb0a3868efc",
+      "size_bytes": 7254
+    },
+    "torch-2.12.1.dist-info/METADATA": {
+      "name_version": [
+        "Name: torch",
+        "Version: 2.12.1"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch-2.12.1.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch-2.12.1.dist-info/RECORD",
+      "record_sha256": "0b91e2d302bea2a9cca72c3ff22dae3900c4fc30de4398af6b293b24b8057d12",
+      "sha256": "a0e493588a0381cc478d848e7f7a334ef7f17e8973c70b657867a5eeadb732df",
+      "size_bytes": 31974
+    },
+    "tqdm-4.68.3.dist-info/METADATA": {
+      "name_version": [
+        "Name: tqdm",
+        "Version: 4.68.3"
+      ],
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/METADATA",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "98621356df8219c5972176d6f32f2328b7da04a9ec7261b350cb10172cc4b7d3",
+      "size_bytes": 57356
+    }
+  },
+  "native_execution_performed": false,
+  "original_cpu_authority": {
+    "all_added_row_record_pins_match": true,
+    "guard_count": 15474,
+    "guard_field": "input_guards",
+    "path": "/tmp/compact-evaluation-first-cpu-v5-receipt.json",
+    "record_count": 196,
+    "sha256": "55159154c0ca26766c6ad56685a88d426aa190642aa894ff359632ce47d5f8ec"
+  },
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "production_ast_except_runtime_sources_sha256": "c075861f24d194542f0c7a3d3b4cda311b5536ed88e38b33aac10a0a079cd0d8",
+  "production_edit": "RUNTIME_SOURCES only; no helper changes",
+  "removed_files": [],
+  "resource_prohibitions": [
+    "third-party imports",
+    "native",
+    "SSH",
+    "GPU",
+    "cloud",
+    "quality",
+    "model/images",
+    "review",
+    "children",
+    "push"
+  ],
+  "root_failure": {
+    "blocked": "tqdm/__pycache__/auto.cpython-313.pyc",
+    "qualification_eligible": false,
+    "seconds": 9.705,
+    "session": 9664
+  },
+  "runtime_qualification": "UNVERIFIED; parent owns next import-only diagnostic",
+  "schema": "sfora-compact-tqdm-metadata-runtime-contract-v1",
+  "snapshots": {
+    "/tmp/sfora-compact-hub-source-closure-20261004.json": "f85bccd312cdb08189f3f408dc57a4bdc0279d47c8389102e6dfb9f8e26bfc94",
+    "/tmp/sfora-compact-tqdm-metadata-context-20261004.json": "ac5dccd050873241fbb9c7b8cf40d9e9440966adfcb225485f73e1532eb026f0"
+  },
+  "source_evidence": {
+    "huggingface_hub/utils/_runtime.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/utils/_runtime.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub-1.16.1.dist-info/RECORD",
+      "record_sha256": "7d2da605b323760988e5322c2d467ec81a0511c509f4382bbcbeea3590b65974",
+      "sha256": "19527f0edeb2ff8f13656974ba2f723dd5bc33baea19b9511b252a29a5f1902a",
+      "size_bytes": 13493
+    },
+    "transformers/dependency_versions_check.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/dependency_versions_check.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers-5.12.1.dist-info/RECORD",
+      "record_sha256": "bc11c8f3af7ac6e49732eaaa0325ce116fe2bfad44d070f9f7f33d17ef884602",
+      "sha256": "523dcce519f7f0c0e32e0e6af43033d931a739dbe4743a70ad2af11a356e9103",
+      "size_bytes": 2099
+    },
+    "transformers/utils/versions.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/versions.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers-5.12.1.dist-info/RECORD",
+      "record_sha256": "bc11c8f3af7ac6e49732eaaa0325ce116fe2bfad44d070f9f7f33d17ef884602",
+      "sha256": "ef9e6254e79422f28d8086da0a43bc3f43fdc4e0191487f70bd128b8f831c45d",
+      "size_bytes": 4306
+    }
+  },
+  "source_sha256": {
+    "scripts/evaluate_siglip2_compact_ranking.py": "9ccafa3fd45cc8c9511907fe6b205729e3d07d787d8952d6881939f167c43761",
+    "scripts/test_compact_ranking_evaluation.py": "a0c5b9a81f143d9070c4c168b7022acf0b2770e1fe96d48a487ef1bab9b97c5a"
+  },
+  "status": "VERIFIED_SOURCE_ONLY",
+  "tests": [
+    "test_exact_source_stage_seed_and_roles",
+    "test_pre_native_partition_and_pinned_source_adapter",
+    "test_partition_order_descriptor_cache_and_hash_rejected_before_source",
+    "test_first_screen_never_bootstraps",
+    "test_full_equal_seed_floor_sign_and_intervals",
+    "test_each_seed_core_and_whole_cost_boundary",
+    "test_no_quality_before_readiness",
+    "test_diagnostic_and_native_roles",
+    "test_strict_files_closure_and_restored_mtime",
+    "test_bundle_boundary_denies_train_warm_optimizer_reads",
+    "test_bundle_boundary_imports_record_pinned_source_without_cached_code",
+    "test_bundle_boundary_rejects_missing_mutated_and_foreign_runtime",
+    "test_bundle_boundary_sequential_lazy_sources_and_exact_original_native",
+    "test_bundle_boundary_processor_dependency_sources_have_exact_origins",
+    "test_hub_runtime_source_contract_is_finite",
+    "test_hub_runtime_sources_require_original_record_hash_and_size",
+    "test_bundle_boundary_hub_utils_cached_source_fallback_and_denials",
+    "test_bundle_boundary_tqdm_auto_source_fallback_and_metadata_reads",
+    "test_tqdm_metadata_rows_require_original_record_hash_and_size",
+    "test_tqdm_metadata_and_source_mutations_are_rejected",
+    "test_bundle_boundary_native_grants_require_record_guard_and_original_cpu_origin",
+    "test_partial_metadata_receipt_and_foreign_bindings_rejected",
+    "test_whole_unit_resource_caps",
+    "test_owned_native_api_exit_and_exact_membership",
+    "test_source_order_bundle_loader_and_no_global_rebinding"
+  ],
+  "tests_planned": [
+    "test_bundle_boundary_tqdm_auto_source_fallback_and_metadata_reads",
+    "test_tqdm_metadata_rows_require_original_record_hash_and_size",
+    "test_tqdm_metadata_and_source_mutations_are_rejected"
+  ],
+  "tqdm_sources": {
+    "tqdm/__init__.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/__init__.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "f6640d6124aa3fdf496acb9b102d4f3892cc9a1924047e9c259c4f211e46da94",
+      "size_bytes": 1572
+    },
+    "tqdm/_monitor.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/_monitor.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "d5571abeea2d61237a2bed636e936ecba1d8b6bde6c28e4d87f8d9310fa38370",
+      "size_bytes": 4013
+    },
+    "tqdm/_tqdm_pandas.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/_tqdm_pandas.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "73d8e9b5482280de9ac510e145de1189ff7c4e6c5ea297359c5345848a5b1541",
+      "size_bytes": 888
+    },
+    "tqdm/asyncio.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/asyncio.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "77abd9f3c645abaceaded016a64227076c484d528234405a92e766ffef17b5ff",
+      "size_bytes": 2758
+    },
+    "tqdm/auto.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/auto.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "9c365f963ea9db32a48c108d068babae14bcd7361f672d7f750bdb724add5bca",
+      "size_bytes": 871
+    },
+    "tqdm/autonotebook.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/autonotebook.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "da9360182243b1eb0d372627992bdef013502e2192828f7b4ac3e83170ab3514",
+      "size_bytes": 1440
+    },
+    "tqdm/cli.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/cli.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "b758ff3ea2344ae3328491a807130f09763e5136df8dc89a010631014fdffd5d",
+      "size_bytes": 11011
+    },
+    "tqdm/gui.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/gui.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "99a43b8e007995e587c313256c1bf4f21a5ee65cadbe61f4844011bb6d8645d5",
+      "size_bytes": 5481
+    },
+    "tqdm/std.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/std.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "fd3f8e288d4f0442b2fc95803960aaf4c38e60c8f1a95abc969af7cff6085540",
+      "size_bytes": 57728
+    },
+    "tqdm/utils.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/utils.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "a3f7f4577d87ff0ae7d179919e8de3f6927dc65a79c4bd1f1d3de0b6a2fe939f",
+      "size_bytes": 9746
+    },
+    "tqdm/version.py": {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm/version.py",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tqdm-4.68.3.dist-info/RECORD",
+      "record_sha256": "d260766fcf3b6866d904c27b7f64fc171618af3d2ce1c42b8dc29dffc7261076",
+      "sha256": "d2e1f84cb7bc23c1fbd71dbd7659ad11904e6cb4f76f9216fa7cad177574215c",
+      "size_bytes": 233
+    }
+  },
+  "verification": {
+    "diff_check_exit_status": 0,
+    "production_outside_finite_constant_unchanged": true,
+    "red": "New real SourceFileLoader test failed at unpinned tqdm/__pycache__/auto.cpython-314.pyc before production edit",
+    "suite": {
+      "command": "timeout 55s python3 scripts/test_compact_ranking_evaluation.py",
+      "exit_status": 0,
+      "log": "/tmp/sfora-compact-tqdm-metadata-runtime-suite-20261004.log",
+      "log_sha256": "29485b735cb70b58d7cfe8b84ef827d566d4c2da1d394f1d0266673a4f39792a",
+      "seconds": 25.519,
+      "tests": 25
+    },
+    "syntax_compile_exit_status": 0,
+    "targeted": {
+      "exit_status": 0,
+      "seconds": 1.324,
+      "tests": 3
+    }
+  }
+}
