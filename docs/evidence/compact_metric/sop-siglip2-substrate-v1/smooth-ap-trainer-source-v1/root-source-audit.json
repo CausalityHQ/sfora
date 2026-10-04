@@ -1,0 +1,51 @@
+{
+  "baseline": "7a0b98408186a3a9248b0f60c487c311cd61ea22",
+  "actual_source_sha256": "74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679",
+  "changed": [
+    "assignment:AUTHORITY_SCHEMA",
+    "assignment:BUNDLE_SCHEMA",
+    "assignment:INFERENCE_SCHEMA",
+    "assignment:RECIPE",
+    "assignment:SCHEMA",
+    "check_launch",
+    "check_payload",
+    "check_steps",
+    "check_terminal_record",
+    "cpu_gradients",
+    "cpu_witnesses",
+    "fresh",
+    "gpu_run",
+    "identity",
+    "integrity",
+    "loss_denominators",
+    "loss_terms",
+    "update"
+  ],
+  "added": [
+    "check_cpu_gradient",
+    "check_ranking_bank",
+    "json_sha256",
+    "ranking_bank",
+    "ranking_membership",
+    "smooth_ap_terms"
+  ],
+  "removed": [
+    "mine"
+  ],
+  "critical_unchanged": [
+    "prepare_native",
+    "raw_features",
+    "payload",
+    "restore",
+    "save",
+    "load_inference",
+    "inference_outputs",
+    "export_bundle",
+    "qualify_bundle",
+    "policy",
+    "authority"
+  ],
+  "final_commit_pending": true,
+  "unchanged_top_level_non_assignment_nodes": 69,
+  "unchanged_function_count": 47
+}

@@ -1,0 +1,267 @@
+{
+  "API": {
+    "admit_bundle": "admit_bundle(directory,sha) unchanged; prospective bundle schema mandatory",
+    "check_launch": "check_launch(launch,args) unchanged",
+    "check_payload": "check_payload(context,saved,ident,step) unchanged; prospective schema/method mandatory",
+    "check_steps": "check_steps(rows,start,count,bank); complete all-positive membership reconstructed from bound bank",
+    "check_terminal_record": "check_terminal_record(record,launch,phase,arm,seed) unchanged; prospective schema and complete bank/witnesses mandatory",
+    "inference_outputs": "inference_outputs(endpoint,images) unchanged",
+    "load_inference": "load_inference(directory,bundle_sha256,device) unchanged; prospective endpoint schema mandatory",
+    "loss_denominators": "loss_denominators(full_valid)->(128,2*full_valid or None)",
+    "loss_terms": "loss_terms(context,state,raw,anchors,full_valid)->(regression,ranking,membership plus active); same call shape",
+    "method": "method(launch) unchanged",
+    "ranking_bank": "ranking_bank(targets,original_rows)->{target,original_rows,sha256}; stdlib exact typed bank digest",
+    "ranking_membership": "ranking_membership(bank,anchors)->{positive:[all eligible positive ordinal lists],eligible_counts:[counts],eligible_sha256:[digests],valid:int}; digest of full canonical ordinal eligible list excludes original image",
+    "release_inference": "release_inference(endpoint) unchanged",
+    "smooth_ap_terms": "smooth_ap_terms(scores,positive,eligible)->FP32 per-positive 1-rp/rt tensor; bounded positive-by-bank, no gallery square"
+  },
+  "CLI": {
+    "arm": [
+      "control",
+      "candidate"
+    ],
+    "entrypoint": "train_siglip2_compact_ranking.py",
+    "optimized_modes": "-O/-OO reject before native imports",
+    "ordered_flags": [
+      "--execution-sha256",
+      "--authority",
+      "--authority-sha256",
+      "--phase",
+      "--arm",
+      "--seed",
+      "--output"
+    ],
+    "phase": [
+      "cpu",
+      "mechanics",
+      "train"
+    ],
+    "seed": [
+      179061,
+      179069
+    ]
+  },
+  "INFERENCE_KEYS": [
+    "A",
+    "buffers",
+    "config",
+    "fixed_sha256",
+    "head",
+    "means",
+    "numerical_flags",
+    "processor",
+    "schema",
+    "source",
+    "vision_sha256"
+  ],
+  "LAUNCH_KEYS": [
+    "accepted",
+    "arm",
+    "both_locks_held",
+    "execution_sha256",
+    "fitter",
+    "native_authority",
+    "nearest",
+    "phase",
+    "readout",
+    "recipe",
+    "resource_policy",
+    "schema",
+    "seed",
+    "selected_cpu",
+    "selected_mechanics"
+  ],
+  "PAYLOAD_KEYS": [
+    "A",
+    "buffers",
+    "classifier",
+    "config",
+    "counter",
+    "cpu_rng",
+    "cuda_rng",
+    "head",
+    "identity",
+    "means",
+    "numerical_flags",
+    "optimizer",
+    "original_rows",
+    "partition",
+    "processor",
+    "provenance",
+    "scaler",
+    "schedules",
+    "schema",
+    "source",
+    "target",
+    "teachers",
+    "views"
+  ],
+  "RECIPE": {
+    "adamw": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "capturable": false,
+      "differentiable": false,
+      "eps": 1e-08,
+      "foreach": false,
+      "fused": false,
+      "lr": 0.0001,
+      "maximize": false,
+      "weight_decay": 0.05
+    },
+    "batch": 64,
+    "classes": 1008,
+    "clip": 1.0,
+    "core": "cache/target preparation + both-arm all-positive scoring + both-view forward/backward + optimizer",
+    "frozen": "complete encoder448/config/buffers/processor/head/classifier/means",
+    "initial_scaler": 128.0,
+    "microbatch": 16,
+    "mining": "all6355 canonical frozen bank; exclude same original image; all same-identity positives; canonical ordinal traversal",
+    "ranking": "candidate coefficient1; both score all positives; SmoothAP sum / (2*K)",
+    "readout": "original CPU-renormalized genuine features; FP32 all; autocast disabled",
+    "regression": "both same-row views coordinate sum / (128*e0)",
+    "rows": 6355,
+    "schedule": "original first128 B64 per seed; warm-authenticated; masks unused",
+    "seeds": [
+      179061,
+      179069
+    ],
+    "singletons": 12,
+    "teacher": "accepted canonical T; member-inclusive P; normalize(T); both-view e0",
+    "temperature": 0.01,
+    "trainable_names": [
+      "A"
+    ],
+    "trainable_scalars": 20480,
+    "trainable_shapes": [
+      [
+        128,
+        160
+      ]
+    ],
+    "updates": 128,
+    "views": [
+      "canonical",
+      "augmented"
+    ]
+  },
+  "STATIC_KEYS": [
+    "provenance",
+    "config",
+    "buffers",
+    "processor",
+    "head",
+    "classifier",
+    "means",
+    "partition",
+    "original_rows",
+    "target",
+    "schedules",
+    "views",
+    "teachers"
+  ],
+  "base_commit": "7a0b98408186a3a9248b0f60c487c311cd61ea22",
+  "final_code": {
+    "test_siglip2_compact_ranking.py": "5834df438ac32dd98244d7b24bb19e94e173169b19ea6770ba7db2eff0c0f72b",
+    "train_siglip2_compact_ranking.py": "74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679"
+  },
+  "final_commit": "850cab6efdcd2fbb574a5fc18f41fde73c0d638e",
+  "final_execution": {
+    "path": "/tmp/sfora-smooth-ap-compact-trainer-execution.json",
+    "sha256": "bf3efd0040a6cccefde9414839a8cf4943e6a2a52c49f701b865a771def7e272"
+  },
+  "immutable_reference_closures": {
+    "ACCEPTED": {
+      "arm": "concat",
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt",
+        "sha256": "b702e03847be88540ee9711b420279e3bc131fafc475f361eca3d57cf3b8bbcf"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json",
+        "sha256": "109b6fded3f4559fcee3822536abd5beeed5f4ffc23f4313b87904faa6c39630"
+      },
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "94a84de4194f42f0842cee5b5c8f932a",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log",
+          "sha256": "93c2f7024116fc63d8e7cacc1a4e0106d2d57e9ca57d794c866e9bcc77311197"
+        },
+        "native_peak_rss_kib": 2854356,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json",
+          "sha256": "b4af0fecfa1d5f750f0ac9cc995198690baf4397fd970c8192727644135c7d5c"
+        },
+        "service_seconds": 234.821,
+        "unit": "sfora-so400-signed-concat-fit-concat-v1"
+      },
+      "terminal_state_sha256": "a118fd98cce0b8fafa51c897be70b2b6e2ec93ebb226b2382dd264721776b644"
+    },
+    "FITTER": {
+      "code": {
+        "fit_siglip2_prototype_residual.py": "95295794ef234967d40bdf5713d04f41d6710dae4e9d2b95bca76f0f31adc13b",
+        "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+        "test_siglip2_prototype_residual.py": "c89aa3855d60d9f11d0dd57b55311c5364304915bd4a5d22b26b4c1e0a29c7d4"
+      },
+      "execution_sha256": "a47933beafd8a1c0e2d541624328c8fe1d7b9a90f68977eee83c3c82223a56fe",
+      "root": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2"
+    },
+    "NEAREST": {
+      "code": {
+        "nearest_ranking_readout.py": "862d5db5a1831603d4fc3c1b645fa998c7ca66ff67c8141b20d7df74e92d9738",
+        "test_siglip2_nearest_ranking.py": "a2d0a6fff65c371c4dd50531766677db5464ee35918887b3d55935dbdf489eec",
+        "train_siglip2_nearest_ranking.py": "4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c"
+      },
+      "execution_sha256": "0723deae5c550776b0a0493e296ce789cec76718cb7801f612b4fddc6201c311",
+      "root": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5"
+    },
+    "READOUT": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py",
+      "sha256": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68"
+    }
+  },
+  "native_execution": "UNRUN here; SOURCE-ONLY worker; parent owns CPU/DGX/mechanics/TRAIN/export/quality and integration",
+  "new_native_witnesses": "fixed first B64 per original seed only; both views; finite positive loss and regression/rank/total gradient; total-control=rank rtol1e-5 atol1e-6; full64 vs micro16 same tolerances; multi distinct-image positives required; nonzero gradient for sum of all per-positive terms beyond legacy nearest positive; record regression/rank cosine alignment; no batch search",
+  "owned_files": [
+    "test_siglip2_compact_ranking.py",
+    "train_siglip2_compact_ranking.py"
+  ],
+  "receipt_changes": {
+    "CPU_gradient_witnesses": [
+      "seed",
+      "batch",
+      "membership_sha256",
+      "mse",
+      "rank",
+      "active",
+      "K",
+      "control_gradient_norm",
+      "ranking_gradient_norm",
+      "candidate_gradient_norm",
+      "gradient_alignment",
+      "multi_positive_anchors",
+      "nonnearest_positive_terms",
+      "nonnearest_gradient_norm",
+      "candidate_minus_control_equals_rank",
+      "micro16_global_reduction_exact",
+      "candidate_minus_control_gradient_norm",
+      "nonnearest_loss",
+      "native_mask_self_ties_singletons_exact"
+    ],
+    "identity": "ranking_bank_sha256 binds complete typed target/original_rows to payload and receipt",
+    "ranking_bank": "top-level {target:[6355 labels],original_rows:[6355 original IDs],sha256}; full bank validated; native payload labels/rows independently fingerprint-bound",
+    "steps": "mined renamed membership; active_hinges renamed active_anchors; each of 8 view/micro records includes view,batch,positive,eligible_counts,eligible_sha256,valid,active; full_membership_sha256 binds full B64 membership; bank same across both views"
+  },
+  "retained_boundaries": "A0 accepted concat only; initialization, normalized prototype regression, schedules, AdamW/scaler, complete payload, serialized8+9 mechanics, inference, all source/native origins/immutable helper guards, current-byte uncached exit, locks, resource and cost semantics unchanged",
+  "schemas": {
+    "AUTHORITY_SCHEMA": "siglip2-compact-smooth-ap-launch-v1",
+    "BUNDLE_SCHEMA": "siglip2-compact-smooth-ap-bundle-v1",
+    "INFERENCE_SCHEMA": "siglip2-compact-smooth-ap-inference-v1",
+    "SCHEMA": "siglip2-compact-smooth-ap-v1"
+  },
+  "source_closure": "execution.json exact two owned basenames mapped to sha256; root freezes actual final bytes"
+}

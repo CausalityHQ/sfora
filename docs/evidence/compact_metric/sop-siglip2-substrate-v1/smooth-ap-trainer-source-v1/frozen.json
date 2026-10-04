@@ -1,0 +1,11 @@
+{
+  "root": "/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1",
+  "code": {
+    "test_siglip2_compact_ranking.py": "5834df438ac32dd98244d7b24bb19e94e173169b19ea6770ba7db2eff0c0f72b",
+    "train_siglip2_compact_ranking.py": "74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679"
+  },
+  "execution_sha256": "bf3efd0040a6cccefde9414839a8cf4943e6a2a52c49f701b865a771def7e272",
+  "authority_sha256": "eea9468a0067470c2fb8706bc8d86c423e107aeb194a78ea4c1df9830f9e15df",
+  "command_sha256": "ec84f6fb08314e25232196fdae5d95e5f3430b8230359b453e4855e756afe02d",
+  "launch_sha256": "2f1ab92d8e4e86e7f9744bbf63b8580fac1e70b7c5abeb79595ec4017ec52127"
+}
