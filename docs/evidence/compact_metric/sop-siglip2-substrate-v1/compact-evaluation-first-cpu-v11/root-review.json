@@ -1,0 +1,8 @@
+{
+  "production_inverse_pass": true,
+  "unchanged_full_other_ast": true,
+  "unchanged_bound_file": true,
+  "metadata_predicates_exact": true,
+  "code_sha256": "922405f8fb22f43082a97b98bfd5c678c367f3597c3e2af2f139ff0317360578",
+  "commit": "154526092bd178947c5a5e68c729213ac4809e9d"
+}
