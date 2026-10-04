@@ -129,7 +129,22 @@ class PortableRuntimeFixture:
         self.context['training_context']={'legacy':{'selected':{'source_cpu':{'origins':{
             'files':{str(self.native):self.context['required_guards'][str(self.native)]},
             'native_files':[str(self.native)]}}}}}
+        self.metadata_versions=dict(v.split('-',1) for v in (
+            'accelerate-1.14.0 aiohttp-3.14.1 filelock-3.29.4 hf_xet-1.5.1 httpx-0.28.1 '
+            'huggingface_hub-1.16.1 jinja2-3.1.6 numpy-2.5.0 packaging-26.2 pillow-12.2.0 '
+            'pydantic-2.13.4 pyyaml-6.0.3 regex-2026.6.28 safetensors-0.8.0 tokenizers-0.22.2 '
+            'torch-2.12.1 tqdm-4.68.3').split())
         examples={'typing_extensions':{'typing_extensions.py':b'value = 21\n'},
+            'tqdm':{'tqdm/__init__.py':b'from . import _monitor, _tqdm_pandas, cli, gui\nfrom .std import value\nfrom .version import __version__\n',
+                'tqdm/_monitor.py':b'value = 1\n','tqdm/_tqdm_pandas.py':b'value = 2\n',
+                'tqdm/cli.py':b'from .std import value\nfrom .version import __version__\n',
+                'tqdm/gui.py':b'from .std import value\n',
+                'tqdm/std.py':b'from ._monitor import value as monitor\nfrom .utils import value as utility\nvalue = monitor + utility\n',
+                'tqdm/utils.py':b'value = 3\n',
+                'tqdm/version.py':b"from importlib.metadata import version\n__version__ = version('tqdm')\nmarker = 'source'\n",
+                'tqdm/auto.py':b"from .autonotebook import value as notebook\nfrom .asyncio import value as asynchronous\nvalue = notebook + asynchronous\nmarker = 'source'\n",
+                'tqdm/autonotebook.py':b'from .std import value\n',
+                'tqdm/asyncio.py':b'from .std import value\n'},
             'tokenizers':{'tokenizers/__init__.py':b'from .implementations import value\n',
                 'tokenizers/implementations/__init__.py':b'value = 84\n'},
             'httpx':{'httpx/__init__.py':b'from ._api import value\n','httpx/_api.py':b'value = 101\n'},
@@ -140,7 +155,8 @@ class PortableRuntimeFixture:
             'huggingface_hub':{'huggingface_hub/__init__.py':b'from .dataclasses import value\n',
                 'huggingface_hub/dataclasses.py':b'from .errors import value\n','huggingface_hub/errors.py':b'value = 109\n',
                 'huggingface_hub/utils/__init__.py':b"from ._http import value\nmarker = 'source'\n",
-                'huggingface_hub/utils/_http.py':b"from ..errors import value\nmarker = 'source'\n"}}
+                'huggingface_hub/utils/_http.py':b"from ..errors import value\nmarker = 'source'\n",
+                'huggingface_hub/utils/_runtime.py':b"import importlib.metadata\n_package_versions = {}\nfor name in ('aiohttp', 'hf_xet', 'Jinja2', 'httpx', 'numpy', 'Pillow', 'pydantic', 'safetensors', 'torch', 'fastai'):\n    try:\n        _package_versions[name] = importlib.metadata.version(name)\n    except importlib.metadata.PackageNotFoundError:\n        _package_versions[name] = 'N/A'\n"}}
         self.extra_sources={};self.extra_records={};self.natives=[self.native]
         for distribution in examples:
             sources={self.site/n:b'' for n in getattr(e,'RUNTIME_SOURCES',{}).get(distribution,())}
@@ -155,11 +171,29 @@ class PortableRuntimeFixture:
                 self.context['guards'][str(path)]=self.context['required_guards'][str(path)]=digest
                 original=self.context['training_context']['legacy']['selected']['source_cpu']['origins']
                 original['files'][str(path)]=digest;original['native_files'].append(str(path))
-            record=self.site/(distribution+'-1.0.dist-info')/'RECORD';record.parent.mkdir()
+            record=self.site/(distribution+'-'+self.metadata_versions.get(distribution,'1.0')+'.dist-info')/'RECORD'
+            record.parent.mkdir(exist_ok=True)
             rows=[[str(path.relative_to(self.site)),
                 'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))]
                 for path,raw in sources.items()]
             record.write_text(''.join(','.join(row)+'\n' for row in rows));self.extra_records[distribution]=record
+            digest=hashlib.sha256(record.read_bytes()).hexdigest()
+            self.context['guards'][str(record)]=self.context['required_guards'][str(record)]=digest
+        self.metadata={}
+        for distribution,version in self.metadata_versions.items():
+            path=self.site/(distribution+'-'+version+'.dist-info')/'METADATA'
+            path.parent.mkdir(exist_ok=True)
+            raw=('Metadata-Version: 2.1\nName: '+distribution+'\nVersion: '+version+'\n').encode()
+            path.write_bytes(raw);self.metadata[distribution]=path
+            record={'packaging':self.record,'regex':self.regex_record}.get(distribution,
+                self.extra_records.get(distribution,path.with_name('RECORD')))
+            name=str(path.relative_to(self.site))
+            rows=[r for r in csv.reader(record.read_text().splitlines()) if r[0]!=name] if record.exists() else []
+            rows.append([name,'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).decode().rstrip('='),str(len(raw))])
+            record.write_text(''.join(','.join(row)+'\n' for row in rows))
+            if distribution=='packaging':self.rows=rows
+            elif distribution=='regex':self.regex_rows=rows
+            if distribution not in ('packaging','regex'):self.extra_records[distribution]=record
             digest=hashlib.sha256(record.read_bytes()).hexdigest()
             self.context['guards'][str(record)]=self.context['required_guards'][str(record)]=digest
 
@@ -558,7 +592,8 @@ class EvaluationTests(unittest.TestCase):
             'utils/_pagination.py utils/_parsing.py utils/_paths.py utils/_runtime.py utils/_safetensors.py '
             'utils/_subprocess.py utils/_telemetry.py utils/_terminal.py utils/_typing.py utils/_validators.py '
             'utils/_xet.py utils/logging.py utils/tqdm.py').split()
-        self.assertEqual(e.RUNTIME_SOURCES['huggingface_hub'],{'huggingface_hub/'+n for n in names})
+        self.assertEqual(e.RUNTIME_SOURCES['huggingface_hub'],{'huggingface_hub/'+n for n in names}|
+            {'huggingface_hub-1.16.1.dist-info/METADATA'})
 
     def test_hub_runtime_sources_require_original_record_hash_and_size(self):
         for case in ('missing_guard','foreign_guard','mutated_record','missing_row','wrong_hash','wrong_size'):
@@ -626,6 +661,98 @@ class EvaluationTests(unittest.TestCase):
             for name in tuple(sys.modules):
                 if name.split('.')[0]=='huggingface_hub':sys.modules.pop(name)
             sys.modules.update(saved)
+
+    def test_bundle_boundary_tqdm_auto_source_fallback_and_metadata_reads(self):
+        import importlib.metadata
+        prefixes=('tqdm','huggingface_hub')
+        saved={n:m for n,m in sys.modules.items() if n.split('.')[0] in prefixes}
+        try:
+            for name in saved:sys.modules.pop(name)
+            with tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);f=PortableRuntimeFixture(root)
+                sources={p:raw for p,raw in f.extra_sources.items() if p.parent.name=='tqdm'}
+                for path in (f.site/'tqdm/auto.py',f.site/'tqdm/version.py'):
+                    raw=sources[path];prior=path.stat();path.write_bytes(raw.replace(b'source',b'cached'))
+                    py_compile.compile(str(path),doraise=True)
+                    path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                forbidden=[f.site/n for n in ('tqdm/resume.pt','tqdm/teachers.npy','tqdm/notebook.py',
+                    'tqdm/contrib/slack.py','accelerate/__init__.py','aiohttp/__init__.py',
+                    'pydantic/__init__.py','hf_xet/unqualified.so','gradio-1.0.dist-info/METADATA',
+                    'tqdm-4.68.3.dist-info/entry_points.txt')]
+                foreign=root/'foreign.py';forbidden.append(foreign)
+                for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
+                with patch.object(sys,'path',[str(f.site),e.sysconfig.get_path('stdlib')]):
+                    for direct_loader in (True,False):
+                        for name in tuple(sys.modules):
+                            if name.split('.')[0] in prefixes:sys.modules.pop(name)
+                        with f.boundary():
+                            auto=module('tqdm.auto',f.site/'tqdm/auto.py') if direct_loader else importlib.import_module('tqdm.auto')
+                            self.assertEqual((auto.value,auto.marker,sys.modules['tqdm.version'].__version__,
+                                sys.modules['tqdm.version'].marker),(8,'source','4.68.3','source'))
+                            runtime=importlib.import_module('huggingface_hub.utils._runtime')
+                            self.assertEqual(runtime._package_versions['fastai'],'N/A')
+                            self.assertEqual(runtime._package_versions['Pillow'],'12.2.0')
+                            for distribution,version in f.metadata_versions.items():
+                                self.assertEqual(importlib.metadata.version(distribution.replace('_','-')),version)
+                                self.assertIn('Version: '+version,f.metadata[distribution].read_text())
+                                with self.assertRaisesRegex(ValueError,'attempted write'):
+                                    f.metadata[distribution].write_bytes(b'changed')
+                            for path in sources:
+                                name='tqdm'+('' if path.name=='__init__.py' else '.'+path.stem)
+                                value=sys.modules[name]
+                                self.assertIsInstance(value.__loader__,importlib.machinery.SourceFileLoader)
+                                self.assertEqual((value.__file__,value.__spec__.origin),(str(path),str(path)))
+                                with self.assertRaises(OSError):Path(importlib.util.cache_from_source(str(path))).read_bytes()
+                                with self.assertRaisesRegex(ValueError,'attempted write'):path.write_bytes(b'changed')
+                            for path in (*forbidden,f.extra_records['tqdm'],f.extra_records['accelerate']):
+                                with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
+                fake=SimpleNamespace(__file__=str(foreign),__spec__=SimpleNamespace(origin=str(foreign)))
+                for name in ('tqdm.auto','tqdm.version','tqdm.std'):
+                    with patch.dict(sys.modules,{name:fake}),self.assertRaisesRegex(ValueError,'origin differs'):
+                        with f.boundary():pass
+        finally:
+            for name in tuple(sys.modules):
+                if name.split('.')[0] in prefixes:sys.modules.pop(name)
+            sys.modules.update(saved)
+
+    def test_tqdm_metadata_rows_require_original_record_hash_and_size(self):
+        for distribution in ('tqdm','accelerate','huggingface_hub','packaging'):
+            for case in ('missing_guard','foreign_guard','mutated_record','missing_row','wrong_hash','wrong_size','foreign_record'):
+                with self.subTest(distribution=distribution,case=case),tempfile.TemporaryDirectory() as directory:
+                    root=Path(directory);f=PortableRuntimeFixture(root)
+                    record=f.metadata[distribution].with_name('RECORD')
+                    if case=='missing_guard':f.context['required_guards'].pop(str(record))
+                    elif case=='foreign_guard':f.context['required_guards'][str(record)]='a'*64
+                    elif case=='mutated_record':record.write_bytes(record.read_bytes()+b'\n')
+                    elif case=='foreign_record':
+                        foreign=root/'foreign'/record.parent.name/'RECORD';foreign.parent.mkdir(parents=True)
+                        foreign.write_bytes(record.read_bytes());h=hashlib.sha256(foreign.read_bytes()).hexdigest()
+                        f.context['required_guards'].pop(str(record))
+                        f.context['guards'][str(foreign)]=f.context['required_guards'][str(foreign)]=h
+                    else:
+                        rows=list(csv.reader(record.read_text().splitlines()))
+                        row=next(r for r in rows if r[0]==str(f.metadata[distribution].relative_to(f.site)))
+                        if case=='missing_row':rows.remove(row)
+                        elif case=='wrong_hash':row[1]='sha256='+'A'*43
+                        else:row[2]='999'
+                        record.write_text(''.join(','.join(r)+'\n' for r in rows))
+                        h=hashlib.sha256(record.read_bytes()).hexdigest()
+                        f.context['guards'][str(record)]=f.context['required_guards'][str(record)]=h
+                    with self.assertRaises(ValueError):
+                        with f.boundary():pass
+
+    def test_tqdm_metadata_and_source_mutations_are_rejected(self):
+        for name in ('tqdm/auto.py','tqdm/version.py','tqdm-4.68.3.dist-info/METADATA',
+                     'accelerate-1.14.0.dist-info/METADATA','huggingface_hub-1.16.1.dist-info/METADATA'):
+            for cached in (False,True):
+                with self.subTest(name=name,cached=cached),tempfile.TemporaryDirectory() as directory:
+                    root=Path(directory);f=PortableRuntimeFixture(root)
+                    if cached:
+                        with f.boundary():pass
+                    path=f.site/name;raw=path.read_bytes();prior=path.stat()
+                    path.write_bytes(bytes([raw[0]^1])+raw[1:]);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
+                    with self.assertRaisesRegex(ValueError,'SHA256'):
+                        with f.boundary():pass
 
     def test_bundle_boundary_native_grants_require_record_guard_and_original_cpu_origin(self):
         for case in ('unobserved','missing_guard','foreign_guard','foreign_origin','record_hash','record_size',

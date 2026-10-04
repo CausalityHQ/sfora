@@ -49,8 +49,11 @@ NATIVE = {'torch','numpy','PIL','transformers','safetensors','torchvision','sfor
 PACKAGING_SOURCES = {'__init__.py','_elffile.py','_manylinux.py','_musllinux.py','_parser.py','_structures.py',
  '_tokenizer.py','dependency_groups.py','direct_url.py','errors.py','licenses/__init__.py','licenses/_spdx.py',
  'markers.py','metadata.py','pylock.py','requirements.py','specifiers.py','tags.py','utils.py','version.py'}
-RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES},
- 'regex':{'regex/__init__.py','regex/_main.py','regex/_regex_core.py'},
+RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'packaging-26.2.dist-info/METADATA'},
+ 'regex':{'regex/__init__.py','regex/_main.py','regex/_regex_core.py','regex-2026.6.28.dist-info/METADATA'},
+ 'tqdm':set(('tqdm/__init__.py tqdm/_monitor.py tqdm/_tqdm_pandas.py tqdm/cli.py tqdm/gui.py tqdm/std.py '
+  'tqdm/utils.py tqdm/version.py tqdm/auto.py tqdm/autonotebook.py tqdm/asyncio.py '
+  'tqdm-4.68.3.dist-info/METADATA').split()),
  'anyio':set(('anyio/__init__.py anyio/_core/__init__.py anyio/_core/_contextmanagers.py anyio/_core/_eventloop.py '
   'anyio/_core/_exceptions.py anyio/_core/_fileio.py anyio/_core/_resources.py anyio/_core/_signals.py '
   'anyio/_core/_sockets.py anyio/_core/_streams.py anyio/_core/_subprocesses.py '
@@ -76,7 +79,8 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES},
   'httpx/_content.py httpx/_decoders.py httpx/_exceptions.py httpx/_main.py httpx/_models.py '
   'httpx/_multipart.py httpx/_status_codes.py httpx/_transports/__init__.py httpx/_transports/asgi.py '
   'httpx/_transports/base.py httpx/_transports/default.py httpx/_transports/mock.py '
-  'httpx/_transports/wsgi.py httpx/_types.py httpx/_urlparse.py httpx/_urls.py httpx/_utils.py').split()),
+  'httpx/_transports/wsgi.py httpx/_types.py httpx/_urlparse.py httpx/_urls.py httpx/_utils.py '
+  'httpx-0.28.1.dist-info/METADATA').split()),
  'huggingface_hub':set(('huggingface_hub/__init__.py huggingface_hub/constants.py huggingface_hub/dataclasses.py '
   'huggingface_hub/errors.py huggingface_hub/serialization/__init__.py huggingface_hub/serialization/_base.py '
   'huggingface_hub/serialization/_torch.py huggingface_hub/utils/__init__.py huggingface_hub/utils/_auth.py '
@@ -88,20 +92,32 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES},
   'huggingface_hub/utils/_runtime.py huggingface_hub/utils/_safetensors.py huggingface_hub/utils/_subprocess.py '
   'huggingface_hub/utils/_telemetry.py huggingface_hub/utils/_terminal.py huggingface_hub/utils/_typing.py '
   'huggingface_hub/utils/_validators.py huggingface_hub/utils/_xet.py huggingface_hub/utils/logging.py '
-  'huggingface_hub/utils/tqdm.py').split()),
+  'huggingface_hub/utils/tqdm.py huggingface_hub-1.16.1.dist-info/METADATA').split()),
  'idna':set(('idna/__init__.py idna/core.py idna/idnadata.py idna/intranges.py idna/package_data.py').split()),
  'jinja2':set(('jinja2/__init__.py jinja2/_identifier.py jinja2/async_utils.py jinja2/bccache.py jinja2/compiler.py '
   'jinja2/defaults.py jinja2/environment.py jinja2/exceptions.py jinja2/ext.py jinja2/filters.py '
   'jinja2/idtracking.py jinja2/lexer.py jinja2/loaders.py jinja2/meta.py jinja2/nodes.py jinja2/optimizer.py '
-  'jinja2/parser.py jinja2/runtime.py jinja2/sandbox.py jinja2/tests.py jinja2/utils.py jinja2/visitor.py').split()),
+  'jinja2/parser.py jinja2/runtime.py jinja2/sandbox.py jinja2/tests.py jinja2/utils.py jinja2/visitor.py '
+  'jinja2-3.1.6.dist-info/METADATA').split()),
  'markupsafe':set(('markupsafe/__init__.py markupsafe/_native.py').split()),
  'tokenizers':set(('tokenizers/__init__.py tokenizers/decoders/__init__.py tokenizers/implementations/__init__.py '
   'tokenizers/implementations/base_tokenizer.py tokenizers/implementations/bert_wordpiece.py '
   'tokenizers/implementations/byte_level_bpe.py tokenizers/implementations/char_level_bpe.py '
   'tokenizers/implementations/sentencepiece_bpe.py tokenizers/implementations/sentencepiece_unigram.py '
   'tokenizers/models/__init__.py tokenizers/normalizers/__init__.py tokenizers/pre_tokenizers/__init__.py '
-  'tokenizers/processors/__init__.py tokenizers/trainers/__init__.py').split()),
+  'tokenizers/processors/__init__.py tokenizers/trainers/__init__.py tokenizers-0.22.2.dist-info/METADATA').split()),
  'typing_extensions':set(('typing_extensions.py').split()),
+ # Definition-time version checks read identity bytes, without granting package code.
+ 'accelerate':{'accelerate-1.14.0.dist-info/METADATA'},
+ 'aiohttp':{'aiohttp-3.14.1.dist-info/METADATA'},
+ 'filelock':{'filelock-3.29.4.dist-info/METADATA'},
+ 'hf_xet':{'hf_xet-1.5.1.dist-info/METADATA'},
+ 'numpy':{'numpy-2.5.0.dist-info/METADATA'},
+ 'pillow':{'pillow-12.2.0.dist-info/METADATA'},
+ 'pydantic':{'pydantic-2.13.4.dist-info/METADATA'},
+ 'pyyaml':{'pyyaml-6.0.3.dist-info/METADATA'},
+ 'safetensors':{'safetensors-0.8.0.dist-info/METADATA'},
+ 'torch':{'torch-2.12.1.dist-info/METADATA'},
 }
 NEAREST_EVALUATOR = {'root':'/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1',
  'execution_sha256':'5c24fe113c03ae26d4ab68f21caf8e3a8d19c1a082e696fdf54abdd8bb73ab59',
