@@ -1,0 +1,11 @@
+{
+  "original_session": 3061,
+  "native_exit_status": 0,
+  "invocation_id": "7920434ef6f645aa871f886454bae01f",
+  "service_seconds": 1.206,
+  "log_sha256": "f1cb706451dba422753f61158e602fb07125435c528a8ee6491f011a279aad82",
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "quality_read": false,
+  "root_cause": "Native AdamW betas tuple passed incorrectly as JSON list identity into unchanged original.check_payload"
+}

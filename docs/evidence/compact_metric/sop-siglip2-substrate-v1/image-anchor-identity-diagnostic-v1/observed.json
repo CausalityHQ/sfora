@@ -1,0 +1,29 @@
+{
+  "counter": 128,
+  "identity_differences": [
+    {
+      "checkpoint_type": "tuple",
+      "checkpoint_value": "(0.9, 0.999)",
+      "path": "identity.optimizer_defaults.betas",
+      "receipt_type": "list",
+      "receipt_value": "[0.9, 0.999]"
+    },
+    {
+      "checkpoint_type": "tuple",
+      "checkpoint_value": "(0.9, 0.999)",
+      "path": "identity.optimizer_groups[0].betas",
+      "receipt_type": "list",
+      "receipt_value": "[0.9, 0.999]"
+    }
+  ],
+  "images": 0,
+  "json_canonical_identity_equals_receipt": true,
+  "native_identity_equals_receipt": false,
+  "numerical_flags_match_receipt": true,
+  "observation_only": true,
+  "payload_keys_match_original": true,
+  "qualification_eligible": false,
+  "quality_read": false,
+  "schema_matches_original": true,
+  "source_matches_receipt": true
+}
