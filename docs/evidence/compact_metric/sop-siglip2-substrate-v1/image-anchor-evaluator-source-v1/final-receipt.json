@@ -1,0 +1,135 @@
+{
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "base": "b08c61fe03c11a0c4ae82f3f683ee057f19c96d9",
+  "changed_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "clean": true,
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "040659957c3f79dfea9ec42c6626a9909193e7cc032386a157db1dacd5ed2273",
+    "test_compact_ranking_evaluation.py": "6a7a2ec149196fcf4cf5db7ad304991af3286fe646eee78b1102e991abe31545"
+  },
+  "commit": "a1e388f660fde6125df5540281d512934dcb3ef3",
+  "diff_check": "PASS",
+  "early_contract": "/tmp/image-anchor-evaluator-20261004/early-contract.json",
+  "execution_sha256": "0fb358fcf8083ade5b1f0a27072520601b8a90327a5b94d454c9e86bc01d13c4",
+  "existing_unrelated_function_bytes": "PASS: 63 evaluator functions and 169 existing test functions unchanged; only authority and two relevant tests modified",
+  "final_terminal": "PASS exit0 original replacement-suite session50115 collected; source bytes unchanged through commit",
+  "focused_red": "PASS: two intended prospective-schema/inverse assertion failures observed before implementation",
+  "git_lock_repair": {
+    "action": "removed orphaned lock only in assigned isolated worktree",
+    "fuser_exit_code": 1,
+    "inode": 28181321,
+    "mtime_ns": 1791113157894571469,
+    "path": "/home/rb/git/sfora/.git/worktrees/sfora-image-anchor-smooth-ap-evaluator-20261004/index.lock",
+    "pgrep_git_exit_code": 1,
+    "size_bytes": 0,
+    "source_bytes_changed": false
+  },
+  "help_optimized_modes": {
+    "double_optimized": {
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "pass": true
+    },
+    "help": {
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "pass": true
+    },
+    "optimized": {
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "pass": true
+    }
+  },
+  "initial_suite_staging_failure": {
+    "added_regular_helpers": [
+      "evaluate_siglip2_nearest_ranking.py",
+      "test_nearest_ranking_evaluation.py",
+      "test_siglip2_genuine_view_evaluation.py",
+      "test_siglip2_prototype_residual_evaluation.py"
+    ],
+    "failure": "EvaluationTests.test_owned_native_api_exit_and_exact_membership: missing staged dynamic reference helper",
+    "first_suite": {
+      "command": [
+        "timeout",
+        "120",
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "/tmp/image-anchor-evaluator-20261004/suite",
+        "-p",
+        "test_compact_ranking_evaluation.py",
+        "-v"
+      ],
+      "exit_code": 1,
+      "peak_rss_kib": 210984,
+      "seconds": 77.13849429704715,
+      "virtual_memory_limit_bytes": 1073741824
+    },
+    "repair": "stage exact pinned committed regular reference files; no production or test bytes changed",
+    "replacement_suite_budget": 1,
+    "root_cause": "initial helper-stage discovered literal with_name/FILES closures but omitted the dynamically iterated NEAREST_EVALUATOR/Genuine/REFERENCE descriptor code sets"
+  },
+  "merged": false,
+  "narrow_staging_repair": {
+    "command": [
+      "timeout",
+      "120",
+      "python3",
+      "-m",
+      "unittest",
+      "test_compact_ranking_evaluation.EvaluationTests.test_owned_native_api_exit_and_exact_membership",
+      "-v"
+    ],
+    "exit_code": 0,
+    "peak_rss_kib": 78064,
+    "seconds": 23.534921837970614,
+    "virtual_memory_limit_bytes": 1073741824
+  },
+  "native_execution": "UNRUN by explicit worker prohibition",
+  "parent_early_delivery": "rejected because recipient queue full; durable early contract retained without retry",
+  "plan_rulings": [
+    "Only source-only bounded verification was used; explicit native/consultation/children/operator/full-repository prohibitions override general skill workflows.",
+    "Root final descriptor supersedes initial source-v1 hashes; verified corrected committed/staged source-v2 bytes before the final suite.",
+    "Initial final suite failed only due to omitted dynamic reference helper files; exact pinned regular files restored, failing layer passed, one allowed replacement suite passed.",
+    "Removed only an orphaned zero-byte lock in the assigned Git worktree after fuser and pgrep proved no holder or Git process."
+  ],
+  "production_byte_inverse": "PASS: four explicit statements restore exact entire base bytes/AST",
+  "pushed": false,
+  "replacement_suite": {
+    "command": [
+      "timeout",
+      "120",
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "/tmp/image-anchor-evaluator-20261004/suite",
+      "-p",
+      "test_compact_ranking_evaluation.py",
+      "-v"
+    ],
+    "exit_code": 0,
+    "peak_rss_kib": 213208,
+    "seconds": 98.79972440004349,
+    "virtual_memory_limit_bytes": 1073741824
+  },
+  "source_verification": "/tmp/image-anchor-evaluator-20261004/final-source-verification.json",
+  "syntax": "PASS",
+  "test_log": "/tmp/image-anchor-evaluator-20261004/final-replacement-tests.log",
+  "tests": 76,
+  "training": {
+    "code": {
+      "test_siglip2_compact_ranking.py": "b56265f631a589cc40aa5e0b7cc779bb54d84451eabd87628cc850b704eeba9d",
+      "train_siglip2_compact_ranking.py": "40c271217c74b89d3b7c20d0dfe05571746303ed6f75f7dcdcffbef3f77a2004"
+    },
+    "execution_sha256": "1ed4790f6716ded3972a0e6fd86cffdd45edb7d2060cf949d07da2d4a1adf141",
+    "root": "/home/riomus/runs/sfora-so400-image-anchor-smooth-ap-train-source-v2"
+  }
+}

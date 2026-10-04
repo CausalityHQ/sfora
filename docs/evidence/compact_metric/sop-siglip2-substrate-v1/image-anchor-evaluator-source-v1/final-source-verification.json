@@ -1,0 +1,34 @@
+{
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "040659957c3f79dfea9ec42c6626a9909193e7cc032386a157db1dacd5ed2273",
+    "test_compact_ranking_evaluation.py": "6a7a2ec149196fcf4cf5db7ad304991af3286fe646eee78b1102e991abe31545"
+  },
+  "evaluate_siglip2_compact_ranking.py": {
+    "added_functions": [],
+    "changed_functions": [
+      "authority"
+    ],
+    "existing_functions": 64,
+    "removed_functions": [],
+    "sha256": "040659957c3f79dfea9ec42c6626a9909193e7cc032386a157db1dacd5ed2273",
+    "unchanged_functions": 63
+  },
+  "execution_sha256": "0fb358fcf8083ade5b1f0a27072520601b8a90327a5b94d454c9e86bc01d13c4",
+  "production_byte_inverse": "exact base bytes restored by four explicit statements",
+  "syntax": "PASS",
+  "test_compact_ranking_evaluation.py": {
+    "added_functions": [
+      "EvaluationTests/test_current_trainer_full_payload_and_inference_schema_denials",
+      "EvaluationTests/test_current_trainer_full_payload_and_inference_schema_denials/admit",
+      "EvaluationTests/test_exact_image_anchor_authority_inverse_preserves_entire_source"
+    ],
+    "changed_functions": [
+      "EvaluationTests/test_prospective_frozen_training_and_retired_authority",
+      "EvaluationTests/test_actual_prospective_trainer_source_admission_and_schema_denials"
+    ],
+    "existing_functions": 171,
+    "removed_functions": [],
+    "sha256": "6a7a2ec149196fcf4cf5db7ad304991af3286fe646eee78b1102e991abe31545",
+    "unchanged_functions": 169
+  }
+}
