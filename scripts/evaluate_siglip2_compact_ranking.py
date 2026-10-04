@@ -556,7 +556,7 @@ RUNTIME_SOURCES = {'packaging':{'packaging/'+n for n in PACKAGING_SOURCES}|{'pac
   'tseries/frequencies.py tseries/offsets.py util/__init__.py util/_decorators.py util/_exceptions.py '
 
   'util/_print_versions.py util/_tester.py util/_validators.py util/version/__init__.py ').split()},
- 'python_dateutil':{'dateutil/'+n for n in (  '__init__.py _common.py _version.py parser/__init__.py parser/_parser.py parser/isoparser.py '
+ 'python_dateutil':{'dateutil/'+n for n in (  '__init__.py _common.py _version.py easter.py parser/__init__.py parser/_parser.py parser/isoparser.py '
 
   'relativedelta.py tz/__init__.py tz/_common.py tz/_factories.py tz/tz.py tz/win.py '
   'zoneinfo/__init__.py zoneinfo/dateutil-zoneinfo.tar.gz ').split()},

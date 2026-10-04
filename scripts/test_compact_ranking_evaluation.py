@@ -190,9 +190,10 @@ SCIENTIFIC_IMPORTS = {
     'pandas/compat/pyarrow.py':'import pyarrow\nimport pyarrow.compute\n',
     'pandas/_libs/__init__.py':'from . import tslibs\n',
     # Simulate the three original native initializer dependencies without loading a native.
-    'pandas/_libs/tslibs/__init__.py':'from .parsing import value\nimport dateutil.parser\nimport dateutil.tz\nimport dateutil.relativedelta\nzone = dateutil.tz.tz.gettz("Etc/UTC")\n',
+    'pandas/_libs/tslibs/__init__.py':'from .parsing import value\nimport dateutil.parser\nimport dateutil.tz\nimport dateutil.relativedelta\nimport dateutil.easter\nzone = dateutil.tz.tz.gettz("Etc/UTC")\n',
     'dateutil/__init__.py':'from . import _version\n',
     'dateutil/_version.py':'',
+    'dateutil/easter.py':'import datetime\n',
     'dateutil/parser/__init__.py':'from . import _parser, isoparser\n',
     'dateutil/parser/_parser.py':'import six\nfrom .. import relativedelta, tz\n',
     'dateutil/parser/isoparser.py':'import six\nfrom .. import tz\n',
@@ -1009,7 +1010,7 @@ class EvaluationTests(unittest.TestCase):
 
     def test_scientific_runtime_inventory_is_finite(self):
         counts={'scipy':409,'scikit_learn':109,'joblib':38,'threadpoolctl':1,'pandas':250,
-            'python_dateutil':13,'six':1,'narwhals':56,'psutil':5,'pyarrow':9,'rich':54}
+            'python_dateutil':14,'six':1,'narwhals':56,'psutil':5,'pyarrow':9,'rich':54}
         assets={'sklearn/utils/_repr_html/'+n+'.css' for n in ('estimator','params','features')}
         assets.add('dateutil/zoneinfo/dateutil-zoneinfo.tar.gz')
         for distribution,count in counts.items():
@@ -1047,13 +1048,13 @@ class EvaluationTests(unittest.TestCase):
                 forbidden=[f.site/n for n in ('sklearn/resume.pt','scipy/optimizer.pt','pandas/teachers.npy',
                     'sklearn/cluster/__init__.py','scipy/io/__init__.py','scipy/sparse/csgraph/_optional.py',
                     'pandas/plotting/_matplotlib/__init__.py',
-                    'dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz',
+                    'dateutil/rrule.py','dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz',
                     'narwhals/_arrow/dataframe.py','rich/markdown.py','pyarrow/parquet/__init__.py',
                     'sklearn/utils/_repr_html/estimator.js','scipy/foreign.so')]+[root/'foreign.py',root/'proc/stat']
                 for path in forbidden:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'forbidden')
                 # Extra rows in an original RECORD still confer no optional code/native access.
                 for distribution,names in (('scipy',('scipy/foreign.so',)),
-                        ('python_dateutil',('dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz'))):
+                        ('python_dateutil',('dateutil/rrule.py','dateutil/zoneinfo/rebuild.py','dateutil/zoneinfo/foreign.tar.gz'))):
                     record=f.extra_records[distribution]
                     for name in names:
                         raw=(f.site/name).read_bytes()
@@ -1088,7 +1089,7 @@ class EvaluationTests(unittest.TestCase):
                             for path in (*forbidden,*(f.extra_records[d] for d in SCIENTIFIC_DISTRIBUTIONS)):
                                 with self.assertRaisesRegex(ValueError,'external dependency'):path.read_bytes()
                             for name in ('sklearn.cluster','scipy.io','scipy.sparse.csgraph._optional',
-                                    'dateutil.zoneinfo.rebuild','rich.markdown'):
+                                    'dateutil.rrule','dateutil.zoneinfo.rebuild','rich.markdown'):
                                 with self.assertRaisesRegex(ValueError,'external dependency'):importlib.import_module(name)
                 # The complete inventory, including modules absent from the small graph,
                 # has been authenticated to the fixture's original RECORD bytes.
@@ -1099,7 +1100,7 @@ class EvaluationTests(unittest.TestCase):
                 self.assertEqual(originals,original_before);self.assertEqual(f.context['required_guards'],required_before)
                 foreign=SimpleNamespace(__file__=str(forbidden[-2]),__spec__=SimpleNamespace(origin=str(forbidden[-2])))
                 for name in ('sklearn.utils.validation','scipy.stats._stats_py','scipy.sparse.csgraph._validation','pandas.compat.pyarrow',
-                        'dateutil.parser._parser','dateutil.zoneinfo','narwhals.stable.v2','psutil._pslinux','rich.console'):
+                        'dateutil.parser._parser','dateutil.easter','dateutil.zoneinfo','narwhals.stable.v2','psutil._pslinux','rich.console'):
                     with patch.dict(sys.modules,{name:foreign}),self.assertRaisesRegex(ValueError,'origin differs'):
                         with f.boundary():pass
         finally:
@@ -1112,7 +1113,7 @@ class EvaluationTests(unittest.TestCase):
             f=PortableRuntimeFixture(Path(directory),scientific=True)
             paths=[f.site/n for n in ('sklearn/utils/validation.py','scipy/stats/_stats_py.py','scipy/sparse/csgraph/_validation.py',
                 'pandas/compat/pyarrow.py','dateutil/parser/_parser.py','narwhals/stable/v2/__init__.py',
-                'dateutil/zoneinfo/__init__.py','dateutil/zoneinfo/dateutil-zoneinfo.tar.gz',
+                'dateutil/easter.py','dateutil/zoneinfo/__init__.py','dateutil/zoneinfo/dateutil-zoneinfo.tar.gz',
                 'joblib/externals/loky/process_executor.py','psutil/_pslinux.py','pyarrow/compute.py',
                 'rich/console.py','threadpoolctl.py','six.py','sklearn/utils/_repr_html/estimator.css')]
             for cached in (False,True):
@@ -1128,6 +1129,7 @@ class EvaluationTests(unittest.TestCase):
                     finally:path.write_bytes(raw);os.utime(path,ns=(prior.st_atime_ns,prior.st_mtime_ns))
             f.context.pop('portable_audits',None)
             for distribution,source in (('scipy','scipy/sparse/csgraph/_validation.py'),
+                    ('python_dateutil','dateutil/easter.py'),
                     ('python_dateutil','dateutil/zoneinfo/__init__.py'),
                     ('python_dateutil','dateutil/zoneinfo/dateutil-zoneinfo.tar.gz')):
                 record=f.extra_records[distribution];record_raw=record.read_bytes();record_sha=f.context['required_guards'][str(record)]
