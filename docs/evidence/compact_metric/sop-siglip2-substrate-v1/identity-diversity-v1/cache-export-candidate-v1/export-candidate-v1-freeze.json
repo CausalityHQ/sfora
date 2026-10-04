@@ -1,0 +1,22 @@
+{
+  "schema": "identity-diversity-view-source-freeze-v2",
+  "root": "/home/riomus/runs/sfora-so400-identity-diversity-view-source-v2",
+  "execution_sha256": "d6ae3b99f721fd659035d4ee64a9fbdaead0380798e6d1fdf5047499f599637f",
+  "code": {
+    "export_siglip2_identity_diversity_views.py": "67f228d24f3af71eba4d854148e2c351df04129347a761b8e7967ef144f1ef39",
+    "test_siglip2_identity_diversity_views.py": "61e6fc421587e2acf29aafff325f9076e4b3847a559249202701e4e934b29809"
+  },
+  "authority_sha256": "d506aa29a3a6f1e0e5453670dc634dc202692eb70711e10f0b06f0065879a802",
+  "phase": "export",
+  "arm": "candidate",
+  "unit": "sfora-so400-identity-diversity-view-export-candidate-v1",
+  "output": "/home/riomus/runs/sfora-so400-identity-diversity-view-export-candidate-v1",
+  "command_sha256": "dbc09c2e6f2937f6a9647b622399d0db79bcfa7aad879089b71e2ed2aae7d6c9",
+  "launch_sha256": "883d7a015244de362e529b045c74760d9e344033cc7069b1043566c36863ecf2",
+  "stop_rule": "Any full source/startup admission, image/runtime/RNG/numerical/strict independent reload/integrity/resource violation or whole900s timeout closes original export; no training or quality admission from partial state.",
+  "previous_startup": "v1 FAIL; unchanged resource/scientific policy; only resolved image path correction",
+  "startup_terminal": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-view-source-v2/startup-candidate-v2-terminal.json",
+    "sha256": "45ab1786301a042bc4a69cff680fb4475701e85c8c21183c6c4ce0dd06697c1d"
+  }
+}

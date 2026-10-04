@@ -1,0 +1,15 @@
+{
+  "proof": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-view-startup-candidate-v2/proof.json",
+    "sha256": "64ef688d543f05cc9612a8a4cab94c6a657968298ee16d2927eec1342e7d6c22"
+  },
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-view-source-v2/startup-candidate-v2.log",
+    "sha256": "fbf17fee635a8945c99198d74e4a9b136482719e6bdd967219a70c2c9cd35b6d"
+  },
+  "unit": "sfora-so400-identity-diversity-view-startup-candidate-v2",
+  "invocation_id": "e0bdb293be474a558df0c07b4454c040",
+  "service_seconds": 44.74,
+  "native_peak_rss_kib": 138764,
+  "both_locks_held": true
+}
