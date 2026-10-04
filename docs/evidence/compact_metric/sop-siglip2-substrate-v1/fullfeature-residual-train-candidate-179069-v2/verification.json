@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "train",
+  "arm": "candidate",
+  "service_seconds": 404.095,
+  "invocation_id": "cc61e131eaad484b91c809e4aab8f2a2",
+  "host_peak_bytes": 7394033664,
+  "rss_kib": 4643132,
+  "unit": "sfora-so400-fullfeature-residual-train-candidate-179069-v2",
+  "quality_read": false,
+  "receipt_sha256": "7c1a718d3124f3a53b872aebaf5d1b2131323e2e9e5dc48772bc696d8b43f0cc",
+  "log_sha256": "db176f9725bb81c9d1e2d833e8d0efb629367e71edcef523f703703fcc1079d7"
+}
