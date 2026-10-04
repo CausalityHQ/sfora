@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "train",
+  "arm": "candidate",
+  "service_seconds": 353.843,
+  "invocation_id": "2cbdc0e2ccba4e8f9dad7c366702c697",
+  "host_peak_bytes": 7366782976,
+  "rss_kib": 4620908,
+  "unit": "sfora-so400-current-gallery-smooth-ap-train-candidate-179061-v1",
+  "quality_read": false,
+  "receipt_sha256": "2c22ac1be19a228d0d96cef023da7471af9c13ebff30299e8dc711eaddb62e93",
+  "log_sha256": "e75cd6b0d58b6a221dd76ded17d807056cf4deba2e743775649061db091d9bbc"
+}
