@@ -1,0 +1,12 @@
+{
+  "status": "FAIL",
+  "reason": "loaded lazy runtime origin differs: charset_normalizer.md",
+  "invocation_id": "02b76b43f27842cf967dbba4f83271bd",
+  "service_seconds": 179.527,
+  "host_peak_bytes": 3697827840,
+  "host_swap_bytes": 0,
+  "memory_events_all_zero": true,
+  "quality_scored": false,
+  "candidate_launched": false,
+  "log_sha256": "1d3239a3978bf5edb33b2bcafae7b30cbf0121cce882ddfb72c3a255b48b053a"
+}
