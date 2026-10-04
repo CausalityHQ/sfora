@@ -1,0 +1,66 @@
+{
+  "schema": "compact-numpy-origin-absence-worker-receipt-v1",
+  "status": "implementation_and_stdlib_verification_complete",
+  "base": "ee340f3dfc769407f32279aaf56bf48888b3f857",
+  "commit": "da09aa85dd271080abd2fc730b55de5da467b7aa",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "clean": true,
+  "production_change": "6 added lines in distribution_identity_files: exact numpy2.5 direct_url absence from original RECORD + current canonical absence; absent set reuses unchanged audit and entry/exit validators",
+  "production_ast_minus_exact_branch_identical": true,
+  "all_original_predicates_and_requires_preserved": true,
+  "all_original_38_tests_and_fixture_ast_identical": true,
+  "scientific_inventory_native_authority_math_caps_and_full_uncached_exit_unchanged": true,
+  "new_read_module_native_grants": false,
+  "new_helpers_global_rebindings": false,
+  "full_suite": {
+    "tests": 40,
+    "seconds": 38.934,
+    "whole_seconds": 39.38607117900392,
+    "timeout_seconds": 55,
+    "exit_code": 0
+  },
+  "targeted_suite": {
+    "tests": 2,
+    "seconds": 1.047,
+    "exit_code": 0
+  },
+  "artifacts": {
+    "contract": {
+      "path": "/tmp/sfora-compact-numpy-direct-url-runtime-20261004.contract.json",
+      "sha256": "e9c4cd331aea0adae0105a323e4dd54288cd45d6bdb25f8fb80c6bf68a24c58a"
+    },
+    "ast_ledger": {
+      "path": "/tmp/sfora-compact-numpy-direct-url-runtime-20261004.ast-ledger.json",
+      "sha256": "7045c3e78f6bd96cee3743c8018cf5b2c00c3454e9e6184270c8b038007ae66c"
+    },
+    "verification": {
+      "path": "/tmp/sfora-compact-numpy-direct-url-runtime-20261004.verification.json",
+      "sha256": "ca90d884d56ef3bd1cfa047b5765d691763a601cd60d62855c0027eca4c88793"
+    },
+    "full_log": {
+      "path": "/tmp/sfora-compact-numpy-direct-url-runtime-20261004.final.log",
+      "sha256": "342bb16a4e43d28bddf85fe42486edb9da0e554a486099223bc0bc6b431f9577"
+    },
+    "targeted_log": {
+      "path": "/tmp/sfora-compact-numpy-direct-url-runtime-20261004.layer.log",
+      "sha256": "e36f346f2a4832fc7749e6b87c6e2bed0a244dd538127f461ba6b0d3976391d3"
+    },
+    "red_log": {
+      "path": "/tmp/sfora-compact-numpy-direct-url-runtime-20261004.red.log",
+      "sha256": "8bdbd8551448953444028e383e291ddda48e9df64e025f21008e7d88492a6418"
+    }
+  },
+  "evidence": {
+    "path": "/tmp/sfora-compact-numpy-direct-url-context-20261004.json",
+    "sha256": "e44540496cb0bca121e2980730e1b04e5ad4337bf1517870460b6e38b9175945"
+  },
+  "actual_installed_runtime_success_claimed": false,
+  "merge_push_performed": false,
+  "control_file_edited": false,
+  "forbidden_actions_executed": [],
+  "next_parent_action": "Integrate after independent verification; root owns fresh original import-only diagnostic and qualification/retained pair."
+}
