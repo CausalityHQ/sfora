@@ -1,0 +1,18 @@
+{
+  "schema": "identity-diversity-view-source-freeze-v2",
+  "root": "/home/riomus/runs/sfora-so400-identity-diversity-view-source-v2",
+  "execution_sha256": "d6ae3b99f721fd659035d4ee64a9fbdaead0380798e6d1fdf5047499f599637f",
+  "code": {
+    "export_siglip2_identity_diversity_views.py": "67f228d24f3af71eba4d854148e2c351df04129347a761b8e7967ef144f1ef39",
+    "test_siglip2_identity_diversity_views.py": "61e6fc421587e2acf29aafff325f9076e4b3847a559249202701e4e934b29809"
+  },
+  "authority_sha256": "d506aa29a3a6f1e0e5453670dc634dc202692eb70711e10f0b06f0065879a802",
+  "phase": "startup",
+  "arm": "candidate",
+  "unit": "sfora-so400-identity-diversity-view-startup-candidate-v2",
+  "output": "/home/riomus/runs/sfora-so400-identity-diversity-view-startup-candidate-v2",
+  "command_sha256": "fb81e0c89bed861b062efaa014d3c5602c95ef227d56bbfffbd0c5adf7e627e8",
+  "launch_sha256": "e672c5604a35ddd545ccd0e8b7b9ff4f59a638468d04704c5ebac3ae38df2b5f",
+  "stop_rule": "Any input/source/role/image/integrity/resource violation or whole500s timeout closes this original gate; no native model/quality/training eligibility inferred.",
+  "previous_startup": "v1 FAIL; unchanged resource/scientific policy; only resolved image path correction"
+}

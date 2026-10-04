@@ -1,0 +1,85 @@
+{
+  "execution_sha256": "d6ae3b99f721fd659035d4ee64a9fbdaead0380798e6d1fdf5047499f599637f",
+  "export_policy": {
+    "augmentation_seed": 179081,
+    "batch_size": 32,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "fp32_autocast_cosine_min": 0.999,
+    "host_bytes": 8589934592,
+    "native_size": 256,
+    "norm_atol": 1e-05,
+    "seconds": 900,
+    "swap_bytes": 0,
+    "train_identities": {
+      "candidate": 2016,
+      "control": 1008
+    },
+    "train_images": 6355,
+    "views": [
+      "canonical",
+      "augmented"
+    ],
+    "width": 1152
+  },
+  "image_rows": {
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v1/train_sop_siglip2_compact.py",
+    "sha256": "1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610"
+  },
+  "metadata": {
+    "freezer": {
+      "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/freeze_identity_diversity_scope.py",
+      "sha256": "771ff4d7b0c8bc5007a91756ea5e838e2ecf34cc935b18a4cc678142be77fa5d"
+    },
+    "mapping": {
+      "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/mapping.json",
+      "sha256": "fd0f6cb3376ecce3dc0b27402af2fb3671539a7aaf6246412f4a2009dc098ad6"
+    },
+    "official_partition": {
+      "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/official-partition.txt",
+      "sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
+    },
+    "plan": {
+      "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/plan.json",
+      "sha256": "21dabd04d9208695b6d3f03e0e6575ee79c53bdb54cc19ccf7f1210eef316fdf"
+    },
+    "preflight": {
+      "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/preflight.json",
+      "sha256": "41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293"
+    },
+    "roles": {
+      "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/roles.json",
+      "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+    },
+    "schedule_consumer": {
+      "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/schedule-consumer.py",
+      "sha256": "80db5701d05091b0b0412c6bb18cc8d17f486f5ca52ef5a60a06a028a736f218"
+    },
+    "schedule_source": {
+      "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/schedule-source.py",
+      "sha256": "788d672bca384c478881fc8f0b59090efbaf6f84e1c9f27469828bc951b7ec96"
+    }
+  },
+  "partition": {
+    "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/roles.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "reference": {
+    "authority": {
+      "path": "/home/riomus/runs/sfora-native256-fit-export-source-v1/authority.json",
+      "sha256": "065b32e841e8a05bc71aa36e5c9b32db07b139ba7159f428dc21eba23a57361c"
+    },
+    "execution_sha256": "ad32df859712e3d608341ed9eda24fd96db375ec85c61779265a9c16cb8dd3b5",
+    "root": "/home/riomus/runs/sfora-native256-fit-export-source-v1"
+  },
+  "schema": "native256-identity-diversity-view-launch-v1",
+  "scope": {
+    "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/scope.json",
+    "sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+  },
+  "startup_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  }
+}
