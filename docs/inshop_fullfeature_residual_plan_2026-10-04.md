@@ -13,3 +13,5 @@ Source implementation80872bec integrated e4b94003; actual trainer2 execution996a
 | Dataset/split | Matched control/candidate R1+mAP@R | Training cost | Public latency | Remaining gap | Next decisive test |
 |---|---|---|---|---|---|
 | InShop TRAIN selection1734q/1715g/498groups | Fullfeature residual UNREAD/UNREAD; retainedconcat96.482122%/81.777540% | Fresh paired TRAIN unrun; CPU qualification213.245s | Unmeasured | No quality or joint quality/speed gain established | Both discardedmechanics thenfresh061pair/cost and firstselection stop gate |
+
+Paired discarded mechanics engineering GO: original control255.942s/7403556864B and candidate252.418s/7411535872B, both complete17 versus independently reconstructed8+9/reload, zero swap/events/full native authority accepted. Candidate nonzeroC public-loader/oracle/omitted-C/wrong-mean witnesses passed. All mechanics state is discarded. Freeze fresh seed179061 control then candidate TRAIN128/600 using authenticated CPU and both original mechanics terminals; fresh paired whole/core<=1.50 remains mandatory before any new selection quality. No quality or public speed gain measured.

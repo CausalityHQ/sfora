@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "mechanics",
+  "arm": "candidate",
+  "service_seconds": 252.418,
+  "invocation_id": "dcc3a696ba9a4f6e9159366cfe0fadb5",
+  "host_peak_bytes": 7411535872,
+  "rss_kib": 4613620,
+  "unit": "sfora-so400-fullfeature-residual-mechanics-candidate-v1",
+  "quality_read": false,
+  "receipt_sha256": "2c5d6e7b3b8055ede673655b59dec76e72b5f8c01383907cd4e3ae2fc0b5611f",
+  "log_sha256": "a5e792ddd40188c4ff896552aae7047d423b58439b3be214e703d4e014752ddb"
+}
