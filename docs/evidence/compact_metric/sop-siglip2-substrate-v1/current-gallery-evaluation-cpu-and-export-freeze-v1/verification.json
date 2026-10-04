@@ -1,0 +1,11 @@
+{
+  "unit": "sfora-so400-current-gallery-smooth-ap-evaluation-first-cpu-v1",
+  "pass": true,
+  "service_seconds": 274.535,
+  "host_peak_bytes": 1617563648,
+  "rss_kib": 1175984,
+  "invocation_id": "f11d71c09ec9486fb6e0e50bf598ef89",
+  "quality_read": false,
+  "receipt_sha256": "79ac10eadb89bbcf6aff367a095b436dda7833bd05d64e9c9b0e72ca46ce222c",
+  "log_sha256": "9dcd50b1e3a22b479dff9827b9a0c1a0ac875ac0a301f7dc245854ce8be1a894"
+}
