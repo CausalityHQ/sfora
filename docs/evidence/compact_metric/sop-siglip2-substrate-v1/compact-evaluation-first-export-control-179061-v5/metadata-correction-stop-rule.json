@@ -15,5 +15,15 @@
     "resource caps",
     "accepted TRAIN pair"
   ],
-  "next": "fresh CPU proof then sequential original control/candidate exports and selection score; fail closed on missing binding"
+  "next": "fresh CPU proof then sequential original control/candidate exports and selection score; fail closed on missing binding",
+  "map_witness": {
+    "mode": "procedure-owned pure scan copied from original qualifier",
+    "original_qualifier_sha256": "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38",
+    "canonical_ast_sha256": "aaa5872aad6e1d176afa2736a061441a7a28d9bed6840f56871481f2df0a29b7",
+    "loop_ast_sha256": "d107365dc78927a1263697a4ddafe4ba3c45defa9fd1438e98884f736e0fa927",
+    "path": "/proc/self/maps",
+    "order": "reject physical md wrapper mapping before file hashes",
+    "reason": "original imported_origins hashes every mapped native before rejecting foreign authority",
+    "original_native_admission_unchanged": true
+  }
 }

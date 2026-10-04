@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "base": "049f8435bac7c7072ecb43faeacb0aab891c1978",
+  "consumed_instruction": "immediate-1791092098486916252-3299971",
+  "owned_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "before_sha256": {
+    "scripts/evaluate_siglip2_compact_ranking.py": "612a4a9cdbe4e2cec5abf13b7afbad3ed96917570e07e75e3bb50b71cef1a468",
+    "scripts/test_compact_ranking_evaluation.py": "90e4b3d8f4529cbec8db528990fafe878a685d6de2c18db1ba6f89f3935b0913"
+  },
+  "scope": "Exact charset_normalizer.md file/spec metadata alias only, canonical site + exact md RECORD row; Python md.py remains the source; no physical md.so bytes/native grant",
+  "md_record_row": [
+    "charset_normalizer/md.cpython-313-aarch64-linux-gnu.so",
+    "sha256=EYzysjLHjG1gl9fj8mFGIRrs0HPeSgwZw5AWcSxih7A",
+    "201304"
+  ],
+  "md_row_sha256": "118cf2b232c78c6d6097d7e3f26146211aecd073de4a0c19c39016712c6287b0",
+  "bound_group_native_sha256": {
+    "charset_normalizer/cd.cpython-313-aarch64-linux-gnu.so": "12fb9cc199fd48481b3ece86aa70bf06aaa469d0f74045d9e5be722d1ef4f216",
+    "81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so": "43ec7be7cd6f9b15bd3e29fca57a6e3be6fbe7f8152cc7b27a0eda754560f956"
+  },
+  "bindings": "Exact original native_files/files/required guards/RECORD and fresh bound_file hashes for both group natives. Fresh mapped witness includes authorized group and excludes md wrapper on each fresh/cached acceptance. Only same exact __file__/spec origin pair, reject mixed/foreign/optional metadata.",
+  "fresh_map_status": "Before code: actual original native_source_api exports audit_origins and exit_rehash only; audit_origins calls imported_origins, which hashes every mapped .so before checking original authority. It cannot return a no-md-open map exclusion for the physical-md-map negative. Parent decision requested against immediate-1791092571407038580-3299971 for exact original-loop procedure-owned evaluator witness over already allowed self/maps; no edits until resolved.",
+  "unchanged": "Every original production predicate/native exact-four/full uncached exit/math/science/caps/authority except the explicit finite metadata alias branch; no runtime/exact/originalnative/requiredguard/optional source additions.",
+  "checks": "stdlib real fresh/cached audit redgreen, metadata valid group, physical wrapper read/map denial, wrong group SHA/guards/native authority/RECORD row/origin/path/module/mixed/source/foreign denials; inverse AST ledger; one final assigned <=55s suite after stable",
+  "restrictions": "No Torch/native/third-party execution, SSH/GPU/jobs/reviews/children/new worktree/operator/merge/push; trainer/bundle/checkpoints unchanged. Exact2 Roman/noAI commit. Root owns freeze/CPU/export."
+}
