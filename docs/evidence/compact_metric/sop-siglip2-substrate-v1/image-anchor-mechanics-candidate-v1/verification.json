@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "mechanics",
+  "arm": "candidate",
+  "service_seconds": 236.103,
+  "invocation_id": "9a8e5ea721f54bb3b5e4439e30a5da29",
+  "host_peak_bytes": 7305277440,
+  "rss_kib": 4591420,
+  "unit": "sfora-so400-image-anchor-smooth-ap-mechanics-candidate-v1",
+  "quality_read": false,
+  "receipt_sha256": "e4b5f7793012e69ef87509898915954154c65294f5e3855ea99ffacee1b05083",
+  "log_sha256": "cc445bfd92296e12cf2bb87fdf122bc9e9453e45352f1d0242d4852e82a6e6cc"
+}
