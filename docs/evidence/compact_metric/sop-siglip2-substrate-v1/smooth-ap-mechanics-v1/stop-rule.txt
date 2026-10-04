@@ -1,0 +1,1 @@
+Prospective mechanics-only qualification: control first, candidate only after full original control PASS. Each 600 seconds, host8GiB, swap/events0, CUDA<10GB, BOTHlocks. Exact17 vs independent8+9 and strict whole/raw/packed reload; discard state; no TRAIN/held quality. Any failure closes that arm; never rescue prior failures or reuse partial state.

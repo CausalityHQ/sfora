@@ -1,0 +1,98 @@
+{
+  "TRAINING": {
+    "code": {
+      "test_siglip2_compact_ranking.py": "5834df438ac32dd98244d7b24bb19e94e173169b19ea6770ba7db2eff0c0f72b",
+      "train_siglip2_compact_ranking.py": "74a3cbcc3c1a82f21a36793723d57901783ef1f126617ffdea75bc6e402ba679"
+    },
+    "execution_sha256": "bf3efd0040a6cccefde9414839a8cf4943e6a2a52c49f701b865a771def7e272",
+    "root": "/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1"
+  },
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "base_commit": "7a0b98408186a3a9248b0f60c487c311cd61ea22",
+  "clean": true,
+  "code": {
+    "evaluate_siglip2_compact_ranking.py": "2d9198924fe7004730f25ee8929900e0360d73a32442ad7444426cb0c447d317",
+    "test_compact_ranking_evaluation.py": "5bd23d26304e8c4c88d00c024aec124e8f8a55b987ff0accfcd0513e1ae9c604"
+  },
+  "commit": "7981a0b7f3fa67850e0c3e5c5d885fa3708b4c30",
+  "contract": {
+    "path": "/tmp/sfora-smooth-ap-compact-evaluator-contract.json",
+    "sha256": "17bfb7bae3f696e742c65597bf43e86e03353d0c834db3c79a48396c4fdcb9ab"
+  },
+  "execution": {
+    "path": "/tmp/sfora-smooth-ap-compact-evaluator-execution.json",
+    "sha256": "458ba8a4767027bc7c6b1e0c76f7d94ada13b29ebd62c308475c3e91c6414194"
+  },
+  "integration": "UNMERGED and UNPUSHED; parent owns integration and freezing evaluator source closure",
+  "native_qualification": "UNRUN; parent owns CPU/DGX/mechanics/TRAIN/export/quality gates",
+  "owned_paths": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "summary": "Prospective SmoothAP evaluator launch/receipt schemas; exact actual parent-frozen trainer2 source descriptor; all four prospective trainer schemas required. Public API/CLI unchanged. 59 unrelated evaluator functions byte-preserved, including strict trainer equality and all export/runtime/source/current-byte/permission/cost/scientific gates. Actual trainer API/recipe/payload/inference admission and retired schema/recipe/closure negatives verified.",
+  "task": "sfora/smooth-ap-compact-evaluator-20261004",
+  "trainer_commit": "850cab6efdcd2fbb574a5fc18f41fde73c0d638e",
+  "verification": {
+    "actual_root_frozen_trainer_bytes": true,
+    "affected_full_suite_runs": 2,
+    "byte_preserved_functions": 59,
+    "changed_functions": [
+      "authority"
+    ],
+    "diff_check": true,
+    "elapsed_seconds": 91.3,
+    "exact_authorized_ast_inverse": true,
+    "exit_code": 0,
+    "failing_layer": {
+      "exit_code": 0,
+      "log": {
+        "path": "/tmp/sfora-smooth-ap-evaluator-failing-layer.log",
+        "sha256": "b30fb61d379e20aaf079acac2879b506edcca901ffa5f55c08dc3952f35cec2a"
+      },
+      "test_seconds": 26.242,
+      "tests": 9
+    },
+    "final_log": {
+      "path": "/tmp/sfora-smooth-ap-evaluator-stdlib-final-rerun.log",
+      "sha256": "3d53489e7ce9ef6ddc616a9343286834573f8fcd71657f47642cc09f8b13d6c3"
+    },
+    "final_reruns": 1,
+    "help": {
+      "exit_code": 0,
+      "expected": 0
+    },
+    "historical_ast_inverses": true,
+    "initial_run": {
+      "errors": 14,
+      "exit_code": 1,
+      "log": {
+        "path": "/tmp/sfora-smooth-ap-evaluator-stdlib-final.log",
+        "sha256": "5f1e1fb558f7af930c49724d2f2e39fa678cd7e1c1abc81827dfe06309e6ee18"
+      },
+      "reason": "Verification-only staging helpers were symlinks; unchanged strict canonical FILE guards rejected them. Corrected staging to regular byte-identical copies, no production guard relaxation.",
+      "test_seconds": 55.642,
+      "tests": 74
+    },
+    "max_rss_kib": 203580,
+    "new_tests": 3,
+    "optimized_O": {
+      "exit_code": 1,
+      "expected": 1
+    },
+    "optimized_OO": {
+      "exit_code": 1,
+      "expected": 1
+    },
+    "original_tests_preserved": 71,
+    "source_permissions_and_runtime_inventory_unchanged": true,
+    "stdlib_tests": 74,
+    "strict_training_equality_byte_preserved": true,
+    "strict_training_equality_unchanged": true,
+    "swaps": 0,
+    "syntax": true,
+    "test_seconds": 90.604,
+    "timeout_seconds": 120,
+    "virtual_memory_cap_kib": 1048576
+  },
+  "worktree": "/home/rb/worktrees/sfora-smooth-ap-compact-evaluator-20261004"
+}

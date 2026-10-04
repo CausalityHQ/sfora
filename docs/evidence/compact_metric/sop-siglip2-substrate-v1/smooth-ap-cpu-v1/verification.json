@@ -1,0 +1,10 @@
+{
+  "pass": true,
+  "unit": "sfora-so400-smooth-ap-cpu-v1",
+  "invocation_id": "e7dc8e7f9505421fa29fa39e8be389ea",
+  "service_seconds": 188.04,
+  "host_peak_bytes": 8365412352,
+  "quality_read": false,
+  "receipt_sha256": "04aea98937cad01660088a8578a71035c654727ad2888fc22f5830deef133ee2",
+  "log_sha256": "6fd56ee538d7ebed9ec0e0e9cdcfea96cf4e62348b9ae174cd998c59760a1f5d"
+}
