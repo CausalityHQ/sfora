@@ -1,0 +1,9 @@
+{
+  "status": "FAIL",
+  "unit": "sfora-so400-identity-diversity-cpu-v2",
+  "invocation_id": "7179789de5544f1498212cae0b050d24",
+  "service_seconds": 114.174,
+  "original_log_sha256": "35899f1cc28b89f493bc49fb85687ddd3161e7145b7da53680631bbc69de2a51",
+  "error": "control residual must be frozen exactzero",
+  "quality_read": false
+}
