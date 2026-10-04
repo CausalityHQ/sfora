@@ -39,7 +39,7 @@ SCHEMA = 'siglip2-identity-diversity-evaluation-v1'
 AUTHORITY_SCHEMA = 'siglip2-identity-diversity-evaluation-launch-v1'
 FILES = {'evaluate_siglip2_identity_diversity.py', 'test_identity_diversity_evaluation.py'}
 TRAIN_FILES = {'train_siglip2_identity_diversity.py', 'test_siglip2_identity_diversity.py'}
-TRAINING = {'code': {'test_siglip2_identity_diversity.py': '986ced3e9a0234b7aa2c26ae4688fb4e12810a42c8f017ed6d7007e655027d8f', 'train_siglip2_identity_diversity.py': 'c71100e09db22625905dffeee8368a7c068457ecea5f5068a234630e51ed4be8'}, 'execution_sha256': 'a12a1aa5624c032c08616298b3211d35e8f0ff3c2fcfc95e6a170187dc36fd76', 'root': '/home/riomus/runs/sfora-so400-identity-diversity-train-source-v2'}
+TRAINING = {'code': {'test_siglip2_identity_diversity.py': '3b67a2b9e9f6177ed0b4ebfed4fa2b44c245390db6494ba52030eeca5db8cf9c', 'train_siglip2_identity_diversity.py': 'a0bc0338a93fa425d136ec2cf59fd5bbe5d1ef0aedbb76747747cceff348fb69'}, 'execution_sha256': 'fb08f151f148116c0e3d05756968365bed73b9d6e0a1cda4c0d19a6924ea0368', 'root': '/home/riomus/runs/sfora-so400-identity-diversity-train-source-v3'}
 SCOPE_SHA256 = '55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726'
 ARM_SHA256 = {'control':'1f3ad34bbd20a3b375ccb4908f9a3da05b63b514395cb553e1c81925789b2280',
               'candidate':'c12e557afa89b53dc37b984ef0c1d369c4dbff42186c2fc63f4adc331ad31882'}

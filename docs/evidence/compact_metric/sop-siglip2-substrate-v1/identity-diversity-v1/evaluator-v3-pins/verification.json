@@ -1,0 +1,22 @@
+{
+  "tests": 3,
+  "wall_seconds": 0.5,
+  "peak_rss_kib": 63876,
+  "swaps": 0,
+  "exit_code": 0,
+  "original_log_sha256": "8e0d026a4d490e65ebe589ec9c7ca3acae06704656df303a1b32e01b117a7831",
+  "trainer": {
+    "code": {
+      "test_siglip2_identity_diversity.py": "3b67a2b9e9f6177ed0b4ebfed4fa2b44c245390db6494ba52030eeca5db8cf9c",
+      "train_siglip2_identity_diversity.py": "a0bc0338a93fa425d136ec2cf59fd5bbe5d1ef0aedbb76747747cceff348fb69"
+    },
+    "execution_sha256": "fb08f151f148116c0e3d05756968365bed73b9d6e0a1cda4c0d19a6924ea0368",
+    "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v3"
+  },
+  "source": {
+    "evaluate_siglip2_identity_diversity.py": "ae6a98f7eecfcc61e4920a107bf2a75b3aa96005fa16d5977c6ce4c0c0c9ecde",
+    "test_identity_diversity_evaluation.py": "46acb1abdfba5b8fe275e7e883e50b97588804e92c5258300ca4afa308ed7d57"
+  },
+  "native_qualified": false,
+  "root_integration_reason": "Literal actual-source pin update only; original full suite unchanged, affected admission tests pass."
+}
