@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "phase": "mechanics",
+  "arm": "candidate",
+  "service_seconds": 255.475,
+  "invocation_id": "df4b44fb062743b9b7f41abb822e2446",
+  "host_peak_bytes": 7432896512,
+  "rss_kib": 4630512,
+  "unit": "sfora-so400-live-top1-mechanics-candidate-v1",
+  "quality_read": false,
+  "receipt_sha256": "ffa87117f55c2b9e31de528d60d950de44ae3e718c3a228873f9bee12a33ac2e",
+  "log_sha256": "6389cd909050262db0f851a5c695616e8bf0b757fbf301ce3bb3838ad66ea0f5"
+}
