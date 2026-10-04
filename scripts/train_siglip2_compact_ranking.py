@@ -28,10 +28,10 @@ from types import FunctionType
 import weakref
 
 UNIT_STARTED = time.perf_counter()
-SCHEMA = 'siglip2-compact-current-gallery-smooth-ap-v1'
-AUTHORITY_SCHEMA = 'siglip2-compact-current-gallery-smooth-ap-launch-v1'
-INFERENCE_SCHEMA = 'siglip2-compact-current-gallery-smooth-ap-inference-v1'
-BUNDLE_SCHEMA = 'siglip2-compact-current-gallery-smooth-ap-bundle-v1'
+SCHEMA = 'siglip2-compact-fullfeature-residual-v1'
+AUTHORITY_SCHEMA = 'siglip2-compact-fullfeature-residual-launch-v1'
+INFERENCE_SCHEMA = 'siglip2-compact-fullfeature-residual-inference-v1'
+BUNDLE_SCHEMA = 'siglip2-compact-fullfeature-residual-bundle-v1'
 FILES = {'train_siglip2_compact_ranking.py', 'test_siglip2_compact_ranking.py'}
 ARMS = ('control', 'candidate')
 SEEDS = (179061, 179069)
@@ -63,30 +63,35 @@ ANCHOR_ENDPOINT = {'A_sha256': '461b23b5980f7aa917bc897760c20e3e4d040e15cbf68c58
             'sha256': 'a3d6460966c228d4f50cd7c16e643ba3b5496ebd3f8ee60741e4b2ddb22ea883'},
  'terminal_state_sha256': '5dcc6eadca4b365796551c9e3829c043614794be7e2786307110d295e8e1a3e6',
  'inference_state_sha256': 'ad7e819aa56cf163b66f039b417d397ca1d0c37518f60f74e5984607815feb15'}
+ACTIVE_OBJECTIVE_SOURCE = {'code': {'test_siglip2_compact_ranking.py': '32f9ade5717d98e9aa5f6644ad7ac0dc5992bb21e0861730e154d0d78c8a7744', 'train_siglip2_compact_ranking.py': 'affb911bd76a760b480e616d13dc78710cc56c74ce92ddd27e1cc8aaa3483480'}, 'execution_sha256': '73cbc39e857ad99e2962a6252c8c158b232636889b5023c28a97b1be7edda68e', 'root': '/home/riomus/runs/sfora-so400-current-gallery-smooth-ap-train-source-v1'}
 ADAM = {'lr': 1e-4, 'betas': (.9, .999), 'eps': 1e-8, 'weight_decay': .05,
         'amsgrad': False, 'maximize': False, 'foreach': False, 'capturable': False,
         'differentiable': False, 'fused': False}
 RECIPE = {'seeds': list(SEEDS), 'rows': 6355, 'classes': 1008, 'singletons': 12,
           'updates': 128, 'batch': 64, 'microbatch': 16, 'views': list(VIEWS),
-          'trainable_names': ['A'], 'trainable_shapes': [[128, 160]], 'trainable_scalars': 20480,
+          'trainable_names': {'control': ['A'], 'candidate': ['A', 'C']},
+          'trainable_shapes': {'control': [[128, 160]], 'candidate': [[128, 160], [128, 1152]]},
+          'trainable_scalars': {'control': 20480, 'candidate': 167936},
           'adamw': {**ADAM, 'betas': list(ADAM['betas'])}, 'clip': 1., 'initial_scaler': 128.,
           'regression': 'both arms P[label]; both original views coordinate sum / (128*e0)',
           'ranking': 'both arms backward coefficient1; all positives; SmoothAP sum / (2*K)',
           'temperature': .01, 'teacher': 'accepted canonical T; member-inclusive P; normalize(T); both-view e0',
-          'mining': 'all6355 canonical rows; control normalize(T); candidate current same-A connected canonical readout; exclude same original image; all same-identity positives; canonical ordinal traversal',
+          'mining': 'all6355 canonical rows; both arms current connected canonical readout at same pre-update A/C; exclude same original image; all same-identity positives; canonical ordinal traversal',
           'schedule': 'original first128 B64 per seed; warm-authenticated; masks unused',
           'readout': 'original CPU-renormalized genuine features; FP32 all; autocast disabled',
-          'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means',
-          'gallery': 'candidate reconstructs connected gallery every micro16 at same pre-update A; both-role backward then release each graph; one optimizer step after eight micros; no serialized gallery',
-          'core': 'cache/target preparation + both-arm all-positive scoring + both-view forward/backward + every candidate gallery forward/backward + optimizer'}
+          'frozen': 'complete encoder448/config/buffers/processor/head/classifier/means/muTRAIN; control C exactzero',
+          'residual': 'original concat helper once + candidate linear(actual normalized x - canonical TRAIN6355 mu,C); C128x1152 zero; control serialized frozen C bypass; mean FP32 canonical actual CPU domain only',
+          'gallery': 'both arms reconstruct connected gallery every micro16 at same pre-update A/C; both-role backward then release each graph; one optimizer step after eight micros; no serialized gallery',
+          'core': 'cache/target preparation + both-arm all-positive scoring + both-view forward/backward + every both-arm gallery forward/backward + candidate fullfeature centering/transfers + optimizer'}
 LAUNCH_KEYS = {'schema', 'execution_sha256', 'phase', 'arm', 'seed', 'nearest', 'fitter', 'accepted',
                'readout', 'recipe', 'resource_policy', 'both_locks_held', 'selected_cpu',
                'selected_mechanics', 'native_authority'}
 STATIC_KEYS = ('provenance', 'config', 'buffers', 'processor', 'head', 'classifier', 'means',
-               'partition', 'original_rows', 'target', 'schedules', 'views', 'teachers')
-PAYLOAD_KEYS = {'schema', 'identity', 'source', 'A', *STATIC_KEYS, 'optimizer', 'scaler',
+               'partition', 'original_rows', 'target', 'schedules', 'views', 'teachers', 'mu_train', 'mu_train_provenance')
+PAYLOAD_KEYS = {'schema', 'identity', 'source', 'A', 'C', *STATIC_KEYS, 'optimizer', 'scaler',
                 'counter', 'cpu_rng', 'cuda_rng', 'numerical_flags'}
-INFERENCE_KEYS = {'schema', 'source', 'config', 'buffers', 'processor', 'head', 'A', 'means',
+INFERENCE_KEYS = {'schema', 'source', 'arm', 'config', 'buffers', 'processor', 'head', 'A', 'C', 'means',
+                  'mu_train', 'mu_train_provenance',
                   'numerical_flags', 'vision_sha256', 'fixed_sha256'}
 SERVING_FILES = {'qualify_siglip2_substrate_cpu.py', 'extract_siglip2_vision_source.py',
                  'train_siglip2_cached_readout.py', 'train_siglip2_substrate_adaptation.py',
@@ -285,6 +290,7 @@ def authority(args):
             admit_terminal(context, launch['selected_mechanics'][arm], 'mechanics', arm, SEEDS[0])
         a, b = (context['terminals'][f'mechanics:{SEEDS[0]}:{arm}'] for arm in ARMS)
         require(a['initial_A_sha256'] == b['initial_A_sha256'] and
+                all(a[k] == b[k] for k in ('initial_C_sha256', 'mu_train_sha256', 'mu_train_provenance_sha256')) and
                 a['initial_raw_unit_packed_sha256'] == b['initial_raw_unit_packed_sha256'] and
                 a['identity']['static_sha256'] == b['identity']['static_sha256'] and
                 a['identity']['initial_cpu_rng_sha256'] == b['identity']['initial_cpu_rng_sha256'] and
@@ -388,9 +394,24 @@ def prepare_native(context):
         initial['provenance'] = {'accepted': ACCEPTED, 'fitter': FITTER, 'nearest': NEAREST,
                                  'readout': READOUT, 'encoder': initial.pop('encoder')}
         initial.update(views=views, schedules=schedules)
+        initial['C'] = torch.zeros((128, 1152), dtype=torch.float32)
+        initial['mu_train'] = views['canonical'].mean(dim=0).detach().contiguous()
+        initial['mu_train_provenance'] = {
+            'domain': 'actual CPU-renormalized FP32 features', 'rows': 6355,
+            'view': 'canonical', 'reduction': 'torch FP32 mean(dim=0) canonical ordinal order',
+            'canonical_features_sha256': fingerprint(context, views['canonical']),
+            'original_rows_sha256': fingerprint(context, initial['original_rows']),
+            'target_sha256': fingerprint(context, initial['target']),
+            'partition_sha256': fingerprint(context, initial['partition']),
+            'accepted_checkpoint': clone(context, ACCEPTED['checkpoint']),
+            'canonical_cache': clone(context, legacy['selected']['source']['caches']['canonical'])}
+        check_mu_train_provenance(initial['mu_train_provenance'])
         context['initial'] = initial
         context['initial_static_sha256'] = fingerprint(context, {k: initial[k] for k in STATIC_KEYS})
         context['initial_A_sha256'] = fingerprint(context, initial['A'])
+        context['initial_C_sha256'] = fingerprint(context, initial['C'])
+        context['mu_train_sha256'] = fingerprint(context, initial['mu_train'])
+        context['mu_train_provenance_sha256'] = fingerprint(context, initial['mu_train_provenance'])
     # Fresh per audit: imported_origins hashes; the original reader registers those bytes.
     context['nearest'].native_source_api(context).audit_origins(legacy, admission=legacy['original'].FlatAdmission())
 
@@ -398,11 +419,101 @@ def prepare_native(context):
 def require_no_training(context):
     reference = context.get('live_training')
     require(reference is None or reference() is None, 'previous training A still alive')
+    residual = context.get('live_residual')
+    require(residual is None or residual() is None, 'previous residual/gallery graph still alive')
     context['nearest'].require_no_model(context)
+
+
+def parameter_roles(arm):
+    require(type(arm) is str and arm in ARMS, 'fixed residual arm required')
+    return (['A'], [[128, 160]], 20480) if arm == 'control' else (
+        ['A', 'C'], [[128, 160], [128, 1152]], 167936)
+
+
+def check_mu_train_provenance(value):
+    require(isinstance(value, dict) and value.keys() == {
+        'domain', 'rows', 'view', 'reduction', 'canonical_features_sha256',
+        'original_rows_sha256', 'target_sha256', 'partition_sha256',
+        'accepted_checkpoint', 'canonical_cache'} and
+        value['domain'] == 'actual CPU-renormalized FP32 features' and
+        type(value['rows']) is int and value['rows'] == 6355 and value['view'] == 'canonical' and
+        value['reduction'] == 'torch FP32 mean(dim=0) canonical ordinal order' and
+        value['accepted_checkpoint'] == ACCEPTED['checkpoint'], 'canonical TRAIN-only mean provenance differs')
+    for key in ('canonical_features_sha256', 'original_rows_sha256', 'target_sha256', 'partition_sha256'):
+        require(isinstance(value[key], str) and re.fullmatch('[0-9a-f]{64}', value[key]),
+                'typed mean provenance digest required')
+    cache = value['canonical_cache']
+    require(isinstance(cache, dict) and cache.get('normalized') is True and
+            cache.get('raw_pooled_cache') is False and cache.get('shape') == [6355, 1152] and
+            cache.get('dtype') == 'float32', 'canonical mean cache provenance differs')
+
+
+def own_residual(context, state, *, admit=False, advanced=False):
+    """Authorize C updates and catch current .data/role/mean substitutions."""
+    import torch
+    C, mu = state['C'], state['mu_train']
+    primitive = context['legacy']['quadratic']
+    primitive._check_tensor(C, (128, 1152), state['A'].device)
+    primitive._check_tensor(mu, (1152,), state['A'].device, frozen=True)
+    require(C.is_leaf and C.grad_fn is None and C.requires_grad is (state['arm'] == 'candidate') and
+            torch.isfinite(C).all().item() and torch.isfinite(mu).all().item() and
+            fingerprint(context, mu) == context['mu_train_sha256'] and
+            fingerprint(context, state['mu_train_provenance']) == context['mu_train_provenance_sha256'],
+            'current residual roles/finite TRAIN mean bytes differ')
+    current = fingerprint(context, C)
+    require(state['arm'] != 'control' or (torch.count_nonzero(C).item() == 0 and
+            current == context['initial_C_sha256']), 'control C must remain frozen exactzero')
+    owners = context.setdefault('C_owners', {})
+    prior = owners.get(id(state))
+    if admit:
+        require(prior is None or (prior[0] is state and prior[1] is C and prior[2] == 0),
+                'C re-admission requires independent fresh load')
+    elif advanced:
+        require(prior is not None and prior[0] is state and prior[1] is C and
+                state['counter'] == prior[2] + 1 and
+                (current != prior[3] if state['arm'] == 'candidate' else current == prior[3]),
+                'C refresh requires one genuine role-aware update')
+    else:
+        require(prior is not None and prior[0] is state and prior[1] is C and
+                state['counter'] == prior[2] and current == prior[3], 'authorized current C bytes/counter differ')
+        return current
+    owners[id(state)] = (state, C, state['counter'], current)
+    return current
+
+
+def fullfeature_raw_features(features, head, A, means, C, mu_train, arm, primitive, readout):
+    """Public FP32 readout over the actual normalized input, with one concat call."""
+    import torch
+    from torch.nn import functional as F
+    parameter_roles(arm)
+    primitive._check_tensor(C, (128, 1152), features.device)
+    primitive._check_tensor(mu_train, (1152,), features.device, frozen=True)
+    require(torch.isfinite(C).all().item() and torch.isfinite(mu_train).all().item(),
+            'finite residual/mean required')
+    if arm == 'control':
+        require(not C.requires_grad and C.grad_fn is None and torch.count_nonzero(C).item() == 0,
+                'control residual must be frozen exactzero')
+    with torch.autocast(features.device.type, enabled=False):
+        raw = readout.raw_features(features, head, A, means, 'concat', primitive)
+        if arm == 'candidate':
+            raw = raw + F.linear(features.detach().float() - mu_train, C)
+        require(torch.isfinite(raw).all().item(), 'finite fullfeature raw required')
+    return raw
+
+
+def residual_facts(context, state):
+    import torch
+    return {'initial_C_sha256': context['initial_C_sha256'],
+            'current_C_sha256': fingerprint(context, state['C'].detach()),
+            'mu_train_sha256': fingerprint(context, state['mu_train']),
+            'mu_train_provenance_sha256': fingerprint(context, state['mu_train_provenance']),
+            'C_exact_zero': torch.count_nonzero(state['C']).item() == 0,
+            'C_trainable': state['C'].requires_grad}
 
 
 def own_A(context, state, *, admit=False, advanced=False):
     """Current bytes, never a version/hash cache; sole owner authorizes updates."""
+    own_residual(context, state, admit=admit, advanced=advanced)
     owners = context.setdefault('A_owners', {})
     current = fingerprint(context, state['A'])
     prior = owners.get(id(state))
@@ -426,7 +537,7 @@ def fresh(context, arm, seed, device, initial=None):
     require(arm in ARMS and seed in SEEDS and device in ('cpu', 'cuda'), 'fixed training roles required')
     initial = context['initial'] if initial is None else initial
     # Features stay CPU; the microbatch alone transfers. Training holds no vision.
-    state = {k: clone(context, initial[k], device if k in ('teachers', 'target', 'means', 'classifier') else 'cpu')
+    state = {k: clone(context, initial[k], device if k in ('teachers', 'target', 'means', 'classifier', 'mu_train') else 'cpu')
              for k in STATIC_KEYS}
     state.update(arm=arm, seed=seed, device=device, counter=0)
     head = context['legacy']['selected']['cached'].head_from('control', tensors=state['head'])
@@ -434,14 +545,19 @@ def fresh(context, arm, seed, device, initial=None):
     A = torch.nn.Parameter(clone(context, initial['A'], device))
     state['A'] = A
     context['live_training'] = weakref.ref(A)
-    optimizer = torch.optim.AdamW([A], **ADAM)
+    C = torch.nn.Parameter(clone(context, initial['C'], device), requires_grad=arm == 'candidate')
+    state['C'] = C
+    context['live_residual'] = weakref.ref(C)
+    members = [A, C] if arm == 'candidate' else [A]
+    optimizer = torch.optim.AdamW(members, **ADAM)
     defaults = dict(ADAM)
     if 'decoupled_weight_decay' in optimizer.defaults:
         defaults['decoupled_weight_decay'] = True
     require(optimizer.defaults == defaults and not optimizer.state and len(optimizer.param_groups) == 1 and
-            optimizer.param_groups[0]['params'] == [A] and
+            len(optimizer.param_groups[0]['params']) == len(members) and
+            all(a is b for a, b in zip(optimizer.param_groups[0]['params'], members, strict=True)) and
             {k: v for k, v in optimizer.param_groups[0].items() if k != 'params'} == defaults,
-            'fresh sole-A AdamW defaults/groups differ')
+            'fresh role-aware ordered AdamW defaults/groups differ')
     state['optimizer_object'] = optimizer
     state['scaler_object'] = torch.amp.GradScaler(device, init_scale=128., enabled=device == 'cuda')
     state['target_list'] = state['target'].tolist()
@@ -460,12 +576,16 @@ def static_tree(state):
 def identity(context, state):
     import torch
     optimizer = state['optimizer_object']
+    names, shapes, _ = parameter_roles(state['arm'])
     return {'method': method(context['launch']), 'source': context['source'], 'arm': state['arm'],
             'ranking_bank_sha256': state['ranking_bank']['sha256'],
-            'seed': state['seed'], 'device': state['device'], 'parameter_names': ['A'],
-            'parameter_shapes': [[128, 160]], 'numerical_flags': context['flags'],
+            'seed': state['seed'], 'device': state['device'], 'parameter_names': names,
+            'parameter_shapes': shapes, 'numerical_flags': context['flags'],
             'static_sha256': fingerprint(context, static_tree(state)),
-            'initial_A_sha256': context['initial_A_sha256'], 'optimizer_defaults': optimizer.defaults.copy(),
+            'initial_A_sha256': context['initial_A_sha256'],
+            'initial_C_sha256': context['initial_C_sha256'],
+            'mu_train_sha256': context['mu_train_sha256'],
+            'mu_train_provenance_sha256': context['mu_train_provenance_sha256'], 'optimizer_defaults': optimizer.defaults.copy(),
             'optimizer_groups': [{k: v for k, v in g.items() if k != 'params'} for g in optimizer.param_groups],
             'initial_scaler': state['scaler_object'].state_dict(),
             'initial_cpu_rng_sha256': fingerprint(context, torch.random.get_rng_state()),
@@ -475,7 +595,7 @@ def identity(context, state):
 def payload(context, state, ident):
     import torch
     return {'schema': SCHEMA, 'identity': ident, 'source': context['source'], **static_tree(state),
-            'A': state['A'].detach(), 'optimizer': state['optimizer_object'].state_dict(),
+            'A': state['A'].detach(), 'C': state['C'].detach(), 'optimizer': state['optimizer_object'].state_dict(),
             'scaler': state['scaler_object'].state_dict(), 'counter': state['counter'],
             'cpu_rng': torch.random.get_rng_state().clone(),
             'cuda_rng': [v.clone() for v in torch.cuda.get_rng_state_all()] if state['device'] == 'cuda' else [],
@@ -484,20 +604,24 @@ def payload(context, state, ident):
 
 def check_optimizer(saved, ident, step):
     import torch
+    names, shapes, _ = parameter_roles(ident['arm'])
     opt = saved['optimizer']
-    require(opt.keys() == {'state', 'param_groups'} and len(opt['param_groups']) == 1 and
-            opt['param_groups'][0]['params'] == [0] and
+    require(ident['parameter_names'] == names and ident['parameter_shapes'] == shapes and
+            opt.keys() == {'state', 'param_groups'} and len(opt['param_groups']) == 1 and
+            opt['param_groups'][0]['params'] == list(range(len(names))) and
             {k: v for k, v in opt['param_groups'][0].items() if k != 'params'} == ident['optimizer_groups'][0] and
-            opt['state'].keys() == ({0} if step else set()), 'sole-A named optimizer ownership differs')
+            opt['state'].keys() == (set(range(len(names))) if step else set()),
+            'ordered role-aware optimizer ownership differs')
     if step:
-        member = opt['state'][0]
-        require(member.keys() == {'step', 'exp_avg', 'exp_avg_sq'} and member['step'].shape == () and
-                member['step'].dtype == torch.float32 and member['step'].device.type == 'cpu' and
-                float(member['step']) == step, 'AdamW exact CPU step differs')
-        for key in ('exp_avg', 'exp_avg_sq'):
-            value = member[key]
-            require(value.shape == (128, 160) and value.dtype == torch.float32 and not value.requires_grad and
-                    value.grad_fn is None and torch.isfinite(value).all().item(), 'finite FP32 A moment differs')
+        for index, shape in enumerate(shapes):
+            member = opt['state'][index]
+            require(member.keys() == {'step', 'exp_avg', 'exp_avg_sq'} and member['step'].shape == () and
+                    member['step'].dtype == torch.float32 and member['step'].device.type == 'cpu' and
+                    float(member['step']) == step, 'AdamW exact CPU step differs')
+            for key in ('exp_avg', 'exp_avg_sq'):
+                value = member[key]
+                require(value.shape == tuple(shape) and value.dtype == torch.float32 and not value.requires_grad and
+                        value.grad_fn is None and torch.isfinite(value).all().item(), 'finite FP32 named moment differs')
     require(saved['scaler'] == (dict(ident['initial_scaler'], _growth_tracker=step) if ident['device'] == 'cuda'
                                 else ident['initial_scaler']), 'scaler128/counter differs')
 
@@ -506,7 +630,7 @@ def check_payload(context, saved, ident, step):
     import torch
     require(saved.keys() == PAYLOAD_KEYS and saved['schema'] == SCHEMA and saved['identity'] == ident and
             saved['source'] == context['source'] == ident['source'] and ident['method'] == method(context['launch']) and
-            ident['parameter_names'] == ['A'] and ident['parameter_shapes'] == [[128, 160]] and
+            (ident['parameter_names'], ident['parameter_shapes']) == parameter_roles(ident['arm'])[:2] and
             ident['arm'] in ARMS and ident['seed'] in SEEDS and ident['device'] in ('cpu', 'cuda') and
             type(saved['counter']) is int and saved['counter'] == step and 0 <= step <= 128 and
             saved['numerical_flags'] == ident['numerical_flags'] == context['flags'], 'complete payload identity differs')
@@ -521,6 +645,18 @@ def check_payload(context, saved, ident, step):
     require(torch.isfinite(saved['A']).all().item() and
             ((fingerprint(context, saved['A']) == ident['initial_A_sha256']) if step == 0 else
              (fingerprint(context, saved['A']) != ident['initial_A_sha256'])), 'initial/updated A substitution differs')
+    check_mu_train_provenance(saved['mu_train_provenance'])
+    primitive._check_tensor(saved['mu_train'], (1152,), saved['A'].device, frozen=True)
+    primitive._check_tensor(saved['C'], (128, 1152), saved['A'].device, frozen=True)
+    require(ident['initial_C_sha256'] == context['initial_C_sha256'] and
+            fingerprint(context, saved['mu_train']) == ident['mu_train_sha256'] == context['mu_train_sha256'] and
+            fingerprint(context, saved['mu_train_provenance']) == ident['mu_train_provenance_sha256'] ==
+            context['mu_train_provenance_sha256'] and torch.isfinite(saved['mu_train']).all().item() and
+            torch.isfinite(saved['C']).all().item() and
+            (torch.count_nonzero(saved['C']).item() == 0 if ident['arm'] == 'control' or step == 0 else
+             torch.count_nonzero(saved['C']).item() > 0), 'frozen TRAIN mean/initial or updated C differs')
+    if step == 0 or ident['arm'] == 'control':
+        require(fingerprint(context, saved['C']) == ident['initial_C_sha256'], 'exactzero initial/control C differs')
     for seed in SEEDS:
         require(saved['schedules'][str(seed)].shape == (128, 64) and
                 saved['schedules'][str(seed)].dtype == torch.int64, 'full fixed first128 schedule differs')
@@ -562,10 +698,14 @@ def integrity(context, state, ident):
             all(p.grad is None and not p.requires_grad and p.device == A.device for p in head.parameters()) and
             all(m.training and not m._forward_hooks and not m._forward_pre_hooks and not m._backward_hooks
                 for m in head.modules()) and len(optimizer.param_groups) == 1 and
-            len(optimizer.param_groups[0]['params']) == 1 and optimizer.param_groups[0]['params'][0] is A and
+            len(optimizer.param_groups[0]['params']) == len(ident['parameter_names']) and
+            all(p is state[n] for p, n in zip(optimizer.param_groups[0]['params'], ident['parameter_names'], strict=True)) and
+            state['C'].grad is None and state['C'].requires_grad is (state['arm'] == 'candidate') and
+            (state['arm'] != 'control' or state['C'] not in optimizer.state) and
             optimizer.defaults == ident['optimizer_defaults'], 'sole-A roles/hooks/frozen gradients/defaults differ')
     if state['counter']:
-        require(all(optimizer.state[A][k].device == A.device for k in ('exp_avg', 'exp_avg_sq')),
+        require(all(optimizer.state[state[n]][k].device == A.device
+                    for n in ident['parameter_names'] for k in ('exp_avg', 'exp_avg_sq')),
                 'active FP32 moments must follow A device')
     source = context['legacy']['source_driver']
     require(source.numerical_flags() == context['flags'], 'original numerical flags changed')
@@ -579,6 +719,7 @@ def integrity(context, state, ident):
 
 def release(context, state):
     context.get('A_owners', {}).pop(id(state), None)
+    context.get('C_owners', {}).pop(id(state), None)
     state.clear()
     gc.collect()
     require_no_training(context)
@@ -638,8 +779,8 @@ def loss_denominators(full_valid):
 
 
 def raw_features(context, state, features):
-    return helper_guard(context).raw_features(features, state['head_object'], state['A'],
-                                              state['means'], 'concat', context['legacy']['quadratic'])
+    return fullfeature_raw_features(features, state['head_object'], state['A'], state['means'],
+        state['C'], state['mu_train'], state['arm'], context['legacy']['quadratic'], helper_guard(context))
 
 
 def json_sha256(value):
@@ -697,11 +838,9 @@ def smooth_ap_terms(scores, positive, eligible):
 
 def ranking_gallery(context, state):
     """One ephemeral canonical graph per micro; update charges forward/backward."""
-    if state['arm'] == 'control':
-        return state['teachers']['V']
     import torch
     from torch.nn import functional as F
-    require(state['arm'] == 'candidate', 'fixed gallery arm required')
+    require(state['arm'] in ARMS, 'fixed connected gallery arm required')
     with torch.autocast(state['device'], enabled=False):
         raw = raw_features(context, state, state['views']['canonical'].to(state['device']))
         require(raw.shape == state['teachers']['T'].shape and raw.dtype == torch.float32 and
@@ -711,12 +850,12 @@ def ranking_gallery(context, state):
 
 
 def authenticate_active_objective(context):
-    """Authenticate the original prototype-plus-fixed-gallery objective source only.
+    """Authenticate the archived connected-gallery candidate objective source only.
 
     The closed image-anchor endpoint/displacement witnesses remain historical;
     they are not prerequisites, initializers or witnesses of this method.
     """
-    source, guards = ANCHOR_ENDPOINT['source'], context['guards']
+    source, guards = ACTIVE_OBJECTIVE_SOURCE, context['guards']
     root = Path(source['root'])
     code = closure(root, source['execution_sha256'], FILES, guards)
     require(code == source['code'], 'original active objective exact2 differs')
@@ -853,10 +992,10 @@ def cpu_gradients(context, state):
         # Compare each genuine firstB64 view to an independent accepted-A0 readout,
         # including the original packing roles. No searched rows or updated endpoint.
         accepted_A = torch.nn.Parameter(context['initial']['A'].clone())
-        accepted_state = {**state, 'A': accepted_A}
         for view in VIEWS:
             actual = raw_features(context, state, state['views'][view][batch])
-            expected = raw_features(context, accepted_state, state['views'][view][batch])
+            expected = helper_guard(context).raw_features(state['views'][view][batch], state['head_object'],
+                accepted_A, state['means'], 'concat', context['legacy']['quadratic'])
             require(torch.equal(actual, expected) and
                     fingerprint(context, context['old'].packed_outputs(context['legacy'], actual)) ==
                     fingerprint(context, context['old'].packed_outputs(context['legacy'], expected)),
@@ -865,7 +1004,7 @@ def cpu_gradients(context, state):
                 require(torch.allclose(actual, state['teachers']['T'][batch], rtol=1e-5, atol=1e-6),
                         'accepted canonical firstB64 raw differs')
             del actual, expected
-        del accepted_A, accepted_state
+        del accepted_A
         initial_gallery = ranking_gallery(context, {**state, 'arm': 'candidate'})
         require(torch.allclose(initial_gallery, state['teachers']['V'], rtol=1e-5, atol=1e-6),
                 'initial current/accepted gallery unit scores differ')
@@ -876,20 +1015,27 @@ def cpu_gradients(context, state):
                                    rtol=1e-5, atol=1e-6), 'initial both-view current/fixed gallery scores differ')
             del raw
         del initial_gallery
-        def objective(micro, arm, historical=False, split=False, detached=False):
+        def objective(micro, arm, historical=False, split=False, detached=False, nonzero=False):
             regression, ranking, active = {v: [] for v in VIEWS}, [], 0
-            gradients = [torch.zeros_like(A) for _ in range(5)]
+            roles = ['A'] if historical or arm == 'control' else ['A', 'C']
             query_A = torch.nn.Parameter(A.detach().clone()) if split else A
-            gallery_A = torch.nn.Parameter(A.detach().clone()) if split else A
-            query_state = {**state, 'arm': arm, 'A': query_A}
-            objective_state = {**state, 'arm': arm, 'A': gallery_A}
-            gallery_gradient = torch.zeros_like(A)
+            query_C = torch.nn.Parameter(state['C'].detach().clone(), requires_grad='C' in roles)
+            if nonzero:
+                require(arm == 'candidate', 'nonzero witness candidate only')
+                with torch.no_grad():
+                    query_C.copy_((torch.arange(128 * 1152).reshape(128, 1152) % 7 + 1).float() * 1e-4)
+            gallery_A = torch.nn.Parameter(A.detach().clone()) if split else query_A
+            gallery_C = torch.nn.Parameter(query_C.detach().clone()) if split and 'C' in roles else query_C
+            query_state = {**state, 'arm': arm, 'A': query_A, 'C': query_C}
+            objective_state = {**state, 'arm': arm, 'A': gallery_A, 'C': gallery_C}
+            gradients = {n: [torch.zeros_like(query_state[n]) for _ in range(5)] for n in roles}
+            gallery_gradient = {n: torch.zeros_like(query_state[n]) for n in roles}
             loss_api = context['active_original'].loss_terms if historical else loss_terms
             if detached:
-                # Execute the actual loss with its sole gallery helper replaced by
-                # the forbidden detached refresh; this mutant must fail decomposition.
                 loss_api = FunctionType(loss_terms.__code__, {**loss_terms.__globals__,
                     'ranking_gallery': lambda c, st: ranking_gallery(c, st).detach()})
+            query_members = tuple(query_state[n] for n in roles)
+            gallery_members = tuple(objective_state[n] for n in roles)
             for view in VIEWS:
                 for offset in range(0, 64, micro):
                     anchors = batch[offset:offset + micro]
@@ -898,70 +1044,121 @@ def cpu_gradients(context, state):
                     regression[view].append(mse.detach())
                     ranking.append(rank.detach())
                     active += diagnostic['active']
-                    regression_grad = torch.autograd.grad(mse, query_A, retain_graph=True)[0]
-                    ranking_grad = torch.autograd.grad(rank, query_A, retain_graph=True)[0]
+                    regression_grad = torch.autograd.grad(mse, query_members, retain_graph=True)
+                    ranking_grad = torch.autograd.grad(rank, query_members, retain_graph=True)
                     if split:
-                        gallery_gradient.add_(torch.autograd.grad(rank, gallery_A, retain_graph=True)[0])
-                    total_grad = torch.autograd.grad(mse + rank, query_A)[0]
-                    gradients[VIEWS.index(view)].add_(regression_grad)
-                    for accumulated, contribution in zip(gradients[2:], (regression_grad, ranking_grad, total_grad), strict=True):
-                        accumulated.add_(contribution)
-                    del raw, mse, rank, regression_grad, ranking_grad, total_grad
+                        for n, grad in zip(roles, torch.autograd.grad(rank, gallery_members, retain_graph=True), strict=True):
+                            gallery_gradient[n].add_(grad)
+                        del grad
+                    total_grad = torch.autograd.grad(mse + rank, query_members)
+                    for n, reg, rnk, total in zip(roles, regression_grad, ranking_grad, total_grad, strict=True):
+                        gradients[n][VIEWS.index(view)].add_(reg)
+                        for accumulated, contribution in zip(gradients[n][2:], (reg, rnk, total), strict=True):
+                            accumulated.add_(contribution)
+                    del raw, mse, rank, regression_grad, ranking_grad, total_grad, reg, rnk, total, accumulated, contribution
             canonical, augmented = (sum(regression[v]) for v in VIEWS)
             mse, rank = canonical + augmented, sum(ranking)
-            loss = mse + rank
-            return [canonical, augmented, mse, rank, loss] + gradients, active, gallery_gradient
-        values, arms = {}, {}
+            return [canonical, augmented, mse, rank, mse + rank] + gradients['A'], active, gallery_gradient, gradients.get('C')
+        values, arms, C_values = {}, {}, {}
         loss_names = ('canonical_mse', 'augmented_mse', 'mse', 'rank', 'loss')
         gradient_names = ('canonical_regression', 'augmented_regression', 'regression', 'ranking', 'total')
         for arm in ARMS:
-            full, active, _ = objective(64, arm)
-            micro, micro_active, _ = objective(16, arm)
+            full, active, _, C_full = objective(64, arm)
+            micro, micro_active, _, C_micro = objective(16, arm)
             require(active == micro_active and active > 0 and
                     all(torch.allclose(expected, actual, rtol=1e-5, atol=1e-6)
-                        for expected, actual in zip(full, micro, strict=True)),
-                    'both-arm global both-view micro16 loss/gradient differs')
+                        for expected, actual in zip(full, micro, strict=True)) and
+                    (C_full is None or all(torch.allclose(a, b, rtol=1e-5, atol=1e-6)
+                                           for a, b in zip(C_full, C_micro, strict=True))),
+                    'both-arm global both-view micro16 loss/A/C gradient differs')
             require(all(v.dtype == torch.float32 and torch.isfinite(v).all().item() for v in full) and
                     all(v.item() >= 0 for v in full[:5]) and full[3].item() > 0 and
-                    all(v.double().norm().item() > 0 for v in full[8:]),
-                    'fixed firstB64 both-arm finite regression/active ranking gradient required')
-            values[arm] = full
+                    all(v.double().norm().item() > 0 for v in full[8:]) and
+                    (C_full is None or all(torch.isfinite(v).all().item() and v.double().norm().item() > 0 for v in C_full)),
+                    'fixed firstB64 both-arm finite regression/active A/C gradients required')
+            values[arm], C_values[arm] = full, C_full
             arms[arm] = {**{name: float(v) for name, v in zip(loss_names, full[:5], strict=True)},
                          'active': active, 'micro16_global_reduction_exact': True}
             for name, gradient in zip(gradient_names, full[5:], strict=True):
                 arms[arm][name + '_gradient_norm'] = float(gradient.double().norm())
                 arms[arm][name + '_gradient_sha256'] = fingerprint(context, gradient)
-        historical, historical_active, _ = objective(64, 'control', historical=True)
+        historical, historical_active, _, _ = objective(64, 'candidate', historical=True)
         require(historical_active == arms['control']['active'] and
                 all(torch.equal(a, b) for a, b in zip(historical, values['control'], strict=True)),
-                'active control differs from authenticated original prototype-plus-SmoothAP objective')
+                'active control differs from authenticated old connected-gallery candidate objective')
         control, candidate = values['control'][9], values['candidate'][9]
         rank_grad = values['control'][8]
-        split, split_active, gallery_gradient = objective(64, 'candidate', split=True)
-        split_micro, split_micro_active, gallery_micro = objective(16, 'candidate', split=True)
-        mutant, mutant_active, _ = objective(16, 'candidate', detached=True)
         regression_difference = values['candidate'][7] - values['control'][7]
-        require(split_active == split_micro_active == mutant_active == arms['candidate']['active'] and
-                all(torch.allclose(a, b, rtol=1e-5, atol=1e-6)
-                    for a, b in zip(split, split_micro, strict=True)) and
-                torch.allclose(gallery_gradient, gallery_micro, rtol=1e-5, atol=1e-6) and
-                torch.isfinite(gallery_gradient).all().item() and gallery_gradient.double().norm().item() > 0 and
-                torch.allclose(values['control'][3], values['candidate'][3], rtol=1e-5, atol=1e-6) and
-                torch.equal(values['control'][7], values['candidate'][7]) and
-                torch.equal(regression_difference, torch.zeros_like(A)) and
-                torch.allclose(rank_grad, split[8], rtol=1e-5, atol=1e-6) and
-                torch.allclose(values['candidate'][8], split[8] + gallery_gradient, rtol=1e-5, atol=1e-6) and
-                torch.allclose(candidate, split[9] + gallery_gradient, rtol=1e-5, atol=1e-6) and
-                torch.allclose(candidate - control, gallery_gradient, rtol=1e-5, atol=1e-6) and
-                torch.allclose(mutant[9], control, rtol=1e-5, atol=1e-6) and
-                not torch.allclose(mutant[9], candidate, rtol=1e-5, atol=1e-6),
-                'fixed firstB64 current-gallery tied/query/gallery/detach gradient falsifier failed')
+        require(all(torch.equal(a, b) for a, b in zip(values['control'], values['candidate'], strict=True)),
+                'initial losses and unclipped A gradients must match across arms')
+        roles_record = {}
+        for nonzero in (False, True):
+            for arm in (ARMS if not nonzero else ('candidate',)):
+                if nonzero:
+                    tied, active, _, tied_C = objective(64, arm, nonzero=True)
+                    tied_micro, tied_micro_active, _, tied_micro_C = objective(16, arm, nonzero=True)
+                    require(active == tied_micro_active and
+                            all(torch.allclose(a, b, rtol=1e-5, atol=1e-6)
+                                for a, b in zip(tied, tied_micro, strict=True)) and
+                            all(torch.allclose(a, b, rtol=1e-5, atol=1e-6)
+                                for a, b in zip(tied_C, tied_micro_C, strict=True)),
+                            'nonzero C tied full64/micro16 loss/A/C gradient differs')
+                else:
+                    tied, active, tied_C = values[arm], arms[arm]['active'], C_values[arm]
+                split, split_active, gallery, split_C = objective(64, arm, split=True, nonzero=nonzero)
+                split_micro, micro_active, gallery_micro, split_micro_C = objective(16, arm, split=True, nonzero=nonzero)
+                mutant, mutant_active, _, mutant_C = objective(16, arm, detached=True, nonzero=nonzero)
+                require(active == split_active == micro_active == mutant_active and
+                        all(torch.allclose(a, b, rtol=1e-5, atol=1e-6)
+                            for a, b in zip(split, split_micro, strict=True)), 'split global loss/A gradient differs')
+                if tied_C is not None:
+                    require(all(torch.allclose(a, b, rtol=1e-5, atol=1e-6)
+                                for a, b in zip(split_C, split_micro_C, strict=True)), 'split global C gradient differs')
+                for n, tied_grads, query_grads, mutant_grads in (
+                    [('A', tied[5:], split[5:], mutant[5:])] +
+                    ([('C', tied_C, split_C, mutant_C)] if tied_C is not None else [])):
+                    gallery_gradient = gallery[n]
+                    require(torch.isfinite(gallery_gradient).all().item() and gallery_gradient.double().norm().item() > 0 and
+                            torch.isfinite(query_grads[3]).all().item() and query_grads[3].double().norm().item() > 0 and
+                            torch.allclose(gallery_gradient, gallery_micro[n], rtol=1e-5, atol=1e-6) and
+                            torch.allclose(tied_grads[3], query_grads[3] + gallery_gradient, rtol=1e-5, atol=1e-6) and
+                            torch.allclose(tied_grads[4], query_grads[4] + gallery_gradient, rtol=1e-5, atol=1e-6) and
+                            torch.allclose(mutant_grads[4], query_grads[4], rtol=1e-5, atol=1e-6) and
+                            not torch.allclose(mutant_grads[4], tied_grads[4], rtol=1e-5, atol=1e-6),
+                            'current-gallery A/C query/gallery/decomposition/detach falsifier failed')
+                    roles_record[('nonzero:' if nonzero else 'initial:') + arm + ':' + n] = {
+                        'query_gradient_norm': float(query_grads[3].double().norm()),
+                        'gallery_gradient_norm': float(gallery_gradient.double().norm()),
+                        'tied_gradient_norm': float(tied_grads[3].double().norm()),
+                        'query_gradient_sha256': fingerprint(context, query_grads[3]),
+                        'gallery_gradient_sha256': fingerprint(context, gallery_gradient),
+                        'tied_gradient_sha256': fingerprint(context, tied_grads[3]),
+                        'query_plus_gallery_exact': True, 'full64_micro16_exact': True,
+                        'detached_gallery_mutant_rejected': True}
+        nonzero_C = (torch.arange(128 * 1152).reshape(128, 1152) % 7 + 1).float() * 1e-4
+        nonzero_state = {**state, 'arm': 'candidate', 'C': nonzero_C}
+        with torch.no_grad():
+            for view in VIEWS:
+                features = state['views'][view][batch]
+                base = helper_guard(context).raw_features(features, state['head_object'], A,
+                    state['means'], 'concat', context['legacy']['quadratic'])
+                oracle = base + F.linear(features - state['mu_train'], nonzero_C)
+                actual = raw_features(context, nonzero_state, features)
+                wrong_mu = base + F.linear(features - (state['mu_train'] + .125), nonzero_C)
+                require(torch.equal(actual, oracle) and not torch.allclose(actual, base, rtol=1e-5, atol=1e-6) and
+                        not torch.allclose(actual, wrong_mu, rtol=1e-5, atol=1e-6) and
+                        fingerprint(context, context['old'].packed_outputs(context['legacy'], actual)) ==
+                        fingerprint(context, context['old'].packed_outputs(context['legacy'], oracle)),
+                        'nonzero C oracle/omittedC/wrongmu mutant falsifier failed')
+                del features, base, oracle, actual, wrong_mu
+        del nonzero_C, nonzero_state
         mse, rank, active = values['control'][2], values['control'][3], arms['control']['active']
         multi = sum(len(p) > 1 for p in membership['positive'])
         require(multi > 0, 'fixed firstB64 lacks multiple distinct-image positives')
         nonnearest_count, nonnearest_value = 0, 0.
         nonnearest_grad = torch.zeros_like(A)
-        candidate_state = {**state, 'arm': 'candidate'}
+        candidate_state = {**state, 'arm': 'candidate',
+                           'C': torch.nn.Parameter(state['C'].detach().clone())}
         for view in VIEWS:
             for offset in range(0, 64, 16):
                 anchors = batch[offset:offset + 16]
@@ -1017,18 +1214,27 @@ def cpu_gradients(context, state):
                 'initial_gallery_scores_matched': True, 'regression_gradients_identical': True,
                 'original_active_objective_exact': True,
                 'regression_difference_gradient_norm': float(regression_difference.double().norm()),
-                'gallery_gradient_norm': float(gallery_gradient.double().norm()),
-                'gallery_gradient_sha256': fingerprint(context, gallery_gradient),
-                'query_gradient_norm': float(split[8].double().norm()),
-                'query_gradient_sha256': fingerprint(context, split[8]),
+                'gallery_gradient_norm': roles_record['initial:candidate:A']['gallery_gradient_norm'],
+                'gallery_gradient_sha256': roles_record['initial:candidate:A']['gallery_gradient_sha256'],
+                'query_gradient_norm': roles_record['initial:candidate:A']['query_gradient_norm'],
+                'query_gradient_sha256': roles_record['initial:candidate:A']['query_gradient_sha256'],
                 'tied_gradient_equals_query_plus_gallery': True,
-                'candidate_minus_control_equals_gallery': True, 'detached_gallery_mutant_rejected': True,
+                'initial_losses_and_A_gradients_matched': True, 'detached_gallery_mutant_rejected': True,
+                'roles': roles_record,
+                'candidate_C_gradient_norm': float(C_values['candidate'][4].double().norm()),
+                'nonzero_C_oracle_exact': True, 'omitted_C_mutant_rejected': True, 'wrong_mu_mutant_rejected': True,
                 'frozen_bytes_exact': True, 'micro16_global_reduction_exact': True}
 
 
 def inference_members(context, state):
     return {'schema': INFERENCE_SCHEMA,
+            'arm': state['arm'],
+            'C': clone(context, state['C'].detach()), 'mu_train': clone(context, state['mu_train']),
+            'mu_train_provenance': clone(context, state['mu_train_provenance']),
             'source': {'accepted_A_sha256': context['initial_A_sha256'],
+                       'initial_C_sha256': context['initial_C_sha256'],
+                       'mu_train_sha256': context['mu_train_sha256'],
+                       'mu_train_provenance_sha256': context['mu_train_provenance_sha256'],
                        'encoder_checkpoint_sha256': state['provenance']['encoder']['checkpoint']['sha256'],
                        'readout_sha256': READOUT['sha256']},
             'numerical_flags': context['flags'], 'A': clone(context, state['A'].detach()),
@@ -1144,6 +1350,17 @@ def admit_bundle(directory, sha):
     return value, guards
 
 
+def clone_inference_provenance(value):
+    return strict_json(json.dumps(value, allow_nan=False))
+
+
+def inference_readout_tree(endpoint):
+    return {'arm': endpoint['arm'], 'A': endpoint['A'].detach(), 'C': endpoint['C'].detach(),
+            'mu_train': endpoint['mu_train'], 'mu_train_provenance': endpoint['mu_train_provenance'],
+            'means': endpoint['means'], 'head': dict(endpoint['head_object'].state_dict()),
+            'A_trainable': endpoint['A'].requires_grad, 'C_trainable': endpoint['C'].requires_grad}
+
+
 def load_inference(directory, bundle_sha256, device):
     """Public portable API: no TRAIN cache, teacher, warm payload or optimizer."""
     directory = Path(directory)
@@ -1165,6 +1382,17 @@ def load_inference(directory, bundle_sha256, device):
             original.fingerprint(disk) == manifest['endpoint_state_sha256'] and
             original.fingerprint({k: v for k, v in disk.items() if k != 'fixed_sha256'}) == disk['fixed_sha256'] and
             source.numerical_flags() == disk['numerical_flags'], 'complete independent inference state/flags differs')
+    parameter_roles(disk['arm'])
+    check_mu_train_provenance(disk['mu_train_provenance'])
+    primitive = modules['quadratic_readout.py']
+    primitive._check_tensor(disk['C'], (128, 1152), disk['A'].device, frozen=True)
+    primitive._check_tensor(disk['mu_train'], (1152,), disk['A'].device, frozen=True)
+    require(torch.isfinite(disk['C']).all().item() and torch.isfinite(disk['mu_train']).all().item() and
+            original.fingerprint(disk['mu_train']) == disk['source']['mu_train_sha256'] and
+            original.fingerprint(disk['mu_train_provenance']) == disk['source']['mu_train_provenance_sha256'] and
+            (disk['arm'] != 'control' or (torch.count_nonzero(disk['C']).item() == 0 and
+             original.fingerprint(disk['C']) == disk['source']['initial_C_sha256'])),
+            'portable frozen mean/control C provenance differs')
     construct_context = {'packages': env['packages'], 'guards': env['files'], 'extract': extract,
                          'sources': {'native_environment': {'vision_constructor': {'path': env['vision_constructor']}}}}
     model = source.construct(disk['config'], construct_context)
@@ -1196,9 +1424,14 @@ def load_inference(directory, bundle_sha256, device):
     head.requires_grad_(False).to(device).train()
     A = torch.nn.Parameter(disk['A'].to(device, copy=True), requires_grad=True)
     means = {k: v.to(device, copy=True) for k, v in disk['means'].items()}
-    endpoint = {'model': model, 'processor_object': processor, 'head_object': head, 'A': A, 'means': means,
+    C = torch.nn.Parameter(disk['C'].to(device, copy=True), requires_grad=disk['arm'] == 'candidate')
+    mu_train = disk['mu_train'].to(device, copy=True)
+    endpoint = {'model': model, 'processor_object': processor, 'head_object': head, 'A': A, 'C': C,
+                'arm': disk['arm'], 'mu_train': mu_train, 'mu_train_provenance': clone_inference_provenance(disk['mu_train_provenance']),
+                'means': means,
                 'device': device, 'modules': modules, 'guards': guards, 'flags': disk['numerical_flags'],
                 'manifest': manifest}
+    endpoint['readout_sha256'] = original.fingerprint(inference_readout_tree(endpoint))
     del disk, vision, pages
     gc.collect()
     return endpoint
@@ -1214,6 +1447,8 @@ def inference_outputs(endpoint, images):
     require(0 < len(images) <= 32 and all(not m.training and not m._forward_hooks and
             not m._forward_pre_hooks and not m._backward_hooks for m in endpoint['model'].modules()),
             'inference batch/mode/hooks differ')
+    require(modules['train_siglip2_substrate_adaptation.py'].fingerprint(inference_readout_tree(endpoint)) ==
+            endpoint['readout_sha256'], 'current portable A/C/mean/head bytes or roles differ')
     rng = torch.random.get_rng_state().clone()
     pixels = endpoint['processor_object'](images=images, return_tensors='pt')['pixel_values']
     require(pixels.shape == (len(images), 3, 256, 256) and pixels.dtype == torch.float32 and
@@ -1223,8 +1458,9 @@ def inference_outputs(endpoint, images):
             pooled = endpoint['model'](pixel_values=pixels.to(device)).pooler_output
         with torch.autocast(device, enabled=False):
             features = F.normalize(pooled.float(), dim=1)
-            raw = modules['prototype_residual_readout.py'].raw_features(features, endpoint['head_object'],
-                endpoint['A'], endpoint['means'], 'concat', modules['quadratic_readout.py'])
+            raw = fullfeature_raw_features(features, endpoint['head_object'], endpoint['A'], endpoint['means'],
+                endpoint['C'], endpoint['mu_train'], endpoint['arm'], modules['quadratic_readout.py'],
+                modules['prototype_residual_readout.py'])
             require((raw.norm(dim=1) > 0).all().item(), 'nonzero inference raw required')
             unit = F.normalize(raw, dim=1)
             packed = modules['joint_relational_compaction.py'].pack_int8_unit_embeddings(unit.cpu())
@@ -1348,9 +1584,39 @@ def qualify_bundle(context, directory, sha, device, witness):
                     oracle_A = torch.nn.Parameter(endpoint['A'].detach().clone())
                     raw = helper_guard(context).raw_features(features, endpoint['head_object'], oracle_A,
                         endpoint['means'], 'concat', legacy['quadratic'])
+                    base = raw
+                    if endpoint['arm'] == 'candidate':
+                        raw = base + F.linear(features - endpoint['mu_train'], endpoint['C'])
                     require(fingerprint(context, context['old'].packed_outputs(legacy, raw)) == fingerprint(context, output),
                             'same-role original helper raw/unit/packed/wire differs')
-                    del oracle_A, raw, features, pooled
+                    nonzero = torch.count_nonzero(endpoint['C']).item() > 0
+                    require(nonzero is witness['residual_nonzero_witness'] and
+                            fingerprint(context, endpoint['C']) == witness['current_C_sha256'] and
+                            fingerprint(context, endpoint['mu_train']) == witness['mu_train_sha256'],
+                            'independent portable C/mu endpoint differs')
+                    if nonzero:
+                        require(endpoint['arm'] == 'candidate' and
+                                not torch.equal(base, output['raw'].to(device)), 'nonzero C omitted by portable API')
+                        # Use a deterministic shift along the greatest nonzero C column;
+                        # no fit, no calibration search, and no numerical cancellation of the mutant.
+                        column = int(endpoint['C'].abs().sum(dim=0).argmax())
+                        wrong_mu = endpoint['mu_train'].clone()
+                        wrong_mu[column] += 1.
+                        wrong = base + F.linear(features - wrong_mu, endpoint['C'])
+                        require(not torch.equal(wrong, output['raw'].to(device)), 'wrong mu mutant accepted')
+                        # The actual public API must reject current .data substitutions too.
+                        for member in ('C', 'mu_train'):
+                            value = endpoint[member]
+                            saved, version = value.detach().clone(), value._version
+                            try:
+                                value.data.reshape(-1)[0] += .25
+                                require(value._version == version, 'portable mutant must bypass version')
+                                nearest.rejected(lambda: portable.inference_outputs(endpoint, images),
+                                                 'portable current C/mu mutation accepted')
+                            finally:
+                                value.data.copy_(saved)
+                        del wrong_mu, wrong, value, saved
+                    del oracle_A, raw, base, features, pooled
                 current = fingerprint(context, output)
                 require(expected is None or current == expected, 'sequential independent inference parity differs')
                 expected = current
@@ -1368,7 +1634,9 @@ def qualify_bundle(context, directory, sha, device, witness):
             image.close()
     return {'native_raw_unit_packed_sha256': expected, 'batch': batch,
             'inference_state_sha256': bundle['endpoint_state_sha256'],
-            'bundle_original_dependencies_denied': True, **drift}
+            'bundle_original_dependencies_denied': True,
+            'residual_nonzero_witness': witness['residual_nonzero_witness'],
+            'omitted_C_mutant_rejected': True, 'wrong_mu_mutant_rejected': True, **drift}
 
 
 def update(context, state, ident, step):
@@ -1383,6 +1651,7 @@ def update(context, state, ident, step):
     optimizer, scaler, A = state['optimizer_object'], state['scaler_object'], state['A']
     optimizer.zero_grad(set_to_none=True)
     before = fingerprint(context, A.detach())
+    C_before = fingerprint(context, state['C'].detach())
     mse_sum = rank_sum = 0.
     active, membership = 0, []
     ranking_gradient = torch.zeros_like(A) if step == 1 else None
@@ -1413,15 +1682,23 @@ def update(context, state, ident, step):
     if step == 1:
         require(active > 0 and rank_gradient > 0, 'fixed first-update rank gradient inactive')
     del ranking_gradient
-    norm = torch.nn.utils.clip_grad_norm_([A], 1., error_if_nonfinite=True)
+    members = optimizer.param_groups[0]['params']
+    require(all(p.grad is not None and p.grad.dtype == torch.float32 and
+            torch.isfinite(p.grad).all().item() and p.grad.double().norm().item() > 0 for p in members) and
+            (state['arm'] != 'control' or state['C'].grad is None), 'finite actual A/C gradients/zero control required')
+    C_gradient = float(state['C'].grad.double().norm()) if state['arm'] == 'candidate' else 0.
+    norm = torch.nn.utils.clip_grad_norm_(members, 1., error_if_nonfinite=True)
     scale = scaler.get_scale()
     scaler.step(optimizer)
     scaler.update()
-    require(scaler.get_scale() == scale == 128 and optimizer.state[A]['step'].item() == step,
+    require(scaler.get_scale() == scale == 128 and
+            all(optimizer.state[p]['step'].item() == step for p in members),
             'skipped/nonfinite/rescaled update forbidden')
     state['counter'] = step
     after = fingerprint(context, A.detach())
-    require(before != after, 'actual A update required')
+    C_after = fingerprint(context, state['C'].detach())
+    require(before != after and (C_before != C_after if state['arm'] == 'candidate' else C_before == C_after),
+            'actual role-aware A/C update required')
     own_A(context, state, advanced=True)
     optimizer.zero_grad(set_to_none=True)
     torch.cuda.synchronize()
@@ -1432,7 +1709,9 @@ def update(context, state, ident, step):
     row = {'step': step, 'batch': batch, 'membership': membership, 'full_membership_sha256': json_sha256(full_membership), 'full_valid': K, 'mse': mse_sum, 'rank': rank_sum,
            'loss': mse_sum + rank_sum, 'active_anchors': active,
            'gradient_norm': gradient, 'ranking_gradient_norm': rank_gradient, 'preclip_norm': float(norm),
-           'A_before_sha256': before, 'A_after_sha256': after, 'scale': scaler.get_scale(),
+           'A_before_sha256': before, 'A_after_sha256': after,
+           'C_before_sha256': C_before, 'C_after_sha256': C_after, 'C_gradient_norm': C_gradient,
+           'arm': state['arm'], 'scale': scaler.get_scale(),
            'state_sha256': digest, 'core_seconds': core, 'seconds': time.perf_counter() - tick}
     print(json.dumps({'event': 'COMPACT_UPDATE', **row}, sort_keys=True, allow_nan=False), flush=True)
     return row
@@ -1450,7 +1729,13 @@ def check_steps(rows, start, count, bank):
         full = ranking_membership(bank, row['batch'])
         require(len(row['batch']) == 64 and row['full_valid'] == full['valid'] and
                 type(row['full_valid']) is int and row['full_membership_sha256'] == json_sha256(full) and
-                row['scale'] == 128 and row['gradient_norm'] > 0 and
+                row['scale'] == 128 and row['gradient_norm'] > 0 and row['arm'] in ARMS and
+                type(row['C_gradient_norm']) in (int, float) and math.isfinite(row['C_gradient_norm']) and
+                (row['C_gradient_norm'] > 0 and row['C_before_sha256'] != row['C_after_sha256']
+                 if row['arm'] == 'candidate' else
+                 row['C_gradient_norm'] == 0 and row['C_before_sha256'] == row['C_after_sha256']) and
+                all(isinstance(row[k], str) and re.fullmatch('[0-9a-f]{64}', row[k])
+                    for k in ('C_before_sha256', 'C_after_sha256')) and
                 row['A_before_sha256'] != row['A_after_sha256'] and
                 0 < row['core_seconds'] <= row['seconds'] and len(row['membership']) == 8 and
                 [m['view'] for m in row['membership']] == ['canonical'] * 4 + ['augmented'] * 4,
@@ -1477,7 +1762,7 @@ def check_steps(rows, start, count, bank):
 def tamper_witness(context, state, ident):
     import torch
     nearest = context['nearest']
-    values = [state['A'], next(state['head_object'].parameters()), state['means']['concat'],
+    values = [state['A'], state['C'], state['mu_train'], next(state['head_object'].parameters()), state['means']['concat'],
               state['teachers']['T'], state['teachers']['P'], state['views']['augmented']]
     for value in values:
         saved, version = value.detach().clone(), value._version
@@ -1493,9 +1778,15 @@ def tamper_witness(context, state, ident):
         nearest.rejected(lambda: integrity(context, state, ident), 'A role mutation accepted')
     finally:
         state['A'].requires_grad_(True)
+    state['C'].requires_grad_(not (state['arm'] == 'candidate'))
+    try:
+        nearest.rejected(lambda: integrity(context, state, ident), 'C role mutation accepted')
+    finally:
+        state['C'].requires_grad_(state['arm'] == 'candidate')
     saved = payload(context, state, ident)
     for key, value in (('schema', 'wrong'), ('source', {}), ('teachers', {}), ('schedules', {}),
-                       ('buffers', {}), ('optimizer', {'state': {}, 'param_groups': []}), ('counter', 1)):
+                       ('buffers', {}), ('C', saved['A']), ('mu_train', saved['A']), ('mu_train_provenance', {}),
+                       ('optimizer', {'state': {}, 'param_groups': []}), ('counter', 1)):
         nearest.rejected(lambda k=key, v=value: check_payload(context, {**saved, k: v}, ident, 0),
                          'malformed complete state accepted')
     del saved
@@ -1505,7 +1796,10 @@ def inference_witness(context, state):
     import torch
     with torch.no_grad():
         raw = raw_features(context, state, state['views']['canonical'].to(state['device'])).detach().cpu()
-    return {'seed': state['seed'], 'cache_raw': raw}
+    return {'seed': state['seed'], 'cache_raw': raw,
+            'residual_nonzero_witness': state['arm'] == 'candidate' and state['counter'] > 0,
+            'current_C_sha256': fingerprint(context, state['C'].detach()),
+            'mu_train_sha256': fingerprint(context, state['mu_train'])}
 
 
 def cpu_witnesses(context):
@@ -1537,9 +1831,16 @@ def cpu_witnesses(context):
                 require(fingerprint(context, cached_witness(context, state)) == witness, 'CPU strict initial reload differs')
                 release(context, state)
             else:
+                tamper_witness(context, state, ident)
+                candidate_checkpoint = args.output / f'candidate-initializer-{seed}.pt'
+                candidate_sha, candidate_digest = save(context, state, ident, candidate_checkpoint)
+                candidate_ident = ident
                 require(ident['static_sha256'] == matched[0]['static_sha256'] and
                         ident['initial_cpu_rng_sha256'] == matched[0]['initial_cpu_rng_sha256'] and
                         witness == matched[1], 'independent matched CPU initialization differs')
+                release(context, state)
+                state = restore(context, candidate_checkpoint, candidate_sha, candidate_digest, candidate_ident, 0)
+                require(fingerprint(context, cached_witness(context, state)) == matched[1], 'candidate CPU full reload differs')
                 release(context, state)
     del context['active_original']
     bundle = export_bundle(context, members, args.output / 'bundle')
@@ -1548,11 +1849,15 @@ def cpu_witnesses(context):
     require(not torch.cuda.is_initialized(), 'CPU qualification initialized CUDA')
     return {'ranking_bank': ranking_bank(context['initial']['target'].tolist(),
                                          context['initial']['original_rows'].tolist()),
+            'initial_C_sha256': context['initial_C_sha256'], 'current_C_sha256': context['initial_C_sha256'],
+            'mu_train_sha256': context['mu_train_sha256'],
+            'mu_train_provenance_sha256': context['mu_train_provenance_sha256'],
+            'C_exact_zero': True, 'C_trainable': False,
             'completed_step': 0, 'identity': first_ident, 'terminal_state_sha256': first_digest,
             'initial_A_sha256': context['initial_A_sha256'], 'initial_raw_unit_packed_sha256': first_witness,
             'checkpoint': {'path': str(args.output / f'initializer-{SEEDS[0]}.pt'),
                            'sha256': context['guards'][str(args.output / f'initializer-{SEEDS[0]}.pt')]},
-            'bundle': bundle, 'gradients': gradients, 'active_objective_source': ANCHOR_ENDPOINT['source'], 'initial_arm_parity': True,
+            'bundle': bundle, 'gradients': gradients, 'active_objective_source': ACTIVE_OBJECTIVE_SOURCE, 'initial_arm_parity': True,
             'cpu_serialization_exact': True, 'bypass_version_tamper_rejected': True, 'malformed_state_rejected': True,
             'native_role_mutation_rejected': True, 'native_loss_reduction_exact': True,
             'inference_artifact_independent': True, 'forward_oracle_exact': True,
@@ -1589,6 +1894,7 @@ def gpu_run(context):
         checkpoint = temporary / 'step17.pt' if args.phase == 'mechanics' else args.output / 'resume.pt'
         sha, digest = save(context, state, ident, checkpoint)
         members, native_witness = inference_members(context, state), inference_witness(context, state)
+        final_residual = residual_facts(context, state)
         release(context, state)
         if args.phase == 'mechanics':
             state = fresh(context, args.arm, args.seed, 'cuda')
@@ -1613,6 +1919,18 @@ def gpu_run(context):
         finally:
             state['A'].data.copy_(substitution)
         del substitution
+        for name in ('C', 'mu_train'):
+            original_value = context['initial'][name].to(state['device'])
+            substitution = state[name].detach().clone()
+            try:
+                if name == 'C' and args.arm == 'candidate':
+                    state[name].data.copy_(original_value)
+                else:
+                    state[name].data.reshape(-1)[0] += .25
+                context['nearest'].rejected(lambda: integrity(context, state, ident), 'C/mu source substitution accepted')
+            finally:
+                state[name].data.copy_(substitution)
+            del original_value, substitution
         integrity(context, state, ident)
         release(context, state)
         bundle_directory = temporary / 'bundle' if args.phase == 'mechanics' else args.output / 'bundle'
@@ -1642,7 +1960,7 @@ def gpu_run(context):
             'source_substitution_rejected': True, 'strict_reload_exact': True,
             'inference_artifact_independent': True, 'forward_oracle_exact': True,
             'native_training_inference_exact': True, 'cuda_initialized': True,
-            'peak_cuda_allocated_bytes': torch.cuda.max_memory_allocated(), **native,
+            'peak_cuda_allocated_bytes': torch.cuda.max_memory_allocated(), **final_residual, **native,
             'total_training_core_seconds': context['phase_seconds']['cache_target_preparation'] +
                 sum(r['core_seconds'] for r in rows) + (sum(r['core_seconds'] for r in first8 + resumed) if resumed else 0.),
             'median_update_seconds': statistics.median(r['seconds'] for r in rows[2:])}
@@ -1658,7 +1976,7 @@ def check_cpu_gradient(g, bank):
                 ('mse', 'rank', 'control_gradient_norm', 'ranking_gradient_norm', 'candidate_gradient_norm',
                  'candidate_minus_control_gradient_norm', 'gradient_alignment', 'nonnearest_loss', 'nonnearest_gradient_norm')) and
             g['mse'] >= 0 and all(g[k] > 0 for k in ('rank', 'control_gradient_norm', 'ranking_gradient_norm',
-                                  'candidate_gradient_norm', 'candidate_minus_control_gradient_norm',
+                                  'candidate_gradient_norm',
                                   'nonnearest_loss', 'nonnearest_gradient_norm')) and
             g['rank'] <= 1 and -1 <= g['gradient_alignment'] <= 1 and
             type(g['multi_positive_anchors']) is int and g['multi_positive_anchors'] > 0 and
@@ -1666,7 +1984,10 @@ def check_cpu_gradient(g, bank):
             type(g['nonnearest_positive_terms']) is int and
             g['nonnearest_positive_terms'] == 2 * sum(max(len(p) - 1, 0) for p in members['positive']) and
             g['native_mask_self_ties_singletons_exact'] is True and
-            g['candidate_minus_control_equals_gallery'] is True and
+            g['initial_losses_and_A_gradients_matched'] is True and g['candidate_minus_control_gradient_norm'] == 0 and
+            type(g['candidate_C_gradient_norm']) in (int, float) and math.isfinite(g['candidate_C_gradient_norm']) and
+            g['candidate_C_gradient_norm'] > 0 and
+            all(g[k] is True for k in ('nonzero_C_oracle_exact', 'omitted_C_mutant_rejected', 'wrong_mu_mutant_rejected')) and
             g['regression_gradients_identical'] is True and g['original_active_objective_exact'] is True and
             all(g[k] is True for k in ('initial_raw_unit_packed_exact', 'initial_gallery_scores_matched',
                 'tied_gradient_equals_query_plus_gallery', 'detached_gallery_mutant_rejected', 'frozen_bytes_exact')) and g['micro16_global_reduction_exact'] is True,
@@ -1692,7 +2013,7 @@ def check_cpu_gradient(g, bank):
     require(g['arms']['control']['mse'] == g['mse'] and
             all(g['arms']['control'][name + '_gradient_sha256'] ==
                 g['arms']['candidate'][name + '_gradient_sha256']
-                for name in ('canonical_regression', 'augmented_regression', 'regression')) and
+                for name in gradients) and
             all(math.isclose(g['arms']['control'][k], g['arms']['candidate'][k], rel_tol=1e-5, abs_tol=1e-6)
                 for k in ('canonical_mse', 'augmented_mse', 'mse', 'rank', 'loss')) and
             type(g['regression_difference_gradient_norm']) in (int, float) and
@@ -1701,9 +2022,30 @@ def check_cpu_gradient(g, bank):
                 for k in ('gallery_gradient_norm', 'query_gradient_norm')) and
             all(isinstance(g[k], str) and re.fullmatch('[0-9a-f]{64}', g[k])
                 for k in ('gallery_gradient_sha256', 'query_gradient_sha256')) and
-            math.isclose(g['query_gradient_norm'], g['ranking_gradient_norm'], rel_tol=1e-5, abs_tol=1e-6) and
-            math.isclose(g['gallery_gradient_norm'], g['candidate_minus_control_gradient_norm'],
-                         rel_tol=1e-5, abs_tol=1e-6), 'nonzero gallery-only objective gradient difference required')
+            math.isclose(g['control_gradient_norm'], g['candidate_gradient_norm'], rel_tol=1e-5, abs_tol=1e-6),
+            'matched initial losses/A gradients and nonzero gallery contributions required')
+    roles = g.get('roles')
+    require(isinstance(roles, dict) and roles.keys() == {'initial:control:A', 'initial:candidate:A',
+            'initial:candidate:C', 'nonzero:candidate:A', 'nonzero:candidate:C'}, 'complete A/C role decomposition required')
+    for row in roles.values():
+        require(row.keys() == {*(r + '_gradient_' + suffix for r in ('query', 'gallery', 'tied')
+                              for suffix in ('norm', 'sha256')), 'query_plus_gallery_exact',
+                              'full64_micro16_exact', 'detached_gallery_mutant_rejected'} and
+                all(type(row[r + '_gradient_norm']) in (int, float) and
+                    math.isfinite(row[r + '_gradient_norm']) and row[r + '_gradient_norm'] > 0
+                    for r in ('query', 'gallery', 'tied')) and
+                all(isinstance(row[r + '_gradient_sha256'], str) and
+                    re.fullmatch('[0-9a-f]{64}', row[r + '_gradient_sha256']) for r in ('query', 'gallery', 'tied')) and
+                all(row[k] is True for k in ('query_plus_gallery_exact', 'full64_micro16_exact',
+                                             'detached_gallery_mutant_rejected')), 'finite connected A/C roles required')
+    require(roles['initial:control:A'] == roles['initial:candidate:A'] and
+            roles['initial:candidate:A']['tied_gradient_norm'] == g['ranking_gradient_norm'] and
+            roles['initial:candidate:A']['tied_gradient_sha256'] == g['arms']['candidate']['ranking_gradient_sha256'] and
+            roles['initial:candidate:A']['query_gradient_norm'] == g['query_gradient_norm'] and
+            roles['initial:candidate:A']['gallery_gradient_norm'] == g['gallery_gradient_norm'] and
+            roles['initial:candidate:A']['query_gradient_sha256'] == g['query_gradient_sha256'] and
+            roles['initial:candidate:A']['gallery_gradient_sha256'] == g['gallery_gradient_sha256'],
+            'authenticated role decomposition/initial equality differs')
     return True
 
 
@@ -1711,8 +2053,8 @@ def check_terminal_record(record, launch, phase, arm, seed):
     from types import SimpleNamespace
     require(record['schema'] == SCHEMA and record['phase'] == phase and record['arm'] == arm and
             record['seed'] == seed and method(record['launch']) == method(launch) and
-            record['resource_policy'] == policy(phase) and record['optimizer_members'] == 1 and
-            record['trainable_scalars'] == 20480 and record['frozen_vision_members'] == 448 and
+            record['resource_policy'] == policy(phase) and record['optimizer_members'] == len(parameter_roles(arm)[0]) and
+            record['trainable_scalars'] == parameter_roles(arm)[2] and record['frozen_vision_members'] == 448 and
             record['quality_read'] is False and all(record[k] is True for k in
                 ('pass', 'strict_reload_exact', 'exit_rehash_pass', 'sequential_model_ownership', 'forward_oracle_exact',
                  'native_training_inference_exact', 'inference_artifact_independent',
@@ -1728,10 +2070,20 @@ def check_terminal_record(record, launch, phase, arm, seed):
     require(record['code'].keys() == FILES and record['authority_sha256'] == record['authority']['sha256'] and
             record['invocation']['optimize'] == 0 and ident['method'] == method(launch) and
             ident['source'] == record['source'] and ident['arm'] == arm and ident['seed'] == seed and
-            ident['parameter_names'] == ['A'] and ident['parameter_shapes'] == [[128, 160]] and
+            (ident['parameter_names'], ident['parameter_shapes']) == parameter_roles(ident['arm'])[:2] and
             record['numerical_flags'] == ident['numerical_flags'] and
             isinstance(record['inference_state_sha256'], str) and re.fullmatch('[0-9a-f]{64}', record['inference_state_sha256']),
             'whole-unit source/code/optimizer/inference identity differs')
+    require(all(isinstance(record[k], str) and re.fullmatch('[0-9a-f]{64}', record[k])
+                for k in ('initial_C_sha256', 'current_C_sha256', 'mu_train_sha256', 'mu_train_provenance_sha256')) and
+            all(record[k] == ident[k] for k in ('initial_C_sha256', 'mu_train_sha256', 'mu_train_provenance_sha256')) and
+            record['C_trainable'] is (arm == 'candidate') and
+            record['C_exact_zero'] is (phase == 'cpu' or arm == 'control') and
+            ((record['current_C_sha256'] == record['initial_C_sha256']) if record['C_exact_zero'] else
+             (record['current_C_sha256'] != record['initial_C_sha256'])) and
+            record['residual_nonzero_witness'] is (phase != 'cpu' and arm == 'candidate') and
+            record['omitted_C_mutant_rejected'] is True and record['wrong_mu_mutant_rejected'] is True,
+            'qualified endpoint C roles/zero/nonzero/mean/oracle binding differs')
     if phase == 'cpu':
         require(record['completed_step'] == 0 and ident['device'] == 'cpu' and
                 record['cuda_initialized'] is False and record['peak_cuda_allocated_bytes'] == 0 and
@@ -1740,7 +2092,7 @@ def check_terminal_record(record, launch, phase, arm, seed):
                 all(record[k] is True for k in ('initial_arm_parity', 'cpu_serialization_exact',
                     'bypass_version_tamper_rejected', 'malformed_state_rejected', 'native_role_mutation_rejected',
                     'native_loss_reduction_exact')) and [g['seed'] for g in record['gradients']] == list(SEEDS) and
-                record['active_objective_source'] == ANCHOR_ENDPOINT['source'] and
+                record['active_objective_source'] == ACTIVE_OBJECTIVE_SOURCE and
                 all(check_cpu_gradient(g, bank) for g in record['gradients']),
                 'both-seed CPU qualification incomplete')
     else:
@@ -1754,6 +2106,11 @@ def check_terminal_record(record, launch, phase, arm, seed):
         count = 17 if phase == 'mechanics' else 128
         require(record['completed_step'] == count, 'fixed update count differs')
         check_steps(record['steps'], 1, count, bank)
+        require(all(r['arm'] == arm for r in record['steps']) and
+                record['steps'][0]['C_before_sha256'] == record['initial_C_sha256'] and
+                record['steps'][-1]['C_after_sha256'] == record['current_C_sha256'] and
+                all(a['C_after_sha256'] == b['C_before_sha256']
+                    for a, b in zip(record['steps'], record['steps'][1:])), 'complete ordered C update bytes differ')
         require(all(r['mse'] >= 0 and r['rank'] >= 0 and
                     r['loss'] == r['mse'] + r['rank']
                     for r in record['steps']), 'matched objective arithmetic differs')
@@ -1980,7 +2337,8 @@ def run(args):
             (args.phase == 'cpu' or torch.cuda.max_memory_allocated() < 10_000_000_000), 'whole-unit resource cap differs')
     receipt = {'schema': SCHEMA, 'phase': args.phase, 'arm': args.arm, 'seed': args.seed, 'pass': True,
         'quality_read': False, 'exit_rehash_pass': True, 'sequential_model_ownership': True,
-        'optimizer_members': 1, 'trainable_scalars': 20480, 'frozen_vision_members': 448,
+        'optimizer_members': len(parameter_roles(args.arm)[0]),
+        'trainable_scalars': parameter_roles(args.arm)[2], 'frozen_vision_members': 448,
         'source': context['source'], 'launch': context['launch'], 'code': context['code'],
         'execution_sha256': args.execution_sha256,
         'authority': {'path': str(args.authority), 'sha256': args.authority_sha256},

@@ -461,11 +461,13 @@ def _current_gallery_inverse(tree, packed, packed_sha, pins, base_sha):
 
 
 def current_gallery_source_boundary(tree):
+    tree = fullfeature_source_boundary(tree)
     return _current_gallery_inverse(tree,CURRENT_GALLERY_ORIGINAL_NODES,CURRENT_GALLERY_ORIGINAL_SHA256,
                                     CURRENT_GALLERY_NODE_SHA256,CURRENT_GALLERY_BASE_AST_SHA256)
 
 
 def current_gallery_test_boundary(tree):
+    tree = fullfeature_test_boundary(tree)
     # The pin constants themselves are data for the inverse, not inverse sites.
     names={'CURRENT_GALLERY_ORIGINAL_NODES','CURRENT_GALLERY_ORIGINAL_SHA256',
            'CURRENT_GALLERY_NODE_SHA256','CURRENT_GALLERY_BASE_AST_SHA256',
@@ -1498,6 +1500,9 @@ class ContractTests(unittest.TestCase):
 
     def test_updated_A_current_bytes_binding(self):
         own = self.api("own_A")
+        keyword_defaults = own.__kwdefaults__
+        own = FunctionType(own.__code__, {**own.__globals__, "own_residual": lambda *a, **k: None})
+        own.__kwdefaults__ = keyword_defaults
         # Metadata stand-in: no Torch import. A noninitial update can still be
         # changed through a .data-like alias without a version/counter change.
         context = {"nearest": SimpleNamespace(fingerprint=lambda c, v, **kw:
@@ -1557,7 +1562,11 @@ class ContractTests(unittest.TestCase):
                     "malformed_state_rejected", "native_role_mutation_rejected", "native_loss_reduction_exact")
         record.update({k: True for k in required})
         record["gradients"] = [image_anchor_gradient_fixture(g) for g in record["gradients"]]
-        record["active_objective_source"] = driver.ANCHOR_ENDPOINT["source"]
+        record["active_objective_source"] = driver.ACTIVE_OBJECTIVE_SOURCE
+        record.update(initial_C_sha256='f'*64, current_C_sha256='f'*64, mu_train_sha256='a'*64,
+                      mu_train_provenance_sha256='b'*64, C_exact_zero=True, C_trainable=False,
+                      residual_nonzero_witness=False, omitted_C_mutant_rejected=True, wrong_mu_mutant_rejected=True)
+        ident.update({k: record[k] for k in ('initial_C_sha256','mu_train_sha256','mu_train_provenance_sha256')})
         check(record, launch, "cpu", "control", 179061)
         for key in required:
             with self.subTest(key=key), self.assertRaises(ValueError):
@@ -2148,6 +2157,7 @@ class SmoothAPTests(unittest.TestCase):
                 members.append({'view': view, 'batch': anchors, **facts, 'active': facts['valid']})
         return {'step': 1, 'batch': batch, 'membership': members,
                 'full_valid': 64, 'full_membership_sha256': driver.json_sha256(full),
+                'arm': 'candidate', 'C_before_sha256': 'c'*64, 'C_after_sha256': 'd'*64, 'C_gradient_norm': .5,
                 'scale': 128, 'gradient_norm': 1., 'ranking_gradient_norm': .2,
                 'A_before_sha256': 'a'*64, 'A_after_sha256': 'b'*64,
                 'core_seconds': .1, 'seconds': .2, 'mse': .2, 'rank': .1, 'loss': .2 + .1,
@@ -2213,10 +2223,10 @@ class SmoothAPTests(unittest.TestCase):
         witness = image_anchor_gradient_fixture(witness)
         driver.check_cpu_gradient(witness, bank)
         for key, bad in (('nonnearest_loss', 0.), ('nonnearest_gradient_norm', 0.),
-                         ('candidate_minus_control_gradient_norm', 0.), ('candidate_gradient_norm', float('nan')),
+                         ('candidate_minus_control_gradient_norm', .2), ('candidate_gradient_norm', float('nan')),
                          ('gradient_alignment', 1.01), ('multi_positive_anchors', 0),
                          ('nonnearest_positive_terms', 0), ('native_mask_self_ties_singletons_exact', False),
-                         ('micro16_global_reduction_exact', False), ('candidate_minus_control_equals_gallery', False)):
+                         ('micro16_global_reduction_exact', False), ('initial_losses_and_A_gradients_matched', False)):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 driver.check_cpu_gradient({**witness, key: bad}, bank)
         for mutate in (lambda b: b['target'].__setitem__(12, 1008),
@@ -2274,15 +2284,22 @@ def image_anchor_gradient_fixture(g):
     """Prospective receipt adapter; closed target-switch/displacement fields removed."""
     g = copy.deepcopy(g)
     g.pop('candidate_minus_control_equals_rank', None)
+    g['candidate_minus_control_gradient_norm'] = 0.
+    g['candidate_gradient_norm'] = g['control_gradient_norm']
+    g['candidate_C_gradient_norm'] = .5
+    g['initial_losses_and_A_gradients_matched'] = True
+    g['nonzero_C_oracle_exact'] = True
+    g['omitted_C_mutant_rejected'] = True
+    g['wrong_mu_mutant_rejected'] = True
     for name in ('candidate_minus_control_equals_gallery', 'regression_gradients_identical',
                  'original_active_objective_exact', 'initial_raw_unit_packed_exact',
                  'initial_gallery_scores_matched', 'tied_gradient_equals_query_plus_gallery',
                  'detached_gallery_mutant_rejected', 'frozen_bytes_exact'):
         g[name] = True
     g['regression_difference_gradient_norm'] = 0.
-    g['gallery_gradient_norm'] = g['candidate_minus_control_gradient_norm']
+    g['gallery_gradient_norm'] = .3
     g['gallery_gradient_sha256'] = 'b'*64
-    g['query_gradient_norm'] = g['ranking_gradient_norm']
+    g['query_gradient_norm'] = .1
     g['query_gradient_sha256'] = 'a'*64
     g['arms'] = {}
     for arm in driver.ARMS:
@@ -2294,6 +2311,12 @@ def image_anchor_gradient_fixture(g):
             row[name+'_gradient_norm'] = norm
             row[name+'_gradient_sha256'] = 'a'*64
         g['arms'][arm] = row
+    role = {'query_gradient_norm': g['query_gradient_norm'], 'gallery_gradient_norm': g['gallery_gradient_norm'],
+            'tied_gradient_norm': g['ranking_gradient_norm'], 'query_gradient_sha256': 'a'*64,
+            'gallery_gradient_sha256': 'b'*64, 'tied_gradient_sha256': 'a'*64,
+            'query_plus_gallery_exact': True, 'full64_micro16_exact': True, 'detached_gallery_mutant_rejected': True}
+    g['roles'] = {k: copy.deepcopy(role) for k in ('initial:control:A','initial:candidate:A',
+        'initial:candidate:C','nonzero:candidate:A','nonzero:candidate:C')}
     return g
 
 
@@ -2323,7 +2346,11 @@ class ImageAnchorTests(unittest.TestCase):
         bank = SmoothAPTests().bank()
         launch = {k: {} for k in ('nearest', 'fitter', 'accepted', 'readout', 'recipe', 'native_authority')}
         launch['execution_sha256'] = driver.ANCHOR_ENDPOINT['source']['execution_sha256']
-        static = {k: {} for k in driver.STATIC_KEYS}
+        historical_tree = fullfeature_source_boundary(ast.parse(PATH.read_text()))
+        historical_keys = next(ast.literal_eval(n.value) for n in historical_tree.body
+                               if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name) and
+                               n.targets[0].id == 'STATIC_KEYS')
+        static = {k: {} for k in historical_keys}
         static.update(provenance={'encoder': {'original': True}},
                       schedules={str(seed): Tensor([0], (128, 64), 'torch.int64') for seed in driver.SEEDS},
                       classifier=Tensor([0.], (1008, 128)),
@@ -2376,7 +2403,13 @@ class ImageAnchorTests(unittest.TestCase):
 
         native_scope = {**vars(driver), 'SCHEMA': disk['schema'], 'fingerprint': fingerprint,
                         'helper_guard': lambda context: SimpleNamespace(check_means=lambda *args: None)}
-        nodes = [copy.deepcopy(n) for n in ast.parse(PATH.read_text()).body
+        historical_constants = {}
+        for n in historical_tree.body:
+            if (isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name) and
+                    n.targets[0].id in ('STATIC_KEYS', 'PAYLOAD_KEYS', 'INFERENCE_KEYS')):
+                exec(compile(ast.Module(body=[n], type_ignores=[]), str(PATH), 'exec'), historical_constants)
+        native_scope.update(historical_constants)
+        nodes = [copy.deepcopy(n) for n in historical_tree.body
                  if isinstance(n, ast.FunctionDef) and n.name in ('check_payload', 'check_optimizer')]
         exec(compile(ast.Module(body=nodes, type_ignores=[]), str(PATH), 'exec'), native_scope)
         native_check = native_scope['check_payload']
@@ -2420,6 +2453,7 @@ class ImageAnchorTests(unittest.TestCase):
                        'old': SimpleNamespace(check_encoder=lambda value: None, finite_tree=lambda value: None)}
             with patch.dict(sys.modules, {'torch': torch}), \
                  patch.object(driver, 'ANCHOR_ENDPOINT', pin), \
+                 patch.object(driver, 'INFERENCE_KEYS', historical_constants['INFERENCE_KEYS']), \
                  patch.object(driver, 'closure', return_value=original_code), \
                  patch.object(driver, 'load_authenticated', side_effect=loaded), \
                  patch.object(driver, 'read_json', return_value=launch), \
@@ -2535,7 +2569,7 @@ class ImageAnchorTests(unittest.TestCase):
                 with self.subTest(arm=arm,key=key), self.assertRaises(ValueError):
                     driver.check_cpu_gradient(bad, bank)
         for key in ('regression_gradients_identical', 'initial_raw_unit_packed_exact',
-                    'initial_gallery_scores_matched', 'candidate_minus_control_equals_gallery',
+                    'initial_gallery_scores_matched', 'initial_losses_and_A_gradients_matched',
                     'tied_gradient_equals_query_plus_gallery', 'detached_gallery_mutant_rejected',
                     'frozen_bytes_exact', 'original_active_objective_exact'):
             with self.subTest(key=key), self.assertRaises(ValueError):
@@ -2707,10 +2741,10 @@ class ImageAnchorTests(unittest.TestCase):
         with self.assertRaises(ValueError):scope['authenticate_anchor_endpoint'](context)
 
     def test_prospective_schemas_and_both_arm_ranking(self):
-        self.assertEqual(driver.SCHEMA, 'siglip2-compact-current-gallery-smooth-ap-v1')
-        self.assertEqual(driver.AUTHORITY_SCHEMA, 'siglip2-compact-current-gallery-smooth-ap-launch-v1')
-        self.assertEqual(driver.INFERENCE_SCHEMA, 'siglip2-compact-current-gallery-smooth-ap-inference-v1')
-        self.assertEqual(driver.BUNDLE_SCHEMA, 'siglip2-compact-current-gallery-smooth-ap-bundle-v1')
+        self.assertEqual(driver.SCHEMA, 'siglip2-compact-fullfeature-residual-v1')
+        self.assertEqual(driver.AUTHORITY_SCHEMA, 'siglip2-compact-fullfeature-residual-launch-v1')
+        self.assertEqual(driver.INFERENCE_SCHEMA, 'siglip2-compact-fullfeature-residual-inference-v1')
+        self.assertEqual(driver.BUNDLE_SCHEMA, 'siglip2-compact-fullfeature-residual-bundle-v1')
         node = next(n for n in ast.parse(PATH.read_text()).body if isinstance(n, ast.FunctionDef) and n.name == 'update')
         loss = next(n.value for n in ast.walk(node) if isinstance(n, ast.Assign) and
                     any(isinstance(t, ast.Name) and t.id == 'loss' for t in n.targets))
@@ -2853,7 +2887,8 @@ class CurrentGalleryTests(unittest.TestCase):
             self.assertNotEqual(float(first.values[0][0]),float(second.values[0][0]))
             self.assertTrue(second.requires_grad)
             query['arm']='control'
-            self.assertIs(driver.ranking_gallery({},query),query['teachers']['V'])
+            self.assertAlmostEqual(float(driver.ranking_gallery({},query).values[0][0]), float(second.values[0][0]))
+            self.assertTrue(driver.ranking_gallery({},query).requires_grad)
 
     def test_real_loss_tied_gradient_and_detached_mutant(self):
         def run(tied=False,detached=False,micro=4):
@@ -2897,7 +2932,7 @@ class CurrentGalleryTests(unittest.TestCase):
             source={'root':str(root),'execution_sha256':hashlib.sha256((root/'execution.json').read_bytes()).hexdigest(),'code':code}
             pin={'source':source,'checkpoint':{'path':'/nonexistent'},'terminal':None}
             context={'guards':{}}
-            with patch.object(driver,'ANCHOR_ENDPOINT',pin):
+            with patch.object(driver,'ACTIVE_OBJECTIVE_SOURCE',source):
                 original=driver.authenticate_active_objective(context)
                 self.assertEqual(original.loss_terms(),'original active')
                 self.assertEqual(set(context['guards']),{str(root/n) for n in driver.FILES|{'execution.json'}})
@@ -2916,7 +2951,7 @@ class CurrentGalleryTests(unittest.TestCase):
                               "target = state['teachers']['T'][index]"),
                              ('return F.normalize(raw, dim=1)','return F.normalize(raw, dim=1).detach()'),
                              ('@ ranking_gallery(context, state).T',"@ state['teachers']['V'].T"),
-                             ("'gallery_gradient_norm': float(gallery_gradient.double().norm())",
+                             ("'gallery_gradient_norm': roles_record['initial:candidate:A']['gallery_gradient_norm']",
                               "'gallery_gradient_norm': 0."),
                              ('scaler.step(optimizer)','scaler.update()'),
                              ("'temperature': .01","'temperature': .02")):
@@ -2927,7 +2962,610 @@ class CurrentGalleryTests(unittest.TestCase):
         smooth=lambda t:next(n for n in t.body if isinstance(n,ast.FunctionDef) and n.name=='smooth_ap_terms')
         self.assertEqual(ast.dump(smooth(tree)),ast.dump(smooth(baseline)))
         update=lambda t:next(n for n in t.body if isinstance(n,ast.FunctionDef) and n.name=='update')
-        self.assertEqual(ast.dump(update(tree)),ast.dump(update(baseline)))
+        self.assertEqual(ast.dump(update(fullfeature_source_boundary(copy.deepcopy(tree)))),ast.dump(update(baseline)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+FULLFEATURE_ORIGINAL_NODES = (
+    'c-qZ<i*g%BlHjlOIN}1`5(tvAtdZft#9?I0r?W?9NVGRLu!xQ(&?I5vHE4hoN5_A^d{tFeb#()j?Y*1Zvxu&DRaREM^Yd53Hy7`IJ<EUo$NxU#'
+    'zdru_%ZE2-U-g%}`Mmqp@Ry7K_49{!7yp@meDlA~{yF@rU;C5{l1??dp3l}VjwY+cx|nQ_CcDk1TyBr9i}}3VJRDVv)oOclRIHEY#cnydIl4RT'
+    'eAWHxAHTf+{--n7wfFmJ{a)^t(|IZVzI*@n?8DjnH)r{eXaD&TI`%(6&!0Qh<fdE{oh}Tr+HEE!{xw-GuV&Zy*X8c&s@zog=X$f6lvTCb;E$WK'
+    'nBu=f{Li8+mQ-cATa=sGq?qSd^WvI5-OZ}mYMECz#fxuV;fJf)r*dk3KYEk2>kmIYZ3|{gm~y$Cm|Zv@{^w6W55G5ipnnECFq=Y;v+aYw8@R@2'
+    'A1{U%@7_=&__SJYXN%dtOWKPH7R-N5R=ed^{#@_!&64(TvYQs>?{J5313sL+d3O$wCV%jp%5qwD`pJA&ZPSluXWxI!p!H^Tj~`!s{mnPn@4Tq0'
+    '5<i@toV><~%$C>la=Tj6w-@kbx1JVTuJQtFTo&8O4fgO7k8L*Dtjw3wS9DnAy&d(}cW3`Wqi#3FY*}2+%Y0cZsIw95$=EA_^IUV$h(<bnbutcW'
+    'z@m!{R(Wyq^7RRn71LsI55GS@dp7)j_)nZ(xh?GY_-!Pg#@Qn+c(%r=_OSJAIor-)A7%Gxg;cO9uQvdv0Cn)Oa|u9^6q`kroR8+kWjP;zm(aJ>'
+    'W_Arzn<upBWU^Xqrto`PCe?0{949IC_pCh0@YFWN@)q{i@9(mh+};<PDKsswu4a=Nz|QG+34mj=UR5x;yR!N&`AA?nJU6|*c=jW8xh)s#a#L(~'
+    'n-aP`>7AU?#{ysx7t<*wlXAT+q4#3BS|Y?G7vCj|a&cL10KzBpT?GRq=iepE)n-x50T|PZjMsLAOG?TUx|^_1Jad>B0*>ks!Rb4g{&Krn&4YfR'
+    ')^vuzlgLF&DmeV3Ay!|O6MtqKzy_<`_PeC~1QVN<RM+kBY*Ad7yff5^xn_EwTxWa^^8`TW4p2`q=R0;&PIq(MtB&pWYPPAia7@WRUcF3UHxs-y'
+    '-z9J;i=$$<y}?l?umt$FD5~2k*)4ZfNq9?U>~;6%{FftGso92Ua$PQWvt^lFm2^%p%eUuWzrc0CVs_irq^P#ZbXFmJQ?FN>)xS#uJH%3O70U$h'
+    '&}v$4UcP*N%vkkUQ0lS8r^kp)kLfngu4d)t*y2;cZPcMXk4*_3Rol&OvaQr<NZq8o!~fFVK7ExGd~V5lQywugNQMF=aOR~0V%#n0dR`V4Od7y2'
+    'x!x4(o9~hpY=A{~NwqE4NpS^8E-7c%H(MU4LMVjY-^|R;$;1gK5`@D7;0TYm#pb%);&j#pKtEj4<T+0V4h?tq$iPHWK}!H#Q%*2_wc6lpkL|Rd'
+    '%X;1Rn0<&;byyqGu6=F3<c;B%MLi1GkNX9krTAdpmCIuJ)Hl^Zg7>(>hQXylwAOV%o70nksDn0EUln<NODSj6Qgt$zx4s-XEEKjoUtRuI(qFKW'
+    'X?c~j)=3d*l%KX)|G$<A{O`ZM!v8l^O%R|Q27q;LSKEhmd9((^bwo6P+114Mn(&(oAUA*L{nwJazJPuv^A+4%#v@0tp*Jf4zvXnjnk~1-Z~@oz'
+    'Vp1*;N!`!3%MxEjfaL`|J;@C`B`bPyzvKR3UJro4OMqB{!%g|G9ndK7N_G=@QxHTdn7rz3bp;J)6(Hd4&1%}ytLDFX>fPje2e4M*`48W}0s1gM'
+    'd;k6U&+pz}j0{Bq&!X(!sKd44dE-tt0AA4ayx88PTzk~PZ?*#B5~zUt0SGC@vTkB(mY>SWZmXy*80qc1pUys-S(#CA#Tz_B>}+7$<8OM_?XmH('
+    's{<-O!KW91^B96{hkzcJ$$V8za}V#Pom{Sxg&^q~K#~@FEF?lMSI^d$C%3moB!V*=?XNht3l$iL(Y6l?p6PcAH>EOwYxV+xp;$ho>9PmVG~1?~'
+    'UMCx!i~%H)_d{d|5TPVX{9Qd%y~T>IScdcw5DmCDv&DL~A&{DsQ-IcDx|lH;qE1%>2pw~tU(J9z%ClZ^S*_-~ZJB00xazQn-Q@FQ+qvU9df}nR'
+    'kDR#;=mFoo{I_bgOg{rc*&^i!PYG>F&+ZT|N<gTe_(d|xW6(dKmdS0-qon)~&rdC#*32`fmA^k5emMJhVIf>TzkPRcarVJ}4PcgL0}uClx9!cU'
+    '-0c~h-ZasryoWt_wpa5ztN@T+FQ;aF`l_t_1X!a=vn*Z=16L1=`D}S>ssJWSW7Xh6CE&=nt8}e;TZe_J9dwDHwnk8+eGA9Hk5B3x8`OFoo%Y8B'
+    'z7;>kB@=H%Rq{m4rcXN|;t((lPOzKU4>43^3k{wT2*QJ@l?f>Ya{^KWQPHx5^QyLAhqy<+18lXTAF0-9fW0~%k_J8=3Z^;Q-)7u^d!=fRp&hqC'
+    '{=!o<g~K;*&dx8+zQ<zoH*AgF6U!sm>siOl{&42x{7cqN%<uRU!ex<T3yW%}b~W3=U$sNy&v0gDUae=xwL5YAfF}nP>={@}18zVyo9>D^ADutd'
+    '(E)A3ql2|A60B7jRR3{?ME-kZieaLq5CTAnZFg(6IQf#>2Lb*n;M_JTuPhkHzP<y~mqWj4Fk~7Y*r4qsZ8rnjNdr=&4r6TG7J3s97l#;s5UcIF'
+    'Uf%%UFu+~yAmU#PkluxZgkOwI1|Ejvm0I{!D}_DU=CCOX+=A5XMK^K7n?eRS8qf?DJ{HnHoI1WwL@sv5`Zfh6gl26cGf)nb+m?18{q_x&x|)Nh'
+    '$ytK6b{P;Ycas~$%x1lgGVB3mx`3xh=oP&@uF|W@Ezmc`ZoW;i8@iY`R)EE@g>$%?&n9+@gaRd56P}Db^dw_iAzRE3wV6g=K$Nz6iu@e@1HS|o'
+    '`iXh;I|kGC4gB*dZAq+Q0G_U&%mF^TWA4n$>tgbtzKzT$qD<#guLysSov^MCdpp^tuH2B^nL3Xg8R!l6W4<7Bh47nK$Xe5KKR*)B#AjRkkWa2R'
+    'tKHguC+ID)%U|BVyU2kN`~bl5=)F)qCKGd>QeLcQmWlF?1TdRCySae@Jf(FXAVh<ToW6iZGP{De{V#(UH7E0c8dN|_#i}Ty>?pVj?w-u2D@O~P'
+    'S<Xq+kYl?s%Q)rop#TZ~Bta!m%~@<j084%^^_aLK<osbl!w>)bs7jtRqeVHnDVDPdY}N?68x!AbJ`qByO^*8SCYMN++O2mdJ|11UF8ZHM<H!DI'
+    '=<E^BB$#<tzn{g(3Mq#k_PC4|5b|*)o8ms-!QVOH`CBJ34?AeAM&uy&XJp!luK`ERCbh1bYh=-G%-AC1ZtJh9>Yk28Vt!E1VO_lI3zTXD>a{1>'
+    'z_QB01G~r^3{LZUQ%q5oD|}<UAiV~#0TR#PWERRIdn1HjE?;hD>l7=(13wbc`#5-_=H)U~g}BaFFKKV!tLw(w2xQ;nLn>8dJCQoU?obYjz0H7B'
+    'S#G7!en*gHm4e^u$6Aw<<ZlTV;J7l@sB>4$XV}l*aI!%s%;z`tWJ<B=i{x2iMz#EnbaRXCmq|K9F8B(lL+J<3^#-_`D?EHt4=>^^)$S~+(unI7'
+    'VzLL9qik2n^XmmxjM!EL7-CoDjh)*MuuIoVluD7}2L-jv9smtq1)uy*vdkSBE@_<neUO}}UBZPYe@{;I+W+4!`b(EbvnFsjm5)cK_zQ|6`{-3P'
+    '5VruzXO<hWan9nwDhB>dHE}BssD+}k-6Ews3;g!qlT*i1+q+@fq39x*sM-+QJ3ctkxwcfsiQwg-$t;RbW<p2FX%`oA(4=q(CP+{<0+i4ED&Nk^'
+    'DtAi6oTPn-FRJ8XvnyT8Ca?gc25)C>r2mnYPB~|RqRJVqPmrXqx3H4#PzD{Jp1U9NS>KVSN0WO}N<~>gjyed~6M0TZjy^-e%z&mW_+LA$jH2ya'
+    'X+Eaq7G>^J+uLHdEuhh+{Ees<r!mSeAGW30Z}0ZA8YjP=uP$-k<#ab8rY>B&QLM904E152F6GVnFNvA7k!m-|3T6NSKn5&<yS(mQm)o?1>dp=f'
+    'fy8xY9w+)Z?%kFT6${sZ4@rp<>av!UG&+b3j_t@yc~>>Tk_83Qn^;v~u2i{5!0)aR3lIgbzX!iWSBq!0+5$`|HjC)M&FY@$XS;+thb3D2U^eo)'
+    'xM|3T;MEcQ_bf$idGb8z1n7?i$ykQ7Fe}d@1SHH<?eFJjGOc*uLLoHtPW%s{0HgSChN{QlIfiK*_#m5_1it)3o-TU{Wer-UsQ?b!G%gLOdf;xj'
+    ';il|e?dEg3m}zHpa`bI+bT$6`>g6M87TS8rnhroOh%`<#9eJXNhBJR|%6YzB%?GFD(aAT!UR+l8=PN_m0`L=$CCm}3lWceOXPA)sbz`a8Qikey'
+    'a~!k|aAW-rQ5OwFnpY+ha#iEIL-Yx6d2m(6Fct36yD$fBUws_9Rc0Ws`zIU<H+}+6^+b|RPi^0z5VbYoREumz79hrE8NAQ@w|c=M4Vq!v9F}Qf'
+    '-skp4`X2l)w43Sc?44b79k+a&Vza&7dywim|1#8EqstUc!pDcUWA!@}puZ?h)7&0U=;Ze?Ix^m^(5q@A41rN2%b75Vliwlky{64S48ztqui6Zp'
+    '!Cx>3Dac~@7B(|BV~2brsPW0@1X+vde(^Aeu{`^RW&Y>i<z{6JQjXB7L8;O$=5R0*QMi$m0<n=5Q7m>jYn_~Vi7`^;3f9WS6JXe{X;s{z$dicf'
+    'E*bO~(nr)9+tp@rBf5w+iioMjNEtnjee4DWnoc1hQYj`Y#UdA3DU%h*t3dscU&fM;QwH%!@#thMpM?KGIUd*keA`d%7!<qk2MW=n?X{%zmY!zm'
+    '?-Bc>-B3%^Ei*MOUYaI*)6XZ5*e6*=mGi13LO5g9>S~TAbBJT7%7|)pzhtpa_*_UgiV|fO4$eT24s)s#i(E4}hjQH^h2c6c?yl9JdG#+j4{kQ%'
+    'y5k<%aniD6)j|0b@fMa7kn{*+ef^@LZh1GGls(ge#KlsR+6DEQi9m2fo7-uz_zyNWA?Ag4H`pyh)x(k*3B}i$1w!S!V!lIT3K<<*kNpZ}N2#LP'
+    '5o6fOYv9uOemGq`*ODG9LL#yST!J6+t0mGL?^jFVVYx4h{i$ZwLwubP6sOGYVIf;24wJ=dQPx#UW+ifg#Z;CqP)eE-0sFv~7LXgl|NZs`Q4Mg&'
+    'n*p5*!l$(0v*oVHz`4V)-_T)Z&7@%ykHt*d&DJ8fb@70zU=MT2Hz)mn3Ig+XKwS>c2psp^ZV}mn)4IeikWNdAodDV*jm)cH6i!%dwF>&9Y>-t<'
+    'aclX?)@4T8ihn!RgweWYeiK4sCG4gcXESz0`|PHAVyev*m9@5CzaXN;C^x*KxD+`A45rXTLxce0kzKM~#$Z0=M8aZ=8mu&#f0I1$#cRJ+Xk)MU'
+    'Jz8e>SiWUlWxy-omsq3ahC2rL@w(isH?Rl?s`xnZtZv7STvCRjkC_IFx_ZV=&E6=#j<dN4Esoi$*qD7Dv-z#H4YgL?BzclGg-bFN7wRy~=8B!^'
+    'xCgWjTIpw9OCES8sjfoi>;%+Wb>Dh5wSAY0q;U!N-tG?RfqRTEWc_Bs$_f`~2q~=TVIq}d+fODEs*X06bl<~i0#Gbi4ySrFT5TkGiz(VdPYhjU'
+    '>-TbA(zaYyE4w1{y>PFQJ%FKobGr!x#en!&f2G0W;@bKzjJ(q^pjJ)Pfkrf%hAKkVho6VN{r#n-zsw0}kJ*-e3NK%^yR6_|lC4Y3v;wh}#Z?h2'
+    '3WfODYI;0E9XdA4#^LL4)Lre30-^vGOa3;<P9;i8i=GRnhuF*!p~LRr47v&T3F{c8zJYkk&Oe9+N#v=>5R}=b&N4hDzadwP=EZeFbMl6&W3_*V'
+    'jN+}pxhgWM34*DSU6YVdb&!?i4(Pw}n`-UZ#~#UhfzQpa_@8s@kVV?4@}%>q(Tizc<GF&Jmo2}rn?gHHoAztu+qr)t^vzC!3-}{>=KykS-cq&1'
+    'KWTft!^PW5!XTpPc*=ZfL!jb$+?4Y*@=0ihVl7z&1(VN$IVpBv7)Q~RT}b?p*?S>WGO%NslVRMcTPnwK`i<};cdZoqT^o-=<a?ZSuaoTvHN<=d'
+    'Gp94CgdH^gM99#v*IE4CHPnx|5Y`Y1bh3S|@sO*zoX!@Cm2Shgwowd=H`r?+_imaSuSRa4o*uv*oMhgyH7@H;ts~r7HEsjt`4>AVG;Q4he+l6h'
+    '#0*QQrK7drB#+<x^8GOR@cxGyak5|T5~X7JVFu2t6i9IF5jLtk=7_$aT)XPB4JA5D>~H{Wp~7`Na*m1{6@T0z(r=lS+Tgd0iK3k`oF7^4oz7{)'
+    '*5&sVojj3$Fz7X`gQrISB+t1Az7uvUFX0=yP0)&>SXmTz*uS<Q!&kM%^oC^qzVS_Hfa6tBCOGsR`_GNV3zXq+X95!_R&?c<a)rtdFzdm3nQlnT'
+    'GuLzc4wZy*W@pPl#l!rvgw0dtt8hJ}g#7rzD~^^rtj(cTVi8G}7d#X5MWF=NtJr19E}ChM7K{%CNEUL4ehcAStw<j#KTBQ$tSJ2ve+#%Xgc5cR'
+    '6c7;Fut6hZfN9n>vNf1ZNo--UEh8%lO%mB0BpG;sHJT;=17`aS2=ac)e?Lb<75orLm&#9TcGzrzSs5gY%cUZcKH6UE->sFs&&+tfxKHLyPBF3~'
+    'Ix7u?$h;aMnc`k;hgk@<ro`j)&4|s0VOA99nTMIq>|OKD-Lq~m)awyB2qtbjV~20~pg<d1Hym;}Agp0cffj1c&9I$izgwf;Y~*Ilt!la-bVQp2'
+    'j<L2}`aYB25C55Yh$gf*;{#HPR&9c%G_$xRO}bgphKR({yPlrp8y^QmaQ&z$L`6z~+EJhx90^TjW4T(R9{r##-_wU#duug9#3ZK$R_}=TV64eL'
+    'l_*CdXAmGh-1BbD%Xx3ShdwAv`Jb+}yC)lKv2-RjwErZp6}!*WZKE926w_#2%EsNiB~n@#g(v)x`9&f-Buc)VTD<{@I!zrb=~QA+{+0#3p>rQu'
+    ')2~<a*+itW{C7(83L7~6j@(aqQiE#ss1<B<hk+}Cs$#$;VNSeWU%q@DR7Pttbg4lvOg1!lTL4|G(1X;Bo3E`4zUtL>GeghUlH8`O@ml$5h96<w'
+    'H@U3}=ZbPm)RC{I<vh2#C$c_cANhQ>DJJvM^(2;ov<(Q_Hlm8Qlrx{uE&U4pv}QoRt;^+9EM7ShjrI7=P2mKs4B_7yTfm`FMLu6mZmS$v%4v?8'
+    'O>)i5tp|fcQAC`WLn1pEJI9b*vGwj@W4!_oK<WgI9z*=|^L1GO{S1HH&Mp}RzQ(ux<ORI>&yp7zskz~7uV%s>px)~K2GxIPXUH)&@LQBe5Wm?F'
+    '{=3OuZ!hBr5%cz9mn?@D1{OCA=<XTJi|0k2!92QCad0`wU0tzeB21OT*bDshBvG(Id5+y`lLdzuj2-<Hl|+8g9u^CI+~gGtOSPw)f1hW|yVZoE'
+    'SYRE4Ts&is7S)cA(*nhio=IF;6v48-g2qR(f0n+;O!7%u7jCN=PP?N9t%Uw`2b%uv=?8DBx|h7O#|SIO_H8(}jT@Cd=xt@4ngTbfIv_IiPIKXu'
+    'NgPh=k4a0QGk;@A4&fqG)E^F8ldu$32b8xWn>Ds9_8~G3z0?k$F?{xTO46>=X*@3NJ*n-3BUSl1@T={A@{BMBU>u(XiOq%5DHCm`P_}#coIK#u'
+    'mt*80{Jt$P%#vqvy(s1|z=F;LK|`0x!-t`9$Xc8Fj#NOJw`MtLU#XFEwZWxa6H_4DVC_wX<y8T`g5#;#yKB_Y7+gecY>Veo>%1~+!A-golvc{)'
+    '#?S)I3{0E*fYQCl6=)U*YBU@NaDoJHLui-tD_Cf5To)9R6?hK#xHH#UB6px+Bk$>NxlDh<h->D5UvjHZwv6zN!s9Mpusxkz&WkF)Uu|xQ4#*{z'
+    '5N~Mz<;l0N`mZ}d7s^Z9^V=k#i+Xeh9a!JF+`T8(hth>TA@S!v_+T;TjtGs@zxwFYIcl<y7+#pCAyW}}iUWkOmpod8|M%pk21xK1qNY<{d>ZlT'
+    'B#fomWCmr+9otV>OR>g^F}7^6l9~Dw$+QonGZ{qucLR^|Y!X{o!>0D*LL|D{>O}n;sh#3Q$KeBq!REf<lFvXPO~)v9Is-mxGmYFh$H}ed#Y2O~'
+    'k-HU^!N`fNe%;~&G@TXK%N1PuNm>y7r#@Wr)|2}$?Eb%J>kt%1ulr+1O#q*{TL{cmLX5y8#_DxGEbC~>D>;@W#}29q3TvZ$OaB)@Vt{I6m!y67'
+    'iE{9cI~bS<z44#)<hS7`<;5MvQmVYhg_pqevR3`C8YpUTPNzlHlZy|-ckfSLogSaO`qqyG7U<<XBSW=*%j9}ChHwuJNmD-1BoN!<B?*p=0zV<='
+    'oT~a+`_ayp>)qA{1|at=)!4@GP}~E5S8SCE(`Q3cAa9gh!u>+-$}`KG!@L#$A2B*s^o7+;>2FHyhT!OjjC<?MA#Aus^j<?_>F*Lef7BmMN$YY<'
+    'o*T&)h_emOpz7%WY<1f|7JZRwak(_*SI{RuQW!o5?gH1m2fUg9^<OG0Ln1PX&bxvO!`2r1m`Q@pkxRB^#1uq6vnMtgARB`y-3Rg3Qa8q0EB|to'
+    'XSe7KXg;d%AFYWiR<crbS7GQz9(E!I#Zu<k;GHP@RPudHhdp+4L_@HcwbYP#E+iuDJ|>GD95>5*i>(U-Gd%IMG~yab>MNLQT$9V@aI7pP@Y3NO'
+    'OvDddssV)Fx#4WnhWYjg=+kIVGzP}wc=n9`r0~FfHPWN6W+KHD;0>}_2vtdw?XF<m<$Z2qj0U%*YmP_^3P$+vctnRC;tEf*6zkDn#Z$WWjmP-p'
+    'dHP*DETiP;DFqsC@w(+;Kvh~ZiR;SNWQ525m>!*ON{8mL-m<V^$0!jv=AK+6$RcJ}rcgZ{F!423a~T|SegA+yVOJEhg>n$e;HPuZF-HMph;}pa'
+    'd`u!yg7uP`<~=RvNqBs&2A3Lu4#7q}biT8+LQe8U*}=N&f?_Kj&$jazQ_lJO6pR$zuwOf^J0)EhyVqm8b7uA|4<di>;Q2q~F5_nZVHde!7vA<<'
+    'h-MfGsj9``G)w+xcoMyfZqi&izIWJW|L(a+yk;Mn=`x$xxPJz&U@AVK1yeUsU%B|oF+V9i{-WS=L0tz#&BEql&`$HiINtN`tVS&xcfGCw*sh6m'
+    'itapjeWZS^*%6)gV;8<*a0S0B?YBPS(?XZ8Dxc48%XG+GMotVKnZbOM1;zmE?bh%-xu?~>NTeslr828L45lM)ZGTjMJiEw~$9I^Hf}THF#-ra{'
+    'Nv`&HVdwrBUz2s0GfVR}+HXTtTd|&LbL%kv?6^m@D5M7Nf&(eu3RhY~`3AfqcwUYCRtU`t)JwbGdU=l0<~%2)=zV90<O+*A0VbsYYm3WikxUSg'
+    '^y`=wKWFxUAA=p)hrUdm)zwv1ZXLj$bSYH;-MuW*#<z$eWH#bH`qI^NZaj{+Z9|(1`Wld@j2xm*OE)7f*bs5-cz+5M%7^5J3Lq6*-CHZ1Zt`Qp'
+    '01lJzgnGpq#S<wEY)_)8se}lX7Wi{t6G2hWwIsutpX{3<T_AgTFnT?HAVb!aHcIX=3O%;yUP|HLS;FD@8%9>q);I6}mvnAWQv=w=kVCJSPV=;R'
+    '8WzbkOr&AwUBrdv4Mf47UTX8Y?4vQFo7h9C)~6H!C>!$vf>Udl6-lrrligxBFDQs1DVb-NJCVVXSj!Fe0tH%O*In-jyK1GGFXU=D1T_bqzMe<J'
+    '+=UeA>N|Sy)B;JGp?ooBsTd04JC62Q`ht$L;7t#vW@kbH0WCTG-1XWen=hGF7I|}!<F=3x5*_5posMGD^|k>!LNT#DIYXRuYv7&*t^-w<Gm{_{'
+    '^QfYS+n0${zP}@?jq1-?J4O2ZBjfh$j}nQpA-736I!jxs5nnIVj|XSXv?TqL#~WfkoO(kSS(eGgf!Bw`kEK72SsEMt`GmY-xw@7KYoNSo;bCoa'
+    'wRzdHl$t==#wuZ|LQ(D}HHaUYsex1U^d7Cw6rs~{;7(@mo-%EgPNfEEPP}TP{x{ahpMHNmww1kL8Zfcd?sATy^O5UuqyD|t<!gz09z@Hs+a*Sd'
+    '4mOYFK#lE*iumH2sQXuu!jL9xE*^+|;EI}3AOSz)1?saoBJ7&-Ke{s~?e1>Z?u&oqkIv+`Z*RiBNH={_nLO4hMIPQRG<Zt9nS9e9?|mrjf=3Mz'
+    'v1p%Y{q`Xb&NF*jug;t&E<K7MP)Gl3_A+nADk|))Vn>z3rM^D39>s2_^5OwmQ{n(|h`g<vMD$jA-U4~9%LrbO;Z4#fx%Mn8_oE#(C2z4At?YjI'
+    'T3+h7t1|KoB-nws*l)*bzA6CFx1N&*T7(JRRqx`pBCv>36fr>F^j=2J(2i_G2*CkzhX%>IAGI-9Hxa%d`v>5dfL-~w<uUTQvJ#FOyhTD0>CIC+'
+    '{nv4F6xr3k##8}nTgj}fwh{Cc>Ln-uS7SDUxD$y2Y`4FM8v4Csk3NO!ZL(v8a1oqh^YD>(u11qZyr^qzO7m+Kop1e+zHYcZUyl!&JmZtt(RUjl'
+    'rQSLUY2BD?Cb}ehv*qyMG9NPY`j)6^Vi%?}B%o`j{Dl5(zoyG?|F|yU+F305yL#jcN2t_x*w&m}T3h;XYi{TzLO2B}(h`i1dQ3d<v3xpaWaa1y'
+    'rw6<$W^<o_QjCxj$<`tD#W?cX5%f1csvgdrZ&5_IFPbmuO?B+tNYo|j3NCJaXXeG^w&JnY<ltXzXUoY}oRn<pL%n(x^jFM~)EDC&jzYPU-buWf'
+    'C!}Z)k-7+HjdEG7o;h3z(jq}TeHEn)_lOQ_&U5=@hQZRFE;nRL04w6b438#?O-UXh4N3(|FR%h+(4v27RFVag&w3Z}G2C&Z+F{%*9YV9kxshY~'
+    'evZb&utlz8-RlMo_hDqui3S=scQv~r4`S1lZd=R9Y~}>iC+s&a@i$t{Z#HzVTL$|S1d(S*tASPjGDxBo1OUe4_9?hcUd-I&yJ!kD5NZ5x{UkkN'
+    ')`d@gBzykb*okwy4YT-d+$8F?g2$4@Ih=PgFV?Ip@Ww(<4?8upYkT^=EFV@&#1o^LafV&{8|#kBBo>j~*tcgEHjQYTW<25%$2~;3n6t?T2h59`'
+    'JWGDuw;v&XL}57g#JxuvV@wO%rUBwSu_-?au1&V@3KGU`mOJatyUDOc$Xvtp&ka+o``D)>K*6d%W<-bONnjb4^h*<Y<va(;aHdRL)aL(p&sr$f'
+    'n&iw8dO6(P7IL}%>?-VNF_;o%6g7?&DHi)=N+6Zdx8L^onGOCkHnCIu_=kHf7{VKjgLaeAX*WSqhW_m)Uw4z2Xf5SW<)rr#ho+Kd4ZT=nL%+uu'
+    '%U^s==hx-sricmmT$q0k4Qylh)x`YD#7)<lh2?0_2AFKiUX<f_cm+2UNBLxVVWT0Ns_x<}pzWE8pknLnbN2onw1SRBFmjX9_cvFw%{Tt+$+ELD'
+    '>P9~G=CS!I+Ch9%1J`GZ4l0~Tpn<ZiyjRU!C2QIjOy3U&Ubp`9XBKDwyu|cu`iCh}Nv3L<NHX}0x#<sSb)FIWp@x8DJmwh@exdQAV_1wi>hM^i'
+    '?y*ORwiGnUN~}!tZEpg2XbDF>Tg>L<!xZJc0httAxb%SF48rR=30SlgY049yEg?12XSO@-C!Q6mjStaha+}Q7!%!ssSb8BS&qO6;B-QYDX4FIG'
+    '8~(_mlIS1d$B&K4Y5Mx1Tg_|2-^S!Mdf@0&k+r0^v7?&u_Qq||piNgX9zTn98_8|ccc6n?9Zy2jXMWPpt`p>k=||YeT7I5>?Y(Zx*kjhW=V5m5'
+    '(B7mntb1U7lamiFDwTgFo}k4x+LNZm*4vY9#@5@HV<y&NW2kovl(D)|V2DN|H{I+L9!7hxmpQKf2xXQHk>br1j8H8$bUeCy!@#Da><Ni<?A{-k'
+    'bja4<n|{aEj3nW)Wryj|zG6QJn=fAZLD+9LNM2*GVoa9k*{oq=&T&0aIX_|OT8NpRmFHw?Ozp`j?`AdyP;XAQ(`BOB%+UOl0A>7RI=f~TI7RzM'
+    'c2{)&&AbG7z(ermHwlIY#=%k5Z8pe*>RJI+yNf}(%(mE`yg~3POjnDZBuCAGc0{6fwdpO2<qkvXLTe7$sYHX~bT^<mA8LVM<Y?qqr0nfYzy-;b'
+    '8Cs7^<OSno9y-bdwV~{KQ?Diw<$~Jo2;%1Rd^4n0IB?y{9hW{(*=!=Lv;`}}__sO%Mc7wy)sD|8zDny!$6iccg7@S&x$3yPu{rvTC-K-@Z#(r)'
+    '0Bs>PC9sZB_u}Js)o_uyIOs{Gx~wKHnh1T<8Uz$ixuv$2lygawfn@W&bsk?*DLg<J!B#m8j2Mf}%c3gVAzj}nq%~F>)xhn4SD%_)@JZI}eeoq%'
+    '0nf*7YKK!1pnlO9t|uIYr^$Zi;6+E=IwPL+kqF@ea}<gyELK4#+H$t)E*k5RWX3{>Yji4cnXPNCy#=^ghxyU$-6bQ|ioYBZsD@lI6N(%M4{Of9'
+    'U4ItZeI#LBIQO^$N;o6W)7^6j6bZ~goZ%m86Nr!7m5F;knyhi~uVwZngh1$+Z)*^V5agNp?7JX3D{~6z6JwAg(coj%8biaYkbdIP-zPbb4MNoS'
+    '(OpBj^}dG(6@xHzHENOchdS2Ko^;Cn5D9BH;67{|`Q7$i_U)!O$mWs8cZftIwfPz6-q8~~8$UXK<h}rvVl^p=yCeM?!;AErV~ePLQt?<Ef!+|6'
+    '#a7r8o5j)GO%YmbjrKS#VYO(q7R5}qMly3;LM&KXI8<ZEG`CA(w3B`!Zc8m8NBCAW`t{q+W0B!Z;j?EvM`K{y5IRjkB88K1q0>+z3Sgh}rO(%!'
+    '5`#o>kP_s8i24=Ir<oEqp}%Dd2E-fe%ijY0sGV-W2UrVLN1d}IQ}YJ=dhyV)%p_KgU<OGLwCZ7q&7&X73_<a)rQC=sIVTQ(<Q}Zb{T4Qwys+#h'
+    'Nj*x#W~O>&0wGy<Jv=@W(O+V#<2qbQfJ~ycb13s@(h)V49>+^b>jC1-BnIZh#1njQVk5wlFglXa!bEJaFoQn2SUpEO!&I40vXY}3h@kR@0wZQ>'
+    'e*8_)6fueT+Yig0r>v8QcSX(^{=|bczV=Q2-|_wD1RK(kKbIlRU>LBnbA9uv#y#BRO?d^=yt1YjF8`OA41MWQs;hJ~9OD%oen0%DrFn>NMRJ^S'
+    'HK`&1i_R3T<qlp>AYIGZ^$k3J<)nD%NCGq-$?(29Ubgu(YU%;!j~Jtt<1OfuVyc+Gt$C5F$Ml;E675QKZnjLv-;7tOCx08ZCVz`}(VqX!EW||z'
+    'k=$*Zh|Clpb9aG*s{n@!E~=o_e)OtxE-YP7R62`w?+1YBk5ry&T*<k#2B$AxqbkxEqX?d`fwlY@38rQ(oeTF+quRViK%>=KG!bxKL#+~2gDF2_'
+    'Nh{GbuowSAxs!ALp~#ZD^*LvaAt|Gyn7etu%!f6WznCt3gI%GMsTd!;-Fz;3#a!zcO=y&B<e_#;c@pK<A0r0zDgWZGn9U0k%_<!il`?>^9w60O'
+    '7WeQEcoFaglh|eaptD?2U@m+cRcA`ThNKKru}ad`C@+I*^a$AoT_3Iw6PX<*Dl??)A0aB+&!*ecG#m_Gh%0=g`;Lz9E4xJ(hqcz97j0H?*(RK&'
+    '&21B;7onsM670!{bVp-*d|M)HI6NC2zyUGZh+V!Y5r&J+!}qWU6M%z<6o^A0s0JOOQIBi~M`*o1+YA(AlVK#DscEXkxTas2);Ta(sjU?FhEa5F'
+    'YjSuh&Vm$zKXm?Ip+SJqJPjf~m72p7fqFYa&ppR6w7^=6r<U3rb$^Xn+PR=%jqqWsXejw?F3Mxf@7KVhigyO94nv^Xj$Ozzn(R@+0v*2Z5>YD&'
+    '!<#j_ivfsPpJo`;mHtrzX;0ki0OUBKWt{#MS>Xc!IFQBgrSN6Lzf&gs-zQw%D_?BejzcvW`!I7<U>U*CHY%_$G@L(Bys{-Quse!j<RGpo2CpX`'
+    'e~ng52VCnoy7)F5x41n%HIg7E2I!+R0?#bsgr%jWGX3^@1+e(q0ORXD&{(?^uSq-<F7N=EbfXYHK1A1_rk&91+Suj=`oa_Ywws*3{=<(<B0kdG'
+    'qFzK%#8uBut0@f`Tcnb^B~m7v%?<+(0am@kG$YMdzy<1i{ruZz2i-jf`Nf(PdP5@?S-)S4A{rEv!;#w7B5*b9RlJOkgHVd%IQ5vV?A9YNe9pcH'
+    '(<yqB)%qcC3=Owk89u@UH4fEWwxw9gKqDiVOxbF@zn4JOX+>3rOEhx@$Tj<BqBnY;^4Mm6*c$adW`0yAU8Dnk9jb!f3zecxu>@WCn2Q|y=`Xo7'
+    '3`aUZEfh}4Ctm7Gq3c7GLI){^!ja=DA$)8bbV7}DT(8gu3`V_VK`n;8$(5BwY`Q_<BnQSav_#Za0d$@`3kGhO$aJ=ijo+gZsTL0qIHmMCtK}df'
+    'epEr8-p-5d(9|V^N)afNY&>+IB?mBIH1J&@0YyzI6HXT3lQ<J>l_3)ikT05mRcawRM*P>h?yXmA?#EBO@n`Gcw7^8C6Etj;7lD|9+tL%+Zwjd`'
+    '4`?lTag&mft-kAeKp9-?0uABF97|s~+8};$-#y}u>cTcfVPpQ`L)3(UP$5(ll2TwlPV@AMio4MILioc|_#N1_)eCwNxBJb_d~(%~yWQTbMP1d_'
+    'EEdbT|5Wx{hvd%17+RIJW(7D%oA&>K+E7Z`w1%Ec?h~?`@VvNsh%5e7wP5m`ooqL?bdp}WP#_SWbHt{$n!+hPH}{*v7aDGY6U_EbI2t?9`^%gO'
+    'CA9>SqahPe^|%U+*DxuJn3ZLy*fbbO1i4MDZKFU}YknGa1p$(jd_jGaEXX}`COeu1V|_MCRnMNhG9D!hQg-w@*HS+&fDeL(NBs$e2(|@=DDEb;'
+    'L__^V6l?X=LVYi<5Z;O)Uyxd$BoLz8sfD8bgWW>D#5}|um(c`4le$Wb2y3#vaSd2wglnuTtFBv=QZ_?NT%)C5Bi1IV<MFjiJ%fKIL>x4kcs1;x'
+    'XG@D0d}A<r>g{EiF1fWk!bo0cq$kL<hgnk+X?*DDR)$hEb3OM-*ZRR#lU#@W<lXzXXCKbqzd6e}<)OY|pF1uj@}W=zlUPmRAlwUHyK*j`K3+I!'
+    'KsZ&US@3Qm<_-jQ$My8#Z20}pzg)OVkB8nMjJtXO_l$2u#9TpQRT)^W-!vb%+3JE5*AU&pd_5&9r6hZ+4gMet0BhNhJ^Cjt0lsS|Z32HAmKZov'
+    'jIvPq$p(fJKaBz~9Q{3cdw%*V;mnN*{2wW|=re{iGx4Eizp>yR7>7SB=fGk`=>n{&#~`t@A9bXV0+-v5R^lK^Gy+ZZPUp&!UK04rYIZ%JtzR&C'
+    'gMOTN)qCrQP>IMr^a5C6EukCM!Hdg_W}75bYW(8DTzr^M3041c7^n%6XmKQ^LlxwrXH9ObT5{3L4b^nBTHRJzv<L`|Sn(xL<hrR%%j@lKiOivF'
+    'Txx`}W_9EpcZ{`;sgqET26G*>;zbi*nd`4-p8#<sdQUCLTO=)eG~j=_f}L_>AJah*F0{k0*k7xr66Rrg^rqqorfTQOw-}HE{fGBUsvjQFj~n>@'
+    '+Qi&%wy1hG%k=k3#nV`>$XF-U%y2B+hB11m`B`HWtVX+sfWuy|R&x?D*G@gvdpM9?aE3!!kD6`-r5rZZ*3clvDj*07!ZYNR8DGxREEZMX-ftU-'
+    '4Oo(DHr<gw5@9F0+&$0F+5Dj~h-XTr3x@trM!sWq*aS`i5VA%x(+#0|J$8c@2t%K+vzUZGL7)8)f|jc#dJH>sPU~(8uSjwF8{?}4P{5*OwS~XY'
+    'E6hR~M98@$YsJtCw1?OP_$**?iN8k*Vv1RDsuX|s0FkDl(%%b<g~8<alT2ozsJ#F1{)amLw4#!GGQ+;-fmw%uT%nr`9nzGjXkKoQe%iv>676kE'
+    '^5|2QywA2WzHqM2cEyZjn)$D=Awlr1H?}S{g=OuHZqN-ha!q?s$I~+|Xovo&AYaAD$NdP&#5fDY%&$Et-YJoj+dXKPn>TL3O*vl^*T{cx-lst7'
+    '8Z%uA0JOors?EU46DRI50^|22ZgSRab7l-AYBpzkjm{8I=N!cHfV{v!#UtA5dR%zw=-h79&a~UisAu|YdMx{71IiS}8urYi;BaR|L~XICvsi1b'
+    ')MF+BPO2(XUXK|mIBfH|XCC&Dox**OL{%V)Y+e6Obk*87xRt|O_uMmVXXB!%k)f_-_KD1LBmMW$eKZY4>OILKwYi#SmHJdGRx}WTO&-=-XyaND'
+    'L`P%~BK#o(RWej(I@JWFux=j5wmY9H3&OY{$JuYlbs5<6j)vpW?KpDoI%#kDX`L5$*PN4{{>-a?b-ehq#A7X13re0sF+r|Y^ZDvNG3JGxkjsgg'
+    'nX?pkx`7@yPhoB%ys*``?qO}D+X)@22vpOMAef;oQMtLwWqV=NBPFB5#AlR^(dMELY(0Cm-1L6h>M4Nq9OK}WpC<4Qx!FaP&(?#2DB$4vV6;-R'
+    'VrVyOP!<|K6xHCXF2w0K#Y$?CQu_&a{k<Tr9cAEZGvEy-k-a58<RSJyrZt7D2vw}{zb8F7-(A94C6?bAp1;E=8k|OwjTq1}hD<NJ$vyg`$Sx)r'
+    '7t!7$EkMxv@2G|2qFBzZNL9sZLiBM)t7M}?ZdyVBk&T`&*73#Bqz&f1f<e)BMf^wD#uGkt3>A&;Uw24QbWrfW-SADo|Kv-=y%eRp<NWtA113f9'
+    'CO@4IzrK6_LyoB^KPLYN2(CS}`lEs*L*JVY#}s!74%-W9Emo;83sVnn$6|F?R=X?so_4TXV#Um<9NU^*dlVz0x6wM&3}z1JcME1L5>jpHnT)h7'
+    'rp1~a-&6;1RX4Chy1jg|J+Qn>wD_uNo%$@7ci53#HvFD#RvfLyj3+E(PFnMUw{sm+=*%jov+CB0P6)qv9pE0X^SNZc9tfl|ZB^wMA!@)nuLace'
+    '?edMuYjxYZEguBUJ9#d8J<(H(HAY6_JN7HF&{tk$If<SYVq@cseV^T)$oxG8vvE&}_EJ{^(6nos0J@i^$49Xw!`XWUW~jF3j+=!d;j#9<)rM#a'
+    '7tpGX`5_GGYHO*M%Nv21p@W<wN}PZh0&p3*-}r)wrGpgV_2KUVqFBIxS;2cnl6O&(YWTy?0?BqFtBrQWr7<E^#*gqni_%KGYvxTiwNl<NlV!bI'
+    'U#skabRPqLE^?qRVrCEcRr4<fedObp@`5<9l%8#2NF0%9&=eAkynOju<<mfpY;K-yrYbuwk%nt2z$c4!H_seSAnAAF{|yif@GNx1ZFsZ1Mi5t>'
+    'nKb|fqq^My7z4)Ds#-glu)R4xcLU6qw%ci1n^`ky--r%$MejaYRPHVlca0kzTqTlpC}8NV;3lS>&1HvNBLMWuVxeBUHQuO1&FYO+7M){J$}J+c'
+    'o2^SW8_w{KO7#Ja)RUhImzYOHnWveBTlz>Ko+a2EC@+#2($0vUYi^U$#q1{aiP3zrs8BX0Bk~iPa9C0d?~UE}@Z&U><4a>ETGT*{C2Md&X-8tg'
+    'T)jQp)2{Vgc$!*y+k659(G5^KF<k{K&JG7{XSAyx3?HtKxpsryE>9rtwOhhIr`mZ}tI{^bvZ7!Bo63+V!`*iE4)q%6MvG$TQTd53y0tnz><@(p'
+    'L{I@S=%H)dwuj*lJ6#TGozoko(Jx9F;FTP72<QYbgTurg2%M|bb-P{V99R*yae3_>rPF_o71kmhjcqRDHZ+n_W@PVSacVEP!`&ttfJI!m8;DIY'
+    '>h^RDtzO(bHP4CrkMq{%&cz7Z`J}J;Xq;&$kD}j5QfG+I{aw6ujUKZ~5JQ+f`V=owJFHUbCxWl)YQ4TY2+?i35|-kT5`JhE-hG~|Hm$MpM57e$'
+    'JKeD(srV0M=S1J%K=e^~4JH$?Bl+{uh1tP&2K5TUmAG*eKx%Vz><>iaW=nwUCSkNN+i{=TXU45of?gEUJG6cXbZ5*Xzv0{x{C0GcWqAkqrAQ=x'
+    '$ni~4-7w$%9eHcxh*$wwK0s>!hUbP2z$%aBrb^1=u2+>?5tF5zVa~-Jl|4@~T(o7NXGyYA_iko{g19Ht|D?02pPU}eG;tFmvJh@<1hDWYe-VKp'
+    'J998<z^|w7D+ecFxh$2v;F!HcmJFf)BWp8lZ;E*J`c5c_xk{1e8$40YY07+5ZL>yUtQ8%{XP(BV?kfbWL<!em*Yn)USk0mQ#gu+MHtXay*(Ks+'
+    'OxS1>zL(*`EzS$Q_20XuU_AqWJr<Uy77T}c9gd~92uUT^QW|KeA6Y;gTP28w;JQGsYr65TynK`!Z?w@y7w8Q9NI302lQc}wL%W2rB_K>_wPkI!'
+    'Vus=^29lif#5Y+Id>pZY(l&jrMqN7;8rwb5HqUH)KXMY5Q|cdNd}54-xy9(te0O|YyDi@M09(A#9&61;S$$nlfr?YM9WHZb_zj?VAH(nojN0D<'
+    'fH{*b)O<~yi%8eqe|#(`gd)ZI5jXkoP>Ops+x}suUA$@>X1hgMuoCOVd|8|}g6fB#jLgA4Fi{^HU<5WO72<8yM%bFO;SqXfOU=YA{}Ex#tdayp'
+    'sx)W&#n1Yu6)J6YjX_<jRy!VsugT8bTjIVXMJyjR)6=1f3~msMcAGFLZrg$#0fA+#P*9%($RDXm_7<gLv`=75AEu_c645%6*OaP}(Ut_adG+--'
+    '-*l7H({JqKz;(zT%7|pxOpE0A2Dsf!j7MdI1&vv{G=$5@8%q)YX|QhHJ4xpnMtcgig{~j#I$%vQ>f4-YIR?qiE&;_&iPft6TXmD+n>T0Y7iZsx'
+    'Cb1;uYbm$#QRUfK6F>hh(VK<SLu58uZeun@`Kj%d;OOWlDiWrcB%|Z-X6lCx3BBa$=KJbCGl8y9{jnIkt!}^EtVLYpPABe)<%y001a7ov4W7>~'
+    '7F)zPnYf?ZaptL|#k$%PL@Mc|F+EnX)QBF?an{!8?6Vcgrf;C)0<&e0(V2Qod);xF88&4CE)J_kR66$BH=L4};1TbsXZ2(TG1rqNJ9gV$)^oH='
+    'Gx(%6aw}3{p<d97%+e5{+j{3xtk{YZp4JhH={^TMNI3<n)NW?XP{|MGU7I9@)TBx-<Q9pAfErmpq%xUN|MbP{vG{VdgcJ4>p+tr-yM52WG6|Ro'
+    'Gnu*)<CAOisGjThJtw3_N4OWS?JAm%LS#9yhwZQ!e0FC=fYT(l(XtxzzXq9&4ykA8&w8Ztnh3Z1r78F>D9{0mt31=d*j*4aDi!!IV)tscvu?2E'
+    '`7E0&)G&N_?f%fgWAJ#<wR36-USS`S)qE<puke@{X9`2cUSydzN1{?=&8hKt1dniK3h98BUM=CDf7x?##qJsve{6L52W}o?5ez97;+2@oHioaW'
+    'kbXH^a#%HP(Zw`@^KyB;y&0UIoV;#1Deg#_>SO(`5e4ulHA`t-%6aru_9i46rH1K%EYfNfPhTL4A)6I!bBrS&tNcuLaf12Zxt~`w<w;{Guxwva'
+    'G}}cFMNOY_N|$%iP0Yq!M29;b$c~TtoI)aUB;|>n)dUmpq!-Ciaz5gY0fkj?`Ws}5aUV`$qUkTK6|$^{pp@>tX4WmDJn;^wJW=WC_&_f9TEN>x'
+    'b=)UV#M_%AVq(gZV`CnF(MZsHG=__}NFwSBbQIQ7j9)R}uri*%FsAdm(m7N**B>NuV_!}LmG&p7WIwT$g2x|4$@ZGU7{7Frb3ouH4lnr;N0^dS'
+    ';^w%>IV7j7^BgVKbd4f)Aw0>zY0Dy&x9=`4&OV^TLagKZ$@{b6hqI3t&acin)Hw$}=hsg$8tiAiW>Y~T8WGkS(0{v*{utQ5vIy_&A_))tn8C4H'
+    'c`e3Z9K|DT>;enN!vVKUMmaP#jiBH7W;4X*;2}Y<5A*7{2p<u4DG2L<27i8V6_Fh^MO;y4a~%3ebSx&UiYHw92-gmoDl`ct*)r+&pd}DFlFiuw'
+    '-jP`Bv$H?vIYiCGbThj;NWOIb?k7`3>Pugs<TBE>%8~4@+ejin*G6Mj*NIWt0psA1p{cT^ut)tDC=}GrS3s9ZNXS>#kWAQIlbYC%xfGS`i0vXZ'
+    '&2f7%kaA3u4_vNTRq(1}DKl30-Gmu?WGYNLT1%85w-zCR?4ESZAQ3FvE~?-`p?m0!RuYjxc-ufn%#s5N{DP7LYT1wphPT!PSfpRbZQqp}Adx@('
+    '@Q;oru7Q0d2B4P9h=4KR*Kluh7h&y1xc6<RMhc_NzOX{<mB+Rr6cWHQ9JM9T!{(vMezdvA276CEo^RI~s=8$!;z@$KZUq}+@VURuSm_NtxG_Pf'
+    '%#3>Y+>k{;>IHl8rpT?>A|Vp{B|4IqLQ4)v8P0`4rvj_a?C?`JD#OVG{JF%N6FYJ00m>g-SP|QBrd_ro!LR(8HC&1PfZ1tFa<0_*_Gp@|#MN7o'
+    'J$*Xz1d1O^>$D`EnVQrAzV3&g9Y0T<*059*)LwjMgNXJupW4{P{Bxb2_el_1q2*8TH~w>dkG)s$U^P^&<(E4mJEaf>F=~+Zc>cu7nKCN(@%=cX'
+    's-P!3G@I$|@nt?tGO$19<w4RDSc9Y@j`blCuo1Z<HA%#xmH!Db8AQfBMkn1iQHo)y+-{JAwA(*E@yOk8w{(%YHgm?7;!x%*%CNx{Q#c_@QpXL?'
+    'Ik!;TDiwL-Svq*TVDqk`Jq}HuRC0jPjuK1hIuG9Qh=|Gvj<Gb8)D~P$pL29tDlRLVFIA;`h0kyUpn^#!Tx&dk5o;I8w2C`&0~ZZF?^hJ^jWT?Z'
+    'Cmr|LX(Y}&<RwM%PW}P^U#dSI{$fZ#&nVtQSYupfV5F;dzL{q0NvG<qHP^NU$f}3Rcyn^ZM4!f^bV3M#=DQA2LBu6y9S3d({s>(AyqKNBHSF=8'
+    'tA|@fLYjF(v`wdXEesjSWcz$ol{Fu8lh>*#yr8;5VJdG&AOx`v9XS<sRnb&|sIxSMM#P;8H}~urfh}5V*qq#)UsqV};A?}sKeNI=qYLBurd*U8'
+    'zywZg3~%`QCPCas>36>qgDpI;4f2*kLLD2QU!SwS@`9c<<t^2@Jp3#rzc#x>9sc+RzV~V>CXI2&`rgS_QI^$E#uuYlYQfeT^&)>lkc7IS9EPW`'
+    'qU^|iUZ5h6%1IsqwOfMDV6mrnVi_uaCN0#}Qk&#uu|PHW;zlIrhlC=rs^|%3I;ZDFM6%``Q$Q-G7L&>fa5V%ep}V8g#mL2JIVDpN1TT9M+0+{6'
+    'KwJMsNTxj@3~)t^%*|rr0igSye2{Eo1DjjI>DElqOC8Pm%7COPHU@FVY?AjSjKkzv1TmB=OFbtX#=`v`Nwsl2Lyo#;&5g>%di%hpKPm50ZF+Xc'
+    'nkQ}#-BB~%7WxUu0(S)0N|9yuW15-IWWNsAe6_1w8oVLw`V4LBaELGQGN(05up%-rGS;9jF%l+4Lce#jO!1G0MgH>s-9`TKV))_W?EAoBrs|1!'
+    'fOi1toBY>zAK(4sr?dR~vtQr6Is4clvbz%tBJL=o13N;5gGMB>Q60u9^~V4BY4|b!kDovM`0;%B<}82n^ZU2&evpauU!HvXs{dNTBFtx#+1BJ}'
+    '2SV=HlKn)hiG5@}1))3E9_F8-WV>l+baM1<adb8Q{Pl}R7$BV3yZ68T{APIZ?&tUUyYD-+0MF6@02ojpT58;h9aQ7E2<xz$cN9lqK1<1MJtvuH'
+    'o@Yq#uI4+kLq!wArA;2fmdx9S@VE83r_bf5a>C(wz0Y)V4QWVpCL#NzDpQu9-qqIPJXY;A7y<+Mu0^`F)j4NdG|q#7uP?c`KH;r``$ltFBgij-'
+    '@+p<aYAgzc1jwRu;ReQ7F6+g7-pOa*1>A_)k642o;GPWPfJ@Jj2zU}QRF{SiJRzEGEz$p-tkx{t8QN?806V=j>p-Am&_F^5EmHu>?#i?l=xCF2'
+    '!^~OIcle7qN0_-7pJO6T8XE=auW=gUeNwL~1#DC0@^dLi&@HmmC@HDu6>Um<dO(_I=hi`SRA7WjIW4{X&g{T_$U)Tng>-JWs@$TbRKC4I={1lR'
+    'SOp$D{;8vXaQ$nkPb*)oZMzKJHl%S-<^`hhM-6*v>L5Ej4h;RN@u2o}_w(9`t-W{(<!~c_XMrM}>#mmPPNAmW;&wW-bW4lnbA!2ifSEkI@DW9Y'
+    '%UxWVfsceRME0BvN7p-JxZ`Ndto3~ivlc#mbCvV`v0>cANpw%Fo#tc`Fr$5`EWS96Mf<3YsVi&^1jBL@H}ehj*4}LQ>cN8%!dw>W2>&8S*tQ~B'
+    '2!UX}2EKL`HKkv76HbTWEruRL3E*HHBx?~kz1jBms7_&+%sC+jjZJWq8HR&Fx4+=XimNRLS8sV1zw}+BzP)FSJPeF4xqbJjp5BB&Jd8Fxd5N(K'
+    's+3xr!vQuDj*>IOwNez6or+fon02$OifbeT<<o~>J`R64%Rip|^cLR79SS8kHbIQJuRcA1x0I%BKj15eL3?phE;^NiEFF@HpG2&UlmFWwd7V5<'
+    'PETIEOrAYUUI^120ZL>)_9Y*!H6EzOPYf58`SGI6h5?DV4&}@Ebk5c+=dJsf(M-Hl6gJAfBTP-0NS!ASv);RW4MZ9M-HV{DlD{kH&iw{XSkAna'
+    '@XI%|wX5SC(In_O6rGwJ93&n^$FqXIzc_jM`lM^(dYFJfuHDO*ulMB^kR$}!(@WA4NH|hm#M*OOqEFnLZK@OfiqP)+*-(7u!PAOI`HDx~S>9e3'
+    '_mLiJJ(lAv4CLf|Ezr5Uc0Z!-aONe%Tcxs5@Xa@B(VX&lz*Wj`XO|dDl(WY$D&u>L!d$^Nrhu+5u7|OdMbG^@!X_Cpn(kVk@dzFcSf1vrA3C|t'
+    '#O64tWihp7Bxhc2Z_v@^w#tD3LLGa~JYueoTOiu@Ko<k;|5bDI@=0^Kx2`e0i1`&9mr=F|c=M%+U?qavYD)&q<VeTfWhLdUU{4IJgBlk<+gGda'
+    'ohuX>yO$k>qw^ZZhjI)6V~xNkJT{&OGcOE~!lu~I4xZy&i>qju6Yg7nDZC*C1gSmq5u48tN3F<>9sV{Eg=NmUDHUPEC=fJo-m=SiQRVlm&26<V'
+    'C>1sN-t-Tbo)}M7$wi&BFuDqcj!JGY8N#z?OaMRXh=&%u*mWuu5bDM-+8z;vdB_2NOE&58^QP)Fvowf_F(N+?iXLf%VtXFtt{nu3lgWICp8So`'
+    'B1MQS4ZiArwJjFNmiQ5z{f|%e*LEh0by8d+W05rk+6!t?^b)G3F^RPwQ8tuWkBrFLNwWi0MD+W)`ffEL%H?1jq5OE>S_)j;;d5^V1PRl5HA4uA'
+    'MAS2vvNb)Wbb(nL(e|`hm+8@Ih5-nk50aDKi*Mq7VEzb5KDj&32g=fd%Lk-2OpqpnB?5)0Q-(f0kEPL@&=MpHluW={YwyipsWw4USK?M@Pt8oJ'
+    '-1?)gO)+!T-?MfO&I=pOaT;q2t}nKEhRW}h7LT@Jtq~L)#NL(<D)?2J8qyXi62P3-h+tDg-H{Rof7|O}zc^E2`^kAv$_E!Cp^G&1mS51%k0$Mt'
+    'N{2M&7AC+!H#yC+{TrX$4tPBST2a3#fbHjJ&*VO0(4R*ev6l0L6?2LyHFe>vB$h{TLX-;?y8-0LI%q+P2P7`;?-T7c$5v4B)V-h~CPO>3N2kbi'
+    '*$ngKh9lB%(jbV=JQOvy#EVyqRrLUG9{>kxE=}odavK+V`&Q;Q&_&?osN?2mD%-rZE*FU10g>#eHI)I=eT+x6@A4F+pC8eT$?pqrJ5X*@8*SCV'
+    'Dtc&ORE{pWF{X{NJ-Q7+JR(7WT)1E2`^hK~1)1AbzJy0WyOCR=e$?n{7-lhEAQiq_$iB#*C%qGqgiJV>pSOYNYBjQQQDdJWLBf5nu6#bbEz_ao'
+    ';er!Fmob-jOFe@PAr{C;|LO|X>a59O_*XA6yIU>QD*)Mwf-%v_jksZ7+CO(b1rZa*;I*be4I}9=YPk?gt#X*oJ^sYTEfpFJ6<oY_wr$}<t=k?g'
+    'kjC6lMpPrHBGYzY3z1^2Pm;_EWZB*1$E=o~)}CU-a*Jj?Q0680fu^7G9EN0*i$?D>Z3bH)KAO$5sE5Oo3Q;zJ&<aCLF37SC=V1fdw|c;ZfZZc6'
+    'L!M7P5x6#9!#Y8Tj1|e_;50DZBy=2lz2p7w(LX8H&3eWZDXkwU-O=X*G4g{CP4lrA+E&IdO|>PGKGZdkGLq=}p^>yh2F7*dGu<0_h4CL{OlAQI'
+    'UQg*XbTYsVBcM~Did*3Bi%==NN4q8ck-J0!wR{y%1Q~7+v+yxp`L>hFA5#IB@v0m)1DC>(d>Zlo6<*D2O=>_HHl`G&AxhRk#{%5jaHDO`1_lb_'
+    'd+JXLzFHE2!U`N28o|3{K$S8WDIzGGqA+)`25kzy+s@_{usO3eQ>|E@r=uafkf%KuyWDJ6n|yYKZy=w8eh3Lr5VJGnp!Se&Smr?#F24p%2HKb`'
+    '3$;|W4vCoJ;fQo%YmR!V3(7PtDh_D{9}t<}&fq3ZkL^N^0r0Uy6I>1-!b>vl==j`+BIu|yUxRTN4d9FOQHEvYe+8#Fd=mAif-tJncmf5}PB%`N'
+    'x`~T5kf>}?Qb`71%WHY+sl%8)wgbOr8ANn@+xaN7<*R#E3vhCB0fW#8*OM~3A9(A0Qq)QAI4UgtN`p$7X~$%1Klu@dARUA}E0WQdQcv;Qfx`I}'
+    'X%Fnnqs#ba=Yr=E;|syqF*lnoEd~^o-zsTvSjEFGY(7SJUy2z6;tyhmMTo5olZ`BU$YN|Iofl}P8-=@FyTFqFH<r@9mbQAsN)+><84zt=3j_~}'
+    ';yc|f))l;#q_-oB`=9@LK74bL|8oBQ@ZzjP!o}77BO3T@wmC*Bmtaw-j=Im6#ZruN;dz|zsvAFR0gK;O_g_8!UuxQYF#'
+)
+
+FULLFEATURE_ORIGINAL_SHA256 = '63d5d1bfffd2881a0a4a6aa47a3474ea0483fff0f8d1ed729784fe91227a72c9'
+
+FULLFEATURE_NODE_SHA256 = {'SCHEMA': '9b68fa5c5e3afbd6e249f0b2e2d4f6082b6334c8961a1457a7525c6c7478a6fe', 'AUTHORITY_SCHEMA': 'c48f888afe8fe552a1303492c33db760b004c472068ea7162300bf46a2e20053', 'INFERENCE_SCHEMA': 'a77220b4dabd76c3cdc21dc8d3ab6d04651092a5f738cda9749be0bb41fe8003', 'BUNDLE_SCHEMA': '0a5b7a967e5267bd828f1f068e9f5075ce056054b5f8f599ea077290f482741f', 'ACTIVE_OBJECTIVE_SOURCE': 'c943f4407efcd87414a674f987d620fbfbe6f298300a0a902d031d35a5ac49b0', 'RECIPE': 'b1b652bbf6b4d00b567f927f3faf71af784d32031b25b47b7ff87421a1b04d13', 'STATIC_KEYS': '49eeb9afdf53c3abe8105027bf43614e2507cb20886c082d22d48367bc9c7451', 'PAYLOAD_KEYS': '3bf4ebd170f1d1b843c36d76dd0a40a204d63e870f41af507796d6d3d9d802b1', 'INFERENCE_KEYS': '72278f37af1082c91f9a7186974425c0cba372e9dbfe205dde0a92f807d2a5d2', 'authority': '47b945ce7e376e4de369f25a9a0ef0627509919fd99e051122d9c41f3e46e3d0', 'prepare_native': '5ce84e1a0284d416792122410caeddebb14a3e7c4b48e16d8e6b2695d0856b7e', 'require_no_training': '25e8a7a041a2778641802a45f437a7202c203cee6e46795cea8748944f15564d', 'parameter_roles': '17221a0f94371dd0123fe44951e86d3a97dc2449d902bac8be0556b998469aee', 'check_mu_train_provenance': 'a7c29161a365bd30f8c153fc5a2afe34e2452183ed3b9c4ebb76ab37820d701c', 'own_residual': '6835a6943d7a78da7edb43882885308882f9121b885973a7dc84675e20faa1ca', 'fullfeature_raw_features': '337adfab3ecc63f101bab911497fcb8c9aacf2ea45bb611343808ef14765ce9c', 'residual_facts': '7e567c86831e6892bf9d868c0febd083b60f82a896530d3cfb3a930059973477', 'own_A': '7daa0ed42a9eb402a4a2a1c8978dd300fa3451c283f5eeea5d937a345cdf2992', 'fresh': '178fdb25ff58c1d54b62b3faf5475633d4387739fbf338f319f80b5db23723a1', 'identity': '60308129944edf96d63e9956147c20b7d7f28d19bfae3c1386b66e6ff1f92e1d', 'payload': '67a9119a750659545d4630b5cbd80f1a897bab800551f2f499592dd9f31def85', 'check_optimizer': '8525a2ba87d989912eab7f9731724033cfcd747d360a2257f3e6daa46cf12eb5', 'check_payload': '4dcff8e89f627ddfc48ac1dc0df75a9c10aa65ebde020e4acd64f9fb480dc48c', 'integrity': '64877044d20931db9bf8802704a6f70d6dab322b071dad189c26c0ec3451c633', 'release': '73b095a67686e93c4b9717805a59c88a9bafe291b832f7825a88e8bdbf8368bc', 'raw_features': '0b877d75f371d1897721897b3f212d8fe68aef2613bd1e6edbee9e53703ab9f0', 'ranking_gallery': '80a6ab2cf778da8b8f6c78ccb183cd877085c4b62d1ac83655aa6f86ba69e3bd', 'authenticate_active_objective': 'df179a7505fce93a4fbfdf0ffea209b2b4a483cfb6d4bc8dc56d30d4309de3d2', 'cpu_gradients': '35ab7c8b330c3f612ec74e2ba3ff20449db5811457e102babaf4ca316e6de600', 'inference_members': '0afc5b5818e904a865fd65a949f30efbce5ea4cad258c2b3e070c8ea97c253f0', 'clone_inference_provenance': '7f0f106547748083ee34228b7929f295aca9c20370ba1739e322fdbe19680462', 'inference_readout_tree': 'ce7d9ab4fbf724759b041275023d9460dd89c5532199b2ff6358a34c4fb134cd', 'load_inference': '8cefc90f00ecde080e4cc29c43ab8cf6fc27381ca974157b5ff7edb0b5993f7c', 'inference_outputs': 'e02047621095dd855ef0e54bb78d84b346e0770bae1dae881561550467b6ca26', 'qualify_bundle': '2777b4de8cb4bab978539865ea66ba95c64146557088c05fd80e7477684af9dd', 'update': 'a0c0b8ca6fad2dbb8f73ea88046c479cfd68865c0fdc31f05c4e52ecce50673b', 'check_steps': '93afd0142e2b174308612880e6124dfd7288328ef86a7278464c63b68a12a90b', 'tamper_witness': 'f88c1e3ca60a0a70a063f7d6df9e4cc37ecb1a0942ce2165eb87d7008fc5471a', 'inference_witness': '05e85e693991374af1071b726d1474af28c2655e12f2e9e312ba1b8ff3b81d21', 'cpu_witnesses': 'f6aef2f4b6779a37dffea20fcebe6ee5366bebeb67d30ff39dda5e2b84b5c6c4', 'gpu_run': '26fe6c9392f35661f028dce1188433e0298247250f6f3808198cd9138298ed72', 'check_cpu_gradient': '52680adac8d04761cc5b5e8020b63d7a0760043c2a4d0f9c43ef2c2d68c1b47b', 'check_terminal_record': 'a893755494ade5719a40fe9d4beac08b8a095173828b2d269b62e8244367f307', 'run': '83f8b97b6fca293f14bc24e9f5c6eef4e69b780778098492e1278b279273661d'}
+
+FULLFEATURE_BASE_AST_SHA256 = '4fbafe0781aa9a993b1cfc7413eafad8a30fd247b44b247bb4256f4436c1238a'
+
+FULLFEATURE_TEST_ORIGINAL_NODES = (
+    'c-rke{cqd0w*QKd_k*NNb?x-y?&iV3eA{#@?v@ozwuiwn1lgh;-Pn>R$w_nl{J+2RK}sYg*-qPSz{T6p*cJ~D$;0!_Lv2sqWNDd4v+`OLWzj3)'
+    'Z&-?am88)!%*DUNtSrKHl$Qzoo=3|<gi#uYX_n5DG$}<mTW`X3o@Mis^OIQ2oiD)P6=FH}&u>x({+r#3*_|_V@L4ZfC!R}Bbkwsfk6oX^m(eDj'
+    '-3Csmy6^)}HW%3@pNYVkFQY{PAl}yHNA9`f&XZ5&CKv85aJDW%7*8dNX_Vr8u2xxA-i|&Hy*$5%kG%?{oZSM<GAT+gkJ5$k24{iux7WS|Sc%nC'
+    '<T!yiPwqwD1E9MkU4*jXHd%X!Fkn=&R}zb~gg#q$CCb|@hS|yP{M+NT`him~N-fxp@)fRThTEJiU4#(=Q4Id}_x|ev{Eo$a!i0dGKmgdR2r!F0'
+    'OyLuWF?L7p#AqpQqct~;2WQ^~&fs-_f)MFuCGup3TP+DmpU|R~itEGfXRlsEEB+e0^5<m73+An*6&JAUtEgV_)tetKej4FaZlgk<^x<_fmEeiu'
+    'l@@9dsgv>%p3zrp-g3eLjuT_YZ3<&Xu5;?Ve(B7!+)14zRdap!{>O`}9nNh7+mtifEfBH9S-8)u$Gv|QSxQq@WO1jA)94*GnsIu9Cm*h}WiorL'
+    'DaF4%q7Sl0wl0%Z@^9EX$!tg)cn;DJ@-$tFuz+og==oXy<+puko9EfTMH=2GMUtgjzn3pz%iZ5M(GsVXiwFt*4rLn=W+iMtp+&mERsw3+(KMzZ'
+    'dx-cUS}wJRXY>%1z)TdNEJSn{=J4e%nPQKAe=lRrvekMCOc{qoDb~<{;ImB}g{WUZ>%gM*`4M_*he>3!2zyQ+OX6ninxyym6jn^zrRb(3MuH&4'
+    'Sae8Tp!RSVc@!tWHY6BZ#ew(%jU>{<K_zitE%Wup%DqE=kPkfxhFiEIj%Nzy%#QsY?jh)J=qESypYTbnA!Q*{vjUw<LQ*5Z{jpp7y)*0!Iy#Ag'
+    'HZ8peMmuQZO%ZmD#n`H+uo;VV1>d0Q8Mm!A%Q6A(EfQP<*oGN!d!g0<W+D|)jz*;dK@&h+12Rx-R-U&Mskio>XU>3RaE&r3$u@RXH+SOuCc<S_'
+    '(4P1D-<l20Mc|Uth(=#U1?Vp@F=3gAA}oN0z<pU-gyIwI1At%W8?lE(0_CO%<pxUNRWi%7!Rv6b%%)`A;>`?M&_KGQ<smz1TITBF;_VfxUb2tt'
+    'EFt1*YGwmc@VpiU&<v%iYi6~snQqc}DO&n-gZyaGS8<IaN#`OLDX65P#MRe8qS9JPy50btH&IUVzippoJ-1-bJhag(`|<lG0TQC2hjqX%<6KKn'
+    'A0<$BnMJWAD?ApT5_|~O<Tk88p+DLI*oYPA`DK_rq%5h}3VZMX^A0m`n?MItm?VExim#?a1yVmke`pR*0V)=2k)pA2s|^6$$%4Eb)i^_5gU<vs'
+    '3W9+T0{lC>E5ci`i~$R}SR`SUt)cOVo-o=9+vQVqxC&6FNa#poGQ|6cGzfvONaL5$Y7GX1y*M6u6)k}PE7G>OyLy|X05Cc5{HA2wEdVHZ4Hoxx'
+    '+uz%)QF6TP9dkZ0{vC3?+S{E0Kh{+51h##gtfGZdCbc|EpUzwOgmA$K8we&QYSyk{HpPYDH|aM_YCmpt`R0e8KZX~VZ$JF}{_=XPT#Je3%zBJ3'
+    'sQnM=y3{@k`zmr}v}Ez9FIxJ>_}@cP-m<4#Y^LapdH_3wf1u>pXD(om%a2h~h{F3dT5iNeo@cqQ;i#v!Jv~*k0~FF$?w&N&X+&CSJO*9VLeug2'
+    'U@~c)|L0EBu(mMz?sF*Xkx^Clw9{yI+RHtr@@OmBZXjE1)jlhwlMA<E=*+V9V=oqBjb9}5`38`=LH)@Xh=NQ#2NhX*sI6T8kK#BO{)qiL3EBcw'
+    'Rt|AE0yi!vtw;V_I0a=2Tck&#2SAOG6STY$aKi6!q$q$>6Q4K?lRE%xca@;;d5K}tI+_U&LfVDM*EtyB;WAoH<H(r>&VAsVp58s2J7{H=$+Rb3'
+    'J2YRtc(Ym;9)J{CUWP!<Vu%{g?}5?><Ky{$?^b+@lLb=T_oay=<x7(pk^NK-?3kQ8@TVs`qUQ!?oudo0tJdhrr38#5aH4pXlsu@0oMOJQM2y@4'
+    'qrK?$4G4uF+XnjvxCc!vVttGz+@Zl=s==S6Iy%SsLM-j8I!w7k>()tn_I1{aLd4AfJw!Yrf7C>&VcXDuK;LJktalU_(%^+zx_qSMjY{i)A}AnS'
+    '-XN$hbzcvwA)rKvYq45`>y<yg1&cT<v;5KXov3hP^;088o@FSpAHbFMs&-AKp@5+f?dnGq#DhHBalEC(rdj+5J#T2u<j+u4;+;nMqVUhb0)nHF'
+    'LewoCIY)+QH#h0ciIdD}j2`SyUKY44kK=IHcLZ2o$Nevdydvi|DPYbR_Y!5HyK7FwqcuJ!e17jC$BY_ozK1jPEzJwd9U~wzm!*qLJh(xuDJ}g|'
+    'BUBy0gBCN|D|W|?NoX1l2luu9y!)iW5EI79Wll)_Kto!G4;>S3j^8=?I&Xs?+NQ6Ql(S8Zgiu#d1$G!BhoVGFjha@aC86;Wnsz#m)rO-Ecy>F>'
+    'u&yyH&|``5nDGFu<yV4XgsIvFwc@eL9o585G=x#92a7p01#^KBs;AKQH1?)MlEu=8@D!p{Lyi>%CV*(G_8Ym*Z_l1N{|i*JHh8zQN5n7%V?D(Y'
+    'BuWsOFP6#rEX4c}Mq1K=>#ZMwM^H0*e!D0g(_iCpcfSg_IjQuSh;L3%f~|40q6f=ciQ~r)oU|BvwC*0NTkIXCMc`DAR`QW=jrC-=8~=L}SM9Sl'
+    'wLhGT=_Xl%5m+!#IM1_H<)am#gu;<-QJ&V*uo~KG(NcS$N1_r~uM)D#vuA`Z>k06)F>G}tW=FO<qYv+$RZ?Ky$8ES0b(Ru?;DRla_xlDq1_}d&'
+    'N6~{$=6RAAW%Eoxf_q!gFN8tcO8U)y2DulK)NfJV`n|!c!12ft?CXCF?Mu1WrwytR@-mac&7lIVpm&c<RA3y@NBQO^9>{EK$4Q$b!DYZ(P>|DH'
+    'HzxaW*;T;Mitv5m9b8?YP?jPBU7w@F=Kc!$X&)P}!IJ>7!BeYZEj^qh#iR*76EOBYOuaVU%F{t7hY+w9)cN}>p)?s^S=bMw>mS%ElERYoEOUX4'
+    '5$xPLf^j^CuktE56y?yAY$<`0Lr=j|jlmD|%s>;-svU0F0?UTu*ytU2YP621Cve{U^6}%v<#qV|=*J%~KK>T|V{~;9j;^l5s~<*ysS48QD1h9C'
+    'qbF%EkH}f|tI0!NWEjqqr3gb`r>C!{K?MB8=wJ@kfHDl;%?Y@93xOgooqV0yKENOKn84sSCIvrDCO0R6v%m9o1$=V?RPtPDbl&waDL|Q25424H'
+    '-tlTU@F|b67XnCBMtE-O61wjkTXd}0qK7`o&B=FdlLIm8UGuzdPFzJ^JGstk!fx%w*=D)~KA>p=iJ2CiSo%Fl06fG3iN~WLuR8Lgh07M1S>y!*'
+    '#!_I8GorKJbEnrI$dT;lXE1=SwRJ_4dTQGZ8EVg(sLbe)`#d#!(#_(wBm;}Cmzb3>crtJX6~j&=7&=K&4JZkef=j2|c$CdajPl$`k=4Dl_S4E9'
+    '1wjzYBw!3-{~;Lm(ts4oyG=^D-M3;6CJ+ow+M}Rq2s)c_htXOd<a8>FN;_~5DYQI*{#>o1S{85dA2WN#eZ-_CpEV{epKFr_Q}b@KT+RhC+ec9('
+    'F<>Hlb8?<SOK|cY)7c}+X0siVnRIntT`>XJl<%a7uA&q=<u@rBnJ#$4V1RcD|9{*7b#4W41o-$0j>v$?I;?7lAzFFFW0dEWgmG4{Aa>6-r5w*m'
+    'Fjj}@GG>T<S>rB&Vi3ruMV9N)x^DErU4p;i90M~?9^GPO<trrQn8M0JI_3>ST1nuLqX8m?^$A0?9C7&w-&|mBh_6W5yf|}hsiJLET}fE6zx+-Z'
+    'a2h&piMTEJ;ZtGR8Qj(t_O&yGJS%xPj|Z59)o(1X%&3|~-=>;gq{-{KH%UY5m9**TuG}<*q?!SZ4zrAT-FkOZY9v{BKRZV8K%Zi>D|d*As(wg{'
+    'YNN@y_y@*}lUdn0A~w35R|T|VkI~=x)j&Q+op&$|R0%vV#B~_xPUs|L2r4u`I18`bz}^N__v3d>2gj6@?1fZW6NZ5^R#Tyw)YF*wx?JqT(A+fX'
+    'H8plk;<0=%T%o7$bB7P6oW_V;%JJmrswhtKWB%g~6Cd?ao>wK(@l-V_G3`mk3^TEo2ZrcmfjZ%@vt%u_Q^fkDQzgZDq;WHObj(RzTemtho6K4k'
+    'pibbgN7wJ)g#Wzw?P{m@P_72}^!Fk~h8b>MrftrpB{Gwuj`txd!Fs271EJ%P(j$1*@1IN2@*sA?zz*xJUcdCI)CQGWl9sPux_)PI0H7s}o6HlD'
+    '4=Y?f#@5H`2f&F&id{_w!nIk-DFxWqFJ8S08si340t$lOhr;Y_H0?#AJjdY{IlEr-faYoF+$u?HKBwbH&qa@vN1<g^BUQQ|-Navy0s7z?1ZoGO'
+    'gndy#wyex^MIYN+5a21zeIkHrTl}zBt!6lQbtZKcLTUT^>-&rUxl;KsRou9xW4%yNRaacsn3T7acZUbx?yLy0$%|jH^iZX4+#{<1|GFAQmRqeH'
+    'i*+AA_O*hFQ3J*nD><O=o3(eKpQFu^j;yz*r%ETi9sNX$1YQC|5{C~WS=^QYJc}OHh8SoTIY4ri+0(F0v_)`0MA>NVDOQK%utQx79MJMKKHmVN'
+    'f9v`>d8kOvK%ynZ<D|GVYdc+;>U<_sozK{@e-^Eu-4ERMvdjj%ou2YGVb<Jj2vWTt#<3_pc1=R;sWfEL=-4}mp$Y{V8cQPT&65WSz@_Fk(#poo'
+    'O`ee2=N<&xpU^f^#Er=Mh)~u(%89|cdVM}eS%=ZRKIMLI&>)C}3X9(jz`g~!+o@v<EpU|Vfx9a85TB-)372;3tImRzk&x$cW>-L`TWLDMnbbp#'
+    'tFsrg-fR+Z>qvJ3s<122=S`|Zd3hp@>AdG?7Ojf9B(t_~COQtxo#VTS?f}iO3Vy+bU-LQUP3k&Wa+cj&EUu+$(I|yjc_-Q1qHeW_z5FZdc<X{Z'
+    'S-HG3S3bttcP#MIoF^uhg3zhoQSR5>tFG?8J8#+QyNRz;$f#%2PUGrgMeX#>oI-akqQ7e^Hd9(=NT-$<-xm4-CN-nD*hXL|CAVQ5CWc$C)rQnr'
+    'G#No)c?cgH8KDNXLcl>f(~2v|6YoW9tPk|6B4`e6I2&i5Gw~28L1_Uz61x+xkJ+F`gkS^^`V!O?3{ntQG%SN&E*T%P%W*LFR{433{5>ri#AFM9'
+    '!OVjeGhzdO!3NodM<+_rH%{AlX;#Xv=7ECVRizoAFXb14>gtEX3k7npXi7rK@S^~ZCD-Zn^ghbfQ3H18I|^huQ7oknnGoWN1yC&OUnJ;DthJ;('
+    'K3!7a>LF&7W~C8t1!)CUX+#H)Y-$yQr=Tp+B^;Y_rXROz32y6{!2gUC8EZ9~o6HeaavRnb(3g=FMqD1UZn6}VIr}NY;D>4#hBSAM)x%_wX0Ut1'
+    'F={vrjBu{1P5{lVzA5HDsf$E9#MqkRq{-y6Ny~Rf_gKcSlmt#gtaV;C1k#gHDr0l&e#mEpYFv9Y#)+7eL4EdzCSh7p498oUMJ{P*{0f}+m+vk<'
+    'UR=Jp2$^w*wH>HgmukeS%U2f1sftVnVzq36co_LITDvTKuNA>NS-a|dg)WS>tS?%sDK!NJ^Ep)`m1+U~8qZ{Q0~J*ZeyO@_O@^ibV!WXd@C6R}'
+    'fJ4I}1jvGCujoR`=Ugr+aOhHiYKsDATKV0PPa2PZOzQ+8Cs98{@cjHhP80-2L@PTng_YiRM`;>lzf;>Jwb-4?A_G2{ic=XE({L<7DOpypQ+8Z}'
+    'W^Te0_>tQb4^y8tEfuo1h&@gcVAT#8s=(o6(mf`qO7vHC7qW=F3Xn<NAxZ?JLqW?!rE(_lVvecgU`qs3Lu7^@JU-lcVwB^^U|z4DYayHh|ICUy'
+    'UbkIQhf4+Z4Ev7PHcV()D#P_yQ=MVBK+-qLu*SNNHz6Nf)?A_1$FIJA@5IVw(s-TaUpt)`T%c|Z))IK=5ZY8(xRJ~1V<tQqW`<Ml9J>H$L5W}r'
+    'fFznINyUCjF&?ZL!~6-C$`LyExmGPeF{ipG5SpD@vKE~#tDYY?lnrU7eC&urqH<OEgV!*{BAPwg`A=KpzNyGg8g58`eZF)U=ZLDMQ>go=L;VNE'
+    'P1!PbyBsN*mbJ7qx>AAE(IKAXwY2-~m3(;k;1!QWZ$&Omfp?3EX<!QUx$}c375#NVgR(5}j5?4K9@5-~hA!#sOn0I5x-N9r3Sf><fX_QChpb0C'
+    '`;)B6+hE4<RbH^YpY8~o18Ob%mYfQ!A3d{e)ng)-adXF6x`vfGLLnXEA9ZtOs5}}V{1E=tDej7{f#IPI^&df%9vRx{h9Q3hZ19Hk7teni=ex29'
+    '1<%Rz72b6h$+|2;aGo=+`Jt?Q$f1e6Q6|it)XR&$43lwu_}AToUjY36dtKW`;`k4|bX(oCt#98_HgW&8+wP0C{odc7a4q-Hwc8h6*KYsAZ`~eu'
+    'kydh)+<7(unB7%#@D>3vx>nc)(xV-`j6VLPUkTWEqfA}hg1yU9%F9WBXtTgQ0duYOXuV>_SL)lYmr0DdSO5(vyVrd!Oiff~m0+sRh$rQBuQW>0'
+    'iJ)+(r3kp~QrW_9g`)yZOkBf9b*W5NDA?f5`Y7l$gnxYg4*z7hFk~k`cyjgf{*9)4Xxdh5yBTPd@(vKYPC3fE$aL;^fEfe6XGx%vO9p)^)U|J$'
+    '96|dh(ETvYKZDH2lh_cJ7Gf5%ObKYMUt-RqhY;_8hhW6-M6BPcW`L?b6<;|~fXXQGFx@?T6<-y8qogJ1J*!=n?NlNhu9q7Flq)3>T#k!{eQ9Z2'
+    'c$P2F;5&!age%{yaZgHKh5iHX`F3y5_VjdNUHffrmMIJERhV34j?Byi>uS}uT=P1b&@TwOF_xa)he;)|>;Gj0BchlD+b64<jP};q+N<i<Kj%*3'
+    'F#^}=TIzM?oaHOX8>}5gwnb)*`f+`_ZeMVLr2Qfv`(RC$V?UGoZk`4E`;m@*xrWH;{q=9*XQ1bh<%m)2gz1w;F-{8)4D^p*F5mw6S)*_cRvRMa'
+    'lhsBU?AOiyw-m^tU8@J?vOaV8hiG}{;r#se!A77e7AcPtrH`Jcfs_n#Nl6t1D0@jv(;$0F1C=;X+T%E<@QrHyy-r<YTLjGBIIg((w3eF8!}091'
+    '2>?frYAa)iGc$&Gp`YQ)Vj1|m!^FTDC_j*0Bgmqfb}5fk-p)x{lJoN;1F!jJxqM>ORmW<o=C7*`$?}J@`MeNBe4a@^px|Qg+Sar(_<#{;+%b1N'
+    'm;Jwi9uv!n1?E2{c$A1OM@fRIZ1dK|wE*q$LyH(?XH4eNczU2m55_KApGo~H63VbvwHW*3Pk1PQpq~Ky5;8g&g3*&Bqg90URUJzehknj$pGG0y'
+    '6=>E7P$OL+XnhTt^_DM=-SppQRVdBhjZnIZ3D01=`4L`-0%d1TUiwRQv<fTTHROaZ41z%fbD9cz)r>s+t%6xA9_2&`1zEL6Vq8D`Vr*?W6jCsM'
+    'LgGZuoGV)Xyab7r7y1A9lKscNm&|6f{aHE*cQ6Md;o8Fy`MM!IXm7kFM+F+4q^m)WeM3(Z-iFY#C>*%7z0(JHe88!JcJ_ji?5SJ)RY4rL?Rt*k'
+    '3F(NVBWCXMrw3paZ%`P<Z-27bgznjK#41m1rT|$NwD&@wTZyFrVMuBg>$mYTjt*?quN!@+c*=rrMUH@H{-HNCSxG3KKE`s!Aue6WYU+QoA{1WM'
+    '_4@SFT7drrZ{RXE#28pk3tiR&mxZNKJ#?j*Zq1z=ZdGXak=LUMws}Dq!ocs}UygnZFMob}akZzNFAz5YuwQ4Ref_v);l?%Mj%AxyjrB!SRXZ8%'
+    '{R_i1$bqG`foO|sYqplx26BA?&4=e=f*nA2U{(ZUPi?1ee&a0+BpBZw=^HQdA!<s<JFzaUV1|NYyb}r=Kv8e!RX2oeMx_>j3N@*2+YC?bc8pfl'
+    '{F*m?aY^H5kBRe5^|~#pq5}<V^~FW10Ea?r!`7-=7k)Dfjw0XB08u{%&)dO{O6%|iL{^T0++nKl#zG&=cNW##30>{Q0zLVHB%H{Xh;a*>9Rli-'
+    'S)0W=AX-FwUf<4b>NCEetAkjQ&j5Q}BB>q@y|mJ}ru(7J#yRp-*NNh24PL^3W4%=&VtJqI8NOj^cKbX|3c3%Du81?oqjB83Rdz4p>VmF1XKl}4'
+    'E@am72oJKlt!uwj>j}Qa5r+eZQt4mk{NRs270`u$QN5!Jooh+?@lk1W?9^AUnu9*=iF$;B#^Ze7NjEaB)L*3nD&V#w06A`Zgg5Exs*e&`qi`-='
+    'dxhJ<q#n3IWLC}7Sd67!HI8J@aR~e}ff$Yf%*S=aE0;x&Wc*h3{l;jmqT+>mvn)M+N}#2SRNx@>_MA~t@bZeB`g(P(&BnulI;`Q%f+yWOM}U;@'
+    'ATXr=H;&tYYTS&@9*EQ1fH7qZUykX}$sY!f(3vQ{=OTMB?9t+6_kTLp6+{'
+)
+
+FULLFEATURE_TEST_ORIGINAL_SHA256 = 'a2fe1e0c521f1c36bc8cc002082e3ca58fc915f9cbfd487a5f537559276406c4'
+
+FULLFEATURE_TEST_NODE_SHA256 = {'current_gallery_source_boundary': '063bd01f17a79bfd50b150ebaca3155f730aff0b6ae3927d73c9a7ac9c341106', 'current_gallery_test_boundary': '4ca5b233716c1472afac59a177acc329ed9a044cfe63cf23ae3586b5bec461ef', 'ContractTests.test_updated_A_current_bytes_binding': 'ffcb8af9f0dd4f6745f1dfe67dfe6ef1e3f6d1d96c1bfe107b840a91ca4ad5b6', 'ContractTests.test_terminal_rejects_partial_false_and_nonfinite_cpu_proof': '4fd680e514cc3da44035d2cdfd869c5c49ff03ae2c05be53b7206b15c1c7e8bf', 'SmoothAPTests.step': 'ecac4e0776ba954179b1065ea1ea0fff1b4e10d13afe8c6b870b255dd4bbe173', 'SmoothAPTests.test_cpu_witness_requires_positive_nonnearest_loss_and_total_difference': '96469f17afa607b803507352f33efcfed6f9d8c55c8eb74efe0b5b2025b47862', 'image_anchor_gradient_fixture': 'd195581ff0aef376448cccf79fe2046395c5bb142f21e2e9a895101dcd1e41c5', 'ImageAnchorTests.native_identity_boundary': '48acb11562baf6e4548d4088959347f5a7eeaa41454438e65aac3a7f6df9b58f', 'ImageAnchorTests.test_both_arm_receipts_zero_and_target_difference_are_authenticated': '23002a4d8a7fe3e0dbabadf6b8524e410dc2970be6c567cb557142b3cc55e569', 'ImageAnchorTests.test_prospective_schemas_and_both_arm_ranking': '5b98c6071070d56a97c8aa88e517fbedf93cd787f63ed571fb44b12bd5503abf', 'CurrentGalleryTests.test_candidate_rebuilds_gallery_from_current_same_A': '649d9a97099a1fc1557da58c54c9e7c79836f0541fbea50be2a45b3fdb62fb81', 'CurrentGalleryTests.test_active_objective_authentication_reads_source_only_and_rejects_substitution': '20ec77439b7b429449843c7e19482326b6dd31623af238e26c8ab9334d68cbbf', 'CurrentGalleryTests.test_precise_prospective_inverse_preserves_historical_source_and_test_guards': 'e0e09889cc3de3aff10f51021330cad7f3f394264baf632a615f1a4ef1b512c2', 'fullfeature_source_boundary': 'a5d37afdafa91893ec94277d2ff0a80939ef5a556dc1d779bfe1eb047c036a33', 'fullfeature_test_boundary': 'a5e5477926295384eaf3cc9b7b08e966594c731ae93430fd763085a7212dbc55', 'FullfeatureResidualTests': '92db1e0bf785124401e7d1e9019d86ba908fe5ead62161150c9cade5a16078ea'}
+
+FULLFEATURE_TEST_BASE_AST_SHA256 = 'bc92da4982d960dea07a3da24e7662180da491dacc8568b0887bcd5fb93eb1bf'
+
+
+def fullfeature_source_boundary(tree):
+    """Invert only the declared residual delta, then retain every historical gate."""
+    return _current_gallery_inverse(tree, FULLFEATURE_ORIGINAL_NODES, FULLFEATURE_ORIGINAL_SHA256,
+                                    FULLFEATURE_NODE_SHA256, FULLFEATURE_BASE_AST_SHA256)
+
+
+def fullfeature_test_boundary(tree):
+    names = {'FULLFEATURE_ORIGINAL_NODES', 'FULLFEATURE_ORIGINAL_SHA256', 'FULLFEATURE_NODE_SHA256',
+             'FULLFEATURE_BASE_AST_SHA256', 'FULLFEATURE_TEST_ORIGINAL_NODES', 'FULLFEATURE_TEST_ORIGINAL_SHA256',
+             'FULLFEATURE_TEST_NODE_SHA256', 'FULLFEATURE_TEST_BASE_AST_SHA256'}
+    counts = {name: 0 for name in names}
+    kept = []
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) and node.targets[0].id in names:
+            counts[node.targets[0].id] += 1
+        else:
+            kept.append(node)
+    driver.require(set(counts.values()) == {1}, 'exact fullfeature pin constants required')
+    tree.body = kept
+    return _current_gallery_inverse(tree, FULLFEATURE_TEST_ORIGINAL_NODES, FULLFEATURE_TEST_ORIGINAL_SHA256,
+                                    FULLFEATURE_TEST_NODE_SHA256, FULLFEATURE_TEST_BASE_AST_SHA256)
+
+
+class FullfeatureResidualTests(unittest.TestCase):
+    def test_exact_role_allocation_and_old_schema_rejection(self):
+        self.assertTrue(hasattr(driver, 'parameter_roles'), 'missing fullfeature optimizer contract')
+        self.assertEqual(driver.parameter_roles('control'), (['A'], [[128, 160]], 20480))
+        self.assertEqual(driver.parameter_roles('candidate'), (['A', 'C'], [[128, 160], [128, 1152]], 167936))
+        for invalid in ('concat', None, True):
+            with self.assertRaises(ValueError): driver.parameter_roles(invalid)
+        value, args = ContractTests().launch()
+        driver.check_launch(value, args)
+        for schema in ('siglip2-compact-current-gallery-smooth-ap-launch-v1', 'siglip2-compact-smooth-ap-launch-v1'):
+            with self.assertRaises(ValueError): driver.check_launch({**value, 'schema': schema}, args)
+
+    @contextmanager
+    def residual_runtime(self):
+        from contextlib import nullcontext
+        class Tensor(GalleryTensor):
+            trainable = False
+            @property
+            def requires_grad(self): return self.trainable
+            @property
+            def grad_fn(self): return None
+            @property
+            def is_leaf(self): return True
+            def detach(self): return self
+            def float(self): return self
+            def __sub__(self, other):
+                if len(self.shape) == 2 and len(other.shape) == 1:
+                    return GalleryTensor([[x-y for x,y in zip(row,other.values,strict=True)] for row in self.values])
+                return super().__sub__(other)
+        def check(value, shape, device, frozen=False):
+            driver.require(value.shape == shape and value.dtype == 'float32' and value.device is device and
+                           (not frozen or not value.requires_grad), 'tensor shape/dtype/role differs')
+        torch = SimpleNamespace(isfinite=lambda t: GalleryTensor(all(math.isfinite(float(v)) for v in t.flat())),
+            count_nonzero=lambda t: GalleryTensor(sum(float(v) != 0 for v in t.flat())),
+            autocast=lambda *a, **k: nullcontext())
+        calls = []
+        def linear(x, C):
+            calls.append('C')
+            return GalleryTensor([[sum(a*b for a,b in zip(row,w,strict=True)) for w in C.values] for row in x.values])
+        def original(features, head, A, means, arm, primitive):
+            calls.append('concat')
+            self.assertEqual(arm, 'concat')
+            return GalleryTensor([[.25 + .01*j for j in range(128)] for row in features.values])
+        functional = SimpleNamespace(linear=linear)
+        runtime = SimpleNamespace(Tensor=Tensor, torch=torch, primitive=SimpleNamespace(_check_tensor=check),
+                                  readout=SimpleNamespace(raw_features=original), calls=calls)
+        with patch.dict(sys.modules, {'torch': torch, 'torch.nn': SimpleNamespace(functional=functional)}):
+            yield runtime
+
+    def test_exact_formula_zero_parity_control_bypass_and_nonzero_mutants(self):
+        with self.residual_runtime() as f:
+            x=f.Tensor([[.02*j for j in range(1152)], [.01*j-.4 for j in range(1152)]])
+            mu=f.Tensor([.005*j for j in range(1152)])
+            C=f.Tensor([[0.]*1152 for _ in range(128)])
+            def forward(arm='candidate', weight=C, mean=mu):
+                return driver.fullfeature_raw_features(x,None,None,{},weight,mean,arm,f.primitive,f.readout)
+            control=forward('control');self.assertEqual(f.calls,['concat'])
+            f.calls.clear();candidate=forward();self.assertEqual(f.calls,['concat','C'])
+            self.assertEqual(control.values,candidate.values)
+            for j,row in enumerate(C.values): row[(j*7)%1152]=.2+.01*j
+            f.calls.clear();actual=forward();self.assertEqual(f.calls,['concat','C'])
+            expected=[[.25+.01*j + (.2+.01*j)*(row[(j*7)%1152]-mu.values[(j*7)%1152])
+                       for j in range(128)] for row in x.values]
+            self.assertEqual(actual.values,expected)
+            self.assertNotEqual(actual.values,control.values,'omitted C must fail actual oracle')
+            wrong=f.Tensor([v+.125 for v in mu.values])
+            self.assertNotEqual(actual.values,forward(mean=wrong).values,'wrong mu must fail actual oracle')
+            for arm,weight,mean in [('control',C,mu),('candidate',f.Tensor([[0.]*1152]),mu),
+                                    ('candidate',C,f.Tensor([0.])),('candidate',C,f.Tensor([float('nan')]*1152))]:
+                with self.subTest(arm=arm,shape=weight.shape),self.assertRaises(ValueError):forward(arm,weight,mean)
+            zero=f.Tensor([[0.]*1152 for _ in range(128)]);zero.trainable=True
+            with self.assertRaises(ValueError):forward('control',zero)
+
+    def test_actual_public_inference_uses_loaded_nonzero_C_and_current_mean(self):
+        from contextlib import nullcontext
+        with self.residual_runtime() as f:
+            class NativeTensor(f.Tensor):
+                def cpu(self):return self
+                def clone(self):return NativeTensor(copy.deepcopy(self.values))
+            class Pixels:
+                shape=(2,3,256,256);dtype='float32'
+                def to(self,device):return self
+                def flat(self):return [0.]
+            pooled=NativeTensor([[1.]+[.01]*1151,[.7,.3]+[.02]*1150])
+            class Model:
+                training=False;_forward_hooks={};_forward_pre_hooks={};_backward_hooks={}
+                def modules(self):return [self]
+                def __call__(self,**kwargs):return SimpleNamespace(pooler_output=pooled)
+            def normalize(x,dim):
+                return NativeTensor([[v/math.sqrt(sum(t*t for t in row)) for v in row] for row in x.values])
+            def packed(x):
+                codes=NativeTensor([[round(v*127) for v in row] for row in x.values])
+                inverse=NativeTensor([1./math.sqrt(sum(v*v for v in row)) for row in codes.values])
+                return SimpleNamespace(codes=codes,inverse_norms=inverse,to_bytes=lambda:json.dumps(codes.values).encode())
+            def fingerprint(value):
+                def typed(v):
+                    if isinstance(v,GalleryTensor):return ('tensor',v.shape,v.values)
+                    if isinstance(v,dict):return {k:typed(x) for k,x in v.items()}
+                    return v
+                return hashlib.sha256(json.dumps(typed(value),sort_keys=True).encode()).hexdigest()
+            f.torch.float32='float32';f.torch.float16='float16';f.torch.no_grad=lambda:nullcontext()
+            f.torch.equal=lambda a,b:a.values==b.values
+            f.torch.random=SimpleNamespace(get_rng_state=lambda:NativeTensor([1,2,3]))
+            endpoint={'model':Model(),'processor_object':lambda **kw:{'pixel_values':Pixels()},
+                'head_object':SimpleNamespace(state_dict=lambda:{}),'A':NativeTensor([[0.]*160 for _ in range(128)]),
+                'C':NativeTensor([[.001*(j+1) if k==j else 0. for k in range(1152)] for j in range(128)]),
+                'mu_train':NativeTensor([.0001]*1152),'mu_train_provenance':{'fixed':'TRAIN'},
+                'arm':'candidate','means':{},'device':'cpu','flags':{'fixed':True},'modules':{
+                    'qualify_siglip2_substrate_cpu.py':SimpleNamespace(numerical_flags=lambda:{'fixed':True}),
+                    'prototype_residual_readout.py':f.readout,'quadratic_readout.py':f.primitive,
+                    'joint_relational_compaction.py':SimpleNamespace(pack_int8_unit_embeddings=packed),
+                    'train_siglip2_substrate_adaptation.py':SimpleNamespace(fingerprint=fingerprint)}}
+            endpoint['A'].trainable=True;endpoint['C'].trainable=True
+            endpoint['readout_sha256']=fingerprint(driver.inference_readout_tree(endpoint))
+            functional=sys.modules['torch.nn'].functional;functional.normalize=normalize
+            # Raw outputs are GalleryTensor; cpu is the only missing fixture operation.
+            with patch.object(GalleryTensor,'cpu',lambda self:NativeTensor(self.values),create=True):
+                output=driver.inference_outputs(endpoint,[object(),object()])
+                features=normalize(pooled,1)
+                base=[[.25+.01*j for j in range(128)] for _ in range(2)]
+                explicit=[[base[i][j]+(.001*(j+1))*(features.values[i][j]-.0001)
+                           for j in range(128)] for i in range(2)]
+                self.assertEqual(output['raw'].values,explicit)
+                self.assertNotEqual(output['raw'].values,base)
+                self.assertEqual(set(output),{'raw','unit','codes','inverse_norms','wire'})
+                for name in ('C','mu_train'):
+                    value=endpoint[name];container=value.values[0] if len(value.shape)==2 else value.values
+                    saved=container[0];container[0]+=.25
+                    with self.assertRaisesRegex(ValueError,'current portable'):driver.inference_outputs(endpoint,[object(),object()])
+                    container[0]=saved
+                endpoint['C'].trainable=False
+                with self.assertRaisesRegex(ValueError,'current portable'):driver.inference_outputs(endpoint,[object(),object()])
+
+    def test_exact_inverse_keeps_original_hashes_and_rejects_every_declared_delta_mutation(self):
+        tree=ast.parse(PATH.read_text())
+        restored=fullfeature_source_boundary(copy.deepcopy(tree))
+        self.assertEqual(hashlib.sha256(ast.dump(restored).encode()).hexdigest(),FULLFEATURE_BASE_AST_SHA256)
+        completion_source_boundary(copy.deepcopy(tree))
+        fullfeature_test_boundary(ast.parse(Path(__file__).read_text()))
+        for name in ('fullfeature_raw_features','own_residual','check_optimizer','check_payload','inference_outputs',
+                     'cpu_gradients','update','prepare_native','qualify_bundle'):
+            mutant=copy.deepcopy(tree);node=next(n for n in mutant.body if isinstance(n,ast.FunctionDef) and n.name==name)
+            node.body=[ast.Pass()]
+            with self.subTest(name=name),self.assertRaises(ValueError):fullfeature_source_boundary(mutant)
+        source=PATH.read_text()
+        for before,after in [("raw = raw + F.linear(features.detach().float() - mu_train, C)","raw = raw"),
+                             ("torch.optim.AdamW(members, **ADAM)","torch.optim.AdamW([A], **ADAM)"),
+                             ("clip_grad_norm_(members, 1.","clip_grad_norm_([A], 1."),
+                             ("views['canonical'].mean(dim=0)","views['augmented'].mean(dim=0)")]:
+            self.assertIn(before,source)
+            with self.assertRaises(ValueError):fullfeature_source_boundary(ast.parse(source.replace(before,after,1)))
+
+    def test_mean_provenance_is_exact_train_domain_and_excludes_held_fitting(self):
+        value={'domain':'actual CPU-renormalized FP32 features','rows':6355,'view':'canonical',
+            'reduction':'torch FP32 mean(dim=0) canonical ordinal order',
+            **{k:'a'*64 for k in ('canonical_features_sha256','original_rows_sha256','target_sha256','partition_sha256')},
+            'accepted_checkpoint':copy.deepcopy(driver.ACCEPTED['checkpoint']),
+            'canonical_cache':{'normalized':True,'raw_pooled_cache':False,'shape':[6355,1152],'dtype':'float32'}}
+        driver.check_mu_train_provenance(value)
+        for key,bad in [('rows',True),('rows',6354),('view','selection'),('domain','raw pooled'),
+                        ('reduction','FP64'),('accepted_checkpoint',{}),('target_sha256','stale'),
+                        ('canonical_cache',{'normalized':True})]:
+            with self.subTest(key=key),self.assertRaises(ValueError):driver.check_mu_train_provenance({**value,key:bad})
+        with self.assertRaises(ValueError):driver.check_mu_train_provenance({**value,'held':True})
+
+    def test_ordered_optimizer_moments_roles_steps_and_control_exclusion(self):
+        class Tensor:
+            requires_grad=False;grad_fn=None;device=SimpleNamespace(type='cpu');dtype='float32'
+            def __init__(self,shape,value=0.):self.shape,self.value=shape,value
+            def __float__(self):return float(self.value)
+        fake=SimpleNamespace(float32='float32',isfinite=lambda t:GalleryTensor(math.isfinite(t.value)))
+        with patch.dict(sys.modules,{'torch':fake}):
+            for arm in driver.ARMS:
+                names,shapes,_=driver.parameter_roles(arm)
+                ident={'arm':arm,'parameter_names':names,'parameter_shapes':shapes,'optimizer_groups':[driver.ADAM],
+                       'device':'cpu','initial_scaler':{}}
+                saved={'scaler':{},'optimizer':{'param_groups':[{**driver.ADAM,'params':list(range(len(names)))}],
+                    'state':{i:{'step':Tensor((),17.),'exp_avg':Tensor(tuple(shape)),
+                                'exp_avg_sq':Tensor(tuple(shape))} for i,shape in enumerate(shapes)}}}
+                driver.check_optimizer(saved,ident,17)
+                mutants=[]
+                wrong=copy.deepcopy(saved);wrong['optimizer']['param_groups'][0]['params']=[1,0] if arm=='candidate' else [0,1];mutants.append(wrong)
+                wrong=copy.deepcopy(saved);wrong['optimizer']['state'][0]['step'].value=16.;mutants.append(wrong)
+                wrong=copy.deepcopy(saved);wrong['optimizer']['state'][0]['exp_avg'].value=float('nan');mutants.append(wrong)
+                wrong=copy.deepcopy(saved);wrong['optimizer']['state'][1]={'step':Tensor((),17.)};mutants.append(wrong)
+                for wrong in mutants:
+                    if arm=='control' and wrong['optimizer']['param_groups'][0]['params']==[0] and wrong==saved:continue
+                    with self.assertRaises((ValueError,KeyError)):driver.check_optimizer(wrong,ident,17)
+                initial=copy.deepcopy(saved);initial['optimizer']['state']={};driver.check_optimizer(initial,ident,0)
+                with self.assertRaises(ValueError):driver.check_optimizer(saved,ident,0)
+
+    def test_current_C_mean_roles_and_source_substitutions_do_not_use_version_cache(self):
+        with self.residual_runtime() as f:
+            def digest(context,value,**kw):
+                if isinstance(value,GalleryTensor):value={'shape':value.shape,'values':value.values,'dtype':value.dtype}
+                return hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
+            mu=f.Tensor([0.]*1152);provenance={'fixed':'TRAIN canonical'}
+            for arm in driver.ARMS:
+                C=f.Tensor([[0.]*1152 for _ in range(128)]);C.trainable=arm=='candidate'
+                context={'legacy':{'quadratic':f.primitive},'nearest':SimpleNamespace(fingerprint=digest),
+                    'initial_C_sha256':digest(None,C),'mu_train_sha256':digest(None,mu),
+                    'mu_train_provenance_sha256':digest(None,provenance)}
+                state={'A':f.Tensor([0.]),'C':C,'mu_train':mu,'mu_train_provenance':provenance,'arm':arm,'counter':0}
+                driver.own_residual(context,state,admit=True)
+                if arm=='candidate':C.values[0][0]=.1
+                state['counter']=1;driver.own_residual(context,state,advanced=True)
+                driver.own_residual(context,state)
+                for value in (C,mu):
+                    container=value.values[0] if len(value.shape)==2 else value.values
+                    prior=container[0];container[0]+=.25
+                    with self.assertRaises(ValueError):driver.own_residual(context,state)
+                    container[0]=prior;driver.own_residual(context,state)
+                C.trainable=not C.trainable
+                with self.assertRaises(ValueError):driver.own_residual(context,state)
+                C.trainable=arm=='candidate'
+                prior=C.values[0][0];C.values[0][0]=0.
+                if arm=='candidate':
+                    with self.assertRaises(ValueError):driver.own_residual(context,state)
+                C.values[0][0]=prior
+                state['mu_train_provenance']={'fixed':'selection'}
+                with self.assertRaises(ValueError):driver.own_residual(context,state)
+
+    def test_A_C_decomposition_receipts_reject_each_detach_and_stale_role(self):
+        bank=SmoothAPTests().bank();batch=list(range(12,76));membership=driver.ranking_membership(bank,batch)
+        g=image_anchor_gradient_fixture({'seed':179061,'batch':batch,'membership_sha256':driver.json_sha256(membership),
+            'mse':1.,'rank':.1,'K':64,'active':128,'control_gradient_norm':1.,'candidate_gradient_norm':1.,
+            'ranking_gradient_norm':.2,'candidate_minus_control_gradient_norm':0.,'gradient_alignment':.2,
+            'multi_positive_anchors':64,'nonnearest_positive_terms':2*sum(len(p)-1 for p in membership['positive']),
+            'nonnearest_loss':.08,'nonnearest_gradient_norm':.1,'native_mask_self_ties_singletons_exact':True,
+            'micro16_global_reduction_exact':True})
+        driver.check_cpu_gradient(g,bank)
+        for key in g['roles']:
+            for field,bad in [('query_gradient_norm',0.),('gallery_gradient_norm',0.),('tied_gradient_norm',float('nan')),
+                              ('detached_gallery_mutant_rejected',False),('full64_micro16_exact',False),
+                              ('query_plus_gallery_exact',False),('gallery_gradient_sha256','wrong')]:
+                mutant=copy.deepcopy(g);mutant['roles'][key][field]=bad
+                with self.subTest(role=key,field=field),self.assertRaises(ValueError):driver.check_cpu_gradient(mutant,bank)
+            mutant=copy.deepcopy(g);mutant['roles'].pop(key)
+            with self.assertRaises(ValueError):driver.check_cpu_gradient(mutant,bank)
+        for field,bad in [('initial_losses_and_A_gradients_matched',False),('candidate_minus_control_gradient_norm',.1),
+                          ('candidate_C_gradient_norm',0.),('nonzero_C_oracle_exact',False),
+                          ('omitted_C_mutant_rejected',False),('wrong_mu_mutant_rejected',False)]:
+            with self.assertRaises(ValueError):driver.check_cpu_gradient({**g,field:bad},bank)
+
+    def test_public_residual_helper_is_available_without_native_imports(self):
+        self.assertTrue(hasattr(driver, 'fullfeature_raw_features'), 'missing public C/mu readout')
+        self.assertFalse(any(name.split('.')[0] in driver.NATIVE for name in sys.modules))
 
 
 if __name__ == "__main__":
