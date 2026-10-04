@@ -1,0 +1,51 @@
+{
+  "schema": "compact-scipy-csgraph-runtime-contract-v1",
+  "base": "e9c89b797e3aa71f6e8ccf32c70a4d01a8e3dbd0",
+  "owner_files": [
+    "scripts/evaluate_siglip2_compact_ranking.py",
+    "scripts/test_compact_ranking_evaluation.py"
+  ],
+  "production_change": "RUNTIME_SOURCES scipy only: add exact scipy/sparse/csgraph/_validation.py",
+  "source_evidence": {
+    "path": "/tmp/sfora-compact-scientific-import-context-20261004.json",
+    "sha256": "507b182b756d728bca6ceb5f3897e85fdf40d798e8435e9bedbdca6f0542fb0e",
+    "source": "scipy/sparse/csgraph/_validation.py",
+    "sha256_source": "a254e1ae292f41366559f3a11f52a8706179621975c405263b32c9911ddf692f",
+    "size": 2854,
+    "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy-1.18.0.dist-info/RECORD",
+    "record_sha256": "e6b0d62c454710a319378690f6b8d5fa7934fd122ba0c2f438e281f5d56b4890",
+    "record_row": [
+      "scipy/sparse/csgraph/_validation.py",
+      "sha256=olThrikvQTZlWfOhH1KocGF5Yhl1xAUmOzLJkR3faS8",
+      "2854"
+    ]
+  },
+  "definition_time_dependencies": [
+    "import numpy as np",
+    "from scipy.sparse import issparse",
+    "from scipy.sparse._sputils import convert_pydata_sparse_to_scipy",
+    "from scipy.sparse.csgraph._tools import csgraph_to_dense, csgraph_from_dense, csgraph_masked_from_dense, csgraph_from_masked"
+  ],
+  "already_admitted_python_dependencies": [
+    "numpy/__init__.py",
+    "scipy/sparse/__init__.py",
+    "scipy/sparse/_sputils.py"
+  ],
+  "original_native_dependency": {
+    "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/csgraph/_tools.cpython-313-aarch64-linux-gnu.so",
+    "sha256": "db51541614b6403950e156fa426c686c160a29d9e3bcd50b8b25faed42186890",
+    "size": 283280,
+    "original_proof_and_cpu5_and_record_match": true,
+    "executed": false
+  },
+  "runtime_observation": "parent original import-v9 denial of _validation.pyc after csgraph/__init__.py and _laplacian.py",
+  "regression": "Extend existing synthetic SourceFileLoader graph with csgraph validation and original native stand-in; poisoned cache fallback, foreign/historical/write/optional/native denial and cached/uncached mutation/RECORD authority checks. No third-party/native execution.",
+  "preserved": "All production AST outside RUNTIME_SOURCES; existing entries; metadata helpers; native authority; science/math/quality/cost/caps/protocol/full uncached exit",
+  "limits": {
+    "final_suite_seconds": 55,
+    "one_final_suite": true,
+    "no_native_imports": true,
+    "no_ssh_reviews_children_operator_contact": true
+  },
+  "parent_owns_next_import_diagnostic": true
+}
