@@ -1,0 +1,14 @@
+{
+  "unit": "sfora-so400-compact-ranking-evaluation-first-export-control-179061-v6",
+  "invocation_id": "25bb72c62f134165b84b4762b94d6ced",
+  "service_seconds": 182.09,
+  "exit_status": 1,
+  "log_sha256": "3ee99330261d033d13f51c494fa81671613f7650bde4d7b9e542b9c5250b23c5",
+  "host_peak_bytes": 4099043328,
+  "swap_peak_bytes": 0,
+  "events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "failure": "inference numerical flags changed",
+  "quality_read": false,
+  "candidate_launched": false,
+  "historical_failure_preserved": true
+}
