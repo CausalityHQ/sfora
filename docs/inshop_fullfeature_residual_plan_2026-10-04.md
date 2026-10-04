@@ -12,6 +12,8 @@ Source implementation80872bec integrated e4b94003; actual trainer2 execution996a
 
 | Dataset/split | Matched control/candidate R1+mAP@R | Training cost | Public latency | Remaining gap | Next decisive test |
 |---|---|---|---|---|---|
-| InShop TRAIN selection1734q/1715g/498groups | Fullfeature residual UNREAD/UNREAD; retainedconcat96.482122%/81.777540% | Fresh paired TRAIN unrun; CPU qualification213.245s | Unmeasured | No quality or joint quality/speed gain established | Both discardedmechanics thenfresh061pair/cost and firstselection stop gate |
+| InShop TRAIN selection1734q/1715g/498groups | Fullfeature residual UNREAD/UNREAD; retainedconcat96.482122%/81.777540% | Fresh061 control423.604s whole/108.463920s core; candidate417.247s/102.117444s; ratios0.984993/0.941488 PASS | Unmeasured | No quality or joint quality/speed gain established | Fresh evaluatorCPU thentwo nativeexports and firstselection stop gate |
 
 Paired discarded mechanics engineering GO: original control255.942s/7403556864B and candidate252.418s/7411535872B, both complete17 versus independently reconstructed8+9/reload, zero swap/events/full native authority accepted. Candidate nonzeroC public-loader/oracle/omitted-C/wrong-mean witnesses passed. All mechanics state is discarded. Freeze fresh seed179061 control then candidate TRAIN128/600 using authenticated CPU and both original mechanics terminals; fresh paired whole/core<=1.50 remains mandatory before any new selection quality. No quality or public speed gain measured.
+
+Fresh061 TRAIN pair accepted: both128/independent strictbundle/current-state/fullsourceexit; control423.604whole/108.46391960280016core and candidate417.247whole/102.11744439089671core, measured paired ratios0.9849930595556228/0.9414876833223017 PASS<=1.50. Both host<8GiB, zero swap/events. This cost gate permits evaluatorCPU qualification; it is not a quality or public-latency claim. No selection quality read yet.

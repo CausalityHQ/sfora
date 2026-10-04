@@ -1,0 +1,18 @@
+{
+  "pass": true,
+  "stage": "first",
+  "seed": 179061,
+  "control": {
+    "service_seconds": 423.604,
+    "total_training_core_seconds": 108.46391960280016
+  },
+  "candidate": {
+    "service_seconds": 417.247,
+    "total_training_core_seconds": 102.11744439089671
+  },
+  "whole_service_ratio": 0.9849930595556228,
+  "core_ratio": 0.9414876833223017,
+  "cap": 1.5,
+  "quality": "UNREAD",
+  "public_latency": "UNMEASURED"
+}
