@@ -1,0 +1,16 @@
+{
+  "pass": true,
+  "arm": "control",
+  "service_seconds": 596.257,
+  "host_peak_bytes": 4955582464,
+  "rss_kib": 4103156,
+  "invocation_id": "637c35560dd245a5b6b0fcc6be7ede6d",
+  "receipt_sha256": "920fdc27a58b86021e988f28ad4c9a52d4e97ea529b80836162c5c1321daebee",
+  "log_sha256": "3bafa46d0417dc8f9b58276674209bab57966485f6c3e23c3ff4ddf880176e39",
+  "files": {
+    "control-179061.packed.bin": "127998ff13f3586561848d32c7dbf14dacfb83187ca5351bfd6439a8ba59ee57",
+    "control-179061.raw.npy": "d60eff3a1e330c15b5c9013029fadb51325ac6a7f4068b5bc1f94ec949ad2f9c",
+    "control-179061.unit.npy": "8aab435e36359545cf45292eb7703a8fc7359a029e72a00798cfe03b9bafc3ed"
+  },
+  "quality_read": false
+}
