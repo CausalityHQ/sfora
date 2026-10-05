@@ -1,0 +1,31 @@
+{
+  "arm": "control",
+  "authority_sha256": "b745240758c791d3a713ff12583edd69a835a1870ad7e83792c80da33402dfc1",
+  "command_sha256": "2721c8c1e2ffac9294878cc1c08f0fbd90666cbc78b6f7630f4def8afab496b0",
+  "execution_sha256": "7f609e6076033e7227d6f196e7d2ebcf8b3d48129bf004df862252e6764b5938",
+  "launch_sha256": "789488350cdaceef6ec5fd01964766ffd358b5120bf28c9fe9b9e1431cf5ab5f",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "schema": "identity-diversity-mechanics-freeze-v1",
+  "seed": 179061,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "b9794ddaf7b845c0bd96988d7da21634",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v4/cpu-v4.log",
+      "sha256": "d6e4245cd6f852eee92dd654ad6d616001fb16586cb6cd67286f8fc51ae4a196"
+    },
+    "native_peak_rss_kib": 6124256,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v4/receipt.json",
+      "sha256": "d854c171b8867577ffd60ed95b60d3ae11ce92cc8c78b73ddc186533a78a03d3"
+    },
+    "service_seconds": 420.787,
+    "unit": "sfora-so400-identity-diversity-cpu-v4"
+  },
+  "stop_rule": "one discarded17 vs independent8+9, full strict portable reload and complete uncached exit; FAIL kills arm; noTRAIN/quality until both armsPASS"
+}
