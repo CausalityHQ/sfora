@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "8b1805166f8b4aa0940e944bd987e8a3",
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/cpu-v5.log",
+    "sha256": "70773d48671d83c41fbeafabe0895aca8a0ff70818fe77e7d6074363507dd6df"
+  },
+  "native_peak_rss_kib": 6085564,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v5/receipt.json",
+    "sha256": "d2239da896465ee004ebb95c9316713d634fa457c91c708c6c410769a8c17b03"
+  },
+  "service_seconds": 424.51,
+  "unit": "sfora-so400-identity-diversity-cpu-v5"
+}
