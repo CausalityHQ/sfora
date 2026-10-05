@@ -1521,7 +1521,13 @@ def export_bundle(context, members, directory):
         source_path = bound_file(context['guards'], vision_fact['path'], vision_fact['sha256'])
         vision_path = directory / 'vision.pt'
         # Deliberately a copy, never a symlink/hardlink to the original run.
-        shutil.copyfile(source_path, vision_path)
+        with source_path.open('rb') as source, legacy['extract'].exclusive(vision_path) as stream:
+            writer = legacy['original'].CheckpointWriter(stream)
+            buffer = bytearray(1024**2)
+            while count := source.readinto(buffer):
+                writer.write(memoryview(buffer)[:count])
+                os.posix_fadvise(source.fileno(), source.tell() - count, count, os.POSIX_FADV_DONTNEED)
+            writer.flush()
         with vision_path.open('rb') as stream:
             os.fsync(stream.fileno())
         require(vision_path.stat().st_nlink == 1, 'bundle must own regular vision bytes')
