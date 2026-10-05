@@ -1,0 +1,15 @@
+{
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v4/receipt.json",
+    "sha256": "d854c171b8867577ffd60ed95b60d3ae11ce92cc8c78b73ddc186533a78a03d3"
+  },
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v4/cpu-v4.log",
+    "sha256": "d6e4245cd6f852eee92dd654ad6d616001fb16586cb6cd67286f8fc51ae4a196"
+  },
+  "unit": "sfora-so400-identity-diversity-cpu-v4",
+  "invocation_id": "b9794ddaf7b845c0bd96988d7da21634",
+  "service_seconds": 420.787,
+  "native_peak_rss_kib": 6124256,
+  "both_locks_held": true
+}
