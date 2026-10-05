@@ -1,0 +1,115 @@
+{
+  "note": "0.5s samples; sampled current maxima are not whole cgroup peak; sequential observations, not replicated causal estimate",
+  "old": [
+    {
+      "phase_begin": 154.14531759591773,
+      "samples": 4,
+      "first_file": 2690514944,
+      "first_anon": 2735386624,
+      "sampled_max_current": 7731761152,
+      "file_at_sampled_max": 2693005312,
+      "anon_at_sampled_max": 4898877440
+    },
+    {
+      "phase_begin": 171.29630328714848,
+      "samples": 3,
+      "first_file": 2690478080,
+      "first_anon": 2901237760,
+      "sampled_max_current": 7814967296,
+      "file_at_sampled_max": 2690478080,
+      "anon_at_sampled_max": 4919320576
+    },
+    {
+      "phase_begin": 213.80666861403733,
+      "samples": 3,
+      "first_file": 2768396288,
+      "first_anon": 2974429184,
+      "sampled_max_current": 7959982080,
+      "file_at_sampled_max": 2687508480,
+      "anon_at_sampled_max": 5077909504
+    },
+    {
+      "phase_begin": 230.454729530029,
+      "samples": 3,
+      "first_file": 2685841408,
+      "first_anon": 3002331136,
+      "sampled_max_current": 8589537280,
+      "file_at_sampled_max": 2655145984,
+      "anon_at_sampled_max": 5736599552
+    }
+  ],
+  "new": [
+    {
+      "phase_begin": 162.4720593970269,
+      "samples": 3,
+      "first_file": 981291008,
+      "first_anon": 2782240768,
+      "sampled_max_current": 5295935488,
+      "file_at_sampled_max": 982339584,
+      "anon_at_sampled_max": 4160782336
+    },
+    {
+      "phase_begin": 179.1894372049719,
+      "samples": 3,
+      "first_file": 978984960,
+      "first_anon": 2873335808,
+      "sampled_max_current": 6795792384,
+      "file_at_sampled_max": 978984960,
+      "anon_at_sampled_max": 5658394624
+    },
+    {
+      "phase_begin": 225.8815791788511,
+      "samples": 2,
+      "first_file": 1056743424,
+      "first_anon": 2947567616,
+      "sampled_max_current": 6335143936,
+      "file_at_sampled_max": 1056743424,
+      "anon_at_sampled_max": 5069717504
+    },
+    {
+      "phase_begin": 242.32497375598177,
+      "samples": 3,
+      "first_file": 1057402880,
+      "first_anon": 2960850944,
+      "sampled_max_current": 5145042944,
+      "file_at_sampled_max": 1057402880,
+      "anon_at_sampled_max": 3898183680
+    },
+    {
+      "phase_begin": 289.84149067569524,
+      "samples": 3,
+      "first_file": 1186893824,
+      "first_anon": 2979872768,
+      "sampled_max_current": 5387792384,
+      "file_at_sampled_max": 1186893824,
+      "anon_at_sampled_max": 4006912000
+    },
+    {
+      "phase_begin": 306.4781810948625,
+      "samples": 3,
+      "first_file": 1187336192,
+      "first_anon": 2993790976,
+      "sampled_max_current": 6553198592,
+      "file_at_sampled_max": 1187336192,
+      "anon_at_sampled_max": 5136285696
+    },
+    {
+      "phase_begin": 349.7916164766066,
+      "samples": 3,
+      "first_file": 1265745920,
+      "first_anon": 3145089024,
+      "sampled_max_current": 5954809856,
+      "file_at_sampled_max": 1265745920,
+      "anon_at_sampled_max": 4497793024
+    },
+    {
+      "phase_begin": 368.5089670047164,
+      "samples": 3,
+      "first_file": 1265696768,
+      "first_anon": 3150348288,
+      "sampled_max_current": 6469087232,
+      "file_at_sampled_max": 1265696768,
+      "anon_at_sampled_max": 4963823616
+    }
+  ]
+}
