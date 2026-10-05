@@ -1,0 +1,105 @@
+{
+  "correction_authorized": false,
+  "helper_provenance": {
+    "train_siglip2_genuine_views.py": {
+      "actual_pinned_paths": {
+        "/home/riomus/runs/sfora-so400-genuine-view-train-source-v1/train_siglip2_genuine_views.py": "788d672bca384c478881fc8f0b59090efbaf6f84e1c9f27469828bc951b7ec96"
+      },
+      "functions": {
+        "normalize_nonzero": {
+          "ast_sha256": "e3076037da71464aa865947af255a3491c0fe2f80c17137c667d8284e0f8156d",
+          "end_line": 528,
+          "line": 521
+        },
+        "schedule_and_masks": {
+          "ast_sha256": "5de7fc4d556942f165aa220747269e0388f489c4eca8664942228cf2d7416d89",
+          "end_line": 509,
+          "line": 492
+        },
+        "training_features": {
+          "ast_sha256": "1044fb090b1bb8e60e961225110fd65c7c1c14ea178369d4678c058a7bc4a145",
+          "end_line": 568,
+          "line": 555
+        }
+      },
+      "local_sha256": "788d672bca384c478881fc8f0b59090efbaf6f84e1c9f27469828bc951b7ec96"
+    },
+    "train_siglip2_nearest_ranking.py": {
+      "actual_pinned_paths": {
+        "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/train_siglip2_nearest_ranking.py": "4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c"
+      },
+      "functions": {
+        "current_byte_adapter": {
+          "ast_sha256": "dba67bb9048abace20a0bc3d865c82c3018dc04c72c6e3479f595c28c477cc49",
+          "end_line": 833,
+          "line": 775
+        },
+        "fingerprint": {
+          "ast_sha256": "9f2d65d5391b9bf9a3ceb0f3a55dfe65acc9c89be0d509368b2e6dd335bf2e81",
+          "end_line": 858,
+          "line": 836
+        }
+      },
+      "local_sha256": "4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c"
+    },
+    "train_siglip2_substrate_adaptation.py": {
+      "actual_pinned_paths": {
+        "/home/riomus/runs/sfora-native256-adaptation-source-v6/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+        "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v4/bundle-candidate-179061/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+        "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v4/bundle-candidate-179069/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+        "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v4/bundle-control-179061/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+        "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v4/bundle-control-179069/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+      },
+      "functions": {
+        "fingerprint": {
+          "ast_sha256": "3de225c57984a5ee3f292ecddce7a1516154938d5b4d415e692837abda5b2d0f",
+          "end_line": 1084,
+          "line": 1055
+        }
+      },
+      "local_sha256": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+    }
+  },
+  "known": "Original control mechanics rejected its six-part grouped gate before updates; original log does not print any individual gate operand or outcome. CPUv4 all four qualifications and admission remain accepted.",
+  "quality_or_pass_claim": false,
+  "schema": "sfora-init-admission-causal-audit-v1",
+  "source_findings": [
+    "prepare_native and prepare_scope perform common statistics, teachers, means and schedule generation on CPU for both phases. fresh copies STATIC_KEYS tensors; only teachers,target,means,classifier,mu_train transfer to requested device, while static_tree substitutes actual frozen head state_dict.",
+    "Authenticated original fingerprint frames Tensor dtype, shape and current bytes, excludes tensor device, and recursively frames container types and scalar repr. Authenticated nearest CUDA adapter substitutes only current byte source with exact AST inverse. Device change alone cannot alter static hash; bytes/types/structures could.",
+    "cached_witness selects same scoped/seed first64 and runs raw_features then packed_outputs on state.device. CPU versus CUDA FP32 arithmetic can differ; current evidence has no CUDA operand/digest or elementwise data to show that it did.",
+    "scope identity is three manifest/arm hashes; schedule provenance is produced by CPU original PCG64 helper with private CLASSES namespace, with original globals unchanged. Neither should change by device alone.",
+    "Existing initial_static_sha256 and common_initial_sha256 permit a diagnostic of pre-transfer aggregate hashes without reading or rehashing tensor bytes. CPU receipt contains no per-STATIC_KEY hashes, so report cannot identify changed individual tensor bytes when static mismatch is observed."
+  ],
+  "unresolved": [
+    {
+      "expression": "ident['static_sha256'] == qualified['identity']['static_sha256']",
+      "index": 1,
+      "native_outcome": "unknown; grouped rejection shows at least one false"
+    },
+    {
+      "expression": "ident['scope'] == qualified['identity']['scope']",
+      "index": 2,
+      "native_outcome": "unknown; grouped rejection shows at least one false"
+    },
+    {
+      "expression": "ident['schedule_provenance_sha256'] == qualified['identity']['schedule_provenance_sha256']",
+      "index": 3,
+      "native_outcome": "unknown; grouped rejection shows at least one false"
+    },
+    {
+      "expression": "initial_witness == qualified['initial_raw_unit_packed_sha256']",
+      "index": 4,
+      "native_outcome": "unknown; grouped rejection shows at least one false"
+    },
+    {
+      "expression": "context['common_input_raw_unit_packed_sha256'] == qualified['common_input_raw_unit_packed_sha256']",
+      "index": 5,
+      "native_outcome": "unknown; grouped rejection shows at least one false"
+    },
+    {
+      "expression": "context['common_statistics_sha256'] == qualified['common_statistics_sha256']",
+      "index": 6,
+      "native_outcome": "unknown; grouped rejection shows at least one false"
+    }
+  ]
+}

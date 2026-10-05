@@ -1,0 +1,29 @@
+{
+  "base_head": "bb3022321af961c75b5735693e3e2de73e5571e3",
+  "before_wrapper_code": true,
+  "execution_sha256": "7f609e6076033e7227d6f196e7d2ebcf8b3d48129bf004df862252e6764b5938",
+  "injection": {
+    "gpu_run": "Replace only original gate statement slot by try/finally containing bounded metadata report attempt, the byte/AST unchanged original require, an unconditional ValueError observation stop, finally original release(context,state). Every other original gpu_run statement remains unchanged and the update tail is unreachable.",
+    "no_extra_hashing_of_tensor_bytes": true,
+    "no_extra_native_computation": true,
+    "no_global_helper_replacement": true,
+    "run": "Regroup original result assignment and exact original following cleanup/resource statements through the pre-receipt cap require into try/finally. The original lifecycle executes on observation/report/gate failure. No original call or statement is removed or changed. Inverse unwraps these two exact slots to restore complete original AST, including attributes."
+  },
+  "report": {
+    "destination": "stdout in root-owned original native log; wrapper writes only root-chosen proof before native startup",
+    "error_event": "INIT_ADMISSION_OBSERVATION_ERROR_V1; swallowed locally so original require and finally remain mandatory",
+    "event": "INIT_ADMISSION_OBSERVATION_V1",
+    "fields": [
+      "six independent booleans and exact current/qualified original operands",
+      "existing CPU initial/static/common/A/C/mu hashes",
+      "typed tensor/container metadata of existing static members and initial counterparts",
+      "counter,arm,seed,device,source pins"
+    ]
+  },
+  "root_launch": "Same authenticated original interpreter and original CLI after separately freezing wrapper+contract+proof; fresh exclusive output and fresh systemd invocation under original root lifetime locks/caps. Root must supply a new frozen authority if output/diagnostic identity demands it; no worker launch.",
+  "root_only_native_execution": true,
+  "schema": "sfora-init-observation-diagnostic-contract-v1",
+  "source_sha256": "d62c2dbf7a58e0b4af03efccdb386ee84e38b9acc5ace6bbefcb29ddca915b38",
+  "terminal": "Any run exits nonzero, never production or qualification PASS. Original main exception handling and parent shell footer/traps/locks/cgroups unchanged. Full uncached source and own exit call retained in finally. If original cleanup itself rejects, that failure remains fatal.",
+  "test_sha256": "39a36691b777052bd44554e73011aaa936400efea1cca46b817c3de380a915c1"
+}

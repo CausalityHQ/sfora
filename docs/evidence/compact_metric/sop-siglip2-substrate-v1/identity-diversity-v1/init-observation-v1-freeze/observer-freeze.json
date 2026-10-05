@@ -1,0 +1,9 @@
+{
+  "base_head": "bb3022321af961c75b5735693e3e2de73e5571e3",
+  "contract_sha256": "5c7c920c384a26e775e88ef59aad9d5f7e480975e0046c3e072657bb7825df55",
+  "execution_sha256": "7f609e6076033e7227d6f196e7d2ebcf8b3d48129bf004df862252e6764b5938",
+  "schema": "sfora-init-observation-freeze-v1",
+  "test_sha256": "39a36691b777052bd44554e73011aaa936400efea1cca46b817c3de380a915c1",
+  "trainer_sha256": "d62c2dbf7a58e0b4af03efccdb386ee84e38b9acc5ace6bbefcb29ddca915b38",
+  "wrapper_sha256": "121cae631f9716116a1303f6094253239fa884a5d945031a6b1b21804f32a167"
+}

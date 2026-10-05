@@ -1,0 +1,18 @@
+{
+  "authority_sha256": "b745240758c791d3a713ff12583edd69a835a1870ad7e83792c80da33402dfc1",
+  "command_sha256": "ed6ef89c582496609dfe8e67295426d4e51faca043ab4e3c3fa822c7924299e2",
+  "execution_sha256": "7f609e6076033e7227d6f196e7d2ebcf8b3d48129bf004df862252e6764b5938",
+  "launch_sha256": "e6f8fb7216ec10fed8deac1389377c451253c25cf0e65534d896b8c9be230fd9",
+  "qualification_eligible": false,
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "schema": "identity-diversity-init-observation-root-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v4",
+  "state_reuse_eligible": false,
+  "stop_rule": "report original six bindings before unchanged require; no updates even if alltrue; full original state/scope release/API/uncached exit/caps; always nonzero, noqualificationreuse",
+  "wrapper_sha256": "121cae631f9716116a1303f6094253239fa884a5d945031a6b1b21804f32a167"
+}

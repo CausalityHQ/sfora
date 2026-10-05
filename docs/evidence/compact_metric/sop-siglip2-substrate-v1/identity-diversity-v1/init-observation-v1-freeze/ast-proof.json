@@ -1,0 +1,19 @@
+{
+  "diagnostic_ast_sha256": "f4030d372e7d7b704c71a74ee00c7953ef2bd4d7d0064b40d4cf76416a160fcc",
+  "exact_inverse_including_attributes": true,
+  "gate_lines": [
+    2155,
+    2161
+  ],
+  "injected_report_blocks": 1,
+  "native_execution": false,
+  "no_original_function_or_global_rebound": true,
+  "original_exit_calls": 1,
+  "original_gate_ast_sha256": "9af2c700963984309dda6aa3aea6e738a924668d36e57e8641a24dd4ea01ea24",
+  "original_lifecycle_statements": 12,
+  "python_version": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "restored_ast_sha256": "65b360122bed4d30259a8e3fbeeabf9cf7ff9ad25fedeb1777d7943887d4f013",
+  "schema": "sfora-init-observation-ast-proof-v1",
+  "source_ast_sha256": "65b360122bed4d30259a8e3fbeeabf9cf7ff9ad25fedeb1777d7943887d4f013",
+  "source_sha256": "d62c2dbf7a58e0b4af03efccdb386ee84e38b9acc5ace6bbefcb29ddca915b38"
+}

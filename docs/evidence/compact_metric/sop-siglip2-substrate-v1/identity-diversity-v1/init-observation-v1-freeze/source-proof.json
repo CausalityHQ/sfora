@@ -1,0 +1,134 @@
+{
+  "base_head": "bb3022321af961c75b5735693e3e2de73e5571e3",
+  "cpu_v4": {
+    "host_peak_bytes": "7357681664",
+    "pass": true,
+    "qualifications": [
+      {
+        "arm": "control",
+        "common_input_raw_unit_packed_sha256": "bc6fab02afc19c1809f29246d78d92af3885b022822bbfcbce7acbba96465546",
+        "common_statistics_sha256": "ac4e2adfe8851a8e8798df99c64c8bc7ad82f0a26b6701aaff9acea710bfabdc",
+        "identity": {
+          "schedule_provenance_sha256": "3fee910be42a8d7495e5e2118c7f9016fe460242e5a54901af3f0a26bdf5c6b0",
+          "scope": {
+            "arm": "control",
+            "arm_sha256": "1f3ad34bbd20a3b375ccb4908f9a3da05b63b514395cb553e1c81925789b2280",
+            "manifest_sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+          },
+          "static_sha256": "d998c662e9497996ea7f8d7093b807929b78fc023e51583f6e3ba62a9111c263"
+        },
+        "initial_raw_unit_packed_sha256": "c975b98167ac334e4a57715100c1416e6ea81487132b3c3f4930e364497db313",
+        "seed": 179061
+      },
+      {
+        "arm": "control",
+        "common_input_raw_unit_packed_sha256": "bc6fab02afc19c1809f29246d78d92af3885b022822bbfcbce7acbba96465546",
+        "common_statistics_sha256": "ac4e2adfe8851a8e8798df99c64c8bc7ad82f0a26b6701aaff9acea710bfabdc",
+        "identity": {
+          "schedule_provenance_sha256": "3fee910be42a8d7495e5e2118c7f9016fe460242e5a54901af3f0a26bdf5c6b0",
+          "scope": {
+            "arm": "control",
+            "arm_sha256": "1f3ad34bbd20a3b375ccb4908f9a3da05b63b514395cb553e1c81925789b2280",
+            "manifest_sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+          },
+          "static_sha256": "d998c662e9497996ea7f8d7093b807929b78fc023e51583f6e3ba62a9111c263"
+        },
+        "initial_raw_unit_packed_sha256": "03d0a522a23470b4944b14d006a9cefd45caa3b7cb810b8822761edf7c5a1363",
+        "seed": 179069
+      },
+      {
+        "arm": "candidate",
+        "common_input_raw_unit_packed_sha256": "bc6fab02afc19c1809f29246d78d92af3885b022822bbfcbce7acbba96465546",
+        "common_statistics_sha256": "ac4e2adfe8851a8e8798df99c64c8bc7ad82f0a26b6701aaff9acea710bfabdc",
+        "identity": {
+          "schedule_provenance_sha256": "4d7c330c90735c837919a4c70c5739852b0dc9d0ace548de1a2502d710cdd3c8",
+          "scope": {
+            "arm": "candidate",
+            "arm_sha256": "c12e557afa89b53dc37b984ef0c1d369c4dbff42186c2fc63f4adc331ad31882",
+            "manifest_sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+          },
+          "static_sha256": "d1a96b388fc1ccd5a43b05ae1c6936dd6ceaf6884e4e6e4472af2f3bd007adde"
+        },
+        "initial_raw_unit_packed_sha256": "6beaa41d0c818688a87d8f5f244967116d0ca4db89fc3be2f40f884f7cef8039",
+        "seed": 179061
+      },
+      {
+        "arm": "candidate",
+        "common_input_raw_unit_packed_sha256": "bc6fab02afc19c1809f29246d78d92af3885b022822bbfcbce7acbba96465546",
+        "common_statistics_sha256": "ac4e2adfe8851a8e8798df99c64c8bc7ad82f0a26b6701aaff9acea710bfabdc",
+        "identity": {
+          "schedule_provenance_sha256": "4d7c330c90735c837919a4c70c5739852b0dc9d0ace548de1a2502d710cdd3c8",
+          "scope": {
+            "arm": "candidate",
+            "arm_sha256": "c12e557afa89b53dc37b984ef0c1d369c4dbff42186c2fc63f4adc331ad31882",
+            "manifest_sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+          },
+          "static_sha256": "d1a96b388fc1ccd5a43b05ae1c6936dd6ceaf6884e4e6e4472af2f3bd007adde"
+        },
+        "initial_raw_unit_packed_sha256": "f738acfe3fa93b902ef6e16e344f5d3604b99d99b89edd48897f268f232349ce",
+        "seed": 179069
+      }
+    ],
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "b9794ddaf7b845c0bd96988d7da21634",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v4/cpu-v4.log",
+        "sha256": "d6e4245cd6f852eee92dd654ad6d616001fb16586cb6cd67286f8fc51ae4a196"
+      },
+      "native_peak_rss_kib": 6124256,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v4/receipt.json",
+        "sha256": "d854c171b8867577ffd60ed95b60d3ae11ce92cc8c78b73ddc186533a78a03d3"
+      },
+      "service_seconds": 420.787,
+      "unit": "sfora-so400-identity-diversity-cpu-v4"
+    }
+  },
+  "gate": {
+    "ast_sha256": "a7de19a85e4ed6631321286bd381d528f35b52bb45b9a9ad8e8c5486a127ae60",
+    "function": "gpu_run",
+    "lines": [
+      2155,
+      2161
+    ],
+    "six_expressions": [
+      "ident['static_sha256'] == qualified['identity']['static_sha256']",
+      "ident['scope'] == qualified['identity']['scope']",
+      "ident['schedule_provenance_sha256'] == qualified['identity']['schedule_provenance_sha256']",
+      "initial_witness == qualified['initial_raw_unit_packed_sha256']",
+      "context['common_input_raw_unit_packed_sha256'] == qualified['common_input_raw_unit_packed_sha256']",
+      "context['common_statistics_sha256'] == qualified['common_statistics_sha256']"
+    ],
+    "source": "require(ident['static_sha256'] == qualified['identity']['static_sha256'] and\n            ident['scope'] == qualified['identity']['scope'] and\n            ident['schedule_provenance_sha256'] == qualified['identity']['schedule_provenance_sha256'] and\n            initial_witness == qualified['initial_raw_unit_packed_sha256'] and\n            context['common_input_raw_unit_packed_sha256'] == qualified['common_input_raw_unit_packed_sha256'] and\n            context['common_statistics_sha256'] == qualified['common_statistics_sha256'],\n            'qualified per-scope/seed CPU source/teachers/schedule/initialization differs')"
+  },
+  "mechanics_failure": {
+    "candidate_launched": false,
+    "error": "qualified per-scope/seed CPU source/teachers/schedule/initialization differs",
+    "events0": true,
+    "exit": 1,
+    "host_peak_bytes": 2285518848,
+    "invocation_id": "5111b74e2c994f5786e22dd262dd0b38",
+    "log_sha256": "1772424e35b0c826145cd8da2fdc5955f9e3939708cabe00e04f768e79c62c85",
+    "next": "determine exact mismatch among six original conjuncts; no parity weakening or speculative repair",
+    "quality_read": false,
+    "schema": "identity-diversity-mechanics-failure-v1",
+    "service_seconds": 134.37,
+    "swap0": true,
+    "unit": "sfora-so400-identity-diversity-mechanics-control-179061-v1",
+    "updates": 0
+  },
+  "native_execution": false,
+  "repo_edits": false,
+  "required_base": "bb3022321af961c75b5735693e3e2de73e5571e3",
+  "schema": "sfora-init-admission-source-proof-v1",
+  "source": {
+    "ast_sha256": "342d82bfdc643ea9c0111f238b5545a47721e20b17e971470474ab56345780e9",
+    "path": "/home/rb/worktrees/sfora-identity-diversity-init-admission-audit-20261005/scripts/train_siglip2_identity_diversity.py",
+    "sha256": "d62c2dbf7a58e0b4af03efccdb386ee84e38b9acc5ace6bbefcb29ddca915b38"
+  },
+  "test": {
+    "path": "/home/rb/worktrees/sfora-identity-diversity-init-admission-audit-20261005/scripts/test_siglip2_identity_diversity.py",
+    "sha256": "39a36691b777052bd44554e73011aaa936400efea1cca46b817c3de380a915c1"
+  }
+}
