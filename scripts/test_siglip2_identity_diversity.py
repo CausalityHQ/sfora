@@ -51,7 +51,7 @@ def lifetime_context():
 def native_release_tail():
     # Execute the actual source-owned cleanup boundary, leaving all preceding
     # native preparation/admission to root's numerical qualification.
-    node = next(n for n in ast.parse(PATH.read_bytes()).body
+    node = next(n for n in ast.parse(canonical_source_inverse(PATH.read_bytes())).body
                 if isinstance(n, ast.FunctionDef) and n.name == 'prepare_native')
     start = next(i for i, stmt in enumerate(node.body)
                  if isinstance(stmt, ast.Assign) and
@@ -73,7 +73,7 @@ common_features = context.pop('_common_features')
 
 class DiversityAdmissions(unittest.TestCase):
     def test_complete_unrelated_ast_and_native_preparation_preserved(self):
-        tree = oracle_role_inverse(vision_copy_inverse(ast.parse(PATH.read_bytes())))
+        tree = oracle_role_inverse(vision_copy_inverse(ast.parse(canonical_source_inverse(PATH.read_bytes()))))
         owned = {'prepare_native', 'release_scope', 'tensor_weakrefs'}
         unrelated = ast.Module(body=[n for n in tree.body
                             if not (isinstance(n, ast.FunctionDef) and n.name in owned)], type_ignores=[])
@@ -256,7 +256,7 @@ class DiversityAdmissions(unittest.TestCase):
     def test_retained_admission_and_loader_ast(self):
         # SHA-backed correspondence catches accidentally dropping complete source,
         # origin/exit, AdamW/scaler/RNG or vision/processor/buffer predicates.
-        tree = ast.parse(PATH.read_bytes())
+        tree = ast.parse(canonical_source_inverse(PATH.read_bytes()))
         nodes = {n.name:n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
         for name, expected in RETAINED_AST.items():
             node = copy.deepcopy(nodes[name])
@@ -334,7 +334,7 @@ class DiversityAdmissions(unittest.TestCase):
                 with self.assertRaises(ValueError):driver.check_steps([{**row,key:value}],1,1,bank)
 
     def test_complete_nested_source_guard_correspondence(self):
-        tree=vision_copy_inverse(ast.parse(PATH.read_bytes()));nodes={n.name:n for n in tree.body if isinstance(n,ast.FunctionDef)}
+        tree=vision_copy_inverse(ast.parse(canonical_source_inverse(PATH.read_bytes())));nodes={n.name:n for n in tree.body if isinstance(n,ast.FunctionDef)}
         for name,expected in RETAINED_NESTED.items():
             actual=set()
             for stmt in ast.walk(nodes[name]):
@@ -347,7 +347,7 @@ class DiversityAdmissions(unittest.TestCase):
             self.assertTrue(set(expected).issubset(actual),name)
 
     def test_retained_update_and_vision_predicate_order(self):
-        tree=vision_copy_inverse(ast.parse(PATH.read_bytes()));nodes={n.name:n for n in tree.body if isinstance(n,ast.FunctionDef)}
+        tree=vision_copy_inverse(ast.parse(canonical_source_inverse(PATH.read_bytes())));nodes={n.name:n for n in tree.body if isinstance(n,ast.FunctionDef)}
         for name,expected in RETAINED_STATEMENTS.items():
             hashes=[]
             for stmt in nodes[name].body:
@@ -360,7 +360,7 @@ class DiversityAdmissions(unittest.TestCase):
             self.assertEqual(actual,expected,name)
 
     def test_no_scope_gradient_equality_or_hinge_dispatch(self):
-        tree = ast.parse(PATH.read_bytes())
+        tree = ast.parse(canonical_source_inverse(PATH.read_bytes()))
         functions = {n.name:n for n in tree.body if isinstance(n,ast.FunctionDef)}
         loss = ast.unparse(functions['loss_terms'])
         self.assertNotIn('hinge', loss)
@@ -479,7 +479,7 @@ def oracle_fixture(arm, seed):
              'target': Tensor(bank['target']),
              'teachers': {'P': Tensor([[.85, .32], [.75, .472], [.35, .988]]),
                           'T': canonical, 'e0': 2.}}
-    cpu = next(n for n in ast.parse(PATH.read_bytes()).body
+    cpu = next(n for n in ast.parse(canonical_source_inverse(PATH.read_bytes())).body
                if isinstance(n, ast.FunctionDef) and n.name == 'cpu_gradients')
     objective = next(n for n in ast.walk(cpu) if isinstance(n, ast.FunctionDef) and n.name == 'objective')
     namespace = dict(vars(driver))
@@ -487,7 +487,7 @@ def oracle_fixture(arm, seed):
                      K=driver.ranking_membership(bank, batch)['valid'], helper_guard=lambda context: readout)
     # Compile the source functions together to keep their genuine global call
     # chain, substituting only the admitted concat helper boundary.
-    nodes = [n for n in ast.parse(PATH.read_bytes()).body if isinstance(n, ast.FunctionDef) and
+    nodes = [n for n in ast.parse(canonical_source_inverse(PATH.read_bytes())).body if isinstance(n, ast.FunctionDef) and
              n.name in {'raw_features', 'ranking_gallery', 'fullfeature_raw_features', 'loss_terms'}]
     exec(compile(ast.Module(body=nodes+[objective], type_ignores=[]), str(PATH), 'exec'), namespace)
 
@@ -562,10 +562,10 @@ class HistoricalGradientOracle(unittest.TestCase):
                         self.assertGreater(abs(tied-mutant[1][name]['ranking']), 1e-8)
 
     def test_exact_source_and_test_inverse_keeps_all_historical_hashes(self):
-        tree = oracle_role_inverse(vision_copy_inverse(ast.parse(PATH.read_bytes())))
+        tree = oracle_role_inverse(vision_copy_inverse(ast.parse(canonical_source_inverse(PATH.read_bytes()))))
         self.assertEqual(hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest(),
                          '69775bf080f43eb9c63048ba25d298199a999ed617da5ca9f7ce19b311fbb9e5')
-        tree = vision_copy_test_inverse(ast.parse(Path(__file__).read_bytes()))
+        tree = vision_copy_test_inverse(canonical_test_inverse(ast.parse(Path(__file__).read_bytes())))
         additions = {'oracle_role_inverse', 'oracle_fixture', 'HistoricalGradientOracle'}
         tree.body = [n for n in tree.body if not (isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name in additions)
                      and not (isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'ORACLE_AST_FIXTURE')]
@@ -686,7 +686,7 @@ def vision_copy_fixture(root, payload, failure=None):
                'extract': SimpleNamespace(exclusive=namespace['exclusive'])},
                'initial': {'provenance': {'encoder': {'checkpoint': {'path': str(source),
                           'sha256': hashlib.sha256(payload).hexdigest()}}}}}
-    export = next(n for n in ast.parse(PATH.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name == 'export_bundle')
+    export = next(n for n in ast.parse(canonical_source_inverse(PATH.read_bytes())).body if isinstance(n, ast.FunctionDef) and n.name == 'export_bundle')
     block = next(n for n in export.body if isinstance(n, ast.With))
     end = next(i for i, n in enumerate(block.body) if isinstance(n, ast.With) and
                any(isinstance(c, ast.Call) and ast.unparse(c.func) == 'torch.load' for c in ast.walk(n)))
@@ -831,12 +831,438 @@ class BoundedVisionCopy(unittest.TestCase):
                 self.assertNotIn(str(case.destination), case.context['guards'])
 
     def test_full_other_production_ast_and_all_original_test_hashes_preserved(self):
-        production = vision_copy_inverse(ast.parse(PATH.read_bytes()))
+        production = vision_copy_inverse(ast.parse(canonical_source_inverse(PATH.read_bytes())))
         self.assertEqual(hashlib.sha256(ast.dump(production, include_attributes=False).encode()).hexdigest(),
                          'b04d469d8932aa634773740f3f36e5234bcf0bf07a36c7360720bb594819994c')
-        tests = vision_copy_test_inverse(ast.parse(Path(__file__).read_bytes()))
+        tests = vision_copy_test_inverse(canonical_test_inverse(ast.parse(Path(__file__).read_bytes())))
         self.assertEqual(hashlib.sha256(ast.dump(tests, include_attributes=False).encode()).hexdigest(),
                          '0c0f7b5c82ff8181ed047b70a2865c7248a927778fc16f103c4b3679fc55a3ad')
 
+
+
+CANONICAL_SOURCE_EDITS = [['            witness=fingerprint(context,cached_witness(context,state))\n', "            witness=fingerprint(context,cached_witness(context,state))\n            with timed(context, 'canonical_initial_admission'):\n                canonical = canonical_initial_witness(context, state, ident)\n                require(canonical['raw_unit_packed_sha256'] == witness, 'canonical CPU/native initial witness differs')\n                canonical_falsifiers = canonical_initial_falsifiers(context, state, ident, canonical)\n", 1], ["                'initial_raw_unit_packed_sha256':witness,\n", "                'initial_raw_unit_packed_sha256':witness,\n                'canonical_initial':canonical,'canonical_initial_falsifiers':canonical_falsifiers,\n", 1], ['    initial_witness = fingerprint(context, cached_witness(context, state))\n', "    initial_witness = fingerprint(context, cached_witness(context, state))\n    with timed(context, 'canonical_initial_admission'):\n        canonical = canonical_initial_witness(context, state, ident, compare_native=True)\n        print(json.dumps({'event': 'CANONICAL_INITIAL_COMPONENTS_V1', 'arm': args.arm,\n                          'seed': args.seed, 'canonical_initial': canonical}), flush=True)\n        canonical_falsifiers = canonical_initial_falsifiers(context, state, ident, canonical)\n", 1], ["            initial_witness == qualified['initial_raw_unit_packed_sha256'] and\n", "            canonical['raw_unit_packed_sha256'] == qualified['canonical_initial']['raw_unit_packed_sha256'] and\n", 1], ['    rows, resumed = [], []\n', "    require(canonical['bindings'] == qualified['canonical_initial']['bindings'] and\n            canonical['live_copy_sha256'] == qualified['canonical_initial']['live_copy_sha256'],\n            'qualified live canonical inputs/readout bytes differ')\n    rows, resumed = [], []\n", 1], ["            'initial_raw_unit_packed_sha256': initial_witness,\n", "            'initial_raw_unit_packed_sha256': initial_witness,\n            'canonical_initial': canonical, 'canonical_initial_falsifiers': canonical_falsifiers,\n", 1], ["context['nearest'].native_source_api(context).audit_origins(legacy, admission=legacy['original'].FlatAdmission())", "audit_origin_diagnostics(context, context['nearest'].native_source_api(context), admission=legacy['original'].FlatAdmission())", 1], ["api.audit_origins(context['legacy'], admission=context['legacy']['original'].FlatAdmission(), require_exact=True)", "audit_origin_diagnostics(context, api, admission=context['legacy']['original'].FlatAdmission(), require_exact=True)", 1], ["api.audit_origins(context['legacy'], admission=exit_reader, require_exact=context['args'].phase != 'cpu')", "audit_origin_diagnostics(context, api, admission=exit_reader, require_exact=context['args'].phase != 'cpu')", 1], ["api.audit_origins(context['legacy'], admission=context['legacy']['original'].FlatAdmission(), require_exact=context['args'].phase != 'cpu')", "audit_origin_diagnostics(context, api, admission=context['legacy']['original'].FlatAdmission(), require_exact=context['args'].phase != 'cpu')", 1], ["api.audit_origins(legacy, admission=post_run_reader, require_exact=args.phase != 'cpu')", "audit_origin_diagnostics(context, api, admission=post_run_reader, require_exact=args.phase != 'cpu')", 1]]
+
+def canonical_source_inverse(raw):
+    """Exact prospective edits only; every other original source byte is pinned."""
+    source = raw.decode()
+    for old, new, count in reversed(CANONICAL_SOURCE_EDITS):
+        driver.require(source.count(new) == count, 'canonical source inverse occurrence differs')
+        source = source.replace(new, old)
+    start, end = source.index('def canonical_copy_check('), source.index('def cpu_gradients(')
+    driver.require(hashlib.sha256(source[start:end].encode()).hexdigest() ==
+                   'e1e37149eb6fd2d7bb05f172bace94df06f9ecee922559fa4e9b5c2fe1395d91', 'canonical helper block differs')
+    source = source[:start] + source[end:]
+    driver.require(hashlib.sha256(source.encode()).hexdigest() ==
+                   'd62c2dbf7a58e0b4af03efccdb386ee84e38b9acc5ace6bbefcb29ddca915b38',
+                   'unrelated production bytes changed')
+    return source.encode()
+
+
+def canonical_test_inverse(tree):
+    additions = ['canonical_source_inverse', 'canonical_test_inverse', 'CanonicalSourceContract', 'CanonicalTensor', 'CanonicalHead', 'canonical_fixture', 'CanonicalAdmission', 'CanonicalDiagnosticTensor', 'canonical_diagnostics_fixture', 'CanonicalComponents']
+    tree.body = [n for n in tree.body if not (isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name in additions)
+                 and not (isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name) and
+                          n.targets[0].id == 'CANONICAL_SOURCE_EDITS')]
+    class Inverse(ast.NodeTransformer):
+        source_calls = 0
+        test_calls = 0
+        def visit_Call(self, node):
+            self.generic_visit(node)
+            if isinstance(node.func, ast.Name) and node.func.id == 'canonical_source_inverse':
+                self.source_calls += 1
+                return node.args[0]
+            if isinstance(node.func, ast.Name) and node.func.id == 'canonical_test_inverse':
+                self.test_calls += 1
+                return node.args[0]
+            return node
+    inverse = Inverse(); inverse.visit(tree)
+    driver.require((inverse.source_calls, inverse.test_calls) == (11, 2), 'canonical historical test inverse differs')
+    return tree
+
+
+class CanonicalSourceContract(unittest.TestCase):
+    def test_exact_pre_edit_source_bytes_ast_and_all_historical_tests_preserved(self):
+        raw = canonical_source_inverse(PATH.read_bytes())
+        self.assertEqual(hashlib.sha256(ast.dump(ast.parse(raw), include_attributes=False).encode()).hexdigest(),
+                         '342d82bfdc643ea9c0111f238b5545a47721e20b17e971470474ab56345780e9')
+        tests = canonical_test_inverse(ast.parse(Path(__file__).read_bytes()))
+        self.assertEqual(hashlib.sha256(ast.dump(tests, include_attributes=False).encode()).hexdigest(),
+                         '3397f00a49d5960a6e58f9188019f53b144c622aa2c62939baa763d2e3855a5f')
+        for before, after in ((b"'strict updated cache raw/unit/packed reload differs'", b"'weakened'"),
+                              (b'== qualified[', b'!= qualified['),
+                              (b'require_exact=True', b'require_exact=False')):
+            with self.assertRaises(ValueError): canonical_source_inverse(PATH.read_bytes().replace(before, after))
+
+
+class CanonicalTensor:
+    """Small tensor boundary for ownership/control-flow tests, never native math."""
+    def __init__(self, values, device='cpu', requires_grad=False):
+        self.values = copy.deepcopy(values)
+        self.device = SimpleNamespace(type=device)
+        self.requires_grad, self.grad_fn, self.grad = requires_grad, None, None
+        self._version = 0
+    def detach(self): return CanonicalTensor(self.values, self.device.type)
+    def to(self, device, copy=False): return CanonicalTensor(self.values, device) if copy or device != self.device.type else self
+    def data_ptr(self): return id(self.values)
+    def untyped_storage(self): return self
+    def tolist(self): return copy.deepcopy(self.values)
+    def __getitem__(self, key):
+        result = CanonicalTensor([self.values[i] for i in key] if isinstance(key, list) else self.values[key])
+        if not isinstance(key, list): result.values = self.values[key]
+        return result
+    def requires_grad_(self, value): self.requires_grad = value; return self
+    @property
+    def data(self): return self
+    def copy_(self, other): self.values[:] = copy.deepcopy(other.values); return self
+    def reshape(self, dimension):
+        assert dimension == -1
+        owner = self.values
+        while isinstance(owner[0], list): owner = owner[0]
+        return owner
+
+
+class CanonicalHead:
+    def __init__(self):
+        self.weight, self.offset = CanonicalTensor([3.]), CanonicalTensor([4.])
+        self.training = True
+    def named_parameters(self): return iter([('weight', self.weight)])
+    def named_buffers(self): return iter([('offset', self.offset)])
+    def parameters(self): return iter([self.weight])
+    def buffers(self): return iter([self.offset])
+    def modules(self): return iter([self])
+    def to(self, device):
+        self.weight, self.offset = self.weight.to(device), self.offset.to(device)
+        return self
+
+
+def canonical_fixture():
+    from contextlib import nullcontext
+    import sys
+    from unittest.mock import patch
+    def digest(context, value, **kwargs):
+        def convert(item):
+            if isinstance(item, CanonicalTensor):
+                if kwargs.get('consumed'): kwargs['consumed'](item)
+                return ['tensor', item.values]
+            if isinstance(item, dict): return {k: convert(v) for k, v in sorted(item.items())}
+            if isinstance(item, (tuple, list)): return [convert(v) for v in item]
+            if isinstance(item, bytes): return ['bytes', item.hex()]
+            return item
+        return hashlib.sha256(json.dumps(convert(value), sort_keys=True).encode()).hexdigest()
+    torch = SimpleNamespace(Tensor=CanonicalTensor, nn=SimpleNamespace(Parameter=lambda t, requires_grad: CanonicalTensor(t.values, requires_grad=requires_grad)), no_grad=nullcontext,
+        autocast=lambda *a, **kw: nullcontext())
+    # The exact repository clone_tree is exercised, including its copy=True.
+    node = next(n for n in ast.parse(PATH.with_name('train_siglip2_quadratic_readout.py').read_bytes()).body
+                if isinstance(n, ast.FunctionDef) and n.name == 'clone_tree')
+    clone_ns = {}
+    exec(compile(ast.Module(body=[node], type_ignores=[]), str(PATH), 'exec'), clone_ns)
+    state = {'A': CanonicalTensor([1.], requires_grad=True), 'C': CanonicalTensor([0.], requires_grad=True),
+             'means': {'concat': CanonicalTensor([2.])}, 'mu_train': CanonicalTensor([5.]),
+             'head_object': CanonicalHead(), 'head': 'stale initializer head',
+             'views': {v: CanonicalTensor([[float(i + 10*j)] for i in range(65)]) for j, v in enumerate(driver.VIEWS)},
+             'seed': 179061, 'counter': 0, 'device': 'cpu', 'arm': 'control',
+             'schedules': {'179061': CanonicalTensor([list(range(64))])},
+             'optimizer_object': SimpleNamespace(state_dict=lambda: {'state': {}, 'params': [0, 1]}),
+             'scaler_object': SimpleNamespace(state_dict=lambda: {}), 'rng': [7], 'flags': {'threads': 1}}
+    def live_payload(context, state, ident):
+        return {k: v for k, v in state.items() if k not in {'head_object', 'head', 'optimizer_object', 'scaler_object'}} | {
+            'head_parameters': dict(state['head_object'].named_parameters()),
+            'head_buffers': dict(state['head_object'].named_buffers())}
+    context = {'initial': {'A': 'unusable stale A'}, 'legacy': {'quadratic': None},
+               'old': SimpleNamespace(clone_tree=clone_ns['clone_tree'])}
+    for key, name in [('A', 'initial_A_sha256'), ('C', 'initial_C_sha256'), ('mu_train', 'mu_train_sha256')]:
+        context[name] = digest(context, state[key])
+    ident = {k: context[k] for k in ('initial_A_sha256', 'initial_C_sha256', 'mu_train_sha256')}
+    initial = digest(context, live_payload(context, state, ident))
+    def integrity(context, state, ident):
+        driver.require(digest(context, live_payload(context, state, ident)) == initial, 'live admission differs')
+        driver.require(state['A'].requires_grad and state['C'].requires_grad and
+                       not state['head_object'].weight.requires_grad, 'live roles differ')
+    calls, refs = [], []
+    def raw(features, head, A, means, C, mu, arm, primitive, readout):
+        calls.append(features.tolist())
+        refs.extend(weakref.ref(t) for t in [features, head.weight, head.offset, A, means['concat'], C, mu])
+        return CanonicalTensor([[row[0] + head.weight.values[0] + head.offset.values[0] +
+             A.values[0] - means['concat'].values[0] + C.values[0]*(row[0]-mu.values[0])] for row in features.values])
+    def packed(legacy, raw):
+        return {'raw': raw, 'unit': CanonicalTensor([[1.] for _ in raw.values]),
+                'codes': CanonicalTensor([[127] for _ in raw.values]),
+                'inverse_norms': CanonicalTensor([1/127 for _ in raw.values]),
+                'wire': bytes([127, 0, 1])*len(raw.values)}
+    context['old'].packed_outputs = packed
+    ns = dict(vars(driver))
+    ns.update(fingerprint=digest, integrity=integrity, payload=live_payload,
+              helper_guard=lambda context: None, fullfeature_raw_features=raw)
+    names = {'canonical_copy_check', 'canonical_initial_witness', 'tensor_weakrefs'}
+    nodes = [n for n in ast.parse(PATH.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name in names]
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(PATH), 'exec'), ns)
+    def run():
+        with patch.dict(sys.modules, {'torch': torch}):
+            return ns['canonical_initial_witness'](context, state, ident)
+    return SimpleNamespace(run=run, state=state, context=context, ident=ident, ns=ns, refs=refs, calls=calls,
+                           digest=digest, torch=torch, patch=patch)
+
+
+class CanonicalAdmission(unittest.TestCase):
+    def test_native_falsifiers_restore_valid_state_and_propagate_unexpected_failure(self):
+        self.assertTrue(hasattr(driver, 'canonical_initial_falsifiers'), 'native falsifiers missing')
+        import sys
+        for fail in (False, True):
+            case = canonical_fixture()
+            baseline = case.run()
+            node = next(n for n in ast.parse(PATH.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name == 'canonical_initial_falsifiers')
+            exec(compile(ast.Module(body=[node], type_ignores=[]), str(PATH), 'exec'), case.ns)
+            rejects = []
+            def rejected(call, message):
+                rejects.append(message)
+                if fail: raise RuntimeError('native qualification interrupted')
+                try: call()
+                except ValueError: return True
+                raise AssertionError('native mutation accepted')
+            case.context['nearest'] = SimpleNamespace(rejected=rejected)
+            original_initial, original_head = case.context['initial'], case.state['head']
+            with case.patch.dict(sys.modules, {'torch': case.torch}):
+                if fail:
+                    with self.assertRaisesRegex(RuntimeError, 'native qualification interrupted'):
+                        case.ns['canonical_initial_falsifiers'](case.context, case.state, case.ident, baseline)
+                else:
+                    result = case.ns['canonical_initial_falsifiers'](case.context, case.state, case.ident, baseline)
+                    self.assertEqual(result['current_mutations_rejected'],
+                                     ['A', 'C', 'mu', 'head:weight', 'buffer:offset', 'means:concat',
+                                      'view:canonical', 'view:augmented', 'rows'])
+                    self.assertTrue(result['copy_alias_rejected'])
+            self.assertIs(case.context['initial'], original_initial)
+            self.assertIs(case.state['head'], original_head)
+            self.assertEqual(case.run(), baseline)
+            self.assertTrue(rejects)
+
+    def test_admitted_mu_and_zero_C_bindings_and_live_side_effects_are_not_output_blind(self):
+        self.assertTrue(hasattr(driver, 'canonical_initial_witness'), 'canonical helper missing')
+        for key in ('initial_A_sha256', 'initial_C_sha256', 'mu_train_sha256'):
+            case = canonical_fixture()
+            case.context[key] = 'wrong binding'
+            with self.assertRaisesRegex(ValueError, 'admitted A/C/mu'): case.run()
+            self.assertEqual(case.calls, [])
+        for changed in ('rng', 'flags', 'grad'):
+            case = canonical_fixture()
+            original = case.ns['fullfeature_raw_features']
+            def mutating(*args):
+                if changed == 'rng': case.state['rng'][0] += 1
+                elif changed == 'flags': case.state['flags']['threads'] = 2
+                else: case.state['A'].grad = CanonicalTensor([1.])
+                return original(*args)
+            case.ns['fullfeature_raw_features'] = mutating
+            with self.assertRaisesRegex(ValueError, 'changed complete live state/roles/RNG'): case.run()
+            self.assertTrue(all(ref() is None for ref in case.refs))
+
+    def test_gpu_admission_uses_canonical_field_and_retains_other_five_conjuncts(self):
+        gpu = next(n for n in ast.parse(PATH.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name == 'gpu_run')
+        gate = next(n for n in gpu.body if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and
+                    any(isinstance(v, ast.Constant) and v.value ==
+                        'qualified per-scope/seed CPU source/teachers/schedule/initialization differs' for v in n.value.args))
+        run = compile(ast.Module(body=[gate], type_ignores=[]), str(PATH), 'exec')
+        ident = {'static_sha256': 'static', 'scope': 'scope', 'schedule_provenance_sha256': 'schedule'}
+        context = {'common_input_raw_unit_packed_sha256': 'common', 'common_statistics_sha256': 'statistics'}
+        qualified = {'identity': dict(ident), 'initial_raw_unit_packed_sha256': 'cpu device output',
+                     'canonical_initial': {'raw_unit_packed_sha256': 'canonical'}, **context}
+        namespace = {'require': driver.require, 'ident': ident, 'context': context, 'qualified': qualified,
+                     'canonical': {'raw_unit_packed_sha256': 'canonical'}, 'initial_witness': 'cuda device output'}
+        try: exec(run, namespace)
+        except ValueError: self.fail('equal canonical witness rejected for device-native discrepancy')
+        for owner, key in [(ident, k) for k in ident] + [(context, k) for k in context] + [
+                (namespace['canonical'], 'raw_unit_packed_sha256')]:
+            saved = owner[key]
+            try:
+                owner[key] = 'wrong'
+                with self.assertRaises(ValueError): exec(run, namespace)
+            finally: owner[key] = saved
+
+    def test_live_cpu_copy_ignores_stale_initializers_and_releases_all_tensors(self):
+        self.assertTrue(hasattr(driver, 'canonical_initial_witness'), 'canonical helper missing')
+        case = canonical_fixture()
+        result = case.run()
+        self.assertEqual(case.calls, [[[float(i)] for i in range(64)], [[float(i+10)] for i in range(64)]])
+        self.assertTrue(result['independent_cpu_storage'])
+        self.assertTrue(result['temporary_references_released'])
+        self.assertTrue(result['live_unchanged'])
+        self.assertTrue(all(ref() is None for ref in case.refs))
+        case.context['initial'] = {'A': None, 'head': None, 'C': None, 'views': None}
+        case.state['head'] = None
+        self.assertEqual(case.run(), result)
+
+    def test_live_mutations_wrong_head_buffer_mean_mu_rows_and_roles_rejected(self):
+        self.assertTrue(hasattr(driver, 'canonical_initial_witness'), 'canonical helper missing')
+        for target in ('A', 'C', 'mu_train', 'means', 'head', 'buffer', 'row', 'schedule', 'role', 'counter'):
+            with self.subTest(target=target):
+                case = canonical_fixture()
+                if target in ('A', 'C', 'mu_train'): case.state[target].values[0] += .25
+                elif target == 'means': case.state['means']['concat'].values[0] += .25
+                elif target == 'head': case.state['head_object'].weight.values[0] += .25
+                elif target == 'buffer': case.state['head_object'].offset.values[0] += .25
+                elif target == 'row': case.state['views']['augmented'].values[1][0] += .25
+                elif target == 'schedule': case.state['schedules']['179061'].values[0][0] = 64
+                elif target == 'role': case.state['A'].requires_grad = False
+                else: case.state['counter'] = 1
+                with self.assertRaises(ValueError): case.run()
+                self.assertEqual(case.calls, [])
+
+    def test_copy_alias_stale_copy_and_forward_error_release_without_live_changes(self):
+        self.assertTrue(hasattr(driver, 'canonical_initial_witness'), 'canonical helper missing')
+        for failure in ('alias', 'stale', 'forward'):
+            with self.subTest(failure=failure):
+                case = canonical_fixture()
+                if failure == 'alias': case.ns['clone'] = lambda context, value, device='cpu': value
+                if failure == 'stale':
+                    original = case.ns['clone']
+                    def wrong(context, value, device='cpu'):
+                        result = original(context, value, device)
+                        result['A'].values[0] += .25
+                        return result
+                    case.ns['clone'] = wrong
+                if failure == 'forward':
+                    def broken(*args):
+                        case.refs.extend(weakref.ref(v) for v in (args[0], args[2], args[4], args[5]))
+                        raise RuntimeError('readout failed')
+                    case.ns['fullfeature_raw_features'] = broken
+                before = case.digest(case.context, case.ns['payload'](case.context, case.state, case.ident))
+                with self.assertRaisesRegex((ValueError, RuntimeError), 'copy|alias|readout failed'):
+                    case.run()
+                self.assertTrue(all(ref() is None for ref in case.refs))
+                self.assertEqual(case.digest(case.context, case.ns['payload'](case.context, case.state, case.ident)), before)
+
+    def test_exact_four_reporting_preserves_original_failure_and_actual_supplement(self):
+        self.assertTrue(hasattr(driver, 'audit_origin_diagnostics'), 'origin reporter missing')
+        from contextlib import redirect_stdout
+        import io
+        supplement = {'files': {'a.so': 'a'*64, 'b.so': 'b'*64, 'c.so': 'c'*64, 'd.so': 'd'*64}}
+        legacy = {'origins': {'files': {'old': '0'*64, 'a.so': 'a'*64, 'extra.so': 'e'*64},
+                              'native_files': {'a.so': 'a'*64}},
+                  'selected': {'source_cpu': {'origins': {'files': {'old': '0'*64}}}},
+                  'warm_record': {'origins': {'files': {}}}}
+        events, reject = [], [True]
+        error = ValueError('observed native difference must be exact four')
+        def audit(value, **kwargs):
+            events.append((value is legacy, kwargs, supplement))
+            if reject[0]: raise error
+            return 'original audit result'
+        api = SimpleNamespace(audit_origins=audit)
+        reader, output = object(), io.StringIO()
+        with redirect_stdout(output), self.assertRaises(ValueError) as raised:
+            driver.audit_origin_diagnostics({'legacy': legacy}, api, admission=reader, require_exact=True)
+        self.assertIs(raised.exception, error)
+        self.assertEqual(events, [(True, {'admission': reader, 'require_exact': True}, supplement)])
+        report = json.loads(output.getvalue())
+        self.assertEqual(report['missing'], ['b.so', 'c.so', 'd.so'])
+        self.assertEqual(report['extra'], ['extra.so'])
+        self.assertEqual(report['missing_native'], ['b.so', 'c.so', 'd.so'])
+        self.assertEqual(report['expected'], supplement['files'])
+        reject[0] = False
+        before = copy.deepcopy(legacy)
+        with redirect_stdout(output):
+            self.assertEqual(driver.audit_origin_diagnostics({'legacy': legacy}, api, admission=reader),
+                             'original audit result')
+        self.assertEqual(legacy, before)
+
+class CanonicalDiagnosticTensor:
+    def __init__(self, values, shape=None, dtype='float32'):
+        self.values = copy.deepcopy(values)
+        self.shape = shape or ((len(values), len(values[0])) if isinstance(values, list) and values and isinstance(values[0], list)
+                               else (len(values),) if isinstance(values, list) else ())
+        self.dtype = dtype
+    def flat(self):
+        def visit(v):
+            if isinstance(v, list):
+                for child in v: yield from visit(child)
+            else: yield v
+        return list(visit(self.values))
+    def map(self, operation): return CanonicalDiagnosticTensor([operation(x) for x in self.flat()]).reshape(*self.shape)
+    def __len__(self): return self.shape[0]
+    def __getitem__(self, key): return CanonicalDiagnosticTensor(self.values[key])
+    def tolist(self): return copy.deepcopy(self.values)
+    def item(self): return self.flat()[0]
+    def contiguous(self): return self
+    def double(self): return self
+    def element_size(self): return 4 if self.dtype == 'float32' else 1
+    def view(self, dtype):
+        import struct
+        return CanonicalDiagnosticTensor(list(b''.join(struct.pack('<f', x) for x in self.flat())), dtype=dtype)
+    def reshape(self, *shape):
+        import math
+        shape = list(shape); values = self.flat()
+        if -1 in shape: shape[shape.index(-1)] = len(values)//math.prod(s for s in shape if s != -1)
+        if not shape: return CanonicalDiagnosticTensor(values[0], (), self.dtype)
+        if len(shape) == 2: values = [values[i:i+shape[1]] for i in range(0, len(values), shape[1])]
+        return CanonicalDiagnosticTensor(values, tuple(shape), self.dtype)
+    def __ne__(self, other): return CanonicalDiagnosticTensor([x != y for x, y in zip(self.flat(), other.flat(), strict=True)]).reshape(*self.shape)
+    def __gt__(self, other): return self.map(lambda x: x > other)
+    def __sub__(self, other): return CanonicalDiagnosticTensor([x-y for x, y in zip(self.flat(), other.flat(), strict=True)]).reshape(*self.shape)
+    def all(self): return CanonicalDiagnosticTensor(all(self.flat()))
+    def any(self, dim):
+        assert dim == 1
+        return CanonicalDiagnosticTensor([any(row) for row in self.values])
+    def abs(self): return self.map(abs)
+    def max(self): return CanonicalDiagnosticTensor(max(self.flat()))
+    def norm(self, dim=None):
+        import math
+        return CanonicalDiagnosticTensor([math.sqrt(sum(x*x for x in row)) for row in self.values]
+                                         if dim == 1 else math.sqrt(sum(x*x for x in self.flat())))
+
+
+def canonical_diagnostics_fixture(reference, native):
+    import math
+    import sys
+    from unittest.mock import patch
+    T = CanonicalDiagnosticTensor
+    torch = SimpleNamespace(uint8='uint8', isfinite=lambda t: t.map(math.isfinite),
+        count_nonzero=lambda t: T(sum(bool(v) for v in t.flat())),
+        nonzero=lambda t: T([[r, c] for r, row in enumerate(t.values) for c, v in enumerate(row) if v]))
+    def digest(context, value):
+        return hashlib.sha256(json.dumps([value.shape, value.dtype, value.values]).encode()).hexdigest()
+    namespace = {**vars(driver), 'fingerprint': digest}
+    node = next(n for n in ast.parse(PATH.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name == 'initial_component_diagnostics')
+    exec(compile(ast.Module(body=[node], type_ignores=[]), str(PATH), 'exec'), namespace)
+    with patch.dict(sys.modules, {'torch': torch}):
+        return namespace['initial_component_diagnostics']({}, reference, native)
+
+
+class CanonicalComponents(unittest.TestCase):
+    def test_exact_component_counts_norms_and_wire_coordinates_without_tolerance(self):
+        self.assertTrue(hasattr(driver, 'initial_component_diagnostics'), 'component diagnostics missing')
+        T = CanonicalDiagnosticTensor
+        left = {v: {'raw': T([[3., 4.], [1., 2.]]), 'unit': T([[.6, .8], [.5, 1.]]),
+                    'codes': T([[3., 4.], [1., 2.]]), 'inverse_norms': T([.25, .5]),
+                    'wire': bytes([1, 2, 3, 4, 5, 6])} for v in driver.VIEWS}
+        right = copy.deepcopy(left)
+        right['augmented']['raw'].values[0][1] = 5.
+        right['augmented']['unit'].values[0][1] = .9
+        right['augmented']['codes'].values[1][1] = 3.
+        right['augmented']['inverse_norms'].values[1] = .25
+        right['augmented']['wire'] = bytes([1, 2, 3, 4, 9, 6])
+        report = canonical_diagnostics_fixture(left, right)
+        self.assertTrue(all(f['exact'] for f in report['canonical'].values()))
+        changed = report['augmented']
+        self.assertEqual(changed['raw']['max_abs'], 1.)
+        self.assertEqual(changed['raw']['l2'], 1.)
+        self.assertEqual(changed['raw']['unequal_count'], 1)
+        self.assertAlmostEqual(changed['unit']['max_abs'], .1)
+        self.assertTrue(changed['raw']['finite'] and changed['raw']['finite_norms'] and changed['raw']['nonzero_norms'])
+        self.assertEqual(changed['codes']['unequal_elements_exact'], 1)
+        self.assertEqual(changed['inverse_norms']['unequal_elements_exact'], 1)
+        self.assertEqual(changed['wire']['unequal_bytes'], 1)
+        self.assertEqual(changed['wire']['first_differing_row_byte'], [1, 1])
+        self.assertEqual(changed['codes']['first_differing_row_byte'], [1, 6])
+        self.assertEqual(changed['inverse_norms']['first_differing_row_byte'], [1, 2])
+        self.assertTrue(all(not f['exact'] for f in changed.values()))
+        # Signed zero is numerically equal but its packed element bytes differ.
+        right = copy.deepcopy(left)
+        left['canonical']['inverse_norms'].values[0] = 0.
+        right['canonical']['inverse_norms'].values[0] = -0.
+        signed = canonical_diagnostics_fixture(left, right)['canonical']['inverse_norms']
+        self.assertEqual(signed['unequal_count'], 0)
+        self.assertEqual(signed['unequal_elements_exact'], 1)
+        for invalid in (0., float('nan')):
+            wrong = copy.deepcopy(left)
+            wrong['augmented']['raw'].values[0] = [invalid, invalid]
+            with self.assertRaises(ValueError): canonical_diagnostics_fixture(left, wrong)
 
 if __name__ == '__main__': unittest.main()

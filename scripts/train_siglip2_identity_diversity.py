@@ -795,7 +795,7 @@ def prepare_native(context):
         context['mu_train_sha256'] = fingerprint(context, initial['mu_train'])
         context['mu_train_provenance_sha256'] = fingerprint(context, initial['mu_train_provenance'])
     # Fresh per audit: imported_origins hashes; the original reader registers those bytes.
-    context['nearest'].native_source_api(context).audit_origins(legacy, admission=legacy['original'].FlatAdmission())
+    audit_origin_diagnostics(context, context['nearest'].native_source_api(context), admission=legacy['original'].FlatAdmission())
 
     # Accepted/warm full payloads were checked above. No old views, banks,
     # teachers or score graph can survive into a candidate scope lifetime.
@@ -1308,6 +1308,200 @@ def cached_witness(context, state):
 
 
 
+
+
+def canonical_copy_check(context, live, copied):
+    """Exact tensor bytes and genuinely independent CPU storage, never .to aliasing."""
+    sources, copies = [], []
+    try:
+        before = fingerprint(context, live, consumed=sources.append)
+        after = fingerprint(context, copied, consumed=copies.append)
+        require(before == after and len(sources) == len(copies), 'canonical live/copy bytes differ')
+        require(all(t.device.type == 'cpu' and not t.requires_grad and t.grad_fn is None for t in copies) and
+                not ({(str(t.device), t.untyped_storage().data_ptr()) for t in sources} &
+                     {(str(t.device), t.untyped_storage().data_ptr()) for t in copies}),
+                'canonical CPU copy aliases live storage or roles differ')
+        return after
+    finally:
+        sources.clear(); copies.clear()
+
+
+def initial_component_diagnostics(context, reference, native):
+    """Measurements only: canonical arithmetic does not imply device interchangeability."""
+    import torch
+    result = {}
+    for view in VIEWS:
+        components = {}
+        for name in ('raw', 'unit', 'codes', 'inverse_norms'):
+            a, b = reference[view][name], native[view][name]
+            require(a.shape == b.shape and a.dtype == b.dtype, 'initial component layout differs')
+            finite = bool(torch.isfinite(a).all().item() and torch.isfinite(b).all().item())
+            require(finite, 'finite initial components required')
+            left = a.contiguous().view(torch.uint8).reshape(a.shape[0], -1)
+            right = b.contiguous().view(torch.uint8).reshape(b.shape[0], -1)
+            different = left != right
+            first = torch.nonzero(different)
+            fact = {'cpu_sha256': fingerprint(context, a), 'native_sha256': fingerprint(context, b),
+                    'unequal_count': int(torch.count_nonzero(a != b).item()),
+                    'unequal_bytes': int(torch.count_nonzero(different).item()),
+                    'unequal_elements_exact': int(torch.count_nonzero(
+                        different.reshape(-1, a.element_size()).any(dim=1)).item()),
+                    'first_differing_row_byte': first[0].tolist() if len(first) else None,
+                    'finite': finite}
+            fact['exact'] = fact['cpu_sha256'] == fact['native_sha256']
+            if name in ('raw', 'unit'):
+                delta = a.double() - b.double()
+                fact.update(max_abs=float(delta.abs().max().item()), l2=float(delta.norm().item()),
+                            finite_norms=bool(torch.isfinite(a.norm(dim=1)).all().item() and
+                                              torch.isfinite(b.norm(dim=1)).all().item()),
+                            nonzero_norms=bool((a.norm(dim=1) > 0).all().item() and
+                                               (b.norm(dim=1) > 0).all().item()))
+                require(fact['finite_norms'] and fact['nonzero_norms'], 'finite nonzero initial raw/unit norms required')
+            components[name] = fact
+        a, b = reference[view]['wire'], native[view]['wire']
+        rows = reference[view]['codes'].shape[0]
+        require(len(a) == len(b) and rows > 0 and len(a) % rows == 0, 'initial wire layout differs')
+        row_bytes = len(a) // rows
+        first = next((i for i, (x, y) in enumerate(zip(a, b, strict=True)) if x != y), None)
+        components['wire'] = {'cpu_sha256': hashlib.sha256(a).hexdigest(),
+            'native_sha256': hashlib.sha256(b).hexdigest(), 'exact': a == b,
+            'unequal_bytes': sum(x != y for x, y in zip(a, b, strict=True)),
+            'first_differing_row_byte': list(divmod(first, row_bytes)) if first is not None else None}
+        result[view] = components
+    return result
+
+
+def canonical_initial_witness(context, state, ident, *, compare_native=False):
+    """Admission only: original CPU arithmetic on independently copied LIVE readout."""
+    import copy
+    import torch
+    require(type(state['counter']) is int and state['counter'] == 0, 'canonical admission requires counter zero')
+    integrity(context, state, ident)
+
+    def live_signature():
+        tensors = [state['A'], state['C'], state['mu_train'], *state['means'].values(),
+                   *state['views'].values(), *state['head_object'].parameters(), *state['head_object'].buffers()]
+        return (fingerprint(context, payload(context, state, ident)),
+                tuple(id(state[n]) for n in ('head_object', 'optimizer_object', 'scaler_object')),
+                tuple((id(t), str(t.device), t.untyped_storage().data_ptr(), t.requires_grad,
+                       id(t.grad), fingerprint(context, t.grad)) for t in tensors),
+                tuple((id(m), m.training) for m in state['head_object'].modules()))
+
+    before = live_signature()
+    temporary, released, failure = {}, [], None
+    try:
+        batch = state['schedules'][str(state['seed'])][0].tolist()
+        require(len(batch) == 64, 'canonical first B64 required')
+        temporary['live'] = {'A': state['A'], 'C': state['C'], 'means': state['means'],
+            'mu_train': state['mu_train'], 'head_parameters': dict(state['head_object'].named_parameters()),
+            'head_buffers': dict(state['head_object'].named_buffers()),
+            'views': {view: state['views'][view][batch] for view in VIEWS}}
+        released.extend(tensor_weakrefs(context, temporary['live']['views']))
+        temporary['copied'] = clone(context, temporary['live'])
+        # An alias is rejected before registering it as a temporary we own.
+        digest = canonical_copy_check(context, temporary['live'], temporary['copied'])
+        released.extend(tensor_weakrefs(context, temporary['copied']))
+        bindings = {k: fingerprint(context, v) for k, v in temporary['copied'].items()}
+        require(all(bindings[name] == context[key] == ident[key] for name, key in
+                    (('A', 'initial_A_sha256'), ('C', 'initial_C_sha256'), ('mu_train', 'mu_train_sha256'))),
+                'canonical admitted A/C/mu bytes differ')
+        # Deepcopy preserves the actual small head's class, buffers and modes,
+        # and consumes no constructor RNG. Never move the live module to CPU.
+        temporary['head'] = copy.deepcopy(state['head_object']).to('cpu')
+        canonical_copy_check(context,
+            {k: temporary['live'][k] for k in ('head_parameters', 'head_buffers')},
+            {'head_parameters': dict(temporary['head'].named_parameters()),
+             'head_buffers': dict(temporary['head'].named_buffers())})
+        released.extend(tensor_weakrefs(context, {'parameters': dict(temporary['head'].named_parameters()),
+                                                'buffers': dict(temporary['head'].named_buffers())}))
+        temporary['A'] = torch.nn.Parameter(temporary['copied']['A'], requires_grad=True)
+        released.extend(tensor_weakrefs(context, temporary['A']))
+        with torch.no_grad(), torch.autocast('cpu', enabled=False):
+            temporary['outputs'] = {view: context['old'].packed_outputs(context['legacy'], fullfeature_raw_features(
+                temporary['copied']['views'][view], temporary['head'], temporary['A'], temporary['copied']['means'],
+                temporary['copied']['C'], temporary['copied']['mu_train'], state['arm'],
+                context['legacy']['quadratic'], helper_guard(context))) for view in VIEWS}
+        released.extend(tensor_weakrefs(context, temporary['outputs']))
+        result = {'raw_unit_packed_sha256': fingerprint(context, temporary['outputs']),
+                  'live_copy_sha256': digest, 'bindings': bindings, 'components': None}
+        if compare_native:
+            temporary['native'] = cached_witness(context, state)
+            released.extend(tensor_weakrefs(context, temporary['native']))
+            result['components'] = initial_component_diagnostics(context, temporary['outputs'], temporary['native'])
+    except Exception as error:
+        # Drop inner traceback frames before checking rejected-copy lifetimes.
+        failure = error.with_traceback(None)
+    finally:
+        temporary.clear()
+        gc.collect()
+        require(all(ref() is None for ref in released), 'canonical temporary tensor lifetime survived release')
+        require(live_signature() == before, 'canonical admission changed complete live state/roles/RNG')
+        integrity(context, state, ident)
+    if failure is not None:
+        raise failure
+    return {**result, 'independent_cpu_storage': True, 'temporary_references_released': True, 'live_unchanged': True}
+
+
+def canonical_initial_falsifiers(context, state, ident, expected):
+    """Run at the native qualification boundary, restoring original valid roles."""
+    nearest = context['nearest']
+    before = fingerprint(context, payload(context, state, ident))
+    original_initial, original_head = context['initial'], state['head']
+    try:
+        context['initial'] = {**original_initial, **dict.fromkeys(('A', 'C', 'head', 'means', 'mu_train', 'views'))}
+        state['head'] = None
+        observed = canonical_initial_witness(context, state, ident)
+        require(observed['raw_unit_packed_sha256'] == expected['raw_unit_packed_sha256'] and
+                observed['bindings'] == expected['bindings'], 'stale initializer affected live canonical witness')
+    finally:
+        context['initial'], state['head'] = original_initial, original_head
+    batch = state['schedules'][str(state['seed'])][0].tolist()
+    cases = [('A', state['A']), ('C', state['C']), ('mu', state['mu_train']),
+             *[('head:' + k, v) for k, v in state['head_object'].named_parameters()],
+             *[('buffer:' + k, v) for k, v in state['head_object'].named_buffers()],
+             *[('means:' + k, v) for k, v in state['means'].items()],
+             *[('view:' + k, state['views'][k][batch[0]]) for k in VIEWS],
+             ('rows', state['schedules'][str(state['seed'])][0])]
+    for name, value in cases:
+        saved, version = clone(context, value, str(value.device)), value._version
+        try:
+            value.data.reshape(-1)[0] += 1
+            require(value._version == version, 'canonical falsifier must bypass tensor version')
+            nearest.rejected(lambda: canonical_initial_witness(context, state, ident), 'canonical current mutation accepted: ' + name)
+        finally:
+            value.data.copy_(saved)
+        del saved
+    for name in ('A', 'C'):
+        role = state[name].requires_grad
+        try:
+            state[name].requires_grad_(not role)
+            nearest.rejected(lambda: canonical_initial_witness(context, state, ident), 'canonical wrong role accepted')
+        finally:
+            state[name].requires_grad_(role)
+    nearest.rejected(lambda: canonical_copy_check(context, state['mu_train'], state['mu_train']),
+                     'canonical copy alias accepted')
+    integrity(context, state, ident)
+    require(fingerprint(context, payload(context, state, ident)) == before,
+            'canonical falsifiers changed original valid state/RNG')
+    return {'stale_initializer_ignored': True, 'current_mutations_rejected': [name for name, _ in cases],
+            'roles_restored': True, 'copy_alias_rejected': True}
+
+
+def audit_origin_diagnostics(context, api, **kwargs):
+    """Report actual bound membership at the original audit, including rejection."""
+    try:
+        return api.audit_origins(context['legacy'], **kwargs)
+    finally:
+        captured = dict(zip(api.audit_origins.__code__.co_freevars, api.audit_origins.__closure__ or (), strict=True))
+        expected = dict(captured['supplement'].cell_contents['files'])
+        legacy = context['legacy']
+        origins = legacy['origins']
+        known = set(legacy['selected']['source_cpu']['origins']['files']) | set(legacy['warm_record']['origins']['files'])
+        difference = set(origins['files']) - known
+        print(json.dumps({'event': 'INITIAL_NATIVE_ORIGIN_DIAGNOSTICS_V1', 'expected': expected,
+            'observed_difference': {p: origins['files'][p] for p in sorted(difference)},
+            'missing': sorted(set(expected) - difference), 'extra': sorted(difference - set(expected)),
+            'missing_native': sorted(set(expected) - set(origins['native_files']))}), flush=True)
 
 
 def cpu_gradients(context, state):
@@ -2101,6 +2295,10 @@ def cpu_witnesses(context):
             torch.random.default_generator.manual_seed(seed)
             state=fresh(context,arm,seed,'cpu');ident=identity(context,state);integrity(context,state,ident)
             witness=fingerprint(context,cached_witness(context,state))
+            with timed(context, 'canonical_initial_admission'):
+                canonical = canonical_initial_witness(context, state, ident)
+                require(canonical['raw_unit_packed_sha256'] == witness, 'canonical CPU/native initial witness differs')
+                canonical_falsifiers = canonical_initial_falsifiers(context, state, ident, canonical)
             gradients.append(cpu_gradients(context,state));tamper_witness(context,state,ident)
             checkpoint=args.output/f'initializer-{arm}-{seed}.pt';sha,digest=save(context,state,ident,checkpoint)
             members,native_witness=inference_members(context,state),inference_witness(context,state)
@@ -2115,6 +2313,7 @@ def cpu_witnesses(context):
                 context['initial']['target'].tolist(),context['initial']['original_rows'].tolist()),
                 'terminal_state_sha256':digest,'checkpoint':{'path':str(checkpoint),'sha256':sha},'bundle':bundle,
                 'initial_raw_unit_packed_sha256':witness,
+                'canonical_initial':canonical,'canonical_initial_falsifiers':canonical_falsifiers,
                 'common_input_raw_unit_packed_sha256':context['common_input_raw_unit_packed_sha256'],
                 'common_statistics_sha256':context['common_statistics_sha256'],
                 'scope_residual_energy':context['scope_residual_energy'],
@@ -2150,15 +2349,23 @@ def gpu_run(context):
     ident = identity(context, state)
     integrity(context, state, ident)
     initial_witness = fingerprint(context, cached_witness(context, state))
+    with timed(context, 'canonical_initial_admission'):
+        canonical = canonical_initial_witness(context, state, ident, compare_native=True)
+        print(json.dumps({'event': 'CANONICAL_INITIAL_COMPONENTS_V1', 'arm': args.arm,
+                          'seed': args.seed, 'canonical_initial': canonical}), flush=True)
+        canonical_falsifiers = canonical_initial_falsifiers(context, state, ident, canonical)
     qualified = next(q for q in context['terminals'][f'cpu:{SEEDS[0]}:control']['qualifications']
                      if q['arm'] == args.arm and q['seed'] == args.seed)
     require(ident['static_sha256'] == qualified['identity']['static_sha256'] and
             ident['scope'] == qualified['identity']['scope'] and
             ident['schedule_provenance_sha256'] == qualified['identity']['schedule_provenance_sha256'] and
-            initial_witness == qualified['initial_raw_unit_packed_sha256'] and
+            canonical['raw_unit_packed_sha256'] == qualified['canonical_initial']['raw_unit_packed_sha256'] and
             context['common_input_raw_unit_packed_sha256'] == qualified['common_input_raw_unit_packed_sha256'] and
             context['common_statistics_sha256'] == qualified['common_statistics_sha256'],
             'qualified per-scope/seed CPU source/teachers/schedule/initialization differs')
+    require(canonical['bindings'] == qualified['canonical_initial']['bindings'] and
+            canonical['live_copy_sha256'] == qualified['canonical_initial']['live_copy_sha256'],
+            'qualified live canonical inputs/readout bytes differ')
     rows, resumed = [], []
     total = 17 if args.phase == 'mechanics' else 128
     with TemporaryDirectory(prefix='discard-mechanics-', dir=args.output) as directory:
@@ -2221,7 +2428,7 @@ def gpu_run(context):
         with timed(context, 'post_calibration_api_authentication'):
             api = context['nearest'].native_source_api(context)
         with timed(context, 'post_calibration_origin_audit'):
-            api.audit_origins(context['legacy'], admission=context['legacy']['original'].FlatAdmission(), require_exact=True)
+            audit_origin_diagnostics(context, api, admission=context['legacy']['original'].FlatAdmission(), require_exact=True)
         for path in list(context['guards']):
             if Path(path).is_relative_to(temporary):
                 context['guards'].pop(path)  # Discard only after full reload/parity qualification.
@@ -2239,6 +2446,7 @@ def gpu_run(context):
             'ranking_bank': bank, 'completed_step': total, 'identity': ident, 'steps': rows, 'resumed_steps': resumed,
             'terminal_state_sha256': digest, 'initial_A_sha256': ident['initial_A_sha256'],
             'initial_raw_unit_packed_sha256': initial_witness,
+            'canonical_initial': canonical, 'canonical_initial_falsifiers': canonical_falsifiers,
             'checkpoint': None if args.phase == 'mechanics' else {'path': str(checkpoint), 'sha256': sha},
             'bundle': None if args.phase == 'mechanics' else bundle,
             'replay_exact': args.phase == 'mechanics', 'independent_first8_exact': args.phase == 'mechanics',
@@ -2539,7 +2747,7 @@ def exit_rehash(context):
         helper_guard(context)
         api = context['nearest'].native_source_api(context)
         exit_reader = context['legacy']['original'].FlatAdmission()
-        api.audit_origins(context['legacy'], admission=exit_reader, require_exact=context['args'].phase != 'cpu')
+        audit_origin_diagnostics(context, api, admission=exit_reader, require_exact=context['args'].phase != 'cpu')
         exit_admission_adapter(context, api, exit_reader)(context['fit_context'])
     with timed(context, 'own_exit_rehash'):
         for p, h in context['guards'].items():
@@ -2552,7 +2760,7 @@ def exit_rehash(context):
     with timed(context, 'post_exit_api_authentication'):
         api = context['nearest'].native_source_api(context)
     with timed(context, 'post_exit_origin_audit'):
-        api.audit_origins(context['legacy'], admission=context['legacy']['original'].FlatAdmission(), require_exact=context['args'].phase != 'cpu')
+        audit_origin_diagnostics(context, api, admission=context['legacy']['original'].FlatAdmission(), require_exact=context['args'].phase != 'cpu')
 
 
 def run(args):
@@ -2592,7 +2800,7 @@ def run(args):
         api = context['nearest'].native_source_api(context)
     with timed(context, 'post_run_origin_audit'):
         post_run_reader = legacy['original'].FlatAdmission()
-        api.audit_origins(legacy, admission=post_run_reader, require_exact=args.phase != 'cpu')
+        audit_origin_diagnostics(context, api, admission=post_run_reader, require_exact=args.phase != 'cpu')
     with timed(context, 'origin_guard_promotion'):
         for p, h in legacy['origins']['files'].items():
             post_run_reader.bound_file(context['guards'], p, h)
