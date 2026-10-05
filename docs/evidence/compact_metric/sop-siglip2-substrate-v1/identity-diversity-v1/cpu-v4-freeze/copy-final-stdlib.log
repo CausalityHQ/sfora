@@ -1,0 +1,54 @@
+test_full_other_production_ast_and_all_original_test_hashes_preserved (__main__.BoundedVisionCopy.test_full_other_production_ast_and_all_original_test_hashes_preserved) ... ok
+test_multichunk_tail_bytes_and_read_write_source_consume_order (__main__.BoundedVisionCopy.test_multichunk_tail_bytes_and_read_write_source_consume_order) ... ok
+test_original_exclusive_sha_readback_and_link_guards_reject (__main__.BoundedVisionCopy.test_original_exclusive_sha_readback_and_link_guards_reject) ... ok
+test_original_writer_syncs_64MiB_before_output_consumption_and_final_tail (__main__.BoundedVisionCopy.test_original_writer_syncs_64MiB_before_output_consumption_and_final_tail) ... ok
+test_read_short_write_advice_flush_and_fsync_errors_close_streams (__main__.BoundedVisionCopy.test_read_short_write_advice_flush_and_fsync_errors_close_streams) ... ok
+test_complete_nested_source_guard_correspondence (__main__.DiversityAdmissions.test_complete_nested_source_guard_correspondence) ... ok
+test_complete_schedule_and_update_mutants (__main__.DiversityAdmissions.test_complete_schedule_and_update_mutants) ... ok
+test_complete_unrelated_ast_and_native_preparation_preserved (__main__.DiversityAdmissions.test_complete_unrelated_ast_and_native_preparation_preserved) ... ok
+test_json_and_resource_contract (__main__.DiversityAdmissions.test_json_and_resource_contract) ... ok
+test_launch_scope_cache_and_prerequisite_mutants (__main__.DiversityAdmissions.test_launch_scope_cache_and_prerequisite_mutants) ... ok
+test_native_release_drops_legacy_banks_and_keeps_metadata_provenance (__main__.DiversityAdmissions.test_native_release_drops_legacy_banks_and_keeps_metadata_provenance) ... ok
+test_new_exact2_and_method (__main__.DiversityAdmissions.test_new_exact2_and_method) ... ok
+test_no_scope_gradient_equality_or_hinge_dispatch (__main__.DiversityAdmissions.test_no_scope_gradient_equality_or_hinge_dispatch) ... ok
+test_original_image_self_and_singletons (__main__.DiversityAdmissions.test_original_image_self_and_singletons) ... ok
+test_owned_closure_tamper_and_extra_file (__main__.DiversityAdmissions.test_owned_closure_tamper_and_extra_file) ... ok
+test_retained_admission_and_loader_ast (__main__.DiversityAdmissions.test_retained_admission_and_loader_ast) ... ok
+test_retained_update_and_vision_predicate_order (__main__.DiversityAdmissions.test_retained_update_and_vision_predicate_order) ... ok
+test_scope_bundle_swap (__main__.DiversityAdmissions.test_scope_bundle_swap) ... ok
+test_scope_namespaces_and_mutants (__main__.DiversityAdmissions.test_scope_namespaces_and_mutants) ... ok
+test_scope_release_tracks_all_nested_leaves_and_rejects_aliases (__main__.DiversityAdmissions.test_scope_release_tracks_all_nested_leaves_and_rejects_aliases) ... ok
+test_scope_release_traversal_error_keeps_owner_and_does_not_admit (__main__.DiversityAdmissions.test_scope_release_traversal_error_keeps_owner_and_does_not_admit) ... ok
+test_tensor_leaf_refs_nested_metadata_and_duplicate_aliases (__main__.DiversityAdmissions.test_tensor_leaf_refs_nested_metadata_and_duplicate_aliases) ... ok
+test_visit_arithmetic_scope_counts (__main__.DiversityAdmissions.test_visit_arithmetic_scope_counts) ... ok
+test_archived_control_gate_and_zeroC_candidate_derivative (__main__.HistoricalGradientOracle.test_archived_control_gate_and_zeroC_candidate_derivative) ... ok
+test_complete_firstB64_old_new_A_C_and_gallery_decomposition (__main__.HistoricalGradientOracle.test_complete_firstB64_old_new_A_C_and_gallery_decomposition) ... ok
+test_exact_source_and_test_inverse_keeps_all_historical_hashes (__main__.HistoricalGradientOracle.test_exact_source_and_test_inverse_keeps_all_historical_hashes) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 4.957s
+
+OK
+	Command being timed: "timeout 120s python3 scripts/test_siglip2_identity_diversity.py -v"
+	User time (seconds): 4.72
+	System time (seconds): 0.35
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:05.11
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 185936
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 95103
+	Voluntary context switches: 89
+	Involuntary context switches: 643
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

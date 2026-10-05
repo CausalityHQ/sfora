@@ -1,0 +1,87 @@
+{
+  "base": "5e5d53dcad900a6d2c6afe400ee19d75617124e3",
+  "evidence_sha256": {
+    "cpu-residency-diag-v1-memory.jsonl": "467f2c3b45414826d6aca2e42159dfe18ac68b1b0241e27596575d73f086c54d",
+    "cpu-residency-diag-v1.log": "791d6799a195fd0f63867c5472d64fb22930ec516efc1412924f25e556ca7ca5",
+    "result.json": "ce5803c10d5d42b6ff19e48e5f40b80a918f33129c034dffc2da14dd33774b5d",
+    "source-audit.json": "437b53d485ab0349f9ad72998fe46d7f746e8ee8f2a222713308bbc58a75efb1"
+  },
+  "forbidden": [
+    "Torch",
+    "native",
+    "SSH",
+    "GPU",
+    "images",
+    "quality",
+    "reviews",
+    "children",
+    "cloud",
+    "operator",
+    "merge",
+    "push"
+  ],
+  "limits": {
+    "final_stdlib_address_space_bytes": 1073741824,
+    "final_stdlib_seconds": 120,
+    "final_suite_runs": 1
+  },
+  "native_fit_claim": false,
+  "original_copy_ast": "Expr(value=Call(func=Attribute(value=Name(id='shutil', ctx=Load()), attr='copyfile', ctx=Load()), args=[Name(id='source_path', ctx=Load()), Name(id='vision_path', ctx=Load())]))",
+  "original_pins": {
+    "scripts/extract_siglip2_vision_source.py": {
+      "ast_sha256": "1d270937dedb9ac860e6566c0cf92ac667ac5e6d0b7aa8b05ed004a332d0ab48",
+      "bytes": 18602,
+      "sha256": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d"
+    },
+    "scripts/test_siglip2_identity_diversity.py": {
+      "ast_sha256": "0c0f7b5c82ff8181ed047b70a2865c7248a927778fc16f103c4b3679fc55a3ad",
+      "bytes": 70536,
+      "sha256": "3b67a2b9e9f6177ed0b4ebfed4fa2b44c245390db6494ba52030eeca5db8cf9c"
+    },
+    "scripts/train_siglip2_identity_diversity.py": {
+      "ast_sha256": "b04d469d8932aa634773740f3f36e5234bcf0bf07a36c7360720bb594819994c",
+      "bytes": 176110,
+      "sha256": "a0bc0338a93fa425d136ec2cf59fd5bbe5d1ef0aedbb76747747cceff348fb69"
+    },
+    "scripts/train_siglip2_substrate_adaptation.py": {
+      "ast_sha256": "1fad5a85626886aae134e33854de43a4f01553fba93779b991dd4c439f229e5b",
+      "bytes": 111671,
+      "sha256": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+    }
+  },
+  "original_tests": {
+    "DiversityAdmissions.test_complete_nested_source_guard_correspondence": "71bdec1f34594aa02583d4e90e4db1faacdca35c1e92065ed33bc2d5d13ecb03",
+    "DiversityAdmissions.test_complete_schedule_and_update_mutants": "5f52a9a24bc7860f504e5b272ab63bc1122892ebec9b9412d147bd194dbe6653",
+    "DiversityAdmissions.test_complete_unrelated_ast_and_native_preparation_preserved": "1620f984b51e2b814ce73817d82c04ce16f15742afda7e76bc278b3fe020e35a",
+    "DiversityAdmissions.test_json_and_resource_contract": "b17d9a3f4517a42ea67d068769234cd7cb2421ec74bbf5ca7be5337e7f20634f",
+    "DiversityAdmissions.test_launch_scope_cache_and_prerequisite_mutants": "a84964ef7e602faf1386c9ed3cabe3604b9742e223b555a8554eba74a1142e70",
+    "DiversityAdmissions.test_native_release_drops_legacy_banks_and_keeps_metadata_provenance": "fa05589a4bc989b269d71e1f449f1c40ccf7a3621f993fecd0575fb692ce9bbb",
+    "DiversityAdmissions.test_new_exact2_and_method": "eed85251907212b4bd32b6eef0c6a20193a0737d2e76294cb2f3dfb1c70bd2ea",
+    "DiversityAdmissions.test_no_scope_gradient_equality_or_hinge_dispatch": "0f2560fcbedf9ce6479217be0b208a6241e7d7772f95dcf1baac23d98d29ef47",
+    "DiversityAdmissions.test_original_image_self_and_singletons": "6254d34bdafca677e9543b83597bcfb1bd9bb91b1d5673f8479dcf3e956f8229",
+    "DiversityAdmissions.test_owned_closure_tamper_and_extra_file": "018c69432031a735713029ac12303990f9d8b93d8a5194c985adf8e16267a43c",
+    "DiversityAdmissions.test_retained_admission_and_loader_ast": "0341ffdf589402132689e03d4fc77dc382bfc5f94262e7ee9657c9751e7fcd0e",
+    "DiversityAdmissions.test_retained_update_and_vision_predicate_order": "1aadce4e585f6fb303939730d9f3481d00e03dd9661fbdfad21bd1839e503969",
+    "DiversityAdmissions.test_scope_bundle_swap": "e7388d726e4477bf318b612dfa8d96584e4c32ce9c021820eb883fcef53fd89f",
+    "DiversityAdmissions.test_scope_namespaces_and_mutants": "2daad2e159e40c79db96993a63ca66fa61033130b233d04eeb483dcbacbc1799",
+    "DiversityAdmissions.test_scope_release_tracks_all_nested_leaves_and_rejects_aliases": "96ff868bae2501b22b01556669434a70224413dbf176b5b48191eae1022fda78",
+    "DiversityAdmissions.test_scope_release_traversal_error_keeps_owner_and_does_not_admit": "883cbd18db7c8244082d8460473e4d29863fa67996eb0b3f6a9cc9497906e0a6",
+    "DiversityAdmissions.test_tensor_leaf_refs_nested_metadata_and_duplicate_aliases": "c0a92f57d6250f744ba48924b5278200aa28325a324d2fe451924225c490b3ae",
+    "DiversityAdmissions.test_visit_arithmetic_scope_counts": "0d50358b3d058541b66c4c90c0b3f540b2974aa1cd4f08e3eee58125590cd7bb",
+    "HistoricalGradientOracle.test_archived_control_gate_and_zeroC_candidate_derivative": "c78f8e9c40436d6dce4388213d4468180c05a69f1b123fc81eda498d827f8b6e",
+    "HistoricalGradientOracle.test_complete_firstB64_old_new_A_C_and_gallery_decomposition": "bef0ceb0544ba58293e97c2143e176adff4671b79e41c731b20ef785d51ea4a1",
+    "HistoricalGradientOracle.test_exact_source_and_test_inverse_keeps_all_historical_hashes": "06f9c95b03299727e9f7301fdfecf0bc5d0fde6c9e394f6fcbb56c8709d1c168"
+  },
+  "owned": [
+    "scripts/train_siglip2_identity_diversity.py",
+    "scripts/test_siglip2_identity_diversity.py"
+  ],
+  "owned_copy_statement": "export_bundle/body timed-with/body[6]",
+  "parent_gate_pending": true,
+  "production_inverse": "Replace exactly prospective copy With by original copy Expr; complete original AST equality; no other production AST changes",
+  "prospective_copy": "with source_path.open('rb') as source, legacy['extract'].exclusive(vision_path) as stream:\n    writer = legacy['original'].CheckpointWriter(stream)\n    buffer = bytearray(1024**2)\n    while count := source.readinto(buffer):\n        writer.write(memoryview(buffer)[:count])\n        os.posix_fadvise(source.fileno(), source.tell() - count, count, os.POSIX_FADV_DONTNEED)\n    writer.flush()\n",
+  "prospective_copy_ast_sha256": "a2e541a078b5bdc8e5b2e4ff631f7fe5a616be5e246a8a7818d02f5980b6b0e1",
+  "schema": "sfora-identity-diversity-bounded-vision-copy-contract-v1",
+  "state": "pre-edit",
+  "test_inverse": "Strip only additive test helpers/class and unwrap four copy inverses plus test inverse wrapper, restoring complete original AST; retain every original historical hash constant"
+}

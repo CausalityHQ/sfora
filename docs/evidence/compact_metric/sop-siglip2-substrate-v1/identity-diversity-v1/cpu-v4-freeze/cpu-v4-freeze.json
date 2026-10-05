@@ -1,0 +1,26 @@
+{
+  "authority_sha256": "a39539e569d13f8a797e6d05c30ccb068a9042fe53e416412fc677ee0ecc0242",
+  "command_sha256": "f1f4a9ebe693892180bde07da1e80738f1fa63355a4515ec197f501ab7e2eafd",
+  "controller_sha256": "7a5370e697707a5e38607cff396aea5b7aeb871240f1dbff41735902c1c3c6c0",
+  "descriptor": {
+    "code": {
+      "test_siglip2_identity_diversity.py": "39a36691b777052bd44554e73011aaa936400efea1cca46b817c3de380a915c1",
+      "train_siglip2_identity_diversity.py": "d62c2dbf7a58e0b4af03efccdb386ee84e38b9acc5ace6bbefcb29ddca915b38"
+    },
+    "execution_sha256": "7f609e6076033e7227d6f196e7d2ebcf8b3d48129bf004df862252e6764b5938",
+    "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v4"
+  },
+  "diagnostic_state_reuse": false,
+  "launch_sha256": "f428e663e312111190795569db34a2494980e2d30f85b9618edbb000df908c65",
+  "observer_sha256": "53409094fbbffd51eb8d7f38b47e6248d60b9e6346ed1ec184cf5a1574639922",
+  "previous_cpu_v1_v2_v3": "FAIL",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "schema": "identity-diversity-cpu-v4-freeze-v1",
+  "source_commit": "3577a24f",
+  "stop_rule": "one original CPU500; complete four scope/seed qualifications, strict reload/parity/full uncached exit; host<=8GiB events0 swap0; any failure FAIL no partial reuse"
+}
