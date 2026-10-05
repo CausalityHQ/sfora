@@ -1,0 +1,16 @@
+{
+  "schema": "identity-diversity-mechanics-failure-v1",
+  "unit": "sfora-so400-identity-diversity-mechanics-control-179061-v1",
+  "invocation_id": "5111b74e2c994f5786e22dd262dd0b38",
+  "service_seconds": 134.37,
+  "host_peak_bytes": 2285518848,
+  "events0": true,
+  "swap0": true,
+  "exit": 1,
+  "quality_read": false,
+  "updates": 0,
+  "candidate_launched": false,
+  "error": "qualified per-scope/seed CPU source/teachers/schedule/initialization differs",
+  "log_sha256": "1772424e35b0c826145cd8da2fdc5955f9e3939708cabe00e04f768e79c62c85",
+  "next": "determine exact mismatch among six original conjuncts; no parity weakening or speculative repair"
+}
