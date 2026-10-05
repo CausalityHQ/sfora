@@ -1,0 +1,49 @@
+{
+  "base": "d591037f6170747f4b6e27c5712ce44ab0bffc21",
+  "files": {
+    "train_siglip2_identity_diversity.py": {
+      "bytes_sha256": "d62c2dbf7a58e0b4af03efccdb386ee84e38b9acc5ace6bbefcb29ddca915b38",
+      "ast_sha256": "342d82bfdc643ea9c0111f238b5545a47721e20b17e971470474ab56345780e9"
+    },
+    "test_siglip2_identity_diversity.py": {
+      "bytes_sha256": "39a36691b777052bd44554e73011aaa936400efea1cca46b817c3de380a915c1",
+      "ast_sha256": "3397f00a49d5960a6e58f9188019f53b144c622aa2c62939baa763d2e3855a5f"
+    }
+  },
+  "helpers": [
+    "canonical_copy_check",
+    "canonical_initial_witness",
+    "initial_component_diagnostics",
+    "canonical_initial_falsifiers",
+    "audit_origin_diagnostics"
+  ],
+  "canonical_initial_witness": "counter0; integrity before/after; original payload hash plus live object/tensor/gradient/role signatures unchanged. deepcopy ACTUAL small head (no constructor RNG), genuine clone_tree of live A/C/means/mu, named head parameters/buffers, and first scheduled B64 both-view feature rows. Exact live/copy bytes, distinct storage, admitted A/C/mu hashes, existing complete static/head integrity. Original readout+packing. Return metadata only; explicit finally clears temporaries on success/error with tensor weakref lifetime check. No initializer/stale head reads for computation; no optimizer/vision/fullcache copies.",
+  "fields": {
+    "cpu_qualification": [
+      "canonical_initial",
+      "canonical_initial_falsifiers"
+    ],
+    "gpu_result": [
+      "canonical_initial",
+      "canonical_initial_falsifiers"
+    ],
+    "canonical_initial": [
+      "raw_unit_packed_sha256",
+      "live_copy_sha256",
+      "bindings",
+      "independent_cpu_storage",
+      "temporary_references_released",
+      "live_unchanged",
+      "components"
+    ],
+    "components": "GPU only both views raw/unit/codes/inverse_norms/wire CPU/native hashes, unequal counts, exact flags, raw/unit maxabs/L2, finite/nonzero raw/unit norms, wire first differing row/byte; measurements only"
+  },
+  "native_falsifiers": "real canonical helper rejects live .data A/C/head/buffer/means/mu/selected-view/schedule-row mutations, wrong head, A/C roles. Stale initializer computation fields and stale state.head ignored; originals restored finally. Direct copy check rejects aliases. Full state/RNG/flags/ownership unchanged and helper temporaries released both outcomes.",
+  "gpu_predicate_inverse": [
+    "canonical['raw_unit_packed_sha256'] == qualified['canonical_initial']['raw_unit_packed_sha256']",
+    "initial_witness == qualified['initial_raw_unit_packed_sha256']"
+  ],
+  "other_existing_edits": "cpu_witnesses/gpu_run add timed helper/falsifier invocation and two metadata fields only; CPU adds exact canonical/native equality and GPU adds binding equality, JSON component observation. Existing API audit calls in prepare_native/gpu_run/run/exit_rehash routed through reporting wrapper which calls original with identical args, logs actual closure supplement missing/extra/native-missing in finally, propagates failure. No old witness/replay/serialization/math/loader changes.",
+  "inverse_contract": "Remove exactly five named new helpers; reverse only exact registered added statements/dict fields and the one conjunct; unwrap only audit_origin_diagnostics calls to original api.audit_origins with original arguments. Pin every replacement/addition source AST, occurrence counts; complete resulting production AST and inverse reconstructed source bytes equal saved baseline. Tests only add stdlib fixtures and explicit production/test inverse wrappers around historical AST reads; preserve old test bodies and hashes after narrow inverse.",
+  "checks": "stdlib RED/GREEN focused new regressions, then one affected <=120s/1GiB suite; no native imports/GPU/SSH/images/quality/jobs/reviews/children/push. Root must run new four CPU500 then both mechanics600, 8GiB/events0/swap0/CUDA<10GB/both locks, full quality/cost gates; historical PASS/FAIL/nonqualification retained."
+}

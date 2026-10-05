@@ -1,0 +1,10 @@
+{
+  "train_siglip2_identity_diversity.py": {
+    "bytes_sha256": "840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8",
+    "ast_sha256": "f36a0e472318190c06808527d2ce97fd9ebd20d9e9a94232763343f48b22486c"
+  },
+  "test_siglip2_identity_diversity.py": {
+    "bytes_sha256": "96a704f357eafcf07d07381f0bc2ce6537712e9d6b84829ba860cd1f0a436102",
+    "ast_sha256": "8b068524ef7a8d3f945d970f45c020015da8493fb78055508bfd3a875f199f33"
+  }
+}

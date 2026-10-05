@@ -1,0 +1,30 @@
+{
+  "authority_sha256": "8fcfb9ae55c33ed842c68ab01b59fea378f1258b4b784d5874e40e9f49801eac",
+  "files": {
+    "authority-cpu-v5.json": "8fcfb9ae55c33ed842c68ab01b59fea378f1258b4b784d5874e40e9f49801eac",
+    "controller.sh": "52fdca0f33b720c3794e4efd3412e86468eaafa7b1d382e265a7f9195ff8a263",
+    "cpu-v5-command.sh": "0ef4588689c81b8fe050ddcf8e0dcbfed0e2200b1ddeda10b211bbc3dd8cf567",
+    "cpu-v5-launch.sh": "fbc6b5309ddafcb411336bc06b660eb27ec80aa225386c4690ac1a6c536b7bce",
+    "descriptor.json": "6d0a877ff5c542c31e99f6e03d28bf88a35eb6e86ccff7abf8086b660c8cb69a",
+    "execution.json": "bd081a02a49f1f0dd8305b78bb3f8aa91f5bb7331f3045325a185971fb7c04a8",
+    "residency-sampler-v1.py": "53409094fbbffd51eb8d7f38b47e6248d60b9e6346ed1ec184cf5a1574639922",
+    "test_siglip2_identity_diversity.py": "96a704f357eafcf07d07381f0bc2ce6537712e9d6b84829ba860cd1f0a436102",
+    "train_siglip2_identity_diversity.py": "840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8"
+  },
+  "policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "schema": "identity-diversity-canonical-cpu-v5-freeze-v1",
+  "source": {
+    "code": {
+      "test_siglip2_identity_diversity.py": "96a704f357eafcf07d07381f0bc2ce6537712e9d6b84829ba860cd1f0a436102",
+      "train_siglip2_identity_diversity.py": "840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8"
+    },
+    "execution_sha256": "bd081a02a49f1f0dd8305b78bb3f8aa91f5bb7331f3045325a185971fb7c04a8",
+    "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5"
+  },
+  "stop_rule": "Any failure is FAIL; full four CPU qualifications and uncached exit required before mechanics; no training or quality. Prior failures unchanged."
+}

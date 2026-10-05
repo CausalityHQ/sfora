@@ -1,0 +1,8 @@
+{
+  "code": {
+    "test_siglip2_identity_diversity.py": "96a704f357eafcf07d07381f0bc2ce6537712e9d6b84829ba860cd1f0a436102",
+    "train_siglip2_identity_diversity.py": "840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8"
+  },
+  "execution_sha256": "bd081a02a49f1f0dd8305b78bb3f8aa91f5bb7331f3045325a185971fb7c04a8",
+  "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5"
+}

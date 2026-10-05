@@ -1,0 +1,11 @@
+{
+  "tests": 35,
+  "failures": 0,
+  "errors": 0,
+  "successful": true,
+  "seconds": 6.809,
+  "max_rss_kib": 175272,
+  "address_space_cap_bytes": 1073741824,
+  "wall_cap_seconds": 120,
+  "native_modules_loaded": []
+}
