@@ -1,0 +1,16 @@
+{
+  "schema": "identity-diversity-init-observation-result-v1",
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "service_seconds": 147.236,
+  "exit": 1,
+  "updates": 0,
+  "quality_read": false,
+  "mismatching_fields": [
+    "initial_raw_unit_packed_sha256"
+  ],
+  "five_other_original_bindings_exact": true,
+  "cleanup_error": "observed native difference must be exact four",
+  "full_exit_pass": false,
+  "next": "source-supported prospective CPU/CUDA initialization witness boundary correction; original native membership remains required before qualification"
+}
