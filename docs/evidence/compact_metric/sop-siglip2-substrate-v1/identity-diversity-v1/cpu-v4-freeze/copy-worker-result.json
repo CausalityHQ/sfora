@@ -1,0 +1,79 @@
+{
+  "commit": "8b415b70b74e4ee4aaae5cba1e83941afcf0af4e",
+  "contract_pre_edit": {
+    "path": "/tmp/sfora-identity-diversity-bounded-vision-copy-contract-pre-edit.json",
+    "sha256": "6c9c998c1ec6020f095f854ead14f9777613897fef218ec14cc17a4c3b1a3331"
+  },
+  "execution_manifest": {
+    "bytes": 220,
+    "path": "/tmp/sfora-identity-diversity-bounded-vision-copy-execution.json",
+    "sha256": "7f609e6076033e7227d6f196e7d2ebcf8b3d48129bf004df862252e6764b5938"
+  },
+  "final_suite": {
+    "address_space_limit_bytes": 1073741824,
+    "exit": 0,
+    "log": "/tmp/sfora-identity-diversity-bounded-vision-copy-final-stdlib.log",
+    "log_sha256": "8ef516f3d576817ff71d9dc2351a62a8399683b369c010d21fc53ac34c1506ab",
+    "peak_rss_kib": 185936,
+    "runs": 1,
+    "swaps": 0,
+    "test_seconds": 4.957,
+    "tests": 26,
+    "timeout_seconds": 120,
+    "wall_seconds": 5.11
+  },
+  "focused_green": {
+    "exit": 0,
+    "seconds": 1.15,
+    "tests": 5
+  },
+  "focused_red": {
+    "exit": 1,
+    "reason": "whole copy lacks read/write/source-consume ordering",
+    "tests": 1
+  },
+  "full_original_test_ast_inverse": true,
+  "full_production_ast_inverse": true,
+  "full_production_byte_inverse": true,
+  "git_diff_check_exit": 0,
+  "identity": {
+    "attribution_trailers": false,
+    "author": "Roman Bartusiak <riomus@gmail.com>",
+    "committer": "Roman Bartusiak <riomus@gmail.com>"
+  },
+  "native_fit_claim": false,
+  "native_gate_run": false,
+  "new_pins": {
+    "scripts/test_siglip2_identity_diversity.py": {
+      "ast_sha256": "3397f00a49d5960a6e58f9188019f53b144c622aa2c62939baa763d2e3855a5f",
+      "bytes": 82714,
+      "sha256": "39a36691b777052bd44554e73011aaa936400efea1cca46b817c3de380a915c1"
+    },
+    "scripts/train_siglip2_identity_diversity.py": {
+      "ast_sha256": "342d82bfdc643ea9c0111f238b5545a47721e20b17e971470474ab56345780e9",
+      "bytes": 176504,
+      "sha256": "d62c2dbf7a58e0b4af03efccdb386ee84e38b9acc5ace6bbefcb29ddca915b38"
+    }
+  },
+  "original_evidence_hashes_unchanged": {
+    "cpu-residency-diag-v1-memory.jsonl": "467f2c3b45414826d6aca2e42159dfe18ac68b1b0241e27596575d73f086c54d",
+    "cpu-residency-diag-v1.log": "791d6799a195fd0f63867c5472d64fb22930ec516efc1412924f25e556ca7ca5",
+    "result.json": "ce5803c10d5d42b6ff19e48e5f40b80a918f33129c034dffc2da14dd33774b5d",
+    "source-audit.json": "437b53d485ab0349f9ad72998fe46d7f746e8ee8f2a222713308bbc58a75efb1"
+  },
+  "original_hash_constants_preserved": true,
+  "original_test_methods_preserved": 21,
+  "original_writer_and_exclusive_unchanged": true,
+  "owned": [
+    "scripts/test_siglip2_identity_diversity.py",
+    "scripts/train_siglip2_identity_diversity.py"
+  ],
+  "parent": "5e5d53dcad900a6d2c6afe400ee19d75617124e3",
+  "parent_gate_pending": "Root fresh CPU500s/8GiB/zeroevents/swap, both locks, unchanged full source/exit admission; observer optional",
+  "prohibited_work_launched": false,
+  "remaining": "CPU fit and useful trained model plus production quality/speed remain unmet; original FAIL/cache evidence preserved",
+  "schema": "sfora-identity-diversity-bounded-vision-copy-result-v1",
+  "source_advice_guarantees_eviction": false,
+  "status": "SOURCE_VERIFIED_NATIVE_PENDING",
+  "worktree_clean": true
+}
