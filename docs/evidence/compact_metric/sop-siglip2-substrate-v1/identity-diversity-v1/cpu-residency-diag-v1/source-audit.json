@@ -1,0 +1,146 @@
+{
+  "base": "7081e42d17862b04b52ef152faaa2e589cf4cfdc",
+  "causal_time_bound": {
+    "first_observed_rejection": "candidate first fresh/identity/integrity after cache_target_preparation end237.45472948532552",
+    "last_successful_guard": "second CONTROL independent_reload calls integrity and source.cgroup_memory before end191.64485974796116; therefore memory.max events still0 at that in-function guard",
+    "reason": "bundle qualification and release have no intermediate cgroup event admission; delayed rejection cannot locate original event",
+    "unobserved_interval": "after last restore integrity through second CONTROL bundle copy/two constructors+forwards+oracles/releases, scope release, candidate preparation and first state clone"
+  },
+  "commit_created": false,
+  "decision": "external observation only; original peak cause unmeasured",
+  "execution_sha256": "fb08f151f148116c0e3d05756968365bed73b9d6e0a1cda4c0d19a6924ea0368",
+  "external_sampler": {
+    "alignment": "External monotonic_ns and last complete original phase line per0.5s sample; use phase transitions to bracket events, retain polling/pipe-delivery uncertainty; skipped sub0.5s phases and transient maxima possible. memory.peak/events remain authoritative cumulative evidence.",
+    "bindings": "parent supplies unique fresh output root, authority/command/log/unit and actual invocation id; reuse exact source/closure; never reuse failed output",
+    "cadence_seconds": 0.5,
+    "deadline_seconds": 550,
+    "detail_cadence_seconds": null,
+    "each_second_and_event_increment": [],
+    "every_sample": [
+      "monotonic_ns start/end, realtime_ns",
+      "raw memory.current/peak/max/stat/events/events.local/swap.current/swap.peak/swap.max/cgroup.procs/cgroup.events",
+      "per PID status Name/VmRSS/VmHWM/VmData/RssAnon/RssFile/RssShmem",
+      "last complete original COMPACT_PHASE JSON line via retained offset"
+    ],
+    "exact_cgroup": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-identity-diversity-cpu-residency-diag-v1.service",
+    "exact_log": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v3/cpu-residency-diag-v1.log",
+    "exact_unit": "sfora-so400-identity-diversity-cpu-residency-diag-v1",
+    "falsification": {
+      "file_cache": "event onset with rising file/file_dirty/file_writeback (especially vision size growth) while anon/RssAnon remains stable supports dirty/cache pressure; mapped/RssFile rise supports active archive pages",
+      "live_or_allocator_anon": "anon/RssAnon growth across construction/forward/release despite model weakref passing implicates native allocation/allocator retention, not scoped Tensor alias; allocator vs live owners still requires further evidence",
+      "no_fit_claim": "raw samples can miss sub100ms peaks; cgroup cumulative peak/events and original whole-unit terminal decide gate; fixtures/read-only audit never establish native fit",
+      "scope_overlap": "compare immediately before/after second control bundle release + candidate preparation; weakref checks remain mandatory; phase snapshots cannot independently prove tensor alias identities"
+    },
+    "invariants": "no memory.peak reset, no new cache drop/fsync/fadvise/helper override/model reuse/artifact deletion/cap or math changes; keep original500s8GiB0swap both lifetime locks and complete uncached exit/source authority admission",
+    "invocation": "/usr/bin/python3 /home/riomus/runs/sfora-identity-diversity-residency-sampler-v1.py --cgroup /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-so400-identity-diversity-cpu-residency-diag-v1.service --log /home/riomus/runs/sfora-so400-identity-diversity-train-source-v3/cpu-residency-diag-v1.log --output /home/riomus/runs/sfora-so400-identity-diversity-train-source-v3/cpu-residency-diag-v1-samples.jsonl",
+    "locate": "systemctl --user show UNIT.service -p ControlGroup -p InvocationID -p ActiveState -p SubState -p ExecMainStatus; join ControlGroup to /sys/fs/cgroup, require nonroot canonical path and pinned InvocationID; sampler resides outside target leaf",
+    "log_cap_bytes": 16777216,
+    "max_samples": 1200,
+    "owner": "parent only; no worker command or native run launched",
+    "phase_order": "for arm control,candidate then seeds179061,179069: prepare_scope cache_target_preparation once/arm; cpu_loss_falsifier, save, independent_reload, shared_bundle_preparation, 2x bundle_loader/native_forward/oracle/release; align via log occurrence and existing filenames, never infer new epoch from latest line alone",
+    "placement": "Root verifies ControlGroup matches actual path and starts observer OUTSIDE target cgroup. Observer and native task retain separate original process IDs; root kills/collects observer in finally after sole systemd result.",
+    "prototype": {
+      "fixture": "/tmp/test_sfora_identity_diversity_residency_sampler.py",
+      "fixture_checks": "4 stdlib tests pass; raw max68 retained without admission; perPID missing status explicit; partialphase lines; exclusive output/byte cap; waiting/create/disappear; synthetic watchdog550s (no wall wait).",
+      "fixture_sha256": "b6ee0fc6e2369baf2743ff8730d7ae57d7bde7060ab4a4190402a5a8028546ec",
+      "path": "/tmp/sfora_identity_diversity_residency_sampler.py",
+      "sha256": "53409094fbbffd51eb8d7f38b47e6248d60b9e6346ed1ec184cf5a1574639922"
+    },
+    "termination": "start sampler before unique root gate; preserve preappearance rows; keep through original final/stop footer and terminal unit/cgroup state, bounded deadline; collect original process exit/status only once. Missing samples/errors are explicit evidence gaps, not zeros."
+  },
+  "native_run": false,
+  "original_failure": {
+    "error": "cgroup memory failure event",
+    "host_peak_bytes": 8589934592,
+    "invocation_id": "afa56499628e47dc807105740e3409f1",
+    "memory_max_events": 68,
+    "oom_events": 0,
+    "original_log_sha256": "a1a59bbeeeaeceac1cd6f510c3c52a1ec2b576cb5eec5a1f7177b73277ab857b",
+    "quality_read": false,
+    "service_seconds": 239.783,
+    "status": "FAIL",
+    "swap_bytes": 0,
+    "unit": "sfora-so400-identity-diversity-cpu-v3"
+  },
+  "ownership_ledger": [
+    {
+      "drops": "native local disk/pages/head/A/T/U/P/e0/accepted; initial views/teachers/schedules/target/original_rows; legacy banks/teachers/etc removed with typed weakrefs",
+      "evidence": "prepare_native:696-817",
+      "measurement_missing": "bytes of persistent tensors and allocator retention at phase boundaries",
+      "owner": "context.common + common_witness_features",
+      "retains": "frozen provenance/config/buffers/processor/head/classifier/means/A/C/mu/partition/common_statistics; cloned first64 canonical features"
+    },
+    {
+      "distinction": "caller invokes prepare_original, not fitter.prepare_native:588-612, so that latter warm_payload clone is not introduced on this path; no helper/global edits allowed",
+      "evidence": "fit_siglip2_prototype_residual.py:508-584; identity prepare_native:702",
+      "owner": "fit_context.original_preparation",
+      "retains": "immutable functions/modules/global identity snapshots and AST admission metadata"
+    },
+    {
+      "drops": "entire scoped tree checked by tensor-leaf weakrefs before candidate",
+      "evidence": "prepare_scope:524-587; release_scope:597-605; genuine_views.training_features:555-568",
+      "measurement_missing": "unmapped input cache pages remain eligible file cache; release proves tensor lifetime, not allocator RSS/cache eviction",
+      "owner": "context.initial per scope",
+      "retains": "fresh normalized CPU copies of canonical/augmented6355x1152 plus scope teachers/masks/schedules; mmap numpy inputs dropped inside original loader"
+    },
+    {
+      "drops": "registries popped; state cleared; A/C/model weakrefs checked; no native vision in cached training state",
+      "evidence": "fresh:928-964; payload:994-1001; release:1120-1127",
+      "owner": "fresh state + A_owners/C_owners",
+      "retains": "independent cloned static trees/head/A/C/ordered optimizer/scaler; payload aliases state and temporary RNG clones during save"
+    },
+    {
+      "drops": "writer already syncs every64MiB/final and advises pagealigned ranges; restore fully hashes typed mmap, genuinely clones all state, strict reload verifies complete bytes; disk/pages/temporaryoptimizer deleted",
+      "evidence": "save:1130-1142; restore:1145-1173; original CheckpointWriter:1177-1214 and CheckpointPages:1240-1293",
+      "measurement_missing": "file cache retention and incomplete boundary pages are not guaranteed evicted by advice",
+      "owner": "initializer file and restore mmap",
+      "retains": "regular serialized files and guard path/hash metadata across scope/seed"
+    },
+    {
+      "drops": "typed verification disk/pages; perseed members/native_witness locals; files preserved",
+      "evidence": "inference_members:1486-1503; export_bundle:1510-1585; cpu_witnesses:2099-2119",
+      "exposure": "shutil.copyfile copies entire vision before fsync and subsequent fullbyte hash/advice; transient dirty source/output cache is plausible, not established cause",
+      "owner": "members/native_witness + bundle files",
+      "retains": "cloned small serving state/witness until each seed ends; separate regular vision.pt inode + endpoint.pt + manifest/processor/copied serving helpers"
+    },
+    {
+      "drops": "mapped disk/vision/pages after strict full state verification; oracle graph/tensors explicitly removed; endpoint/model/modules cleared with weakref check before next load",
+      "evidence": "load_inference:1631-1708; qualify_bundle:1816-1915; release_inference:1743-1752",
+      "measurement_missing": "constructor/forward allocator anon high water vs active file/mapped pages",
+      "owner": "each independent inference endpoint",
+      "retains": "one genuine constructor model448 + strict copied vision weights/buffers + processor/head/A/C/means/mu, two sequential independent loads per seed"
+    },
+    {
+      "drops": "perseed members/native_witness/state/ident etc and entire scope; active original namespace removed at end",
+      "evidence": "cpu_witnesses:2087-2132",
+      "owner": "qualifications and gradients report lists",
+      "retains": "JSON metadata/numbers/lists/hashes, no live native model or scoped Tensor owner"
+    }
+  ],
+  "parent_measured_artifact_bytes": {
+    "endpoint_pt_control_each": 3079996,
+    "initializer_control_each": 70803919,
+    "source": "parent durable message1791157859219229254; remote artifacts not loaded locally",
+    "vision_pt_control_each": 1711945083
+  },
+  "remaining": "CPU fit and production quality/speed unmet; valid candidate caches and all original failures retained",
+  "repository_dirty": false,
+  "repository_edits": [],
+  "schema": "sfora-identity-diversity-cpu-residency-source-audit-v1",
+  "source": {
+    "test_siglip2_identity_diversity.py": {
+      "archive_byte_identical": true,
+      "ast_sha256": "0c0f7b5c82ff8181ed047b70a2865c7248a927778fc16f103c4b3679fc55a3ad",
+      "bytes": 70536,
+      "sha256": "3b67a2b9e9f6177ed0b4ebfed4fa2b44c245390db6494ba52030eeca5db8cf9c"
+    },
+    "train_siglip2_identity_diversity.py": {
+      "archive_byte_identical": true,
+      "ast_sha256": "b04d469d8932aa634773740f3f36e5234bcf0bf07a36c7360720bb594819994c",
+      "bytes": 176110,
+      "sha256": "a0bc0338a93fa425d136ec2cf59fd5bbe5d1ef0aedbb76747747cceff348fb69"
+    }
+  },
+  "source_remote_root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v3",
+  "tests_run": false
+}

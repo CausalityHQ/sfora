@@ -1,0 +1,34 @@
+{
+  "schema": "identity-diversity-residency-observation-v1",
+  "trainer": {
+    "code": {
+      "test_siglip2_identity_diversity.py": "3b67a2b9e9f6177ed0b4ebfed4fa2b44c245390db6494ba52030eeca5db8cf9c",
+      "train_siglip2_identity_diversity.py": "a0bc0338a93fa425d136ec2cf59fd5bbe5d1ef0aedbb76747747cceff348fb69"
+    },
+    "execution_sha256": "fb08f151f148116c0e3d05756968365bed73b9d6e0a1cda4c0d19a6924ea0368",
+    "root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v3"
+  },
+  "source_changed": false,
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "quality_read": false,
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "unit": "sfora-so400-identity-diversity-cpu-residency-diag-v1",
+  "output": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-residency-diag-v1",
+  "authority_sha256": "8fef2f385f5ae0dae841644c3ae919a998c080c3c68497d026b5f75c5abe58ae",
+  "command_sha256": "64f46a52c089f1cde96971d8d048921b67103e9f8be2b4d60482b29503362407",
+  "launch_sha256": "b91ef430314109c1640fca31d67d923ef5dd0c6d58e92c93d81d0c1f908ba018",
+  "stop_rule": "Original unit cap/resource/integrity gates unchanged; observation only. Stop original run and observer at terminal. No training or quality admission.",
+  "sampler_sha256": "53409094fbbffd51eb8d7f38b47e6248d60b9e6346ed1ec184cf5a1574639922",
+  "controller_sha256": "31d6f9255524459b6c055b98b1bb883bb799f075dfdaa1658c12f7be316ccf01",
+  "sampler_cadence_seconds": 0.5,
+  "sampler_watchdog_seconds": 550,
+  "sampler_max_samples": 1200,
+  "sampler_max_bytes": 16777216,
+  "source_audit_sha256": "437b53d485ab0349f9ad72998fe46d7f746e8ee8f2a222713308bbc58a75efb1"
+}
