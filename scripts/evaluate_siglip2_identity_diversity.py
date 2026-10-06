@@ -2086,8 +2086,7 @@ def exit_rehash(context):
     api.exit_rehash(t['fit_context'])
     merge_guards(context['guards'],t['guards']); merge_guards(context['guards'],t['legacy']['guards'])
     # Fresh uncached complete source/payload/bundle files, including restored-mtime mutations.
-    for p,h in context['guards'].items():
-        bound_file({},p,h)
+    trainer.batch_bound_files({},context['guards'].items())
     for descriptor,names,pins in (({'root':str(context['root']),'execution_sha256':context['args'].execution_sha256},FILES,context['code']),
         (context['launch']['training'],TRAIN_FILES,context['launch']['training']['code']),
         (context['launch']['nearest_evaluator'],NEAREST_EVALUATOR['code'],NEAREST_EVALUATOR['code']),

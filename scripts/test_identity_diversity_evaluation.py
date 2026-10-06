@@ -12,6 +12,7 @@ from pathlib import Path
 import statistics
 import sys
 import tempfile
+import threading
 from types import FunctionType, SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -380,7 +381,7 @@ class DiversityTests(unittest.TestCase):
     def test_complete_source_delta_and_unchanged_native_math_quality_seams(self):
         original=PATH.with_name('evaluate_siglip2_compact_ranking.py').read_text()
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),HISTORICAL_SHA256)
-        current=PATH.read_text();lines=current.splitlines(keepends=True)
+        current=exit_batch_inverse(PATH.read_text());lines=current.splitlines(keepends=True)
         for start,expected,replacement in reversed(SOURCE_EDITS):
             count=len(expected.splitlines(keepends=True))
             self.assertEqual(''.join(lines[start:start+count]),expected)
@@ -480,6 +481,139 @@ SOURCE_EDITS = (
     (2058, "        'preparation_costs':context['preparation_costs']}\n", "        'preparation_costs':{'shared_genuine_export_seconds':283.636,'shared_bundle_preparation_separate':True,\n            'shared_qualification_separate':True,'both_cache_target_preparation_charged_to_core':True}}\n"),
     (2136, "        'preparation_costs':context['preparation_costs'],\n", ''),
 )
+
+# The frozen DGX source-v1 and the one prospective exit_rehash guard-scan call that replaces its serial loop.
+FROZEN_SOURCE_SHA256 = 'cf047c90b96bd3f8baf08d4f878330356cbbde6fc12143cc109a05b345fc9efe'
+FROZEN_SOURCE_AST_SHA256 = '550a5905c21f68a058ec2325054d405ef5aadef6cddaaecd636909e903bc3d27'
+EXIT_SERIAL = "    for p,h in context['guards'].items():\n        bound_file({},p,h)\n"
+EXIT_BATCH = "    trainer.batch_bound_files({},context['guards'].items())\n"
+
+
+def exit_batch_inverse(raw):
+    """Invert only the one prospective exit_rehash guard-scan call."""
+    if raw.count(EXIT_BATCH) != 1 or raw.count(EXIT_SERIAL) != 0:
+        raise AssertionError('prospective exit guard batch occurrence differs')
+    return raw.replace(EXIT_BATCH,EXIT_SERIAL)
+
+
+class Probe:
+    """Real bound_file behind a bounded 2-party barrier; only the first two reads wait."""
+    def __init__(self,real,timeout):
+        self.real,self.lock,self.barrier=real,threading.Lock(),threading.Barrier(2,timeout=timeout)
+        self.arrivals=self.active=self.max_active=0;self.overlap=False;self.calls=[];self.entry_guards=[]
+
+    def __call__(self,guards,path,expected):
+        with self.lock:
+            self.arrivals+=1;self.active+=1;self.max_active=max(self.max_active,self.active)
+            self.calls.append((str(path),expected));self.entry_guards.append(dict(guards));waits=self.arrivals<=2
+        try:
+            if waits:
+                try:self.barrier.wait();self.overlap=True
+                except threading.BrokenBarrierError:pass
+            return self.real(guards,path,expected)
+        finally:
+            with self.lock:self.active-=1
+
+
+class ExitBatchContract(unittest.TestCase):
+    def test_exit_guard_scan_overlaps_exact_fresh_checks_and_restores_frozen_source(self):
+        raw=PATH.read_text();original=exit_batch_inverse(raw)
+        self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),FROZEN_SOURCE_SHA256)
+        self.assertEqual(hashlib.sha256(ast.dump(ast.parse(original),include_attributes=False).encode()).hexdigest(),
+            FROZEN_SOURCE_AST_SHA256)
+        # No source helper rebinding: the one call uses the pinned trainer's helper; nothing defines or reassigns it.
+        tree=ast.parse(raw);helpers={'batch_bound_files','bound_file'}
+        self.assertEqual(raw.count('batch_bound_files'),1)
+        self.assertFalse([n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='batch_bound_files'])
+        self.assertFalse([n for n in ast.walk(tree) if (isinstance(n,ast.Attribute) and n.attr in helpers or
+            isinstance(n,ast.Name) and n.id in helpers) and isinstance(n.ctx,(ast.Store,ast.Del))])
+
+        def body(source):
+            return next(n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name=='exit_rehash').body
+        old_body,new_body=body(original),body(raw)
+        index=next(i for i,s in enumerate(old_body) if isinstance(s,ast.For) and ast.unparse(s.iter)=="context['guards'].items()")
+        serial,batched=old_body[index],new_body[index]
+        self.assertEqual(ast.unparse(serial),"for p, h in context['guards'].items():\n    bound_file({}, p, h)")
+        self.assertEqual(ast.unparse(batched),"trainer.batch_bound_files({}, context['guards'].items())")
+        self.assertEqual(len(old_body),len(new_body))
+        self.assertEqual([ast.dump(s) for i,s in enumerate(old_body) if i!=index],
+            [ast.dump(s) for i,s in enumerate(new_body) if i!=index])
+
+        guards={}
+        e.closure(TRAINER_ROOT,e.TRAINING['execution_sha256'],e.TRAIN_FILES,guards)
+        trainer=e.load_authenticated('_diversity_exit_batch_trainer',TRAINER_ROOT/'train_siglip2_identity_diversity.py',
+            e.TRAINING['code']['train_siglip2_identity_diversity.py'],guards)
+        try:
+            def execute(statement,names):
+                threads,error=threading.active_count(),None
+                code=compile(ast.fix_missing_locations(ast.Module(body=[copy.deepcopy(statement)],type_ignores=[])),str(PATH),'exec')
+                try:exec(code,names)
+                except ValueError as exc:error=exc
+                self.assertEqual(threading.active_count(),threads,'workers joined before return')
+                return error
+
+            def run_serial(files):
+                probe,context=Probe(e.bound_file,.25),{'guards':dict(files)}
+                return probe,context,execute(serial,{'context':context,'bound_file':probe})
+
+            def run_batched(files):
+                # Only the pinned trainer module is provided: a fallback to the evaluator's bound_file would be a NameError.
+                probe,context=Probe(trainer.bound_file,5.),{'guards':dict(files)}
+                with patch.object(trainer,'bound_file',probe):
+                    error=execute(batched,{'context':context,'trainer':trainer})
+                self.assertEqual(probe.active,0)
+                return probe,context,error
+
+            with tempfile.TemporaryDirectory() as directory:
+                root=Path(directory).resolve();files={}
+                for i in range(5):
+                    member=root/('member%d'%i);member.write_bytes(b'member %d\n'%i)
+                    files[str(member)]=hashlib.sha256(member.read_bytes()).hexdigest()
+                expected=list(files.items())
+
+                # RED: the frozen serial loop cannot overlap two reads. GREEN: same members, digests and fresh
+                # throwaway-owner reads, overlapped within four workers, with the real owner left untouched.
+                red,context,error=run_serial(files)
+                self.assertIsNone(error);self.assertEqual((red.overlap,red.max_active),(False,1))
+                self.assertEqual(red.calls,expected);self.assertEqual(list(context['guards'].items()),expected)
+                green,context,error=run_batched(files)
+                self.assertIsNone(error);self.assertTrue(green.overlap);self.assertTrue(2<=green.max_active<=4)
+                self.assertEqual(sorted(green.calls),sorted(expected));self.assertEqual(green.entry_guards,[{}]*5)
+                self.assertEqual(list(context['guards'].items()),expected)
+                again,_,error=run_batched(files)  # no cache or skipped read across occurrences
+                self.assertIsNone(error);self.assertEqual(sorted(again.calls),sorted(expected))
+
+                def rejected(label,files,serial_message,batched_message,first=None):
+                    for run,message in ((run_serial,serial_message),(run_batched,batched_message)):
+                        with self.subTest(label=label,run=run.__name__):
+                            probe,context,error=run(files)
+                            self.assertRegex(str(error),message)
+                            if first:self.assertIn(first,str(error))
+                            self.assertEqual(list(context['guards'].items()),list(files.items()))
+                            if run is run_batched:
+                                self.assertEqual(sorted(probe.calls),[] if label=='malformed' else sorted(files.items()),
+                                    'malformed facts fail before any read; otherwise every member is read and joined')
+
+                # Current-byte mutation with restored mtime: first failure in member order, every member still read.
+                originals={}
+                for number in (1,3):
+                    member=root/('member%d'%number);status=member.stat();originals[member]=(member.read_bytes(),status)
+                    member.write_bytes(b'MEMBER %d\n'%number);os.utime(member,ns=(status.st_atime_ns,status.st_mtime_ns))
+                rejected('mutation',files,'file SHA256 differs','current FILE bytes differ',first=str(root/'member1'))
+                for member,(content,status) in originals.items():
+                    member.write_bytes(content);os.utime(member,ns=(status.st_atime_ns,status.st_mtime_ns))
+                self.assertIsNone(run_batched(files)[2])
+                # A symlink with identical bytes is not canonical authority.
+                member=root/'member2';target=root/'target';target.write_bytes(member.read_bytes())
+                member.unlink();member.symlink_to(target)
+                rejected('symlink',files,'canonical','canonical')
+                member.unlink();member.write_bytes(b'member 2\n')
+                self.assertIsNone(run_batched(files)[2])
+                # Conflicting expected digest, and a malformed one rejected before any read.
+                rejected('conflict',{**files,str(root/'member0'):'0'*64},'file SHA256 differs','current FILE bytes differ')
+                rejected('malformed',{**files,str(root/'member0'):'A'*64},'canonical FILE/SHA required','exact FILE required')
+        finally:
+            sys.modules.pop('_diversity_exit_batch_trainer')
 
 
 if __name__ == '__main__':
