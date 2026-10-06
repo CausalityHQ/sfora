@@ -1,0 +1,20 @@
+{
+  "quality": {
+    "candidate": {
+      "recall_at_1": 0.9682814302191465,
+      "map_at_r": 0.8288932982037293
+    },
+    "control": {
+      "recall_at_1": 0.9682814302191465,
+      "map_at_r": 0.8273301284197361
+    }
+  },
+  "decision": "KILL",
+  "reason": "candidate R1 equals control; strict first-seed improvement required",
+  "service_seconds": 366.642,
+  "invocation_id": "885d6b6c614a4e4298e431dd174e9cb6",
+  "resources_and_replays_verified": true,
+  "receipt_sha256": "c2e04c72d179b8d1783f8e365f39906722ca038722af41b0d6350d10fcbee10e",
+  "log_sha256": "645ada3511e34d2b3f4326177fd1019a4b5f50d783489f54fe29186db7f5fd0c",
+  "no_069_or_validation": true
+}
