@@ -1,0 +1,50 @@
+{
+  "exports": [
+    {
+      "arm": "control",
+      "cuda_peak_bytes": 2066498560,
+      "host_peak_bytes": 5209288704,
+      "pass": true,
+      "quality_read": false,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "2462842d897a405eb4e66d1ab5f08865",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/first-export-control-179061-v1.log",
+          "sha256": "562f0daca76ddbec3e4b033cba7ccd0453e95dbd175954b185609e92742f51cc"
+        },
+        "native_peak_rss_kib": 4265616,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-first-export-control-179061-v1/receipt.json",
+          "sha256": "032a5774afd3c3c2bf1817155dd60d4ed6623f7365c94c831528cf43cd8686ef"
+        },
+        "service_seconds": 673.29,
+        "unit": "sfora-so400-identity-diversity-evaluation-first-export-control-179061-v1"
+      }
+    },
+    {
+      "arm": "candidate",
+      "cuda_peak_bytes": 2066498560,
+      "host_peak_bytes": 5272526848,
+      "pass": true,
+      "quality_read": false,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "80b55683231d457681bedfe868aacc14",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/first-export-candidate-179061-v1.log",
+          "sha256": "268c69c031ab4278bc99102b85559527d335f64c2a4d472bc181571bbe7b2d64"
+        },
+        "native_peak_rss_kib": 4267612,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-first-export-candidate-179061-v1/receipt.json",
+          "sha256": "edc7adb48edb67768a0be90577cc2d9d455b3f46e298621b7b7dc9e301f083ae"
+        },
+        "service_seconds": 680.036,
+        "unit": "sfora-so400-identity-diversity-evaluation-first-export-candidate-179061-v1"
+      }
+    }
+  ],
+  "pass": true,
+  "quality_read": false
+}

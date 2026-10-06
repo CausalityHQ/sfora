@@ -1,0 +1,62 @@
+{
+  "authority_sha256": "3ab39a7f6446cce45fb322994cd4ec947177dd0415ab75a8444e1d6ff45dc855",
+  "command_sha256": "06c1e4632135c66053e29d4ec2b22a28a612bee90c43b894e068e6e0fa0ceb5b",
+  "execution_sha256": "22b2454d60bd910cc568eb0e0f3868c438667ed8d2fbd9edfcd3b713ae1455df",
+  "exports": {
+    "candidate-179061": {
+      "both_locks_held": true,
+      "invocation_id": "80b55683231d457681bedfe868aacc14",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/first-export-candidate-179061-v1.log",
+        "sha256": "268c69c031ab4278bc99102b85559527d335f64c2a4d472bc181571bbe7b2d64"
+      },
+      "native_peak_rss_kib": 4267612,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-first-export-candidate-179061-v1/receipt.json",
+        "sha256": "edc7adb48edb67768a0be90577cc2d9d455b3f46e298621b7b7dc9e301f083ae"
+      },
+      "service_seconds": 680.036,
+      "unit": "sfora-so400-identity-diversity-evaluation-first-export-candidate-179061-v1"
+    },
+    "control-179061": {
+      "both_locks_held": true,
+      "invocation_id": "2462842d897a405eb4e66d1ab5f08865",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/first-export-control-179061-v1.log",
+        "sha256": "562f0daca76ddbec3e4b033cba7ccd0453e95dbd175954b185609e92742f51cc"
+      },
+      "native_peak_rss_kib": 4265616,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-first-export-control-179061-v1/receipt.json",
+        "sha256": "032a5774afd3c3c2bf1817155dd60d4ed6623f7365c94c831528cf43cd8686ef"
+      },
+      "service_seconds": 673.29,
+      "unit": "sfora-so400-identity-diversity-evaluation-first-export-control-179061-v1"
+    }
+  },
+  "launch_sha256": "6fada4654550be951ae9c4a67b48a61198c93a4ca6ac8c8f49bfd10004e65ac9",
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "schema": "identity-diversity-first-selection-score-freeze-v1",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "6a08919e06e3422f8ced09036f6f07bf",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/first-cpu-v1.log",
+      "sha256": "f3f9d87c202ff87968d9d9806932cd89ec6172282b8983b259a0a013bd28a96f"
+    },
+    "native_peak_rss_kib": 1287104,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-first-cpu-v1/receipt.json",
+      "sha256": "c6cde98ddba7168d9cbba6fcdd14a137253e1e00f4d8564407137cb6a6a480db"
+    },
+    "service_seconds": 323.007,
+    "unit": "sfora-so400-identity-diversity-evaluation-first-cpu-v1"
+  },
+  "stop_rule": "ONE CPU500 firstselection: archivedsource+concat exact replay then complete both fresh exported wires before candidate metrics. R1 strictly above matchedcontrol and retainedfloor; AP>=control/floor. CONTINUE orKILL only/zeroCI draws. KILL no069/VAL. No official/validation quality; any integrity/resource/exitfailure FAIL no resultreuse.",
+  "unit": "sfora-so400-identity-diversity-evaluation-first-selection-score-v1"
+}
