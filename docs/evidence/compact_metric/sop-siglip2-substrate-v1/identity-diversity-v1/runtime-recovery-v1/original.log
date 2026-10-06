@@ -1,0 +1,402 @@
+Running as unit: sfora-qualified-runtime-restore-v1.service
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following packages were automatically installed and are no longer required:
+  linux-modules-nvidia-fs-6.11.0-1016-nvidia
+  linux-nvidia-6.11-tools-6.11.0-1016 linux-tools-6.11.0-1016-nvidia
+  nvidia-firmware-580-580.178.04
+Use 'apt autoremove' to remove them.
+Suggested packages:
+  glibc-doc libnss-nis libnss-nisplus nvidia-driver-580
+Recommended packages:
+  nvidia-prime
+The following packages will be REMOVED:
+  linux-modules-nvidia-580-open-7.0.0-1019-nvidia
+The following NEW packages will be installed:
+  linux-modules-nvidia-580-open-6.17.0-1026-nvidia
+The following packages will be DOWNGRADED:
+  libc-bin libc-dev-bin libc-devtools libc6 libc6-dbg libc6-dev
+  libnvidia-cfg1-580 libnvidia-common-580 libnvidia-compute-580
+  libnvidia-decode-580 libnvidia-encode-580 libnvidia-extra-580
+  libnvidia-fbc1-580 libnvidia-gl-580
+  linux-modules-nvidia-580-open-nvidia-hwe-24.04 locales
+  nvidia-compute-utils-580 nvidia-driver-580-open nvidia-kernel-common-580
+  nvidia-kernel-source-580-open nvidia-utils-580 xserver-xorg-video-nvidia-580
+  zlib1g zlib1g-dev
+0 upgraded, 1 newly installed, 24 downgraded, 1 to remove and 7 not upgraded.
+Need to get 7,951 kB/234 MB of archives.
+After this operation, 2,882 kB disk space will be freed.
+Get:1 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc6-dbg_2.39-0ubuntu8.7_arm64.deb libc6-dbg arm64 2.39-0ubuntu8.7 [6,274 kB]
+Get:2 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc-devtools_2.39-0ubuntu8.7_arm64.deb libc-devtools arm64 2.39-0ubuntu8.7 [27.8 kB]
+Get:3 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc6-dev_2.39-0ubuntu8.7_arm64.deb libc6-dev arm64 2.39-0ubuntu8.7 [1,596 kB]
+Get:4 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc-dev-bin_2.39-0ubuntu8.7_arm64.deb libc-dev-bin arm64 2.39-0ubuntu8.7 [19.7 kB]
+Get:5 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc6_2.39-0ubuntu8.7_arm64.deb libc6 arm64 2.39-0ubuntu8.7 [2,777 kB]
+Get:6 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc-bin_2.39-0ubuntu8.7_arm64.deb libc-bin arm64 2.39-0ubuntu8.7 [591 kB]
+Get:7 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-driver-580-open_580.159.03-0ubuntu0.24.04.1_arm64.deb nvidia-driver-580-open arm64 580.159.03-0ubuntu0.24.04.1 [14.5 kB]
+Get:8 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/xserver-xorg-video-nvidia-580_580.159.03-0ubuntu0.24.04.1_arm64.deb xserver-xorg-video-nvidia-580 arm64 580.159.03-0ubuntu0.24.04.1 [1,580 kB]
+Get:9 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-cfg1-580_580.159.03-0ubuntu0.24.04.1_arm64.deb libnvidia-cfg1-580 arm64 580.159.03-0ubuntu0.24.04.1 [159 kB]
+Get:10 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-encode-580_580.159.03-0ubuntu0.24.04.1_arm64.deb libnvidia-encode-580 arm64 580.159.03-0ubuntu0.24.04.1 [110 kB]
+Get:11 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-decode-580_580.159.03-0ubuntu0.24.04.1_arm64.deb libnvidia-decode-580 arm64 580.159.03-0ubuntu0.24.04.1 [3,157 kB]
+Get:12 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-utils-580_580.159.03-0ubuntu0.24.04.1_arm64.deb nvidia-utils-580 arm64 580.159.03-0ubuntu0.24.04.1 [581 kB]
+Get:13 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-compute-580_580.159.03-0ubuntu0.24.04.1_arm64.deb libnvidia-compute-580 arm64 580.159.03-0ubuntu0.24.04.1 [58.1 MB]
+Get:14 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-fbc1-580_580.159.03-0ubuntu0.24.04.1_arm64.deb libnvidia-fbc1-580 arm64 580.159.03-0ubuntu0.24.04.1 [94.1 kB]
+Get:15 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-extra-580_580.159.03-0ubuntu0.24.04.1_arm64.deb libnvidia-extra-580 arm64 580.159.03-0ubuntu0.24.04.1 [76.9 kB]
+Get:16 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/linux-modules-nvidia-580-open-nvidia-hwe-24.04_6.17.0-1026.26_arm64.deb linux-modules-nvidia-580-open-nvidia-hwe-24.04 arm64 6.17.0-1026.26 [15.6 kB]
+Get:17 http://ports.ubuntu.com/ubuntu-ports noble-updates/restricted arm64 libnvidia-common-580 all 580.159.03-0ubuntu0.24.04.1 [18.5 kB]
+Get:18 http://ports.ubuntu.com/ubuntu-ports noble-security/restricted arm64 linux-modules-nvidia-580-open-6.17.0-1026-nvidia arm64 6.17.0-1026.26 [7,932 kB]
+Get:19 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-gl-580_580.159.03-0ubuntu0.24.04.1_arm64.deb libnvidia-gl-580 arm64 580.159.03-0ubuntu0.24.04.1 [137 MB]
+Get:20 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-kernel-common-580_580.159.03-0ubuntu0.24.04.1_arm64.deb nvidia-kernel-common-580 arm64 580.159.03-0ubuntu0.24.04.1 [35.8 kB]
+Get:21 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-kernel-source-580-open_580.159.03-0ubuntu0.24.04.1_arm64.deb nvidia-kernel-source-580-open arm64 580.159.03-0ubuntu0.24.04.1 [8,315 kB]
+Get:22 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-compute-utils-580_580.159.03-0ubuntu0.24.04.1_arm64.deb nvidia-compute-utils-580 arm64 580.159.03-0ubuntu0.24.04.1 [121 kB]
+Get:23 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/zlib1g-dev_1.3.dfsg-3.1ubuntu2.1_arm64.deb zlib1g-dev arm64 1:1.3.dfsg-3.1ubuntu2.1 [894 kB]
+Get:24 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/zlib1g_1.3.dfsg-3.1ubuntu2.1_arm64.deb zlib1g arm64 1:1.3.dfsg-3.1ubuntu2.1 [61.7 kB]
+Get:25 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/locales_2.39-0ubuntu8.7_all.deb locales all 2.39-0ubuntu8.7 [4,225 kB]
+Preconfiguring packages ...
+Fetched 7,951 kB in 1s (5,380 kB/s)
+dpkg: warning: downgrading libc6-dbg:arm64 from 2.39-0ubuntu8.9 to 2.39-0ubuntu8.7
+(Reading database… (Reading database… 5%(Reading database… 10%(Reading database… 15%(Reading database… 20%(Reading database… 25%(Reading database… 30%(Reading database… 35%(Reading database… 40%(Reading database… 45%(Reading database… 50%(Reading database… 55%(Reading database… 60%(Reading database… 65%(Reading database… 70%(Reading database… 75%(Reading database… 80%(Reading database… 85%(Reading database… 90%(Reading database… 95%(Reading database… 100%(Reading database… 350914 files and directories currently installed.)
+Preparing to unpack …/libc6-dbg_2.39-0ubuntu8.7_arm64.deb…
+Unpacking libc6-dbg:arm64 (2.39-0ubuntu8.7) over (2.39-0ubuntu8.9)…
+dpkg: warning: downgrading libc-devtools from 2.39-0ubuntu8.9 to 2.39-0ubuntu8.7
+Preparing to unpack …/libc-devtools_2.39-0ubuntu8.7_arm64.deb…
+Unpacking libc-devtools (2.39-0ubuntu8.7) over (2.39-0ubuntu8.9)…
+dpkg: warning: downgrading libc6-dev:arm64 from 2.39-0ubuntu8.9 to 2.39-0ubuntu8.7
+Preparing to unpack …/libc6-dev_2.39-0ubuntu8.7_arm64.deb…
+Unpacking libc6-dev:arm64 (2.39-0ubuntu8.7) over (2.39-0ubuntu8.9)…
+dpkg: warning: downgrading libc-dev-bin from 2.39-0ubuntu8.9 to 2.39-0ubuntu8.7
+Preparing to unpack …/libc-dev-bin_2.39-0ubuntu8.7_arm64.deb…
+Unpacking libc-dev-bin (2.39-0ubuntu8.7) over (2.39-0ubuntu8.9)…
+dpkg: warning: downgrading libc6:arm64 from 2.39-0ubuntu8.9 to 2.39-0ubuntu8.7
+Preparing to unpack …/libc6_2.39-0ubuntu8.7_arm64.deb…
+Unpacking libc6:arm64 (2.39-0ubuntu8.7) over (2.39-0ubuntu8.9)…
+Setting up libc6:arm64 (2.39-0ubuntu8.7)…
+dpkg: warning: downgrading libc-bin from 2.39-0ubuntu8.9 to 2.39-0ubuntu8.7
+(Reading database… (Reading database… 5%(Reading database… 10%(Reading database… 15%(Reading database… 20%(Reading database… 25%(Reading database… 30%(Reading database… 35%(Reading database… 40%(Reading database… 45%(Reading database… 50%(Reading database… 55%(Reading database… 60%(Reading database… 65%(Reading database… 70%(Reading database… 75%(Reading database… 80%(Reading database… 85%(Reading database… 90%(Reading database… 95%(Reading database… 100%(Reading database… 350927 files and directories currently installed.)
+Preparing to unpack …/libc-bin_2.39-0ubuntu8.7_arm64.deb…
+Unpacking libc-bin (2.39-0ubuntu8.7) over (2.39-0ubuntu8.9)…
+Setting up libc-bin (2.39-0ubuntu8.7)…
+dpkg: warning: downgrading nvidia-driver-580-open from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+(Reading database… (Reading database… 5%(Reading database… 10%(Reading database… 15%(Reading database… 20%(Reading database… 25%(Reading database… 30%(Reading database… 35%(Reading database… 40%(Reading database… 45%(Reading database… 50%(Reading database… 55%(Reading database… 60%(Reading database… 65%(Reading database… 70%(Reading database… 75%(Reading database… 80%(Reading database… 85%(Reading database… 90%(Reading database… 95%(Reading database… 100%(Reading database… 350927 files and directories currently installed.)
+Preparing to unpack …/00-nvidia-driver-580-open_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking nvidia-driver-580-open (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading xserver-xorg-video-nvidia-580 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/01-xserver-xorg-video-nvidia-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking xserver-xorg-video-nvidia-580 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading libnvidia-cfg1-580:arm64 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/02-libnvidia-cfg1-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking libnvidia-cfg1-580:arm64 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading libnvidia-encode-580:arm64 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/03-libnvidia-encode-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking libnvidia-encode-580:arm64 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading libnvidia-decode-580:arm64 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/04-libnvidia-decode-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking libnvidia-decode-580:arm64 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading nvidia-utils-580 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/05-nvidia-utils-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking nvidia-utils-580 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading libnvidia-compute-580:arm64 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/06-libnvidia-compute-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking libnvidia-compute-580:arm64 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading libnvidia-fbc1-580:arm64 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/07-libnvidia-fbc1-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking libnvidia-fbc1-580:arm64 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading libnvidia-extra-580:arm64 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/08-libnvidia-extra-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking libnvidia-extra-580:arm64 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading libnvidia-common-580 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/09-libnvidia-common-580_580.159.03-0ubuntu0.24.04.1_all.deb…
+Unpacking libnvidia-common-580 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading linux-modules-nvidia-580-open-nvidia-hwe-24.04 from 7.0.0-1019.19~24.04.2+1 to 6.17.0-1026.26
+Preparing to unpack …/10-linux-modules-nvidia-580-open-nvidia-hwe-24.04_6.17.0-1026.26_arm64.deb…
+Unpacking linux-modules-nvidia-580-open-nvidia-hwe-24.04 (6.17.0-1026.26) over (7.0.0-1019.19~24.04.2+1)…
+(Reading database… (Reading database… 5%(Reading database… 10%(Reading database… 15%(Reading database… 20%(Reading database… 25%(Reading database… 30%(Reading database… 35%(Reading database… 40%(Reading database… 45%(Reading database… 50%(Reading database… 55%(Reading database… 60%(Reading database… 65%(Reading database… 70%(Reading database… 75%(Reading database… 80%(Reading database… 85%(Reading database… 90%(Reading database… 95%(Reading database… 100%(Reading database… 350927 files and directories currently installed.)
+Removing linux-modules-nvidia-580-open-7.0.0-1019-nvidia (7.0.0-1019.19~24.04.2+1)…
+dpkg: warning: downgrading libnvidia-gl-580:arm64 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+(Reading database… (Reading database… 5%(Reading database… 10%(Reading database… 15%(Reading database… 20%(Reading database… 25%(Reading database… 30%(Reading database… 35%(Reading database… 40%(Reading database… 45%(Reading database… 50%(Reading database… 55%(Reading database… 60%(Reading database… 65%(Reading database… 70%(Reading database… 75%(Reading database… 80%(Reading database… 85%(Reading database… 90%(Reading database… 95%(Reading database… 100%(Reading database… 350916 files and directories currently installed.)
+Preparing to unpack …/0-libnvidia-gl-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+dpkg-query: no packages found matching libnvidia-gl-550
+Unpacking libnvidia-gl-580:arm64 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading nvidia-kernel-common-580 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/1-nvidia-kernel-common-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking nvidia-kernel-common-580 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading nvidia-kernel-source-580-open from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/2-nvidia-kernel-source-580-open_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking nvidia-kernel-source-580-open (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+dpkg: warning: downgrading nvidia-compute-utils-580 from 580.178.04-0ubuntu0.24.04.1 to 580.159.03-0ubuntu0.24.04.1
+Preparing to unpack …/3-nvidia-compute-utils-580_580.159.03-0ubuntu0.24.04.1_arm64.deb…
+Unpacking nvidia-compute-utils-580 (580.159.03-0ubuntu0.24.04.1) over (580.178.04-0ubuntu0.24.04.1)…
+Selecting previously unselected package linux-modules-nvidia-580-open-6.17.0-1026-nvidia.
+Preparing to unpack …/4-linux-modules-nvidia-580-open-6.17.0-1026-nvidia_6.17.0-1026.26_arm64.deb…
+Unpacking linux-modules-nvidia-580-open-6.17.0-1026-nvidia (6.17.0-1026.26)…
+dpkg: warning: downgrading zlib1g-dev:arm64 from 1:1.3.dfsg-3.1ubuntu2.2 to 1:1.3.dfsg-3.1ubuntu2.1
+Preparing to unpack …/5-zlib1g-dev_1.3.dfsg-3.1ubuntu2.1_arm64.deb…
+Unpacking zlib1g-dev:arm64 (1:1.3.dfsg-3.1ubuntu2.1) over (1:1.3.dfsg-3.1ubuntu2.2)…
+dpkg: warning: downgrading zlib1g:arm64 from 1:1.3.dfsg-3.1ubuntu2.2 to 1:1.3.dfsg-3.1ubuntu2.1
+Preparing to unpack …/6-zlib1g_1.3.dfsg-3.1ubuntu2.1_arm64.deb…
+Unpacking zlib1g:arm64 (1:1.3.dfsg-3.1ubuntu2.1) over (1:1.3.dfsg-3.1ubuntu2.2)…
+Setting up zlib1g:arm64 (1:1.3.dfsg-3.1ubuntu2.1)…
+dpkg: warning: downgrading locales from 2.39-0ubuntu8.9 to 2.39-0ubuntu8.7
+(Reading database… (Reading database… 5%(Reading database… 10%(Reading database… 15%(Reading database… 20%(Reading database… 25%(Reading database… 30%(Reading database… 35%(Reading database… 40%(Reading database… 45%(Reading database… 50%(Reading database… 55%(Reading database… 60%(Reading database… 65%(Reading database… 70%(Reading database… 75%(Reading database… 80%(Reading database… 85%(Reading database… 90%(Reading database… 95%(Reading database… 100%(Reading database… 350927 files and directories currently installed.)
+Preparing to unpack …/locales_2.39-0ubuntu8.7_all.deb…
+Unpacking locales (2.39-0ubuntu8.7) over (2.39-0ubuntu8.9)…
+Setting up locales (2.39-0ubuntu8.7)…
+Generating locales (this might take a while)...
+  de_AT.UTF-8... done
+  de_BE.UTF-8... done
+  de_CH.UTF-8... done
+  de_DE.UTF-8... done
+  de_IT.UTF-8... done
+  de_LI.UTF-8... done
+  de_LU.UTF-8... done
+  en_AG.UTF-8... done
+  en_AU.UTF-8... done
+  en_BW.UTF-8... done
+  en_CA.UTF-8... done
+  en_DK.UTF-8... done
+  en_GB.UTF-8... done
+  en_HK.UTF-8... done
+  en_IE.UTF-8... done
+  en_IL.UTF-8... done
+  en_IN.UTF-8... done
+  en_NG.UTF-8... done
+  en_NZ.UTF-8... done
+  en_PH.UTF-8... done
+  en_SG.UTF-8... done
+  en_US.UTF-8... done
+  en_ZA.UTF-8... done
+  en_ZM.UTF-8... done
+  en_ZW.UTF-8... done
+  es_AR.UTF-8... done
+  es_BO.UTF-8... done
+  es_CL.UTF-8... done
+  es_CO.UTF-8... done
+  es_CR.UTF-8... done
+  es_CU.UTF-8... done
+  es_DO.UTF-8... done
+  es_EC.UTF-8... done
+  es_ES.UTF-8... done
+  es_GT.UTF-8... done
+  es_HN.UTF-8... done
+  es_MX.UTF-8... done
+  es_NI.UTF-8... done
+  es_PA.UTF-8... done
+  es_PE.UTF-8... done
+  es_PR.UTF-8... done
+  es_PY.UTF-8... done
+  es_SV.UTF-8... done
+  es_US.UTF-8... done
+  es_UY.UTF-8... done
+  es_VE.UTF-8... done
+  fr_BE.UTF-8... done
+  fr_CA.UTF-8... done
+  fr_CH.UTF-8... done
+  fr_FR.UTF-8... done
+  fr_LU.UTF-8... done
+  he_IL.UTF-8... done
+  it_CH.UTF-8... done
+  it_IT.UTF-8... done
+  ja_JP.UTF-8... done
+  ko_KR.UTF-8... done
+  pt_BR.UTF-8... done
+  pt_PT.UTF-8... done
+  ru_RU.UTF-8... done
+  ru_UA.UTF-8... done
+  zh_CN.UTF-8... done
+  zh_HK.UTF-8... done
+  zh_SG.UTF-8... done
+  zh_TW.UTF-8... done
+Generation complete.
+Setting up libc6-dbg:arm64 (2.39-0ubuntu8.7)…
+Setting up nvidia-kernel-common-580 (580.159.03-0ubuntu0.24.04.1)…
+update-initramfs: deferring update (trigger activated)
+Setting up libnvidia-extra-580:arm64 (580.159.03-0ubuntu0.24.04.1)…
+Setting up linux-modules-nvidia-580-open-6.17.0-1026-nvidia (6.17.0-1026.26)…
+Setting up libnvidia-common-580 (580.159.03-0ubuntu0.24.04.1)…
+Setting up libnvidia-gl-580:arm64 (580.159.03-0ubuntu0.24.04.1)…
+Setting up libnvidia-cfg1-580:arm64 (580.159.03-0ubuntu0.24.04.1)…
+Setting up libc-dev-bin (2.39-0ubuntu8.7)…
+Setting up nvidia-kernel-source-580-open (580.159.03-0ubuntu0.24.04.1)…
+Setting up libc-devtools (2.39-0ubuntu8.7)…
+Setting up xserver-xorg-video-nvidia-580 (580.159.03-0ubuntu0.24.04.1)…
+Setting up libnvidia-compute-580:arm64 (580.159.03-0ubuntu0.24.04.1)…
+Setting up linux-modules-nvidia-580-open-nvidia-hwe-24.04 (6.17.0-1026.26)…
+Setting up libnvidia-fbc1-580:arm64 (580.159.03-0ubuntu0.24.04.1)…
+Setting up nvidia-compute-utils-580 (580.159.03-0ubuntu0.24.04.1)…
+Setting up libnvidia-decode-580:arm64 (580.159.03-0ubuntu0.24.04.1)…
+Setting up libc6-dev:arm64 (2.39-0ubuntu8.7)…
+Setting up nvidia-utils-580 (580.159.03-0ubuntu0.24.04.1)…
+Setting up libnvidia-encode-580:arm64 (580.159.03-0ubuntu0.24.04.1)…
+Setting up zlib1g-dev:arm64 (1:1.3.dfsg-3.1ubuntu2.1)…
+Setting up nvidia-driver-580-open (580.159.03-0ubuntu0.24.04.1)…
+Processing triggers for libc-bin (2.39-0ubuntu8.7)…
+Processing triggers for man-db (2.12.0-4build2)…
+Processing triggers for initramfs-tools (0.142ubuntu25.8)…
+update-initramfs: Generating /boot/initrd.img-7.0.0-1019-nvidia
+Processing triggers for linux-image-6.17.0-1026-nvidia (6.17.0-1026.26)…
+/etc/kernel/postinst.d/initramfs-tools:
+update-initramfs: Generating /boot/initrd.img-6.17.0-1026-nvidia
+/etc/kernel/postinst.d/kdump-tools:
+kdump-tools: Generating /var/lib/kdump/initrd.img-6.17.0-1026-nvidia
+/etc/kernel/postinst.d/zz-update-grub:
+Sourcing file `/etc/default/grub'
+Sourcing file `/etc/default/grub.d/disable-init-on-alloc.cfg'
+Sourcing file `/etc/default/grub.d/grubserial.cfg'
+Sourcing file `/etc/default/grub.d/iommu.cfg'
+Sourcing file `/etc/default/grub.d/kdump-tools.cfg'
+Sourcing file `/etc/default/grub.d/menu.cfg'
+Sourcing file `/etc/default/grub.d/no-grubmenu.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-console-settings.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-earlycon.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-spark-initcall-bl.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-spark-kho.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-spark-pci.cfg'
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-7.0.0-1019-nvidia
+Found initrd image: /boot/initrd.img-7.0.0-1019-nvidia
+Found linux image: /boot/vmlinuz-6.17.0-1026-nvidia
+Found initrd image: /boot/initrd.img-6.17.0-1026-nvidia
+Found linux image: /boot/vmlinuz-6.11.0-1016-nvidia
+Found initrd image: /boot/initrd.img-6.11.0-1016-nvidia
+Warning: os-prober will not be executed to detect other bootable partitions.
+Systems on them will not be added to the GRUB boot configuration.
+Check GRUB_DISABLE_OS_PROBER documentation entry.
+Adding boot menu entry for UEFI Firmware Settings ...
+done
+
+Running kernel seems to be up-to-date.
+
+The processor microcode seems to be up-to-date.
+
+Services to be restarted:
+ systemctl restart accounts-daemon.service
+ systemctl restart avahi-daemon.service
+ systemctl restart colord.service
+ systemctl restart containerd.service
+ systemctl restart cron.service
+ systemctl restart cups-browsed.service
+ systemctl restart cups.service
+ systemctl restart fwupd.service
+ systemctl restart gnome-remote-desktop.service
+ systemctl restart lldpd.service
+ systemctl restart multipathd.service
+ systemctl restart nvidia-dgx-telemetry.service
+ systemctl restart polkit.service
+ systemctl restart rasdaemon.service
+ systemctl restart rsyslog.service
+ systemctl restart rtkit-daemon.service
+ systemctl restart smartmontools.service
+ systemctl restart ssh.service
+ systemctl restart switcheroo-control.service
+ systemctl restart systemd-journald.service
+ systemctl restart systemd-networkd.service
+ systemctl restart systemd-resolved.service
+ systemctl restart systemd-timesyncd.service
+ systemctl restart systemd-udevd.service
+ systemctl restart udisks2.service
+ systemctl restart upower.service
+
+Service restarts being deferred:
+ systemctl restart ModemManager.service
+ systemctl restart NetworkManager.service
+ systemctl restart bluetooth.service
+ /etc/needrestart/restart.d/dbus.service
+ systemctl restart dgx-dashboard-admin.service
+ systemctl restart dgx-dashboard.service
+ systemctl restart docker.service
+ systemctl restart gdm.service
+ systemctl restart gdm3.service
+ systemctl restart networkd-dispatcher.service
+ systemctl restart serial-getty@ttyS0.service
+ systemctl restart sfora-qualified-runtime-restore-v1.service
+ systemctl restart systemd-logind.service
+ systemctl restart wpa_supplicant.service
+
+No containers need to be restarted.
+
+User sessions running outdated binaries:
+ gdm @ user manager service: systemd[2566], xdg-document-po[2667]
+ riomus @ session #75: sshd[65691,66002]
+ riomus @ user manager service: systemd[65698], xdg-document-po[65788]
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+libnvidia-common-580 set on hold.
+libnvidia-fbc1-580 set on hold.
+libnvidia-gl-580 set on hold.
+libnvidia-extra-580 set on hold.
+nvidia-compute-utils-580 set on hold.
+libnvidia-encode-580 set on hold.
+nvidia-utils-580 set on hold.
+xserver-xorg-video-nvidia-580 set on hold.
+zlib1g-dev set on hold.
+libnvidia-decode-580 set on hold.
+nvidia-kernel-common-580 set on hold.
+libc6 set on hold.
+locales set on hold.
+nvidia-kernel-source-580-open set on hold.
+libc-dev-bin set on hold.
+nvidia-driver-580-open set on hold.
+libc-bin set on hold.
+libc-devtools set on hold.
+libc6-dbg set on hold.
+libc6-dev set on hold.
+libnvidia-cfg1-580 set on hold.
+libnvidia-compute-580 set on hold.
+zlib1g set on hold.
+linux-modules-nvidia-580-open-6.17.0-1026-nvidia set on hold.
+linux-modules-nvidia-580-open-nvidia-hwe-24.04 set on hold.
+Sourcing file `/etc/default/grub'
+Sourcing file `/etc/default/grub.d/90-sfora-qualified-runtime.cfg'
+Sourcing file `/etc/default/grub.d/disable-init-on-alloc.cfg'
+Sourcing file `/etc/default/grub.d/grubserial.cfg'
+Sourcing file `/etc/default/grub.d/iommu.cfg'
+Sourcing file `/etc/default/grub.d/kdump-tools.cfg'
+Sourcing file `/etc/default/grub.d/menu.cfg'
+Sourcing file `/etc/default/grub.d/no-grubmenu.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-console-settings.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-earlycon.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-spark-initcall-bl.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-spark-kho.cfg'
+Sourcing file `/etc/default/grub.d/nvidia-spark-pci.cfg'
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-7.0.0-1019-nvidia
+Found initrd image: /boot/initrd.img-7.0.0-1019-nvidia
+Found linux image: /boot/vmlinuz-6.17.0-1026-nvidia
+Found initrd image: /boot/initrd.img-6.17.0-1026-nvidia
+Found linux image: /boot/vmlinuz-6.11.0-1016-nvidia
+Found initrd image: /boot/initrd.img-6.11.0-1016-nvidia
+Warning: os-prober will not be executed to detect other bootable partitions.
+Systems on them will not be added to the GRUB boot configuration.
+Check GRUB_DISABLE_OS_PROBER documentation entry.
+Adding boot menu entry for UEFI Firmware Settings ...
+done
+QUALIFIED_USERSPACE_RESTORED_REBOOT_REQUIRED
+	Command being timed: "/usr/bin/python3 /home/riomus/runs/sfora-runtime-recovery-artifacts-v1/restore-v1.py"
+	User time (seconds): 49.28
+	System time (seconds): 20.55
+	Percent of CPU this job got: 86%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:20.32
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 184176
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 80
+	Minor (reclaiming a frame) page faults: 8451413
+	Voluntary context switches: 195495
+	Involuntary context switches: 2722
+	Swaps: 0
+	File system inputs: 1353154
+	File system outputs: 4186352
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1min 20.331s
+CPU time consumed: 1min 10.713s
+Memory peak: 2.1G
+Memory swap peak: 0B
