@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "2c00dae1c43646889930a275c2667347",
+  "log": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/mechanics-candidate-179061-v2.log",
+    "sha256": "d1731cf4b619204ef98a819bc79913c98c57eef283df79daa80679a5f873b20a"
+  },
+  "native_peak_rss_kib": 4711768,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-mechanics-candidate-179061-v2/receipt.json",
+    "sha256": "9cff0a05cb1ef24621e43c0de5df8674cea91b702de301ac87375c9452ca14e9"
+  },
+  "service_seconds": 315.519,
+  "unit": "sfora-so400-identity-diversity-mechanics-candidate-179061-v2"
+}
