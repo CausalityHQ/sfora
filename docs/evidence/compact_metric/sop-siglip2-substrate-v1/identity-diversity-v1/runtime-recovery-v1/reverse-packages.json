@@ -1,0 +1,152 @@
+[
+  {
+    "package": "libnvidia-common-580",
+    "path": "/var/cache/apt/archives/libnvidia-common-580_580.178.04-0ubuntu0.24.04.1_all.deb",
+    "sha256": "f8e8d82545b1c31dc8de50a6bdb9d262c75a0bd458df97cf862f09539ef8857b",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "libnvidia-fbc1-580",
+    "path": "/var/cache/apt/archives/libnvidia-fbc1-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "30194dea9a448755b1542327d74279fdeec41ad2e3a7ffd3681e72bcf6e209e6",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "libnvidia-gl-580",
+    "path": "/var/cache/apt/archives/libnvidia-gl-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "304e2dcddfc4ca777dfbc3fd573b39917d589125266dca657876bb71c3d3e057",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "libnvidia-extra-580",
+    "path": "/var/cache/apt/archives/libnvidia-extra-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "3462ad2932ebc92452c931ef808d5d4dc655499236bea1035a5aa52247ff99f5",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "nvidia-compute-utils-580",
+    "path": "/var/cache/apt/archives/nvidia-compute-utils-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "b8fe7078088330ca4aacd36f126847c141b126a97a4849ac1f157c909d19bbae",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "libnvidia-encode-580",
+    "path": "/var/cache/apt/archives/libnvidia-encode-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "31fb4cf513f8727cda0855648f5e9fa4e53c61cc90bcb6eb031c52caddfd75ed",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "nvidia-utils-580",
+    "path": "/var/cache/apt/archives/nvidia-utils-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "e5bb3de5b9069187302a97d80acbdd16f105db2eebfb895193076959350563af",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "xserver-xorg-video-nvidia-580",
+    "path": "/var/cache/apt/archives/xserver-xorg-video-nvidia-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "c0b62d97df7fd61be751e4b5a23aebbcce551f2eb1b1ad61ce42c1db4d076c8e",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "zlib1g-dev",
+    "path": "/var/cache/apt/archives/zlib1g-dev_1%3a1.3.dfsg-3.1ubuntu2.2_arm64.deb",
+    "sha256": "de750f2515144715015e792c391bfa2ab4a926db6c370ba519af576bb3f131b5",
+    "version": "1:1.3.dfsg-3.1ubuntu2.2"
+  },
+  {
+    "package": "libnvidia-decode-580",
+    "path": "/var/cache/apt/archives/libnvidia-decode-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "a6fa6639d97c42f397a5da2e83c48eeae23e588893a1b4a1e8a7bc77a5e97c1a",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "nvidia-kernel-common-580",
+    "path": "/var/cache/apt/archives/nvidia-kernel-common-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "3891e0ab76210f99bf9bed8a9248e3dba430a957bc98d3053c7f5dacdf15f276",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "libc6",
+    "path": "/var/cache/apt/archives/libc6_2.39-0ubuntu8.9_arm64.deb",
+    "sha256": "ad109797c5f78a5eeb6d4c296bfbaae68b239111a0c9ac0eb97b8d430284ac45",
+    "version": "2.39-0ubuntu8.9"
+  },
+  {
+    "package": "locales",
+    "path": "/var/cache/apt/archives/locales_2.39-0ubuntu8.9_all.deb",
+    "sha256": "f8310ef4ba442845cf5d44a5ce3d5d7accb659bae96b3a0999002132209cd367",
+    "version": "2.39-0ubuntu8.9"
+  },
+  {
+    "package": "nvidia-kernel-source-580-open",
+    "path": "/var/cache/apt/archives/nvidia-kernel-source-580-open_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "d0b98032da2b696731dd60c797cbdcf539726ad1144dcae927bb4b9b269f35b9",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "libc-dev-bin",
+    "path": "/var/cache/apt/archives/libc-dev-bin_2.39-0ubuntu8.9_arm64.deb",
+    "sha256": "85564f1ba7dce372d0fdec055986b428f72cd9c235af1dd29950f589562d19bc",
+    "version": "2.39-0ubuntu8.9"
+  },
+  {
+    "package": "nvidia-driver-580-open",
+    "path": "/var/cache/apt/archives/nvidia-driver-580-open_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "96dd520cda2b2a9dc79a05a6d94ae5b5956b757158c5b649597c65ab0c6178fb",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "libc-bin",
+    "path": "/var/cache/apt/archives/libc-bin_2.39-0ubuntu8.9_arm64.deb",
+    "sha256": "5a96fe62c7803a4b886b29afbb67b5e41952de918abd217d2b8fdfbc44c3b72d",
+    "version": "2.39-0ubuntu8.9"
+  },
+  {
+    "package": "libc-devtools",
+    "path": "/var/cache/apt/archives/libc-devtools_2.39-0ubuntu8.9_arm64.deb",
+    "sha256": "3b668e66c19f712461f394bfd97bf7eb626d778d4d29c141d1243965e5b37a09",
+    "version": "2.39-0ubuntu8.9"
+  },
+  {
+    "package": "libc6-dbg",
+    "path": "/var/cache/apt/archives/libc6-dbg_2.39-0ubuntu8.9_arm64.deb",
+    "sha256": "ca88a75897507bc4d211a7e3bfc499e5b282cf7002f6cd5bfe8661fae2e17ff1",
+    "version": "2.39-0ubuntu8.9"
+  },
+  {
+    "package": "libc6-dev",
+    "path": "/var/cache/apt/archives/libc6-dev_2.39-0ubuntu8.9_arm64.deb",
+    "sha256": "9bf6acb8a3433ffe561182517640970d324425fabbbeb54a24d737ba1f3c816b",
+    "version": "2.39-0ubuntu8.9"
+  },
+  {
+    "package": "libnvidia-cfg1-580",
+    "path": "/var/cache/apt/archives/libnvidia-cfg1-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "4b25188ce3943d10ef41ad1e18e5c075e4a015fc3236d2050120c236cc8af766",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "libnvidia-compute-580",
+    "path": "/var/cache/apt/archives/libnvidia-compute-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+    "sha256": "009267387ae7577dfac0027bd07cf5e793c86c1e07b1fd64c09a64029b5027d3",
+    "version": "580.178.04-0ubuntu0.24.04.1"
+  },
+  {
+    "package": "zlib1g",
+    "path": "/var/cache/apt/archives/zlib1g_1%3a1.3.dfsg-3.1ubuntu2.2_arm64.deb",
+    "sha256": "e55ab3b4fb7b6edc4a628e28ec13f8780b08abe427d33ae148f030d8586d0e9a",
+    "version": "1:1.3.dfsg-3.1ubuntu2.2"
+  },
+  {
+    "package": "linux-modules-nvidia-580-open-7.0.0-1019-nvidia",
+    "path": "/var/cache/apt/archives/linux-modules-nvidia-580-open-7.0.0-1019-nvidia_7.0.0-1019.19~24.04.2+1_arm64.deb",
+    "sha256": "a7ee3b5224bdc5227bbb84f9b1978434727ddf64713b577dca224abbf1c7d29d",
+    "version": "7.0.0-1019.19~24.04.2+1"
+  },
+  {
+    "package": "linux-modules-nvidia-580-open-nvidia-hwe-24.04",
+    "path": "/var/cache/apt/archives/linux-modules-nvidia-580-open-nvidia-hwe-24.04_7.0.0-1019.19~24.04.2+1_arm64.deb",
+    "sha256": "18f5473096ac75f544db475211c7d61db6ea3249d9de9201a0d980f3773118b3",
+    "version": "7.0.0-1019.19~24.04.2+1"
+  }
+]

@@ -1,0 +1,405 @@
+{
+  "boot_default": "Advanced options for DGX OS GNU/Linux>DGX OS GNU/Linux, with Linux 6.17.0-1026-nvidia",
+  "driver": "580.159.03",
+  "expected_system": {
+    "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1": "393384096ffa869e1be20d2f91fdf08dfadb9f3e531dfe724085d8501d3f85d9",
+    "/usr/lib/aarch64-linux-gnu/libc.so.6": "fe5966a43e068ad7cb389c3affa069f4ee6f296e07d7ccc0398a23cfde4f0b7e",
+    "/usr/lib/aarch64-linux-gnu/libcuda.so.580.159.03": "f6fb476bbefda386491dc5151a593a98bedeff6a4eb0ec4ef766e3b2fe3b9032",
+    "/usr/lib/aarch64-linux-gnu/libdl.so.2": "97387fb55ccfc0cc109dfe99b81de2b7bbaac723d1c215107dc69a068c4b1fae",
+    "/usr/lib/aarch64-linux-gnu/libfribidi.so.0.4.0": "f25617883b0c10df0f143174c49454ca61c571a1051b5480070341223f95fbdb",
+    "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1": "f2d3ad2bf0b61f6bc944cc37d7b6ab7f88d2582b41ff989ca164803f56cc5f20",
+    "/usr/lib/aarch64-linux-gnu/libm.so.6": "d5b262e559d38769e4959f036a1cc2c4009fa60b4ec836a7a19ca8554aebf5a5",
+    "/usr/lib/aarch64-linux-gnu/libnvidia-ml.so.580.159.03": "66763ad0d2cf14c12eca195de0f8c1065390d0b0bbf66fb495f65762893cbbd3",
+    "/usr/lib/aarch64-linux-gnu/libpthread.so.0": "97b288827c0ab29659dfcdcfab6c2e9e1225c19fc5abfe106d8a53c2c7b34402",
+    "/usr/lib/aarch64-linux-gnu/librt.so.1": "4b38331a53bc2bd10c1ecf4f02a71c913c40bad13f5fbf93bee5a0e1f25dd493",
+    "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.33": "6e3112d35cfc86db7ee85b27e1746f67408e2837ff8628b46386c3eabd5682a4",
+    "/usr/lib/aarch64-linux-gnu/libutil.so.1": "fe15c414e7e585bf749be683eba39d2f8db556b678ed8253f6884be660caac31",
+    "/usr/lib/aarch64-linux-gnu/libz.so.1.3": "170380b4e7ab28ec86eb090b48df90f84089392cb72fecd5067e5b7a4dc5239f"
+  },
+  "kernel": "6.17.0-1026-nvidia",
+  "no_training": true,
+  "original_train_failure_remains_failure": true,
+  "packages": [
+    {
+      "arch": "all",
+      "bytes": 18534,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "libnvidia-common-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-common-580_580.159.03-0ubuntu0.24.04.1_all.deb",
+      "sha256": "3198b7b813e73c715d1580efb59908cc7afa5d57c5f750e04a8c61ddd4e4334c"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 94054,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "libnvidia-fbc1-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-fbc1-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "d22e157e3aaaae5f59b703b9c41ecdbd6041494fe4e04df235c57f2053fd241e"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 137214492,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "libnvidia-gl-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-gl-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "e3cbfb167075b50c2ca7b500340072f7846bbcd8676791c9b2e4bdd5d89c6376"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 76858,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "libnvidia-extra-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-extra-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "8ea01c12d2df49c08bde136e199e481200e72d2f6c3b0490def299f366f1dbad"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 121360,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "nvidia-compute-utils-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-compute-utils-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "f86854c375737a59b5bd580ec10c64b67f12b7f3b895e4cebeca05ff3b6cc505"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 110302,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "libnvidia-encode-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-encode-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "8d18cde7f51ebe2ab0007280b514ed6566542186b396d787bc552d3ab4dd7531"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 580966,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "nvidia-utils-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-utils-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "f9c503b424e46300f06548d3a962f0835cccd4e84e9930937f95f89e7c714181"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 1580060,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "xserver-xorg-video-nvidia-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/xserver-xorg-video-nvidia-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "a5f56d45e8465282d5bdf5c3ec5c28a4867329715bb0b2a02f6973ef37546274"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 893540,
+      "new": "1:1.3.dfsg-3.1ubuntu2.2",
+      "old": "1:1.3.dfsg-3.1ubuntu2.1",
+      "package": "zlib1g-dev",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/zlib1g-dev_1.3.dfsg-3.1ubuntu2.1_arm64.deb",
+      "sha256": "bd9446f9c53b95b4a3433fbbee0be71c261702257836fa60fb76425cd167bfb6"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 3157028,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "libnvidia-decode-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-decode-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "7797481dac31e6a84417eb393b830eb33c61371c585c00e7228ca3495c650015"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 35842,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "nvidia-kernel-common-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-kernel-common-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "2969f2027fb82b066f5501856d3fe02d35a00d3e14d29a602fc4a7d1248f81f6"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 2776586,
+      "new": "2.39-0ubuntu8.9",
+      "old": "2.39-0ubuntu8.7",
+      "package": "libc6",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc6_2.39-0ubuntu8.7_arm64.deb",
+      "sha256": "7d25b6ffc4df6deefd1a48efff5792d6a6bd89ac064a2a8b88e796d3d533e095"
+    },
+    {
+      "arch": "all",
+      "bytes": 4225168,
+      "new": "2.39-0ubuntu8.9",
+      "old": "2.39-0ubuntu8.7",
+      "package": "locales",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/locales_2.39-0ubuntu8.7_all.deb",
+      "sha256": "27e74084e2b33a05754e10a4c304ed0a559b3325098fa65b2930fc46e914aaaf"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 8314834,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "nvidia-kernel-source-580-open",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-kernel-source-580-open_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "b05d5e5a16ef5f133dbb2da6eab53ce0e5e5b39d685241c469bd316606db68dd"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 19680,
+      "new": "2.39-0ubuntu8.9",
+      "old": "2.39-0ubuntu8.7",
+      "package": "libc-dev-bin",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc-dev-bin_2.39-0ubuntu8.7_arm64.deb",
+      "sha256": "d76ef96feaf47f698661236af9f45d2eabd9805398f49b6c79f34145d636c337"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 14458,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "nvidia-driver-580-open",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/nvidia-driver-580-open_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "70807a15f8887b5655d931b5a2911690e8320de10bc46dcf919f8bb50b74b2b3"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 590852,
+      "new": "2.39-0ubuntu8.9",
+      "old": "2.39-0ubuntu8.7",
+      "package": "libc-bin",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc-bin_2.39-0ubuntu8.7_arm64.deb",
+      "sha256": "87165daf79cd0d924e642a535c23476a7d7d955dac041d4af9785e1f680aaee8"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 27786,
+      "new": "2.39-0ubuntu8.9",
+      "old": "2.39-0ubuntu8.7",
+      "package": "libc-devtools",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc-devtools_2.39-0ubuntu8.7_arm64.deb",
+      "sha256": "04f7862deabaddd11c1b482ff4e1e53a1348b03d891dbdbc12f52984c17eaf3b"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 6274242,
+      "new": "2.39-0ubuntu8.9",
+      "old": "2.39-0ubuntu8.7",
+      "package": "libc6-dbg",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc6-dbg_2.39-0ubuntu8.7_arm64.deb",
+      "sha256": "03d4336aa663085c35b0265dd5d8e3d35be92057b974822fa17701d4ae6fb84d"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 1596158,
+      "new": "2.39-0ubuntu8.9",
+      "old": "2.39-0ubuntu8.7",
+      "package": "libc6-dev",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libc6-dev_2.39-0ubuntu8.7_arm64.deb",
+      "sha256": "d00158c84302fa21231a4cca4131de60134c2359ea8e5641b12e476bd5585aff"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 159206,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "libnvidia-cfg1-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-cfg1-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "0cc7fe7fa6b67f59e9fce177479c4380129711d38a5e8fb265788b9a1bdb2691"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 58139792,
+      "new": "580.178.04-0ubuntu0.24.04.1",
+      "old": "580.159.03-0ubuntu0.24.04.1",
+      "package": "libnvidia-compute-580",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/libnvidia-compute-580_580.159.03-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "1b8679f394155e3096a82cd8fd58afddae20f008e150cf1e87b8c6c20633bc2f"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 61736,
+      "new": "1:1.3.dfsg-3.1ubuntu2.2",
+      "old": "1:1.3.dfsg-3.1ubuntu2.1",
+      "package": "zlib1g",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/zlib1g_1.3.dfsg-3.1ubuntu2.1_arm64.deb",
+      "sha256": "cbe3d39ec32d3cc27c021ae4af11e7c67bdf9d700d573207e0941d4038056278"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 7932412,
+      "old": "6.17.0-1026.26",
+      "package": "linux-modules-nvidia-580-open-6.17.0-1026-nvidia",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/linux-modules-nvidia-580-open-6.17.0-1026-nvidia_6.17.0-1026.26_arm64.deb",
+      "sha256": "6b06494f451674ae916f46e8fdd8be1919e303040bd962c2c8fb16939bcbfe5c"
+    },
+    {
+      "arch": "arm64",
+      "bytes": 15566,
+      "old": "6.17.0-1026.26",
+      "package": "linux-modules-nvidia-580-open-nvidia-hwe-24.04",
+      "path": "/home/riomus/runs/sfora-runtime-recovery-artifacts-v1/linux-modules-nvidia-580-open-nvidia-hwe-24.04_6.17.0-1026.26_arm64.deb",
+      "sha256": "d014a41ee503eb17a21257b7ab8ba450b9b24eceadf3048f55d27977a57a90f2"
+    }
+  ],
+  "permitted_remove": [
+    "linux-modules-nvidia-580-open-7.0.0-1019-nvidia"
+  ],
+  "quality_read": false,
+  "reverse_packages": [
+    {
+      "package": "libnvidia-common-580",
+      "path": "/var/cache/apt/archives/libnvidia-common-580_580.178.04-0ubuntu0.24.04.1_all.deb",
+      "sha256": "f8e8d82545b1c31dc8de50a6bdb9d262c75a0bd458df97cf862f09539ef8857b",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "libnvidia-fbc1-580",
+      "path": "/var/cache/apt/archives/libnvidia-fbc1-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "30194dea9a448755b1542327d74279fdeec41ad2e3a7ffd3681e72bcf6e209e6",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "libnvidia-gl-580",
+      "path": "/var/cache/apt/archives/libnvidia-gl-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "304e2dcddfc4ca777dfbc3fd573b39917d589125266dca657876bb71c3d3e057",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "libnvidia-extra-580",
+      "path": "/var/cache/apt/archives/libnvidia-extra-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "3462ad2932ebc92452c931ef808d5d4dc655499236bea1035a5aa52247ff99f5",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "nvidia-compute-utils-580",
+      "path": "/var/cache/apt/archives/nvidia-compute-utils-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "b8fe7078088330ca4aacd36f126847c141b126a97a4849ac1f157c909d19bbae",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "libnvidia-encode-580",
+      "path": "/var/cache/apt/archives/libnvidia-encode-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "31fb4cf513f8727cda0855648f5e9fa4e53c61cc90bcb6eb031c52caddfd75ed",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "nvidia-utils-580",
+      "path": "/var/cache/apt/archives/nvidia-utils-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "e5bb3de5b9069187302a97d80acbdd16f105db2eebfb895193076959350563af",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "xserver-xorg-video-nvidia-580",
+      "path": "/var/cache/apt/archives/xserver-xorg-video-nvidia-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "c0b62d97df7fd61be751e4b5a23aebbcce551f2eb1b1ad61ce42c1db4d076c8e",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "zlib1g-dev",
+      "path": "/var/cache/apt/archives/zlib1g-dev_1%3a1.3.dfsg-3.1ubuntu2.2_arm64.deb",
+      "sha256": "de750f2515144715015e792c391bfa2ab4a926db6c370ba519af576bb3f131b5",
+      "version": "1:1.3.dfsg-3.1ubuntu2.2"
+    },
+    {
+      "package": "libnvidia-decode-580",
+      "path": "/var/cache/apt/archives/libnvidia-decode-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "a6fa6639d97c42f397a5da2e83c48eeae23e588893a1b4a1e8a7bc77a5e97c1a",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "nvidia-kernel-common-580",
+      "path": "/var/cache/apt/archives/nvidia-kernel-common-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "3891e0ab76210f99bf9bed8a9248e3dba430a957bc98d3053c7f5dacdf15f276",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "libc6",
+      "path": "/var/cache/apt/archives/libc6_2.39-0ubuntu8.9_arm64.deb",
+      "sha256": "ad109797c5f78a5eeb6d4c296bfbaae68b239111a0c9ac0eb97b8d430284ac45",
+      "version": "2.39-0ubuntu8.9"
+    },
+    {
+      "package": "locales",
+      "path": "/var/cache/apt/archives/locales_2.39-0ubuntu8.9_all.deb",
+      "sha256": "f8310ef4ba442845cf5d44a5ce3d5d7accb659bae96b3a0999002132209cd367",
+      "version": "2.39-0ubuntu8.9"
+    },
+    {
+      "package": "nvidia-kernel-source-580-open",
+      "path": "/var/cache/apt/archives/nvidia-kernel-source-580-open_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "d0b98032da2b696731dd60c797cbdcf539726ad1144dcae927bb4b9b269f35b9",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "libc-dev-bin",
+      "path": "/var/cache/apt/archives/libc-dev-bin_2.39-0ubuntu8.9_arm64.deb",
+      "sha256": "85564f1ba7dce372d0fdec055986b428f72cd9c235af1dd29950f589562d19bc",
+      "version": "2.39-0ubuntu8.9"
+    },
+    {
+      "package": "nvidia-driver-580-open",
+      "path": "/var/cache/apt/archives/nvidia-driver-580-open_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "96dd520cda2b2a9dc79a05a6d94ae5b5956b757158c5b649597c65ab0c6178fb",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "libc-bin",
+      "path": "/var/cache/apt/archives/libc-bin_2.39-0ubuntu8.9_arm64.deb",
+      "sha256": "5a96fe62c7803a4b886b29afbb67b5e41952de918abd217d2b8fdfbc44c3b72d",
+      "version": "2.39-0ubuntu8.9"
+    },
+    {
+      "package": "libc-devtools",
+      "path": "/var/cache/apt/archives/libc-devtools_2.39-0ubuntu8.9_arm64.deb",
+      "sha256": "3b668e66c19f712461f394bfd97bf7eb626d778d4d29c141d1243965e5b37a09",
+      "version": "2.39-0ubuntu8.9"
+    },
+    {
+      "package": "libc6-dbg",
+      "path": "/var/cache/apt/archives/libc6-dbg_2.39-0ubuntu8.9_arm64.deb",
+      "sha256": "ca88a75897507bc4d211a7e3bfc499e5b282cf7002f6cd5bfe8661fae2e17ff1",
+      "version": "2.39-0ubuntu8.9"
+    },
+    {
+      "package": "libc6-dev",
+      "path": "/var/cache/apt/archives/libc6-dev_2.39-0ubuntu8.9_arm64.deb",
+      "sha256": "9bf6acb8a3433ffe561182517640970d324425fabbbeb54a24d737ba1f3c816b",
+      "version": "2.39-0ubuntu8.9"
+    },
+    {
+      "package": "libnvidia-cfg1-580",
+      "path": "/var/cache/apt/archives/libnvidia-cfg1-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "4b25188ce3943d10ef41ad1e18e5c075e4a015fc3236d2050120c236cc8af766",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "libnvidia-compute-580",
+      "path": "/var/cache/apt/archives/libnvidia-compute-580_580.178.04-0ubuntu0.24.04.1_arm64.deb",
+      "sha256": "009267387ae7577dfac0027bd07cf5e793c86c1e07b1fd64c09a64029b5027d3",
+      "version": "580.178.04-0ubuntu0.24.04.1"
+    },
+    {
+      "package": "zlib1g",
+      "path": "/var/cache/apt/archives/zlib1g_1%3a1.3.dfsg-3.1ubuntu2.2_arm64.deb",
+      "sha256": "e55ab3b4fb7b6edc4a628e28ec13f8780b08abe427d33ae148f030d8586d0e9a",
+      "version": "1:1.3.dfsg-3.1ubuntu2.2"
+    },
+    {
+      "package": "linux-modules-nvidia-580-open-7.0.0-1019-nvidia",
+      "path": "/var/cache/apt/archives/linux-modules-nvidia-580-open-7.0.0-1019-nvidia_7.0.0-1019.19~24.04.2+1_arm64.deb",
+      "sha256": "a7ee3b5224bdc5227bbb84f9b1978434727ddf64713b577dca224abbf1c7d29d",
+      "version": "7.0.0-1019.19~24.04.2+1"
+    },
+    {
+      "package": "linux-modules-nvidia-580-open-nvidia-hwe-24.04",
+      "path": "/var/cache/apt/archives/linux-modules-nvidia-580-open-nvidia-hwe-24.04_7.0.0-1019.19~24.04.2+1_arm64.deb",
+      "sha256": "18f5473096ac75f544db475211c7d61db6ea3249d9de9201a0d980f3773118b3",
+      "version": "7.0.0-1019.19~24.04.2+1"
+    }
+  ],
+  "schema": "sfora-qualified-runtime-restore-v1",
+  "standing_operator_authorization": "approve all; DGX passwordless sudo do what is needed; resume experiments"
+}
