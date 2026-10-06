@@ -1,0 +1,13 @@
+{
+  "core_seconds": 101.58210594500005,
+  "cuda_peak_bytes": 1940669440,
+  "host_peak_bytes": 5786923008,
+  "invocation_id": "23d34431b4be40439b8b8eb7131bbde2",
+  "log_sha256": "d14ce4e3b43a800d43b7a69aba9d6b79d5669632e8c78c1016858d80b56b0340",
+  "original_train_v1_remains_fail": true,
+  "pass": true,
+  "quality_read": false,
+  "receipt_sha256": "9c1b02146dbb69694388a5a8b9eb4e8d83fb9c5707f2f6d9338fb763d571eb7b",
+  "schema": "identity-diversity-control061-v2-parent-verification-v1",
+  "service_seconds": 498.028
+}
