@@ -1,0 +1,20 @@
+{
+  "host_peak_bytes": 1916411904,
+  "pass": true,
+  "quality_read": false,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "6a08919e06e3422f8ced09036f6f07bf",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/first-cpu-v1.log",
+      "sha256": "f3f9d87c202ff87968d9d9806932cd89ec6172282b8983b259a0a013bd28a96f"
+    },
+    "native_peak_rss_kib": 1287104,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-first-cpu-v1/receipt.json",
+      "sha256": "c6cde98ddba7168d9cbba6fcdd14a137253e1e00f4d8564407137cb6a6a480db"
+    },
+    "service_seconds": 323.007,
+    "unit": "sfora-so400-identity-diversity-evaluation-first-cpu-v1"
+  }
+}

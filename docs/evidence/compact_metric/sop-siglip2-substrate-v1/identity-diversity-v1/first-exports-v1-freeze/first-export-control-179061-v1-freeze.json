@@ -1,0 +1,30 @@
+{
+  "authority_sha256": "e808bb83e1cd84e1dc521b99bf5d15827cacb8a2d304a819c952738f5951dca8",
+  "command_sha256": "8109e288bd3c298d415f80d5a5f2517418efa78e67d089ab9f201d7b89d974fc",
+  "execution_sha256": "22b2454d60bd910cc568eb0e0f3868c438667ed8d2fbd9edfcd3b713ae1455df",
+  "launch_sha256": "52e8ae1557b647c265bed04b6f91d6b0a6ab1b75d0b5932af5d1bca1250d4e2a",
+  "resource_policy": {
+    "cuda_visible_devices": "0",
+    "host_bytes": 8589934592,
+    "seconds": 900,
+    "swap_bytes": 0
+  },
+  "schema": "identity-diversity-first-gpu-export-freeze-v1",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "6a08919e06e3422f8ced09036f6f07bf",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/first-cpu-v1.log",
+      "sha256": "f3f9d87c202ff87968d9d9806932cd89ec6172282b8983b259a0a013bd28a96f"
+    },
+    "native_peak_rss_kib": 1287104,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-first-cpu-v1/receipt.json",
+      "sha256": "c6cde98ddba7168d9cbba6fcdd14a137253e1e00f4d8564407137cb6a6a480db"
+    },
+    "service_seconds": 323.007,
+    "unit": "sfora-so400-identity-diversity-evaluation-first-cpu-v1"
+  },
+  "stop_rule": "One-arm fresh complete bundle-only B32 query/gallery/tails x2 + TRAINmicro16/native role/fullstate/packing/readback/native4/fulluncachedexit. Failure FAIL, no partialwire quality/no cap rescue. Firstselection only after both complete exports.",
+  "unit": "sfora-so400-identity-diversity-evaluation-first-export-control-179061-v1"
+}
