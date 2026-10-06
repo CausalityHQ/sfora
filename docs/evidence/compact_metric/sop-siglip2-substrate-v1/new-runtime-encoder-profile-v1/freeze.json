@@ -1,0 +1,20 @@
+{
+  "both_locks_held": true,
+  "driver": "/home/riomus/runs/sfora-new-runtime-encoder-profile-v1.py",
+  "driver_sha256": "8376cf24c77950a341040575ed0f769b5251c56caf90bfe220757048863691a3",
+  "output": "/home/riomus/runs/sfora-new-runtime-encoder-profile-v1",
+  "profile": "Strict original So400 factory/FP32 CPU two frozen control TRAIN witnesses, FP16 GPU B32 repeated witnesses warmup3 +30s encoding profile; preloaded encoder-only timing; finite outputs/relativeL2<=.02 engineering stop.",
+  "qualification_eligible": false,
+  "quality_read": false,
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "new-runtime-encoder-profile-freeze-v1",
+  "source_execution_sha256": "3eabe74c62aadafae5441bcded6e85d489f17409ce3b77116f61ab75c4014f2b",
+  "state_reuse_eligible": false,
+  "training_updates": 0,
+  "unit": "sfora-new-runtime-encoder-profile-v1"
+}
