@@ -1,0 +1,13 @@
+{
+  "schema": "export-exit-scan-ab-authority-v1",
+  "files": {
+    "driver.py": "257c02985581be6b946e99649a7d6470bd21696fffa717758d3977cbdf214ccb",
+    "train_siglip2_identity_diversity.py": "840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8"
+  },
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-so400-identity-diversity-evaluation-first-export-control-179061-v1/receipt.json",
+    "sha256": "032a5774afd3c3c2bf1817155dd60d4ed6623f7365c94c831528cf43cd8686ef"
+  },
+  "output": "/home/riomus/runs/sfora-export-exit-scan-ab-source-v1/receipt.json",
+  "stop_rule": "ONE CPU300 engineering A/B; original current bytes each occurrence; any failure stops; no model/quality/state reuse"
+}

@@ -1,0 +1,58 @@
+{
+  "schema": "connected-residual-native-math-v1",
+  "pass": true,
+  "engineering_only": true,
+  "model_fit_qualified": false,
+  "state_reuse_eligible": false,
+  "quality_read": false,
+  "rows": [
+    {
+      "device": "cpu",
+      "zero_C": true,
+      "forward_bitwise": true,
+      "gradient_bitwise": true,
+      "gradient_norms": [
+        1.348907470703125,
+        25.590362548828125,
+        1499.8056640625
+      ]
+    },
+    {
+      "device": "cpu",
+      "zero_C": false,
+      "forward_bitwise": true,
+      "gradient_bitwise": true,
+      "gradient_norms": [
+        15.032561302185059,
+        28.30812644958496,
+        1492.877685546875
+      ]
+    },
+    {
+      "device": "cuda",
+      "zero_C": true,
+      "forward_bitwise": true,
+      "gradient_bitwise": true,
+      "gradient_norms": [
+        1.3353520631790161,
+        27.916704177856445,
+        1490.0814208984375
+      ]
+    },
+    {
+      "device": "cuda",
+      "zero_C": false,
+      "forward_bitwise": true,
+      "gradient_bitwise": true,
+      "gradient_norms": [
+        15.317234992980957,
+        27.970016479492188,
+        1544.4849853515625
+      ]
+    }
+  ],
+  "wall_seconds": 3.5421014860003197,
+  "peak_cuda_allocated_bytes": 73530368,
+  "invocation_id": "b4c889fe1cad40db8b31d065de6ab39b",
+  "authority_sha256": "822716b9087f4b3a7addcb6e799dc26141ddce189b0d4ec9a5261fc42513e29a"
+}

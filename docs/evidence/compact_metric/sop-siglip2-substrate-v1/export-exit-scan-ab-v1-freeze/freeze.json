@@ -1,0 +1,17 @@
+{
+  "authority_sha256": "fa7c15251aec590ec613f5a42e14118d3a99b558f7c214e129fbb1f6a13972de",
+  "files": {
+    "launch.sh": "e63124aaddc19757d70fdad27bbfdcdf19710fe685262cf107aba22b19818156",
+    "command.sh": "23ca6268c0f91fcdab035aa774b17d5d545d29d8736d09e157d4b2610096a174",
+    "authority.json": "fa7c15251aec590ec613f5a42e14118d3a99b558f7c214e129fbb1f6a13972de",
+    "driver.py": "257c02985581be6b946e99649a7d6470bd21696fffa717758d3977cbdf214ccb",
+    "train_siglip2_identity_diversity.py": "840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8"
+  },
+  "resource_policy": {
+    "seconds": 300,
+    "host_bytes": 8589934592,
+    "swap": 0,
+    "both_locks": true
+  },
+  "engineering_only": true
+}

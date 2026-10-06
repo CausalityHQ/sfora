@@ -1,0 +1,8 @@
+{
+  "pass": true,
+  "service_seconds": 5.436,
+  "model_fit_qualified": false,
+  "state_reuse_eligible": false,
+  "quality_read": false,
+  "next": "genuine encoder gradient/lifetime qualification before any training"
+}
