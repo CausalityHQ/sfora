@@ -1,0 +1,71 @@
+{
+  "authority_sha256": "4abfa47a96ddc2c18ac7ebc1a58223d69eb8001b97e53b0c38964f7bb3ef33e8",
+  "code": {
+    "evaluate_siglip2_identity_diversity.py": "cf047c90b96bd3f8baf08d4f878330356cbbde6fc12143cc109a05b345fc9efe",
+    "test_identity_diversity_evaluation.py": "41cde93b851b41e8ddb7db94ff233344b9f141a0c59a2fb71d5ef7801d6ac849"
+  },
+  "command_sha256": "4704b85f940de5a10431b6e7a33eaa667d13f2c411b3e60b27f753d92e5d8778",
+  "execution_sha256": "22b2454d60bd910cc568eb0e0f3868c438667ed8d2fbd9edfcd3b713ae1455df",
+  "launch_sha256": "7f0138c801b1871cea41258cde313da3b316f86511da7f5964663f0990e9fe4e",
+  "matched_train_costs": {
+    "core_ratio": 0.9713816219307921,
+    "endpoints": [
+      {
+        "arm": "control",
+        "core_seconds": 101.58210594500005,
+        "cuda_peak_bytes": 1940669440,
+        "host_peak_bytes": 5786923008,
+        "service_seconds": 498.028,
+        "terminal": {
+          "both_locks_held": true,
+          "invocation_id": "23d34431b4be40439b8b8eb7131bbde2",
+          "log": {
+            "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/train-control-179061-v2.log",
+            "sha256": "d14ce4e3b43a800d43b7a69aba9d6b79d5669632e8c78c1016858d80b56b0340"
+          },
+          "native_peak_rss_kib": 4745308,
+          "receipt": {
+            "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-control-179061-v2/receipt.json",
+            "sha256": "9c1b02146dbb69694388a5a8b9eb4e8d83fb9c5707f2f6d9338fb763d571eb7b"
+          },
+          "service_seconds": 498.028,
+          "unit": "sfora-so400-identity-diversity-train-control-179061-v2"
+        }
+      },
+      {
+        "arm": "candidate",
+        "core_seconds": 98.67499083199971,
+        "cuda_peak_bytes": 1940669440,
+        "host_peak_bytes": 5840224256,
+        "service_seconds": 508.745,
+        "terminal": {
+          "both_locks_held": true,
+          "invocation_id": "af65b9667f2e4794a4e42f5624b33a7a",
+          "log": {
+            "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/train-candidate-179061-v1.log",
+            "sha256": "73401bddbf6fbc768be0c80bc0a3aba3769b61c801448b031980a1e2e948eb05"
+          },
+          "native_peak_rss_kib": 4741616,
+          "receipt": {
+            "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-candidate-179061-v1/receipt.json",
+            "sha256": "0199a0fe54174b2a0dab66d1c91bbd6721bae998b92e98a8ac3227e864d7acc0"
+          },
+          "service_seconds": 508.745,
+          "unit": "sfora-so400-identity-diversity-train-candidate-179061-v1"
+        }
+      }
+    ],
+    "pass": true,
+    "quality_read": false,
+    "service_ratio": 1.021518870424956
+  },
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "schema": "identity-diversity-first-evaluator-cpu-freeze-v1",
+  "stop_rule": "ONE original CPU500 metadata/synthetic qualification, complete endpoint/archived/source/native/uncached-exit authority; PASS before GPU exports, no new held quality; any failure FAIL no state reuse or cap rescue.",
+  "unit": "sfora-so400-identity-diversity-evaluation-first-cpu-v1"
+}

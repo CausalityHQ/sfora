@@ -1,0 +1,52 @@
+{
+  "core_ratio": 0.9713816219307921,
+  "endpoints": [
+    {
+      "arm": "control",
+      "core_seconds": 101.58210594500005,
+      "cuda_peak_bytes": 1940669440,
+      "host_peak_bytes": 5786923008,
+      "service_seconds": 498.028,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "23d34431b4be40439b8b8eb7131bbde2",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/train-control-179061-v2.log",
+          "sha256": "d14ce4e3b43a800d43b7a69aba9d6b79d5669632e8c78c1016858d80b56b0340"
+        },
+        "native_peak_rss_kib": 4745308,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-control-179061-v2/receipt.json",
+          "sha256": "9c1b02146dbb69694388a5a8b9eb4e8d83fb9c5707f2f6d9338fb763d571eb7b"
+        },
+        "service_seconds": 498.028,
+        "unit": "sfora-so400-identity-diversity-train-control-179061-v2"
+      }
+    },
+    {
+      "arm": "candidate",
+      "core_seconds": 98.67499083199971,
+      "cuda_peak_bytes": 1940669440,
+      "host_peak_bytes": 5840224256,
+      "service_seconds": 508.745,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "af65b9667f2e4794a4e42f5624b33a7a",
+        "log": {
+          "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/train-candidate-179061-v1.log",
+          "sha256": "73401bddbf6fbc768be0c80bc0a3aba3769b61c801448b031980a1e2e948eb05"
+        },
+        "native_peak_rss_kib": 4741616,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-candidate-179061-v1/receipt.json",
+          "sha256": "0199a0fe54174b2a0dab66d1c91bbd6721bae998b92e98a8ac3227e864d7acc0"
+        },
+        "service_seconds": 508.745,
+        "unit": "sfora-so400-identity-diversity-train-candidate-179061-v1"
+      }
+    }
+  ],
+  "pass": true,
+  "quality_read": false,
+  "service_ratio": 1.021518870424956
+}
