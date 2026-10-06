@@ -844,7 +844,7 @@ CANONICAL_SOURCE_EDITS = [['            witness=fingerprint(context,cached_witne
 
 def canonical_source_inverse(raw):
     """Exact prospective edits only; every other original source byte is pinned."""
-    source = raw.decode()
+    source = scan_batch_inverse(raw).decode()
     for old, new, count in reversed(CANONICAL_SOURCE_EDITS):
         driver.require(source.count(new) == count, 'canonical source inverse occurrence differs')
         source = source.replace(new, old)
@@ -859,7 +859,7 @@ def canonical_source_inverse(raw):
 
 
 def canonical_test_inverse(tree):
-    additions = ['canonical_source_inverse', 'canonical_test_inverse', 'CanonicalSourceContract', 'CanonicalTensor', 'CanonicalHead', 'canonical_fixture', 'CanonicalAdmission', 'CanonicalDiagnosticTensor', 'canonical_diagnostics_fixture', 'CanonicalComponents']
+    additions = ['canonical_source_inverse', 'canonical_test_inverse', 'CanonicalSourceContract', 'CanonicalTensor', 'CanonicalHead', 'canonical_fixture', 'CanonicalAdmission', 'CanonicalDiagnosticTensor', 'canonical_diagnostics_fixture', 'CanonicalComponents', 'scan_batch_inverse', 'ScanBatchContract']
     tree.body = [n for n in tree.body if not (isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name in additions)
                  and not (isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name) and
                           n.targets[0].id == 'CANONICAL_SOURCE_EDITS')]
@@ -1264,5 +1264,128 @@ class CanonicalComponents(unittest.TestCase):
             wrong = copy.deepcopy(left)
             wrong['augmented']['raw'].values[0] = [invalid, invalid]
             with self.assertRaises(ValueError): canonical_diagnostics_fixture(left, wrong)
+
+
+def scan_batch_inverse(raw):
+    """Invert only the one prospective candidate-preparation scan call."""
+    new = b"    batch_bound_files(guards,{**proof['input_guards'],**proof['original_input_guards']}.items())\n"
+    old = b"    for path,sha in {**proof['input_guards'],**proof['original_input_guards']}.items(): bound_file(guards,path,sha)\n"
+    driver.require(raw.count(new) == 1 and raw.count(old) == 0, 'prospective scan batch occurrence differs')
+    return raw.replace(new, old)
+
+
+class ScanBatchContract(unittest.TestCase):
+    def test_candidate_scan_overlaps_exact_fresh_checks_and_restores_original(self):
+        import threading
+        from unittest import mock
+        raw = PATH.read_bytes()
+        original = scan_batch_inverse(raw)
+        self.assertEqual(hashlib.sha256(original).hexdigest(),
+                         '840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8')
+        self.assertEqual(hashlib.sha256(ast.dump(ast.parse(original), include_attributes=False).encode()).hexdigest(),
+                         'f36a0e472318190c06808527d2ce97fd9ebd20d9e9a94232763343f48b22486c')
+
+        def scan(source):
+            body = next(n for n in ast.parse(source).body
+                        if isinstance(n, ast.FunctionDef) and n.name == 'admit_candidate_cache').body
+            unit = next(i for i, s in enumerate(body)
+                        if isinstance(s, ast.For) and ast.unparse(s.iter) == "(startup, fact['terminal'])")
+            return body[unit + 1]
+        serial, batched = scan(original), scan(raw)
+        union_text = "{**proof['input_guards'], **proof['original_input_guards']}.items()"
+        self.assertEqual(ast.unparse(serial), f'for path, sha in {union_text}:\n    bound_file(guards, path, sha)')
+        self.assertEqual(ast.unparse(batched), f'batch_bound_files(guards, {union_text})')
+
+        class Probe:
+            """Real bound_file behind a bounded 2-party barrier; only the first two reads wait."""
+            def __init__(self, timeout):
+                self.real, self.lock, self.barrier = driver.bound_file, threading.Lock(), threading.Barrier(2, timeout=timeout)
+                self.arrivals = self.active = self.max_active = 0
+                self.overlap, self.calls, self.entry_guards = False, [], []
+
+            def __call__(self, guards, path, expected):
+                with self.lock:
+                    self.arrivals += 1; self.active += 1
+                    self.max_active = max(self.max_active, self.active)
+                    self.calls.append((str(path), expected)); self.entry_guards.append(dict(guards))
+                    waits = self.arrivals <= 2
+                try:
+                    if waits:
+                        try: self.barrier.wait(); self.overlap = True
+                        except threading.BrokenBarrierError: pass
+                    return self.real(guards, path, expected)
+                finally:
+                    with self.lock: self.active -= 1
+
+        def run(statement, proof, owner, timeout):
+            probe, error, threads = Probe(timeout), None, threading.active_count()
+            code = compile(ast.fix_missing_locations(ast.Module(body=[copy.deepcopy(statement)], type_ignores=[])), str(PATH), 'exec')
+            names = {'proof': proof, 'guards': owner, 'bound_file': probe, 'batch_bound_files': driver.batch_bound_files}
+            with mock.patch.object(driver, 'bound_file', probe):
+                try: exec(code, names)
+                except ValueError as exc: error = exc
+            self.assertEqual((probe.active, threading.active_count()), (0, threads), 'workers joined before return')
+            return probe, error
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            members = [root / f'member{i}' for i in range(5)]
+            for i, member in enumerate(members): member.write_bytes(b'member %d\n' % i)
+            digest = {str(m): hashlib.sha256(m.read_bytes()).hexdigest() for m in members}
+            first = {str(m): digest[str(m)] for m in members[:3]}
+            second = {str(m): digest[str(m)] for m in members[2:]}
+            proof = {'input_guards': first, 'original_input_guards': second}
+            union = {**first, **second}
+            self.assertEqual((len(first), len(second), len(union)), (3, 3, 5))
+
+            # RED: the original serial statement cannot overlap two reads.
+            serial_owner = {}
+            red, error = run(serial, proof, serial_owner, .5)
+            self.assertIsNone(error)
+            self.assertEqual((red.overlap, red.max_active), (False, 1))
+            # GREEN: same union, order and fresh per-member checks, now overlapped within four workers.
+            owner = {}
+            green, error = run(batched, proof, owner, 5.)
+            self.assertIsNone(error)
+            self.assertTrue(green.overlap)
+            self.assertTrue(2 <= green.max_active <= 4)
+            self.assertEqual(sorted(green.calls), sorted(union.items()))
+            self.assertEqual(green.entry_guards, [{}] * 5)
+            self.assertEqual(list(owner.items()), list(union.items()))
+            self.assertEqual(list(owner.items()), list(serial_owner.items()))
+
+            # Dictionary right-bias is preserved: the later duplicate decides the fresh check.
+            wrong = {str(members[2]): '0' * 64}
+            owner = {}
+            _, error = run(batched, {'input_guards': wrong, 'original_input_guards': second}, owner, 5.)
+            self.assertIsNone(error)
+            self.assertEqual(owner, second)
+            _, error = run(batched, {'input_guards': first, 'original_input_guards': wrong}, {}, 5.)
+            self.assertRegex(str(error), 'current FILE bytes differ')
+
+            # A preexisting guard never substitutes for a fresh read; the owner stays unchanged on failure.
+            victim = members[1]
+            owner = {str(victim): digest[str(victim)]}
+            victim.write_bytes(b'mutated after guard\n')
+            mutated, error = run(batched, proof, owner, 5.)
+            self.assertRegex(str(error), 'current FILE bytes differ')
+            self.assertEqual(owner, {str(victim): digest[str(victim)]})
+            self.assertEqual(sorted(mutated.calls), sorted(union.items()))
+            victim.write_bytes(b'member 1\n')
+
+            link = root / 'link'
+            link.symlink_to(members[0])
+            owner = {}
+            _, error = run(batched, {'input_guards': {**first, str(link): digest[str(members[0])]},
+                                     'original_input_guards': second}, owner, 5.)
+            self.assertRegex(str(error), 'canonical regular FILE required')
+            self.assertEqual(owner, {})
+
+            conflicting = {str(members[3]): '0' * 64}
+            owner = dict(conflicting)
+            _, error = run(batched, proof, owner, 5.)
+            self.assertRegex(str(error), 'conflicting FILE authority')
+            self.assertEqual(owner, conflicting)
+
 
 if __name__ == '__main__': unittest.main()

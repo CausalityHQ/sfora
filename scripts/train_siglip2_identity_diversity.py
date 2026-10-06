@@ -505,7 +505,7 @@ def admit_candidate_cache(context):
         require(unit['invocation_id'] not in context['legacy']['invocations'], 'reused candidate preparation invocation')
         context['legacy']['invocations'].add(unit['invocation_id'])
         bound_file(guards,unit['log']['path'],unit['log']['sha256'])
-    for path,sha in {**proof['input_guards'],**proof['original_input_guards']}.items(): bound_file(guards,path,sha)
+    batch_bound_files(guards,{**proof['input_guards'],**proof['original_input_guards']}.items())
     for view in VIEWS:
         cache = proof['caches'][view]
         require(cache.keys() == {'path','sha256','shape','dtype','normalized','raw_pooled_cache'} and
