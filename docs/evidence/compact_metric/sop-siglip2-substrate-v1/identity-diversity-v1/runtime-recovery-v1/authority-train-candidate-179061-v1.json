@@ -1,0 +1,232 @@
+{
+  "accepted": {
+    "arm": "concat",
+    "checkpoint": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt",
+      "sha256": "b702e03847be88540ee9711b420279e3bc131fafc475f361eca3d57cf3b8bbcf"
+    },
+    "launch": {
+      "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json",
+      "sha256": "109b6fded3f4559fcee3822536abd5beeed5f4ffc23f4313b87904faa6c39630"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "94a84de4194f42f0842cee5b5c8f932a",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log",
+        "sha256": "93c2f7024116fc63d8e7cacc1a4e0106d2d57e9ca57d794c866e9bcc77311197"
+      },
+      "native_peak_rss_kib": 2854356,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json",
+        "sha256": "b4af0fecfa1d5f750f0ac9cc995198690baf4397fd970c8192727644135c7d5c"
+      },
+      "service_seconds": 234.821,
+      "unit": "sfora-so400-signed-concat-fit-concat-v1"
+    },
+    "terminal_state_sha256": "a118fd98cce0b8fafa51c897be70b2b6e2ec93ebb226b2382dd264721776b644"
+  },
+  "arm": "candidate",
+  "both_locks_held": true,
+  "candidate_cache": {
+    "authority": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-view-source-v2/authority.json",
+      "sha256": "d506aa29a3a6f1e0e5453670dc634dc202692eb70711e10f0b06f0065879a802"
+    },
+    "exporter": {
+      "code": {
+        "export_siglip2_identity_diversity_views.py": "67f228d24f3af71eba4d854148e2c351df04129347a761b8e7967ef144f1ef39",
+        "test_siglip2_identity_diversity_views.py": "61e6fc421587e2acf29aafff325f9076e4b3847a559249202701e4e934b29809"
+      },
+      "execution_sha256": "d6ae3b99f721fd659035d4ee64a9fbdaead0380798e6d1fdf5047499f599637f",
+      "root": "/home/riomus/runs/sfora-so400-identity-diversity-view-source-v2"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "572f43d96a204915a02a9dc00fbbc129",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-view-source-v2/export-candidate-v1.log",
+        "sha256": "89bca852d0155c6b4e5d0ada959a86c9e8ab2d50059852c1238fdd09d9607fa2"
+      },
+      "native_peak_rss_kib": 5764108,
+      "proof": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-view-export-candidate-v1/receipt.json",
+        "sha256": "a849d0e8fd76c9685fed142593a3f79584a7390f69066d359fdc5660025224d7"
+      },
+      "service_seconds": 291.484,
+      "unit": "sfora-so400-identity-diversity-view-export-candidate-v1"
+    }
+  },
+  "execution_sha256": "bd081a02a49f1f0dd8305b78bb3f8aa91f5bb7331f3045325a185971fb7c04a8",
+  "fitter": {
+    "code": {
+      "fit_siglip2_prototype_residual.py": "95295794ef234967d40bdf5713d04f41d6710dae4e9d2b95bca76f0f31adc13b",
+      "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+      "test_siglip2_prototype_residual.py": "c89aa3855d60d9f11d0dd57b55311c5364304915bd4a5d22b26b4c1e0a29c7d4"
+    },
+    "execution_sha256": "a47933beafd8a1c0e2d541624328c8fe1d7b9a90f68977eee83c3c82223a56fe",
+    "root": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2"
+  },
+  "native_authority": {
+    "path": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/native-authority.json",
+    "sha256": "7c1c78ef3f2c784f217822690e93e52e3ef55b27d6a27d8f9daf9b9b19295f51"
+  },
+  "nearest": {
+    "code": {
+      "nearest_ranking_readout.py": "862d5db5a1831603d4fc3c1b645fa998c7ca66ff67c8141b20d7df74e92d9738",
+      "test_siglip2_nearest_ranking.py": "a2d0a6fff65c371c4dd50531766677db5464ee35918887b3d55935dbdf489eec",
+      "train_siglip2_nearest_ranking.py": "4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c"
+    },
+    "execution_sha256": "0723deae5c550776b0a0493e296ce789cec76718cb7801f612b4fddc6201c311",
+    "root": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5"
+  },
+  "phase": "train",
+  "readout": {
+    "path": "/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py",
+    "sha256": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68"
+  },
+  "recipe": {
+    "adamw": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "capturable": false,
+      "differentiable": false,
+      "eps": 1e-08,
+      "foreach": false,
+      "fused": false,
+      "lr": 0.0001,
+      "maximize": false,
+      "weight_decay": 0.05
+    },
+    "batch": 64,
+    "classes": {
+      "candidate": 2016,
+      "control": 1008
+    },
+    "clip": 1.0,
+    "core": "common/control and scope cache/target preparation + complete connected gallery forward/backward + bothview forward/backward + optimizer",
+    "frozen": "complete encoder448/config/buffers/processor/head/unused1008classifier/basismeans/controlmu",
+    "gallery": "one complete current canonical connected gallery per micro16 at same preupdate A/C; graph released after backward",
+    "initial_scaler": 128.0,
+    "initialization": "continuation from accepted fitted concat A0, zeroC; fresh ordered AdamW only",
+    "microbatch": 16,
+    "mining": "exclude officialTRAIN original image self; dense scope labels; all sameidentity positives",
+    "ranking": "archived fullfeature CONTROL objective; connected gallery all positives sum/(2*K)",
+    "readout": "original CPU-renormalized genuine features; FP32 all; autocast disabled",
+    "regression": "both scopes P[label]; both original views coordinate sum / (128*control e0)",
+    "residual": "accepted concat helper once plus linear(actual normalized x-original control mu,C)",
+    "rows": 6355,
+    "schedule": "original PCG64 class cyclicpermutation generalized per scope; first128 B64; both views; masks authenticated unused",
+    "scope_lifetime": "release old control views/teachers/graphs before loading candidate; one scope at a time",
+    "seeds": [
+      179061,
+      179069
+    ],
+    "singletons": 12,
+    "teacher": "scope member-inclusive detached canonical RAW initial descriptor means; original control bothview e0",
+    "temperature": 0.01,
+    "trainable_names": {
+      "candidate": [
+        "A",
+        "C"
+      ],
+      "control": [
+        "A",
+        "C"
+      ]
+    },
+    "trainable_scalars": {
+      "candidate": 167936,
+      "control": 167936
+    },
+    "trainable_shapes": {
+      "candidate": [
+        [
+          128,
+          160
+        ],
+        [
+          128,
+          1152
+        ]
+      ],
+      "control": [
+        [
+          128,
+          160
+        ],
+        [
+          128,
+          1152
+        ]
+      ]
+    },
+    "updates": 128,
+    "views": [
+      "canonical",
+      "augmented"
+    ]
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "schema": "siglip2-identity-diversity-launch-v1",
+  "scope": {
+    "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/scope.json",
+    "sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726"
+  },
+  "seed": 179061,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "8b1805166f8b4aa0940e944bd987e8a3",
+    "log": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/cpu-v5.log",
+      "sha256": "70773d48671d83c41fbeafabe0895aca8a0ff70818fe77e7d6074363507dd6df"
+    },
+    "native_peak_rss_kib": 6085564,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v5/receipt.json",
+      "sha256": "d2239da896465ee004ebb95c9316713d634fa457c91c708c6c410769a8c17b03"
+    },
+    "service_seconds": 424.51,
+    "unit": "sfora-so400-identity-diversity-cpu-v5"
+  },
+  "selected_mechanics": {
+    "candidate": {
+      "both_locks_held": true,
+      "invocation_id": "2c00dae1c43646889930a275c2667347",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/mechanics-candidate-179061-v2.log",
+        "sha256": "d1731cf4b619204ef98a819bc79913c98c57eef283df79daa80679a5f873b20a"
+      },
+      "native_peak_rss_kib": 4711768,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-mechanics-candidate-179061-v2/receipt.json",
+        "sha256": "9cff0a05cb1ef24621e43c0de5df8674cea91b702de301ac87375c9452ca14e9"
+      },
+      "service_seconds": 315.519,
+      "unit": "sfora-so400-identity-diversity-mechanics-candidate-179061-v2"
+    },
+    "control": {
+      "both_locks_held": true,
+      "invocation_id": "13113b61c8514a3c9500cf60815bb961",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/mechanics-control-179061-v2.log",
+        "sha256": "eb34f0e56ba29bb2afaa66401f2b21c0002c4d17d7874de5ef78d44e01698309"
+      },
+      "native_peak_rss_kib": 4717388,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-mechanics-control-179061-v2/receipt.json",
+        "sha256": "7896d55d78ac79eadf640299d5cc33387d1e0344a6340390ac74583bb746369d"
+      },
+      "service_seconds": 325.116,
+      "unit": "sfora-so400-identity-diversity-mechanics-control-179061-v2"
+    }
+  }
+}
