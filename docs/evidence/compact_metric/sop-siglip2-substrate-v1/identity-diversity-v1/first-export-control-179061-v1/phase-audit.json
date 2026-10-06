@@ -1,0 +1,19 @@
+{
+  "complete_panel_batches": 218,
+  "gpu_window_is_one_sampled_30_second_window": true,
+  "gpu_window_max_percent": 96,
+  "gpu_window_mean_percent": 10.113333333333333,
+  "gpu_window_samples": 150,
+  "log_sha256": "562f0daca76ddbec3e4b033cba7ccd0453e95dbd175954b185609e92742f51cc",
+  "panel_batch_median_seconds": 1.1929776765000497,
+  "panel_batch_sum_seconds": 262.57199872299907,
+  "panel_encoding_first_begin_seconds": 265.24898673300004,
+  "panel_encoding_last_end_seconds": 562.062272739,
+  "panel_images_per_pass": 3449,
+  "passes": 2,
+  "product_latency_measured": false,
+  "quality_read": false,
+  "runtime_fresh_hash_events": 246,
+  "runtime_fresh_hash_sum_seconds": 79.27503276400034,
+  "schema": "identity-diversity-control-export-phase-audit-v1"
+}

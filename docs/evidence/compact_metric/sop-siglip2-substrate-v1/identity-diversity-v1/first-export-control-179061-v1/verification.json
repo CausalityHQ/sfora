@@ -1,0 +1,9 @@
+{
+  "cuda_peak_bytes": 2066498560,
+  "host_peak_bytes": 5209288704,
+  "log_sha256": "562f0daca76ddbec3e4b033cba7ccd0453e95dbd175954b185609e92742f51cc",
+  "pass": true,
+  "quality_read": false,
+  "receipt_sha256": "032a5774afd3c3c2bf1817155dd60d4ed6623f7365c94c831528cf43cd8686ef",
+  "service_seconds": 673.29
+}
