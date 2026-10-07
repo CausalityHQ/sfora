@@ -1,0 +1,81 @@
+{
+  "completed_inclusive_intervals": {
+    "authority": {
+      "count": 1,
+      "max_seconds": 135.79629945999477,
+      "sum_seconds": 135.79629945999477
+    },
+    "construct_encoder": {
+      "count": 2,
+      "max_seconds": 14.510620954009937,
+      "sum_seconds": 27.176470411999617
+    },
+    "encoder_facts": {
+      "count": 24,
+      "max_seconds": 1.4344017269904725,
+      "sum_seconds": 27.838472003975767
+    },
+    "fingerprint": {
+      "count": 84,
+      "max_seconds": 1.0214233440055978,
+      "sum_seconds": 15.198921163988416
+    },
+    "fresh": {
+      "count": 1,
+      "max_seconds": 34.77812155299762,
+      "sum_seconds": 34.77812155299762
+    },
+    "integrity": {
+      "count": 23,
+      "max_seconds": 3.3106506309995893,
+      "sum_seconds": 43.89699809800368
+    },
+    "load_initializer": {
+      "count": 1,
+      "max_seconds": 14.818429256993113,
+      "sum_seconds": 14.818429256993113
+    },
+    "release": {
+      "count": 2,
+      "max_seconds": 1.092524643012439,
+      "sum_seconds": 2.1457616050174693
+    },
+    "restore": {
+      "count": 1,
+      "max_seconds": 22.486515758006135,
+      "sum_seconds": 22.486515758006135
+    },
+    "save": {
+      "count": 1,
+      "max_seconds": 6.180556102990522,
+      "sum_seconds": 6.180556102990522
+    },
+    "update": {
+      "count": 1,
+      "max_seconds": 64.8394606590009,
+      "sum_seconds": 64.8394606590009
+    }
+  },
+  "host_peak_bytes": 7151419392,
+  "invocation_id": "6fab2bc11f194d2080d20b21f9bd4e8b",
+  "limitations": [
+    "Intervals overlap and must not be summed across functions.",
+    "END indicates return or unwind, not successful qualification.",
+    "Export_bundle began before timeout; portable parity and complete exit did not finish.",
+    "No new quality or admitted training result."
+  ],
+  "memory_events": 0,
+  "original_log_sha256": "5338e6f99ba7a9251b11b5d6fdd0aaf37d7be4656b3b95703009f9a02c5fcd84",
+  "original_ssh_exit": 1,
+  "original_ssh_session": 70787,
+  "qualification_eligible": false,
+  "schema": "connected-mlp-phase-observation-verification-v1",
+  "service_result": "timeout",
+  "service_seconds": 300.178,
+  "state_reuse_eligible": false,
+  "swap_bytes": 0,
+  "unclosed_functions": [
+    "run",
+    "export_bundle"
+  ]
+}
