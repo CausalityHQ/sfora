@@ -80,6 +80,17 @@
     ],
     "static_verification": "PASS original sources parsed/asserted without imports or execution; source hashes retained"
   },
+  "acd_indexed_supplement_protocol_followup": {
+    "access": "Indexed primary supplemental text inspected; direct original PDF retrieval remains403. No absolute result table or SOTA claim admitted.",
+    "author_reported_protocol": {
+      "aggregation": "supplement reports averages over3runs and fixed seed2024; no matched Sfora uncertainty/cost qualification inferred",
+      "asymmetric": "ResNet101 gallery256x256, ResNet18 query64x64",
+      "symmetric": "same ResNet101256x256 for query and gallery, reported separately as SIR-mAP/SIR-R1",
+      "training": "ImageNet initialization, SGD/cosine,20epochs for SOP/InShop; high-resolution identity batch96=16identitiesx6images"
+    },
+    "decision": "Corroborates separate symmetric/asymmetric protocols. Absolute corrected SOP/InShop paper frontier remains unresolved; current frozen experiment and quality/stop rules unchanged.",
+    "primary_url": "https://openaccess.thecvf.com/content/CVPR2026F/supplemental/Xie_Asymmetric_Collaborative_Distillation_CVPRF_2026_supplemental.pdf"
+  },
   "additional_primary_tables_2026_10_07": [
     {
       "decision": "Author-reported primary table, not Sfora measurement. Lower absolute top1 than dated UNICOM; reranking compute must be included for matched full latency. No new gate or intervention.",
