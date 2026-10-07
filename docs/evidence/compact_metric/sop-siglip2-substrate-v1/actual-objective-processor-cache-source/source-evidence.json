@@ -1,0 +1,8 @@
+{
+  "source": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/image_processing_backends.py",
+  "sha256": "250394884a9f90845cf87b6fc0cf3341337b193428556c6ff61ed2b04bedb692",
+  "matches_original_cpu_guard": true,
+  "retention_path": "_preprocess -> rescale_and_normalize -> lru_cache(maxsize=10) _fuse_mean_std_and_rescale_factor(self,...)",
+  "native_culprit_proof": "pending exact source regression and subsequent native qualification",
+  "no_runtime_import_performed": true
+}
