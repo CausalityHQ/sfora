@@ -1,0 +1,27 @@
+{
+  "conclusion": "Each encoder_facts separately traverses frozen444, full448 and four leaves with original fresh serializer. update calls it directly once and indirectly through integrity twice. Existing quadratic_encoder_frames can batch fresh CUDA copies but uses original CPU fallback and does not establish a CPUv2 speedup. No guard/source change or redundant-check removal is justified by this source count. Observe intervals before optimization.",
+  "current_tensor_bytes_hashed_for_encoder_facts_per_update": 10269313536,
+  "encoder_facts_current_tensor_bytes_per_call": 3423104512,
+  "four_fp32_bytes": 39687488,
+  "frozen_444_bytes": 1671864768,
+  "full_448_payload_bytes_from_verified_source_inventory": 1711552256,
+  "qualification": false,
+  "schema": "connected-mlp-current-byte-source-audit-v1",
+  "source_sha256": "cd68f9b109ca48dfc488a248b66c6e2f4a1e58e884aa3c598f4325d4c912edb2",
+  "units": "bytes; traversal count only, not time or throughput",
+  "update_encoder_checks": [
+    {
+      "function": "integrity",
+      "line": 911
+    },
+    {
+      "function": "encoder_facts",
+      "line": 976
+    },
+    {
+      "function": "integrity",
+      "line": 978
+    }
+  ],
+  "update_encoder_facts_call_count_direct_plus_integrity": 3
+}
