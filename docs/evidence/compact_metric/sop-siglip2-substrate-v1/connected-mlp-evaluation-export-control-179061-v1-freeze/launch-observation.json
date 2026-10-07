@@ -1,0 +1,20 @@
+{
+  "active_state": "active",
+  "actual_source_cpu_binding_cli_and_regular_staging_preflight_pass": true,
+  "both_locks_cleared_before_launch": true,
+  "controller_pid": 872822,
+  "frozen_controller_launch_and_freeze_hashes_pass": true,
+  "gpu_compute_processes_empty_before_launch": true,
+  "invocation_id": "774658e4ed3d4694b280402da4f49e0c",
+  "main_pid": 872840,
+  "memory_max_bytes": 8589934592,
+  "memory_swap_max_bytes": 0,
+  "no_completion_or_gpu_utilization_claim": true,
+  "original_launch_exit": 0,
+  "quality_read": false,
+  "runtime_seconds": 900,
+  "schema": "connected-control-export-original-launch-observation-v1",
+  "sub_state": "running",
+  "terminal_pending": true,
+  "unit": "sfora-connected-mlp-evaluation-export-control-179061-v1"
+}
