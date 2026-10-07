@@ -8,7 +8,7 @@ The parent supplies the exact authority below, authenticates a quality survivor
 with the original full terminal reader, and owns native read/decode/synchronize,
 both locks, resource admission, whole-process cap and full uncached exit.
 
-Parent API: RequestObserver(original.fingerprint, sources), then
+Parent API: RequestObserver.from_index(admitted_index, sources), then
 measure_request(index, read_images, synchronize, pinned_paths, observer=probe).
 The index is the unchanged ConnectedCompactIndex. No native imports, globals,
 functions or registry entries are replaced. Removing the observer argument
@@ -38,6 +38,9 @@ are UNMEASURED; overlapping host/CUDA intervals must never be added. Return
 events can include unwind and do not establish successful source completion.
 Mismatched/residual profile stacks fail incomplete. Process cancellation escapes
 the callback unchanged; ordinary inspection errors only invalidate observation.
+Observer transients are released before authenticated teardown without clearing
+traceback frames. Cleanup attempts all images and the genuine index; cancellation
+takes priority and every secondary failure remains in notes and a cause group.
 """
 import argparse
 import hashlib
@@ -118,6 +121,9 @@ def prepare(path, digest):
     require(type(bundle) is dict and bundle.keys() == {'directory','manifest'} and
             canonical(bundle['directory']).is_dir() and
             file_fact(bundle['manifest'])['path'] == str(Path(bundle['directory']) / 'bundle.json'), 'exact bundle binding required')
+    require(sources['trainer']['path'] == str(Path(bundle['directory']) / 'train_siglip2_connected_mlp.py') and
+            sources['serializer']['path'] == str(Path(bundle['directory']) / 'train_siglip2_substrate_adaptation.py'),
+            'bundle source FILE paths required')
     require(type(gallery) is dict and gallery.keys() == {'file','count'} and
             type(gallery['count']) is int and gallery['count'] >= 10, 'exact gallery binding required')
     images = authority['train_images']
@@ -138,11 +144,15 @@ def prepare(path, digest):
 
 def tensor_snapshot(value):
     """Copy returned HOST bytes only; do not retain outputs or tensor references."""
-    tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
-    require(tensor_type is not None and isinstance(value, tensor_type) and value.device.type == 'cpu',
-            'genuine host output tensor required')
-    raw = value.detach().cpu().contiguous().reshape(-1).view(sys.modules['torch'].uint8).numpy()
-    return {'dtype':str(value.dtype), 'shape':list(value.shape), 'hex':memoryview(raw).tobytes().hex()}
+    raw = None
+    try:
+        tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
+        require(tensor_type is not None and isinstance(value, tensor_type) and value.device.type == 'cpu',
+                'genuine host output tensor required')
+        raw = value.detach().cpu().contiguous().reshape(-1).view(sys.modules['torch'].uint8).numpy()
+        return {'dtype':str(value.dtype), 'shape':list(value.shape), 'hex':memoryview(raw).tobytes().hex()}
+    finally:
+        value = raw = None
 
 
 def native_snapshot(result):
@@ -180,6 +190,20 @@ class RequestObserver:
         self.target_completed = False
         self.target_error = None
         self.owner_frame_id = None
+        self.output_code = None
+
+    @classmethod
+    def from_index(cls, index, sources):
+        """Observe exact admitted owners, including the freshly loaded bundle serializer."""
+        index._check_current()
+        module = index._endpoint['modules']['train_siglip2_substrate_adaptation.py']
+        require(sources['trainer']['path'] == index._module.__file__ and
+                sources['serializer']['path'] == module.__file__ and
+                Path(module.__file__) == Path(index._module.__file__).parent / 'train_siglip2_substrate_adaptation.py',
+                'admitted bundle source FILE paths required')
+        observer = cls(module.fingerprint, sources)
+        observer.output_code = index._apis['inference_outputs'][1]
+        return observer
 
     def phase(self, name, filename):
         ancestors = {row['name'] for row in self.stack}
@@ -187,6 +211,7 @@ class RequestObserver:
             return 'tensor-sha' if self.stack[-1]['name'] == 'visit' else 'fingerprint/framing'
         if name == 'cpu':
             return 'copy-plus-wait' if 'fingerprint' in ancestors else 'output-transfer/copy-plus-wait'
+        if name == 'item': return 'predicate-sync-plus-wait'
         if name == 'to' and self.stack and self.stack[-1]['name'] == 'inference_outputs':
             return 'pixel-transfer/copy-plus-wait'
         if name in ('contiguous', 'reshape', 'view', 'numpy') and 'fingerprint' in ancestors:
@@ -216,78 +241,87 @@ class RequestObserver:
             # Ordinary inspection errors must not replace a target error; cancellation propagates.
             if len(self.failures) < 8: self.failures.append(type(error).__name__ + ': ' + str(error))
         finally:
+            # A propagated cancellation retains this frame, but must not retain its target.
+            frame = arg = None
             self.overhead += time.perf_counter_ns() - entered
 
     def _event(self, frame, event, arg, tick):
-        # Only the exact install/uninstall calls and predating caller are outside the stack.
-        if id(frame) == self.owner_frame_id and ((event in ('c_call','c_return','c_exception') and
-                arg is sys.setprofile) or (event == 'return' and not self.stack)):
-            return
-        if event in ('call', 'c_call'):
-            self.calls += 1
-            require(self.calls <= 2_000_000 and len(self.stack) < 512, 'profile resource bound exceeded')
-            code = frame.f_code
-            if event == 'call':
-                name, filename = code.co_name, code.co_filename
-                key = ('python', filename, code.co_qualname, code.co_firstlineno)
-            else:
-                name = getattr(arg, '__name__', type(arg).__name__)
-                filename = str(getattr(arg, '__module__', None))
-                key = ('c', filename, str(getattr(arg, '__qualname__', name)), 0)
-            row = {'id':id(frame), 'kind':event, 'key':key, 'name':name, 'start':tick,
-                   'children':0, 'phase':self.phase(name, filename), 'c_id':id(arg) if event == 'c_call' else None}
-            if event == 'call' and code is self.fingerprint_code:
-                require(frame.f_locals.get('frozen') is None, 'serializer hash cache is forbidden')
-                row['fingerprint'] = len(self.fingerprints)
-                self.fingerprints.append({'sha256':None, 'occurrences':0, 'bytes':0})
-            if event == 'call' and code is self.visit_code:
-                started = time.perf_counter_ns()
-                tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
-                item = frame.f_locals['item']
-                if tensor_type is not None and isinstance(item, tensor_type):
-                    require(len(self.leaves) < 4096, 'tensor occurrence bound exceeded')
-                    fp = next(r['fingerprint'] for r in reversed(self.stack) if 'fingerprint' in r)
-                    row['leaf'] = len(self.leaves)
-                    self.leaves.append({'fingerprint':fp, 'dtype':str(item.dtype), 'shape':list(item.shape),
-                        'bytes':int(item.numel()) * int(item.element_size()), 'sha256':None})
-                self.inspection += time.perf_counter_ns() - started
-            self.stack.append(row)
-        elif event in ('return', 'c_return', 'c_exception'):
-            require(self.stack, 'profile return stack empty')
-            row = self.stack[-1]
-            require(row['id'] == id(frame) and row['kind'] == ('call' if event == 'return' else 'c_call') and
-                    (event == 'return' or row['c_id'] == id(arg)), 'profile return stack mismatch')
-            self.stack.pop()
-            elapsed = max(0, tick - row['start'])
-            if self.stack: self.stack[-1]['children'] += elapsed
-            key = (*row['key'], row['phase'])
-            require(key in self.events or len(self.events) < 4096, 'host event bound exceeded')
-            stats = self.events.setdefault(key, [0,0,0,0])
-            stats[0] += 1; stats[1] += elapsed; stats[2] += max(0, elapsed - row['children'])
-            stats[3] += event == 'c_exception'
-            if 'leaf' in row:
-                started = time.perf_counter_ns()
-                leaf = self.leaves[row['leaf']]
-                local = frame.f_locals
-                require('raw' in local and memoryview(local['raw']).nbytes == leaf['bytes'],
-                        'fresh original tensor bytes missing/differ')
-                fact = local['fact']
-                require((str(fact[0]), list(fact[1])) == (leaf['dtype'], leaf['shape']) and
-                        re.fullmatch('[0-9a-f]{64}', fact[2]), 'original typed tensor fact differs')
-                leaf['sha256'] = fact[2]
-                fp = self.fingerprints[leaf['fingerprint']]
-                fp['occurrences'] += 1; fp['bytes'] += leaf['bytes']
-                self.inspection += time.perf_counter_ns() - started
-            if 'fingerprint' in row:
-                require(type(arg) is str and re.fullmatch('[0-9a-f]{64}', arg), 'fingerprint return/unwind incomplete')
-                self.fingerprints[row['fingerprint']]['sha256'] = arg
-            if event == 'return' and frame.f_code.co_name == 'inference_outputs' and self.files.get(frame.f_code.co_filename) == 'trainer':
-                started = time.perf_counter_ns()
-                require(type(arg) is dict and arg.keys() == OUTPUT_KEYS and type(arg['wire']) is bytes,
-                        'inference return/unwind incomplete')
-                self.output = {name:tensor_snapshot(arg[name]) for name in OUTPUT_KEYS - {'wire'}}
-                self.output['wire_hex'] = arg['wire'].hex()
-                self.capture += time.perf_counter_ns() - started
+        item = local = fact = None
+        try:
+            # Only the exact install/uninstall calls and predating caller are outside the stack.
+            if id(frame) == self.owner_frame_id and ((event in ('c_call','c_return','c_exception') and
+                    arg is sys.setprofile) or (event == 'return' and not self.stack)):
+                return
+            if event in ('call', 'c_call'):
+                self.calls += 1
+                require(self.calls <= 2_000_000 and len(self.stack) < 512, 'profile resource bound exceeded')
+                code = frame.f_code
+                if event == 'call':
+                    name, filename = code.co_name, code.co_filename
+                    key = ('python', filename, code.co_qualname, code.co_firstlineno)
+                else:
+                    name = getattr(arg, '__name__', type(arg).__name__)
+                    filename = str(getattr(arg, '__module__', None))
+                    key = ('c', filename, str(getattr(arg, '__qualname__', name)), 0)
+                row = {'id':id(frame), 'kind':event, 'key':key, 'name':name, 'start':tick,
+                       'children':0, 'phase':self.phase(name, filename)}
+                if event == 'call' and code is self.fingerprint_code:
+                    require(frame.f_locals.get('frozen') is None, 'serializer hash cache is forbidden')
+                    row['fingerprint'] = len(self.fingerprints)
+                    self.fingerprints.append({'sha256':None, 'occurrences':0, 'bytes':0})
+                if event == 'call' and code is self.visit_code:
+                    started = time.perf_counter_ns()
+                    tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
+                    item = frame.f_locals['item']
+                    if tensor_type is not None and isinstance(item, tensor_type):
+                        require(len(self.leaves) < 4096, 'tensor occurrence bound exceeded')
+                        fp = next(r['fingerprint'] for r in reversed(self.stack) if 'fingerprint' in r)
+                        row['leaf'] = len(self.leaves)
+                        self.leaves.append({'fingerprint':fp, 'dtype':str(item.dtype), 'shape':list(item.shape),
+                            'bytes':int(item.numel()) * int(item.element_size()), 'sha256':None})
+                    self.inspection += time.perf_counter_ns() - started
+                self.stack.append(row)
+            elif event in ('return', 'c_return', 'c_exception'):
+                require(self.stack, 'profile return stack empty')
+                row = self.stack[-1]
+                require(row['id'] == id(frame) and row['kind'] == ('call' if event == 'return' else 'c_call') and
+                        (event == 'return' or (row['name'] == getattr(arg,'__name__',type(arg).__name__) and
+                         row['key'][1] == str(getattr(arg,'__module__',None)) and
+                         row['key'][2] == str(getattr(arg,'__qualname__',row['name'])))), 'profile return stack mismatch')
+                self.stack.pop()
+                elapsed = max(0, tick - row['start'])
+                if self.stack: self.stack[-1]['children'] += elapsed
+                key = (*row['key'], row['phase'])
+                require(key in self.events or len(self.events) < 4096, 'host event bound exceeded')
+                stats = self.events.setdefault(key, [0,0,0,0])
+                stats[0] += 1; stats[1] += elapsed; stats[2] += max(0, elapsed - row['children'])
+                stats[3] += event == 'c_exception'
+                if 'leaf' in row:
+                    started = time.perf_counter_ns()
+                    leaf = self.leaves[row['leaf']]
+                    local = frame.f_locals
+                    require('raw' in local and memoryview(local['raw']).nbytes == leaf['bytes'],
+                            'fresh original tensor bytes missing/differ')
+                    fact = local['fact']
+                    require((str(fact[0]), list(fact[1])) == (leaf['dtype'], leaf['shape']) and
+                            re.fullmatch('[0-9a-f]{64}', fact[2]), 'original typed tensor fact differs')
+                    leaf['sha256'] = fact[2]
+                    fp = self.fingerprints[leaf['fingerprint']]
+                    fp['occurrences'] += 1; fp['bytes'] += leaf['bytes']
+                    self.inspection += time.perf_counter_ns() - started
+                if 'fingerprint' in row:
+                    require(type(arg) is str and re.fullmatch('[0-9a-f]{64}', arg), 'fingerprint return/unwind incomplete')
+                    self.fingerprints[row['fingerprint']]['sha256'] = arg
+                if event == 'return' and frame.f_code is self.output_code:
+                    started = time.perf_counter_ns()
+                    require(type(arg) is dict and arg.keys() == OUTPUT_KEYS and type(arg['wire']) is bytes,
+                            'inference return/unwind incomplete')
+                    self.output = {name:tensor_snapshot(arg[name]) for name in OUTPUT_KEYS - {'wire'}}
+                    self.output['wire_hex'] = arg['wire'].hex()
+                    self.capture += time.perf_counter_ns() - started
+        finally:
+            # Keep the exception/traceback locations; release only our borrowed references.
+            frame = arg = item = local = fact = None
 
     def report(self):
         phases = {}
@@ -336,7 +370,7 @@ def observe_call(observer, call):
 def measure_request(index, read_images, synchronize, paths, *, observer=None):
     """Parent-owned decoder/sync; original public search and genuine cleanup."""
     require(isinstance(paths, (list,tuple)) and 1 <= len(paths) <= 32, 'fixed1..32 image paths required')
-    images = []
+    images, failures = [], []
     try:
         synchronize()
         started = time.perf_counter()
@@ -357,23 +391,23 @@ def measure_request(index, read_images, synchronize, paths, *, observer=None):
         native = native_snapshot(result)
         captured = time.perf_counter()
     except BaseException as error:
-        try: index.close()
-        except BaseException as cleanup: error.add_note('connected cleanup also failed: ' + repr(cleanup))
-        raise
+        failures.append(error)
     finally:
         closing = time.perf_counter()
-        error = sys.exception()
-        failures = []
         for image in images:
             try: image.close()
             except BaseException as failure: failures.append(failure)
         if failures:
-            if error is not None:
-                for failure in failures: error.add_note('image cleanup also failed: ' + repr(failure))
-            else:
-                try: index.close()
-                except BaseException as failure: failures[0].add_note('connected cleanup also failed: ' + repr(failure))
-                raise failures[0]
+            try: index.close()
+            except BaseException as failure: failures.append(failure)
+            primary = next((error for error in failures if not isinstance(error, Exception)), failures[0])
+            others = [error for error in failures if error is not primary]
+            for error in others: primary.add_note('request/cleanup also failed: ' + repr(error))
+            if others:
+                if primary.__cause__ is not None and not any(primary.__cause__ is error for error in others):
+                    others.append(primary.__cause__)
+                raise primary from BaseExceptionGroup('other request/cleanup failures', others)
+            raise primary
         cleanup = time.perf_counter() - closing
     return result, {'seconds':completed - started, 'read_decode_seconds':decoded - started,
                     'public_call_seconds':returned - decoded, 'completion_sync_seconds':completed - returned,

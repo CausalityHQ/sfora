@@ -193,7 +193,40 @@ def stack_check(d, original):
         assert normal.report()['complete'] and not normal.stack
 
 
-def public_check(d, original, bridge, root, *, witness_only=False, cancel_only=False):
+def c_metadata_check(d, original):
+    sources = {'serializer':binding(Path(original.__file__))}
+    kept, values = [], [3,1,2]
+    def key(value):
+        kept.append(b'x'.upper)  # Retain reused bound-method allocations across C profile events.
+        return value
+    def target():
+        values.sort(key=key)
+        return original.fingerprint(3)
+    with modules({'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8')}):
+        probe = d.RequestObserver(original.fingerprint, sources)
+        assert d.observe_call(probe, target) == original.fingerprint(3)
+        assert values == [1,2,3] and probe.report()['complete'] and sys.getprofile() is None
+        wrong = d.RequestObserver(original.fingerprint, sources)
+        wrong(sys._getframe(), 'c_call', [].append)
+        wrong(sys._getframe(), 'c_return', [].sort)
+        assert wrong.failures and 'profile return stack mismatch' in wrong.failures[0]
+
+
+def predicate_check(d, original):
+    class Predicate:
+        def item(self): return True
+    def target():
+        assert Predicate().item()
+        return original.fingerprint(3)
+    with modules({'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8')}):
+        probe = d.RequestObserver(original.fingerprint, {'serializer':binding(Path(original.__file__))})
+        d.observe_call(probe, target)
+        rows = [row for row in probe.report()['host_events'] if row['function'].endswith('Predicate.item')]
+        assert rows and all(row['phase'] == 'predicate-sync-plus-wait' for row in rows), 'item wait mislabeled'
+        assert probe.report()['cuda_seconds'] is None
+
+
+def public_check(d, original, bridge, root, *, witness_only=False, cancel_only=False, transient_only=False, cleanup_only=False, bundle_only=False, ambient_only=False):
     # Real bridge authentication, registry, serializer, exact wire and release predicates.
     trainer_source = (ROOT / 'scripts/train_siglip2_connected_mlp.py').read_text()
     tree = ast.parse(trainer_source)
@@ -205,9 +238,11 @@ def public_check(d, original, bridge, root, *, witness_only=False, cancel_only=F
     events.expected = None
     events.cache = events.retained = None
     events.failure = None
+    events.target_error = events.close_error = None
     source = '''import gc, sys, weakref
 from functools import lru_cache
 from types import ModuleType
+import importlib.util, time
 import _attribution_events as events
 def require(condition, message):
     if not condition: raise ValueError(message)
@@ -221,9 +256,14 @@ def load_inference(directory, digest, device):
     assert device == 'cuda'
     helper = ModuleType('_connected_serving_attribution_fixture')
     sys.modules[helper.__name__] = helper
+    path = directory / 'train_siglip2_substrate_adaptation.py'
+    spec = importlib.util.spec_from_file_location('_connected_serving_attribution_serializer_' + str(time.time_ns()), path)
+    serializer = importlib.util.module_from_spec(spec)
+    sys.modules[serializer.__name__] = serializer
+    spec.loader.exec_module(serializer)
     cache = lru_cache(maxsize=10)(lambda value: value)
     endpoint = {name:Owner() for name in ('model','processor_object','head_object','A','C','mu_train')}
-    endpoint.update(modules={'helper':helper}, guards={}, processor_cache=cache)
+    endpoint.update(modules={'helper':helper,'train_siglip2_substrate_adaptation.py':serializer}, guards={}, processor_cache=cache)
     endpoint['processor_object'].cache = cache
     cache(endpoint['processor_object'])
     events.cache = cache
@@ -231,17 +271,31 @@ def load_inference(directory, digest, device):
     if events.failure == 'lifetime': events.retained = endpoint['model']
     return endpoint
 def inference_outputs(endpoint, images):
-    digest = events.original.fingerprint({'param':events.param})
+    digest = endpoint['modules']['train_siglip2_substrate_adaptation.py'].fingerprint({'param':events.param})
     require(digest == events.expected, 'current .data rejected')
+    if events.target_error is not None: raise events.target_error
     if events.failure == 'inference': raise ValueError('inference failed')
     wire = bytes([129]) * (130 * len(images))
     return {'raw':events.Tensor(b'raw'), 'unit':events.Tensor(b'unit'),
             'codes':events.Tensor(b'codes'), 'inverse_norms':events.Tensor(b'norm'), 'wire':wire}
 ''' + release + '\n'
+    if transient_only:
+        # A C tensor primitive leaves no Python `self` frame; mimic that boundary.
+        cancellation = KeyboardInterrupt('endpoint numel cancellation')
+        class CancelTensor(Tensor):
+            def numel(self):
+                self = None
+                raise cancellation
+        events.CancelTensor = CancelTensor
+        source = source.replace("    endpoint['processor_object'].cache = cache", "    endpoint['A'] = events.CancelTensor(b'OWNED')\n    endpoint['processor_object'].cache = cache")
+        source = source.replace("fingerprint({'param':events.param})", "fingerprint({'param':endpoint['A']})")
     bundle = root / 'bundle'
     bundle.mkdir()
     for name in bridge._CODE:
-        (bundle / name).write_text(source if name == bridge._TRAINER else '# standin helper\n')
+        if name == 'train_siglip2_substrate_adaptation.py':
+            (bundle / name).write_bytes(Path(original.__file__).read_bytes())
+        else:
+            (bundle / name).write_text(source if name == bridge._TRAINER else '# standin helper\n')
     for name in bridge._FILES:
         (bundle / name).write_bytes(b'owned standin')
     manifest = {'schema':'siglip2-connected-mlp-bundle-v1',
@@ -267,7 +321,9 @@ def inference_outputs(endpoint, images):
             if events.failure == 'native': raise RuntimeError('native failed')
             # Tied scores: fixed ascending IDs survive the real bridge untouched.
             return memoryview(struct.pack('10q', *range(10))), memoryview(struct.pack('10f', *([1.] * 10)))
-        def close(self): closes.append('gallery')
+        def close(self):
+            closes.append('gallery')
+            if events.close_error is not None: raise events.close_error
     stubs = {'_attribution_events':events, 'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8',
               cuda=SimpleNamespace(is_initialized=lambda:False))}
     for name in ('PIL', 'PIL.Image', 'sfora', 'sfora.joint_relational_compaction', 'sfora.cutile_int8'):
@@ -279,7 +335,7 @@ def inference_outputs(endpoint, images):
         gallery_path=gallery, expected_gallery_sha256=binding(gallery)['sha256'], gallery_count=10,
         native_library_path=library, expected_native_library_sha256=binding(library)['sha256'])
     sources = {'bridge':binding(Path(bridge.__file__)), 'trainer':binding(bundle / bridge._TRAINER),
-        'serializer':binding(Path(original.__file__))}
+        'serializer':binding(bundle / 'train_siglip2_substrate_adaptation.py')}
     with modules(stubs):
         events.expected = original.fingerprint({'param':events.param})
         def request(index, observer=None):
@@ -293,6 +349,115 @@ def inference_outputs(endpoint, images):
                        row['completion_sync_seconds']) < 1e-9
             assert bytes(result[0]) == struct.pack('10q', *range(10))
             return row
+        if ambient_only:
+            ambient, close_error = KeyError('unrelated parent error'), ValueError('ambient image close')
+            class BrokenImage(Image):
+                def close(self): raise close_error
+            index = bridge.ConnectedCompactIndex.from_bundle(**args)
+            caught = None
+            try: raise ambient
+            except KeyError:
+                try: d.measure_request(index, lambda paths:[BrokenImage()], lambda:None, [root / 'TRAIN.fixture'])
+                except BaseException as error: caught = error
+            assert caught is close_error, 'ambient except swallowed image close failure'
+            assert not getattr(ambient,'__notes__',())
+            assert index._closed and not index._owned and all(ref() is None for ref in events.refs)
+            return
+        if bundle_only:
+            assert hasattr(d.RequestObserver, 'from_index'), 'admitted-index observer missing'
+            index = bridge.ConnectedCompactIndex.from_bundle(**args)
+            actual = index._endpoint['modules']['train_siglip2_substrate_adaptation.py']
+            assert actual.fingerprint is not original.fingerprint and actual.fingerprint.__code__ is not original.fingerprint.__code__
+            before = dict(vars(actual))
+            probe = d.RequestObserver.from_index(index, sources)
+            request(index, probe)
+            assert probe.report()['complete'] and probe.fingerprints and probe.leaves and probe.output is not None
+            assert all(vars(actual).get(key) is value for key,value in before.items())
+            index.close()
+            assert all(ref() is None for ref in events.refs)
+            index = bridge.ConnectedCompactIndex.from_bundle(**args)
+            wrong = d.RequestObserver(original.fingerprint, sources | {'serializer':binding(Path(original.__file__))})
+            rejects(lambda:request(index, wrong), 'public witness')
+            assert not wrong.report()['complete'] and index._closed and not index._owned
+            assert all(ref() is None for ref in events.refs)
+            return
+        if cleanup_only:
+            cases = (
+                (None, [ValueError('first close'), KeyboardInterrupt('second close')], None, 1),
+                (ValueError('original inference'), [KeyboardInterrupt('image cancellation')], None, 1),
+                (None, [ValueError('first close'), RuntimeError('second close')], None, 0),
+                (None, [ValueError('image ordinary')], SystemExit(42), 1),
+            )
+            for target, image_errors, index_error, preferred in cases:
+                events.target_error, events.close_error = target, index_error
+                index = bridge.ConnectedCompactIndex.from_bundle(**args)
+                errors = ([target] if target is not None else []) + image_errors + ([index_error] if index_error is not None else [])
+                done = []
+                class ClosingImage(Image):
+                    def __init__(self, ordinal, error): self.ordinal, self.error = ordinal, error
+                    def close(self):
+                        done.append(self.ordinal)
+                        raise self.error
+                images = [ClosingImage(i,error) for i,error in enumerate(image_errors)]
+                caught = None
+                try:
+                    d.measure_request(index, lambda paths:images, lambda:None,
+                                      [root / f'TRAIN-{i}.fixture' for i in range(len(images))])
+                except BaseException as error:
+                    caught = error
+                assert caught is errors[preferred], 'cleanup cancellation/primary identity lost: ' + repr(caught)
+                assert done == list(range(len(images))), 'later image cleanup skipped'
+                others = [error for error in errors if error is not caught]
+                notes = getattr(caught,'__notes__',())
+                assert all(any(repr(error) in note for note in notes) for error in others), 'cleanup failure note lost'
+                assert isinstance(caught.__cause__, BaseExceptionGroup)
+                assert all(any(error is saved for saved in caught.__cause__.exceptions) for error in others), 'secondary exception identity lost'
+                assert index._closed and not index._owned and sys.getprofile() is None
+                assert events.cache.cache_info().currsize == 0 and all(ref() is None for ref in events.refs)
+            # Body error before search still runs genuine close, with cancellation priority.
+            for target, index_error in ((ValueError('decoder ordinary'), KeyboardInterrupt('index cancellation')),
+                                        (KeyboardInterrupt('original cancellation'), ValueError('index ordinary'))):
+                events.target_error, events.close_error = None, index_error
+                index = bridge.ConnectedCompactIndex.from_bundle(**args)
+                def reader(paths): raise target
+                caught = None
+                try: d.measure_request(index, reader, lambda:None, [root / 'TRAIN.fixture'])
+                except BaseException as error: caught = error
+                expected = target if isinstance(target, KeyboardInterrupt) else index_error
+                other = index_error if expected is target else target
+                assert caught is expected and isinstance(caught.__cause__, BaseExceptionGroup)
+                assert any(error is other for error in caught.__cause__.exceptions)
+                assert any(repr(other) in note for note in caught.__notes__)
+                assert index._closed and not index._owned
+                assert events.cache.cache_info().currsize == 0 and all(ref() is None for ref in events.refs)
+            return
+        if transient_only:
+            index = bridge.ConnectedCompactIndex.from_bundle(**args)
+            ref = weakref.ref(index._endpoint['A'])
+            serializer = index._endpoint['modules']['train_siglip2_substrate_adaptation.py']
+            pins = sources | {'serializer':binding(Path(serializer.__file__))}
+            probe = d.RequestObserver.from_index(index, pins)
+            caught = None
+            try:
+                request(index, probe)
+            except BaseException as error:
+                caught = error
+            assert caught is cancellation and sys.getprofile() is None
+            gc.collect()
+            assert ref() is None, 'observer traceback retained endpoint-owned tensor after original frames cleared'
+            assert index._closed and not index._owned and events.cache.cache_info().currsize == 0
+            assert all(ref() is None for ref in events.refs)
+            trace = caught.__traceback__
+            names = []
+            while trace is not None:
+                names.append(trace.tb_frame.f_code.co_name)
+                if trace.tb_frame.f_globals is vars(d):
+                    for name in ('frame','arg','item','local','fact','value','raw'):
+                        assert trace.tb_frame.f_locals.get(name) is None, 'observer transient survives: ' + name
+                trace = trace.tb_next
+            assert {'__call__','_event','numel'} <= set(names), 'cancellation traceback locations lost'
+            assert not any('lifetime survived' in note for note in getattr(caught,'__notes__',()))
+            return
         if cancel_only:
             class Cancelled(BaseException): pass
             for cancellation in (KeyboardInterrupt('stop'), SystemExit(37), Cancelled('stop')):
@@ -302,7 +467,7 @@ def inference_outputs(endpoint, images):
                             raise cancellation
                         super()._event(frame, event, arg, tick)
                 index = bridge.ConnectedCompactIndex.from_bundle(**args)
-                probe = CancelObserver(original.fingerprint, sources)
+                probe = CancelObserver.from_index(index, sources)
                 try:
                     request(index, probe)
                 except BaseException as error:
@@ -319,14 +484,14 @@ def inference_outputs(endpoint, images):
                         raise ValueError('bad counter inspection')
                     super()._event(frame, event, arg, tick)
             index = bridge.ConnectedCompactIndex.from_bundle(**args)
-            probe = InspectionError(original.fingerprint, sources)
+            probe = InspectionError.from_index(index, sources)
             rejects(lambda:request(index, probe), 'incomplete observation')
             assert index._closed and events.cache.cache_info().currsize == 0
             assert not probe.report()['complete'] and sys.getprofile() is None
             return
         if witness_only:
             # Generic scalar profiling is valid; PUBLIC profiling needs byte/output witnesses.
-            scalar = d.RequestObserver(original.fingerprint, sources)
+            scalar = d.RequestObserver(original.fingerprint, {'serializer':binding(Path(original.__file__))})
             assert d.observe_call(scalar, lambda:original.fingerprint(3)) == original.fingerprint(3)
             assert scalar.report()['complete'] and not scalar.leaves
             class SilentObserver(d.RequestObserver):
@@ -347,7 +512,7 @@ def inference_outputs(endpoint, images):
                         self.leaves.clear()
             for observer_type in (SilentObserver, MissingOutput, MissingFingerprint, MissingLeaves):
                 index = bridge.ConnectedCompactIndex.from_bundle(**args)
-                probe = observer_type(original.fingerprint, sources)
+                probe = observer_type.from_index(index, sources)
                 rejects(lambda: request(index, probe), 'public witness')
                 assert not probe.report()['complete']
                 assert index._closed and not index._owned
@@ -358,7 +523,7 @@ def inference_outputs(endpoint, images):
         index = bridge.ConnectedCompactIndex.from_bundle(**args)
         globals_before = dict(vars(index._module))
         row = request(index)
-        probe = d.RequestObserver(original.fingerprint, sources)
+        probe = d.RequestObserver.from_index(index, sources)
         observed = request(index, probe)
         assert row['native'] == observed['native']
         report = probe.report()
@@ -375,7 +540,7 @@ def inference_outputs(endpoint, images):
                                  ('cache_authority', 'processor teardown authority'), ('lifetime', 'lifetime survived')):
             events.failure = failure
             index = bridge.ConnectedCompactIndex.from_bundle(**args)
-            probe = d.RequestObserver(original.fingerprint, sources)
+            probe = d.RequestObserver.from_index(index, sources)
             rejects(lambda: request(index, probe) if failure in ('native','inference') else d.observe_call(probe, index.close), message)
             index.close()
             events.retained = None
@@ -386,13 +551,13 @@ def inference_outputs(endpoint, images):
         events.failure = None
         index = bridge.ConnectedCompactIndex.from_bundle(**args)
         events.param.data[0] = ord('X')
-        probe = d.RequestObserver(original.fingerprint, sources)
+        probe = d.RequestObserver.from_index(index, sources)
         rejects(lambda: request(index, probe), 'current .data rejected')
         assert index._closed and not index._owned
         index.close()
         events.param.data[0] = ord('L')
         index = bridge.ConnectedCompactIndex.from_bundle(**args)
-        probe = d.RequestObserver(original.fingerprint, sources)
+        probe = d.RequestObserver.from_index(index, sources)
         # A diagnostic counter failure closes the genuine endpoint too.
         probe.calls = 2_000_000
         rejects(lambda: request(index, probe), 'incomplete observation')
@@ -430,6 +595,11 @@ def preparation_check(d, root):
         'serializer':'scripts/train_siglip2_substrate_adaptation.py'}
     bundle = root / 'future_bundle'
     bundle.mkdir()
+    sources = {role:binding(ROOT / name) for role,name in names.items()}
+    for role in ('trainer','serializer'):
+        path = bundle / Path(names[role]).name
+        path.write_bytes((ROOT / names[role]).read_bytes())
+        sources[role] = binding(path)
     manifest = bundle / 'bundle.json'
     manifest.write_bytes(b'prospective standin; NOT an admitted bundle')
     fixture = root / 'future.fixture'
@@ -440,7 +610,7 @@ def preparation_check(d, root):
         path.write_bytes(bytes([number]))
         images.append(binding(path))
     authority = {'schema':'connected-serving-attribution-authority-v1',
-        'sources':{role:binding(ROOT / name) for role,name in names.items()},
+        'sources':sources,
         'bundle':{'directory':str(bundle), 'manifest':binding(manifest)},
         'gallery':{'file':binding(fixture),'count':10}, 'native':binding(fixture),
         'train_images':images, 'qualified_terminal':binding(fixture), 'cache_conditions':'fixed cold read, resident gallery',
@@ -453,6 +623,9 @@ def preparation_check(d, root):
         return binding(path)['sha256']
     digest = write(authority)
     assert d.prepare(path, digest) == authority
+    for role in ('trainer','serializer'):
+        mutant = authority | {'sources':sources | {role:binding(ROOT / names[role])}}
+        rejects(lambda:d.prepare(path,write(mutant)), 'bundle source FILE paths required')
     for mutant in (authority | {'qualification_eligible':True}, authority | {'extra':True},
                    authority | {'train_images':images[:-1] + images[:1]},
                    authority | {'resource_policy':authority['resource_policy'] | {'body_seconds':121}}):
@@ -477,10 +650,46 @@ def main():
     owned = ('_serving_observer_check', '_serving_serializer_check', '_serving_bridge_check')
     try:
         path = ROOT / 'scripts/observe_connected_serving.py'
+        if '--baseline-observer' in sys.argv:
+            assert '--review-ambient' in sys.argv, 'baseline is only the ambient-except counterexample'
+            path = Path(sys.argv[sys.argv.index('--baseline-observer') + 1])
         assert path.is_file(), 'observer implementation missing'
         d = load(owned[0], path)
         original = load(owned[1], ROOT / 'scripts/train_siglip2_substrate_adaptation.py')
         bridge = load(owned[2], ROOT / 'src/sfora/connected_compact_serving.py')
+        if '--review-predicate' in sys.argv:
+            predicate_check(d, original)
+            print('PASS item is explicit predicate-sync-plus-wait; CUDA time stays unmeasured')
+            return
+        if '--review-ambient' in sys.argv:
+            with tempfile.TemporaryDirectory(prefix='connected-serving-ambient-') as scratch:
+                public_check(d, original, bridge, Path(scratch), ambient_only=True)
+            print('PASS unrelated parent except cannot swallow image cleanup failure')
+            return
+        if '--review-c-metadata' in sys.argv:
+            c_metadata_check(d, original)
+            print('PASS balanced C calls use stable callable metadata; wrong C function rejected')
+            return
+        if '--review-prepare' in sys.argv:
+            with tempfile.TemporaryDirectory(prefix='connected-serving-prepare-') as scratch:
+                preparation_check(d, Path(scratch))
+            print('PASS trainer/serializer FILE pins require the actual canonical bundle')
+            return
+        if '--review-bundle' in sys.argv:
+            with tempfile.TemporaryDirectory(prefix='connected-serving-bundle-') as scratch:
+                public_check(d, original, bridge, Path(scratch), bundle_only=True)
+            print('PASS exact admitted bundle serializer/output code observed; repo owner rejected')
+            return
+        if '--review-cleanup' in sys.argv:
+            with tempfile.TemporaryDirectory(prefix='connected-serving-cleanup-') as scratch:
+                public_check(d, original, bridge, Path(scratch), cleanup_only=True)
+            print('PASS all cleanup failures retained; exact cancellation outranks ordinary errors')
+            return
+        if '--review-transient' in sys.argv:
+            with tempfile.TemporaryDirectory(prefix='connected-serving-transient-') as scratch:
+                public_check(d, original, bridge, Path(scratch), transient_only=True)
+            print('PASS numel cancellation releases only observer transients before authentic teardown')
+            return
         if '--review-stack' in sys.argv:
             stack_check(d, original)
             print('PASS mismatched/unfinished profile stacks reject; valid scalar stack completes')
@@ -497,14 +706,22 @@ def main():
             return
         serializer_check(d, original)
         stack_check(d, original)
+        c_metadata_check(d, original)
+        predicate_check(d, original)
         with tempfile.TemporaryDirectory(prefix='connected-serving-observer-') as scratch:
             root = Path(scratch)
             public_check(d, original, bridge, root)
             preparation_check(d, root)
             witness, cancel = root / 'missing-witness', root / 'cancellation'
-            witness.mkdir(); cancel.mkdir()
+            transient, cleanup = root / 'transient', root / 'cleanup'
+            bundle, ambient = root / 'actual-bundle', root / 'ambient-except'
+            for path in (witness,cancel,transient,cleanup,bundle,ambient): path.mkdir()
             public_check(d, original, bridge, witness, witness_only=True)
             public_check(d, original, bridge, cancel, cancel_only=True)
+            public_check(d, original, bridge, transient, transient_only=True)
+            public_check(d, original, bridge, cleanup, cleanup_only=True)
+            public_check(d, original, bridge, bundle, bundle_only=True)
+            public_check(d, original, bridge, ambient, ambient_only=True)
         assert not any(n.split('.')[0] in NATIVE for n in sys.modules)
         print('PASS source-only genuine public/profiler, fresh-byte, parity and release falsifier')
     finally:
