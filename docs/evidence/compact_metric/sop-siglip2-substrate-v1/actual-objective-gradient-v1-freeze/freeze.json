@@ -1,0 +1,25 @@
+{
+  "schema": "actual-objective-gradient-parent-freeze-v1",
+  "worker_commit": "dca636eefcf6b8fcb9f9fe55ae3b1a0d15355276",
+  "authority_sha256": "98cdbadda251b5544e5f552b4cc20c2f44a29fd66cc7affd1413334e51b93754",
+  "files": {
+    "launch.sh": "2b56671690171555b388eeeefa9c126e84fb566f0da4d83f6d489fd9e0f693cb",
+    "command.sh": "ab269249162e0f4bc05d3ca502481bc2e654a1f3cc99d77008ef9ef9dfc46aa3",
+    "authority.json": "98cdbadda251b5544e5f552b4cc20c2f44a29fd66cc7affd1413334e51b93754",
+    "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+    "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+    "connected_residual_readout.py": "f0782630a462667ba52aa72b84d724f82c752a0f7f1ef66ac7346eba5e9800e1",
+    "train_siglip2_cached_readout.py": "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c",
+    "qualify_connected_encoder_gradients.py": "86cfd83947218cf5a10011efb21297811bb5f13188486faf314ae6f52e8b3dba",
+    "test_actual_objective_encoder_gradients.py": "fc40fa8e7b9bc58323d291b1b16be0e147a5b0e200c0a21c3687f0a3345f413d",
+    "qualify_actual_objective_encoder_gradients.py": "b1fd27e323dd492805fe616f66d54f214c09401563c4c62d143ac121abc43dfc"
+  },
+  "resource_policy": {
+    "seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "cuda_allocated_bytes_exclusive": 10000000000
+  },
+  "stop_rule": "ONE discarded firstmicro16 both genuine views/fullB64K63/all6355gallery originalloss; finite nonzero SmoothAP+total allfour, detached original zeroencoder/forwardsame, query-gallery A/C gradients/full448 unchanged/originalCPUstate/RNG/fulluncachedexit/normalexit and allresourcechecks; nooptimizer/quality/state reuse/TRAIN admission",
+  "native_unrun_at_freeze": true
+}
