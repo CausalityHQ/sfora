@@ -1,0 +1,49 @@
+{
+  "schema": "connected-mlp-phase-deadline-source-only-v1",
+  "base": "1021bc991522d634a2e1c16a43c2a940d8732de6",
+  "commit": "f8a1d43504ff2ab75e8fae07613763db194e8ba0",
+  "branch": "devbox/connected-mlp-phase-deadline-20261007",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "commit_message": "Bind connected initializer deadlines to prospective phase policy",
+  "worktree": "/home/rb/worktrees/sfora-connected-mlp-phase-deadline-20261007",
+  "git_status": "clean",
+  "files": {
+    "scripts/train_siglip2_connected_mlp.py": "8ebe7f475f1d917e55f17811b0575bd31896796342090aa5c31fb165394207a1",
+    "scripts/test_siglip2_connected_mlp.py": "8ba7137342b6d5ac194af0cacac224bf2cb4b091caed99fd5ac64d601cce16bf"
+  },
+  "contract": {
+    "path": "/tmp/connected-mlp-phase-deadline-contract.json",
+    "sha256": "28675c08975d4445a090a18a32587b85cbff844567104d91bd4f899fab7ed000"
+  },
+  "verification": {
+    "command": "ulimit -v 1048576; /usr/bin/time -v timeout 120 python3 -B scripts/test_siglip2_connected_mlp.py --source-only",
+    "exit_code": 0,
+    "whole_suite_runs": 1,
+    "wall_seconds": 8.33,
+    "max_rss_kib": 80720,
+    "swaps": 0,
+    "diff_check": "pass",
+    "logs": {
+      "/tmp/connected-mlp-phase-deadline-red.log": "b65a00b20071fae73cdcf6792a4f0af4ca56185174e321ec24e68d83b8526e6e",
+      "/tmp/connected-mlp-phase-deadline-default-red.log": "8f4bc4b5a3246134a7efa5124810028d73cb4f26295beb5f4aad51fdb02188ed",
+      "/tmp/connected-mlp-phase-deadline-initializer-green.log": "e1c8fa8e76f69b97476489f3a9d52eb186c269bd334d1b1eddcb12b85863030d",
+      "/tmp/connected-mlp-phase-deadline-terminal-red.log": "ccb5c7eacce317afb3f086ad037a4c874b4266677abbd5ccd5fb2db73028bdb0",
+      "/tmp/connected-mlp-phase-deadline-terminal-green.log": "a597504148fa217a2af21daae2ef98236eb7dff96065bb7402ed9ba271fd50a8",
+      "/tmp/connected-mlp-phase-deadline-source-only.log": "d35627193793f4cb29504118424e178ec19196dc77ffca592cfbb93df1b69f20"
+    }
+  },
+  "proofs": [
+    "Real historical CPU500 rejection reproduced at501 through original integrity/restore/canonical bodies",
+    "Private adapted three call paths accept501 and phase ceiling minus0.001; exact ceiling rejected",
+    "Original modules untouched and original CPU500 boundary retained",
+    "Foreign live function/code/globals/defaults/origin and changed source guards/bytes rejected",
+    "Canonical compare_native integer0/float0/True/missing/extra defaults rejected after root review",
+    "Full prospective BYTE+AST inverse recovers55935d then CPU/batch/historical inverses and oldtest hashes",
+    "Real mechanics>300 and pairedTRAIN>600 minute-ms terminal fixtures pass; nested600 mutant rejects",
+    "CPU600/mechanics1200/TRAIN3000 service boundaries and strict wall boundaries retained; core and service<=1.50 and normal-exit negatives"
+  ],
+  "native_qualification": "UNRUN",
+  "merged": false,
+  "pushed": false,
+  "parent_owned_next": "Review/integration, docs/source audit, evaluator actual replacement descriptor, one new root freeze, freshCPU600 then sequential native gates. Original timeout failures remain unchanged."
+}

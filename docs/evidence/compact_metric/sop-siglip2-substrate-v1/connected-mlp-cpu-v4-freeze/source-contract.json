@@ -1,0 +1,34 @@
+{
+  "base": "1021bc991522d634a2e1c16a43c2a940d8732de6",
+  "owned": [
+    "scripts/train_siglip2_connected_mlp.py",
+    "scripts/test_siglip2_connected_mlp.py"
+  ],
+  "baseline_trainer_sha256": "55935d5a7e7299d1a11f14617cd5ef07f4232afd32148abf942c74edbc636e99",
+  "baseline_trainer_ast_sha256": "4b67697a6d907b240e8dfe4527f1ca24b8f382ec91f0e7a1c61dd060fb9b6c31",
+  "baseline_tests_sha256": "35daffe103bc52fe3fbbc4af33a0348494b9477ce49052db7f5d0cf5be083cc1",
+  "policy_seconds": {
+    "cpu": 600,
+    "mechanics": 1200,
+    "train": 3000
+  },
+  "api": "_initializer_runtime(context) -> SimpleNamespace(restore, integrity, canonical_initial_witness); freshly built immediately before load_initializer restore/direct integrity/canonical calls. context[trainer] stays original.",
+  "authentication": "Exact canonical regular file, guards and full-file pin, module/spec/sys.modules origin, FunctionType and original globals, compiled live code/co_filename, name/qualname/module/defaults/kwdefaults/closure/builtins; exact original and adapted AST pins and one inverse substitution.",
+  "historical_sha256": "840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8",
+  "ast_sha256": {
+    "integrity_original": "c7b564cf9f8352105d115e9a0fe1925fd162ba4ac483892306464ae7060c2fcb",
+    "integrity_adapted": "8ad7272ed676731da3cb1dd5c8ec32b6105226eb3a5aaa4c57d279ee02f44d7e",
+    "restore": "38274c5421b261fd7db23796bd553f7e901034d93fe053088ecc5c63a4703f1b",
+    "canonical_initial_witness": "c1d51151d73348456e855ddb2c0b802abdd441c66ecf57cd46570fa19a22dd42"
+  },
+  "sole_historical_ast_change": {
+    "before": "policy(context['args'].phase)",
+    "after": "_connected_policy(context['connected_args'].phase)",
+    "scope": "integrity only, one occurrence; inverse exact full function AST"
+  },
+  "namespace": "Shallow private original globals copy; add _connected_policy=connected.policy and compile the three authenticated functions together. Restore/canonical ASTs unchanged, nested integrity resolves in private namespace. No original globals or helper mutation, no clock reset, no cache.",
+  "other_source_changes": "Exact prospective mechanics/TRAIN policy/docstrings; one nested fresh-control reader literal600 -> policy(train)[seconds]. Main terminal policy reader already correct. Historical CPU500 terminal and witness300 untouched.",
+  "inverse": "Pin and remove exact added adapter bytes, reverse exact callsite/doc/policy replacements; recover full baseline trainer BYTE and AST hashes, then retain CPU and witness batch inverse and historical source/test inverse hashes. No broad normalizer.",
+  "tests": "RED current historical CPU500 at elapsed>500; GREEN actual extracted original integrity/restore/canonical seams for all3 prospective phases at >500 and just below ceiling, reject exact ceiling; all original integrity predicates and foreign/source/code/origin mutations. Original module remains unchanged and still refuses500. Real normal terminal fixtures mechanics>300 and paired TRAIN>600 with consistent core<wall<service, minute/second/millisecond forms; CPU600, mechanics1200, TRAIN3000 boundaries; fresh-control over3000 and separate core/service 1.50 boundaries/negatives; historical witness and original500 unchanged.",
+  "verification": "Narrow stdlib falsifiers during repair. Exactly one final timeout120 address-space1GiB python3 -B scripts/test_siglip2_connected_mlp.py --source-only. No Torch/native/SSH/images/GPU/cloud/jobs/consult/children/operator contact. No merge/push. Root owns subsequent freeze/native gates."
+}

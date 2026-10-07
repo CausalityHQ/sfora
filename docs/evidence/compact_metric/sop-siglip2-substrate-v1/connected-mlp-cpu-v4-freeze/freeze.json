@@ -1,0 +1,33 @@
+{
+  "authority_sha256": "fa94c196ac7ff252b3dde7d865c94b0b4b4617b700c778ef29016f447a53ac9b",
+  "controller": "Frozen host-local nohup controller captures original systemd-run stdout/stderr and original launch exit. It does not change native RuntimeMaxSec, clocks, caps, footers or protocols.",
+  "execution_sha256": "fab7bef1d26e0f245c050d2296b332a3d9ae59e31eaeeb8dc844d5f4c732f87b",
+  "files": {
+    "authority-cpu-v4.json": "fa94c196ac7ff252b3dde7d865c94b0b4b4617b700c778ef29016f447a53ac9b",
+    "cpu-v4-command.sh": "f94273057bb8173f3a301092e2c0a53f9ba389054c59c1200b609533f2d91a0d",
+    "cpu-v4-controller.sh": "31a4f8c0a498cf179484b2991ce71d670432091b6ce669dab83fb3df5e2ce871",
+    "cpu-v4-launch.sh": "8fcb67c40fdcb8817e0304e92e2d000b4f517c31d55dcaf0853f2e4fd81e98da",
+    "detached-controller-source-check.json": "95bed900951b2343e68fc38dfd24657b5cb5ab69e36121482ad79232f5fec161",
+    "execution.json": "fab7bef1d26e0f245c050d2296b332a3d9ae59e31eaeeb8dc844d5f4c732f87b",
+    "source-contract.json": "28675c08975d4445a090a18a32587b85cbff844567104d91bd4f899fab7ed000",
+    "source-only-original.log": "d35627193793f4cb29504118424e178ec19196dc77ffca592cfbb93df1b69f20",
+    "test_siglip2_connected_mlp.py": "8ba7137342b6d5ac194af0cacac224bf2cb4b091caed99fd5ac64d601cce16bf",
+    "train_siglip2_connected_mlp.py": "8ebe7f475f1d917e55f17811b0575bd31896796342090aa5c31fb165394207a1",
+    "worker-receipt.json": "c2ad2fa772c53490adcd6f7748887c0b0ecb8513c411a6c6ed426f538b3764ab"
+  },
+  "native_unrun_at_freeze": true,
+  "output": "/home/riomus/runs/sfora-connected-mlp-cpu-v4",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "review_group": "c848b7945c26412e",
+  "schema": "connected-mlp-parent-freeze-v3",
+  "source_commit": "71edc99f0dfec429a21bfa94b888cbb87178986a",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-train-source-v4",
+  "stop_rule": "ONE fresh CPU600 complete engineering qualification on new code. Original CPU500 and actual gradient300 admission unchanged; private initializer deadline uses current phase and original whole-job clock. Complete candidate update/updated448/independent restore/owned raw-unit-packed bundle/mutants/both initializers/lifetime/full uncached exit/normal original terminal required, host8GiB/zero swap/events/CUDAhidden/both locks. Any failure closes this attempt; no partial reuse/GPU/quality admission. Historical failures stay FAIL.",
+  "unit": "sfora-connected-mlp-cpu-v4",
+  "worker_commit": "f8a1d43504ff2ab75e8fae07613763db194e8ba0"
+}

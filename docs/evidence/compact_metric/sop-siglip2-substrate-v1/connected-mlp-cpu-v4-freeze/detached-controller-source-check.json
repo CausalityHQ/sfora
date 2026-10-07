@@ -1,0 +1,19 @@
+{
+  "schema": "connected-mlp-detached-controller-source-check-v1",
+  "template_sha256": "73882cd078b8639db002751a0916c94172006d4c5da34da3d2ca5cbd56cc8699",
+  "rows": [
+    {
+      "launch_exit": 0,
+      "controller_exit": 0,
+      "SIGHUP_survived": true,
+      "original_stdout_stderr_preserved": true
+    },
+    {
+      "launch_exit": 7,
+      "controller_exit": 7,
+      "SIGHUP_survived": true,
+      "original_stdout_stderr_preserved": true
+    }
+  ],
+  "scope": "local tiny shell stand-ins only; no DGX/native/model/quality run; does not qualify source or scientific gate"
+}
