@@ -1,0 +1,30 @@
+{
+  "historical_failures": "Remain FAIL. No deadline subtraction or retroactive rescue.",
+  "measured_basis": {
+    "CPUv2": {
+      "service_seconds": 300.224,
+      "verdict": "FAIL_TIMEOUT"
+    },
+    "diagnosticv2": {
+      "authority_inclusive_seconds": 135.79629945999477,
+      "export_bundle_started_before_timeout": true,
+      "portable_parity_and_exit_complete": false,
+      "service_seconds": 300.178,
+      "update_inclusive_seconds": 64.8394606590009
+    }
+  },
+  "proposal": {
+    "batch_correction": "Only actual-gradient receipt input_guards replay uses existing root four-worker batch_bound_files; every fresh occurrence retained.",
+    "cpu_seconds": 500,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "mechanics_seconds": 300,
+    "swap_bytes": 0,
+    "train_seconds": 600
+  },
+  "reason": "Complete mandatory lifecycle did not fit300; batching addresses a demonstrated serial scan but its native gain is unmeasured. A separately frozen prospective CPU envelope can test completion without changing quality, parity or cost acceptance.500 is a bounded proposal, not a measured sufficient duration.",
+  "review_needed": "Predicate/source correspondence and whether one prospectiveCPU500 is justified before launch; source policy change not yet applied.",
+  "schema": "connected-mlp-next-cpu-envelope-proposal-v1",
+  "status": "PROPOSAL_ONLY_NOT_APPLIED",
+  "stop_rule": "One new engineering CPU qualification only after exact source/test review and freeze; unchanged complete discarded update, independent restore, portable parity, all448/config/buffers/optimizer/scaler/RNG/lifetime/full uncached exit, both locks, zero events/swap, normal terminal. Any failure closes arm; no partial state or GPU/quality admission. No duplicate old runs."
+}
