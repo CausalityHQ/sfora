@@ -1,4 +1,85 @@
 {
+  "acd_author_config_protocol_audit": {
+    "author_commit": "3b9e36897efd1f9271e9811ed1fb23d9b5e38df8",
+    "datasets": [
+      "SOP official TEST directory as query and gallery",
+      "InShop prepared query/gallery directories; exact archive counts not independently validated"
+    ],
+    "decision": "Not a protocol-matched substitute for symmetric Siglip2 native256 packed retrieval or measured full latency. Numerical paper frontier remains unverified; retain dated UNICOM gate without global-SOTA claim. No method/experiment changes.",
+    "default_serving": "cosine distance, flip features off, reranking off; query and gallery use different resize transforms",
+    "example_configuration": "D3 ResNet101 gallery256x256 / ResNet18 query64x64, 20 epochs, SGD; author-declared checkpoint filenames are NOT admitted numerical results",
+    "metric_caveat": "Python fallback rank evaluator computes AP over full kept gallery, not mAP@R. Optional Cython runtime path was not executed or numerically qualified.",
+    "paper_access": "CVF HTML and primary paper PDF both returned403 in this bounded attempt; no absolute SOP/InShop result table admitted",
+    "source_inventory": [
+      {
+        "bytes": 1406,
+        "path": "Training_Configs/InShop/ResNet101_256x256_ResNet18_64x64/D3.yaml",
+        "sha256": "e1d34f8ef9f90202fdf70ae9bc6b0aa4e24e3c2e8f9c94f6371381319e235db9",
+        "url": "https://github.com/SCY-X/Asymmetric_Collaborative_Distillation/blob/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/Training_Configs/InShop/ResNet101_256x256_ResNet18_64x64/D3.yaml"
+      },
+      {
+        "bytes": 1400,
+        "path": "Training_Configs/SOP/ResNet101_256x256_ResNet18_64x64/D3.yaml",
+        "sha256": "a90c7cf2dfae83cae32645e0c403dffc7b6c97eb7af2dfaef6421a20ad3c1c01",
+        "url": "https://github.com/SCY-X/Asymmetric_Collaborative_Distillation/blob/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/Training_Configs/SOP/ResNet101_256x256_ResNet18_64x64/D3.yaml"
+      },
+      {
+        "bytes": 3154,
+        "path": "ACD/tools/test.py",
+        "sha256": "3ccc50d2bfee10849f84e211b98e3a28c08b4edd1e415b9096459d370169c7ec",
+        "url": "https://raw.githubusercontent.com/SCY-X/Asymmetric_Collaborative_Distillation/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/ACD/tools/test.py"
+      },
+      {
+        "bytes": 3784,
+        "path": "ACD/tools/test_ours.py",
+        "sha256": "7ef7ad8be11ecfed72c7e7c23c58beb536e89d83598fedb547a182cf9853158f",
+        "url": "https://raw.githubusercontent.com/SCY-X/Asymmetric_Collaborative_Distillation/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/ACD/tools/test_ours.py"
+      },
+      {
+        "bytes": 2722,
+        "path": "ACD/processor/inferencer.py",
+        "sha256": "f7bcf14beba846ea4565d55356155097661d05ce1fe93f5bf7fedf959169499c",
+        "url": "https://raw.githubusercontent.com/SCY-X/Asymmetric_Collaborative_Distillation/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/ACD/processor/inferencer.py"
+      },
+      {
+        "bytes": 7077,
+        "path": "ACD/dataloader/make_dataloader.py",
+        "sha256": "aaf4874d0a1ff5bf4a3e8cef93c12fe208a22a06397c13bd1c69f498758a8b66",
+        "url": "https://raw.githubusercontent.com/SCY-X/Asymmetric_Collaborative_Distillation/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/ACD/dataloader/make_dataloader.py"
+      },
+      {
+        "bytes": 8650,
+        "path": "ACD/config/defaults.py",
+        "sha256": "b5e4b8c1ce695ea7c4ca7e5021749aa4e4ec4eba9fcdb35c44a0582f201a8b05",
+        "url": "https://raw.githubusercontent.com/SCY-X/Asymmetric_Collaborative_Distillation/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/ACD/config/defaults.py"
+      },
+      {
+        "bytes": 3834,
+        "path": "ACD/dataloader/datasets/InShop.py",
+        "sha256": "6d629cc52b3bf9512b0e5decadda9b252e930bf9e581375ad7eee3f944ec9195",
+        "url": "https://raw.githubusercontent.com/SCY-X/Asymmetric_Collaborative_Distillation/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/ACD/dataloader/datasets/InShop.py"
+      },
+      {
+        "bytes": 3906,
+        "path": "ACD/utils/metrics.py",
+        "sha256": "1aa98a3124150f307c55007aff4342891770cff54ffad3b08e84f0f0b122f60f",
+        "url": "https://raw.githubusercontent.com/SCY-X/Asymmetric_Collaborative_Distillation/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/ACD/utils/metrics.py"
+      },
+      {
+        "bytes": 7004,
+        "path": "ACD/utils/rank.py",
+        "sha256": "ce0fb762bcc83c201c43d521dcef81f732bff19f1d769438a28ae923c30f1f86",
+        "url": "https://raw.githubusercontent.com/SCY-X/Asymmetric_Collaborative_Distillation/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/ACD/utils/rank.py"
+      },
+      {
+        "bytes": 3726,
+        "path": "ACD/dataloader/datasets/Stanford_Online_Products.py",
+        "sha256": "eddf21623e5824568e8c0a20320ebfd481aea14b56e42e4de025a4b139468cf2",
+        "url": "https://raw.githubusercontent.com/SCY-X/Asymmetric_Collaborative_Distillation/3b9e36897efd1f9271e9811ed1fb23d9b5e38df8/ACD/dataloader/datasets/Stanford_Online_Products.py"
+      }
+    ],
+    "static_verification": "PASS original sources parsed/asserted without imports or execution; source hashes retained"
+  },
   "additional_reference_screen": {
     "author_code": "https://github.com/MrZilinXiao/LongContextReranker",
     "direct_pdf_read": "CVF403; arXivv1 full HTML table2 read successfully.",
@@ -32,8 +113,8 @@
     "The authors disclose incorrect UGD gain values in paper Table2 and corrected MSMT17 architecture/results."
   ],
   "remaining": [
-    "Read exact corrected SOP/InShop absolute tables and evaluation configs.",
-    "Separate symmetric from asymmetric query/gallery scoring.",
+    "Read exact absolute SOP/InShop tables from accessible primary paper/corrected author evidence; current CVF routes403.",
+    "Qualify symmetric/asymmetric evaluation and full image-to-result timing separately.",
     "Verify strongest matched reference beyond dated UNICOM before final production claims."
   ],
   "schema": "sfora-primary-reference-protocol-screen-v1",
