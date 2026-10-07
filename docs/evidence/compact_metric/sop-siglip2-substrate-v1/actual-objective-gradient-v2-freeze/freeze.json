@@ -1,0 +1,27 @@
+{
+  "schema": "actual-objective-gradient-parent-freeze-v1",
+  "worker_commit": "ffa544461160ca9d9b91a01880684c057210bf7a",
+  "authority_sha256": "8476396999a7570d241b497201a1f4db1881bff02ee314b23c64dd602c743667",
+  "files": {
+    "launch.sh": "173819963860d780ea5eae60a459cfaaafc3d8aaf5cc6de815691a2e0cbc1724",
+    "command.sh": "5f4decff3f733ffc33730f9b1676652a5e5a8e7c748ed1156e547537816b42bf",
+    "authority.json": "8476396999a7570d241b497201a1f4db1881bff02ee314b23c64dd602c743667",
+    "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+    "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+    "connected_residual_readout.py": "f0782630a462667ba52aa72b84d724f82c752a0f7f1ef66ac7346eba5e9800e1",
+    "train_siglip2_cached_readout.py": "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c",
+    "qualify_connected_encoder_gradients.py": "86cfd83947218cf5a10011efb21297811bb5f13188486faf314ae6f52e8b3dba",
+    "test_actual_objective_encoder_gradients.py": "ce740cc3c5388b9b3c4b1b9272c2e8ab62e3f8ba44a6cb88e761023489f76abc",
+    "qualify_actual_objective_encoder_gradients.py": "48599c7f6119e055c0ac901140279faa8654028d1fdd64c1ccb2803556591c14"
+  },
+  "resource_policy": {
+    "seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "cuda_allocated_bytes_exclusive": 10000000000
+  },
+  "stop_rule": "ONE discarded firstmicro16 both genuine views/fullB64K63/all6355gallery originalloss; finite nonzero SmoothAP+total allfour, detached original zeroencoder/forwardsame, query-gallery A/C gradients/full448 unchanged/originalCPUstate/RNG/fulluncachedexit/normalexit and allresourcechecks; nooptimizer/quality/state reuse/TRAIN admission",
+  "native_unrun_at_freeze": true,
+  "historical_failures_preserved": true,
+  "source_correction": "Authenticated original instance-keyed normalization cache; initially empty, genuine wrapper clear before original weakref guard; all math/roles/fullsourceexit/resources unchanged."
+}
