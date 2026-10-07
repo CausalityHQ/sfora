@@ -5,6 +5,13 @@
   "four_fp32_bytes": 39687488,
   "frozen_444_bytes": 1671864768,
   "full_448_payload_bytes_from_verified_source_inventory": 1711552256,
+  "prior_cuda_fresh_copy_cost_intervention": {
+    "baseline_median_ms": 43.63723308779299,
+    "decision": "KILL; integrity parity PASS",
+    "evidence": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/quadratic-readout-v1/fresh-copy-native-result-v1/decision.json",
+    "proposed_median_ms": 45.22425192408264,
+    "scope": "Historical quadratic readout dynamic-tree test; not updated448 encoder traversal or CPU speed. Do not relaunch this historical arm."
+  },
   "qualification": false,
   "schema": "connected-mlp-current-byte-source-audit-v1",
   "source_sha256": "cd68f9b109ca48dfc488a248b66c6e2f4a1e58e884aa3c598f4325d4c912edb2",
