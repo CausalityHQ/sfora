@@ -1,0 +1,22 @@
+{
+  "anchor_visits": 8192,
+  "arm": "candidate",
+  "dataset": "DeepFashion In-Shop",
+  "interpretation": "Actual complete batch/micro/view count divided by original measured core/whole times; repeated training query-view visits only, not unique images, pure GPU compute or serving QPS. No calibration/reload image visits counted.",
+  "original_normal_whole_service_seconds": 2295.117,
+  "production_speed_claim": false,
+  "quality_read": false,
+  "query_view_forward_image_visits": 16384,
+  "query_view_image_visits_per_update_core_second": 9.320988215684913,
+  "query_view_image_visits_per_whole_service_second": 7.138633890995535,
+  "receipt_sha256": "bc6c7357e4cb667e86c15e8f10453f1d27a14f79498a760e81f417b0e881a22b",
+  "schema": "connected-mlp-training-throughput-v1",
+  "seed": 179061,
+  "split": "CONTROL TRAIN6355 rows; no held/official quality",
+  "total_update_core_seconds": 1757.7535365219956,
+  "updates": 128,
+  "views": [
+    "canonical",
+    "augmented"
+  ]
+}
