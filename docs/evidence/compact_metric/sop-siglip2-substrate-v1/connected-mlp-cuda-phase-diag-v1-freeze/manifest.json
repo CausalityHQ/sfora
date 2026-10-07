@@ -1,0 +1,48 @@
+{
+  "argv": [
+    "/home/riomus/runs/sfora-connected-mlp-train-source-v3/train_siglip2_connected_mlp.py",
+    "--execution-sha256",
+    "5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f",
+    "--authority",
+    "/home/riomus/runs/sfora-connected-mlp-train-source-v3/authority-mechanics-control-179061-v1.json",
+    "--authority-sha256",
+    "92f7c6fb22d79a3399c018de023ad89761dfc8bbbd982511c81c9dbd93519d5e",
+    "--phase",
+    "mechanics",
+    "--arm",
+    "control",
+    "--seed",
+    "179061",
+    "--output",
+    "/home/riomus/runs/sfora-connected-mlp-cuda-phase-diag-v1"
+  ],
+  "authority": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v3/authority-mechanics-control-179061-v1.json",
+    "sha256": "92f7c6fb22d79a3399c018de023ad89761dfc8bbbd982511c81c9dbd93519d5e"
+  },
+  "execution": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v3/execution.json",
+    "sha256": "5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-cuda-phase-diag-v1",
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "qualification_eligible": false,
+  "schema": "connected-mlp-cuda-phase-observer-v1",
+  "state_reuse_eligible": false,
+  "stdio": {
+    "stderr": "/home/riomus/runs/sfora-connected-mlp-cuda-phase-observer-source-v1/original.log",
+    "stdout": "/home/riomus/runs/sfora-connected-mlp-cuda-phase-observer-source-v1/original.log"
+  },
+  "trainer": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v3/train_siglip2_connected_mlp.py",
+    "sha256": "55935d5a7e7299d1a11f14617cd5ef07f4232afd32148abf942c74edbc636e99"
+  },
+  "unit": "sfora-connected-mlp-cuda-phase-diag-v1",
+  "wrapper": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-cuda-phase-observer-source-v1/observe_connected_mlp_phases.py",
+    "sha256": "5eaacfd46436f1f164db0053303a21e797fb0e3ee083e18b0cf93f26947ea9f0"
+  }
+}

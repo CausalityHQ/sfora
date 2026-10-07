@@ -1,0 +1,24 @@
+{
+  "arm": "control",
+  "authority_path": "authority-mechanics-control-179061-v1.json",
+  "authority_sha256": "92f7c6fb22d79a3399c018de023ad89761dfc8bbbd982511c81c9dbd93519d5e",
+  "both_locks": true,
+  "change_boundary": "ONLY exact observer source pins/schema/phase CLI/original unit rejection/doc; callback/namespace restoration/bounds/filenames and source execution unchanged. Existing frozen CPU observer remains immutable.",
+  "cuda_exclusive_bytes": 10000000000,
+  "execution_sha256": "5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f",
+  "host_bytes": 8589934592,
+  "original_timeout": "5c115f36b03e400c83a898bc06d3f64b remains FAIL; no duplicate replay/review or cap change.",
+  "owned_files": [
+    "scripts/observe_connected_mlp_phases.py",
+    "scripts/test_connected_mlp_phase_observer.py"
+  ],
+  "phase": "mechanics",
+  "purpose": "ONE diagnostic-only exact frozen control mechanics CUDA phase trace after original300.075s timeout; no qualification/state reuse/quality",
+  "seconds": 300,
+  "seed": 179061,
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-train-source-v3/",
+  "source_sha256": "55935d5a7e7299d1a11f14617cd5ef07f4232afd32148abf942c74edbc636e99",
+  "status": "BEFORE_EDITS",
+  "swap_bytes": 0,
+  "verification": "New exact CUDA pin/whole AST inverse check RED->GREEN; existing stdlib lifecycle/admission test migrated phase, add CPU argv rejection; one bounded120/1GiB final suite."
+}

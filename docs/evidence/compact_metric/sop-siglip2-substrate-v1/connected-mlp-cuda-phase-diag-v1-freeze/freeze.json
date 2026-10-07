@@ -1,0 +1,25 @@
+{
+  "both_locks_required": true,
+  "cuda_allocated_bytes_exclusive": 10000000000,
+  "files": {
+    "command.sh": "d89c52934020ba3cf577d298798dee5a5226e37e90e3e70a6ab489b82ca8aaca",
+    "launch.sh": "cfdf54df4fb8aa077ba829ae6e6929c171130841915ccef014fce21ae62101a5",
+    "manifest.json": "7f0a561e30b4d6eb61cae638d8905016998305bcb0fb836770debe14e8ce2bd0",
+    "observe_connected_mlp_phases.py": "5eaacfd46436f1f164db0053303a21e797fb0e3ee083e18b0cf93f26947ea9f0",
+    "source-check.log": "61fe85fff81bac7dcff89c0fc1351c741f9330500ed577c7cee35cf48fcf8114",
+    "source-contract.json": "bb3e4f9538672be2dca3d6f28fd344cc1bdd60c5d8aedbc9efff4b8d21ef3dc4",
+    "test_connected_mlp_phase_observer.py": "6b2a40183f54725be19f44ecad295122aeda9344c30e8019d6329fb84f404829"
+  },
+  "host_bytes": 8589934592,
+  "original_failure": "5c115f36b03e400c83a898bc06d3f64b remains FAIL_TIMEOUT",
+  "output": "/home/riomus/runs/sfora-connected-mlp-cuda-phase-diag-v1",
+  "qualification_eligible": false,
+  "quality_read": false,
+  "root": "/home/riomus/runs/sfora-connected-mlp-cuda-phase-observer-source-v1",
+  "schema": "connected-mlp-cuda-phase-observer-freeze-v1",
+  "seconds": 300,
+  "state_reuse_eligible": false,
+  "stop_rule": "ONE diagnostic trace of frozen source; no qualification/state reuse/held reads. Collect original terminal; use inclusive timings separately, not additive. No automatic retry, gate/cap change or candidate launch.",
+  "swap_bytes": 0,
+  "unit": "sfora-connected-mlp-cuda-phase-diag-v1"
+}
