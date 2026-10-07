@@ -1,0 +1,35 @@
+{
+  "actual_complete_check_receipt_on_independently_authenticated_metadata_pass": true,
+  "complete_production_accept_unit_required_before_export_cuda": true,
+  "engineering_only": true,
+  "memory_events_zero": true,
+  "native_modules": [],
+  "next_gate": "ONE prospective first061 score700 using both accepted exports; complete fresh ownCPU/source/normal terminal/full exit and original quality gates remain mandatory. Preserve original score500 FAIL.",
+  "original_normal_terminal_duration_rss_and_cgroup_predicates_checked": true,
+  "original_previous_auxiliary_full_authority_audit_timeout_preserved": true,
+  "parent_verifier_original_exit": 0,
+  "pass": true,
+  "quality_read": false,
+  "schema": "connected-evaluator-cpu-parent-verification-v1",
+  "state_reuse_eligible": false,
+  "subsequent_hold_reason": "Original source-v3 exports require original source-owned receipt context; current source-v4 direct admission rejects them. Plan de27ee7470344c69 active. New composition source will require fresh ownCPU.",
+  "subsequent_score_launch_held": true,
+  "swap_bytes": 0,
+  "synthetic_bootstrap_and_complete_endpoint_payload_facts_pass": true,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "faf3c18819894609aced8e81f6acb3d4",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v4/first-cpu-v4-original.log",
+      "sha256": "2151e966314c27e2471f7dabfd255d2bb5791282580e06890c495604c4473740"
+    },
+    "native_peak_rss_kib": 1399476,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-cpu-v4/receipt.json",
+      "sha256": "3b978aebefb2133fcdfc6c8000e6e714df2a562e1cd26861a693b7b887c5ce37"
+    },
+    "service_seconds": 478.75,
+    "unit": "sfora-connected-mlp-evaluation-first-cpu-v4"
+  },
+  "whole_unit_peak_host_bytes": 2318131200
+}
