@@ -1,0 +1,18 @@
+{
+  "correction": "Restore exact unchanged historical authority-first-cpu-v1 filename; no historical hash entry modified. Original CPUv2 failed before Python by missing-path SHA check and remains FAIL. ONE freshCPU500; no export before complete normal PASS.",
+  "execution_sha256": "c76330fe0bb0cefa5f3ec7d3a4e82785ffc7620bae6583ddf55af67b6aca651f",
+  "files": {
+    "authority-first-cpu-v3.json": "a4976051e3fb1f197a95973fc3a8d754936325119eeb6cb8387d79859ee4bc8e",
+    "first-cpu-v3-command.sh": "259144a8e5d9840a9903fe94eebffd733f76eabd9a765dad6b363ad87de63b12",
+    "first-cpu-v3-controller.sh": "8d91c25cba649a73a0ec7ec570831b910e6aa9aa24ea9cd1b17a51fc513ea53b",
+    "first-cpu-v3-launch.sh": "d16e9317958f21c1a35cff5847d95fe9609d7f268dce0232d7750e1715fc28c7"
+  },
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "schema": "connected-evaluator-cpu-v3-launch-correction-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3"
+}

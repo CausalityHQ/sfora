@@ -1,0 +1,12 @@
+{
+  "verdict": "FAIL_LAUNCH_HASH_PATH",
+  "controller_exit": 1,
+  "service_seconds": 1.073,
+  "invocation_id": "6fbc68a757a14786ba2f39c2415a9aef",
+  "python_started": false,
+  "cause": "Root global prefix substitution renamed historical identity evaluator authority-first-cpu-v1 to absentv2; original hash guard rejected before Python. Historical path restored in NEWv3 freeze, all original historical hash entries independently exact-compared.",
+  "files": {
+    "original.log": "4b958da9ba1dcbcfadf235b24d379b25e3129620c33874413e41802ee9dcefa1",
+    "terminal-status.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  }
+}
