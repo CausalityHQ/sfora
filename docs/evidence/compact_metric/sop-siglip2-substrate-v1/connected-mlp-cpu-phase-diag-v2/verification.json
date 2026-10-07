@@ -69,6 +69,24 @@
   "original_ssh_exit": 1,
   "original_ssh_session": 70787,
   "qualification_eligible": false,
+  "root_source_extracted_helper_check": {
+    "failure_owner_unchanged": true,
+    "five_real_files": true,
+    "fresh_read_occurrences": 5,
+    "functions": [
+      "require",
+      "file_fact",
+      "bound_file",
+      "batch_bound_files"
+    ],
+    "limitations": "Tests helper on small synthetic files; does not yet test replaced admission callsite or demonstrate DGX speedup.",
+    "max_concurrent": 4,
+    "native_imports": false,
+    "ordered_owner_equal": true,
+    "same_size_restored_mtime_mutation_rejected": true,
+    "source_sha256": "cd68f9b109ca48dfc488a248b66c6e2f4a1e58e884aa3c598f4325d4c912edb2",
+    "speed_claim": false
+  },
   "schema": "connected-mlp-phase-observation-verification-v1",
   "service_result": "timeout",
   "service_seconds": 300.178,
