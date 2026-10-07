@@ -1,0 +1,21 @@
+{
+  "actual_memory_max_bytes": 8589934592,
+  "actual_runtime_seconds": 3000,
+  "actual_swap_max_bytes": 0,
+  "complete_source_cpu_both_mechanics_and_fresh_control_terminal_preflight": true,
+  "controller_pid": 808194,
+  "cost_qualified": false,
+  "idle_and_both_locks_before_launch": true,
+  "invocation_id": "856020168fb8471290cd666cc62fce22",
+  "main_pid": 808213,
+  "observed_at_utc": "2026-10-07T17:14:58.741442+00:00",
+  "original_controller_launch_exit": 0,
+  "original_live_observation_exec_session": 95260,
+  "original_preflight_exec_session": 67550,
+  "prospective_freeze_sha256": "ef2d3a9aeb4b3751f715f684668f415275f432aa1d5caa6e1ccff6f4118f0e12",
+  "quality_read": false,
+  "schema": "connected-mlp-train-parent-launch-observation-v1",
+  "state": "active/running",
+  "terminal_pending": true,
+  "unit": "sfora-connected-mlp-train-candidate-179061-v1"
+}
