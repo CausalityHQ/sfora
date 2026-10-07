@@ -2,6 +2,7 @@
 """Bounded stdlib admission/source checks; native connectivity remains UNRUN."""
 import ast
 import contextlib
+from functools import lru_cache
 import gc
 import hashlib
 import io
@@ -12,12 +13,13 @@ import runpy
 import shutil
 import sys
 import tempfile
-from types import SimpleNamespace
+from types import CodeType, FunctionType, ModuleType, SimpleNamespace
 import weakref
 
 HERE = Path(__file__).resolve().parent
 DRIVER = HERE / 'qualify_actual_objective_encoder_gradients.py'
 EVIDENCE = HERE.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-diversity-v1'
+BACKEND_SOURCE = EVIDENCE.parent / 'actual-objective-processor-cache-source/original-image_processing_backends.py'
 
 
 def rejects(fn, message):
@@ -27,6 +29,150 @@ def rejects(fn, message):
         assert message in str(error), (message, str(error))
     else:
         raise AssertionError('accepted: ' + message)
+
+
+def processor_cache_lifecycle(d):
+    """Execute the pinned backend method AST, including its real LRU ownership."""
+    raw = BACKEND_SOURCE.read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    receipt = json.loads((EVIDENCE / 'cpu-v5/receipt.json').read_text())
+    original = '/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/image_processing_backends.py'
+    assert digest == receipt['input_guards'][original] == '250394884a9f90845cf87b6fc0cf3341337b193428556c6ff61ed2b04bedb692'
+    method = '_fuse_mean_std_and_rescale_factor'
+    backend_name = 'transformers.image_processing_backends'
+    siglip_name = 'transformers.models.siglip.image_processing_siglip'
+    class Tensor(tuple):
+        device = 'cpu'
+        def __mul__(self, scalar): return Tensor(x * scalar for x in self)
+        def to(self, **kwargs): return self
+    with tempfile.TemporaryDirectory() as temp:
+        path = Path(temp) / 'image_processing_backends.py'
+        path.write_bytes(raw)
+        backend = ModuleType(backend_name)
+        backend.__file__ = str(path)
+        backend.torch = SimpleNamespace(tensor=lambda x, device: Tensor(x), float32='float32')
+        backend.tvF = SimpleNamespace(normalize=lambda x, mean, std: Tensor(
+            (value - m) / s for value, m, s in zip(x, mean, std)))
+        backend.group_images_by_shape = lambda images, **kw: ({'shape': images[0]}, None)
+        backend.reorder_images = lambda grouped, index: list(grouped.values())
+        backend.BatchFeature = lambda data, tensor_type: data
+        # Compile the complete AST but execute ONLY these finite method bodies.
+        code = compile(ast.parse(raw), str(path), 'exec', dont_inherit=True)
+        cls_code = next(c for c in code.co_consts if isinstance(c, CodeType) and c.co_name == 'TorchvisionBackend')
+        methods = {c.co_name: FunctionType(c, vars(backend)) for c in cls_code.co_consts
+                   if isinstance(c, CodeType) and c.co_name in
+                   (method, '_preprocess', 'rescale_and_normalize', 'normalize')}
+        function = methods[method]
+        function.__defaults__ = (None,) * 6
+        wrapper = lru_cache(maxsize=10)(function)
+        methods[method] = wrapper
+        backend.TorchvisionBackend = type('TorchvisionBackend', (), {'__module__': backend_name, **methods})
+        siglip = ModuleType(siglip_name)
+        siglip.SiglipImageProcessor = type('SiglipImageProcessor', (backend.TorchvisionBackend,), {'__module__': siglip_name})
+        previous = {name: sys.modules.get(name) for name in (backend_name, siglip_name)}
+        sys.modules.update({backend_name: backend, siglip_name: siglip})
+        def process(owner):
+            result = owner._preprocess([Tensor((0., 127.5, 255.))], False, None, None,
+                False, None, True, 1/255, True, (.5,)*3, (.5,)*3, False, None, False, 'pt')
+            assert result == {'pixel_values': [(-1., 0., 1.)]}
+        guards = {str(path): digest}
+        try:
+            # Root cause: the actual fused method retains self until genuine cache_clear.
+            owner = siglip.SiglipImageProcessor()
+            ref = weakref.ref(owner)
+            process(owner)
+            del owner
+            gc.collect()
+            assert ref() is not None and wrapper.cache_info().currsize == 1
+            wrapper.cache_clear()
+            gc.collect()
+            assert ref() is None
+
+            # Run the actual outer cleanup on success and on an original rejection.
+            tree = ast.parse(DRIVER.read_text())
+            outer = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'qualify')
+            block = next(n for n in outer.body if isinstance(n, ast.Try))
+            exercise = ast.parse('def exercise(owned, released, guards, reject=False):\n'
+                ' failure = None\n release_names = {}\n processor_cache = None\n'
+                ' context = {"guards": guards}\n').body[0]
+            admission = [n for n in block.body if isinstance(n, ast.Assign) and
+                         isinstance(n.value, ast.Call) and ast.unparse(n.value.func) == '_processor_cache']
+            body = admission + ast.parse('process(owned["processor"])\n'
+                'if reject: raise ValueError("original source rejection")').body
+            exercise.body.append(ast.Try(body=body, handlers=block.handlers, orelse=[], finalbody=block.finalbody))
+            exercise.body += ast.parse('if failure is not None: raise failure').body
+            exits = []
+            namespace = {**d, 'process': process, 'torch': SimpleNamespace(cuda=SimpleNamespace(is_initialized=lambda: False)),
+                         'trainer': SimpleNamespace(exit_rehash=lambda context: exits.append('rehash'))}
+            exec(compile(ast.fix_missing_locations(ast.Module(body=[exercise], type_ignores=[])),
+                         '<actual processor cleanup>', 'exec'), namespace)
+            for reject in (False, True):
+                owned = {'processor': siglip.SiglipImageProcessor()}
+                ref = weakref.ref(owned['processor'])
+                with contextlib.redirect_stderr(io.StringIO()):
+                    if reject:
+                        rejects(lambda: namespace['exercise'](owned, [ref], guards, True), 'original source rejection')
+                    else:
+                        namespace['exercise'](owned, [ref], guards)
+                assert ref() is None and not owned and wrapper.cache_info().currsize == 0
+            assert exits == ['rehash', 'rehash']
+
+            owner = siglip.SiglipImageProcessor()
+            admit = lambda: d['_processor_cache'](owner, guards, empty=True)
+            assert admit() is wrapper
+            path.write_bytes(raw + b'\n# changed\n')
+            rejects(admit, 'source')
+            path.write_bytes(raw)
+            rejects(lambda: d['_processor_cache'](owner, {str(path): '0'*64}, empty=True), 'source')
+            process(owner)
+            before = wrapper.cache_info()
+            rejects(admit, 'empty')
+            assert wrapper.cache_info() == before, 'nonempty cache was changed by admission'
+            owned = {'processor': siglip.SiglipImageProcessor()}
+            new_ref = weakref.ref(owned['processor'])
+            with contextlib.redirect_stderr(io.StringIO()):
+                rejects(lambda: namespace['exercise'](owned, [], guards), 'initially be empty')
+            assert not owned and new_ref() is None and wrapper.cache_info() == before
+            wrapper.cache_clear()
+            # Genuine wrapper with a decoy __wrapped__ must also be rejected.
+            for bad in (function, lru_cache(maxsize=9)(function), lru_cache(maxsize=10, typed=True)(function),
+                        lru_cache(maxsize=10)(lambda *a, **k: None)):
+                if hasattr(bad, '__wrapped__'): bad.__wrapped__ = function
+                backend.TorchvisionBackend._fuse_mean_std_and_rescale_factor = bad
+                rejects(admit, 'wrapper')
+            backend.TorchvisionBackend._fuse_mean_std_and_rescale_factor = wrapper
+            old_code = function.__code__
+            function.__code__ = (lambda *a, **k: None).__code__
+            rejects(admit, 'code')
+            function.__code__ = old_code
+            owner._fuse_mean_std_and_rescale_factor = lru_cache(maxsize=10)(function)
+            rejects(admit, 'wrapper')
+            del owner._fuse_mean_std_and_rescale_factor
+            wrapper.cache_clear = lambda: None
+            rejects(admit, 'wrapper')
+            del wrapper.cache_clear
+
+            # Failed cleanup still pops owned objects and leaves the release gate intact.
+            def break_cleanup(owner):
+                process(owner)
+                wrapper.cache_clear = lambda: None
+            namespace['process'] = break_cleanup
+            owned = {'processor': siglip.SiglipImageProcessor()}
+            ref = weakref.ref(owned['processor'])
+            log = io.StringIO()
+            with contextlib.redirect_stderr(log):
+                rejects(lambda: namespace['exercise'](owned, [ref], guards, True), 'tensor lifetime survived release')
+            assert not owned and ref() is not None and len(exits) == 3
+            assert 'original source rejection' in log.getvalue() and 'wrapper' in log.getvalue()
+            del wrapper.cache_clear
+            wrapper.cache_clear()
+            gc.collect()
+            assert ref() is None
+        finally:
+            type(wrapper).cache_clear(wrapper)
+            for name, value in previous.items():
+                if value is None: sys.modules.pop(name, None)
+                else: sys.modules[name] = value
 
 
 def cleanup_diagnostics(d):
@@ -74,7 +220,7 @@ def cleanup_diagnostics(d):
     # Run the outer source cleanup too: chained frames may retain the model.
     outer = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'qualify')
     block = next(n for n in outer.body if isinstance(n, ast.Try))
-    wrapper = ast.parse('def exercise_outer(owned, released, release_names, chained):\n failure = None\n').body[0]
+    wrapper = ast.parse('def exercise_outer(owned, released, release_names, chained):\n failure = None\n processor_cache = None\n').body[0]
     wrapper.body.append(ast.Try(body=ast.parse("reject(owned['model'], chained)").body,
         handlers=block.handlers, orelse=block.orelse, finalbody=block.finalbody))
     wrapper.body += ast.parse('if failure is not None: raise failure').body
@@ -118,6 +264,7 @@ def cleanup_diagnostics(d):
 def main():
     assert DRIVER.is_file(), 'missing actual-objective qualifier'
     d = runpy.run_path(str(DRIVER))
+    processor_cache_lifecycle(d)
     cleanup_diagnostics(d)
     assert not {'torch', 'numpy', 'transformers', 'PIL', 'safetensors'} & sys.modules.keys()
     receipt_path = EVIDENCE / 'cpu-v5/receipt.json'
@@ -263,7 +410,8 @@ def main():
     assert d['POLICY'] == {'seconds': 300, 'host_bytes': 8589934592, 'swap_bytes': 0,
                            'cuda_allocated_bytes_exclusive': 10000000000}
     assert not {'torch', 'numpy', 'transformers', 'PIL', 'safetensors'} & sys.modules.keys()
-    print('PASS stdlib initializer/authority, B64 K63/micro16, membership, gradient rejection, source/lifetime diagnostics; native UNRUN')
+    print('PASS stdlib initializer/authority, B64 K63/micro16, membership, gradient rejection, '
+          'source/lifetime diagnostics, authenticated processor cache lifecycle; native UNRUN')
 
 
 if __name__ == '__main__':

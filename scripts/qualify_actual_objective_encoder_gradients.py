@@ -12,8 +12,10 @@ optimizer update, quality read, TRAIN admission, or cost qualification.
 import argparse
 import ast
 import copy
+from functools import lru_cache
 import gc
 import hashlib
+import inspect
 import json
 import math
 import os
@@ -24,7 +26,7 @@ import runpy
 import sys
 import time
 import traceback
-from types import SimpleNamespace
+from types import CodeType, FunctionType, SimpleNamespace
 import weakref
 
 HERE = Path(__file__).absolute().parent
@@ -53,6 +55,7 @@ INITIALIZER = {'path': '/home/riomus/runs/sfora-so400-identity-diversity-cpu-v5/
 PAYLOAD_SHA = '4a09ad011dfc4bc1897482b96ed69f882efe0c0962833a280f58a3cbd5adeaee'
 ANCHORS = (185,419,3802,1536,5675,3633,5030,3737,5622,1070,6090,343,1312,4889,5235,1321)
 RTOL, ATOL = 1e-5, 1e-6  # Original trainer objective/gradient correspondence tolerances.
+BACKEND_SHA = '250394884a9f90845cf87b6fc0cf3341337b193428556c6ff61ed2b04bedb692'
 
 
 def authenticate(path, expected, output):
@@ -221,6 +224,43 @@ def _diagnose_release(released, label, names=None):
     if surviving:
         print(json.dumps({'event': 'release_diagnostic', 'scope': label,
                           'surviving': surviving}), file=sys.stderr, flush=True)
+
+
+def _processor_cache(processor, guards, *, empty=False):
+    """Authenticate the one original self-keyed cache; never adopt prior entries."""
+    backend = sys.modules.get('transformers.image_processing_backends')
+    siglip = sys.modules.get('transformers.models.siglip.image_processing_siglip')
+    require(backend is not None and siglip is not None and
+            type(processor) is getattr(siglip, 'SiglipImageProcessor', None) and
+            type(processor).__bases__ == (getattr(backend, 'TorchvisionBackend', None),),
+            'processor cache owner differs')
+    path = Path(backend.__file__)
+    require(path.is_absolute() and path.resolve() == path and
+            guards.get(str(path)) == BACKEND_SHA, 'processor cache source guard differs')
+    raw = path.read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == BACKEND_SHA, 'processor cache source differs')
+    name = '_fuse_mean_std_and_rescale_factor'
+    wrapper = vars(backend.TorchvisionBackend).get(name)
+    require(type(wrapper) is type(lru_cache(maxsize=10)(lambda: None)) and
+            inspect.getattr_static(processor, name) is wrapper and
+            wrapper.cache_parameters() == {'maxsize': 10, 'typed': False} and
+            all(getattr(wrapper, key) == getattr(type(wrapper), key).__get__(wrapper)
+                for key in ('cache_info', 'cache_clear')) and wrapper.cache_info().maxsize == 10,
+            'processor cache wrapper differs')
+    function = getattr(wrapper, '__wrapped__', None)
+    # Read-only GC edges bind __wrapped__ to the LRU's actual callable, not a decoy.
+    require(type(function) is FunctionType and
+            [obj for obj in gc.get_referents(wrapper) if type(obj) is FunctionType] == [function],
+            'processor cache wrapper callable differs')
+    # Compile only: no re-execution of the backend or replacement of its globals/math.
+    module_code = compile(raw, str(path), 'exec', dont_inherit=True)
+    class_code = next(c for c in module_code.co_consts if isinstance(c, CodeType) and c.co_name == 'TorchvisionBackend')
+    original = next(c for c in class_code.co_consts if isinstance(c, CodeType) and c.co_name == name)
+    require(function.__code__ == original and function.__globals__ is vars(backend) and
+            function.__defaults__ == (None,) * 6 and function.__kwdefaults__ is None and
+            function.__closure__ is None, 'processor cache live code differs')
+    require(not empty or wrapper.cache_info().currsize == 0, 'processor cache must initially be empty')
+    return wrapper  # Unbound: retaining this handle does not itself retain the processor.
 
 
 def view_probe(trainer, context, cpu_state, model, processor, connected, anchors, valid, view):
@@ -417,6 +457,7 @@ def qualify(args):
     connected = SimpleNamespace(**runpy.run_path(str(HERE / 'connected_residual_readout.py')))
     owned, released, failure, results = {}, [], None, []
     release_names = {}
+    processor_cache = None
     try:
         owned['cpu_state'], ident = _load_initializer(trainer, context, qualification)
         trainer.integrity(context, owned['cpu_state'], ident)
@@ -425,6 +466,7 @@ def qualify(args):
         batch, anchors, valid = first_microbatch(trainer, owned['cpu_state'])
         owned['cpu_rng'] = torch.random.get_rng_state().clone()
         owned['model'], owned['processor'], roles = source.fresh_source(legacy['prior'])
+        processor_cache = _processor_cache(owned['processor'], context['guards'], empty=True)
         require(source.model_facts(owned['model'], owned['processor'], roles, packages) ==
                 owned['cpu_state']['provenance']['encoder']['source_proof']['runtime'], 'original full source runtime differs')
         legacy_probe.select_mlp(owned['model'], legacy['prior']['expected'])
@@ -458,6 +500,16 @@ def qualify(args):
         failure = error.with_traceback(None)
     finally:
         parameter = None
+        try:
+            if processor_cache is not None:
+                require(_processor_cache(owned['processor'], context['guards']) is processor_cache,
+                        'processor cache wrapper changed before release')
+                processor_cache.cache_clear()
+                require(processor_cache.cache_info().currsize == 0, 'processor cache cleanup failed')
+        except Exception as error:
+            traceback.print_exception(error, file=sys.stderr)
+            if failure is None:
+                failure = error.with_traceback(None)
         owned.pop('model', None)
         owned.pop('processor', None)
         gc.collect()
