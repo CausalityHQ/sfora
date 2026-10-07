@@ -80,6 +80,42 @@
     ],
     "static_verification": "PASS original sources parsed/asserted without imports or execution; source hashes retained"
   },
+  "additional_primary_tables_2026_10_07": [
+    {
+      "decision": "Author-reported primary table, not Sfora measurement. Lower absolute top1 than dated UNICOM; reranking compute must be included for matched full latency. No new gate or intervention.",
+      "method": "STIR",
+      "primary_full_text": "https://arxiv.org/html/2304.13393v2",
+      "protocol": "ViT-S/16,384dim,224px; official SOP60502 self-excluded and InShop14128query/12612gallery; top5 image-pair reranking; mAP@5/10 are NOT mAP@R",
+      "reported_percent": {
+        "InShop_CMC1_STIR_symmetric_top5": 95.0,
+        "SOP_CMC1_STIR_symmetric_top5": 88.3
+      },
+      "table": "Tables1/2, sections4.1/4.2"
+    },
+    {
+      "decision": "Primary numerical tables do not establish a stronger joint SOP/InShop frontier despite broad abstract claims; no adoption.",
+      "method": "Evidential Transformers",
+      "primary_full_text": "https://arxiv.org/html/2409.01082v2",
+      "protocol": "SOP table compares DeiT-S and GCViT-T; evidential/reranking Table2 concerns CUB. No numerical InShop result found in this full text.",
+      "reported_percent": {
+        "CUB_GC_ViT_uncertainty_rerank_R1": 80.79,
+        "SOP_GC_ViT_T_R1": 85.45
+      },
+      "table": "Table1/2"
+    },
+    {
+      "decision": "Recent primary result is lower than dated UNICOM SOP anchor and supplies no joint InShop result. New supervision/cost differ; current frozen experiment unchanged.",
+      "method": "LaFG",
+      "primary_full_text": "https://arxiv.org/html/2512.06255v1",
+      "protocol": "ImageNet pretrained ViT,224crop from256,200epochs,batch900,A100; official SOP59551train/60502test; cosine R@K; LLM/VLM attribute supervision. No InShop table.",
+      "reported_percent": {
+        "CUB_R1": 87.2,
+        "Cars_R1": 91.5,
+        "SOP_R1": 87.1
+      },
+      "table": "Table3, section4.1"
+    }
+  ],
   "additional_reference_screen": {
     "author_code": "https://github.com/MrZilinXiao/LongContextReranker",
     "direct_pdf_read": "CVF403; arXivv1 full HTML table2 read successfully.",
@@ -107,6 +143,7 @@
   "date_utc": "2026-10-07",
   "decision": "Do not compare headline asymmetric gains to current symmetric native256 Sfora quality or speed. Require matching query/gallery encoders, resolutions, data, scorer and complete evaluation protocol plus corrected absolute results. No candidate intervention or quality claim follows from this screening.",
   "experiment_changes": false,
+  "frontier_screen_limit": "Bounded author-source/primary-table screen, not exhaustive newest SOTA certification. Dated UNICOM author README still reports SOP91.2/InShop96.7 at ViT-L/14@336; primary https://github.com/deepglint/unicom/blob/main/unicom/README.md. No matched serving runtime inferred.",
   "observations": [
     "ACD CVPR2026 Findings trains the gallery network while keeping the query network frozen.",
     "The documented SOP asymmetric example uses ResNet101 gallery at256x256 and ResNet18 query at64x64.",
