@@ -1,0 +1,35 @@
+{
+  "all128_updates_verified": true,
+  "engineering_only": true,
+  "first17_exact_admitted_mechanics": true,
+  "memory_events_zero": true,
+  "next_gate": "ONE fresh candidate069 TRAIN128/3000 with this actual fresh control UNIT; core and normal whole ratios <=1.50 required; no state reuse or quality claim.",
+  "original_launch_exit": 0,
+  "pass": true,
+  "peak_cuda_allocated_bytes": 2021260288,
+  "quality_read": false,
+  "schema": "connected-mlp-train-parent-verification-v1",
+  "service_seconds": 2188.712,
+  "source_and_train_freezes_exit_rehashed": true,
+  "state_reuse_eligible": false,
+  "strict_public_reload_raw_unit_packed": true,
+  "swap_bytes": 0,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "7c47981c69154f289d4651d6a844bd8a",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-control-179069-v1-original.log",
+      "sha256": "f077cec2278c761bc5408eccec3757f343af7da5dc195a27de6097b8bae89d6f"
+    },
+    "native_peak_rss_kib": 5108192,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179069-v1/receipt.json",
+      "sha256": "22f1d1bf1c26d68368a2ade98de5a18b1b9fc14e9e44ea7959583bca12fd884a"
+    },
+    "service_seconds": 2188.712,
+    "unit": "sfora-connected-mlp-train-control-179069-v1"
+  },
+  "total_training_core_seconds": 1693.3855708269548,
+  "update_core_seconds_median": 13.112551757498295,
+  "whole_unit_peak_host_bytes": 6110826496
+}

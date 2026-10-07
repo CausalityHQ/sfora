@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "7c47981c69154f289d4651d6a844bd8a",
+  "log": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-control-179069-v1-original.log",
+    "sha256": "f077cec2278c761bc5408eccec3757f343af7da5dc195a27de6097b8bae89d6f"
+  },
+  "native_peak_rss_kib": 5108192,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179069-v1/receipt.json",
+    "sha256": "22f1d1bf1c26d68368a2ade98de5a18b1b9fc14e9e44ea7959583bca12fd884a"
+  },
+  "service_seconds": 2188.712,
+  "unit": "sfora-connected-mlp-train-control-179069-v1"
+}

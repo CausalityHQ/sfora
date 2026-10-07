@@ -1,0 +1,36 @@
+{
+  "arm": "control",
+  "bundle": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179069-v1/control-179069-bundle/bundle.json",
+    "sha256": "578f4d2d247c49d7700bab09133839732eb9ee8e0ddcd015ecdc2fbdbb2209b3"
+  },
+  "checkpoint": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179069-v1/control-179069-terminal.pt",
+    "sha256": "b695a1ccd4667f53f455ef74803b066411c7f8eac583428382801a7fc72745c8"
+  },
+  "inference_state_sha256": "fe792c7ffcb043922cfa7b23d10113293dbce14b805d6222a99e2e7d43a32e14",
+  "launch": {
+    "path": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/authority-train-control-179069-v1.json",
+      "sha256": "4ea9c6dcc5c44d112068293b2cfab2464b4e42df583da387b6cf38ab0460d132"
+    },
+    "sha256": "4ea9c6dcc5c44d112068293b2cfab2464b4e42df583da387b6cf38ab0460d132"
+  },
+  "seed": 179069,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "7c47981c69154f289d4651d6a844bd8a",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-control-179069-v1-original.log",
+      "sha256": "f077cec2278c761bc5408eccec3757f343af7da5dc195a27de6097b8bae89d6f"
+    },
+    "native_peak_rss_kib": 5108192,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179069-v1/receipt.json",
+      "sha256": "22f1d1bf1c26d68368a2ade98de5a18b1b9fc14e9e44ea7959583bca12fd884a"
+    },
+    "service_seconds": 2188.712,
+    "unit": "sfora-connected-mlp-train-control-179069-v1"
+  },
+  "terminal_state_sha256": "588bf92b1c9c28ffe5110575b4abc0b428c718e9259e570aa6efbbb997cd95ac"
+}

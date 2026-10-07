@@ -1,6 +1,6 @@
 # Connected last-MLP: verified decision
 
-Status at commit `50f4e74`: first-seed selection **CONTINUE**, both second-seed mechanics gates passed, fresh control069 TRAIN128 frozen. The production joint quality-and-speed objective remains unmet. All numbers below are measured and receipt-verified; no official result or speed result is inferred from TRAIN selection.
+Status: first-seed selection **CONTINUE**, both second-seed mechanics gates and fresh control069 TRAIN128 passed; candidate069 TRAIN128 is prospectively frozen. The production joint quality-and-speed objective remains unmet. All numbers below are measured and receipt-verified; no official result or speed result is inferred from TRAIN selection.
 
 | Dataset / split / seed | Control | Candidate | Baseline | Decision and uncertainty |
 |---|---:|---:|---:|---|
@@ -29,7 +29,9 @@ The original first score exited normally in 617.915 s, with 1,667,022,848 B host
 
 Second-seed control mechanics passed in 925.653 s: all17 versus independent8+9, strict updated reload and complete exit checks; host peak 6,155,317,248 B, CUDA peak 2,021,260,288 B, zero swap/events. Candidate mechanics passed normally in 943.903 s, invocation `cc546b2dcf2e4b9ea023c8b073ce893d`, with the same full checks; host peak 6,143,934,464 B, CUDA peak 2,349,907,968 B, zero swap/events. Both used unchanged 1200 s / 8 GiB / zero-swap / CUDA<10 GB / both-lock limits. No mechanics state is eligible for TRAIN reuse.
 
-Next, in order: run fresh control069 TRAIN128 then candidate069 bound to that exact live-control receipt; verify both core and whole-service costs; qualify the full evaluator and current-stage exports; apply the frozen same-four two-seed quality and product-LCB decision. Failure stops the affected arm. Full selection GO alone permits sealed VAL. No checkpoint state reuse, automatic cap rescue or official quality claim.
+Fresh control069 TRAIN128 passed normally in 2188.712 s (training core 1693.385571 s), with host peak 6,110,826,496 B, CUDA peak 2,021,260,288 B and zero swap/events. All128 updates, exact first17 admitted mechanics, strict public reload and complete source exit were verified. This is engineering qualification, with no new quality read.
+
+Next, in order: run candidate069 bound to that exact fresh-control receipt; verify both core and whole-service costs; qualify the full evaluator and current-stage exports; apply the frozen same-four two-seed quality and product-LCB decision. Failure stops the affected arm. Full selection GO alone permits sealed VAL. No checkpoint state reuse, automatic cap rescue or official quality claim.
 
 Independent serving research completed while native gates ran. Source inspection finds 3,423,104,512 parameter-occurrence bytes inspected per public request, but exclusive latency attribution remains unmeasured. The evaluator's 1941-file audit is not the public request loop. Existing fresh-copy batching lost its measured timing comparison (43.637 ms baseline / 45.224 ms proposed) despite parity; that arm stays KILL. After a quality survivor, the next serving gate is one discarded public-request attribution diagnostic preserving fresh-byte, packed-output, native-ID/tie and cleanup predicates.
 
@@ -40,4 +42,5 @@ Evidence:
 - [Receipt-derived training throughput accounting](evidence/compact_metric/sop-siglip2-substrate-v1/connected-training-throughput-accounting-v1.json).
 - [Control069 mechanics verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-mechanics-control-179069-v1/verification.json) and [prospective candidate069 freeze](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-mechanics-candidate-179069-v1-freeze/mechanics-candidate-179069-v1-freeze.json).
 - [Candidate069 mechanics verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-mechanics-candidate-179069-v1/verification.json) and [fresh control069 TRAIN freeze](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-control-179069-v1-freeze/train-control-179069-v1-freeze.json).
+- [Control069 TRAIN verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-control-179069-v1/verification.json) and [prospective candidate069 TRAIN freeze](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-candidate-179069-v1-freeze/train-candidate-179069-v1-freeze.json).
 - [Serving research decision](evidence/compact_metric/sop-siglip2-substrate-v1/connected-serving-critical-path-plan-v1/parent-decision.json).
