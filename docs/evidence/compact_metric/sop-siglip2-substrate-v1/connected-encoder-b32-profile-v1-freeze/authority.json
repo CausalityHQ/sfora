@@ -1,0 +1,23 @@
+{
+  "schema": "connected-encoder-gradients-authority-v1",
+  "files": {
+    "qualify_connected_encoder_gradients.py": "9a5d73ffb0b99bde49de18f713f504d7b736c7e1a2d8989209136c079c671b68",
+    "test_connected_encoder_gradients.py": "e0b64e2177191cc388eef11c5a39985d4bce4cb921319d5c5ecef557ef572719",
+    "train_siglip2_cached_readout.py": "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c",
+    "connected_residual_readout.py": "f0782630a462667ba52aa72b84d724f82c752a0f7f1ef66ac7346eba5e9800e1",
+    "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+    "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6"
+  },
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "output": "/home/riomus/runs/sfora-connected-encoder-b32-profile-v1",
+  "resource_policy": {
+    "seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "cuda_allocated_bytes_exclusive": 10000000000
+  },
+  "both_locks_held": true
+}

@@ -1,0 +1,25 @@
+{
+  "authority_sha256": "8f1308f01de67ab2aab2c1e72262c882834324a1e055d4033ba653fc85715a99",
+  "files": {
+    "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+    "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+    "connected_residual_readout.py": "f0782630a462667ba52aa72b84d724f82c752a0f7f1ef66ac7346eba5e9800e1",
+    "train_siglip2_cached_readout.py": "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c",
+    "test_connected_encoder_gradients.py": "e0b64e2177191cc388eef11c5a39985d4bce4cb921319d5c5ecef557ef572719",
+    "qualify_connected_encoder_gradients.py": "9a5d73ffb0b99bde49de18f713f504d7b736c7e1a2d8989209136c079c671b68",
+    "authority.json": "8f1308f01de67ab2aab2c1e72262c882834324a1e055d4033ba653fc85715a99",
+    "command.sh": "9a51973ffef4f415a6821f2ef8f1f8588ff060ffa0d7ae4e6c6a08ea352082af",
+    "launch.sh": "55bddc304fd2677811ac9e2be36bfddf098525e9c638ad1e6e9353f9ff758116"
+  },
+  "base_driver_sha256": "86cfd83947218cf5a10011efb21297811bb5f13188486faf314ae6f52e8b3dba",
+  "source_inverse_verified": true,
+  "engineering_only": true,
+  "qualification_eligible": false,
+  "model_fit_qualified": false,
+  "training_cost_qualified": false,
+  "quality_read": false,
+  "stop_rule": "one interleaved synthetic-backward backend profile, whole300s8GiBzeroeventsnoswapCUDA<10GBbothlocks; preserve complete original gradient circuit/frozen448/exit predicates; no optimizer/state reuse",
+  "parent_profile_driver_sha256": "6fca0a18e334ab3062931fce6c196e47feef2ac39717d1239beea25d3d163606",
+  "batch": 32,
+  "comparison_limitation": "B16 earlier profile vs new B32 sequential engineering profile; not an interleaved batch-size inference or training speed claim"
+}
