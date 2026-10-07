@@ -18,10 +18,12 @@ Both arms use the same 6355-row / 1008-product CONTROL scope, genuine two-view p
 |---|---:|---:|---|
 | Whole fresh TRAIN service | 2207.053 s | 2295.117 s | Candidate 1.039901×, 3.99% slower |
 | Training core including preprocessing, gallery work and integrity | 1703.061908 s | 1757.753537 s | Candidate 1.032114×, 3.21% slower |
+| Query-view presentations / training-core second | 9.620320 | 9.320988 | Derived from actual 16,384 query-view presentations and measured core seconds |
+| Query-view presentations / whole-service second | 7.423474 | 7.138634 | Same numerator; whole denominator includes admission, reload, qualification and exit |
 | Peak CUDA allocated | 2,021,260,288 B | 2,351,303,168 B | Whole-run peaks; not device-resident-memory totals |
 | Complete two-pass selection export service | 1264.694 s | 1289.351 s | Qualification workload, not public image-to-top-k latency |
 
-Both fresh TRAIN ratios pass the frozen ≤1.50 admission threshold; neither demonstrates faster training. Public decode-to-native-top-k B1/B32 p50/p95/p99, QPS, throughput and a matched end-to-end speed win remain unmeasured for these endpoints. A product p99 claim still requires 10,000 interleaved paired calls and a confidence interval.
+Both fresh TRAIN ratios pass the frozen ≤1.50 admission threshold; neither demonstrates faster training. Throughput above counts 128 updates ×64 query rows ×2 actual pixel views, verified against every microbatch membership in both original receipts. It excludes extra reload/oracle images from the numerator and is not a raw encoder-kernel throughput measurement. Public decode-to-native-top-k B1/B32 p50/p95/p99, QPS, throughput and a matched end-to-end speed win remain unmeasured for these endpoints. A product p99 claim still requires 10,000 interleaved paired calls and a confidence interval.
 
 The original first score exited normally in 617.915 s, with 1,667,022,848 B host peak, zero swap/events and complete source, archived per-query replay, wire, resource and uncached exit checks. Historical exports were authenticated through their original source owner; they were not relabelled as exports from the new evaluator source.
 
@@ -35,5 +37,6 @@ Evidence:
 
 - [First score and scientific summary](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-first-selection-score-v2/summary.json), with original receipt, log and parent verifier in the same directory.
 - [Candidate TRAIN cost verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-candidate-179061-v1/verification.json) and [control verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-control-179061-v1/verification.json).
+- [Receipt-derived training throughput accounting](evidence/compact_metric/sop-siglip2-substrate-v1/connected-training-throughput-accounting-v1.json).
 - [Control069 mechanics verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-mechanics-control-179069-v1/verification.json) and [prospective candidate069 freeze](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-mechanics-candidate-179069-v1-freeze/mechanics-candidate-179069-v1-freeze.json).
 - [Serving research decision](evidence/compact_metric/sop-siglip2-substrate-v1/connected-serving-critical-path-plan-v1/parent-decision.json).
