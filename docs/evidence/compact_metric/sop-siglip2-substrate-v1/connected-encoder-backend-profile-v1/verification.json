@@ -1,0 +1,26 @@
+{
+  "verified": true,
+  "invocation_id": "e16ed6fd033c4d03b9e862f4366a703c",
+  "service_seconds": 66.243,
+  "measurement": "FP32 preloaded B16 repeated TRAIN witness forward plus synthetic cotangent backward; no decode, real retrieval objective, optimizer or training cost admission",
+  "modes": {
+    "frozen": {
+      "calls": 44,
+      "mean_seconds": 0.3551817663180621,
+      "median_seconds": 0.35658195349606103,
+      "images_per_second": 45.04735748645425
+    },
+    "connected": {
+      "calls": 42,
+      "mean_seconds": 0.3731996399283595,
+      "median_seconds": 0.3727987229976861,
+      "images_per_second": 42.87249581235236
+    }
+  },
+  "connected_over_frozen_mean_ratio": 1.050728599604301,
+  "artifacts": {
+    "original.log": "827f985dc33c7f819e077963dd3face6b2d8b471f9187e1e292deb0ccf5cdab6",
+    "gpu-samples.csv": "0620770d413cc33acf09f7b4af4519716e0da8f172fe3458e8e3b5eb5422a895",
+    "receipt.json": "10b92bfa16bbbe54ec3f99bbeb452601a0a359660ffdaff2b28b8df3c3e4d036"
+  }
+}
