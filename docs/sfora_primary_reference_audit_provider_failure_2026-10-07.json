@@ -1,0 +1,17 @@
+{
+  "consultation_id": "0e1d853ccad34b8e",
+  "error": "API Error: 500 Internal server error",
+  "exit_code": 1,
+  "model": "claude-fable-5-1",
+  "no_duplicate_consult_launched": true,
+  "no_method_reference_or_scientific_gate_changes": true,
+  "provider": "fable",
+  "providers_used": [
+    "fable"
+  ],
+  "result_is_review": false,
+  "root_direct_primary_search_status": "No stronger protocol-matched reference admitted; dated UNICOM anchors remain labelled, not exhaustive SOTA.",
+  "schema": "primary-reference-audit-provider-failure-v1",
+  "status": "partial",
+  "usable_primary_reference_audit": false
+}
