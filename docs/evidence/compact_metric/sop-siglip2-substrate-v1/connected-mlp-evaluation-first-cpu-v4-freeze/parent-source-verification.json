@@ -1,0 +1,17 @@
+{
+  "all_other_production_bytes_identical": true,
+  "child_commit": "3990b4c68b13fe2d7c1662c3ec6bd2652a64dbcc",
+  "historical_before_after_tables_identical": true,
+  "historical_hash_rows_each_boundary": 90,
+  "native_qualification": false,
+  "original_score500_verdict": "FAIL_TIMEOUT",
+  "quality_accepted": false,
+  "root_integration": "1db70d48",
+  "schema": "connected-score700-parent-source-verification-v1",
+  "shell_syntax_pass": true,
+  "sole_production_policy_delta": true,
+  "source_execution_sha256": "41bb4700ebd5bf0b8cdc4e4f292081ddb833d8a67ba7923378df3c9c8828ba31",
+  "stop_rule": "Fresh ownCPU500 required before ONE prospective score700; preserve all scientific and integrity predicates, no old partial reuse.",
+  "worker_final_evidence_reused": true,
+  "worker_final_source_only_exit": 0
+}

@@ -1,0 +1,89 @@
+{
+  "schema": "connected-score700-source-result-v1",
+  "commit": "3990b4c68b13fe2d7c1662c3ec6bd2652a64dbcc",
+  "parent_commit": "abe86a64a68ced97d09bcb424796ef3af6c80654",
+  "branch": "devbox/connected-score-envelope-20261007",
+  "author_and_committer": "Roman Bartusiak <riomus@gmail.com>",
+  "trailers": [],
+  "worktree_clean": true,
+  "merged": false,
+  "pushed": false,
+  "contract": "/tmp/sfora-connected-score-envelope-20261007-contract.json",
+  "contract_sha256": "37a2550b2c472c5338d1140e11fdc154a6937ea33887e1ba444beb80f1c5eb27",
+  "actual_sha256": {
+    "scripts/evaluate_siglip2_connected_mlp.py": "f1c95755361e42143d30822c2e2426c92d7683e4a5c58d3cd8d0f144bae3f40d",
+    "scripts/test_connected_mlp_evaluation.py": "0a2be2dec8f6fa2033e62a749b2805184e00055a76cd55bafc2981bc138785df"
+  },
+  "actual_production_ast_sha256": "d89bef72cf224f98d1148c772cc84ccaf787723088c1462a1a5eea233c65321e",
+  "scope_correspondence": {
+    "production": "exact sole prepublished score500-to-score700 replacement; every other byte identical to base",
+    "test_changes": {
+      "module_docstring": "adds prospective score700",
+      "evaluator_score_envelope_inverse": "new exact inverse to complete base bytes+AST",
+      "evaluator_export_envelope_inverse": "one leading call to score inverse; original900 byte/AST hashes unchanged",
+      "source_contract": "split CPU500/score700 assertions; all other statements preserved",
+      "export_envelope_contract": "phase-specific CPU500/score700 policy and wall boundaries; reject score500/701 policies in resources and launch; update status text; original export and historical CPU/source rejection bodies retained"
+    },
+    "unrelated_test_bodies_unchanged": {
+      "current_bytes": "5bf569eadeac4349e29b0041201c5ce8d76bf7973713b79b90090c77ac06c4dd",
+      "evaluator_repin_inverse": "4c3490b6aca8655b2d2315cae8c17978517bdf46bc96da193f94e4dc5db6953c",
+      "launch_contract": "c3dba9ae7f333640781a2b45bff28c268e435a8c32637055ad87e4f1605add2b",
+      "main": "d7fbce5b428da10aa58b7e4cd1ebef20260ba36c805acba550b3b11cd6a65324",
+      "metadata_api": "9f56edf50a1b9876b573fc35a2e23d965f044f0ecf5e74a6e7e1ff4656c0c175",
+      "module": "26858ea0b25d07bc9c70f1a82970e724fdb7fd3821fb5e8de65111654bf8c761",
+      "nested_binding": "58b57c4f4eabdb2209946be6ea65d749badc075cf9cec10312c86708bcf14674",
+      "nested_fixture": "c2e37b68cba5ff2d6f2706b6da01fa58d7d9b5e829d7b9eba83da2997a81d20f",
+      "paired_decisions": "64e1db5526d8786e18d432c5abc4123d5889ff2da74b6fc682105b98fe1dcafc",
+      "rejects": "a45e150db80335e605e9ab62fa8eb09e5ee69752b05dc9a5ef753d4e6f7ba340",
+      "repin_contract": "e45e111801e0d99e262da4bf2f4b851ad61f5894013fe892333964d313d69f94"
+    },
+    "historical_inverse_sha256_expectations_unchanged": [
+      "ca122f669078e39a3c300246f425d441f4c53356b95a156865dfd33cbe177581",
+      "834109b46372a3f3d283c74b36c8c8d433aac04a250f8b6f883e8677e7cd0b6b",
+      "835b2ffd07271c3f26fb671a9764cd79bddc2e02667d5cbcdaa7923f7d0eedd9",
+      "a7d3f8310700926034eeaccea6f41495e23a1cef1419f9b5a762b4fdb94b859e"
+    ]
+  },
+  "checks": {
+    "targeted_RED": {
+      "args": "--source-only --narrow",
+      "exit": 1,
+      "reason": "score policy expected700 received500"
+    },
+    "targeted_GREEN": {
+      "args": "--source-only --narrow",
+      "exit": 0
+    },
+    "final_affected_stdlib_suite": {
+      "args": "--source-only",
+      "exit": 0,
+      "runs": 1,
+      "replacement_runs": 0,
+      "timeout_seconds": 120,
+      "address_space_bytes": 1073741824,
+      "forbidden_native_import_assertion": "passed"
+    },
+    "git_diff_check": "passed",
+    "exact_production_scope": "passed",
+    "unchanged_unrelated_test_bodies": "passed",
+    "historical_hash_chain": "passed",
+    "original_failure_files": "unchanged"
+  },
+  "original_failure": {
+    "verdict": "FAIL_TIMEOUT",
+    "service_seconds": 500.078,
+    "exit_rehash_entered_seconds": 486.2649921389966,
+    "old_exit_begin_seconds": 498.43256761498924,
+    "success_receipt": false,
+    "quality_accepted": false,
+    "preserve_files": {
+      "original.log": "cae716c3266ca0a9f661c502f06b5c698c220a3b09164d2c341e7f6bb4ef0d16",
+      "verification.json": "973bc3908e2ebbc42ea0d036177ab27748c0d0a3d4d4072b2d75a58429fd1cf9",
+      "terminal-status.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    }
+  },
+  "root_next": "Freeze new actual two-file source; fresh own CPU500 required before ONE score700. No native qualification, speed, or quality claim.",
+  "native_qualification": "UNRUN/UNQUALIFIED",
+  "speed_claim": false,
+  "quality_claim": false
+}

@@ -1,0 +1,86 @@
+{
+  "schema": "connected-score700-prospective-source-contract-v1",
+  "base_commit": "abe86a64a68ced97d09bcb424796ef3af6c80654",
+  "own_only": [
+    "scripts/evaluate_siglip2_connected_mlp.py",
+    "scripts/test_connected_mlp_evaluation.py"
+  ],
+  "original_failure": {
+    "verdict": "FAIL_TIMEOUT",
+    "service_seconds": 500.078,
+    "exit_rehash_entered_seconds": 486.2649921389966,
+    "old_exit_begin_seconds": 498.43256761498924,
+    "success_receipt": false,
+    "quality_accepted": false,
+    "preserve_files": {
+      "original.log": "cae716c3266ca0a9f661c502f06b5c698c220a3b09164d2c341e7f6bb4ef0d16",
+      "verification.json": "973bc3908e2ebbc42ea0d036177ab27748c0d0a3d4d4072b2d75a58429fd1cf9",
+      "terminal-status.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    }
+  },
+  "sole_production_replacement": {
+    "old": "return {'seconds': 1500 if phase == 'export' else 500, 'host_bytes':8*1024**3,",
+    "new": "return {'seconds': 1500 if phase == 'export' else 700 if phase == 'score' else 500, 'host_bytes':8*1024**3,",
+    "count": 1
+  },
+  "policies": {
+    "cpu": 500,
+    "export": 1500,
+    "score": 700,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "cpu_score_cuda_visible_devices": ""
+  },
+  "unchanged": [
+    "schema",
+    "science",
+    "floors",
+    "cost",
+    "both locks",
+    "source authentication",
+    "complete fresh uncached exit predicates",
+    "export CUDA visibility"
+  ],
+  "base_sha256": {
+    "scripts/evaluate_siglip2_connected_mlp.py": "bce0c43bae6d24f50ab8ce7c60f8410abd307697ec81d91825e0a043a20efe08",
+    "scripts/test_connected_mlp_evaluation.py": "7a1eef346f0999c277d0d6c934141d24db693bb0516af985547efb97ee7cd5e9"
+  },
+  "base_production_ast_sha256": "7e6ae659a786d3e554ccbd17450e25054b80437b8454476d9edce50ca42c5c44",
+  "prospective_production_sha256": "f1c95755361e42143d30822c2e2426c92d7683e4a5c58d3cd8d0f144bae3f40d",
+  "prospective_production_ast_sha256": "d89bef72cf224f98d1148c772cc84ccaf787723088c1462a1a5eea233c65321e",
+  "inverse": "exact score700-to-score500 byte replacement first, assert full base production byte+AST hashes, then unchanged export1500-to-export900 inverse and unchanged historical repin hashes",
+  "test_change_ledger": [
+    "Add exact score inverse before export inverse; chain it before unchanged export900 and v3 byte/AST historical expectations.",
+    "Split source_contract CPU500/score700 assertion; keep export1500.",
+    "Retain export_envelope_contract name, export and historical CPU bodies; make CPU/score policy fixtures and wall limits explicit by phase.",
+    "Add score699.999 acceptance; score700/701 rejection; old500 and wrong701 score policies rejected by resource and launch admission.",
+    "Keep all unrelated test function AST bodies and hash expectations unchanged."
+  ],
+  "verification": {
+    "targeted": "--source-only --narrow RED then GREEN",
+    "final": "ONE --source-only affected stdlib suite",
+    "timeout_seconds": 120,
+    "address_space_bytes": 1073741824,
+    "native_imports_forbidden": [
+      "torch",
+      "numpy",
+      "PIL",
+      "sfora",
+      "transformers"
+    ],
+    "overlap": false
+  },
+  "root_next": "Freeze new actual two-file source; fresh own CPU500 required before ONE score700. No native qualification, speed, or quality claim.",
+  "prohibited": [
+    "Torch/NumPy/PIL/third-party native imports",
+    "SSH",
+    "GPU",
+    "images",
+    "cloud",
+    "reviews",
+    "children",
+    "operator contact",
+    "master integration",
+    "push"
+  ]
+}
