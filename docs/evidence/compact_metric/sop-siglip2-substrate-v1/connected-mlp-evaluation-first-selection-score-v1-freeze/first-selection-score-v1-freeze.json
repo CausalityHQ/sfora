@@ -1,0 +1,67 @@
+{
+  "execution_sha256": "c76330fe0bb0cefa5f3ec7d3a4e82785ffc7620bae6583ddf55af67b6aca651f",
+  "exports": {
+    "candidate-179061": {
+      "both_locks_held": true,
+      "invocation_id": "06071c350b134c0991b12f45ba1550c8",
+      "log": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/export-candidate-179061-v1-original.log",
+        "sha256": "f00017484e2e0dc57b40afe821f228d4cf8485076e9fd6371dfdc1af37852d9a"
+      },
+      "native_peak_rss_kib": 4206904,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-export-candidate-179061-v1/receipt.json",
+        "sha256": "d43ef0d5ad435a90ab584f91ef9efa31e002a04ecb2aef3253a96062e7833bf0"
+      },
+      "service_seconds": 1289.351,
+      "unit": "sfora-connected-mlp-evaluation-export-candidate-179061-v1"
+    },
+    "control-179061": {
+      "both_locks_held": true,
+      "invocation_id": "c8a9ba3f025744519d3e6411e3809161",
+      "log": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/export-control-179061-v2-original.log",
+        "sha256": "a917e632f87b25cdca6ad5ed3d4b11dfc0fe98dffa0baf2b749d7a54bc2cd6fe"
+      },
+      "native_peak_rss_kib": 4207316,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-export-control-179061-v2/receipt.json",
+        "sha256": "dea4527b76ce6c1c12f5e1d64dd2e5b1cace371a432a114ca1e7f18d1cc4f264"
+      },
+      "service_seconds": 1264.694,
+      "unit": "sfora-connected-mlp-evaluation-export-control-179061-v2"
+    }
+  },
+  "files": {
+    "authority-first-selection-score-v1.json": "d25da1234f661f79437f6708769a4de21c61116f7b5639c540bc26c7032cb160",
+    "first-selection-score-v1-command.sh": "74cf94a9550d1b972dafca72c4aa1bcf27e6a45684ca0043f456e070e800e162",
+    "first-selection-score-v1-controller.sh": "a430f9324d68fc700d483ad04a64822ede2f8f5cbe0c3f0ebd346906a9821ffa",
+    "first-selection-score-v1-launch.sh": "56159a0a002ed83243f2b898699346170efe3a5989000f4bc33944304c646c2b"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-selection-score-v1",
+  "policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "schema": "connected-first-selection-score-parent-freeze-v1",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "be2906d7e30d4badbca8373ec0f2ab6e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/first-cpu-v3-original.log",
+      "sha256": "1288d9f2ba13e87f9acc2f2110458588c303d47cf0debb1afc26ebb6d8c5114c"
+    },
+    "native_peak_rss_kib": 1398616,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-cpu-v3/receipt.json",
+      "sha256": "324ac4a56d35d9f7d0ec4c1556e01ae006ce878b88d480abbe59bfe93f99bdc7"
+    },
+    "service_seconds": 485.327,
+    "unit": "sfora-connected-mlp-evaluation-first-cpu-v3"
+  },
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3",
+  "stop_rule": "ONE first061 selection score500; original source+concat perquery exact replay, both complete actual updated wires and readback before candidate metrics, original costs/source/normal0/8GiB/noSwap/bothlocks/full uncached exit mandatory. Immediate strict candidate R1 gain and nonnegative AP plus original floors required for CONTINUE. KILL forbids069/VAL; no CI or official read here; no reused partials or runtime extension.",
+  "unit": "sfora-connected-mlp-evaluation-first-selection-score-v1"
+}
