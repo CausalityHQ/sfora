@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Diagnostic-only coarse timing of the exact frozen connected CPUv2 source.
+"""Diagnostic-only coarse timing of the exact frozen connected CUDA control mechanics source-v3.
 
 python -B observe_connected_mlp_phases.py --manifest FILE --manifest-sha256 SHA
-Manifest connected-mlp-phase-observer-v1 has exactly schema, wrapper, python,
+Manifest connected-mlp-cuda-phase-observer-v1 has exactly schema, wrapper, python,
 trainer, execution, authority (FILE={path:canonical_absolute_file,sha256:actual64}),
 argv, output, unit, stdio={stdout:absolute_path,stderr:absolute_path}, and
 qualification_eligible=false/state_reuse_eligible=false. Parent supplies actual
 wrapper/manifest hashes and fresh output/unit/stdio, freezes the enclosing CLI,
-and owns both locks, CPU300/8GiB/no swap/CUDA hidden, terminal and cleanup.
+and owns both locks, mechanics300/8GiB/no swap/CUDA0, terminal and cleanup.
 Phase times are inclusive, overlapping and not additive. END means a Python
 return event, including exception unwind; only SOURCE_END means normal source
 completion. Timeout/error may leave SOURCE_BEGIN without SOURCE_END. Copied
@@ -24,14 +24,14 @@ import sys
 import time
 from types import BuiltinFunctionType, ModuleType
 
-SCHEMA = 'connected-mlp-phase-observer-v1'
-ROOT = '/home/riomus/runs/sfora-connected-mlp-train-source-v2/'
+SCHEMA = 'connected-mlp-cuda-phase-observer-v1'
+ROOT = '/home/riomus/runs/sfora-connected-mlp-train-source-v3/'
 TRAINER = {'path': ROOT + 'train_siglip2_connected_mlp.py',
-           'sha256': 'cd68f9b109ca48dfc488a248b66c6e2f4a1e58e884aa3c598f4325d4c912edb2'}
+           'sha256': '55935d5a7e7299d1a11f14617cd5ef07f4232afd32148abf942c74edbc636e99'}
 EXECUTION = {'path': ROOT + 'execution.json',
-             'sha256': 'cb18b71dad340f49964679bf47b14449e546ab654e67d4d823256e4f212234b0'}
-AUTHORITY = {'path': ROOT + 'authority-cpu-v2.json',
-             'sha256': '56f37121ce44dee2f305961d540ce592b32d0e938c229b65f62d8c627f47c779'}
+             'sha256': '5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f'}
+AUTHORITY = {'path': ROOT + 'authority-mechanics-control-179061-v1.json',
+             'sha256': '92f7c6fb22d79a3399c018de023ad89761dfc8bbbd982511c81c9dbd93519d5e'}
 PYTHON = {'path': '/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13',
           'sha256': '9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b'}
 PYTHON_VERSION = '3.13.9 (main, Oct 14 2025, 21:26:54) [Clang 20.1.4 ]'
@@ -105,8 +105,8 @@ def prepare(manifest_path, manifest_sha):
     argv, output = manifest['argv'], canonical(manifest['output'])
     require(isinstance(argv, list) and all(isinstance(a, str) for a in argv) and argv == [str(target),
             '--execution-sha256', EXECUTION['sha256'], '--authority', AUTHORITY['path'],
-            '--authority-sha256', AUTHORITY['sha256'], '--phase', 'cpu', '--arm', 'control',
-            '--seed', '179061', '--output', str(output)], 'canonical unchanged CPUv2 argv required')
+            '--authority-sha256', AUTHORITY['sha256'], '--phase', 'mechanics', '--arm', 'control',
+            '--seed', '179061', '--output', str(output)], 'canonical unchanged CUDA mechanics argv required')
     require(not output.exists() and not output.is_relative_to(target.parent) and
             not output.is_relative_to(wrapper.parent), 'unused separate output required')
     require(isinstance(manifest['stdio'], dict) and manifest['stdio'].keys() == {'stdout', 'stderr'},
@@ -128,7 +128,7 @@ def prepare(manifest_path, manifest_sha):
         require(hashlib.file_digest(stream, 'sha256').hexdigest() == PYTHON['sha256'], 'interpreter SHA256 differs')
     unit = manifest['unit']
     require(isinstance(unit, str) and re.fullmatch('[A-Za-z0-9_.@-]+', unit) and
-            not unit.endswith('.service') and unit != 'sfora-connected-mlp-cpu-v2', 'new parent unit required')
+            not unit.endswith('.service') and unit != 'sfora-connected-mlp-mechanics-control-179061-v1', 'new parent unit required')
     groups = [line[3:] for line in Path('/proc/self/cgroup').read_text().splitlines() if line.startswith('0::')]
     require(len(groups) == 1 and Path(groups[0]).name == unit + '.service', 'actual parent unit differs')
     invocation = os.environ.get('INVOCATION_ID', '')

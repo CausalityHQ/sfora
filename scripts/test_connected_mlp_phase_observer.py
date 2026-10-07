@@ -25,6 +25,36 @@ def binding(path):
 
 
 class ObserverTest(unittest.TestCase):
+    def test_exact_cuda_source_pins_and_original_observer_ast(self):
+        import ast
+        spec = importlib.util.spec_from_file_location('cuda_pin_contract', PATH)
+        d = importlib.util.module_from_spec(spec)
+        exec(compile(PATH.read_bytes(), str(PATH), 'exec'), vars(d))
+        self.assertEqual(d.ROOT, '/home/riomus/runs/sfora-connected-mlp-train-source-v3/')
+        self.assertEqual(d.TRAINER['sha256'], '55935d5a7e7299d1a11f14617cd5ef07f4232afd32148abf942c74edbc636e99')
+        self.assertEqual(d.EXECUTION['sha256'], '5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f')
+        self.assertEqual(d.AUTHORITY, {'path': d.ROOT+'authority-mechanics-control-179061-v1.json',
+            'sha256':'92f7c6fb22d79a3399c018de023ad89761dfc8bbbd982511c81c9dbd93519d5e'})
+        self.assertEqual(d.SCHEMA, 'connected-mlp-cuda-phase-observer-v1')
+        original = PATH.parent.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-phase-diag-v2-freeze/observe_connected_mlp_phases.py'
+        old = ast.parse(original.read_bytes())
+        current = ast.parse(PATH.read_bytes())
+        pins = {'SCHEMA','ROOT','TRAINER','EXECUTION','AUTHORITY'}
+        assignments = {n.targets[0].id:n for n in old.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name)}
+        current.body[0] = old.body[0]
+        for i,n in enumerate(current.body):
+            if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id in pins:
+                current.body[i] = assignments[n.targets[0].id]
+        inverse = {'mechanics':'cpu','canonical unchanged CUDA mechanics argv required':'canonical unchanged CPUv2 argv required',
+            'sfora-connected-mlp-mechanics-control-179061-v1':'sfora-connected-mlp-cpu-v2'}
+        prepare = next(n for n in current.body if isinstance(n,ast.FunctionDef) and n.name=='prepare')
+        replaced = []
+        for n in ast.walk(prepare):
+            if isinstance(n,ast.Constant) and isinstance(n.value,str) and n.value in inverse:
+                replaced.append(n.value); n.value=inverse[n.value]
+        self.assertEqual(sorted(replaced),sorted(inverse))
+        self.assertEqual(ast.dump(current,include_attributes=False),ast.dump(old,include_attributes=False))
+
     def test_source_execution_profile_lifecycle_and_admission(self):
         spec = importlib.util.spec_from_file_location('connected_phase_observer_test', PATH)
         d = importlib.util.module_from_spec(spec)
@@ -45,7 +75,7 @@ class ObserverTest(unittest.TestCase):
                 authority.write_bytes(b'{"original":true}')
                 execution.write_bytes(b'{"source":"unchanged"}')
                 argv = [str(target), '--execution-sha256', binding(execution)['sha256'], '--authority',
-                    str(authority), '--authority-sha256', binding(authority)['sha256'], '--phase', 'cpu',
+                    str(authority), '--authority-sha256', binding(authority)['sha256'], '--phase', 'mechanics',
                     '--arm', 'control', '--seed', '179061', '--output', str(base / 'output')]
                 raw = ("import sys, time, weakref\n"
                     f"assert sys.argv == {argv!r}\n"
@@ -199,7 +229,7 @@ class ObserverTest(unittest.TestCase):
                 self.assertEqual(events[-1]['event'], 'SOURCE_END')
                 cases = ('manifest-hash', 'wrapper-hash', 'current-file', 'module-origin', 'builtin-origin',
                     'builtin-function', 'trainer-hash', 'authority-hash', 'execution-hash', 'python-hash', 'version',
-                    'argv-order', 'argv-output', 'output-existing', 'unit', 'qualification', 'reuse', 'duplicate',
+                    'argv-order', 'cpu-phase', 'argv-output', 'output-existing', 'unit', 'qualification', 'reuse', 'duplicate',
                     'stdio-collision', 'profile-existing', 'native-import', 'unknown-key', 'symlink',
                     'trainer-bytes', 'authority-bytes', 'execution-bytes')
                 for case in cases:
@@ -213,7 +243,8 @@ class ObserverTest(unittest.TestCase):
                         elif case == 'builtin-origin': patches.append(patch.object(time.__spec__, 'origin', 'untrusted-time.so'))
                         elif case == 'builtin-function': patches.append(patch.object(sys, 'setprofile', lambda callback: None))
                         elif case == 'version': patches.append(patch.dict(pins, PYTHON_VERSION='wrong-version'))
-                        elif case == 'argv-order': value['argv'][7:11] = ['--arm', 'control', '--phase', 'cpu']
+                        elif case == 'argv-order': value['argv'][7:11] = ['--arm', 'control', '--phase', 'mechanics']
+                        elif case == 'cpu-phase': value['argv'][8] = 'cpu'
                         elif case == 'argv-output': value['output'] = str(base / 'different')
                         elif case == 'output-existing': Path(value['output']).mkdir()
                         elif case == 'unit': value['unit'] = 'wrong-unit'
