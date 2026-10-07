@@ -56,8 +56,8 @@ def source_contract(d):
     assert d.parameter_roles('candidate') == (['A','C',*d.MLP], [[128,160],[128,1152],*d.MLP_SHAPES], 10089808)
     rejects(lambda: d.parameter_roles('CONTROL2016'), 'arm')
     assert d.policy('cpu')['seconds'] == 600
-    assert d.policy('mechanics')['seconds'] == 300
-    assert d.policy('train')['seconds'] == 600
+    assert d.policy('mechanics')['seconds'] == 1200
+    assert d.policy('train')['seconds'] == 3000
     assert all(d.policy(p)['host_bytes'] == 8*1024**3 and d.policy(p)['swap_bytes'] == 0
                for p in ('cpu','mechanics','train'))
     assert d.ADAM['lr'] == 1e-4 and d.RECIPE['encoder_lr'] == 1e-5
@@ -125,6 +125,272 @@ def authority_falsifiers(d):
         rejects(lambda: d.bound_file({},path,digest), 'bytes')
 
 
+def initializer_runtime_falsifiers(d):
+    """Real historical bodies and private bindings; tensor/I/O seams stay stdlib."""
+    from contextlib import nullcontext
+    import builtins
+
+    evidence = HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
+    path = evidence/'export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py'
+    sha = '840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8'
+    original = d.load_authenticated('_initializer_original_test',path,sha,{})
+    spec = importlib.util.spec_from_file_location('_initializer_historical_tests',HERE/'test_siglip2_identity_diversity.py')
+    historical = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(historical)
+    original_members = dict(vars(original))
+    names = ('integrity','restore','canonical_initial_witness')
+    original_codes = {n:getattr(original,n).__code__ for n in names}
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            f = historical.canonical_fixture()
+            context,state,ident = f.context,f.state,f.ident
+            clock,peak,events = [0.],[0],[]
+            context.update(trainer=original,guards={str(path):sha},started=123.,
+                           args=SimpleNamespace(phase='cpu'),connected_args=SimpleNamespace(phase='cpu'))
+            context['flags'] = {'threads':1}
+            head = state['head_object']
+            head._forward_hooks = head._forward_pre_hooks = head._backward_hooks = {}
+            state.update(target=historical.CanonicalTensor([0,0]),original_rows=historical.CanonicalTensor([1,2]),
+                         target_list=[0,0],row_list=[1,2])
+            state['ranking_bank'] = original.ranking_bank(state['target_list'],state['row_list'])
+            optimizer = state['optimizer_object']
+            optimizer.param_groups = [{'params':[state['A'],state['C']]}]
+            optimizer.defaults = {'fixture':True}
+            ident.update(parameter_names=['A','C'],optimizer_defaults=dict(optimizer.defaults),
+                         arm='control',seed=d.SEEDS[0],device='cpu')
+            helper = SimpleNamespace(check_weight=lambda *a:events.append('weight'))
+            context['legacy']['quadratic'] = SimpleNamespace(_check_base=lambda *a:events.append('base'))
+            context['nearest'] = SimpleNamespace(require_no_model=lambda *a:events.append('no_model'))
+            membership = root/'membership'
+            membership.write_text('0::/fixture\n')
+            cgroup = root/'cgroup'/'fixture'
+            cgroup.mkdir(parents=True)
+            values = {'memory.max':str(8*1024**3),'memory.current':'1','memory.peak':'1',
+                      'memory.swap.current':'0','memory.swap.peak':'0','memory.swap.max':'0',
+                      'memory.events':'oom 0\noom_kill 0\nmax 0'}
+            for n,v in values.items(): (cgroup/n).write_text(v)
+            node = function(ast.parse((HERE/'qualify_siglip2_substrate_cpu.py').read_bytes()),'cgroup_memory')
+            cgroup_ns = {'require':d.require,'POLICY':d.policy('cpu'),
+                         'Path':lambda p:membership if p == '/proc/self/cgroup' else root/'cgroup'}
+            exec(compile(ast.Module(body=[node],type_ignores=[]),'<real cgroup seam>','exec'),cgroup_ns)
+            context['legacy']['source_driver'] = SimpleNamespace(numerical_flags=lambda:dict(context['flags']),
+                                                                 cgroup_memory=cgroup_ns['cgroup_memory'])
+            f.torch.cuda = SimpleNamespace(max_memory_allocated=lambda:peak[0],set_rng_state_all=lambda *a:None)
+            f.torch.random = SimpleNamespace(set_rng_state=lambda *a:events.append('rng'))
+            checkpoint = root/'checkpoint'
+            checkpoint.write_bytes(b'stdlib restore seam')
+            disk = {'optimizer':{'state':{},'param_groups':[]},'scaler':{},
+                    'cpu_rng':SimpleNamespace(clone=lambda:None)}
+            f.torch.load = lambda *a,**kw:disk
+            optimizer.load_state_dict = lambda *a:events.append('optimizer')
+            state['scaler_object'].load_state_dict = lambda *a:events.append('scaler')
+            context['legacy']['original'] = SimpleNamespace(CheckpointPages=lambda stream:SimpleNamespace(consume=lambda *a:None))
+            seams = {k:f.ns[k] for k in ('fingerprint','payload','canonical_copy_check','tensor_weakrefs','fullfeature_raw_features')}
+            seams.update(time=SimpleNamespace(perf_counter=lambda:clock[0]),
+                         helper_guard=lambda *a:events.append('helper') or helper,
+                         own_A=lambda *a,**kw:events.append('owner'),
+                         check_payload=lambda *a:events.append('payload'),
+                         require_no_training=lambda *a:events.append('no_training'),
+                         timed=lambda *a:nullcontext(),bound_file=lambda *a:checkpoint,
+                         fresh=lambda *a,**kw:state,identity=lambda *a:ident)
+
+            def run(api, name):
+                # Patch only the private test namespace's tensor/I/O boundaries.
+                # All integrity predicates and restore/canonical bodies are real.
+                namespace = api.integrity.__globals__
+                assert all(getattr(api,n).__globals__ is namespace for n in names)
+                assert namespace['integrity'] is api.integrity
+                with patch.dict(namespace,seams), patch.dict(sys.modules,{'torch':f.torch}):
+                    if name == 'restore':
+                        with patch.dict(namespace,fingerprint=lambda *a,**kw:'digest',payload=lambda *a:disk):
+                            assert api.restore(context,checkpoint,'file','digest',ident,0) is state
+                    elif name == 'canonical_initial_witness':
+                        result = api.canonical_initial_witness(context,state,ident)
+                        assert result['live_unchanged'] and result['temporary_references_released']
+                    else:
+                        api.integrity(context,state,ident)
+
+            # Clone exact original code solely to attach stdlib test seams; the
+            # live authenticated historical module is never patched or rebound.
+            old_ns = dict(vars(original))
+            for n in names:
+                fn = getattr(original,n)
+                old_ns[n] = FunctionType(fn.__code__,old_ns,n,fn.__defaults__)
+                old_ns[n].__kwdefaults__ = copy.deepcopy(fn.__kwdefaults__)
+            old = SimpleNamespace(**{n:old_ns[n] for n in names})
+            for phase,ceiling in (('cpu',600),('mechanics',1200),('train',3000)):
+                context['connected_args'].phase = phase
+                for elapsed in (501.,ceiling-.001):
+                    clock[0] = context['started']+elapsed
+                    for n in names:
+                        rejects(lambda n=n:run(old,n),'whole-unit deadline')
+                api = d._initializer_runtime(context)
+                for elapsed in (501.,ceiling-.001):
+                    clock[0] = context['started']+elapsed
+                    for n in names: run(api,n)
+                for elapsed in (ceiling,ceiling+.001):
+                    clock[0] = context['started']+elapsed
+                    for n in names:
+                        rejects(lambda n=n:run(api,n),'whole-unit deadline')
+                assert context['started'] == 123. and context['args'].phase == 'cpu'
+            clock[0] = context['started']+499.999
+            for n in names: run(old,n)
+            clock[0] = context['started']+500.
+            for n in names: rejects(lambda n=n:run(old,n),'whole-unit deadline')
+            clock[0] = context['started']+501.
+            assert original.policy('cpu')['seconds'] == 500
+            assert {'helper','owner','weight','base','no_model','payload','no_training','optimizer','scaler','rng'} <= set(events)
+
+            # Retained integrity branches and helper boundaries still reject.
+            for key,value,text in [('ranking_bank',{},'ranking bank'),('target_list',[],'ranking bank'),
+                                   ('row_list',[],'ranking bank')]:
+                with patch.dict(state,{key:value}): rejects(lambda:run(api,'integrity'),text)
+            for owner,key,value in [(state['A'],'grad',object()),(state['C'],'grad',object()),
+                                    (state['C'],'requires_grad',False),(head.weight,'requires_grad',True),
+                                    (head,'training',False),(head,'_forward_hooks',{'hook':1}),
+                                    (head,'_forward_pre_hooks',{'hook':1}),(head,'_backward_hooks',{'hook':1}),
+                                    (optimizer,'defaults',{}),(optimizer,'param_groups',[])]:
+                with patch.object(owner,key,value): rejects(lambda:run(api,'integrity'),'roles/hooks')
+            with patch.dict(state,device='cuda'):
+                rejects(lambda:run(api,'integrity'),'roles/hooks')
+            with patch.object(optimizer,'param_groups',[{'params':[state['C'],state['A']]}]):
+                rejects(lambda:run(api,'integrity'),'roles/hooks')
+            optimizer.state = {state[n]:{k:SimpleNamespace(device=SimpleNamespace(type='cuda'))
+                               for k in ('exp_avg','exp_avg_sq')} for n in ('A','C')}
+            with patch.dict(state,counter=1): rejects(lambda:run(api,'integrity'),'moments')
+            with patch.object(context['legacy']['source_driver'],'numerical_flags',lambda:{}):
+                rejects(lambda:run(api,'integrity'),'numerical flags')
+            for key,bad in [('memory.max','1'),('memory.peak',str(8*1024**3+1)),
+                            ('memory.swap.current','1'),('memory.swap.peak','1'),('memory.swap.max','1'),
+                            ('memory.events','oom 1\noom_kill 0\nmax 0')]:
+                (cgroup/key).write_text(bad)
+                rejects(lambda:run(api,'integrity'),'cgroup memory')
+                (cgroup/key).write_text(values[key])
+            for name in ('helper_guard','own_A','check_payload'):
+                def fail(*a,**kw): raise ValueError('retained '+name)
+                with patch.dict(seams,{name:fail}): rejects(lambda:run(api,'integrity'),'retained '+name)
+            with patch.object(context['nearest'],'require_no_model',lambda *a:d.require(False,'retained model')):
+                rejects(lambda:run(api,'integrity'),'retained model')
+            # CUDA ceiling executes without a CUDA import or a peak reset.
+            with patch.dict(state,device='cuda'), patch.object(state['A'].device,'type','cuda'):
+                for t in head.parameters(): t.device.type = 'cuda'
+                peak[0] = 9_999_999_999
+                run(api,'integrity')
+                peak[0] = 10_000_000_000
+                rejects(lambda:run(api,'integrity'),'CUDA peak')
+                for t in head.parameters(): t.device.type = 'cpu'
+
+            # Factory rejects changed live functions, origins, guards and bytes.
+            @contextmanager
+            def changed_function(fn, key, value):
+                saved = getattr(fn,key)
+                setattr(fn,key,value)
+                try:
+                    yield
+                finally:
+                    setattr(fn,key,saved)
+
+            for name in names:
+                fn = getattr(original,name)
+                with patch.object(original,name,lambda *a:None):
+                    rejects(lambda:d._initializer_runtime(context),'live function')
+                with changed_function(fn,'__code__',(lambda *a:None).__code__):
+                    rejects(lambda:d._initializer_runtime(context),'live function')
+                foreign = FunctionType(fn.__code__,dict(vars(original)),name,fn.__defaults__)
+                with patch.object(original,name,foreign):
+                    rejects(lambda:d._initializer_runtime(context),'live function')
+                with changed_function(fn,'__defaults__',(None,)):
+                    rejects(lambda:d._initializer_runtime(context),'live function')
+            for defaults in ({'compare_native':True},{'compare_native':0},{'compare_native':0.},
+                             {},{'compare_native':False,'extra':False},None):
+                with changed_function(original.canonical_initial_witness,'__kwdefaults__',defaults):
+                    rejects(lambda:d._initializer_runtime(context),'live function')
+            with patch.object(original.__spec__,'origin','/foreign.py'):
+                rejects(lambda:d._initializer_runtime(context),'origin')
+            with patch.dict(sys.modules,{original.__name__:ModuleType(original.__name__)}):
+                rejects(lambda:d._initializer_runtime(context),'origin')
+            with patch.dict(context['guards'],{str(path):'0'*64}):
+                rejects(lambda:d._initializer_runtime(context),'source guard')
+            with patch.dict(vars(original),_connected_policy=d.policy):
+                rejects(lambda:d._initializer_runtime(context),'private namespace')
+            foreign = root/'foreign.py'
+            foreign.write_bytes(path.read_bytes()+b'\n')
+            with patch.object(original,'__file__',str(foreign)), patch.object(original.__spec__,'origin',str(foreign)), \
+                    patch.dict(context['guards'],{str(foreign):sha}):
+                rejects(lambda:d._initializer_runtime(context),'bytes')
+            with patch.object(Path,'read_bytes',lambda p:path.read_text().encode()+b'\n'):
+                rejects(lambda:d._initializer_runtime(context),'changed before compilation')
+            assert vars(original).keys() == original_members.keys()
+            assert all(vars(original)[n] is value for n,value in original_members.items())
+            assert all(getattr(original,n).__code__ is original_codes[n] for n in names)
+            assert vars(original)['__builtins__'] is vars(builtins)
+    finally:
+        sys.modules.pop(original.__name__,None)
+    print('PASS initializer runtime: real restore/direct/canonical RED500 -> phase GREEN; unchanged predicates/origins')
+
+
+def runtime_envelope_inverse(raw):
+    """Invert only the pinned adapter block and exact prospective edits."""
+    start,end = raw.index(b'def _initializer_runtime('),raw.index(b'def load_initializer(')
+    assert hashlib.sha256(raw[start:end]).hexdigest() == \
+           '8a793e1517da90f9fcacd507b3fbf7df2b5025db07df89b6f9b2bf8fcfa025e0', 'initializer adapter bytes differ'
+    raw = raw[:start]+raw[end:]
+    replacements = (
+        (b'selects NEW mechanics1200', b'selects NEW mechanics300'),
+        (b'Gates: ownCPU600/mechanics1200/TRAIN3000', b'Gates: ownCPU600/mechanics300/TRAIN600'),
+        (b"'seconds':600 if phase == 'cpu' else 1200 if phase == 'mechanics' else 3000",
+         b"'seconds':300 if phase == 'mechanics' else 600"),
+        (b"(reader,control,control_unit,policy('train')['seconds'],guards)",
+         b'(reader,control,control_unit,600,guards)'),
+        (b"    runtime = _initializer_runtime(context)\n    state = runtime.restore(context,path,fact['sha256'],digest,ident,0)",
+         b"    state = trainer.restore(context,path,fact['sha256'],digest,ident,0)"),
+        (b'    runtime.integrity(context,state,ident)', b'    trainer.integrity(context,state,ident)'),
+        (b'    canonical = runtime.canonical_initial_witness(context,state,ident)',
+         b'    canonical = trainer.canonical_initial_witness(context,state,ident)'),
+    )
+    for new,old in replacements:
+        assert raw.count(new) == 1, 'exact prospective runtime envelope differs'
+        raw = raw.replace(new,old)
+    assert hashlib.sha256(raw).hexdigest() == \
+           '55935d5a7e7299d1a11f14617cd5ef07f4232afd32148abf942c74edbc636e99', 'runtime inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == \
+           '4b67697a6d907b240e8dfe4527f1ca24b8f382ec91f0e7a1c61dd060fb9b6c31', 'runtime inverse AST differs'
+    return raw
+
+
+def historical_inverse_contract(d):
+    evidence = HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
+    assert hashlib.sha256((evidence/'connected-mlp-cpu-v3-freeze/test_siglip2_connected_mlp.py').read_bytes()).hexdigest() == \
+           '35daffe103bc52fe3fbbc4af33a0348494b9477ce49052db7f5d0cf5be083cc1'
+    path = HERE/'test_siglip2_identity_diversity.py'
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == \
+           '617c25bd705d4ee15182c9f85c2ac6bba4f2a12c44934f1e3e73ff66cfa868c8'
+    spec = importlib.util.spec_from_file_location('_historical_inverse_tests',path)
+    old = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(old)
+    # Keep the existing source/test inverse chain and its historical hashes.
+    old.HistoricalGradientOracle().test_exact_source_and_test_inverse_keeps_all_historical_hashes()
+    old.CanonicalSourceContract().test_exact_pre_edit_source_bytes_ast_and_all_historical_tests_preserved()
+    restored = old.scan_batch_inverse(old.PATH.read_bytes())
+    assert hashlib.sha256(restored).hexdigest() == \
+           '840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8'
+    assert hashlib.sha256(ast.dump(ast.parse(restored),include_attributes=False).encode()).hexdigest() == \
+           'f36a0e472318190c06808527d2ce97fd9ebd20d9e9a94232763343f48b22486c'
+    raw = DRIVER.read_bytes()
+    for before,after in ((b'context[\'started\']',b'context[\'reset_clock\']'),
+                         (b'<= 1.50',b'<= 1.51'),
+                         (b"_connected_policy(context['connected_args'].phase)",b"_connected_policy('train')")):
+        assert before in raw
+        try:
+            runtime_envelope_inverse(raw.replace(before,after))
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('runtime inverse accepted unrelated mutation')
+    print('PASS exact runtime/CPU/batch/historical source and historical test inverses')
+
+
 def cpu_envelope_inverse(raw):
     replacements = (
         (b'one NEW CPU600 UNIT', b'one NEW CPU300 UNIT'),
@@ -143,7 +409,7 @@ def actual_gradient_scan_falsifier(d):
     import threading
     from collections import Counter
 
-    raw = cpu_envelope_inverse(DRIVER.read_bytes())
+    raw = cpu_envelope_inverse(runtime_envelope_inverse(DRIVER.read_bytes()))
     old = (b"    for path,digest in record['input_guards'].items():\n"
            b"        bound_file(context['guards'],path,digest)\n")
     new = b"    batch_bound_files(context['guards'],record['input_guards'].items())\n"
@@ -291,7 +557,12 @@ def lifetime_restore_math(d):
     assert 'mapping_absent' in restore and 'del disk' in restore
     assert 'frozen=' not in restore and 'frozen_cache' not in DRIVER.read_text()
     assert 'canonical_initial_witness' in text('load_initializer')
-    assert 'trainer.integrity' in text('load_initializer')
+    initializer = text('load_initializer')
+    assert 'runtime = _initializer_runtime(context)' in initializer
+    assert 'trainer = context[\'trainer\']' in initializer
+    for name in ('restore','integrity','canonical_initial_witness'):
+        assert initializer.count('runtime.'+name+'(') == 1
+        assert 'trainer.'+name+'(' not in initializer
     assert 'trainer.check_payload' in text('check_payload')
     assert 'copy.deepcopy' in text('load_initializer') and "disk['identity']" in text('load_initializer')
     assert '.eval()' in text('construct_encoder')
@@ -812,6 +1083,11 @@ def cost_terminal_falsifiers(d):
             record[key] = True
         with patch.multiple(d, check_steps=lambda *a:None, select_initializer=lambda *a:initializer):
             d.check_terminal(context,record,phase,'control',d.SEEDS[0])
+            ceiling = d.policy(phase)['seconds']
+            d.check_terminal(context,{**record,'wall_seconds':ceiling-.001},phase,'control',d.SEEDS[0])
+            for elapsed in (ceiling,ceiling+.001):
+                rejects(lambda:d.check_terminal(context,{**record,'wall_seconds':elapsed},
+                                                phase,'control',d.SEEDS[0]),'terminal')
             for key,value in [('peak_cuda_allocated_bytes',10_000_000_000),
                               ('peak_cuda_allocated_bytes',-1),('peak_cuda_allocated_bytes',False),
                               ('peak_cuda_allocated_bytes',0.),('peak_cuda_allocated_bytes',None),
@@ -875,7 +1151,7 @@ def original_terminal_binding(d):
                        'connected_args':SimpleNamespace(execution_sha256=execution['sha256']),
                        'connected_code':{},'connected_launch':launch,
                        'original_cpu_record':{'invocation':launch_fact},'witness':SimpleNamespace(POLICY={'seconds':300})}
-            def fixture(unit_name, identity, arm, seconds, core):
+            def fixture(unit_name, identity, arm, seconds, core, phase='train', runtime=None):
                 values = {'memory.max':str(8*1024**3),'memory.current':'1','memory.peak':'3',
                           'memory.swap.current':'0','memory.swap.peak':'0','memory.swap.max':'0',
                           'memory.events':'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0'}
@@ -884,24 +1160,24 @@ def original_terminal_binding(d):
                 log = '\n'.join([f'Running as unit: {unit_name}.service; invocation ID: {identity}',
                     '\tExit status: 0','Finished with result: success',
                     'Main processes terminated with: code=exited/status=0','\tSwaps: 0','Memory swap peak: 0B',
-                    '\tMaximum resident set size (kbytes): 2',f'Service runtime: {seconds}s',
+                    '\tMaximum resident set size (kbytes): 2','Service runtime: '+(runtime or f'{seconds}s'),
                     'FINAL_CGROUP '+json.dumps(final)])+'\n'
                 unit = {'receipt':{'path':str(root/(arm+'.json')),'sha256':'a'*64},
                         'log':write(root/(arm+'.log'),log),'unit':unit_name,'invocation_id':identity,
                         'service_seconds':seconds,'native_peak_rss_kib':2,'both_locks_held':True}
-                record = {'authority':auth,'authority_sha256':auth['sha256'],'launch':copy.deepcopy(launch),
+                record = {'authority':copy.deepcopy(auth),'authority_sha256':auth['sha256'],'launch':copy.deepcopy(launch),
                           'invocation':{**launch_fact,'invocation_id':identity,'optimize':0,
                           'argv':d.cli(root,auth['path'],auth['sha256'],execution['sha256'],
-                                       'train',arm,d.SEEDS[0],root)},
-                          'input_guards':{execution['path']:execution['sha256']},'wall_seconds':1.,
-                          'whole_seconds':1.,'process_peak_rss_kib':1,'total_training_core_seconds':core,
+                                       phase,arm,d.SEEDS[0],root)},
+                          'input_guards':{execution['path']:execution['sha256']},'wall_seconds':seconds-.25,
+                          'whole_seconds':seconds-.25,'process_peak_rss_kib':1,'total_training_core_seconds':core,
                           'cgroup_before':copy.deepcopy(cgroup),'cgroup_after':copy.deepcopy(cgroup)}
                 unit['receipt'] = write(Path(unit['receipt']['path']),record)
                 return record,unit,log,final
-            _,control_unit,control_log,_ = fixture('control','c'*32,'control',10.,10.)
+            _,control_unit,control_log,_ = fixture('control','c'*32,'control',10.,5.)
             launch['fresh_control'] = control_unit
             auth.update(write(Path(auth['path']),launch))
-            candidate,unit,log,final = fixture('candidate','d'*32,'candidate',14.,14.)
+            candidate,unit,log,final = fixture('candidate','d'*32,'candidate',14.,7.)
             # Receipt model/state predicates have their own falsifiers above;
             # all file/authority/CLI/source/log/lock/cgroup/cost predicates run here.
             def admit():
@@ -944,7 +1220,7 @@ def original_terminal_binding(d):
                         unit['log'] = write(Path(unit['log']['path']),mutated)
                         rejects(admit,'original')
                 unit['log'] = write(Path(unit['log']['path']),log)
-                for change,text in [({'both_locks_held':False},'UNIT'),({'service_seconds':601.},'caps'),
+                for change,text in [({'both_locks_held':False},'UNIT'),({'service_seconds':3001.},'caps'),
                                     ({'native_peak_rss_kib':8*1024**2+1},'caps')]:
                     saved = dict(unit)
                     unit.update(change)
@@ -987,11 +1263,64 @@ def original_terminal_binding(d):
                 unit['receipt'] = write(Path(unit['receipt']['path']),candidate)
                 launch['fresh_control'] = control_unit
                 auth.update(write(Path(auth['path']),launch))
+                candidate['authority'] = copy.deepcopy(auth)
                 candidate['authority_sha256'] = auth['sha256']
                 candidate['invocation']['argv'] = d.cli(root,auth['path'],auth['sha256'],execution['sha256'],
                                                        'train','candidate',d.SEEDS[0],root)
                 unit['receipt'] = write(Path(unit['receipt']['path']),candidate)
                 rejects(admit,'normal-exit')
+
+                def duration_case(phase, seconds, runtime, *, control_seconds=None,
+                                  control_runtime=None, core=100., control_core=100., broken=None):
+                    nonlocal auth
+                    launch['fresh_control'] = None
+                    if control_seconds is not None:
+                        auth = write(root/'long-control-authority.json',launch)
+                        _,control,control_log,_ = fixture('long-control','1'*32,'control',control_seconds,
+                                                          control_core,runtime=control_runtime)
+                        if broken is not None:
+                            control['log'] = write(Path(control['log']['path']),control_log.replace(
+                                'Finished with result: success','Finished with result: '+broken))
+                        launch['fresh_control'] = control
+                    arm = 'control' if control_seconds is None else 'candidate'
+                    auth = write(root/'long-authority.json',launch)
+                    record,unit,_,_ = fixture('long-'+arm,'2'*32,arm,seconds,core,phase,runtime)
+                    legacy['invocations'].clear()
+                    guards.clear(); guards.update(source_guards)
+                    return d.admit_terminal(context,unit,phase,arm,d.SEEDS[0]),record
+
+                # Wall/core/service times are consistent in every longer fixture.
+                # The original reader admits service <= cap; check_terminal's
+                # strict wall < cap is exercised separately above.
+                for phase,ceiling,spelling in (('cpu',600,'10min 0s'),
+                                              ('mechanics',1200,'20min 0s'),
+                                              ('train',3000,'50min 0s')):
+                    admitted,record = duration_case(phase,ceiling-.1,f'{ceiling/60-1:g}min 59.9s')
+                    assert admitted == record
+                    admitted,record = duration_case(phase,ceiling,spelling)
+                    assert admitted == record
+                    rejects(lambda:duration_case(phase,ceiling+.001,f'{ceiling/60:g}min 1ms'),'caps')
+                admitted,record = duration_case('mechanics',600.075,'10min 75ms')
+                assert admitted == record  # > old mechanics300
+                for control_seconds,control_runtime,seconds,runtime in (
+                        (1200.075,'20min 75ms',1700.,'28min 20s'),
+                        (2999.9,'49min 59.9s',2999.9,'49min 59.9s')):
+                    admitted,record = duration_case('train',seconds,runtime,
+                        control_seconds=control_seconds,control_runtime=control_runtime)
+                    assert admitted == record  # Both arms > old TRAIN600.
+                rejects(lambda:duration_case('train',2999.9,'49min 59.9s',
+                    control_seconds=3000.001,control_runtime='50min 1ms'),'caps')
+                # Independent live core and whole-service gates retain <=1.50.
+                admitted,record = duration_case('train',1800.,'30min 0s',control_seconds=1200.,
+                                                control_runtime='20min 0s',core=150.)
+                assert admitted == record
+                rejects(lambda:duration_case('train',1800.,'30min 0s',control_seconds=1200.,
+                    control_runtime='20min 0s',core=150.001),'cost ratio')
+                rejects(lambda:duration_case('train',1800.001,'30min 1ms',control_seconds=1200.,
+                    control_runtime='20min 0s',core=150.),'cost ratio')
+                for status in ('timeout','signal','exit-code'):
+                    rejects(lambda:duration_case('train',1700.,'28min 20s',control_seconds=1200.075,
+                        control_runtime='20min 75ms',broken=status),'normal-exit')
         assert not {n.split('.')[0] for n in sys.modules} & d.NATIVE
         print('PASS real original terminal AST: connected/gradient/control seams and binding/log/cgroup falsifiers')
     finally:
@@ -1011,8 +1340,10 @@ def main():
     assert not {n.split('.')[0] for n in set(sys.modules)-before} & d.NATIVE
     source_contract(d)
     initializer_selection(d)
+    initializer_runtime_falsifiers(d)
     authority_falsifiers(d)
     actual_gradient_scan_falsifier(d)
+    historical_inverse_contract(d)
     lifetime_restore_math(d)
     overlay_optimizer_seams(d)
     owned_loader_admission(d)

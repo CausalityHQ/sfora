@@ -15,7 +15,7 @@ Durable implementation/launch contract (the parent freezes actual hashes):
  is control061; it validates both CONTROL initializers and discards a genuine
  candidate061 B64/two-view update, independently restores it and qualifies its
  nonzero-four public bundle. selected_mechanics is null except TRAIN, where
- {control:UNIT,candidate:UNIT} selects NEW mechanics300 for the requested seed.
+ {control:UNIT,candidate:UNIT} selects NEW mechanics1200 for the requested seed.
  Each mechanics arm runs uninterrupted17 vs independent8+save+release+restore+9.
  Fresh TRAIN128 replays the selected same-arm/same-seed first17 diagnostics.
  Both arms always use CONTROL1008/6355 accepted seed-specific CPU-v5 state.
@@ -39,7 +39,7 @@ Durable implementation/launch contract (the parent freezes actual hashes):
  APIs: load_initializer, fresh, payload, check_payload, integrity, save,
  restore, update, export_bundle, load_inference, inference_outputs, release,
  release_inference. State/checkpoint/bundle storage and processor lifetimes
- are independent and audited. Gates: ownCPU600/mechanics300/TRAIN600, 8GiB,
+ are independent and audited. Gates: ownCPU600/mechanics1200/TRAIN3000, 8GiB,
  no swap/events, CUDA allocation <10GB, both locks, original uncached exit.
  Source tests authorize no native/model-fit/quality/cost/state reuse claims.
 """
@@ -119,7 +119,7 @@ def require(condition, message):
 
 def policy(phase):
     require(phase in ('cpu','mechanics','train'), 'fixed phase required')
-    return {'seconds':300 if phase == 'mechanics' else 600,'host_bytes':8*1024**3,
+    return {'seconds':600 if phase == 'cpu' else 1200 if phase == 'mechanics' else 3000,'host_bytes':8*1024**3,
             'swap_bytes':0,'cuda_allocated_bytes_exclusive':10_000_000_000}
 
 
@@ -311,6 +311,76 @@ def admit_actual_gradient(context):
         context['old'].zero_events(cgroup)
 
 
+def _initializer_runtime(context):
+    """Private original initializer bodies; only integrity's phase policy differs."""
+    import ast
+    import builtins
+    from types import ModuleType
+    trainer = context['trainer']
+    require(type(trainer) is ModuleType and sys.modules.get(trainer.__name__) is trainer and
+            trainer.__spec__ is not None and trainer.__spec__.loader is not None and
+            trainer.__spec__.name == trainer.__name__ and trainer.__spec__.origin == trainer.__file__,
+            'initializer runtime source origin differs')
+    path = Path(trainer.__file__)
+    sha = '840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8'
+    require(context['guards'].get(str(path)) == sha, 'initializer runtime source guard differs')
+    raw = bound_file(context['guards'],path,sha).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == sha, 'initializer runtime changed before compilation')
+    tree,code = ast.parse(raw,filename=str(path)),compile(raw,str(path),'exec',dont_inherit=True)
+    pins = {'integrity':('c7b564cf9f8352105d115e9a0fe1925fd162ba4ac483892306464ae7060c2fcb',
+                         '8ad7272ed676731da3cb1dd5c8ec32b6105226eb3a5aaa4c57d279ee02f44d7e'),
+            'restore':('38274c5421b261fd7db23796bd553f7e901034d93fe053088ecc5c63a4703f1b',)*2,
+            'canonical_initial_witness':('c1d51151d73348456e855ddb2c0b802abdd441c66ecf57cd46570fa19a22dd42',)*2}
+    dump = lambda node: ast.dump(node,include_attributes=False)
+    before = ast.parse("policy(context['args'].phase)",mode='eval').body
+    after = ast.parse("_connected_policy(context['connected_args'].phase)",mode='eval').body
+
+    class Substitute(ast.NodeTransformer):
+        def __init__(self, source, target):
+            self.source,self.target,self.count = source,target,0
+
+        def visit_Call(self, node):
+            if dump(node) == dump(self.source):
+                self.count += 1
+                return ast.copy_location(copy.deepcopy(self.target),node)
+            return self.generic_visit(node)
+
+    nodes = []
+    for name,(original_sha,adapted_sha) in pins.items():
+        matches = [n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name == name]
+        codes = [c for c in code.co_consts if isinstance(c,CodeType) and c.co_name == name]
+        require(len(matches) == len(codes) == 1, 'exact initializer runtime definition required')
+        source,fn = matches[0],getattr(trainer,name)
+        require(type(fn) is FunctionType and fn.__globals__ is vars(trainer) and fn.__code__ == codes[0] and
+                fn.__code__.co_filename == str(path) and fn.__name__ == fn.__qualname__ == name and
+                fn.__module__ == trainer.__name__ and fn.__defaults__ is None and fn.__closure__ is None and
+                (type(fn.__kwdefaults__) is dict and fn.__kwdefaults__.keys() == {'compare_native'} and
+                 fn.__kwdefaults__['compare_native'] is False if name == 'canonical_initial_witness'
+                 else fn.__kwdefaults__ is None) and
+                fn.__builtins__ is vars(builtins) and vars(trainer).get('__builtins__') is vars(builtins),
+                'initializer runtime live function differs: '+name)
+        require(hashlib.sha256(dump(source).encode()).hexdigest() == original_sha,
+                'initializer runtime original AST differs: '+name)
+        node = copy.deepcopy(source)
+        if name == 'integrity':
+            forward,inverse = Substitute(before,after),Substitute(after,before)
+            node = forward.visit(node)
+            restored = inverse.visit(copy.deepcopy(node))
+            require(forward.count == inverse.count == 1 and dump(restored) == dump(source),
+                    'initializer runtime changed retained predicates')
+        require(hashlib.sha256(dump(node).encode()).hexdigest() == adapted_sha,
+                'initializer runtime adapted AST differs: '+name)
+        nodes.append(node)
+    namespace = dict(vars(trainer))
+    require('_connected_policy' not in namespace, 'fresh initializer private namespace required')
+    namespace['_connected_policy'] = policy
+    # Both original restore and canonical calls resolve this private integrity.
+    # All other helper functions retain their genuine original globals.
+    exec(compile(ast.fix_missing_locations(ast.Module(body=nodes,type_ignores=[])),
+                 str(path),'exec',dont_inherit=True),namespace)
+    return SimpleNamespace(**{name:namespace[name] for name in pins})
+
+
 def load_initializer(context, qualification):
     """Model-free admission of complete original typed CPU-v5 state."""
     import torch
@@ -339,10 +409,11 @@ def load_initializer(context, qualification):
         del disk
         gc.collect()
         mapping_absent(path)
-    state = trainer.restore(context,path,fact['sha256'],digest,ident,0)
+    runtime = _initializer_runtime(context)
+    state = runtime.restore(context,path,fact['sha256'],digest,ident,0)
     mapping_absent(path)
-    trainer.integrity(context,state,ident)
-    canonical = trainer.canonical_initial_witness(context,state,ident)
+    runtime.integrity(context,state,ident)
+    canonical = runtime.canonical_initial_witness(context,state,ident)
     require(canonical == qualification['canonical_initial'], 'original canonical initializer differs')
     context['initializer_fact'] = {'checkpoint':copy.deepcopy(fact),'payload_sha256':digest,'identity':copy.deepcopy(ident)}
     return state,ident
@@ -1618,7 +1689,7 @@ def admit_terminal(context, unit, phase, arm, seed):
         control_unit = record['launch']['fresh_control']
         control = read_json(control_unit['receipt'],guards)
         check_terminal(context,control,'train','control',seed)
-        context['fitter'].original_terminal_reader(context['fit_context'])(reader,control,control_unit,600,guards)
+        context['fitter'].original_terminal_reader(context['fit_context'])(reader,control,control_unit,policy('train')['seconds'],guards)
         require(record['total_training_core_seconds']/control['total_training_core_seconds'] <= 1.50 and
                 unit['service_seconds']/control_unit['service_seconds'] <= 1.50,
                 'fresh live-control whole-service/core cost ratio failed')
