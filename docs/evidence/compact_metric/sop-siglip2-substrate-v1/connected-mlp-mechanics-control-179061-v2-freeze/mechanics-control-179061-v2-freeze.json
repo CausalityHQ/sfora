@@ -1,0 +1,47 @@
+{
+  "arm": "control",
+  "authority_sha256": "ffe280876185973dca974e97415e8e323a4a648d9e1761a0b36a5d2aceb5f70e",
+  "command_consistency": "PASS both equal SHA tables, all own paths, exact CLI and launcher policy; actual remote full preflight required",
+  "execution_sha256": "a3d4e1e4ea76084a4036a1c7626b00353401adc3833838375974509aed2f2e8c",
+  "files": {
+    "authority-mechanics-control-179061-v2.json": "ffe280876185973dca974e97415e8e323a4a648d9e1761a0b36a5d2aceb5f70e",
+    "mechanics-control-179061-v2-command.sh": "67f3eea7435cfd2dd817fdd2aed540b987995ee4c9f15d3063987c8558cfe63c",
+    "mechanics-control-179061-v2-controller.sh": "ac95ece00ed4aa08ddfa1ca612155f6672d85ea4ad543baabe346bcaf9e95248",
+    "mechanics-control-179061-v2-launch.sh": "81f7723ad8a66147428cd3d774e5cb811305ccdd63c0a6dec2ff62266de66412"
+  },
+  "native_unrun_at_freeze": true,
+  "original_cpu_source_files": {
+    "test_siglip2_connected_mlp.py": "8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f045bc25",
+    "train_siglip2_connected_mlp.py": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-mechanics-control-179061-v2",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 1200,
+    "swap_bytes": 0
+  },
+  "review_group": "c848b7945c26412e",
+  "schema": "connected-mlp-mechanics-parent-freeze-v2",
+  "seed": 179061,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "230a11e4f1334336b6d195f60bc0bd7e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/cpu-v6-original.log",
+      "sha256": "a5c767cee5a689c5d0e0c29b4e355488e8350286033b77b2199e665d816dae14"
+    },
+    "native_peak_rss_kib": 6426592,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-cpu-v6/receipt.json",
+      "sha256": "4ecd63f75a09ff1757a9a1bdf1e80c29865c5bfb75483c63f3a3e09bc9aeeaa8"
+    },
+    "service_seconds": 433.509,
+    "unit": "sfora-connected-mlp-cpu-v6"
+  },
+  "source_commit": "f329abc46b72a2bcdfa0edfa64a8c1e7ef8a2743",
+  "source_freeze_sha256": "2f113dee0557e72158c3d6b8610c324e4dadc4c4ea8373e3c96a9bdbe02e6965",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-train-source-v6",
+  "stop_rule": "ONE fresh control061 GPU mechanics1200 after CPUv6 PASS; complete uninterrupted17 versus independently fresh8+serialize+release+restore+9, full typed payload equality/strict independent raw-unit-packed public reload/current448/source/full uncached exit/normal original terminal/both locks/host8GiB/zero swap and events/CUDA<10GB required. Any failure closes this attempt and blocks candidate/TRAIN/quality. Old300 failures remainFAIL; no partial state reuse.",
+  "unit": "sfora-connected-mlp-mechanics-control-179061-v2"
+}
