@@ -1,0 +1,17 @@
+{
+  "cause": "admit_actual_gradient passes new FlatAdmission lacking init required by original admit_terminal cgroup validator; original context admission already binds genuine reference",
+  "exit_status": 1,
+  "historical_failure_preserved": true,
+  "host_peak_bytes": 596615168,
+  "invocation_id": "bb543d921b4448ecb1c255ebf8a1e257",
+  "log_sha256": "890e5bf23ab44b6d6aa09f2a0a115117d6fdbd036e004adf2d721d1005e30e25",
+  "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "native_construction_reached": false,
+  "original_job_handle": 67341,
+  "quality_read": false,
+  "schema": "connected-mlp-cpu-parent-verification-v1",
+  "service_seconds": 110.523,
+  "swap_bytes": 0,
+  "unit": "sfora-connected-mlp-cpu-v1",
+  "verdict": "FAIL_SOURCE_ADMISSION"
+}
