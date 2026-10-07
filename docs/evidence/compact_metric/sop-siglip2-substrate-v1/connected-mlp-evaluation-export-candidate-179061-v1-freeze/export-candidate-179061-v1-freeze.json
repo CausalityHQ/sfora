@@ -1,0 +1,35 @@
+{
+  "execution_sha256": "c76330fe0bb0cefa5f3ec7d3a4e82785ffc7620bae6583ddf55af67b6aca651f",
+  "files": {
+    "authority-export-candidate-179061-v1.json": "caa89879e0eec970fd68781cf702d7ef1b0976b091edb953fdd0c06547eafe44",
+    "export-candidate-179061-v1-command.sh": "f572588d62d80faa43183d328f1d0ebfb6d83509d8e23f672643deca2d2c314f",
+    "export-candidate-179061-v1-controller.sh": "5ee01015a0284a935e761c6c3295de815d02d09e74654b28e84e9357a691a012",
+    "export-candidate-179061-v1-launch.sh": "a629925a618f906db050c8fd1daba752d56121a553511ea7910b802e3acf8572"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-evaluation-export-candidate-179061-v1",
+  "policy": {
+    "cuda_visible_devices": "0",
+    "host_bytes": 8589934592,
+    "seconds": 1500,
+    "swap_bytes": 0
+  },
+  "schema": "connected-export1500-parent-freeze-v1",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "be2906d7e30d4badbca8373ec0f2ab6e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/first-cpu-v3-original.log",
+      "sha256": "1288d9f2ba13e87f9acc2f2110458588c303d47cf0debb1afc26ebb6d8c5114c"
+    },
+    "native_peak_rss_kib": 1398616,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-cpu-v3/receipt.json",
+      "sha256": "324ac4a56d35d9f7d0ec4c1556e01ae006ce878b88d480abbe59bfe93f99bdc7"
+    },
+    "service_seconds": 485.327,
+    "unit": "sfora-connected-mlp-evaluation-first-cpu-v3"
+  },
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3",
+  "stop_rule": "ONE new candidate export1500. Complete two independent B32 query/gallery passes/tails6/19/oracles/readbacks/current448/frozen444/nativeexactfour/fulluncachedexit/normal0/bothlocks/8GiB/zeroevents/noSwap/CUDA<10GB required. Failure closes arm; original900failure/partials remain ineligible. First061 quality only after complete gates. No TRAIN repeat or cap extension.",
+  "unit": "sfora-connected-mlp-evaluation-export-candidate-179061-v1"
+}
