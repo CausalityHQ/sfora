@@ -1,0 +1,19 @@
+{
+  "files": {
+    "launch.sh": "1264023699efeadd2850c18e0e700dba621d868d5dfcb1adb61a4b6771bc1305",
+    "command.sh": "b500dcff474277e044c69a6bef03f3bd5fc5a7c9868a294e7ffdd888aec0a437",
+    "authority.json": "b2fbd3e606759af6e141f8e75fd6e5791d07cdf881d2b7987b444fc29f32655c",
+    "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+    "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+    "connected_residual_readout.py": "f0782630a462667ba52aa72b84d724f82c752a0f7f1ef66ac7346eba5e9800e1",
+    "train_siglip2_cached_readout.py": "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c",
+    "test_connected_encoder_gradients.py": "e0b64e2177191cc388eef11c5a39985d4bce4cb921319d5c5ecef557ef572719",
+    "qualify_connected_encoder_gradients.py": "86cfd83947218cf5a10011efb21297811bb5f13188486faf314ae6f52e8b3dba"
+  },
+  "authority_sha256": "b2fbd3e606759af6e141f8e75fd6e5791d07cdf881d2b7987b444fc29f32655c",
+  "engineering_only": true,
+  "model_fit_qualified": false,
+  "state_reuse_eligible": false,
+  "quality_read": false,
+  "stop_rule": "one genuine-source backward circuit observation; any source/gradient/parity/resource/exit failure stops; no objective/model-fit claim or learned state"
+}
