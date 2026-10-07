@@ -4,6 +4,8 @@
   "commit": "d151167980327ee2e12b8f2d5050380d8855bdf9",
   "diff_exit": 0,
   "elapsed_seconds": 0.4337274859426543,
+  "engineering_review_id": "88652fe6d96441ef",
+  "engineering_review_status": "completed",
   "exit_code": 0,
   "files": {
     "scripts/test_connected_compact_serving.py": "b7c05f10c18a3801f69ae013ee417d3161989033687c9d2e0e4ca16191d64b01",
@@ -15,9 +17,18 @@
   "log_sha256": "5b13e453c03b60b6baa2b0dfa1e342ee983574e4c1ded8b645b6d5a664220c4d",
   "native_qualification": false,
   "qualification": "SOURCE ONLY; real Torch/Numpy/PIL/native imports, native parity, native lifecycle, GPU quality and speed UNRUN; original DGX job untouched",
+  "research_review_id": "5a44853d759648eb",
+  "research_review_pending": false,
+  "research_review_verdict": "GO_SOURCE_WITH_CHEAP_SUGGESTIONS",
   "rlimit_as_bytes": 1073741824,
   "root_parent_source_hashes_verified": true,
+  "root_verdict": "HOLD: engineering actual-release falsifiers outweigh research filter assumption; repair mutable release and swap during release, report plain-close tampering; keep original lifecycle predicates as explicit correspondence, no native/math/science change",
   "schema": "sfora-connected-library-bridge-source-check-v1",
+  "source_integration_verdict": "KILL_PENDING_TEARDOWN_FIXES",
   "test_exit": 0,
+  "verified_findings": [
+    "mutable saved release callable code is executed during cleanup after code-identity rejection",
+    "original release pops registry after processor/cache work; a foreign replacement in that interval is removed before identity require rejects"
+  ],
   "wall_timeout_seconds": 120
 }
