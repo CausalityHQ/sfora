@@ -337,6 +337,8 @@ def runtime_envelope_inverse(raw):
            '8a793e1517da90f9fcacd507b3fbf7df2b5025db07df89b6f9b2bf8fcfa025e0', 'initializer adapter bytes differ'
     raw = raw[:start]+raw[end:]
     replacements = (
+        (b"diagnostic(mechanics['result']['steps'][step-1])",
+         b"diagnostic(mechanics['steps'][step-1])"),
         (b'selects NEW mechanics1200', b'selects NEW mechanics300'),
         (b'Gates: ownCPU600/mechanics1200/TRAIN3000', b'Gates: ownCPU600/mechanics300/TRAIN600'),
         (b"'seconds':600 if phase == 'cpu' else 1200 if phase == 'mechanics' else 3000",
@@ -970,6 +972,48 @@ def processor_release_seam(d):
                 else: sys.modules[name] = module
 
 
+def first17_mechanics_record_seam(d, record):
+    """Execute the real producer wrapper and TRAIN lookup on a full receipt."""
+    tree = ast.parse(DRIVER.read_text())
+    producer = next(n for n in ast.walk(function(tree,'run')) if isinstance(n,ast.Assign) and
+                    isinstance(n.value,ast.Dict) and
+                    any(isinstance(k,ast.Constant) and k.value == 'result' for k in n.value.keys))
+    namespace = {'arm':record['result']}
+    exec(compile(ast.Module(body=[producer],type_ignores=[]),'<actual arm wrapper>','exec'),namespace)
+    record = {**record,**namespace['result']}
+    lookup = next(n for n in ast.walk(function(tree,'arm_run')) if isinstance(n,ast.If) and
+                  any(isinstance(c,ast.Name) and c.id == 'step' for c in ast.walk(n.test)))
+    code = compile(ast.Module(body=[lookup],type_ignores=[]),'<actual first17 lookup>','exec')
+    seed,arm = record['seed'],record['arm']
+    def replay(receipt, step):
+        row = {**record['result']['steps'][step-1],'core_seconds':99.,'seconds':100.}
+        exec(code,{**vars(d),'args':SimpleNamespace(phase='train'),'step':step,'row':row,
+                   'seed':seed,'arm':arm,
+                   'context':{'connected_terminals':{f'mechanics:{seed}:{arm}':receipt}}})
+    assert 'steps' not in record and 'qualifications' not in record
+    for step in range(1,18):
+        replay(record,step)  # Real diagnostic excludes only update timing.
+    for step in (1,17):
+        wrong = copy.deepcopy(record)
+        wrong['result']['steps'][step-1]['step'] = -1
+        # A top-level decoy must never hide nested diagnostic tampering.
+        wrong['steps'] = record['result']['steps']
+        rejects(lambda:replay(wrong,step),'fresh first17 mechanics replay differs')
+    for wrong,key in (({k:v for k,v in record.items() if k != 'result'},'result'),
+                      ({**record,'result':{k:v for k,v in record['result'].items() if k != 'steps'}},'steps')):
+        rejects(lambda:replay(wrong,1),key)
+    short = {**record,'result':{**record['result'],'steps':record['result']['steps'][:-1]}}
+    try:
+        replay(short,17)
+    except IndexError:
+        pass
+    else:
+        raise AssertionError('accepted missing mechanics step17')
+    exec(code,{**vars(d),'args':SimpleNamespace(phase='train'),'step':18,'context':{}})
+    exec(code,{**vars(d),'args':SimpleNamespace(phase='mechanics'),'step':1,'context':{}})
+    print('PASS executed producer-shaped full mechanics receipt: first17/steps/missing/tamper negatives')
+
+
 def cost_terminal_falsifiers(d):
     """Actual timing/receipt predicates, with native work replaced by a clock."""
     events = []
@@ -995,7 +1039,7 @@ def cost_terminal_falsifiers(d):
         def qualify(*args):
             clock[0] += 100.  # Common construction/reload/bundle work cannot dilute core.
             return {}
-        mechanics = {'steps':[{'step':s} for s in range(1,18)]}
+        mechanics = {'result':{'steps':[{'step':s} for s in range(1,18)]}}
         context = {'connected_args':SimpleNamespace(phase=phase,output=Path('/fixture')),
                    'connected_terminals':{f'mechanics:{d.SEEDS[0]}:{arm}':mechanics}}
         with patch.multiple(d, time=SimpleNamespace(perf_counter=lambda:clock[0]),
@@ -1073,8 +1117,9 @@ def cost_terminal_falsifiers(d):
                   'peak_cuda_allocated_bytes':0,'numerical_flags':{},
                   'invocation':{'optimize':0,'cuda_visible_devices':'' if phase == 'cpu' else '0',
                                 'cublas_workspace_config':None if phase == 'cpu' else ':4096:8'},
-                  'result':result,'qualifications':[result],
-                  'accepted_initializers':[{'seed':s,**initializer} for s in d.SEEDS]}
+                  **({'qualifications':[result],
+                      'accepted_initializers':[{'seed':s,**initializer} for s in d.SEEDS]}
+                     if phase == 'cpu' else {'result':result})}
         for key in ('pass','exit_rehash_pass','sequential_model_ownership','strict_reload_exact',
                     'native_training_inference_exact','inference_artifact_independent',
                     'bundle_original_dependencies_denied','updated_source_mutants_rejected',
@@ -1083,6 +1128,8 @@ def cost_terminal_falsifiers(d):
             record[key] = True
         with patch.multiple(d, check_steps=lambda *a:None, select_initializer=lambda *a:initializer):
             d.check_terminal(context,record,phase,'control',d.SEEDS[0])
+            if phase == 'mechanics':
+                first17_mechanics_record_seam(d,record)
             ceiling = d.policy(phase)['seconds']
             d.check_terminal(context,{**record,'wall_seconds':ceiling-.001},phase,'control',d.SEEDS[0])
             for elapsed in (ceiling,ceiling+.001):

@@ -1527,7 +1527,7 @@ def arm_run(context, arm, seed, device, *, discarded_update=False):
             row = update(context,state,identity,step)
             if args.phase == 'train' and step <= 17:
                 mechanics = context['connected_terminals'][f'mechanics:{seed}:{arm}']
-                require(diagnostic(row) == diagnostic(mechanics['steps'][step-1]), 'fresh first17 mechanics replay differs')
+                require(diagnostic(row) == diagnostic(mechanics['result']['steps'][step-1]), 'fresh first17 mechanics replay differs')
             rows.append(row)
         tamper_witness(context,state,identity)
         witness = image_witness(context,state)
