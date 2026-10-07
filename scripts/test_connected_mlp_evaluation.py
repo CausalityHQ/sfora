@@ -41,6 +41,7 @@ def metadata_api():
 
 def evaluator_score_envelope_inverse(raw):
     """Undo only score700; restore the complete original500/export1500 source."""
+    raw = evaluator_original_owner_inverse(raw)
     new = b"return {'seconds': 1500 if phase == 'export' else 700 if phase == 'score' else 500, 'host_bytes':8*1024**3,"
     old = b"return {'seconds': 1500 if phase == 'export' else 500, 'host_bytes':8*1024**3,"
     assert raw.count(new) == 1 and raw.count(old) == 0, 'exact score envelope literal differs'
@@ -463,6 +464,376 @@ def current_bytes(e):
         rejects(lambda:e.bound_file({},path,digest), 'canonical')
 
 
+# BEGIN ORIGINAL OWNER FALSIFIER
+
+def evaluator_original_owner_inverse(raw):
+    """Remove only the finite owner composition and restore all current base bytes."""
+    start = raw.index(b'# BEGIN ORIGINAL EXPORT OWNER\n')
+    end = raw.index(b'def check_endpoint(endpoint):', start)
+    assert hashlib.sha256(raw[start:end]).hexdigest() == '53cba7ca5e95ac84bcf09a38798df64c04976f6659a9a07b639cc55553fff38b', 'original owner definitions differ'
+    raw = raw[:start]+raw[end:]
+    replacements = ((b"    snapshots = context.setdefault('helper_snapshots',[])\n    modules = [context[key] for key in ('trainer','evaluator_reference','nearest_evaluator','math','reference','helper','baseline')]\n    if 'original_evaluator' in context:\n        modules.append(context['original_evaluator'])\n    if not snapshots:\n", b"    snapshots = context.setdefault('helper_snapshots',[])\n    if not snapshots:\n"), (b'    if not snapshots:\n        for module in modules:\n            values = dict(vars(module))\n', b"    if not snapshots:\n        for key in ('trainer','evaluator_reference','nearest_evaluator','math','reference','helper','baseline'):\n            module = context[key]\n            values = dict(vars(module))\n"), (b"            snapshots.append((module,Path(module.__file__),module.__spec__,values,functions,literals))\n    require(len(snapshots) == len(modules) and all(snapshot[0] is module\n        for snapshot,module in zip(snapshots,modules,strict=True)), 'complete context-bound helper snapshot inventory required')\n    for module,path,spec,values,functions,literals in snapshots:\n", b'            snapshots.append((module,Path(module.__file__),module.__spec__,values,functions,literals))\n    for module,path,spec,values,functions,literals in snapshots:\n'), (b"    keys = ('training','evaluator_reference','nearest_evaluator','genuine_evaluator','reference')\n    original_active = (args.phase == 'score' and launch['stage'] == 'first' and launch['panel'] == 'selection' and\n        launch['first_selection'] is None and launch['selection_go'] is None and launch['exports'] == ORIGINAL_EXPORT_UNITS)\n    roots = [root]+([Path(ORIGINAL_EXPORT_OWNER['root'])] if original_active else [])+[Path(launch[k]['root']) for k in keys]\n    require(args.output.is_absolute() and args.output.parent.resolve() == args.output.parent and\n", b"    keys = ('training','evaluator_reference','nearest_evaluator','genuine_evaluator','reference')\n    roots = [root]+[Path(launch[k]['root']) for k in keys]\n    require(args.output.is_absolute() and args.output.parent.resolve() == args.output.parent and\n"), (b"    context['preparation_costs'] = preparation_costs(context)\n    original_guard = load_original_owner(context) if original_active else None\n    guard_helpers(context)\n", b"    context['preparation_costs'] = preparation_costs(context)\n    guard_helpers(context)\n"), (b"    if args.phase == 'score':\n        owner = original_owner_context(context,original_guard) if original_active else None\n        context['export_records'] = {label(e):admit_export(context,owner,e,original_guard) for e in launch['endpoints']}\n    return context,original_guard\n\n", b"    if args.phase == 'score':\n        context['export_records'] = {label(e):accept_unit(context,launch['exports'][label(e)],'export',e['arm'],e['seed'])\n            for e in launch['endpoints']}\n    return context\n\n"), (b"\ndef exit_rehash(context, original_guard):\n    if original_guard is not None:\n        original_guard(context)\n    trainer,t=context['trainer'],context['training_context']\n", b"\ndef exit_rehash(context):\n    trainer,t=context['trainer'],context['training_context']\n"), (b"    for descriptor,names,pins in (({'root':str(context['root']),'execution_sha256':context['args'].execution_sha256},FILES,context['code']),\n        *(((ORIGINAL_EXPORT_OWNER,FILES,ORIGINAL_EXPORT_OWNER['code']),) if 'original_evaluator' in context else ()),\n        (context['launch']['training'],TRAIN_FILES,context['launch']['training']['code']),\n", b"    for descriptor,names,pins in (({'root':str(context['root']),'execution_sha256':context['args'].execution_sha256},FILES,context['code']),\n        (context['launch']['training'],TRAIN_FILES,context['launch']['training']['code']),\n"), (b"    merge_guards(context['guards'],t['legacy']['origins']['files'])\n    if original_guard is not None:\n        original_guard(context)\n    return t['legacy']['origins']\n", b"    merge_guards(context['guards'],t['legacy']['origins']['files'])\n    return t['legacy']['origins']\n"), (b"    require(sys.argv == cli(args), 'fixed canonical CLI order required')\n    context,original_guard=authority(args)\n    context['training_context']['fit_context']['unit_started']=UNIT_STARTED\n", b"    require(sys.argv == cli(args), 'fixed canonical CLI order required')\n    context=authority(args)\n    context['training_context']['fit_context']['unit_started']=UNIT_STARTED\n"), (b"    print(json.dumps({'event':'COMPACT_TIMING','stage':'exit_rehash','boundary':'begin','phase':args.phase,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)\n    origins=exit_rehash(context,original_guard)\n    print(json.dumps({'event':'COMPACT_TIMING','stage':'exit_rehash','boundary':'end','phase':args.phase,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)\n", b"    print(json.dumps({'event':'COMPACT_TIMING','stage':'exit_rehash','boundary':'begin','phase':args.phase,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)\n    origins=exit_rehash(context)\n    print(json.dumps({'event':'COMPACT_TIMING','stage':'exit_rehash','boundary':'end','phase':args.phase,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)\n"))
+    for new, old in replacements:
+        assert raw.count(new) == 1, 'exact original owner integration edit differs'
+        raw = raw.replace(new, old, 1)
+    assert hashlib.sha256(raw).hexdigest() == 'f1c95755361e42143d30822c2e2426c92d7683e4a5c58d3cd8d0f144bae3f40d', 'original owner inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw), include_attributes=False).encode()).hexdigest() == 'd89bef72cf224f98d1148c772cc84ccaf787723088c1462a1a5eea233c65321e', 'original owner inverse AST differs'
+    return raw
+
+
+
+def original_owner_contract(e):
+    """Catch foreign dispatch, broadened UNIT routing and weakened original predicates."""
+    assert hasattr(e, 'original_owner_context'), 'missing original-owner admission composition'
+    freeze = EVIDENCE/'connected-mlp-evaluation-first-cpu-v2-freeze'
+    score_freeze = EVIDENCE/'connected-mlp-evaluation-first-selection-score-v1-freeze'
+    source = freeze/DRIVER.name
+    original_tree = ast.parse(source.read_bytes())
+    evaluator_original_owner_inverse(DRIVER.read_bytes())
+    assert e.ORIGINAL_EXPORT_OWNER == {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3',
+        'execution_sha256':hashlib.sha256((freeze/'execution.json').read_bytes()).hexdigest(),
+        'code':json.loads((freeze/'execution.json').read_bytes())}
+    for name, digest in e.ORIGINAL_EXPORT_OWNER['code'].items():
+        assert hashlib.sha256((freeze/name).read_bytes()).hexdigest() == digest
+    authority_raw = (score_freeze/'authority-first-selection-score-v1.json').read_bytes()
+    assert hashlib.sha256(authority_raw).hexdigest() == e.ORIGINAL_SCORE_AUTHORITY['sha256']
+    launch = json.loads(authority_raw)
+    records = {}; descriptors = {}
+    for name, unit in [('connected-mlp-evaluation-first-cpu-v3', launch['selected_cpu']),
+        ('connected-mlp-evaluation-export-control-179061-v2', launch['exports']['control-179061']),
+        ('connected-mlp-evaluation-export-candidate-179061-v1', launch['exports']['candidate-179061'])]:
+        directory = EVIDENCE/name
+        assert json.loads((directory/'unit.json').read_bytes()) == unit
+        for key, local in (('receipt','receipt.json'),('log','original.log')):
+            assert hashlib.sha256((directory/local).read_bytes()).hexdigest() == unit[key]['sha256']
+        record = json.loads((directory/'receipt.json').read_bytes())
+        records[unit['receipt']['path']] = record
+        descriptors[unit['receipt']['path']] = unit['receipt']['sha256']
+        records[record['authority']['path']] = record['launch']
+        descriptors[record['authority']['path']] = record['authority']['sha256']
+    records[e.ORIGINAL_SCORE_AUTHORITY['path']] = launch
+    descriptors[e.ORIGINAL_SCORE_AUTHORITY['path']] = e.ORIGINAL_SCORE_AUTHORITY['sha256']
+    cpu = records[launch['selected_cpu']['receipt']['path']]
+    exported = records[launch['exports']['control-179061']['receipt']['path']]
+    actual_sources = {n.name: ast.get_source_segment(source.read_text(), n) for n in original_tree.body if isinstance(n,ast.FunctionDef)}
+    for node in ast.parse(DRIVER.read_bytes()).body:
+        if isinstance(node,ast.FunctionDef) and node.name in ('check_receipt','accept_unit'):
+            assert ast.get_source_segment(DRIVER.read_text(),node) == actual_sources[node.name]
+
+    def api(names, **seams):
+        namespace = {**vars(e), **seams}
+        nodes = [n for n in ast.parse(DRIVER.read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name in names]
+        exec(compile(ast.Module(body=nodes,type_ignores=[]),str(DRIVER),'exec'),namespace)
+        return SimpleNamespace(**namespace)
+
+    def read_fixture(value, guards):
+        e.check_file(value)
+        e.require(descriptors.get(value['path']) == value['sha256'], 'fixture authority SHA differs')
+        e.merge_guards(guards,{value['path']:value['sha256']})
+        return copy.deepcopy(records[value['path']])
+
+    def pinned_closure(root, digest, names, guards):
+        e.require(root == e.ORIGINAL_EXPORT_OWNER['root'] and digest == e.ORIGINAL_EXPORT_OWNER['execution_sha256'] and
+            names == e.FILES, 'fixture source closure differs')
+        code = e.closure(freeze.resolve(), digest, names, {})
+        e.merge_guards(guards,{str(Path(root)/'execution.json'):digest,**{str(Path(root)/n):h for n,h in code.items()}})
+        return code
+
+    modules = {key:module('_owner_test_'+key,HERE/filename) for key,filename in (
+        ('trainer','train_siglip2_connected_mlp.py'),('evaluator_reference','evaluate_siglip2_identity_diversity.py'),
+        ('nearest_evaluator','evaluate_siglip2_nearest_ranking.py'),('math','evaluate_siglip2_genuine_views.py'),
+        ('reference','evaluate_siglip2_prototype_residual.py'),('helper','export_siglip2_substrate_adaptation.py'),
+        ('baseline','evaluate_siglip2_quadratic_readout.py'))}
+    with tempfile.TemporaryDirectory() as directory:
+        local = Path(directory)/DRIVER.name; local.write_bytes(source.read_bytes())
+        def load_fixture(name, path, digest, guards):
+            assert name == '_connected_export_owner_v3' and path == Path(e.ORIGINAL_EXPORT_OWNER['root'])/DRIVER.name
+            return e.load_authenticated(name, local, digest, guards)
+        loader = api({'load_original_owner'},closure=pinned_closure,read_json=read_fixture,load_authenticated=load_fixture)
+        fixture = {**modules,'guards':{str(Path(m.__file__)):hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest()
+            for m in modules.values()},'launch':copy.deepcopy(launch)}
+        loader.load_original_owner(fixture)
+        original = fixture['original_evaluator']
+        assert original.check_receipt.__globals__ is original.accept_unit.__globals__ is vars(original)
+        assert original.check_receipt.__globals__ is not vars(e)
+        assert original.policy('score')['seconds'] == 500 and e.policy('score')['seconds'] == 700
+        assert sys.modules.pop('_connected_export_owner_v3') is original
+        for filename in e.FILES:
+            wrong = dict(e.ORIGINAL_EXPORT_OWNER['code']); wrong[filename] = '0'*64
+            bad_loader = api({'load_original_owner'},closure=lambda *args:wrong,
+                read_json=read_fixture,load_authenticated=load_fixture)
+            rejects(lambda:bad_loader.load_original_owner({'guards':{},'launch':launch}), 'exact2 differs')
+        changed = {**e.ORIGINAL_SCORE_AUTHORITY,'sha256':'0'*64}
+        bad_loader = api({'load_original_owner'},closure=pinned_closure,read_json=read_fixture,
+            load_authenticated=load_fixture,ORIGINAL_SCORE_AUTHORITY=changed)
+        rejects(lambda:bad_loader.load_original_owner({'guards':{},'launch':launch}), 'authority SHA')
+        assert sys.modules.pop('_connected_export_owner_v3') is not None
+        for change in ({'endpoints':list(reversed(launch['endpoints']))}, {'scope':{'path':'/wrong','sha256':e.SCOPE_SHA256}}):
+            rejects(lambda:loader.load_original_owner({'guards':{},'launch':{**launch,**change}}), 'endpoint/procedure')
+            assert sys.modules.pop('_connected_export_owner_v3') is not None
+
+    # Compile the ORIGINAL reader, replacing only external file/terminal/native-origin
+    # seams. Its check_receipt, accept_unit and all pure scientific validators are real.
+    known = {}
+    for record in records.values():
+        if 'input_guards' in record:
+            e.merge_guards(known,record['input_guards'])
+            e.merge_guards(known,{str(Path(record['output'])/n):h for n,h in record['files'].items()})
+    e.merge_guards(known,descriptors)
+    def bound_fixture(guards, path, digest):
+        if Path(path) == Path(e.ORIGINAL_EXPORT_OWNER['root'])/DRIVER.name:
+            e.bound_file({},source.resolve(),digest)
+        else:
+            e.require(known.get(str(path)) == digest, 'fixture current bytes differ')
+        e.merge_guards(guards,{str(path):digest})
+        return Path(path)
+    spec = importlib.util.spec_from_file_location('_connected_export_owner_v3',Path(e.ORIGINAL_EXPORT_OWNER['root'])/DRIVER.name)
+    original = importlib.util.module_from_spec(spec)
+    original.__dict__.update(read_json=read_fixture,bound_file=bound_fixture)
+    nodes = [n for n in original_tree.body if not isinstance(n,ast.FunctionDef) or n.name not in {'read_json','bound_file'}]
+    exec(compile(ast.Module(body=nodes,type_ignores=[]),str(spec.origin),'exec'),vars(original))
+    sys.modules[original.__name__] = original
+    assert original.check_receipt.__globals__ is original.accept_unit.__globals__ is vars(original)
+    guard_api = api({'guard_helpers'},bound_file=bound_fixture)
+    current_reader = api({'check_receipt','accept_unit'},read_json=read_fixture,bound_file=bound_fixture)
+    production = api({'load_original_owner','original_owner_context','check_original_owner','admit_export'},
+        read_json=read_fixture,closure=pinned_closure,load_authenticated=lambda *args:original,
+        guard_helpers=guard_api.guard_helpers,accept_unit=current_reader.accept_unit)
+    # Tiny externally supplied origin proof isolates the unchanged exact-four check.
+    native_four = sorted(exported['origins']['native_files'])[:4]
+    site = Path('/home/riomus/group-learning/.venv/lib/python3.13/site-packages')
+    members = {str(Path(p).relative_to(site)): {'sha256':exported['origins']['files'][p]} for p in native_four}
+    nearest_training = module('_owner_nearest_training',HERE/'train_siglip2_nearest_ranking.py')
+    proof_file = {'path':'/fixture/native-proof','sha256':nearest_training.NATIVE_PROOF_PINS['proof']}
+    native_authority = {'path':'/fixture/native-authority','sha256':'a'*64}
+    records[proof_file['path']] = {'authority':{'installed_site_root':str(site)},'comparison':{'selected_members':members}}
+    records[native_authority['path']] = {'proof':proof_file}
+    descriptors.update({proof_file['path']:proof_file['sha256'],native_authority['path']:native_authority['sha256']})
+    original_source_origins = {p:h for p,h in exported['origins']['files'].items() if p not in native_four}
+    legacy = {'invocations':set(),'admission':object(),'selected':{'source_cpu':{'numerical_flags':cpu['numerical_flags'],
+        'invocation':cpu['invocation'],'origins':{'files':original_source_origins}},'packages':cpu['origins']['packages']},
+        'warm_record':{'origins':{'files':{}}}}
+    nearest_seam = SimpleNamespace(native_source_api=lambda t:SimpleNamespace(audit_origins=lambda *args,**kwargs:None),
+        NATIVE_PROOF_PINS=nearest_training.NATIVE_PROOF_PINS)
+    def terminal(admission, record, unit, seconds, guards):
+        assert admission is legacy['admission'] and seconds == original.policy(record['phase'])['seconds']
+        e.require(unit['invocation_id'] == record['invocation']['invocation_id'], 'fixture terminal invocation differs')
+        return record['cgroup_after']
+    panel = {'original_rows':[None]*e.PANELS['selection'][0],'query':[],'gallery':[]}
+    for image in exported['images']:
+        for row in image['rows']:
+            panel['original_rows'][row['panel_ordinal']] = row['original_row']
+            panel[row['role']].append(row['panel_ordinal'])
+    current_launch = copy.deepcopy(launch)
+    current_launch.update(execution_sha256='e'*64,selected_cpu={**launch['selected_cpu'],'unit':'fresh-current-CPU'},
+        resource_policies={p:e.policy(p) for p in ('cpu','export','score')})
+    root = Path('/fixture/current-source')
+    code = {name:hashlib.sha256((HERE/name).read_bytes()).hexdigest() for name in e.FILES}
+    current_closure = {str(root/'execution.json'):'e'*64,**{str(root/n):h for n,h in code.items()}}
+    common = {**current_closure, '/fixture/shared':'b'*64}
+    known['/fixture/shared'] = 'b'*64
+    for r in (cpu,exported,records[launch['exports']['candidate-179061']['receipt']['path']]):
+        r['input_guards']['/fixture/shared'] = 'b'*64
+    context = {**modules,'original_evaluator':original,'original_launch':launch,
+        'root':root,'args':SimpleNamespace(execution_sha256='e'*64,phase='score',arm=None,seed=None,
+            authority=Path('/fixture/current-launch'),authority_sha256='f'*64,output=Path('/fixture/current-output')),
+        'code':code,'launch':current_launch,'guards':{},'common_guards':common,'accepted_units':[],
+        'training_context':{'source':cpu['source'],'legacy':legacy,'nearest':nearest_seam,'launch':{'native_authority':native_authority}},
+        'cpu':None,'costs':cpu['cost'],'preparation_costs':cpu['preparation_costs'],
+        'records':{(ep['seed'],ep['arm']):{'result':{'identity':cpu['payload_facts'][e.label(ep)]['identity']}} for ep in launch['endpoints']},
+        'manifests':{(ep['seed'],ep['arm']):cpu['payload_facts'][e.label(ep)] for ep in launch['endpoints']},
+        'score_context':{'partition':{'panels':{'selection':panel}}},'terminal_reader':terminal}
+    for m in modules.values():
+        path = Path(m.__file__); digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        context['guards'][str(path)] = digest; known[str(path)] = digest
+    context['guards'][str(Path(spec.origin))] = e.ORIGINAL_EXPORT_OWNER['code'][DRIVER.name]
+    # Synthetic current-source CPU must independently pass the unchanged CURRENT
+    # reader; historical CPU4 or old CPU3 cannot qualify the new execution bytes.
+    fresh = copy.deepcopy(cpu)
+    fresh.update(execution_sha256='e'*64,source_code=code,output='/fixture/current-cpu-output',
+        launch={**current_launch,'phase':'cpu','selected_cpu':None,'exports':{}},
+        authority={'path':'/fixture/current-cpu-authority','sha256':'c'*64},authority_sha256='c'*64)
+    fresh['binding'] = e.binding({'launch':fresh['launch']})
+    fresh['invocation']['invocation_id'] = 'f'*32
+    fresh['invocation']['argv'] = e.cli(SimpleNamespace(execution_sha256='e'*64,phase='cpu',arm=None,seed=None,
+        authority=Path(fresh['authority']['path']),authority_sha256='c'*64,output=Path(fresh['output'])))
+    fresh['input_guards'].update(common)
+    fresh_unit = {**launch['selected_cpu'],'unit':'fresh-current-CPU','invocation_id':'f'*32,
+        'receipt':{'path':fresh['output']+'/receipt.json','sha256':'d'*64}}
+    records[fresh_unit['receipt']['path']] = fresh
+    records[fresh['authority']['path']] = fresh['launch']
+    descriptors.update({fresh_unit['receipt']['path']:'d'*64,fresh['authority']['path']:'c'*64})
+    known.update(fresh['input_guards'])
+    current_launch['selected_cpu'] = fresh_unit
+    context['cpu'] = current_reader.accept_unit(context,fresh_unit,'cpu',panel='selection')
+    original_guard = production.load_original_owner(context)
+    before = dict(common); current_cpu = context['cpu']; accumulated = dict(context['guards'])
+    owner = production.original_owner_context(context,original_guard)
+    assert context['common_guards'] == before and context['cpu'] is current_cpu
+    assert owner.keys() == context.keys()
+    specific = {'root','args','code','launch','common_guards','cpu'}
+    assert {k for k in owner if owner[k] is not context[k]} == specific
+    assert owner['guards'] is context['guards'] and owner['accepted_units'] is context['accepted_units']
+    assert all(context['guards'][p] == h for p,h in accumulated.items())
+    assert owner['launch']['selected_cpu'] == launch['selected_cpu'] != current_launch['selected_cpu']
+    assert set(common)-set(owner['common_guards']) == set(current_closure)
+    assert set(owner['common_guards'])-set(common) == {str(Path(e.ORIGINAL_EXPORT_OWNER['root'])/n) for n in (*e.FILES,'execution.json')}
+    production.check_original_owner(context,owner,original_guard)
+    for snapshots in (context['helper_snapshots'][:-1],context['helper_snapshots'][1:],
+        context['helper_snapshots']+[context['helper_snapshots'][-1]],list(reversed(context['helper_snapshots']))):
+        changed = {**context,'helper_snapshots':snapshots}
+        rejects(lambda:production.admit_export(changed,{**owner,'helper_snapshots':snapshots},launch['endpoints'][0],original_guard), 'snapshot binding')
+        rejects(lambda:guard_api.guard_helpers(changed), 'snapshot inventory')
+    for key in modules.keys()|{'original_evaluator'}:
+        changed = {**context,key:SimpleNamespace()}
+        rejects(lambda:production.admit_export(changed,{**owner,key:changed[key]},launch['endpoints'][0],original_guard),
+            'snapshot binding' if key == 'original_evaluator' else 'snapshot inventory')
+    forged = importlib.util.module_from_spec(spec)
+    forged.__dict__.update(vars(original))
+    snapshots = list(context['helper_snapshots'])
+    old = snapshots[-1]
+    snapshots[-1] = (forged,old[1],old[2],dict(vars(forged)),old[4],copy.deepcopy(old[5]))
+    changed = {**context,'original_evaluator':forged,'helper_snapshots':snapshots}
+    rejects(lambda:production.admit_export(changed,{**owner,'original_evaluator':forged,'helper_snapshots':snapshots},
+        launch['endpoints'][0],original_guard), 'snapshot binding')
+    for slot,value in ((3,{}),(4,[]),(5,{})):
+        snapshots = list(context['helper_snapshots']); row = list(snapshots[-1]); row[slot] = value; snapshots[-1] = tuple(row)
+        changed = {**context,'helper_snapshots':snapshots}
+        rejects(lambda:production.admit_export(changed,{**owner,'helper_snapshots':snapshots},launch['endpoints'][0],original_guard), 'snapshot binding')
+    for key,value in (('root',Path('/foreign')),('args',context['args']),('code',code),('launch',current_launch),
+        ('cpu',current_cpu),('common_guards',common),('guards',dict(context['guards'])),('accepted_units',[])):
+        rejects(lambda:production.admit_export(context,{**owner,key:value},launch['endpoints'][0],original_guard), 'context binding')
+    changed = {**context,'common_guards':{p:h for p,h in common.items() if p != str(root/'execution.json')}}
+    rejects(lambda:production.original_owner_context(changed,original_guard), 'three owner closure')
+    changed = {**context,'common_guards':{**common,str(Path(spec.origin)):'0'*64}}
+    rejects(lambda:production.original_owner_context(changed,original_guard), 'three owner closure')
+    saved_original_launch = context['original_launch']
+    old_selected = launch['selected_cpu']; context['original_launch'] = {**launch,'selected_cpu':current_launch['selected_cpu']}
+    rejects(lambda:production.original_owner_context(context,original_guard), 'input authority changed')
+    context['original_launch'] = saved_original_launch
+    for ep in launch['endpoints']:
+        record = production.admit_export(context,owner,ep,original_guard)
+        assert record == records[launch['exports'][e.label(ep)]['receipt']['path']]
+    assert context['accepted_units'] == [fresh_unit,old_selected]+[launch['exports'][e.label(ep)] for ep in launch['endpoints']]
+    # Execute the real activation predicate and current admission tail. Inactive
+    # phases have no original root/module/closure work; full/VAL use current gates.
+    authority = next(n for n in ast.parse(DRIVER.read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name == 'authority')
+    activation = next(n for n in authority.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id == 'original_active')
+    roots_node = next(n for n in authority.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id == 'roots')
+    def active(value, phase='score'):
+        ns = dict(vars(e), launch=value,args=SimpleNamespace(phase=phase),root=root,
+            keys=('training','evaluator_reference','nearest_evaluator','genuine_evaluator','reference'))
+        exec(compile(ast.Module(body=[activation,roots_node],type_ignores=[]),str(DRIVER),'exec'),ns)
+        assert (Path(e.ORIGINAL_EXPORT_OWNER['root']) in ns['roots']) is ns['original_active']
+        return ns['original_active']
+    assert active(current_launch)
+    for phase in ('cpu','export'):
+        assert not active(current_launch,phase)
+    for key,value in (('stage','full'),('panel','validation'),('first_selection',fresh_unit),('selection_go',fresh_unit),
+        ('exports',{}),('exports',{**current_launch['exports'],'control-179061':fresh_unit})):
+        assert not active({**current_launch,key:value})
+    full = copy.deepcopy(current_launch)
+    full.update(stage='full',first_selection={**fresh_unit,'unit':'current-first-score'},
+        endpoints=launch['endpoints']+[nested_fixture(e,seed,arm)[0] for seed,arm in e.ORDER[2:]])
+    full['exports'] = {e.label(ep):{**fresh_unit,'unit':'current-export-'+e.label(ep)} for ep in full['endpoints']}
+    visits = []; decision = ['CONTINUE']
+    def current_unit(c,unit,phase,arm=None,seed=None,stage=None,panel=None):
+        assert c['launch'] is full and unit not in launch['exports'].values()
+        visits.append((phase,unit['unit']))
+        if unit == full['first_selection']:
+            return {'decision':decision[0],'launch':{'endpoints':full['endpoints'][:2]}}
+        if unit == full['selection_go']:
+            return {'decision':'GO','selection_go_admits_validation_only':True,'launch':{'endpoints':full['endpoints']}}
+        if phase == 'cpu':
+            return {'payload_facts':{e.label(ep):{} for ep in full['endpoints']}}
+        return {'current_export':e.label({'arm':arm,'seed':seed})}
+    tail_start = next(i for i,n in enumerate(authority.body) if isinstance(n,ast.If) and
+        ast.unparse(n.test) == "launch['stage'] == 'full'")
+    tail_body = copy.deepcopy(authority.body[tail_start:])
+    definition = ast.parse('def current_tail(context, launch, args, original_active, original_guard):\n    pass').body[0]
+    definition.body = ast.parse("guards = context['guards']").body+tail_body; ast.fix_missing_locations(definition)
+    dispatch = api({'admit_export'},accept_unit=current_unit)
+    def admit_remaining(c,eps):
+        assert visits == [('score','current-first-score')]
+        visits.append(('endpoints',tuple(ep['seed'] for ep in eps)))
+    ns = {**vars(e),'accept_unit':current_unit,'admit_endpoints':admit_remaining,'admit_export':dispatch.admit_export,
+        'original_owner_context':lambda *args: (_ for _ in ()).throw(AssertionError('inactive original CPU admission'))}
+    exec(compile(ast.Module(body=[definition],type_ignores=[]),str(DRIVER),'exec'),ns)
+    for panel_name in ('selection','validation'):
+        full['panel'] = panel_name
+        full['selection_go'] = {**fresh_unit,'unit':'current-selection-GO'} if panel_name == 'validation' else None
+        visits.clear(); c = {'launch':full,'args':context['args'],'guards':{}}
+        result, guard = ns['current_tail'](c,full,context['args'],False,None)
+        assert result is c and guard is None and 'original_evaluator' not in c
+        assert visits[:2] == [('score','current-first-score'),('endpoints',(179069,179069))]
+        assert visits[-5:][0] == ('cpu','fresh-current-CPU')
+        assert len(c['export_records']) == 4
+    decision[0] = 'KILL'; visits.clear()
+    rejects(lambda:ns['current_tail']({'launch':full,'args':context['args'],'guards':{}},full,context['args'],False,None), 'KILL prohibits')
+    assert visits == [('score','current-first-score')]
+    for panel_name in ('selection','validation'):
+        rejects(lambda:current_reader.check_receipt({**context,'launch':{**current_launch,'stage':'full','panel':panel_name}},
+            exported,'export','control',179061), 'source/resource')
+    # The real exit entry uses the independently held guard before external work.
+    exit_api = api({'exit_rehash'},guard_helpers=guard_api.guard_helpers)
+    rejects(lambda:exit_api.exit_rehash({**context,'original_evaluator':forged,'helper_snapshots':snapshots},original_guard), 'snapshot binding')
+
+    # Reader regressions reach actual ORIGINAL check_receipt/accept_unit branches.
+    for field,value,text in (('execution_sha256','0'*64,'source/resource'),('source_code',code,'source/resource'),
+        ('payload_facts',{},'export/readback'),('preparation_costs',{},'preparation costs'),('cost',{},'endpoint/cost')):
+        bad = {**exported,field:value}
+        rejects(lambda:original.check_receipt(owner,bad,'export','control',179061), text)
+    bad = copy.deepcopy(exported); bad['invocation']['argv'][0] = str(DRIVER)
+    rejects(lambda:original.check_receipt(owner,bad,'export','control',179061), 'CLI/binding')
+    rejects(lambda:original.check_receipt({**owner,'cpu':{'payload_facts':{'control-179061':{}}}},exported,'export','control',179061), 'export/readback')
+    wrong_launch = {**owner['launch'],'selected_cpu':current_launch['selected_cpu']}
+    rejects(lambda:original.check_receipt({**owner,'launch':wrong_launch},exported,'export','control',179061), 'complete stage CPU')
+    # Relabeling source alone still cannot satisfy original CLI/policy/CPU/common.
+    relabeled = {**exported,'execution_sha256':'e'*64,'source_code':code}
+    rejects(lambda:current_reader.check_receipt(context,relabeled,'export','control',179061), 'launch differs')
+    # Removed frozen closure guard reaches original accept_unit after all metadata.
+    legacy['invocations'].clear()
+    changed = copy.deepcopy(exported); del changed['input_guards'][str(Path(spec.origin))]
+    receipt_path = launch['exports']['control-179061']['receipt']['path']
+    records[receipt_path] = changed
+    rejects(lambda:original.accept_unit(owner,launch['exports']['control-179061'],'export','control',179061), 'source guards')
+    records[receipt_path] = exported
+    legacy['invocations'].clear()
+    wrong_cpu = copy.deepcopy(current_cpu); wrong_cpu['payload_facts']['control-179061']['fixed_sha256'] = '0'*64
+    changed = {**context,'cpu':wrong_cpu}; changed_owner = {**owner,'cpu':owner['cpu']}
+    rejects(lambda:production.admit_export(changed,changed_owner,launch['endpoints'][0],original_guard), 'current independently admitted CPU')
+    for key,value in (('panel','validation'),('phase','export'),('stage','full')):
+        changed = {**context,'launch':{**current_launch,key:value}} if key in ('panel','stage') else {
+            **context,'args':SimpleNamespace(**{**vars(context['args']),key:value})}
+        rejects(lambda:production.admit_export(changed,owner,launch['endpoints'][0],original_guard), 'first-selection-only')
+    wrong_unit = {**launch['exports']['control-179061'],'invocation_id':'0'*32}
+    changed = {**context,'launch':{**current_launch,'exports':{**current_launch['exports'],'control-179061':wrong_unit}}}
+    rejects(lambda:production.admit_export(changed,owner,launch['endpoints'][0],original_guard), 'source/resource')
+    # Live original code/registry/global integrity is checked, independent of dispatch.
+    del sys.modules['_connected_export_owner_v3']
+    rejects(lambda:production.check_original_owner(context,owner,original_guard), 'live source/global')
+    sys.modules['_connected_export_owner_v3'] = original
+    saved_policy = original.__dict__['policy']; original.__dict__['policy'] = lambda phase:{}
+    rejects(lambda:production.check_original_owner(context,owner,original_guard), 'live source/global')
+    original.__dict__['policy'] = saved_policy
+    sys.modules.pop('_connected_export_owner_v3')
+    print('PASS exact original-owner closure/authority/context, unchanged original readers, CPU/payload/CLI/guard/UNIT/VAL and live snapshot falsifiers')
+
+
+def original_owner_test_inverse():
+    raw = Path(__file__).read_bytes()
+    start = raw.index(b'# BEGIN ORIGINAL OWNER FALSIFIER\n')
+    end = raw.index(b'\n\ndef main():\n',start)+2
+    raw = raw[:start]+raw[end:]
+    raw = raw.replace(b'    raw = evaluator_original_owner_inverse(raw)\n',b'',1)
+    raw = raw.replace(b'    original_owner_contract(e)\n',b'',1)
+    raw = raw.replace(b'    original_owner_test_inverse()\n',b'',1)
+    assert hashlib.sha256(raw).hexdigest() == '0a2be2dec8f6fa2033e62a749b2805184e00055a76cd55bafc2981bc138785df', 'old test bytes differ'
+
+
+# END ORIGINAL OWNER FALSIFIER
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source-only', action='store_true', required=True)
@@ -470,6 +841,8 @@ def main():
     args = parser.parse_args()
     e = module('_connected_eval_source_test', DRIVER)
     trainer = module('_connected_eval_trainer_api', HERE/'train_siglip2_connected_mlp.py')
+    original_owner_contract(e)
+    original_owner_test_inverse()
     export_envelope_contract(e)
     repin_contract(e, trainer)
     nested_binding()

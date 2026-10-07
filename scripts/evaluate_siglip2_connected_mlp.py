@@ -75,6 +75,125 @@ MEMBERS = ('config','buffers','processor','head','A','means','C','mu_train','mu_
     'scope','common_statistics','base_vision','encoder','encoder_identity','arm')
 
 
+# BEGIN ORIGINAL EXPORT OWNER
+ORIGINAL_EXPORT_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3',
+    'execution_sha256':'c76330fe0bb0cefa5f3ec7d3a4e82785ffc7620bae6583ddf55af67b6aca651f',
+    'code':{'evaluate_siglip2_connected_mlp.py':'bce0c43bae6d24f50ab8ce7c60f8410abd307697ec81d91825e0a043a20efe08',
+            'test_connected_mlp_evaluation.py':'7a1eef346f0999c277d0d6c934141d24db693bb0516af985547efb97ee7cd5e9'}}
+ORIGINAL_SCORE_AUTHORITY = {'path':ORIGINAL_EXPORT_OWNER['root']+'/authority-first-selection-score-v1.json',
+    'sha256':'d25da1234f661f79437f6708769a4de21c61116f7b5639c540bc26c7032cb160'}
+ORIGINAL_EXPORT_UNITS = {'candidate-179061': {'both_locks_held': True,
+                      'invocation_id': '06071c350b134c0991b12f45ba1550c8',
+                      'log': {'path': '/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/export-candidate-179061-v1-original.log',
+                              'sha256': 'f00017484e2e0dc57b40afe821f228d4cf8485076e9fd6371dfdc1af37852d9a'},
+                      'native_peak_rss_kib': 4206904,
+                      'receipt': {'path': '/home/riomus/runs/sfora-connected-mlp-evaluation-export-candidate-179061-v1/receipt.json',
+                                  'sha256': 'd43ef0d5ad435a90ab584f91ef9efa31e002a04ecb2aef3253a96062e7833bf0'},
+                      'service_seconds': 1289.351,
+                      'unit': 'sfora-connected-mlp-evaluation-export-candidate-179061-v1'},
+ 'control-179061': {'both_locks_held': True,
+                    'invocation_id': 'c8a9ba3f025744519d3e6411e3809161',
+                    'log': {'path': '/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/export-control-179061-v2-original.log',
+                            'sha256': 'a917e632f87b25cdca6ad5ed3d4b11dfc0fe98dffa0baf2b749d7a54bc2cd6fe'},
+                    'native_peak_rss_kib': 4207316,
+                    'receipt': {'path': '/home/riomus/runs/sfora-connected-mlp-evaluation-export-control-179061-v2/receipt.json',
+                                'sha256': 'dea4527b76ce6c1c12f5e1d64dd2e5b1cace371a432a114ca1e7f18d1cc4f264'},
+                    'service_seconds': 1264.694,
+                    'unit': 'sfora-connected-mlp-evaluation-export-control-179061-v2'}}
+
+
+def load_original_owner(context):
+    """Authenticate only the pinned historical inputs, never the failed score."""
+    fact = ORIGINAL_EXPORT_OWNER; guards = context['guards']
+    require(closure(fact['root'],fact['execution_sha256'],FILES,guards) == fact['code'],
+        'original export owner exact2 differs')
+    original = load_authenticated('_connected_export_owner_v3',Path(fact['root'])/'evaluate_siglip2_connected_mlp.py',
+        fact['code']['evaluate_siglip2_connected_mlp.py'],guards)
+    launch = read_json(ORIGINAL_SCORE_AUTHORITY,guards)
+    original.check_launch(launch,SimpleNamespace(execution_sha256=fact['execution_sha256'],phase='score',arm=None,seed=None))
+    require(launch['stage'] == 'first' and launch['panel'] == 'selection' and
+        launch['exports'] == ORIGINAL_EXPORT_UNITS and launch == {**context['launch'],
+            'execution_sha256':fact['execution_sha256'],'selected_cpu':launch['selected_cpu'],
+            'resource_policies':{**context['launch']['resource_policies'],
+                'score':{**context['launch']['resource_policies']['score'],'seconds':500}}},
+        'original selection endpoint/procedure differs')
+    context.update(original_evaluator=original,original_launch=launch)
+    guard_helpers(context)
+    # The authority holds this closure locally, outside replaceable context slots.
+    authenticated = tuple((m,p,s,dict(v),tuple((fn,c,copy.deepcopy(d),copy.deepcopy(kw)) for fn,c,d,kw in f),copy.deepcopy(l))
+        for m,p,s,v,f,l in context['helper_snapshots'])
+    def original_guard(current):
+        actual = current['helper_snapshots']
+        require(current['original_evaluator'] is original and len(actual) == len(authenticated) and
+            all(a[0] is b[0] and a[1] == b[1] and a[2] is b[2] and a[3].keys() == b[3].keys() and
+                all(a[3][k] is v for k,v in b[3].items()) and tuple(a[4]) == b[4] and a[5] == b[5]
+                for a,b in zip(actual,authenticated,strict=True)), 'authenticated owner/snapshot binding changed')
+        guard_helpers(current)
+    return original_guard
+
+
+def original_owner_context(context, original_guard):
+    """Six owner-specific members; preserve the authenticated shared snapshot/ledger."""
+    original_guard(context)
+    require(context['original_launch'] == read_json(ORIGINAL_SCORE_AUTHORITY,context['guards']),
+        'original score input authority changed')
+    fact = ORIGINAL_EXPORT_OWNER; common = context['common_guards']
+    current = {str(context['root']/'execution.json'):context['args'].execution_sha256,
+        **{str(context['root']/n):h for n,h in context['code'].items()}}
+    historical = {str(Path(fact['root'])/'execution.json'):fact['execution_sha256'],
+        **{str(Path(fact['root'])/n):h for n,h in fact['code'].items()}}
+    require(len(current) == len(historical) == 3 and current.keys().isdisjoint(historical) and
+        all(common.get(p) == h for p,h in current.items()) and common.keys().isdisjoint(historical),
+        'exact three owner closure snapshot entries required')
+    owner_common = {p:h for p,h in common.items() if p not in current}
+    merge_guards(owner_common,historical)
+    owner = {**context,'root':Path(fact['root']),
+        'args':SimpleNamespace(execution_sha256=fact['execution_sha256'],authority=Path(ORIGINAL_SCORE_AUTHORITY['path']),
+            authority_sha256=ORIGINAL_SCORE_AUTHORITY['sha256'],phase='score',arm=None,seed=None,output=context['args'].output),
+        'code':fact['code'],'launch':context['original_launch'],'common_guards':owner_common}
+    context['original_cpu'] = owner['cpu'] = context['original_evaluator'].accept_unit(
+        owner,owner['launch']['selected_cpu'],'cpu',panel='selection')
+    owner['original_cpu'] = context['original_cpu']
+    return owner
+
+
+def check_original_owner(context, owner, original_guard):
+    original_guard(context)
+    original = context['original_evaluator']; fact = ORIGINAL_EXPORT_OWNER
+    require(original is sys.modules.get('_connected_export_owner_v3') and
+        any(snapshot[0] is original for snapshot in context['helper_snapshots']),
+        'dispatch original reader differs from authenticated snapshot')
+    specific = {'root','args','code','launch','common_guards','cpu'}
+    expected_common = {p:h for p,h in context['common_guards'].items()
+        if p not in {str(context['root']/'execution.json'),*(str(context['root']/n) for n in FILES)}}
+    merge_guards(expected_common,{str(Path(fact['root'])/'execution.json'):fact['execution_sha256'],
+        **{str(Path(fact['root'])/n):h for n,h in fact['code'].items()}})
+    require(owner.keys() == context.keys() and all(owner[k] is context[k] for k in owner.keys()-specific) and
+        owner['root'] == Path(fact['root']) and owner['code'] == fact['code'] and
+        owner['launch'] is context['original_launch'] and owner['cpu'] is context['original_cpu'] and
+        owner['common_guards'] == expected_common and vars(owner['args']) ==
+        dict(execution_sha256=fact['execution_sha256'],authority=Path(ORIGINAL_SCORE_AUTHORITY['path']),
+            authority_sha256=ORIGINAL_SCORE_AUTHORITY['sha256'],phase='score',arm=None,seed=None,output=context['args'].output) and
+        read_json(ORIGINAL_SCORE_AUTHORITY,context['guards']) == owner['launch'],
+        'original owner six-member/shared context binding differs')
+
+
+def admit_export(context, owner, endpoint, original_guard):
+    key = label(endpoint); unit = context['launch']['exports'][key]
+    if owner is not None:
+        check_original_owner(context,owner,original_guard)
+    if owner is not None and unit == owner['launch']['exports'].get(key):
+        require(context['args'].phase == 'score' and context['launch']['stage'] == 'first' and
+            context['launch']['panel'] == 'selection' and
+            endpoint in owner['launch']['endpoints'], 'original exports have first-selection-only endpoint authority')
+        record = context['original_evaluator'].accept_unit(owner,unit,'export',endpoint['arm'],endpoint['seed'])
+        require(record['payload_facts'] == context['cpu']['payload_facts'][key],
+            'original export differs from current independently admitted CPU payload')
+        return record
+    return accept_unit(context,unit,'export',endpoint['arm'],endpoint['seed'])
+# END ORIGINAL EXPORT OWNER
+
+
 def check_endpoint(endpoint):
     require(isinstance(endpoint,dict) and endpoint.keys() == {'seed','arm','launch','terminal','checkpoint',
         'terminal_state_sha256','bundle','inference_state_sha256'} and endpoint['arm'] in ARMS and
@@ -338,9 +457,11 @@ def binding(context):
 
 def guard_helpers(context):
     snapshots = context.setdefault('helper_snapshots',[])
+    modules = [context[key] for key in ('trainer','evaluator_reference','nearest_evaluator','math','reference','helper','baseline')]
+    if 'original_evaluator' in context:
+        modules.append(context['original_evaluator'])
     if not snapshots:
-        for key in ('trainer','evaluator_reference','nearest_evaluator','math','reference','helper','baseline'):
-            module = context[key]
+        for module in modules:
             values = dict(vars(module))
             functions = [(f,f.__code__,f.__defaults__,copy.deepcopy(f.__kwdefaults__))
                          for f in values.values() if isinstance(f,FunctionType)]
@@ -348,6 +469,8 @@ def guard_helpers(context):
                         isinstance(v,(dict,list,tuple,set,frozenset))}
             # Mutable owned runtime caches are checked by the trainer's authenticated API.
             snapshots.append((module,Path(module.__file__),module.__spec__,values,functions,literals))
+    require(len(snapshots) == len(modules) and all(snapshot[0] is module
+        for snapshot,module in zip(snapshots,modules,strict=True)), 'complete context-bound helper snapshot inventory required')
     for module,path,spec,values,functions,literals in snapshots:
         require(module.__spec__ is spec and Path(spec.origin) == Path(module.__file__) == path and
             sys.modules.get(module.__name__) is module and vars(module).keys() == values.keys() and
@@ -452,7 +575,9 @@ def authority(args):
     launch = read_json({'path':str(args.authority),'sha256':args.authority_sha256},guards)
     check_launch(launch,args)
     keys = ('training','evaluator_reference','nearest_evaluator','genuine_evaluator','reference')
-    roots = [root]+[Path(launch[k]['root']) for k in keys]
+    original_active = (args.phase == 'score' and launch['stage'] == 'first' and launch['panel'] == 'selection' and
+        launch['first_selection'] is None and launch['selection_go'] is None and launch['exports'] == ORIGINAL_EXPORT_UNITS)
+    roots = [root]+([Path(ORIGINAL_EXPORT_OWNER['root'])] if original_active else [])+[Path(launch[k]['root']) for k in keys]
     require(args.output.is_absolute() and args.output.parent.resolve() == args.output.parent and
         not args.output.exists() and not args.output.is_symlink() and
         all(not a.is_relative_to(b) and not b.is_relative_to(a) for i,a in enumerate(roots) for b in roots[i+1:]) and
@@ -532,6 +657,7 @@ def authority(args):
     context.update(score_context=s,concat_record=archived,terminal_reader=terminal_reader,
         helper=helper,baseline=baseline)
     context['preparation_costs'] = preparation_costs(context)
+    original_guard = load_original_owner(context) if original_active else None
     guard_helpers(context)
     if launch['stage'] == 'full':
         first_receipt = accept_unit(context,launch['first_selection'],'score',stage='first',panel='selection')
@@ -548,9 +674,9 @@ def authority(args):
     if args.phase != 'cpu':
         context['cpu'] = accept_unit(context,launch['selected_cpu'],'cpu',panel='selection')
     if args.phase == 'score':
-        context['export_records'] = {label(e):accept_unit(context,launch['exports'][label(e)],'export',e['arm'],e['seed'])
-            for e in launch['endpoints']}
-    return context
+        owner = original_owner_context(context,original_guard) if original_active else None
+        context['export_records'] = {label(e):admit_export(context,owner,e,original_guard) for e in launch['endpoints']}
+    return context,original_guard
 
 
 def native_start(context):
@@ -1098,7 +1224,9 @@ def accept_unit(context,unit,phase,arm=None,seed=None,stage=None,panel=None):
     context['accepted_units'].append(unit)
     return record
 
-def exit_rehash(context):
+def exit_rehash(context, original_guard):
+    if original_guard is not None:
+        original_guard(context)
     trainer,t=context['trainer'],context['training_context']
     t['trainer'].require_no_training(t); t['trainer'].helper_guard(t); guard_helpers(context)
     api=t['nearest'].native_source_api(t)
@@ -1108,6 +1236,7 @@ def exit_rehash(context):
     # Fresh uncached complete source/payload/bundle files, including restored-mtime mutations.
     trainer.batch_bound_files({},context['guards'].items())
     for descriptor,names,pins in (({'root':str(context['root']),'execution_sha256':context['args'].execution_sha256},FILES,context['code']),
+        *(((ORIGINAL_EXPORT_OWNER,FILES,ORIGINAL_EXPORT_OWNER['code']),) if 'original_evaluator' in context else ()),
         (context['launch']['training'],TRAIN_FILES,context['launch']['training']['code']),
         (context['launch']['evaluator_reference'],EVALUATOR_PINS,EVALUATOR_PINS),
         (context['launch']['nearest_evaluator'],NEAREST_EVALUATOR['code'],NEAREST_EVALUATOR['code']),
@@ -1121,11 +1250,13 @@ def exit_rehash(context):
     guard_helpers(context)
     api.audit_origins(t['legacy'],require_exact=context['args'].phase == 'export')
     merge_guards(context['guards'],t['legacy']['origins']['files'])
+    if original_guard is not None:
+        original_guard(context)
     return t['legacy']['origins']
 
 def run(args):
     require(sys.argv == cli(args), 'fixed canonical CLI order required')
-    context=authority(args)
+    context,original_guard=authority(args)
     context['training_context']['fit_context']['unit_started']=UNIT_STARTED
     before=native_start(context)
     import torch
@@ -1145,7 +1276,7 @@ def run(args):
         zip(cuda_rng,torch.cuda.get_rng_state_all(),strict=True)), 'whole-unit CUDA RNG differs')
     print(json.dumps({'progress':'exit_rehash','seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
     print(json.dumps({'event':'COMPACT_TIMING','stage':'exit_rehash','boundary':'begin','phase':args.phase,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
-    origins=exit_rehash(context)
+    origins=exit_rehash(context,original_guard)
     print(json.dumps({'event':'COMPACT_TIMING','stage':'exit_rehash','boundary':'end','phase':args.phase,'seconds':time.perf_counter()-UNIT_STARTED}),flush=True)
     prior=t['legacy']['selected']['source_cpu']['invocation']
     record={'schema':SCHEMA,'phase':args.phase,'arm':args.arm,'seed':args.seed,'stage':context['launch']['stage'],
