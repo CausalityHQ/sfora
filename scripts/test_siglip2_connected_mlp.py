@@ -18,6 +18,7 @@ from types import CodeType, FunctionType, ModuleType, SimpleNamespace
 from functools import lru_cache
 import gc
 import weakref
+from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
 DRIVER = HERE / 'train_siglip2_connected_mlp.py'
@@ -540,6 +541,146 @@ def processor_release_seam(d):
                 else: sys.modules[name] = module
 
 
+def cost_terminal_falsifiers(d):
+    """Actual timing/receipt predicates, with native work replaced by a clock."""
+    events = []
+    def connected(): pass
+    def entry(*args):
+        events.append('integrity')
+        raise ValueError('entry reached')
+    with tensor_seam(), patch.multiple(d,
+            time=SimpleNamespace(perf_counter=lambda:events.append('tick') or 0.),
+            bound_file=lambda *a:events.append('helper'), integrity=entry):
+        context = {'trainer':None,'connected':SimpleNamespace(raw_features=connected,__file__='/helper'),
+                   'connected_function':(connected,connected.__code__),'guards':{'/helper':'sha'}}
+        rejects(lambda:d.update(context,{'device':'cpu','counter':0},{},1), 'entry reached')
+    assert events == ['tick','helper','integrity'], events
+
+    def timed_arm(phase, arm, core):
+        clock = [0.]
+        identity = {'arm':arm,'seed':d.SEEDS[0]}
+        def update(context, state, identity, step):
+            seconds = core/(128 if phase == 'train' else 34 if phase == 'mechanics' else 1)
+            clock[0] += seconds
+            return {'step':step,'core_seconds':seconds,'seconds':seconds}
+        def qualify(*args):
+            clock[0] += 100.  # Common construction/reload/bundle work cannot dilute core.
+            return {}
+        mechanics = {'steps':[{'step':s} for s in range(1,18)]}
+        context = {'connected_args':SimpleNamespace(phase=phase,output=Path('/fixture')),
+                   'connected_terminals':{f'mechanics:{d.SEEDS[0]}:{arm}':mechanics}}
+        with patch.multiple(d, time=SimpleNamespace(perf_counter=lambda:clock[0]),
+                fresh=lambda *a:{'identity':identity}, update=update,
+                tamper_witness=lambda *a:None, image_witness=lambda *a:{},
+                save=lambda *a:('file','digest'), release=lambda c,s:s.clear(),
+                restore=lambda *a:{'identity':identity}, payload=lambda *a:{},
+                fingerprint=lambda *a:'digest', inference_members=lambda *a:{},
+                export_bundle=lambda *a:{'sha256':'bundle'}, qualify_bundle=qualify):
+            result = d.arm_run(context,arm,d.SEEDS[0],'cpu' if phase == 'cpu' else 'cuda',
+                               discarded_update=phase == 'cpu')
+        assert result['total_training_core_seconds'] == core
+        assert result['arm_work_seconds'] == core+100.
+        assert len(result['steps']) == (128 if phase == 'train' else 17 if phase == 'mechanics' else 1)
+        assert len(result['replay_steps']) == (17 if phase == 'mechanics' else 0)
+        return result
+    control = timed_arm('train','control',100.)
+    candidate = timed_arm('train','candidate',180.)
+    timed_arm('mechanics','candidate',34.)
+    cpu = timed_arm('cpu','candidate',1.)
+    trainer = SimpleNamespace(tensor_weakrefs=lambda *a:[],release=lambda c,s:s.clear())
+    with patch.multiple(d, arm_run=lambda *a,**kw:cpu,
+            select_initializer=lambda *a:{'checkpoint':{},'canonical_initial':{}},
+            load_initializer=lambda *a:({k:None for k in d.STATIC_KEYS+('A','C')},{}), resource_check=lambda *a:None):
+        assert d.cpu_run({'trainer':trainer,'original_cpu_record':{}})['total_training_core_seconds'] == 1.
+    assert candidate['arm_work_seconds']/control['arm_work_seconds'] == 1.4
+    tree = ast.parse(DRIVER.read_text())
+    gate = next(n for n in function(tree,'run').body if isinstance(n,ast.If) and
+                'fresh_control_record' in ast.unparse(n))
+    code = compile(ast.Module(body=[gate],type_ignores=[]),'<actual in-process cost gate>','exec')
+    context = {'fresh_control_record':{**control,'wall_seconds':200.},
+               'connected_launch':{'fresh_control':{'service_seconds':260.}}}
+    namespace = {**vars(d),'args':SimpleNamespace(phase='train',arm='candidate'),
+                 'context':context,'result':candidate,'wall':280.}
+    rejects(lambda:exec(code,namespace), 'core/whole cost')
+    namespace.update(result={'total_training_core_seconds':140.},wall=300.)
+    exec(code,namespace)  # Exact <=1.50 boundary, using matching wall scopes.
+    namespace['wall'] = 310.  # Would pass against the longer control service time.
+    rejects(lambda:exec(code,namespace), 'core/whole cost')
+
+    file = {'path':'/fixture/authority.json','sha256':'a'*64}
+    unit = {'receipt':file,'log':file,'unit':'fixture','invocation_id':'a'*32,
+            'service_seconds':260.,'native_peak_rss_kib':1,'both_locks_held':True}
+    initializer = {'checkpoint':file,'canonical_initial':{}}
+    context = {'connected_args':SimpleNamespace(execution_sha256='b'*64),
+               'connected_code':{},'source':{},'original_cpu_record':{'numerical_flags':{}}}
+    for phase in ('cpu','mechanics','train'):
+        launch = {'schema':d.AUTHORITY_SCHEMA,'execution_sha256':'b'*64,'phase':phase,
+                  'arm':'control','seed':d.SEEDS[0],'recipe':copy.deepcopy(d.RECIPE),
+                  'resource_policy':d.policy(phase),'both_locks_held':True,
+                  'original_cpu':{'authority':file,'terminal':unit},
+                  'actual_gradient':{'authority':file,'terminal':unit},
+                  'witness':{'root':'/fixture/witness','files':{n:'a'*64 for n in d.WITNESS_FILES}},
+                  'selected_cpu':None if phase == 'cpu' else unit,
+                  'selected_mechanics':{a:unit for a in d.ARMS} if phase == 'train' else None,
+                  'fresh_control':None}
+        context['connected_launch'] = launch
+        active = 'candidate' if phase == 'cpu' else 'control'
+        count = 1 if phase == 'cpu' else 17 if phase == 'mechanics' else 128
+        identity = {'arm':active,'seed':d.SEEDS[0],'device':'cpu' if phase == 'cpu' else 'cuda',
+                    'method':d.method(launch),'scope':{'arm':'control','manifest_sha256':d.SCOPE_SHA256,
+                    'arm_sha256':d.CONTROL_SHA256},'parameter_names':d.parameter_roles(active)[0],
+                    'parameter_shapes':d.parameter_roles(active)[1]}
+        rows = [{'step':s,'core_seconds':1.,'seconds':1.} for s in range(1,count+1)]
+        replay = copy.deepcopy(rows) if phase == 'mechanics' else []
+        total = float(len(rows)+len(replay))
+        result = {'identity':identity,'training_updates':count,'steps':rows,'replay_steps':replay,
+                  'independent_17_vs_8_plus_9':phase == 'mechanics','fresh_first17_replay':True,
+                  'total_training_core_seconds':total,'arm_work_seconds':total+100.}
+        record = {'schema':d.SCHEMA,'phase':phase,'arm':'control','seed':d.SEEDS[0],
+                  'launch':launch,'execution_sha256':'b'*64,'code':{},'source':{},
+                  'resource_policy':d.policy(phase),'quality_read':False,'state_reuse_eligible':False,
+                  'cost_qualified':False,'model_fit_qualified':phase == 'train',
+                  'total_training_core_seconds':total,'wall_seconds':total+110.,'process_peak_rss_kib':1,
+                  'peak_cuda_allocated_bytes':0,'numerical_flags':{},
+                  'invocation':{'optimize':0,'cuda_visible_devices':'' if phase == 'cpu' else '0',
+                                'cublas_workspace_config':None if phase == 'cpu' else ':4096:8'},
+                  'result':result,'qualifications':[result],
+                  'accepted_initializers':[{'seed':s,**initializer} for s in d.SEEDS]}
+        for key in ('pass','exit_rehash_pass','sequential_model_ownership','strict_reload_exact',
+                    'native_training_inference_exact','inference_artifact_independent',
+                    'bundle_original_dependencies_denied','updated_source_mutants_rejected',
+                    'both_locks_held_in_parent_authority','cost_requires_parent_normal_exit_units',
+                    'terminal_exit_and_both_locks_require_parent_receipt'):
+            record[key] = True
+        with patch.multiple(d, check_steps=lambda *a:None, select_initializer=lambda *a:initializer):
+            d.check_terminal(context,record,phase,'control',d.SEEDS[0])
+            for key,value in [('peak_cuda_allocated_bytes',10_000_000_000),
+                              ('peak_cuda_allocated_bytes',-1),('peak_cuda_allocated_bytes',False),
+                              ('peak_cuda_allocated_bytes',0.),('peak_cuda_allocated_bytes',None),
+                              ('model_fit_qualified',phase != 'train'),('model_fit_qualified',int(phase == 'train')),
+                              ('wall_seconds',float('inf')),('total_training_core_seconds',True),
+                              ('process_peak_rss_kib',True),('pass',1),
+                              ('cost_requires_parent_normal_exit_units',1)]:
+                rejects(lambda k=key,v=value:d.check_terminal(context,{**record,k:v},phase,'control',d.SEEDS[0]), 'terminal')
+            for key,value in [('cuda_visible_devices','0' if phase == 'cpu' else ''),('optimize',False)]:
+                wrong = copy.deepcopy(record)
+                wrong['invocation'][key] = value
+                rejects(lambda:d.check_terminal(context,wrong,phase,'control',d.SEEDS[0]), 'terminal')
+            for key,value in [('steps',rows[:-1]),('total_training_core_seconds',True),
+                              ('arm_work_seconds',float('inf')),('training_updates',float(count))]:
+                wrong = copy.deepcopy(record)
+                (wrong['qualifications'][0] if phase == 'cpu' else wrong['result'])[key] = value
+                rejects(lambda:d.check_terminal(context,wrong,phase,'control',d.SEEDS[0]), 'terminal')
+            wrong = copy.deepcopy(record)
+            (wrong['qualifications'][0] if phase == 'cpu' else wrong['result'])['steps'][0]['core_seconds'] = True
+            rejects(lambda:d.check_terminal(context,wrong,phase,'control',d.SEEDS[0]), 'terminal')
+            if phase != 'cpu':
+                record['peak_cuda_allocated_bytes'] = 9_999_999_999
+                d.check_terminal(context,record,phase,'control',d.SEEDS[0])
+                record['invocation']['cublas_workspace_config'] = None
+                rejects(lambda:d.check_terminal(context,record,phase,'control',d.SEEDS[0]), 'terminal')
+
+
 def main():
     p = argparse.ArgumentParser(allow_abbrev=False)
     p.add_argument('--source-only', action='store_true', required=True)
@@ -559,6 +700,7 @@ def main():
     restore_seam(d)
     current_encoder_seam(d)
     processor_release_seam(d)
+    cost_terminal_falsifiers(d)
     print('PASS source-only connected MLP contracts/falsifiers; native UNRUN')
 
 

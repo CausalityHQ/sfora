@@ -6,7 +6,7 @@ Durable implementation/launch contract (the parent freezes actual hashes):
  --authority-sha256 SHA --phase cpu|mechanics|train --arm control|candidate
  --seed 179061|179069 --output NEWDIR. LAUNCH_KEYS is the exact launch schema.
  original_cpu={authority:FILE,terminal:UNIT} is unchanged source-v5 CPU500;
- actual_gradient={authority:FILE,terminal:UNIT} is admitted actual-v2 CPU300.
+ actual_gradient={authority:FILE,terminal:UNIT} is admitted actual-v2 CUDA300.
  witness={root:absolute canonical directory,files:exact WITNESS_FILES hashes}.
  FILE={path:absolute canonical regular file,sha256:actual SHA256}; UNIT has
  receipt:FILE,log:FILE,unit,invocation_id,service_seconds,native_peak_rss_kib,
@@ -20,9 +20,11 @@ Durable implementation/launch contract (the parent freezes actual hashes):
  Fresh TRAIN128 replays the selected same-arm/same-seed first17 diagnostics.
  Both arms always use CONTROL1008/6355 accepted seed-specific CPU-v5 state.
  Only candidate adds four absolute layer26 MLP parameters; no loss changes.
- Core is the complete arm work window, conservatively including initializer,
- construction, pixels, optimizer/integrity, serialization/restore and portable
- qualification. Whole service also includes admission/full exit and terminal
+ Core sums actual update windows, from entry helper/integrity guards through
+ pixels, complete-gallery work, optimizer/current-state integrity and completion.
+ Mechanics charges both uninterrupted17 and independent8+9. The separate
+ arm_work_seconds retains construction, serialization/restore and portable
+ qualification overhead; whole service includes admission/full exit and terminal
  serialization. Individual phase timings are retained, with no subtraction.
  TRAIN candidate additionally names a fresh same-seed control UNIT in
  fresh_control, null in other phases and for control. Both ratios <=1.50;
@@ -886,6 +888,9 @@ def restore(context, path, file_sha256, payload_sha256, identity, step):
 def update(context, state, identity, step):
     import torch
     from torch.nn import functional as F
+    if state['device'] == 'cuda':
+        torch.cuda.synchronize()
+    tick = time.perf_counter()
     trainer,connected = context['trainer'],context['connected']
     owned_function,owned_code = context['connected_function']
     require(connected.raw_features is owned_function and owned_function.__code__ is owned_code,
@@ -893,9 +898,6 @@ def update(context, state, identity, step):
     bound_file({},connected.__file__,context['guards'][connected.__file__])
     require(type(step) is int and state['counter'] == step-1 and 1 <= step <= 128, 'fixed complete update required')
     integrity(context,state,identity)
-    if state['device'] == 'cuda':
-        torch.cuda.synchronize()
-    tick = time.perf_counter()
     batch = state['schedules'][str(state['seed'])][step-1].tolist()
     full = trainer.ranking_membership(state['ranking_bank'],batch)
     K = full['valid']
@@ -964,15 +966,16 @@ def update(context, state, identity, step):
                                             context['legacy']['selected']['packages'])
     integrity(context,state,identity)
     digest = fingerprint(context,payload(context,state,identity))
-    if state['device'] == 'cuda':
-        torch.cuda.synchronize()
-    seconds = time.perf_counter()-tick
     ranking_gradient_norm = float(ranking_total[0].double().norm()) if step == 1 else None
     ranking_C_gradient_norm = float(ranking_total[1].double().norm()) if step == 1 else None
     del ranking_total
+    preclip_norm = float(norm)
+    if state['device'] == 'cuda':
+        torch.cuda.synchronize()
+    seconds = time.perf_counter()-tick
     row = {'step':step,'batch':batch,'full_membership_sha256':trainer.json_sha256(full),'full_valid':K,
         'membership':membership,'arm':state['arm'],'mse':mse_sum,'rank':rank_sum,'loss':mse_sum+rank_sum,
-        'gradient_norms':gradient_norms,'view_gradients':view_gradients,'preclip_norm':float(norm),'scale':scale,
+        'gradient_norms':gradient_norms,'view_gradients':view_gradients,'preclip_norm':preclip_norm,'scale':scale,
         'ranking_gradient_norm':ranking_gradient_norm,'ranking_C_gradient_norm':ranking_C_gradient_norm,
         'before_sha256':before,'after_sha256':after,'vision_sha256':state['current_encoder']['vision_sha256'],
         'state_sha256':digest,'core_seconds':seconds,'seconds':seconds}
@@ -1437,6 +1440,7 @@ def arm_run(context, arm, seed, device, *, discarded_update=False):
     prefix = context['connected_args'].output/(arm+'-'+str(seed))
     total = 1 if discarded_update else 17 if args.phase == 'mechanics' else 128
     rows = []
+    replay_steps = []
     try:
         for step in range(1,total+1):
             row = update(context,state,identity,step)
@@ -1459,6 +1463,7 @@ def arm_run(context, arm, seed, device, *, discarded_update=False):
             release(context,state)
             state = restore(context,checkpoint8,sha8,digest8,identity,8)
             resumed = [update(context,state,identity,step) for step in range(9, 18)]
+            replay_steps = first8+resumed
             require([diagnostic(r) for r in resumed] == [diagnostic(r) for r in rows[8:]] and
                     fingerprint(context,payload(context,state,identity)) == digest,
                     'uninterrupted17 vs independent serialized8+9 complete payload differs')
@@ -1471,9 +1476,10 @@ def arm_run(context, arm, seed, device, *, discarded_update=False):
         bundle = export_bundle(context,members,directory)
         del members
         parity = qualify_bundle(context,directory,bundle['sha256'],witness)
-        result = {'identity':identity,'steps':rows,'checkpoint':{'path':str(checkpoint),'sha256':sha},
+        result = {'identity':identity,'steps':rows,'replay_steps':replay_steps,'checkpoint':{'path':str(checkpoint),'sha256':sha},
                   'terminal_state_sha256':digest,'parity':parity,'independent_17_vs_8_plus_9':args.phase == 'mechanics',
-                  'training_updates':total,'total_training_core_seconds':time.perf_counter()-tick}
+                  'training_updates':total,'total_training_core_seconds':sum(r['core_seconds'] for r in rows+replay_steps),
+                  'arm_work_seconds':time.perf_counter()-tick}
         return result
     finally:
         if state:
@@ -1511,30 +1517,57 @@ def check_terminal(context, record, phase, arm, seed):
     check_launch(launch,SimpleNamespace(execution_sha256=context['connected_args'].execution_sha256,
                                       phase=phase,arm=arm,seed=seed))
     require(record['schema'] == SCHEMA and record['phase'] == phase and record['arm'] == arm and
-            record['seed'] == seed and method(launch) == method(context['connected_launch']) and
+            type(record['seed']) is int and record['seed'] == seed and method(launch) == method(context['connected_launch']) and
             record['execution_sha256'] == context['connected_args'].execution_sha256 and
             record['code'] == context['connected_code'] and record['source'] == context['source'] and
-            record['resource_policy'] == policy(phase) and record['quality_read'] is False and
+            record['resource_policy'] == policy(phase) and all(type(v) is int for v in record['resource_policy'].values()) and
+            record['quality_read'] is False and record['model_fit_qualified'] is (phase == 'train') and
             record['state_reuse_eligible'] is False and record['cost_qualified'] is False and
             all(record[k] is True for k in ('pass','exit_rehash_pass','sequential_model_ownership',
                 'strict_reload_exact','native_training_inference_exact','inference_artifact_independent',
-                'bundle_original_dependencies_denied','updated_source_mutants_rejected','both_locks_held_in_parent_authority')) and
+                'bundle_original_dependencies_denied','updated_source_mutants_rejected','both_locks_held_in_parent_authority',
+                'cost_requires_parent_normal_exit_units','terminal_exit_and_both_locks_require_parent_receipt')) and
+            all(type(record[k]) in (int,float) and math.isfinite(record[k])
+                for k in ('total_training_core_seconds','wall_seconds','process_peak_rss_kib')) and
             0 < record['total_training_core_seconds'] < record['wall_seconds'] < policy(phase)['seconds'] and
             0 < record['process_peak_rss_kib'] <= 8*1024**2 and
-            record['invocation']['optimize'] == 0 and record['numerical_flags'] == context['original_cpu_record']['numerical_flags'],
+            type(record['peak_cuda_allocated_bytes']) is int and
+            (record['peak_cuda_allocated_bytes'] == 0 if phase == 'cpu' else
+             0 <= record['peak_cuda_allocated_bytes'] < policy(phase)['cuda_allocated_bytes_exclusive']) and
+            (record['invocation']['cuda_visible_devices'] == '' if phase == 'cpu' else
+             record['invocation']['cuda_visible_devices'] == '0' and
+             record['invocation']['cublas_workspace_config'] == ':4096:8') and
+            type(record['invocation']['optimize']) is int and record['invocation']['optimize'] == 0 and
+            record['numerical_flags'] == context['original_cpu_record']['numerical_flags'],
             'complete prospective terminal contract differs')
     results = record['qualifications'] if phase == 'cpu' else [record['result']]
     require(len(results) == 1, 'one discarded CPU update/full arm result required')
     result = results[0]
     identity = result['identity']
-    require(identity['arm'] == ('candidate' if phase == 'cpu' else arm) and identity['seed'] == seed and
+    require(identity['arm'] == ('candidate' if phase == 'cpu' else arm) and type(identity['seed']) is int and identity['seed'] == seed and
             identity['device'] == ('cpu' if phase == 'cpu' else 'cuda') and identity['method'] == method(launch) and
+            type(result['training_updates']) is int and
             result['training_updates'] == (1 if phase == 'cpu' else 17 if phase == 'mechanics' else 128) and
+            type(result['steps']) is list and len(result['steps']) == result['training_updates'] and
             result['independent_17_vs_8_plus_9'] is (phase == 'mechanics') and
             identity['scope'] == {'arm':'control','manifest_sha256':SCOPE_SHA256,'arm_sha256':CONTROL_SHA256} and
             (identity['parameter_names'],identity['parameter_shapes']) == parameter_roles(identity['arm'])[:2],
             'terminal restored original-scope/active group/complete step identity differs')
     check_steps(context,result['steps'],identity)
+    require(type(result['replay_steps']) is list and
+            len(result['replay_steps']) == (17 if phase == 'mechanics' else 0), 'terminal complete replay timings differ')
+    if phase == 'mechanics':
+        check_steps(context,result['replay_steps'],identity)
+        require([diagnostic(r) for r in result['replay_steps']] == [diagnostic(r) for r in result['steps']],
+                'terminal independent17 replay differs')
+    core_rows = result['steps']+result['replay_steps']
+    require(all(type(r['core_seconds']) in (int,float) and math.isfinite(r['core_seconds']) and r['core_seconds'] > 0
+                for r in core_rows) and
+            all(type(result[k]) in (int,float) and math.isfinite(result[k])
+                for k in ('total_training_core_seconds','arm_work_seconds')) and
+            record['total_training_core_seconds'] == result['total_training_core_seconds'] == sum(r['core_seconds'] for r in core_rows) and
+            0 < result['total_training_core_seconds'] < result['arm_work_seconds'] < record['wall_seconds'],
+            'terminal actual update-core/arm-work accounting differs')
     if phase == 'cpu':
         require([q['seed'] for q in record['accepted_initializers']] == list(SEEDS) and
                 all(q['checkpoint'] == select_initializer(context['original_cpu_record'],q['seed'])['checkpoint'] and
@@ -1583,7 +1616,6 @@ def admit_terminal(context, unit, phase, arm, seed):
 
 
 def cpu_run(context):
-    tick = time.perf_counter()
     trainer = context['trainer']
     result = arm_run(context,'candidate',SEEDS[0],'cpu',discarded_update=True)
     accepted = []
@@ -1596,7 +1628,7 @@ def cpu_run(context):
         require(all(ref() is None for ref in refs), 'model-free original initializer lifetime survived release')
         resource_check(context)
     return {'qualifications':[result],'accepted_initializers':accepted,
-            'total_training_core_seconds':time.perf_counter()-tick}
+            'total_training_core_seconds':result['total_training_core_seconds']}
 
 
 def run(args):
@@ -1663,7 +1695,7 @@ def run(args):
     if args.phase == 'train' and args.arm == 'candidate':
         control = context['fresh_control_record']
         require(result['total_training_core_seconds']/control['total_training_core_seconds'] <= 1.50 and
-                wall/context['connected_launch']['fresh_control']['service_seconds'] <= 1.50,
+                wall/control['wall_seconds'] <= 1.50,
                 'fresh live-control core/whole cost floor failed')
     parity = (result['qualifications'][0] if args.phase == 'cpu' else result['result'])['parity']
     receipt = {'schema':SCHEMA,'phase':args.phase,'arm':args.arm,'seed':args.seed,'pass':True,'quality_read':False,
