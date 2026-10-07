@@ -1,0 +1,11 @@
+{
+  "correction": "New immutable source root/job; exact filename substitution and original command hash-table/CLI referenced path consistency preflight before launch. Preserve original failure.",
+  "decision": "FAIL_LAUNCH_INTEGRITY",
+  "invocation_id": "92889866e2a948438f6d0ee43e62fcc3",
+  "original_launch_exit": 1,
+  "original_log_sha256": "cc11a1aa6ddd0815ecb9fe12ee59d01bbf73aae1e7bf1e97341669c042b77a82",
+  "pass": false,
+  "root_cause": "Root command generator changed source-root and cpu-v4- prefixes but missed authority-cpu-v4.json filename ending; frozen command failed SHA precheck before Python. No native imports/model/image/update/extraction occurred.",
+  "schema": "connected-mlp-cpu-parent-verification-v1",
+  "service_seconds": 0.422
+}
