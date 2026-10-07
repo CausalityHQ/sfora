@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Bounded stdlib admission/source checks; native connectivity remains UNRUN."""
 import ast
+import contextlib
+import gc
 import hashlib
+import io
 import json
 import math
 from pathlib import Path
@@ -10,6 +13,7 @@ import shutil
 import sys
 import tempfile
 from types import SimpleNamespace
+import weakref
 
 HERE = Path(__file__).resolve().parent
 DRIVER = HERE / 'qualify_actual_objective_encoder_gradients.py'
@@ -25,9 +29,96 @@ def rejects(fn, message):
         raise AssertionError('accepted: ' + message)
 
 
+def cleanup_diagnostics(d):
+    """Execute the actual handler/finally, with stdlib objects in place of tensors."""
+    tree = ast.parse(DRIVER.read_text())
+    view = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'view_probe')
+    block = next(n for n in view.body if isinstance(n, ast.Try))
+    wrapper = ast.parse("def exercise(temporary, released, chained):\n failure = None\n view = 'canonical'\n").body[0]
+    wrapper.body.append(ast.Try(body=ast.parse("features = temporary['features']\nreject(features, chained)").body,
+        handlers=block.handlers, orelse=block.orelse, finalbody=block.finalbody))
+    wrapper.body += ast.parse('if failure is not None: raise failure').body
+    class Tensor: pass
+    def reject(tensor, chained):
+        if not chained:
+            raise ValueError('original source rejection')
+        try:
+            raise ValueError('original source rejection')
+        except ValueError as error:
+            raise RuntimeError('wrapped rejection') from error
+    namespace = {**d, 'reject': reject, 'torch': SimpleNamespace(cuda=SimpleNamespace(
+        synchronize=lambda: None, empty_cache=lambda: None))}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[wrapper], type_ignores=[])),
+                 '<actual source cleanup>', 'exec'), namespace)
+    for chained in (False, True):
+        temporary = {'features': Tensor()}
+        ref = weakref.ref(temporary['features'])
+        log = io.StringIO()
+        with contextlib.redirect_stderr(log):
+            try:
+                namespace['exercise'](temporary, [ref], chained)
+            except ValueError as error:
+                expected = 'lifetime survived release' if chained else 'original source rejection'
+                assert expected in str(error)
+                assert (ref() is not None) is chained
+            else:
+                raise AssertionError('cleanup rejection disappeared')
+        assert 'ValueError: original source rejection' in log.getvalue(), log.getvalue()
+        if chained:
+            assert 'RuntimeError: wrapped rejection' in log.getvalue()
+            row = next(json.loads(line) for line in log.getvalue().splitlines() if line.startswith('{'))
+            assert row['surviving'][0]['name'] == 'released[0]'
+            assert row['surviving'][0]['type'].endswith('.Tensor')
+        gc.collect()
+        assert ref() is None, 'diagnostic retained an object after exception release'
+    # Run the outer source cleanup too: chained frames may retain the model.
+    outer = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'qualify')
+    block = next(n for n in outer.body if isinstance(n, ast.Try))
+    wrapper = ast.parse('def exercise_outer(owned, released, release_names, chained):\n failure = None\n').body[0]
+    wrapper.body.append(ast.Try(body=ast.parse("reject(owned['model'], chained)").body,
+        handlers=block.handlers, orelse=block.orelse, finalbody=block.finalbody))
+    wrapper.body += ast.parse('if failure is not None: raise failure').body
+    exits = []
+    namespace.update(torch=SimpleNamespace(cuda=SimpleNamespace(is_initialized=lambda: False)),
+                     trainer=SimpleNamespace(exit_rehash=lambda context: exits.append('rehash')), context={})
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[wrapper], type_ignores=[])),
+                 '<actual outer source cleanup>', 'exec'), namespace)
+    for chained in (False, True):
+        owned = {'model': Tensor(), 'processor': Tensor()}
+        ref = weakref.ref(owned['model'])
+        names = {id(owned['model']): 'model'}
+        log = io.StringIO()
+        with contextlib.redirect_stderr(log):
+            try:
+                namespace['exercise_outer'](owned, [ref], names, chained)
+            except ValueError as error:
+                expected = 'encoder/processor tensor lifetime' if chained else 'original source rejection'
+                assert expected in str(error)
+                assert (ref() is not None) is chained
+            else:
+                raise AssertionError('outer rejection disappeared')
+        assert 'ValueError: original source rejection' in log.getvalue()
+        if chained:
+            row = next(json.loads(line) for line in log.getvalue().splitlines() if line.startswith('{'))
+            assert row['surviving'][0]['name'] == 'model'
+        gc.collect()
+        assert ref() is None
+    assert exits == ['rehash'], 'successful release skipped original exit reader'
+    tensor = Tensor()
+    named_ref = weakref.ref(tensor)
+    log = io.StringIO()
+    with contextlib.redirect_stderr(log):
+        d['_diagnose_release']([named_ref], 'encoder', {id(tensor): 'model.encoder.fc1.weight'})
+    assert json.loads(log.getvalue())['surviving'][0]['name'] == 'model.encoder.fc1.weight'
+    del tensor
+    gc.collect()
+    assert named_ref() is None, 'named diagnostic retained an object'
+
+
 def main():
     assert DRIVER.is_file(), 'missing actual-objective qualifier'
     d = runpy.run_path(str(DRIVER))
+    cleanup_diagnostics(d)
     assert not {'torch', 'numpy', 'transformers', 'PIL', 'safetensors'} & sys.modules.keys()
     receipt_path = EVIDENCE / 'cpu-v5/receipt.json'
     receipt = json.loads(receipt_path.read_text())
@@ -172,7 +263,7 @@ def main():
     assert d['POLICY'] == {'seconds': 300, 'host_bytes': 8589934592, 'swap_bytes': 0,
                            'cuda_allocated_bytes_exclusive': 10000000000}
     assert not {'torch', 'numpy', 'transformers', 'PIL', 'safetensors'} & sys.modules.keys()
-    print('PASS stdlib initializer/authority, B64 K63/micro16, membership, gradient rejection, source/lifetime contract; native UNRUN')
+    print('PASS stdlib initializer/authority, B64 K63/micro16, membership, gradient rejection, source/lifetime diagnostics; native UNRUN')
 
 
 if __name__ == '__main__':

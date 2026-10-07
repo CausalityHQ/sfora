@@ -23,6 +23,7 @@ import resource
 import runpy
 import sys
 import time
+import traceback
 from types import SimpleNamespace
 import weakref
 
@@ -208,6 +209,20 @@ def _match(torch, left, right, label, *, exact=False):
             'bitwise': bool(torch.equal(left, right))}
 
 
+def _diagnose_release(released, label, names=None):
+    """Report surviving identities without retaining objects or changing the gate."""
+    surviving = []
+    for i, ref in enumerate(released):
+        value = ref()
+        if value is not None:
+            cls = type(value)
+            surviving.append({'name': (names or {}).get(id(value), f'released[{i}]'),
+                              'type': cls.__module__ + '.' + cls.__qualname__})
+    if surviving:
+        print(json.dumps({'event': 'release_diagnostic', 'scope': label,
+                          'surviving': surviving}), file=sys.stderr, flush=True)
+
+
 def view_probe(trainer, context, cpu_state, model, processor, connected, anchors, valid, view):
     import torch
     from torch.nn import functional as F
@@ -334,6 +349,7 @@ def view_probe(trainer, context, cpu_state, model, processor, connected, anchors
                         if k not in ('state','query','gallery','members')}))
         del features, state, query, gallery, grads
     except Exception as error:
+        traceback.print_exception(error, file=sys.stderr)  # Preserve the caught failure before cleanup can mask it.
         failure = error.with_traceback(None)
     finally:
         # Clear loop aliases on rejection too, before the owned dictionaries.
@@ -342,6 +358,7 @@ def view_probe(trainer, context, cpu_state, model, processor, connected, anchors
         gc.collect()
         torch.cuda.synchronize()
         torch.cuda.empty_cache()
+        _diagnose_release(released, 'view '+view)
         require(all(ref() is None for ref in released), 'view graph/GPU readout/pixel lifetime survived release')
     if failure is not None:
         raise failure
@@ -399,6 +416,7 @@ def qualify(args):
     legacy['packing'] = legacy['genuine'].load_helper('_quadratic_packing', pack['path'], pack['sha256'], context['guards'])
     connected = SimpleNamespace(**runpy.run_path(str(HERE / 'connected_residual_readout.py')))
     owned, released, failure, results = {}, [], None, []
+    release_names = {}
     try:
         owned['cpu_state'], ident = _load_initializer(trainer, context, qualification)
         trainer.integrity(context, owned['cpu_state'], ident)
@@ -413,6 +431,9 @@ def qualify(args):
         owned['model'].to('cuda').eval()
         require(torch.cuda.is_available() and torch.cuda.device_count() == 1, 'one genuine CUDA encoder required')
         context['live_model'] = weakref.ref(owned['model'])
+        release_names.update({id(owned[n]): n for n in ('model', 'processor')})
+        release_names.update({id(p): 'model.'+n for n,p in owned['model'].named_parameters()})
+        release_names.update({id(p): 'model.'+n for n,p in owned['model'].named_buffers()})
         released.extend((weakref.ref(owned['model']), weakref.ref(owned['processor'])))
         released.extend(weakref.ref(p) for p in owned['model'].parameters())
         released.extend(weakref.ref(p) for p in owned['model'].buffers())
@@ -425,12 +446,15 @@ def qualify(args):
         del parameter
         # The original position_ids validator constructs its reference on CPU.
         owned['model'].to('cpu')
+        release_names.update({id(p): 'model.'+n for n,p in owned['model'].named_parameters()})
+        release_names.update({id(p): 'model.'+n for n,p in owned['model'].named_buffers()})
         released.extend(weakref.ref(p) for p in owned['model'].parameters())
         released.extend(weakref.ref(p) for p in owned['model'].buffers())
         require(source.model_facts(owned['model'], owned['processor'], roles, packages) ==
                 owned['cpu_state']['provenance']['encoder']['source_proof']['runtime'],
                 'all448 source bytes/config/processor/nonpersistent buffers changed')
     except Exception as error:
+        traceback.print_exception(error, file=sys.stderr)  # Preserve the caught failure before cleanup can mask it.
         failure = error.with_traceback(None)
     finally:
         parameter = None
@@ -440,6 +464,7 @@ def qualify(args):
         if torch.cuda.is_initialized():
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
+        _diagnose_release(released, 'encoder/processor', release_names)
         require(all(ref() is None for ref in released), 'encoder/processor tensor lifetime survived release')
         if 'cpu_state' in owned:
             if 'cpu_rng' in owned: torch.random.set_rng_state(owned.pop('cpu_rng'))
