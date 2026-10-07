@@ -1,0 +1,17 @@
+{
+  "pass": true,
+  "service_seconds": 129.648,
+  "invocation_id": "403b4c2b4c3f429888385862a9c5a3df",
+  "host_peak_bytes": 251711488,
+  "events_zero": true,
+  "swap_zero": true,
+  "receipt_sha256": "3768dc346dd6cc1796558548180fe6be1c22e7c15d6c51d70b9e199aeb7b7757",
+  "log_sha256": "c41b00bebb0dab8b1434a6cf7d19060262ad23e1d67261558cdf9fda61a32480",
+  "model_fit_qualified": false,
+  "state_reuse_eligible": false,
+  "serial_median_seconds": 32.43357337299949,
+  "batch_median_seconds": 10.19314343499991,
+  "batch_over_serial": 0.3142775332762305,
+  "median_saving_seconds": 22.24042993799958,
+  "fresh_files_per_pass": 20302
+}

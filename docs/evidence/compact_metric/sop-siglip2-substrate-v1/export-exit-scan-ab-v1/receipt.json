@@ -1,0 +1,49 @@
+{
+  "schema": "export-exit-scan-ab-v1",
+  "pass": true,
+  "engineering_only": true,
+  "model_fit_qualified": false,
+  "quality_read": false,
+  "state_reuse_eligible": false,
+  "rows": [
+    {
+      "round": 0,
+      "mode": "serial",
+      "seconds": 33.868433261000064,
+      "files": 20302
+    },
+    {
+      "round": 0,
+      "mode": "batch",
+      "seconds": 10.465719990000252,
+      "files": 20302
+    },
+    {
+      "round": 1,
+      "mode": "batch",
+      "seconds": 10.19314343499991,
+      "files": 20302
+    },
+    {
+      "round": 1,
+      "mode": "serial",
+      "seconds": 32.43357337299949,
+      "files": 20302
+    },
+    {
+      "round": 2,
+      "mode": "serial",
+      "seconds": 32.02000593400044,
+      "files": 20302
+    },
+    {
+      "round": 2,
+      "mode": "batch",
+      "seconds": 10.084295765999741,
+      "files": 20302
+    }
+  ],
+  "mutation_rejected": true,
+  "wall_seconds": 129.17669905500043,
+  "invocation_id": "403b4c2b4c3f429888385862a9c5a3df"
+}

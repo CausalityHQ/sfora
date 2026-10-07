@@ -1,0 +1,76 @@
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/command.sh: OK
+Running as unit: sfora-connected-encoder-gradient-v1.service; invocation ID: e39d44c738b24b2694217251d58236dc
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/qualify_connected_encoder_gradients.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/test_connected_encoder_gradients.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/train_siglip2_cached_readout.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/connected_residual_readout.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/prototype_residual_readout.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/quadratic_readout.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/authority.json: OK
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1: OK
+/usr/lib/aarch64-linux-gnu/libc.so.6: OK
+/usr/lib/aarch64-linux-gnu/libcuda.so.580.159.03: OK
+/usr/lib/aarch64-linux-gnu/libdl.so.2: OK
+/usr/lib/aarch64-linux-gnu/libfribidi.so.0.4.0: OK
+/usr/lib/aarch64-linux-gnu/libgcc_s.so.1: OK
+/usr/lib/aarch64-linux-gnu/libm.so.6: OK
+/usr/lib/aarch64-linux-gnu/libnvidia-ml.so.580.159.03: OK
+/usr/lib/aarch64-linux-gnu/libpthread.so.0: OK
+/usr/lib/aarch64-linux-gnu/librt.so.1: OK
+/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.33: OK
+/usr/lib/aarch64-linux-gnu/libutil.so.1: OK
+/usr/lib/aarch64-linux-gnu/libz.so.1.3: OK
+{"pass": true, "engineering_only": true, "whole_seconds": 31.021929934999207}
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/qualify_connected_encoder_gradients.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/test_connected_encoder_gradients.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/train_siglip2_cached_readout.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/connected_residual_readout.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/prototype_residual_readout.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/quadratic_readout.py: OK
+/home/riomus/runs/sfora-connected-encoder-gradient-source-v1/authority.json: OK
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1: OK
+/usr/lib/aarch64-linux-gnu/libc.so.6: OK
+/usr/lib/aarch64-linux-gnu/libcuda.so.580.159.03: OK
+/usr/lib/aarch64-linux-gnu/libdl.so.2: OK
+/usr/lib/aarch64-linux-gnu/libfribidi.so.0.4.0: OK
+/usr/lib/aarch64-linux-gnu/libgcc_s.so.1: OK
+/usr/lib/aarch64-linux-gnu/libm.so.6: OK
+/usr/lib/aarch64-linux-gnu/libnvidia-ml.so.580.159.03: OK
+/usr/lib/aarch64-linux-gnu/libpthread.so.0: OK
+/usr/lib/aarch64-linux-gnu/librt.so.1: OK
+/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.33: OK
+/usr/lib/aarch64-linux-gnu/libutil.so.1: OK
+/usr/lib/aarch64-linux-gnu/libz.so.1.3: OK
+FINAL_CGROUP {"command_exit_status": 0, "invocation_id": "e39d44c738b24b2694217251d58236dc", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-encoder-gradient-v1.service", "values": {"memory.current": "993624064", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "5913935872", "memory.stat": "anon 5992448\nfile 948924416\nkernel 36544512\nkernel_stack 65536\npagetables 339968\nsec_pagetables 0\npercpu 2464\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 20480\nfile_dirty 884736\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5836800\ninactive_file 385282048\nactive_file 563544064\nunevictable 0\nslab_reclaimable 35993880\nslab_unreclaimable 117648\nslab 36111528\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 449985\npgmajfault 9132\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1029\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+	Command being timed: "/bin/bash -c set -e; sudo -n /bin/sync; sudo -n /bin/sh -c "echo 3 > /proc/sys/vm/drop_caches"; exec /bin/bash /home/riomus/runs/sfora-connected-encoder-gradient-source-v1/command.sh"
+	User time (seconds): 26.48
+	System time (seconds): 3.74
+	Percent of CPU this job got: 91%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:32.95
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4374860
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 9131
+	Minor (reclaiming a frame) page faults: 440688
+	Voluntary context switches: 101252
+	Involuntary context switches: 338
+	Swaps: 0
+	File system inputs: 24087928
+	File system outputs: 1752
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+STOP_CGROUP {"exit_code": "exited", "exit_status": "0", "invocation_id": "e39d44c738b24b2694217251d58236dc", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-encoder-gradient-v1.service", "service_result": "success", "values": {"memory.current": "993288192", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "5913935872", "memory.stat": "anon 5423104\nfile 948932608\nkernel 36155392\nkernel_stack 0\npagetables 98304\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 20480\nfile_dirty 888832\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5382144\ninactive_file 385286144\nactive_file 563544064\nunevictable 0\nslab_reclaimable 36004720\nslab_unreclaimable 35648\nslab 36040368\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 451504\npgmajfault 9132\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1029\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 33.010s
+CPU time consumed: 30.258s
+Memory peak: 5.5G
+Memory swap peak: 0B

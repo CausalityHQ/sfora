@@ -1,0 +1,15 @@
+{
+  "pass": true,
+  "service_seconds": 33.01,
+  "invocation_id": "e39d44c738b24b2694217251d58236dc",
+  "host_peak_bytes": 5913935872,
+  "events_zero": true,
+  "swap_zero": true,
+  "receipt_sha256": "5756b7b0fa596438642c7fef18815931671e09e89d1d799feb5ae725e3dedcf9",
+  "log_sha256": "9f235d008f7a68980ae4b3a3cf1d38bfa3759ad7a36bfd7fa78c088ba1a6be13",
+  "model_fit_qualified": false,
+  "state_reuse_eligible": false,
+  "encoder_gradient_circuit_pass": true,
+  "actual_objective_gradient_qualified": false,
+  "peak_cuda_allocated_bytes": 2104031744
+}
