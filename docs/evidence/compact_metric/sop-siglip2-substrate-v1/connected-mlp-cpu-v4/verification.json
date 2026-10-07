@@ -1,0 +1,18 @@
+{
+  "all_11_frozen_files_exit_rehashed": true,
+  "engineering_only": true,
+  "invocation_id": "150565b1e979409188432cb1c3e9059b",
+  "memory_events_zero": true,
+  "next_source_issue": "TRAIN first17 consumer accesses mechanics.steps; producer noncpu receipt stores result.steps. CPU proof remains specific to v4; corrected source requires fresh qualification.",
+  "original_launch_exit": 0,
+  "original_log_sha256": "dc22f736398747b3d703004e8712e94ca5a1a693f611c5fb8c03483c0005928c",
+  "pass": true,
+  "peak_host_bytes": 7162912768,
+  "quality_read": false,
+  "receipt_sha256": "8c0e76d353c5eb636dea3dc9b57ae8bca2f6e0962a60cfad4fcde606f25a3dfc",
+  "schema": "connected-mlp-cpu-parent-verification-v1",
+  "service_seconds": 428.927,
+  "source_execution_sha256": "fab7bef1d26e0f245c050d2296b332a3d9ae59e31eaeeb8dc844d5f4c732f87b",
+  "state_reuse_eligible": false,
+  "swap_bytes": 0
+}
