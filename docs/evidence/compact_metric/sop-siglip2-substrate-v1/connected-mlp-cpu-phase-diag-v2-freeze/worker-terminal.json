@@ -1,0 +1,28 @@
+{
+  "schema": "connected-mlp-phase-observer-worker-terminal-v1",
+  "commit": "1741a7bc5521c566a57269716a4a3d807f4613c5",
+  "base": "2739b24589dbdef3fb8be27b9ddc3f0d65c83065",
+  "files": {
+    "scripts/observe_connected_mlp_phases.py": "3833eb15c06525bd156bda3e7f9036f1e67bacd2d318dcee5f872998d24ea20a",
+    "scripts/test_connected_mlp_phase_observer.py": "81b18c9ac34937d01a58e0a6a6777a8ac6db4b8ea080ac854a572d7537657167",
+    "/tmp/sfora-connected-mlp-phase-observer-test.log": "ea2146f03016e5fdec0ce76fe539f4d5ff5eab1988d4b01144559bc145f93dc0",
+    "/tmp/sfora-connected-mlp-phase-observer-contract.json": "eb2a51b3c5d58232d235926c25a4bae9ecf66945a60a5621112fcbf09459b659"
+  },
+  "command": "timeout 120s bash -c 'ulimit -v 1048576; exec python3 -B scripts/test_connected_mlp_phase_observer.py'",
+  "exit_code": 0,
+  "timeout_seconds": 120,
+  "address_space_limit_bytes": 1073741824,
+  "final_suite_runs": 1,
+  "test_result": {
+    "schema": "connected-mlp-phase-observer-source-check-v1",
+    "tests": 1,
+    "seconds": 0.12773162801750004,
+    "pass": true,
+    "native_imported": false
+  },
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "trainer_executed": false,
+  "pushed": false,
+  "merged": false
+}

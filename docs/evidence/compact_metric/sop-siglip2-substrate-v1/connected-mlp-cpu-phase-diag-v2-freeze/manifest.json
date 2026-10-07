@@ -1,0 +1,48 @@
+{
+  "argv": [
+    "/home/riomus/runs/sfora-connected-mlp-train-source-v2/train_siglip2_connected_mlp.py",
+    "--execution-sha256",
+    "cb18b71dad340f49964679bf47b14449e546ab654e67d4d823256e4f212234b0",
+    "--authority",
+    "/home/riomus/runs/sfora-connected-mlp-train-source-v2/authority-cpu-v2.json",
+    "--authority-sha256",
+    "56f37121ce44dee2f305961d540ce592b32d0e938c229b65f62d8c627f47c779",
+    "--phase",
+    "cpu",
+    "--arm",
+    "control",
+    "--seed",
+    "179061",
+    "--output",
+    "/home/riomus/runs/sfora-connected-mlp-cpu-phase-diag-v2"
+  ],
+  "authority": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v2/authority-cpu-v2.json",
+    "sha256": "56f37121ce44dee2f305961d540ce592b32d0e938c229b65f62d8c627f47c779"
+  },
+  "execution": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v2/execution.json",
+    "sha256": "cb18b71dad340f49964679bf47b14449e546ab654e67d4d823256e4f212234b0"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-cpu-phase-diag-v2",
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "qualification_eligible": false,
+  "schema": "connected-mlp-phase-observer-v1",
+  "state_reuse_eligible": false,
+  "stdio": {
+    "stderr": "/home/riomus/runs/sfora-connected-mlp-phase-observer-source-v2/original.log",
+    "stdout": "/home/riomus/runs/sfora-connected-mlp-phase-observer-source-v2/original.log"
+  },
+  "trainer": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v2/train_siglip2_connected_mlp.py",
+    "sha256": "cd68f9b109ca48dfc488a248b66c6e2f4a1e58e884aa3c598f4325d4c912edb2"
+  },
+  "unit": "sfora-connected-mlp-cpu-phase-diag-v2",
+  "wrapper": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-phase-observer-source-v2/observe_connected_mlp_phases.py",
+    "sha256": "3833eb15c06525bd156bda3e7f9036f1e67bacd2d318dcee5f872998d24ea20a"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "cause": "Parent manifest execution was description string; immutable wrapper expected pinned FILE. Root corrected prospective manifest only.",
+  "events": 0,
+  "host_peak_bytes": 144818176,
+  "invocation_id": "ae5d04f240f2446887d7adac7d735665",
+  "log_sha256": "3a339236ed0c8768d1f5543bba2e654af7b6696ba805680fce1797d90f690756",
+  "service_seconds": 0.534,
+  "source_begin_present": false,
+  "ssh_exit_status": 1,
+  "ssh_session": 52438,
+  "swap_bytes": 0,
+  "trainer_entered": false,
+  "verdict": "FAIL_MANIFEST_ADMISSION"
+}

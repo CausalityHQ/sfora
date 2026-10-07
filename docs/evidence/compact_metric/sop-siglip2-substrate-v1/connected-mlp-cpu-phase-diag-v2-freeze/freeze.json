@@ -1,0 +1,26 @@
+{
+  "files": {
+    "command.sh": "8d62f3ecb1db3f41621fe273388261380c3bd781726a1e44ae726199ea08c1e8",
+    "launch.sh": "97ccb754470c648e9c6f698509400ce61c268d8d5661f28ef4e05a2a290aa837",
+    "manifest.json": "be75b0af2a652c42ac1895f799be853c9e48ebb046a99b333d55cc965b7a480e",
+    "observe_connected_mlp_phases.py": "3833eb15c06525bd156bda3e7f9036f1e67bacd2d318dcee5f872998d24ea20a",
+    "test_connected_mlp_phase_observer.py": "81b18c9ac34937d01a58e0a6a6777a8ac6db4b8ea080ac854a572d7537657167",
+    "worker-contract.json": "eb2a51b3c5d58232d235926c25a4bae9ecf66945a60a5621112fcbf09459b659",
+    "worker-terminal.json": "b94be4ec026d14e480246e96fc3c1f3c070c14976a4ea9fdfbbd3f779afa7db3"
+  },
+  "manifest_sha256": "be75b0af2a652c42ac1895f799be853c9e48ebb046a99b333d55cc965b7a480e",
+  "output": "/home/riomus/runs/sfora-connected-mlp-cpu-phase-diag-v2",
+  "prior_diag_v1_verdict": "FAIL_MANIFEST_ADMISSION",
+  "qualification_eligible": false,
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "connected-mlp-phase-observer-parent-freeze-v1",
+  "state_reuse_eligible": false,
+  "stop_rule": "ONE diagnostic of unchanged frozen CPUv2 source; original source/full state/cleanup/resource predicates untouched, both locks, CUDA hidden, no quality reads or reusable state. Runtime timeout remains diagnostic FAIL; inclusive nested intervals not additive and profiler overhead is not production speed. Preserve all prior failures.",
+  "unit": "sfora-connected-mlp-cpu-phase-diag-v2",
+  "worker_commit": "1741a7bc5521c566a57269716a4a3d807f4613c5"
+}
