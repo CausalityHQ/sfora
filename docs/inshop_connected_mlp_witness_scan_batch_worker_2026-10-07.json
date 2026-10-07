@@ -1,0 +1,111 @@
+{
+  "base_commit": "8d53707ab98c2642a58fe1f2aaed12f55de84a4a",
+  "behavior": {
+    "accepted_differences": [
+      "atomic owner publication after complete success",
+      "descriptor-prevalidation and staged-conflict first-error precedence",
+      "concurrent extra reads on failure, all submitted workers joined"
+    ],
+    "active_readers_at_most": 4,
+    "barrier_parties": 2,
+    "barrier_timeout_seconds": 1,
+    "duplicates_and_preexisting_guards": true,
+    "failure_owner_unchanged_and_workers_joined": true,
+    "fresh_per_occurrence_hashes": true,
+    "negative_cases": [
+      "same-size restored-mtime mutation",
+      "wrong SHA",
+      "symlink",
+      "noncanonical path",
+      "directory",
+      "missing file",
+      "conflicting owner",
+      "incompatible duplicate digest",
+      "malformed descriptor"
+    ],
+    "ordered_success_equal_to_serial": true
+  },
+  "clean": true,
+  "commit": "4d5e226ca97aa326e634c0c55343e4a343a02563",
+  "early_contract_parent_message": "1791380110347196692-2863870",
+  "execution": {
+    "files": {
+      "test_siglip2_connected_mlp.py": "d3a2ea5ad1424a64805cb7c9f1b1dbfad1af6ac08214f051d7f506b4b204c637",
+      "train_siglip2_connected_mlp.py": "befae985c682da238fe5239df5fb91bcde647664215ec5ebfbdd643bcb9c5a4f"
+    },
+    "path": "/tmp/sfora-connected-mlp-witness-scan-batch-20261007/execution.json",
+    "sha256": "e3a6a45a886f44adb873df3a2c7145f502111cc283f5e75ac01781144f94c065"
+  },
+  "identity": [
+    "Roman Bartusiak <riomus@gmail.com>",
+    "Roman Bartusiak <riomus@gmail.com>"
+  ],
+  "limits": {
+    "historical_trainer_v5_and_readers_unchanged": true,
+    "integration_and_future_cpu_gate_owner": "sfora/emafactorial",
+    "native_qualification": "UNRUN",
+    "native_torch_ssh_images_gpu_cloud_consults_children_operator_jobs": false,
+    "policies_seconds": [
+      300,
+      300,
+      600
+    ],
+    "prior_diag_v2_result": "FAIL remains FAIL",
+    "push_or_master_integration": false,
+    "speed_claim": false
+  },
+  "owned": {
+    "test_siglip2_connected_mlp.py": {
+      "bytes": 63007,
+      "path": "scripts/test_siglip2_connected_mlp.py",
+      "sha256": "d3a2ea5ad1424a64805cb7c9f1b1dbfad1af6ac08214f051d7f506b4b204c637"
+    },
+    "train_siglip2_connected_mlp.py": {
+      "bytes": 110487,
+      "path": "scripts/train_siglip2_connected_mlp.py",
+      "sha256": "befae985c682da238fe5239df5fb91bcde647664215ec5ebfbdd643bcb9c5a4f"
+    }
+  },
+  "preservation": {
+    "entire_production_inverse_ast_sha256": "1578ada3f1ab342af6f83ca060acdb24af9755808d762d43b1f8d35bfed2a1fb",
+    "entire_production_inverse_sha256": "cd68f9b109ca48dfc488a248b66c6e2f4a1e58e884aa3c598f4325d4c912edb2",
+    "old_test_bytes_exact_after_removing_added_function_and_call": true,
+    "only_owned_paths_changed": true
+  },
+  "production_change": "Only admit_actual_gradient: serial input_guards loop replaced by batch_bound_files(context['guards'],record['input_guards'].items()). Existing helper and all surrounding predicates unchanged.",
+  "schema": "connected-mlp-witness-scan-batch-worker-contract-v1",
+  "verification": {
+    "falsifier": "actual_gradient_scan_falsifier",
+    "focused_green": {
+      "address_space_bytes": 1073741824,
+      "exit": 0,
+      "timeout_seconds": 10
+    },
+    "focused_red": {
+      "address_space_bytes": 1073741824,
+      "exit": 1,
+      "message": "AssertionError: witness scan still serial",
+      "timeout_seconds": 10
+    },
+    "other_checks": [
+      "both owned sources compiled in memory",
+      "test --help",
+      "trainer --help",
+      "git diff --check",
+      "exact production inverse to required base",
+      "existing tests byte-for-byte unchanged apart from new function and call",
+      "clean direct-parent commit and Roman attribution"
+    ],
+    "source_suite": {
+      "command": "rtk proxy bash -c 'ulimit -v 1048576; exec timeout 120s python3 -B scripts/test_siglip2_connected_mlp.py --source-only'",
+      "count": 1,
+      "exit": 0,
+      "output": [
+        "PASS witness scan: inverse source/AST, fresh occurrences, ordered owner, bounded/joined workers, negatives",
+        "PASS real original terminal AST: connected/gradient/control seams and binding/log/cgroup falsifiers",
+        "PASS source-only connected MLP contracts/falsifiers; native UNRUN"
+      ]
+    }
+  },
+  "worktree": "/home/rb/worktrees/sfora-connected-mlp-witness-scan-batch-20261007"
+}
