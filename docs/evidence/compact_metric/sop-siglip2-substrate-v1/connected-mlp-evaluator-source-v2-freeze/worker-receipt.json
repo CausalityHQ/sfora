@@ -1,0 +1,18 @@
+{
+  "command": [
+    "python3",
+    "scripts/test_connected_mlp_evaluation.py",
+    "--source-only"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 7.84614231204614,
+  "timeout_seconds": 120,
+  "address_space_limit_bytes": 1073741824,
+  "native_qualification": "UNQUALIFIED",
+  "log": "/tmp/connected-evaluator-repin-suite.log",
+  "log_sha256": "527eedd88d3c43b346ffa768e06fa25abd45b9008f237336d3ba41846f27ad40",
+  "files": {
+    "scripts/evaluate_siglip2_connected_mlp.py": "ca122f669078e39a3c300246f425d441f4c53356b95a156865dfd33cbe177581",
+    "scripts/test_connected_mlp_evaluation.py": "6ed56c778eb9df92c40ed7e417afcb5159606b07426896b9d509e4e36d7d9490"
+  }
+}

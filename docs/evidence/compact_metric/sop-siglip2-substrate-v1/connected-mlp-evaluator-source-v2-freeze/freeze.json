@@ -1,0 +1,39 @@
+{
+  "execution_sha256": "86e6c7596fa6b8c7bc6cd8ae389dfd5560e976ae7d9d2f3138142f974dec50a4",
+  "files": {
+    "evaluate_siglip2_connected_mlp.py": "ca122f669078e39a3c300246f425d441f4c53356b95a156865dfd33cbe177581",
+    "execution.json": "86e6c7596fa6b8c7bc6cd8ae389dfd5560e976ae7d9d2f3138142f974dec50a4",
+    "source-only-original.log": "527eedd88d3c43b346ffa768e06fa25abd45b9008f237336d3ba41846f27ad40",
+    "test_connected_mlp_evaluation.py": "6ed56c778eb9df92c40ed7e417afcb5159606b07426896b9d509e4e36d7d9490",
+    "worker-receipt.json": "0ce801ce4a58725c90476d21881384ab021498c3487911ef59deffbc00b0b79a"
+  },
+  "native_unrun_at_freeze": true,
+  "resource_policies_seconds": {
+    "cpu": 500,
+    "export": 900,
+    "score": 500
+  },
+  "schema": "connected-mlp-evaluator-source-freeze-v1",
+  "source_assurance": "ONE worker suite exit0/7.846s/timeout120/AS1GiB; root exact full original source inverse/current trainer+CPU origin/oldv3/phase mutants PASS; all unrelated science/native/order/resource/cost/exit guards unchanged",
+  "source_commit": "67492026479ce12dd325f101d0ec3908a30f0a1d",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2",
+  "stop_rule": "SOURCE freeze only, not an authority or native admission. Parent supplies only ACTUAL fully accepted fresh TRAIN endpoints and UNITs after both mechanics pass; complete normal cost gates precede fresh evaluator CPU. No held/quality export or score before those prerequisites and own stage CPU qualification.",
+  "training_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "230a11e4f1334336b6d195f60bc0bd7e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/cpu-v6-original.log",
+      "sha256": "a5c767cee5a689c5d0e0c29b4e355488e8350286033b77b2199e665d816dae14"
+    },
+    "native_peak_rss_kib": 6426592,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-cpu-v6/receipt.json",
+      "sha256": "4ecd63f75a09ff1757a9a1bdf1e80c29865c5bfb75483c63f3a3e09bc9aeeaa8"
+    },
+    "service_seconds": 433.509,
+    "unit": "sfora-connected-mlp-cpu-v6"
+  },
+  "training_execution_sha256": "a3d4e1e4ea76084a4036a1c7626b00353401adc3833838375974509aed2f2e8c",
+  "training_root": "/home/riomus/runs/sfora-connected-mlp-train-source-v6",
+  "worker_commit": "111ceb70ac97122ad78fabe4dd70f7c01f333fb4"
+}
