@@ -1,0 +1,14 @@
+{
+  "decision": "FAIL",
+  "engineering_only": true,
+  "service_seconds": 112.78,
+  "invocation_id": "ca6d6c7d21184176b0810911c803df54",
+  "error": "encoder/processor tensor lifetime survived release",
+  "root_cause_established": false,
+  "resource_events_zero": true,
+  "host_peak_bytes": 6968283136,
+  "swap_peak_bytes": 0,
+  "gradient_qualified": false,
+  "quality_read": false,
+  "log_sha256": "88a34010a173faf5e630a6adf66f153cd880b9e8e9de4bfe1fa7d086c744ddb9"
+}
