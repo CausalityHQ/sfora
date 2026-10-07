@@ -12,7 +12,7 @@ Endpoint={seed,arm,launch:FILE,terminal:UNIT,checkpoint:FILE,
           terminal_state_sha256,bundle:FILE,inference_state_sha256}.
 TRAIN artifacts are result.checkpoint/result.parity.bundle; inference identity
 is manifest.endpoint_state_sha256. Original base proof is never updated448 proof.
-Complete CPU600 + paired same-seed mechanics300 + fresh TRAIN128 normal exits
+Complete CPU600 + paired same-seed mechanics1200 + fresh TRAIN128 (3000s) normal exits
 and core/whole <=1.50 precede native/held reads. First061 CONTINUE precedes069;
 selection same-four GO precedes unchanged VAL. No qualification is inferred.
 Exports are complete B32 query/gallery (including tails), TWO sequential owned
@@ -46,17 +46,17 @@ AUTHORITY_SCHEMA = 'siglip2-connected-mlp-evaluation-launch-v1'
 FILES = {'evaluate_siglip2_connected_mlp.py','test_connected_mlp_evaluation.py'}
 TRAIN_FILES = {'train_siglip2_connected_mlp.py','test_siglip2_connected_mlp.py'}
 # Parent supplied actual current freeze; future corrections require a new freeze.
-TRAINING = {'root':'/home/riomus/runs/sfora-connected-mlp-train-source-v3',
-    'execution_sha256':'5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f',
-    'code':{'train_siglip2_connected_mlp.py':'55935d5a7e7299d1a11f14617cd5ef07f4232afd32148abf942c74edbc636e99',
-            'test_siglip2_connected_mlp.py':'35daffe103bc52fe3fbbc4af33a0348494b9477ce49052db7f5d0cf5be083cc1'}}
-TRAINING_CPU = {'both_locks_held':True,'invocation_id':'a8bd65d910fa47dcac56778046350819',
-    'log':{'path':'/home/riomus/runs/sfora-connected-mlp-train-source-v3/cpu-v3-original.log',
-        'sha256':'1cfb38cc9752e2e0feee40fecd13f1ae2b5a2252dea4e8eb6f92fe5fa1305c22'},
-    'native_peak_rss_kib':6424952,
-    'receipt':{'path':'/home/riomus/runs/sfora-connected-mlp-cpu-v3/receipt.json',
-        'sha256':'5c9bd4a3d5b3160ae82493510fd0755c2fd8e6607e39c2a591257bcf99a9f312'},
-    'service_seconds':430.965,'unit':'sfora-connected-mlp-cpu-v3'}
+TRAINING = {'root':'/home/riomus/runs/sfora-connected-mlp-train-source-v6',
+    'execution_sha256':'a3d4e1e4ea76084a4036a1c7626b00353401adc3833838375974509aed2f2e8c',
+    'code':{'train_siglip2_connected_mlp.py':'79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b',
+            'test_siglip2_connected_mlp.py':'8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f045bc25'}}
+TRAINING_CPU = {'both_locks_held':True,'invocation_id':'230a11e4f1334336b6d195f60bc0bd7e',
+    'log':{'path':'/home/riomus/runs/sfora-connected-mlp-train-source-v6/cpu-v6-original.log',
+        'sha256':'a5c767cee5a689c5d0e0c29b4e355488e8350286033b77b2199e665d816dae14'},
+    'native_peak_rss_kib':6426592,
+    'receipt':{'path':'/home/riomus/runs/sfora-connected-mlp-cpu-v6/receipt.json',
+        'sha256':'4ecd63f75a09ff1757a9a1bdf1e80c29865c5bfb75483c63f3a3e09bc9aeeaa8'},
+    'service_seconds':433.509,'unit':'sfora-connected-mlp-cpu-v6'}
 EVALUATOR_PINS = {
     'evaluate_siglip2_identity_diversity.py':'95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d',
     'test_identity_diversity_evaluation.py':'1cdbd7fef94f9f6812534e03cde9d009d5108b2a57d97cf09d9394d6046715e0'}
@@ -472,15 +472,15 @@ def authority(args):
         trainer.INFERENCE_SCHEMA == 'siglip2-connected-mlp-inference-v1' and
         trainer.BUNDLE_SCHEMA == 'siglip2-connected-mlp-bundle-v1' and
         trainer.RECIPE['classes'] == dict.fromkeys(ARMS,1008) and trainer.RECIPE['rows'] == 6355 and
-        trainer.policy('cpu')['seconds'] == trainer.policy('train')['seconds'] == 600 and
-        trainer.policy('mechanics')['seconds'] == 300 and
+        trainer.policy('cpu')['seconds'] == 600 and trainer.policy('train')['seconds'] == 3000 and
+        trainer.policy('mechanics')['seconds'] == 1200 and
         native.REFERENCE == REFERENCE == e.REFERENCE and e.NEAREST_EVALUATOR == NEAREST_EVALUATOR and
         e.GENUINE_PINS == GENUINE_PINS and e.GENUINE_EXECUTION_SHA == GENUINE_EXECUTION_SHA and
         math_helper.ORDER == ORDER and math_helper.METRICS == METRICS and math_helper.PANELS == PANELS,
         'connected trainer/pinned scientific predicates differ')
     first = launch['endpoints'][0]; training = launch['training']
     require(read_json(first['launch'],guards)['selected_cpu'] == TRAINING_CPU,
-        'parent-frozen complete CPUv3 UNIT required; no mechanics/TRAIN qualification inferred')
+        'parent-frozen complete CPUv6 UNIT required; no mechanics/TRAIN qualification inferred')
     targs = SimpleNamespace(execution_sha256=training['execution_sha256'],authority=Path(first['launch']['path']),
         authority_sha256=first['launch']['sha256'],phase='train',arm='control',seed=SEEDS[0],output=args.output)
     t = trainer.authority(targs)  # Original CPU, actual gradient, CPU600 and mechanics061 normal exits.

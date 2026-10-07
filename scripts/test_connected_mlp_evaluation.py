@@ -39,6 +39,35 @@ def metadata_api():
     return SimpleNamespace(**namespace)
 
 
+def evaluator_repin_inverse(raw):
+    """Undo only the authorized v6 literals; preserve every old byte and predicate."""
+    replacements = (
+        (b'mechanics1200 + fresh TRAIN128 (3000s) normal exits', b'mechanics300 + fresh TRAIN128 normal exits', 1),
+        (b'sfora-connected-mlp-train-source-v6', b'sfora-connected-mlp-train-source-v3', 2),
+        (b'a3d4e1e4ea76084a4036a1c7626b00353401adc3833838375974509aed2f2e8c', b'5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f', 1),
+        (b'79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b', b'55935d5a7e7299d1a11f14617cd5ef07f4232afd32148abf942c74edbc636e99', 1),
+        (b'8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f045bc25', b'35daffe103bc52fe3fbbc4af33a0348494b9477ce49052db7f5d0cf5be083cc1', 1),
+        (b'230a11e4f1334336b6d195f60bc0bd7e', b'a8bd65d910fa47dcac56778046350819', 1),
+        (b'cpu-v6-original.log', b'cpu-v3-original.log', 1),
+        (b'a5c767cee5a689c5d0e0c29b4e355488e8350286033b77b2199e665d816dae14', b'1cfb38cc9752e2e0feee40fecd13f1ae2b5a2252dea4e8eb6f92fe5fa1305c22', 1),
+        (b'6426592', b'6424952', 1),
+        (b'sfora-connected-mlp-cpu-v6', b'sfora-connected-mlp-cpu-v3', 2),
+        (b'4ecd63f75a09ff1757a9a1bdf1e80c29865c5bfb75483c63f3a3e09bc9aeeaa8', b'5c9bd4a3d5b3160ae82493510fd0755c2fd8e6607e39c2a591257bcf99a9f312', 1),
+        (b'433.509', b'430.965', 1),
+        (b"trainer.policy('cpu')['seconds'] == 600 and trainer.policy('train')['seconds'] == 3000", b"trainer.policy('cpu')['seconds'] == trainer.policy('train')['seconds'] == 600", 1),
+        (b"trainer.policy('mechanics')['seconds'] == 1200 and", b"trainer.policy('mechanics')['seconds'] == 300 and", 1),
+        (b'parent-frozen complete CPUv6 UNIT required', b'parent-frozen complete CPUv3 UNIT required', 1),
+    )
+    for new, old, count in replacements:
+        assert raw.count(new) == count, 'exact evaluator repin differs'
+        raw = raw.replace(new, old)
+    assert hashlib.sha256(raw).hexdigest() == \
+        '835b2ffd07271c3f26fb671a9764cd79bddc2e02667d5cbcdaa7923f7d0eedd9', 'evaluator inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw), include_attributes=False).encode()).hexdigest() == \
+        'a7d3f8310700926034eeaccea6f41495e23a1cef1419f9b5a762b4fdb94b859e', 'evaluator inverse AST differs'
+    return raw
+
+
 def nested_fixture(e, seed=179061, arm='candidate'):
     # The actual CPU receipt is a source fixture only: its qualification is NOT
     # passed to training admission. Keep the trainer's real nested payload shape.
@@ -107,6 +136,73 @@ def module(name, path):
     return result
 
 
+def repin_contract(e, trainer):
+    freeze = EVIDENCE/'connected-mlp-cpu-v6-freeze'
+    cpu = EVIDENCE/'connected-mlp-cpu-v6'
+    frozen = json.loads((freeze/'freeze.json').read_text())
+    verified = json.loads((cpu/'verification.json').read_text())
+    for name, digest in frozen['files'].items():
+        assert hashlib.sha256((freeze/name).read_bytes()).hexdigest() == digest
+    assert e.TRAINING == {'root': frozen['source_root'],
+        'execution_sha256': frozen['execution_sha256'],
+        'code': json.loads((freeze/'execution.json').read_text())}
+    assert e.TRAINING_CPU == verified['terminal']
+    for key, name in (('receipt', 'receipt.json'), ('log', 'original.log')):
+        assert hashlib.sha256((cpu/name).read_bytes()).hexdigest() == e.TRAINING_CPU[key]['sha256']
+    receipt = json.loads((cpu/'receipt.json').read_text())
+    assert receipt['execution_sha256'] == e.TRAINING['execution_sha256']
+    assert receipt['code'] == e.TRAINING['code']
+    assert receipt['phase'] == 'cpu' and 'qualifications' in receipt and 'result' not in receipt
+    assert verified['pass'] is True and verified['engineering_only'] is True
+    assert verified['original_launch_exit'] == 0 and verified['all11_frozen_files_exit_rehashed'] is True
+    assert verified['memory_events_zero'] is True and verified['swap_bytes'] == 0
+    assert verified['quality_read'] is False and verified['state_reuse_eligible'] is False
+    assert verified['source_execution_sha256'] == e.TRAINING['execution_sha256']
+    tree = ast.parse(DRIVER.read_text())
+    authority = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'authority')
+    def predicate(message):
+        node = next(n for n in authority.body if isinstance(n, ast.Expr) and
+            isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Name) and
+            n.value.func.id == 'require' and n.value.args[1].value == message)
+        return compile(ast.Module(body=[node], type_ignores=[]), str(DRIVER), 'exec')
+    phase_gate = predicate('connected trainer/pinned scientific predicates differ')
+    namespace = dict(vars(e), trainer=trainer,
+        native=SimpleNamespace(REFERENCE=e.REFERENCE), e=e,
+        math_helper=SimpleNamespace(ORDER=e.ORDER, METRICS=e.METRICS, PANELS=e.PANELS))
+    exec(phase_gate, namespace)
+    for phase, seconds in (('cpu', 600), ('mechanics', 1200), ('train', 3000)):
+        assert trainer.policy(phase)['seconds'] == seconds
+        for bad in (seconds-1, seconds+1, 500 if phase == 'cpu' else 300 if phase == 'mechanics' else 600):
+            proxy = SimpleNamespace(**vars(trainer))
+            proxy.policy = lambda p: {**trainer.policy(p), **({'seconds': bad} if p == phase else {})}
+            rejects(lambda: exec(phase_gate, {**namespace, 'trainer': proxy}), 'scientific predicates')
+    cpu_gate = predicate('parent-frozen complete CPUv6 UNIT required; no mechanics/TRAIN qualification inferred')
+    def admit_cpu(unit):
+        exec(cpu_gate, dict(vars(e), first={'launch': {}}, guards={},
+            read_json=lambda *args: {'selected_cpu': unit}))
+    admit_cpu(e.TRAINING_CPU)
+    old_cpu = json.loads((EVIDENCE/'connected-mlp-mechanics-control-179061-v1-freeze'/
+        'authority-mechanics-control-179061-v1.json').read_text())['selected_cpu']
+    rejects(lambda: admit_cpu(old_cpu), 'CPUv6 UNIT')
+    for key in e.TRAINING_CPU:
+        changed = copy.deepcopy(e.TRAINING_CPU)
+        changed[key] = old_cpu[key] if old_cpu[key] != changed[key] else False
+        rejects(lambda: admit_cpu(changed), 'CPUv6 UNIT')
+    raw = DRIVER.read_bytes()
+    evaluator_repin_inverse(raw)
+    for before, after in ((b"else 500, 'host_bytes'", b"else 600, 'host_bytes'"),
+                          (b"'whole_service_ratio_max':1.50", b"'whole_service_ratio_max':1.51"),
+                          (b"first_receipt['decision'] == 'CONTINUE'", b"first_receipt['decision'] == 'GO'")):
+        assert raw.count(before) == 1
+        try:
+            evaluator_repin_inverse(raw.replace(before, after))
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('evaluator inverse accepted unrelated mutation')
+    print('PASS evaluator v6 origin, v3 CPU rejection, phase tampering, exact source/AST inverse')
+
+
 def source_contract(e, trainer, reference):
     tree = ast.parse(DRIVER.read_text())
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
@@ -123,17 +219,16 @@ def source_contract(e, trainer, reference):
         assert hashlib.sha256((HERE / name).read_bytes()).hexdigest() == digest
     assert e.FILES == {'evaluate_siglip2_connected_mlp.py', 'test_connected_mlp_evaluation.py'}
     assert e.TRAIN_FILES == trainer.FILES
-    freeze = EVIDENCE/'connected-mlp-cpu-v3-freeze'
+    freeze = EVIDENCE/'connected-mlp-cpu-v6-freeze'
     source_freeze = json.loads((freeze/'freeze.json').read_text())
     assert e.TRAINING['root'] == source_freeze['source_root']
     assert e.TRAINING['execution_sha256'] == hashlib.sha256((freeze/'execution.json').read_bytes()).hexdigest()
     assert e.TRAINING['code'] == json.loads((freeze/'execution.json').read_text())
     for name,digest in e.TRAINING['code'].items():
         assert hashlib.sha256((HERE/name).read_bytes()).hexdigest() == digest
-    cpu_unit = json.loads((EVIDENCE/'connected-mlp-mechanics-control-179061-v1-freeze'/
-        'authority-mechanics-control-179061-v1.json').read_text())['selected_cpu']
+    cpu_unit = json.loads((EVIDENCE/'connected-mlp-cpu-v6/verification.json').read_text())['terminal']
     assert e.TRAINING_CPU == cpu_unit
-    assert e.TRAINING_CPU['receipt']['sha256'] == hashlib.sha256((EVIDENCE/'connected-mlp-cpu-v3/receipt.json').read_bytes()).hexdigest()
+    assert e.TRAINING_CPU['receipt']['sha256'] == hashlib.sha256((EVIDENCE/'connected-mlp-cpu-v6/receipt.json').read_bytes()).hexdigest()
     assert e.policy('cpu')['seconds'] == e.policy('score')['seconds'] == 500
     assert e.policy('export')['seconds'] == 900
     assert e.COST_POLICY['whole_service_ratio_max'] == e.COST_POLICY['total_training_core_ratio_max'] == 1.50
@@ -205,6 +300,11 @@ def launch_contract(e):
                 rejects(lambda: e.check_launch(launch,args), 'parent-frozen trainer2')
                 continue
             e.check_launch(launch, args)
+            old_freeze = EVIDENCE/'connected-mlp-cpu-v3-freeze'
+            old_training = {'root': json.loads((old_freeze/'freeze.json').read_text())['source_root'],
+                'execution_sha256': hashlib.sha256((old_freeze/'execution.json').read_bytes()).hexdigest(),
+                'code': json.loads((old_freeze/'execution.json').read_text())}
+            rejects(lambda: e.check_launch({**launch, 'training': old_training}, args), 'parent-frozen trainer2')
             for key,value in (('training',{**training,'root':'/foreign'}),('scope',{'path':'relative','sha256':e.SCOPE_SHA256}),
                     ('endpoints',list(reversed(endpoints))),('both_locks_held',False),
                     ('selection_previously_exposed',False),('resource_policies',{})):
@@ -279,10 +379,11 @@ def main():
     parser.add_argument('--source-only', action='store_true', required=True)
     parser.add_argument('--narrow', action='store_true')
     args = parser.parse_args()
+    e = module('_connected_eval_source_test', DRIVER)
+    trainer = module('_connected_eval_trainer_api', HERE/'train_siglip2_connected_mlp.py')
+    repin_contract(e, trainer)
     nested_binding()
     if not args.narrow:
-        e = module('_connected_eval_source_test', DRIVER)
-        trainer = module('_connected_eval_trainer_api', HERE/'train_siglip2_connected_mlp.py')
         reference = module('_connected_eval_reference_api', HERE/'evaluate_siglip2_identity_diversity.py')
         math_helper = module('_connected_eval_math_api', HERE/'evaluate_siglip2_genuine_views.py')
         source_contract(e,trainer,reference)
