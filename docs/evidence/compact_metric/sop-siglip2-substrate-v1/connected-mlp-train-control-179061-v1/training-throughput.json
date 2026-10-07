@@ -1,0 +1,22 @@
+{
+  "anchor_visits": 8192,
+  "arm": "control",
+  "dataset": "DeepFashion In-Shop",
+  "interpretation": "Derived from actual complete batch/micro/view membership and original measured timings. Core includes decode/preprocessing/gallery readout/forward/backward/optimizer/integrity; whole includes admission/save/independent reload/full exit. Counts training query-view forward visits only, excludes calibration/reload witnesses, and is not unique images/s, cached-feature throughput or serving QPS.",
+  "original_normal_whole_service_seconds": 2207.053,
+  "production_speed_claim": false,
+  "quality_read": false,
+  "query_view_forward_image_visits": 16384,
+  "query_view_image_visits_per_update_core_second": 9.620319687400515,
+  "query_view_image_visits_per_whole_service_second": 7.4234737453065245,
+  "receipt_sha256": "929b050ef63ac59a81998063706ee21c1cdab571100e15b309432b969d293fa0",
+  "schema": "connected-mlp-training-throughput-v1",
+  "seed": 179061,
+  "split": "CONTROL TRAIN6355 rows; no held/official quality",
+  "total_update_core_seconds": 1703.061907751122,
+  "updates": 128,
+  "views": [
+    "canonical",
+    "augmented"
+  ]
+}
