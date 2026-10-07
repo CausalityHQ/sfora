@@ -1,0 +1,2 @@
+ERROR: Option --query-gpu=timestamp,utilization.gpu is not recognized. Please run 'nvidia-smi -h' for help.
+

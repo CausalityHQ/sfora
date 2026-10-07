@@ -1,0 +1,19 @@
+{
+  "collector_exit": 0,
+  "collector_session": 25441,
+  "first_utc": "2026-10-07T22:31:10.298737+00:00",
+  "initial_collector_error": "Unsupported nvidia-smi combined options; failed before sampling, preserved original error file. Fixed collector uses22 distinct readonly queries; no job restart.",
+  "initial_collector_exit": 255,
+  "invocation_id": "cc546b2dcf2e4b9ea023c8b073ce893d",
+  "job_scope": "short mechanics window only, not whole-run or request-phase attribution",
+  "last_utc": "2026-10-07T22:31:31.785300+00:00",
+  "mean_gpu_utilization_percent": 23.863636363636363,
+  "median_gpu_utilization_percent": 4.0,
+  "original_csv_sha256": "18451f6f8e902cd69f2c05bc5302e6b87db1228c65fa969478d8e7d56fbb5bac",
+  "original_session": 87869,
+  "peak_gpu_utilization_percent": 96,
+  "samples": 22,
+  "schema": "connected-mechanics-readonly-utilization-window-v1",
+  "scientific_state_changed": false,
+  "unit": "sfora-connected-mlp-mechanics-candidate-179069-v1"
+}

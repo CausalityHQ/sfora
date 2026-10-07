@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "cc546b2dcf2e4b9ea023c8b073ce893d",
+  "log": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/mechanics-candidate-179069-v1-original.log",
+    "sha256": "f412e715a142118f2c765eb10b7ae00bef23d5a325e03388dfaa36c196d0f241"
+  },
+  "native_peak_rss_kib": 5091916,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-mechanics-candidate-179069-v1/receipt.json",
+    "sha256": "0044d8acc17fdfd481b8161c02593d1b4777e7d3169bb30dc6d3893756aa74d7"
+  },
+  "service_seconds": 943.903,
+  "unit": "sfora-connected-mlp-mechanics-candidate-179069-v1"
+}
