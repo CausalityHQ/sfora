@@ -1,0 +1,35 @@
+{
+  "actual_complete_terminal_predicate_and_original_membership_reader_pass": true,
+  "both_source_and_mechanics_freezes_exit_rehashed": true,
+  "engineering_only": true,
+  "full17_vs_independent8_plus9_exact": true,
+  "memory_events_zero": true,
+  "next_gate": "Both061 mechanics PASS admits ONE fresh control061 TRAIN3000; candidate fresh TRAIN conditional on accepted live control and core/normal whole ratios<=1.50. No mechanics state reuse or held quality.",
+  "original_launch_exit": 0,
+  "pass": true,
+  "peak_cuda_allocated_bytes": 2351912448,
+  "quality_read": false,
+  "schema": "connected-mlp-mechanics-parent-verification-v1",
+  "service_seconds": 929.945,
+  "state_reuse_eligible": false,
+  "strict_public_reload_raw_unit_packed": true,
+  "swap_bytes": 0,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "259ef4e636c449619ae07888ff190247",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/mechanics-candidate-179061-v2-original.log",
+      "sha256": "d1dc58a6c9b797a94f99ed641a6e85a87d14790b4c23035b1df72480f905ed93"
+    },
+    "native_peak_rss_kib": 5098080,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-mechanics-candidate-179061-v2/receipt.json",
+      "sha256": "e72afc5dbb0e08688149b1460752eb4dd585b324a32eaf182fc8023e35c15206"
+    },
+    "service_seconds": 929.945,
+    "unit": "sfora-connected-mlp-mechanics-candidate-179061-v2"
+  },
+  "total_training_core_seconds": 480.53046750000794,
+  "update_core_seconds_median": 13.70169746899046,
+  "whole_unit_peak_host_bytes": 6139863040
+}
