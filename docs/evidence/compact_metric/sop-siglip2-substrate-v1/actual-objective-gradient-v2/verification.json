@@ -1,0 +1,26 @@
+{
+  "schema": "actual-objective-gradient-parent-verification-v1",
+  "verdict": "PASS_ENGINEERING_ONLY",
+  "unit": "sfora-actual-objective-gradient-v2",
+  "invocation_id": "1a0ef321f35748ec9b88abf7115d7fba",
+  "service_seconds": 163.485,
+  "internal_seconds": 160.91570871199656,
+  "host_peak_bytes": 6968688640,
+  "cuda_peak_allocated_bytes": 2372512768,
+  "events_zero": true,
+  "swap_bytes": 0,
+  "actual_views": [
+    "canonical",
+    "augmented"
+  ],
+  "allfour_ranking_total_gradients_finite_nonzero": true,
+  "detached_mutants_pass": true,
+  "all448_unchanged": true,
+  "full_exit_and_lifetime_pass": true,
+  "model_fit_qualified": false,
+  "cost_qualified": false,
+  "quality_read": false,
+  "state_reuse_eligible": false,
+  "receipt_sha256": "e7da19ba546f9d5375697d3d0347b3c96f9cfe0ee5183f9341d473114461d896",
+  "log_sha256": "3dd0843123c576c91869286f1f69320ae2f4fa50c32aef7c714bc51e1f305b1a"
+}
