@@ -1,0 +1,61 @@
+{
+  "schema": "connected-evaluator-export1500-child-completion-v1",
+  "commit": "022bb25844fd7c8de921b38b2d0690ee5f078ce5",
+  "base_commit": "66c4e83c47bac3550037dbe764cb2def57673ece",
+  "changed_files": [
+    "scripts/evaluate_siglip2_connected_mlp.py",
+    "scripts/test_connected_mlp_evaluation.py"
+  ],
+  "clean_worktree": true,
+  "author_and_committer": "Roman Bartusiak <riomus@gmail.com>",
+  "diff_summary": "Production: exactly900->1500 in export policy; CPU500/score500 and all other production bytes/predicates unchanged. Source-only test documentation, strict full production byte/AST inverse, explicit original policy predicate correspondence, ONE focused actual policy/launch/resource/source-binding falsifier.",
+  "old_test_preservation": "All eight changed spans accounted for in ledger; reversing only documented additions and policy expectation restores complete original test bytes and AST. Existing original v6->v3 hashes remain unchanged and pass.",
+  "verification": {
+    "schema": "connected-evaluator-export1500-stdlib-verification-v1",
+    "exit_code": 0,
+    "elapsed_seconds": 9.43920177698601,
+    "wall_seconds_cap": 120,
+    "address_space_cap_bytes": 1073741824,
+    "peak_rss_kib": 78304,
+    "native_modules": [],
+    "verified_files": {
+      "scripts/evaluate_siglip2_connected_mlp.py": "bce0c43bae6d24f50ab8ce7c60f8410abd307697ec81d91825e0a043a20efe08",
+      "scripts/test_connected_mlp_evaluation.py": "7a1eef346f0999c277d0d6c934141d24db693bb0516af985547efb97ee7cd5e9"
+    },
+    "command": [
+      "python3",
+      "-B",
+      "scripts/test_connected_mlp_evaluation.py",
+      "--source-only"
+    ],
+    "tmpdir": "/home/rb/worktrees/sfora-connected-evaluator-export-envelope-20261007/.connected-envelope-stdlib-tmp",
+    "proposal_only": true,
+    "quality_read": false,
+    "native_qualification_claimed": false,
+    "full_suite_run": 1
+  },
+  "narrow_results": {
+    "red_exit": 1,
+    "green_fixture_failure_exit": 1,
+    "green_exit": 0,
+    "existing_narrow_exit": 0
+  },
+  "artifact_sha256": {
+    "contract.json": "2b0a55beca7bdca0d2ad644520aa54294b3ed3731b08681a316567881c1bcd2b",
+    "exact.diff": "2f8b7d3386ca82669c3778e02600aa885c01583a611c7811e5733ad095a5784b",
+    "old-test-span-ledger.json": "b896be2da512bbcb51663726600d98335e91ea95d97a46d946580c6980595ef6",
+    "red.log": "ffcaed897395a02b8e5cedc898388ae3003e92f369864287d0ff8ec77c6553f4",
+    "green-fixture-failure.log": "3935963406fb71b213e1fa177f0bdb23de6eba8149b2665481f2c34bf73e6417",
+    "green.log": "f7a243393fe739db259fc4917aeb6cc37c38c8d755973ba238e5d4e2ed581029",
+    "narrow.log": "e132e690ab8613c6e5a71ec4213127016c6b08c7d532f3cb6071da2189cb1dac",
+    "full-suite.log": "3d4a5f73b2ea861bb2a8cde4a674f6eab0a8add7f0ec41f1ceca9916e50ce0c4",
+    "full-suite-receipt.json": "b71b88174867f16980bd4bd7c9d51fa13b6dec260e7cb4f2724d4cffda25a5fd",
+    "evaluate_siglip2_connected_mlp.py": "ca122f669078e39a3c300246f425d441f4c53356b95a156865dfd33cbe177581",
+    "test_connected_mlp_evaluation.py": "6ed56c778eb9df92c40ed7e417afcb5159606b07426896b9d509e4e36d7d9490"
+  },
+  "original_control_invocation_untouched": "774658e4ed3d4694b280402da4f49e0c",
+  "original_control_terminal_checkpoint": "Parent reported FAIL_TIMEOUT900.115; child ran no native actions.",
+  "native_qualification": false,
+  "merge_or_push": false,
+  "parent_next_gate": "Independently review exact2, freeze actual new manifests/hashes, qualify fresh ownCPU500; only then ONE prospective export1500. Preserve originalFAIL and forbid partial reuse."
+}

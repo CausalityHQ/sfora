@@ -1,0 +1,30 @@
+{
+  "code": {
+    "evaluate_siglip2_connected_mlp.py": "bce0c43bae6d24f50ab8ce7c60f8410abd307697ec81d91825e0a043a20efe08",
+    "test_connected_mlp_evaluation.py": "7a1eef346f0999c277d0d6c934141d24db693bb0516af985547efb97ee7cd5e9"
+  },
+  "execution_sha256": "c76330fe0bb0cefa5f3ec7d3a4e82785ffc7620bae6583ddf55af67b6aca651f",
+  "files": {
+    "authority-first-cpu-v2.json": "a4976051e3fb1f197a95973fc3a8d754936325119eeb6cb8387d79859ee4bc8e",
+    "evaluate_siglip2_connected_mlp.py": "bce0c43bae6d24f50ab8ce7c60f8410abd307697ec81d91825e0a043a20efe08",
+    "execution.json": "c76330fe0bb0cefa5f3ec7d3a4e82785ffc7620bae6583ddf55af67b6aca651f",
+    "first-cpu-v2-command.sh": "da6e2e81d421f36bafa365ed0c9e1022386549ef4ba488edb8c682819582e37b",
+    "first-cpu-v2-controller.sh": "5c1d2fed8bc6432f53fe1271a462a3089b21899b1d3555a3da59fc56f8d9a5fb",
+    "first-cpu-v2-launch.sh": "12024872c5568abde596f20412fb8cf58d59adc0fa5ce5f39688c1935f62fb04",
+    "test_connected_mlp_evaluation.py": "7a1eef346f0999c277d0d6c934141d24db693bb0516af985547efb97ee7cd5e9"
+  },
+  "policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "review_ids": [
+    "318b73926aec4464",
+    "80d48519fffc4627"
+  ],
+  "schema": "connected-evaluator-export1500-fresh-cpu-freeze-v1",
+  "source_commit": "93069797973cbcf56e18af487fdbeb0644caed78",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3",
+  "stop_rule": "ONE ownCPU500 complete normal0/source/metadata/synthetic/fulluncachedexit/bothlocks/8GiB/noevents/noSwap/CUDAhidden. Failure blocks exports. PASS admits ONE new control export1500, never original partial reuse; training and scientific gates unchanged."
+}
