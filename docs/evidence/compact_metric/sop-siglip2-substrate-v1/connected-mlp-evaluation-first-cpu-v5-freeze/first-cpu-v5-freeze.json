@@ -1,0 +1,27 @@
+{
+  "code": {
+    "evaluate_siglip2_connected_mlp.py": "919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69",
+    "test_connected_mlp_evaluation.py": "df1e233279e04bacd64b6bbd47361d43d350740fd496434e79de7b53b9f66ccb"
+  },
+  "execution_sha256": "a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a",
+  "files": {
+    "authority-first-cpu-v5.json": "243319c029fe51fbb171190811561536f44a5e4c8c8b27b3f978e366b310f592",
+    "evaluate_siglip2_connected_mlp.py": "919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69",
+    "execution.json": "a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a",
+    "first-cpu-v5-command.sh": "2b063d4584e3d5d773124e2cdca766866c6389d915cd17d833f1e6443592f106",
+    "first-cpu-v5-controller.sh": "ccd8761876b71e245ac610e5af924edfdd43f63e2632e5481b0273a2d028f641",
+    "first-cpu-v5-launch.sh": "a81123bbbacd85838d54884df4b98612a3288ecd24b9cf4fc326995480cc19e9",
+    "test_connected_mlp_evaluation.py": "df1e233279e04bacd64b6bbd47361d43d350740fd496434e79de7b53b9f66ccb"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-cpu-v5",
+  "policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "schema": "connected-evaluator-cpu-prospective-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5",
+  "stop_rule": "ONE fresh CPU500, original metadata/parity/source/whole normal0/8GiB/zeroSwap/bothlocks/full uncached exit mandatory. New score700 only after this fresh source-specific CPU PASS. Preserve original score500 FAIL; no quality or state reuse from partial score.",
+  "unit": "sfora-connected-mlp-evaluation-first-cpu-v5"
+}
