@@ -1,0 +1,17 @@
+PARENT_SOURCE_ADMISSION_BEGIN
+Traceback (most recent call last):
+  File "<stdin>", line 18, in <module>
+  File "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2/evaluate_siglip2_connected_mlp.py", line 486, in authority
+    t = trainer.authority(targs)  # Original CPU, actual gradient, CPU600 and mechanics061 normal exits.
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-connected-mlp-train-source-v6/train_siglip2_connected_mlp.py", line 243, in authority
+    context = trainer.authority(historical)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/train_siglip2_identity_diversity.py", line 297, in authority
+    startup = nearest.startup_admission_adapter(fitter, guards)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/train_siglip2_nearest_ranking.py", line 293, in startup_admission_adapter
+    require(isinstance(fn, FunctionType) and fn.__globals__ is vars(fitter) and fn.__code__ == expected and
+  File "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/train_siglip2_nearest_ranking.py", line 93, in require
+    raise ValueError(message)
+ValueError: actual startup fitter function/body differs: authority

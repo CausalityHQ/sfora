@@ -1,0 +1,12 @@
+{
+  "metadata_predicate_verifier_exit": 0,
+  "native_cpu_policy_seconds": 500,
+  "native_cpu_service_seconds": 487.465,
+  "no_original_verdict_relabel": true,
+  "original_native_cpu_exit": 0,
+  "pinned_python_full_authority_read_only_audit_exit": 124,
+  "pinned_python_full_authority_read_only_audit_seconds_cap": 300,
+  "production_export_complete_authority_and_accept_unit_before_cuda_preserved": true,
+  "schema": "connected-evaluator-parent-audit-outcomes-v1",
+  "system_python_audit_exit": 1
+}

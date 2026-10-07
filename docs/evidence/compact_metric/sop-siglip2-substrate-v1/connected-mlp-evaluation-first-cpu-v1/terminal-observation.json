@@ -1,0 +1,12 @@
+{
+  "complete_accept_unit_pending": true,
+  "invocation_id": "282c8bd4e350400fbb7d0131dc1aeee2",
+  "log_sha256": "63e03d8382bda34a763d5ccfa48b318a7980a4f9903a0c8b5f9b986d4e588b43",
+  "memory_peak_bytes": 2316300288,
+  "quality_read": false,
+  "receipt_sha256": "5616557484a888824eb40c2feb081e2cd5338ee7d17dd69fe5de53e95b904132",
+  "schema": "connected-evaluator-cpu-original-terminal-observation-v1",
+  "service_seconds": 487.465,
+  "source_launch_resources_flags_checked": true,
+  "terminal_exit": 0
+}

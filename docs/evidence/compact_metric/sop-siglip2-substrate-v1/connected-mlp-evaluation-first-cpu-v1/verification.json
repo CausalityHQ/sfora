@@ -1,0 +1,32 @@
+{
+  "actual_complete_check_receipt_on_independently_authenticated_metadata_pass": true,
+  "auxiliary_full_authority_audit_timeout_preserved": true,
+  "complete_production_accept_unit_required_before_export_cuda": true,
+  "engineering_only": true,
+  "memory_events_zero": true,
+  "native_modules": [],
+  "next_gate": "ONE prospective control061 export900; existing complete authority and accept_unit must pass before native_start. Candidate061 export and first061 selection remain conditional.",
+  "original_normal_terminal_duration_rss_and_cgroup_predicates_checked": true,
+  "pass": true,
+  "quality_read": false,
+  "schema": "connected-evaluator-cpu-parent-verification-v1",
+  "state_reuse_eligible": false,
+  "swap_bytes": 0,
+  "synthetic_bootstrap_and_complete_endpoint_payload_facts_pass": true,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "282c8bd4e350400fbb7d0131dc1aeee2",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2/first-cpu-v1-original.log",
+      "sha256": "63e03d8382bda34a763d5ccfa48b318a7980a4f9903a0c8b5f9b986d4e588b43"
+    },
+    "native_peak_rss_kib": 1396932,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-cpu-v1/receipt.json",
+      "sha256": "5616557484a888824eb40c2feb081e2cd5338ee7d17dd69fe5de53e95b904132"
+    },
+    "service_seconds": 487.465,
+    "unit": "sfora-connected-mlp-evaluation-first-cpu-v1"
+  },
+  "whole_unit_peak_host_bytes": 2316300288
+}
