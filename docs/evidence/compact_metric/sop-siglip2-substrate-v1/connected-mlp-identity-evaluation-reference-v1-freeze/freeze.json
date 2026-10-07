@@ -1,0 +1,16 @@
+{
+  "code": {
+    "evaluate_siglip2_identity_diversity.py": "95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d",
+    "test_identity_diversity_evaluation.py": "1cdbd7fef94f9f6812534e03cde9d009d5108b2a57d97cf09d9394d6046715e0"
+  },
+  "execution_sha256": "5d0b2cd983987729f9ca35c935abdbcba2da29082e888ee053aba8aed1c470c4",
+  "files": {
+    "evaluate_siglip2_identity_diversity.py": "95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d",
+    "execution.json": "5d0b2cd983987729f9ca35c935abdbcba2da29082e888ee053aba8aed1c470c4",
+    "test_identity_diversity_evaluation.py": "1cdbd7fef94f9f6812534e03cde9d009d5108b2a57d97cf09d9394d6046715e0"
+  },
+  "role": "Pinned private evaluator helper source only; no prior native qualification or quality receipt is substituted for fresh connected evaluator CPU/export/score gates. Original remote identity evaluation source-v1 remains untouched.",
+  "root": "/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1",
+  "schema": "connected-mlp-identity-evaluator-reference-source-freeze-v1",
+  "source_commit": "7e4e708fbbef36218164fb896e8796182a5d45b9"
+}
