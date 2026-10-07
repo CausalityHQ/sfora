@@ -1,0 +1,11 @@
+{
+  "admission_preserves_full_record": true,
+  "cpu_shape": "receipt.qualifications[0]",
+  "mechanics_train_shape": "receipt.result",
+  "native_gpu_unrun": true,
+  "required_expression": "mechanics['result']['steps'][step-1]",
+  "schema": "connected-mlp-receipt-flow-audit-v1",
+  "scope": "TRAIN consumer only; CPU producer intentionally differs; evaluator non-CPU result nesting is correct",
+  "source_sha256": "8ebe7f475f1d917e55f17811b0575bd31896796342090aa5c31fb165394207a1",
+  "train_first17_wrong_expression": "mechanics['steps'][step-1]"
+}

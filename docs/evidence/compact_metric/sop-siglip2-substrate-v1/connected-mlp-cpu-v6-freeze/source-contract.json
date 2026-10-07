@@ -1,0 +1,45 @@
+{
+  "base": "4f16ab008febe23f440667ea233ae89d6ee81111",
+  "branch": "devbox/connected-mlp-mechanics-record-20261007",
+  "ownership": {
+    "scripts/train_siglip2_connected_mlp.py": {
+      "bytes": 115085,
+      "sha256": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
+    },
+    "scripts/test_siglip2_connected_mlp.py": {
+      "bytes": 89137,
+      "sha256": "8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f045bc25"
+    }
+  },
+  "production_change": "mechanics['steps'][step-1] -> mechanics['result']['steps'][step-1] only; byte-exact inverse to base verified",
+  "producer_flow": "run wraps {'result': arm, 'total_training_core_seconds': ...}; receipt expands **result; check_terminal reads record['result'] for noncpu and qualifications for cpu; admit_terminal stores complete record unchanged",
+  "tests": [
+    "first17_mechanics_record_seam",
+    "cost_terminal_falsifiers",
+    "runtime_envelope_inverse",
+    "historical_inverse_contract"
+  ],
+  "red": {
+    "exit": 1,
+    "failure": "KeyError: 'steps' at real first17 lookup on producer-shaped full receipt"
+  },
+  "green": {
+    "focused_exit": 0,
+    "final_source_suite_exit": 0,
+    "timeout_seconds": 120,
+    "address_space_bytes": 1073741824,
+    "negatives": [
+      "nested diagnostics tampered at steps 1 and 17 with top-level decoy",
+      "missing result",
+      "missing nested steps",
+      "missing step17"
+    ],
+    "historical_hashes": "unchanged; exact runtime/CPU/batch/historical source and test inverses passed"
+  },
+  "suite_command": "timeout 120s python3 -B - <<'PY'\nimport resource\nimport runpy\nimport sys\nresource.setrlimit(resource.RLIMIT_AS, (1024**3, 1024**3))\nsys.argv = ['scripts/test_siglip2_connected_mlp.py', '--source-only']\nrunpy.run_path(sys.argv[0], run_name='__main__')\nPY",
+  "qualification": "SOURCE ONLY; native UNRUN; root must freeze new exact2 source and qualify it independently; originalCPUv4 and frozen remote v4 untouched",
+  "commit": "e5a2ad2c477fc55135ed6fd99d5ccb7f438554be",
+  "commit_parent": "4f16ab008febe23f440667ea233ae89d6ee81111",
+  "clean_tree": true,
+  "attribution": "Roman Bartusiak <riomus@gmail.com>\nRoman Bartusiak <riomus@gmail.com>\nfix: read first17 mechanics diagnostics from full receipt\n\n"
+}

@@ -1,0 +1,10 @@
+{
+  "executed_first17_terminal_cost_seams": "PASS",
+  "native_unrun": true,
+  "one_line_inverse_to_v4": true,
+  "policy_unchanged_from_v4": true,
+  "source_commit": "b288b3dff7a85f0c7bc75b9160e744caf08aad68",
+  "source_sha256": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b",
+  "test_sha256": "8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f045bc25",
+  "worker_full_source_only_suite": "PASS original timeout120/AS1GiB, historical inverses preserved"
+}
