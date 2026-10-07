@@ -1,0 +1,15 @@
+{
+  "code_proven_parameter_occurrence_bytes_per_request": 3423104512,
+  "consultation_id": "d860d1995a8b4a57",
+  "current_score_job_preserved": "exec25731/invc47869c3b2d24e70a2213545e371265e",
+  "evaluator_1941_file_loop_is_not_public_request_loop": true,
+  "export_window_B32_median_seconds": 2.725641108,
+  "native_gate_launched": false,
+  "original_plan_sha256": "b1cb23a003eb460d7e05e0a891dce0efc8062ad086708b2efa9fbc29d840907c",
+  "plan_terminal_exit": 0,
+  "previous_batching_native_arm": "KILL timing/parity PASS; 43.637ms baseline vs45.224ms proposed",
+  "production_speed_qualified": false,
+  "prospective_next_gate": "Discarded actual public request attribution; source-only falsifier first; preserve all fresh-byte/role/helper/native/tie/cleanup/exit predicates and unchanged limits.",
+  "public_latency_measured": false,
+  "root_decision": "Observe actual connected public search_images only after a current quality survivor; no automatic batching/GPU SHA integration or duplicate historical primitive."
+}

@@ -1,0 +1,63 @@
+{
+  "arm": "control",
+  "authority_sha256": "a9972a5f7d8bba00496e25beece9b45afb35c2e308ef6fd1c1bdc6bb670a28b1",
+  "command_consistency": "PASS both equal SHA tables, all own paths, exact CLI and launcher policy; actual remote full preflight required",
+  "execution_sha256": "a3d4e1e4ea76084a4036a1c7626b00353401adc3833838375974509aed2f2e8c",
+  "files": {
+    "authority-mechanics-control-179069-v1.json": "a9972a5f7d8bba00496e25beece9b45afb35c2e308ef6fd1c1bdc6bb670a28b1",
+    "mechanics-control-179069-v1-command.sh": "59008abff3b2c90600d3fe5f2f5b1c1c79bbdcfffe54c456b4d767b996ba8faa",
+    "mechanics-control-179069-v1-controller.sh": "811194bb141cdeaca7bf665e709e3cf6a1a56e64c5a274c0b3d3d17526389aeb",
+    "mechanics-control-179069-v1-launch.sh": "d2eb7ff0cad86440b724bc656bd6ead75e18be626642c775f5ec57e86b530f22"
+  },
+  "first_selection_eligibility": {
+    "both_locks_held": true,
+    "invocation_id": "c47869c3b2d24e70a2213545e371265e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5/first-selection-score-v2-original.log",
+      "sha256": "1db5215b0f7700b56283d76266edd9cba7b1e7a234f4af0e2da2e293548812f3"
+    },
+    "native_peak_rss_kib": 1090416,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-selection-score-v2/receipt.json",
+      "sha256": "bc80bef471cd05c7ab842258a9b86f3e8813f5dabc5235e2202399f5c607028d"
+    },
+    "service_seconds": 617.915,
+    "unit": "sfora-connected-mlp-evaluation-first-selection-score-v2"
+  },
+  "native_unrun_at_freeze": true,
+  "original_CPU_explicitly_admits_seed069": true,
+  "original_cpu_source_files": {
+    "test_siglip2_connected_mlp.py": "8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f045bc25",
+    "train_siglip2_connected_mlp.py": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-mechanics-control-179069-v1",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 1200,
+    "swap_bytes": 0
+  },
+  "review_group": "c848b7945c26412e",
+  "schema": "connected-mlp-mechanics-parent-freeze-v2",
+  "seed": 179069,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "230a11e4f1334336b6d195f60bc0bd7e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/cpu-v6-original.log",
+      "sha256": "a5c767cee5a689c5d0e0c29b4e355488e8350286033b77b2199e665d816dae14"
+    },
+    "native_peak_rss_kib": 6426592,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-cpu-v6/receipt.json",
+      "sha256": "4ecd63f75a09ff1757a9a1bdf1e80c29865c5bfb75483c63f3a3e09bc9aeeaa8"
+    },
+    "service_seconds": 433.509,
+    "unit": "sfora-connected-mlp-cpu-v6"
+  },
+  "source_commit": "f329abc46b72a2bcdfa0edfa64a8c1e7ef8a2743",
+  "source_freeze_sha256": "2f113dee0557e72158c3d6b8610c324e4dadc4c4ea8373e3c96a9bdbe02e6965",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-train-source-v6",
+  "stop_rule": "ONE fresh control069 mechanics1200 after verified first061 CONTINUE. Same source-v6/CPUv6 and original17 vs independent8+9/full payload/strict raw-unit-packed reload/current448/frozen444/full uncached exit/normal0/bothlocks/8GiB/noSwap/events0/CUDA<10GB. Failure blocks candidate069/TRAIN/full/VAL. No state reuse, quality or retroactive old failure pass.",
+  "unit": "sfora-connected-mlp-mechanics-control-179069-v1"
+}
