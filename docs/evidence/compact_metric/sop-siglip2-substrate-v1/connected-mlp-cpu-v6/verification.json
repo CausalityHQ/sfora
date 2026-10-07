@@ -1,0 +1,30 @@
+{
+  "all11_frozen_files_exit_rehashed": true,
+  "engineering_only": true,
+  "memory_events_zero": true,
+  "next_gate": "ONE original control061 mechanics1200 on same frozen code; candidate only after complete control PASS. No TRAIN or held quality until both mechanics pass.",
+  "original_launch_exit": 0,
+  "pass": true,
+  "quality_read": false,
+  "schema": "connected-mlp-cpu-parent-verification-v1",
+  "service_seconds": 433.509,
+  "source_execution_sha256": "a3d4e1e4ea76084a4036a1c7626b00353401adc3833838375974509aed2f2e8c",
+  "state_reuse_eligible": false,
+  "swap_bytes": 0,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "230a11e4f1334336b6d195f60bc0bd7e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/cpu-v6-original.log",
+      "sha256": "a5c767cee5a689c5d0e0c29b4e355488e8350286033b77b2199e665d816dae14"
+    },
+    "native_peak_rss_kib": 6426592,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-cpu-v6/receipt.json",
+      "sha256": "4ecd63f75a09ff1757a9a1bdf1e80c29865c5bfb75483c63f3a3e09bc9aeeaa8"
+    },
+    "service_seconds": 433.509,
+    "unit": "sfora-connected-mlp-cpu-v6"
+  },
+  "whole_unit_peak_host_bytes": 7159689216
+}
