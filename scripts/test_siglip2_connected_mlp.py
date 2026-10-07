@@ -122,6 +122,149 @@ def authority_falsifiers(d):
         rejects(lambda: d.bound_file({},path,digest), 'bytes')
 
 
+def actual_gradient_scan_falsifier(d):
+    """Real fresh reads at the extracted callsite; no native/speed qualification."""
+    import os
+    import threading
+    from collections import Counter
+
+    raw = DRIVER.read_bytes()
+    old = (b"    for path,digest in record['input_guards'].items():\n"
+           b"        bound_file(context['guards'],path,digest)\n")
+    new = b"    batch_bound_files(context['guards'],record['input_guards'].items())\n"
+    assert raw.count(old) + raw.count(new) == 1
+    original = raw.replace(new, old)
+    # Exact inverse pins ALL production bytes/AST, including helpers and the
+    # surrounding receipt, gradient, witness-closure and terminal predicates.
+    assert hashlib.sha256(original).hexdigest() == \
+           'cd68f9b109ca48dfc488a248b66c6e2f4a1e58e884aa3c598f4325d4c912edb2'
+    baseline, candidate = ast.parse(original), ast.parse(raw)
+    assert hashlib.sha256(ast.dump(baseline,include_attributes=False).encode()).hexdigest() == \
+           '1578ada3f1ab342af6f83ca060acdb24af9755808d762d43b1f8d35bfed2a1fb'
+    body = function(baseline,'admit_actual_gradient').body
+    index = next(i for i,n in enumerate(body) if isinstance(n,ast.For) and
+                 ast.unparse(n.iter) == "record['input_guards'].items()")
+    serial, batched = body[index], function(candidate,'admit_actual_gradient').body[index]
+    namespace = dict(vars(d))
+    helpers = [function(candidate,n) for n in ('require','file_fact','bound_file','batch_bound_files')]
+    exec(compile(ast.Module(body=helpers,type_ignores=[]),str(DRIVER),'exec'),namespace)
+    real_bound, real_open = namespace['bound_file'], Path.open
+
+    def run(statement, items, owner, overlap=False):
+        lock, barrier = threading.Lock(), threading.Barrier(2,timeout=1.)
+        calls, reads, threads, edges = [], [], set(), ['before']
+        active = peak = 0
+        overlapped = False
+
+        def bound(guards, path, digest):
+            with lock:
+                calls.append((str(path),digest))
+                threads.add(threading.current_thread())
+            return real_bound(guards,path,digest)
+
+        @contextmanager
+        def opened(path, *args, **kwargs):
+            nonlocal active, peak, overlapped
+            with real_open(path,*args,**kwargs) as stream:
+                assert args == ('rb',) and not kwargs
+                with lock:
+                    reads.append(str(path))
+                    edges.append('read')
+                    active += 1
+                    peak = max(peak,active)
+                    waits = overlap and len(reads) <= 2
+                try:
+                    if waits:
+                        try:
+                            barrier.wait()
+                            overlapped = True
+                        except threading.BrokenBarrierError:
+                            pass  # Serial RED finishes after a bounded wait.
+                    yield stream
+                finally:
+                    with lock:
+                        active -= 1
+
+        code = compile(ast.Module(body=[statement],type_ignores=[]),str(DRIVER),'exec')
+        # A receipt dict has unique keys; this items facade also exercises the
+        # helper's required per-occurrence contract for repeated descriptors.
+        inputs = SimpleNamespace(items=lambda:iter(items))
+        error = None
+        with patch.dict(namespace,bound_file=bound), patch.object(Path,'open',opened):
+            try:
+                exec(code,{**namespace,'record':{'input_guards':inputs},'context':{'guards':owner}})
+                edges.append('after')
+            except ValueError as exc:
+                error = str(exc)
+        assert active == 0 and peak <= 4
+        assert all(t is threading.current_thread() or not t.is_alive() for t in threads), 'workers not joined'
+        assert edges[0] == 'before' and edges[1:] == ['read']*len(reads) + ([] if error else ['after'])
+        return SimpleNamespace(error=error,calls=calls,reads=reads,overlapped=overlapped,peak=peak)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        files = [root/f'member{i}' for i in range(5)]
+        for i,path in enumerate(files):
+            path.write_bytes(b'member %d\n' % i)
+        items = [(str(p),hashlib.sha256(p.read_bytes()).hexdigest()) for p in files]
+        repeated = items + [items[0],items[2]]
+        initial = dict([items[3],items[0]])
+        serial_owner, owner = dict(initial), dict(initial)
+        red = run(serial,repeated,serial_owner)
+        green = run(batched,repeated,owner,overlap=True)
+        assert red.error is green.error is None
+        assert red.calls == repeated and red.reads == [p for p,_ in repeated]
+        assert red.peak == 1 and not red.overlapped
+        assert green.overlapped and 2 <= green.peak <= 4, 'witness scan still serial'
+        assert Counter(green.calls) == Counter(repeated)
+        assert Counter(green.reads) == Counter(p for p,_ in repeated), 'fresh occurrence missing'
+        assert list(owner.items()) == list(serial_owner.items()) == list({**initial,**dict(items)}.items())
+
+        def failure(entries, expected, guards=initial, overlap=False):
+            owner = dict(guards)
+            result = run(batched,entries,owner,overlap)
+            assert result.error and expected in result.error, (expected,result.error)
+            assert list(owner.items()) == list(guards.items()), 'failed scan published owner guards'
+            return result
+
+        # Same size and restored mtime cannot turn an existing guard into a cache.
+        victim = files[0]
+        stamp, content = victim.stat(), victim.read_bytes()
+        victim.write_bytes(b'changed!\n')
+        os.utime(victim,ns=(stamp.st_atime_ns,stamp.st_mtime_ns))
+        assert (victim.stat().st_size,victim.stat().st_mtime_ns) == (stamp.st_size,stamp.st_mtime_ns)
+        mutated = failure(repeated,'current FILE bytes',overlap=True)
+        assert mutated.overlapped and Counter(mutated.reads) == Counter(p for p,_ in repeated)
+        victim.write_bytes(content)
+
+        link = root/'link'
+        link.symlink_to(files[0])
+        for path in (str(link),str(root),str(root/'missing'),str(root/'..'/root.name/files[0].name)):
+            failure([items[1],(path,items[0][1])],'canonical regular FILE')
+        failure([items[1],(items[0][0],'0'*64)],'current FILE bytes')
+        conflict = {items[0][0]:'0'*64}
+        conflicted = failure(repeated,'conflicting FILE authority',conflict)
+        assert Counter(conflicted.reads) == Counter(p for p,_ in repeated)
+        failure([items[0],(items[0][0],'0'*64)],'current FILE bytes')
+        for malformed in (('relative',items[0][1]),(items[0][0],'A'*64),(items[0][0],None)):
+            rejected = failure([items[1],malformed],'exact FILE')
+            assert rejected.calls == rejected.reads == []
+
+        # Accepted differences: descriptor prevalidation precedes byte errors;
+        # owner conflicts follow all byte results; serial publishes its prefix.
+        faults = [(items[0][0],'0'*64),('relative',items[1][1])]
+        assert 'current FILE bytes' in run(serial,faults,{}).error
+        assert failure(faults,'exact FILE',{}).calls == []
+        faults = [items[0],(items[1][0],'0'*64)]
+        assert 'conflicting FILE authority' in run(serial,faults,dict(conflict)).error
+        failure(faults,'current FILE bytes',conflict)
+        serial_prefix = {}
+        assert run(serial,[items[0],(items[1][0],'0'*64)],serial_prefix).error
+        assert list(serial_prefix.items()) == [items[0]]
+        failure([items[0],(items[1][0],'0'*64)],'current FILE bytes',{})
+    print('PASS witness scan: inverse source/AST, fresh occurrences, ordered owner, bounded/joined workers, negatives')
+
+
 def lifetime_restore_math(d):
     tree = ast.parse(DRIVER.read_text())
     text = lambda name: ast.unparse(function(tree,name))
@@ -854,6 +997,7 @@ def main():
     source_contract(d)
     initializer_selection(d)
     authority_falsifiers(d)
+    actual_gradient_scan_falsifier(d)
     lifetime_restore_math(d)
     overlay_optimizer_seams(d)
     owned_loader_admission(d)

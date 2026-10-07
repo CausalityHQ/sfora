@@ -298,8 +298,7 @@ def admit_actual_gradient(context):
         for term in ('ranking','total'):
             require(all(view['gradients'][term][n]['norm'] > 0 and view['gradients'][term][n]['nonzero'] > 0
                         for n in MLP), 'all-four actual ranking/total gradients required')
-    for path,digest in record['input_guards'].items():
-        bound_file(context['guards'],path,digest)
+    batch_bound_files(context['guards'],record['input_guards'].items())
     require(all(record['input_guards'].get(str(Path(launch['witness']['root'])/n)) == h
                 for n,h in launch['witness']['files'].items()), 'admitted witness closure differs')
     # Only field names differ in the discarded witness receipt. The original
