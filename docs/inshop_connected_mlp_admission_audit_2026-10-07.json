@@ -1,0 +1,191 @@
+{
+  "schema": "connected-mlp-frozen-admission-source-audit-v1",
+  "date": "2026-10-07",
+  "decision": "SOURCE_SUPPORTED_CONDITIONAL_ONE_CALL_PROPOSAL; NATIVE_QUALIFICATION_UNRUN",
+  "qualification_eligible": false,
+  "state_reuse_eligible": false,
+  "contract": {
+    "base_commit": "4c38d3d371dd12753b2a3f32ba5f88bcff0882be",
+    "branch": "devbox/connected-mlp-admission-audit-20261007",
+    "base_establishment": "Clean isolated branch fast-forwarded from f860e06147ff7946a14497a1c6c43f67f304ba91 to the exact required base; no master merge or push.",
+    "early_contract_parent_message": "1791378990232806439-2863870",
+    "scope": "Read-only source/evidence inspection; this JSON is the sole new repository artifact. No production/test edits, native imports, model execution, image reads, SSH, GPU/cloud jobs, consultations, children, or operator tools.",
+    "verification_limit": "One final stdlib JSON/source-pin check, at most 5 seconds and 1 GiB; no test suite or native gate.",
+    "integration_owner": "sfora/emafactorial; parent owns source changes, frozen protocols, native gates, integration and pushing."
+  },
+  "conclusion": "The connected trainer's admit_actual_gradient replay at lines 301-302 performs 18,620 unconditional fresh root bound_file calls. Its existing four-worker batch_bound_files can replace that single loop while retaining successful per-occurrence byte validation and ordered owner publication. This is conditional on explicitly accepting changed failure publication, first-error precedence and physical read scheduling; it is not strict serial-behavior equivalence. Leave the frozen trainer-v5 and its reader-owned admission state unchanged. No scan timing or speed gain is established.",
+  "diagnostic": {
+    "evidence_root": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-phase-diag-v2",
+    "original_log_sha256": "5338e6f99ba7a9251b11b5d6fdd0aaf37d7be4656b3b95703009f9a02c5fcd84",
+    "verification_file": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-phase-diag-v2/verification.json",
+    "invocation_id": "6fab2bc11f194d2080d20b21f9bd4e8b",
+    "authority_inclusive_seconds": 135.79629945999477,
+    "update_inclusive_seconds": 64.8394606590009,
+    "service_seconds": 300.178,
+    "service_result": "timeout",
+    "original_ssh_exit": 1,
+    "host_peak_bytes": 7151419392,
+    "swap_bytes": 0,
+    "memory_events": 0,
+    "unclosed_functions": ["run", "export_bundle"],
+    "interpretation": "Intervals overlap and cannot be added across functions. END means return or unwind. Authority includes many historical admissions, parsing, source authentication and guard scans; the log does not time the proposed loop separately. Export began, but portable parity and complete exit did not finish. This and earlier timeouts remain FAIL; no rescue by subtracting admission or increasing caps.",
+    "current_tensor_audit": {
+      "path": "docs/inshop_connected_mlp_current_byte_audit_2026-10-07.json",
+      "source_sha256": "cd68f9b109ca48dfc488a248b66c6e2f4a1e58e884aa3c598f4325d4c912edb2",
+      "encoder_facts_calls_per_update": 3,
+      "current_tensor_bytes_per_encoder_facts": 3423104512,
+      "current_tensor_bytes_per_update": 10269313536,
+      "interpretation": "Separate mutable-tensor traversal accounting, not file-open accounting or timing. The direct encoder_facts call plus two integrity calls remain unchanged. Historical fresh-copy intervention was KILL with integrity parity PASS; do not relaunch or infer CPU speed."
+    }
+  },
+  "frozen_identity_chain": {
+    "connected_execution_sha256": "cb18b71dad340f49964679bf47b14449e546ab654e67d4d823256e4f212234b0",
+    "connected_authority_sha256": "56f37121ce44dee2f305961d540ce592b32d0e938c229b65f62d8c627f47c779",
+    "connected_freeze": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v2-freeze",
+    "observer_manifest": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-phase-diag-v2-freeze/manifest.json",
+    "witness_freeze": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2-freeze",
+    "historical_remote_root": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5",
+    "historical_execution_sha256": "bd081a02a49f1f0dd8305b78bb3f8aa91f5bb7331f3045325a185971fb7c04a8",
+    "historical_cpu_authority_sha256": "8fcfb9ae55c33ed842c68ab01b59fea378f1258b4b784d5874e40e9f49801eac",
+    "historical_test_sha256": "96a704f357eafcf07d07381f0bc2ce6537712e9d6b84829ba860cd1f0a436102",
+    "historical_execution_and_authority_evidence": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-diversity-v1/cpu-v5-freeze",
+    "historical_trainer_bytes_found": true,
+    "historical_alternate_git_source": "cde7b275291bbc380a86c6caafdb90e5e5915a2b:scripts/train_siglip2_identity_diversity.py",
+    "excluded_newer_source": {
+      "path": "scripts/train_siglip2_identity_diversity.py",
+      "sha256": "094d97259b5f417b334186305351f02d6b76983cf88dbf4021a22d0f70a235e9",
+      "reason": "Not trainer-v5. Its later candidate-scan change cannot be substituted into the connected authority or used to describe the frozen scan."
+    },
+    "binding": "Connected authority:228-243 authenticates the witness, exact original authority/UNIT and historical exact2 closure before loading trainer-v5. The witness constants at lines 42-53 pin trainer-v5 and CPU-v5. Local SHA256 of the archived trainer and the alternate historical Git blob both equal 840c5d82...; exact current helper bytes below are accepted only where their SHA matches frozen constants or authenticated receipt input_guards.",
+    "missing_frozen_admission_source_bytes": []
+  },
+  "source_pins": [
+    {"id":"connected","path":"scripts/train_siglip2_connected_mlp.py","sha256":"cd68f9b109ca48dfc488a248b66c6e2f4a1e58e884aa3c598f4325d4c912edb2","size_bytes":110520,"lines":"authority 215-261; witness replay 275-312; byte helpers 352-429; selected-terminal admission 1591-1630"},
+    {"id":"identity_v5","path":"docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py","sha256":"840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8","size_bytes":190059,"lines":"byte helpers 117-194; authority 276-334; candidate admission 446-521; terminal admission 2612-2640"},
+    {"id":"nearest_v5","path":"scripts/train_siglip2_nearest_ranking.py","sha256":"4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c","size_bytes":117758,"lines":"byte helpers 106-160; startup authentication/adaptation 223-324; native authority/API 326-575"},
+    {"id":"fitter_v2","path":"scripts/fit_siglip2_prototype_residual.py","sha256":"95295794ef234967d40bdf5713d04f41d6710dae4e9d2b95bca76f0f31adc13b","size_bytes":84773,"lines":"authority 226-287; terminal AST adapter 330-367; historical admission 370-427; terminal admission 1048-1074"},
+    {"id":"historical_fitter_v3","path":"docs/evidence/compact_metric/sop-siglip2-substrate-v1/prototype-residual-ridge-v1/train-source-v3/fit_siglip2_prototype_residual.py","sha256":"cc3ffb6d63a78448e3bff0535304b50b30eb451b0617c15c4b8cf1727bed7d2d","size_bytes":55084,"lines":"unchanged historical check_launch 159; check_terminal_record 698"},
+    {"id":"quadratic_v7","path":"scripts/train_siglip2_quadratic_readout.py","sha256":"17cf2dac93a45aae3ba929ad5c36e73f4c33576eae9bb5f9dec670c272a1731f","size_bytes":88161,"lines":"admit_unit 200-210; authority 253; original FlatAdmission creation/seeding 284-287"},
+    {"id":"genuine_trainer","path":"scripts/train_siglip2_genuine_views.py","sha256":"788d672bca384c478881fc8f0b59090efbaf6f84e1c9f27469828bc951b7ec96","size_bytes":70380,"lines":"authority 342-474; preparation union replay 396-397; prerequisite receipt replay 464"},
+    {"id":"flat_reader","path":"scripts/train_siglip2_substrate_adaptation.py","sha256":"a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543","size_bytes":111671,"lines":"global bound_file 102-115; FlatAdmission 170; register 215; bound_file 225; read_json 232; terminal reader 483-526"},
+    {"id":"candidate_exporter","path":"scripts/export_siglip2_identity_diversity_views.py","sha256":"67f228d24f3af71eba4d854148e2c351df04129347a761b8e7967ef144f1ef39","size_bytes":66249,"lines":"file JSON/closure 144-167; scope metadata/images 508-588; terminal admission 667-737"},
+    {"id":"genuine_exporter","path":"scripts/export_siglip2_genuine_views.py","sha256":"e5e98f9bc85680cab013d53752e7fa140da9d5e7f7ecd4537413b29b1047f65e","size_bytes":41190,"lines":"authority 210-244; terminal admission 278"},
+    {"id":"fit_exporter","path":"scripts/export_siglip2_substrate_fit.py","sha256":"163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8","size_bytes":34705,"lines":"source loading 117; all_fit_images 134; cgroup 146; admit_cpu 160; authority 244"},
+    {"id":"source_cpu","path":"scripts/qualify_siglip2_substrate_cpu.py","sha256":"eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38","size_bytes":37291,"lines":"byte/JSON validation 93-109; extraction provenance 112; FIT row validation 141; derived inventory 168; authority 183; package origins 241"},
+    {"id":"extract","path":"scripts/extract_siglip2_vision_source.py","sha256":"a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d","size_bytes":18602,"lines":"sha/stream_range 96; expected_vision 112; preprocessor 162; safetensors header 186; new_output 224"},
+    {"id":"actual_witness","path":"docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2-freeze/qualify_actual_objective_encoder_gradients.py","sha256":"48599c7f6119e055c0ac901140279faa8654028d1fdd64c1ccb2803556591c14","lines":"top-level original witness byte authentication/import 33-40; original trainer/CPU constants 42-53"},
+    {"id":"connected_witness","path":"docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2-freeze/qualify_connected_encoder_gradients.py","sha256":"86cfd83947218cf5a10011efb21297811bb5f13188486faf314ae6f52e8b3dba","lines":"HELPERS/POLICY/MLP and require/sha/pairs 40-72; no native admission executes on import"}
+  ],
+  "caller_guard_ownership_graph": [
+    {"caller":"connected.run -> connected.authority","guards":"New root guards dict; native imports forbidden before admission.","sequence":"Authenticate own exact2 execution and launch; enforce exact launch schema/recipe/policy/seed/phase/locks, canonical exclusive output and separate witness root. Freshly check seven witness files, rehash witness source before compile, require exact witness dependencies. Authenticate frozen trainer-v5 exact2 and rehash trainer before compile."},
+    {"caller":"connected.authority -> identity_v5.authority(historical CPU/control/179061)","guards":"Separate historical guards created from original CPU-v5 launch. Root's accumulated guards merge only after historical terminal admission, with setdefault conflict equality.","sequence":"identity_v5 authenticates nearest3/fitter3 closures, then nearest.startup_admission_adapter calls private authenticated fitter authority and accepted concat terminal. Merge original fitter guards with conflict rejection; retain fit_context and legacy as their original owners."},
+    {"caller":"nearest.startup_admission_adapter -> fitter_v2.authority / admit_historical_linear / admit_terminal","guards":"Private copied namespace; exactly two bound_file call AST substitutions to legacy.admission.bound_file. Authority AST is unchanged. Fresh source hash/code/global ownership and inverse AST checks gate each adapted entry.","sequence":"Fitter authenticates original quadratic exact4 and CPU-v7 receipt, calls quadratic.authority, checks original source/CLI/interpreter/numerics/required guards, merges guards both directions with conflicts, admits original CPU, binds solver/readout, admits historical linear CPU+fit and selected signed CPU. Accepted concat terminal is then admitted by the same startup adapter. No speculative cache insertion."},
+    {"caller":"quadratic_v7.authority -> genuine_trainer.authority -> genuine_exporter.authority -> fit_exporter.authority -> source_cpu.authority","guards":"Each closure/stage has a separate dictionary; merges require existing digest equality or exact/subset stage inventories. No replacement of stage dictionaries by their union.","sequence":"Source CPU authenticates original extraction inputs/log/caps, source revision/config/processor, complete derived safetensors ranges/provenance and original FIT rows. Fit exporter admits original CPU tensor/role/buffer/CLI/terminal/cgroup proof and hashes all 13,283 canonical FIT images. Genuine exporter binds ordered selected rows and ImageRows AST; genuine trainer checks source packages, startup/export proof, caches, source/guard inventories and both mechanics prerequisites of original TRAIN. Pure code/math imports retain frozen source/AST pins."},
+    {"caller":"quadratic_v7.authority -> flat_reader.FlatAdmission","guards":"One legacy reader owns entries, verified and json_bytes. init is the genuine fit-export reference. Lines 284-287 register already-checked upstream guards and seed verified; later FlatAdmission.bound_file always register/checks canonical path, SHA and current size, but hashes only unverified paths.","sequence":"Warm/original CPU and adapted fitter receipt replays use this reader; serial calls mutate reader entries/verified. JSON uses stored authenticated raw bytes and reparses strict JSON. This existing reader contract is not equivalent to root unconditional hashing and must not be threaded through root batch_bound_files."},
+    {"caller":"identity_v5.authority -> nearest.native_source_api","guards":"Context-owned immutable supplemental mapping/private API plus authenticators. Fresh module and supplemental file reads remain outside startup/exit reader caches.","sequence":"bind_native_authority authenticates exact four vendor libraries, every ownership RECORD and metadata hash/size, installed inventory and unique owner. API preserves live functions/code/defaults/globals/classes and private closure identities, inverse AST correspondence, fresh dependency bytes and supplemental sizes on authentication. No new metadata cache is proposed."},
+    {"caller":"identity_v5.authority -> identity_v5.admit_candidate_cache -> candidate_exporter admission helpers","guards":"Main historical guards and exporter own_guards are deliberately distinct; original prior.guards remains separate.","sequence":"Authenticate exporter exact2, launch/reference/partition/scope; reconstruct full ordered metadata/exclusions and hash 6,355 resolved candidate image paths. Reconstruct exporter own_guards with a second complete admission, including another 6,355 image checks. Admit startup and export terminals before invocation/log checks and the right-biased 18,267-file union replay. Cache dtype/shape/normalization/ownership and payload validation follow the replay."},
+    {"caller":"connected.authority -> identity_v5.admit_terminal(original CPU-v5)","guards":"Authenticate original legacy reader class/method/global byte dependencies at entry. nearest.read_json uses reader-owned JSON bytes. Terminal input guard replay at identity_v5:2638-2639 uses this same reader.","sequence":"Validate exact terminal launch/source/code, identities, both-seed/both-arm CPU qualifications, required guards, original interpreter/argv and numerics; execute authenticated original terminal reader with only duration parsing adapted; enforce zero events and unused invocation before replaying 18,610 descriptor entries. Do not label those entries 18,610 fresh opens."},
+    {"caller":"connected.authority -> connected.admit_actual_gradient","guards":"Root read_json freshly authenticates receipt/authority; context.guards is the historical dict after conflict-checked root merge. Replay at 301-302 calls root bound_file directly for every receipt entry, even if already in guards.","sequence":"Before replay: exact engineering-only schema, receipt/log/invocation pins, zero updates/no quality/fit/cost/reuse, full encoder counts, four gradients, both views, lifetime/RNG and witness policy. After replay: require full witness closure in input_guards; project only documented terminal field names, create fresh original reader bound to genuine fit-export init, and enforce original log/normal-exit/cgroup/lock predicates and zero events."},
+    {"caller":"connected.authority -> connected.admit_terminal (non-CPU selected prerequisites only)","guards":"New FlatAdmission per connected selected terminal; receipt/authority reader state and inventory replay are separate from legacy startup reader and root unconditional replay.","sequence":"Not exercised by the measured CPU authority. Preserve source coverage, new CPU/mechanics/TRAIN predicates, interpreter/argv, cgroups, invocation uniqueness and fresh-control ratios. No proposed replacement of its reader.bound_file loop."}
+  ],
+  "receipt_inventories": {
+    "actual_gradient": {
+      "path": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2/receipt.json",
+      "sha256": "e7da19ba546f9d5375697d3d0347b3c96f9cfe0ee5183f9341d473114461d896",
+      "local_receipt_size_bytes": 3300527,
+      "input_guards": 18620,
+      "root_fresh_full_file_opens_for_one_successful_replay": 18620,
+      "selected_suffix_counts": {".jpg":16456,".py":1592,".so":193,".pt":17,".json":71,".npy":4,".safetensors":1},
+      "count_caveat": "The suffix counts are not an exhaustive partition: versioned shared objects, distribution RECORD/METADATA/WHEEL, logs and text also occur. JPG admission hashes bytes without decoding pixels. This worker read no images."
+    },
+    "original_cpu": {
+      "path": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-diversity-v1/cpu-v5/receipt.json",
+      "sha256": "d2239da896465ee004ebb95c9316713d634fa457c91c708c6c410769a8c17b03",
+      "input_guards": 18610,
+      "paths_also_in_actual_gradient": 18610,
+      "fresh_opens_for_reader_replay": null,
+      "reason": "Depends on entries/verified populated earlier in the same original reader; count is descriptor occurrences, not fresh hashing or bytes read. Root's subsequent 18,620-entry replay nevertheless rereads all shared paths."
+    },
+    "candidate_export": {
+      "path": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-diversity-v1/cache-export-candidate-v1/receipt.json",
+      "sha256": "a849d0e8fd76c9685fed142593a3f79584a7390f69066d359fdc5660025224d7",
+      "input_guards": 6377,
+      "original_input_guards": 15075,
+      "overlap_paths": 3185,
+      "overlap_digest_conflicts": 0,
+      "right_biased_union_fresh_opens_at_identity_v5_line_508": 18267,
+      "ordering": "Preserve exactly {**proof['input_guards'], **proof['original_input_guards']}.items(): original_input_guards wins overlaps; existing left-side insertion positions remain. Do not concatenate inventories, deduplicate across calls, or merge in other stage guards."
+    },
+    "source_occurrence_rules": [
+      "Root and frozen identity read_json each perform one full streaming bound_file read then a second capped authenticated JSON read; both checks remain.",
+      "Root and frozen identity load_authenticated perform bound_file plus a fresh raw read/hash before compile; earlier closure authentication does not eliminate these reads.",
+      "Root closure scans own two files and historical exact2 separately; witness loop scans seven files before authenticated witness import. Keep the causal order before executing helpers.",
+      "Candidate scope resolution hashes 6,355 images in main guards and again in exporter own_guards, then the right-biased union checks its supplied occurrences again. These are separate original trust boundaries.",
+      "The 18,620 witness entries are unique JSON dictionary paths after strict duplicate-key rejection. A general batch helper must still hash repeated supplied items on every occurrence; equal digests or inode identity do not authorize deduplication."
+    ],
+    "remote_size_limits": "The committed witness input_guards maps paths to hashes, not sizes. Remote file sizes cannot be inferred from tensor payload bytes or from local basenames. Local source sizes above describe SHA-matched source artifacts only.",
+    "supplemental_parent_stat_report": {
+      "parent": "sfora/emafactorial",
+      "message_id": "immediate-1791379226940240383-2863870",
+      "receipt_sha256_reported_checked": "e7da19ba546f9d5375697d3d0347b3c96f9cfe0ee5183f9341d473114461d896",
+      "stat_regular_files_reported": 18620,
+      "missing_files_reported": 0,
+      "total_stat_size_bytes_reported": 15557986904,
+      "selected_stat_size_bytes_reported": {".pt":9029732427,".safetensors":1711601328,".jpg":264928011,".py":36819705},
+      "five_vision_files_size_each_reported": 1711945083,
+      "five_vision_files_roles": "Original fresh_vision.pt and four original CPU-v5 bundle vision.pt files.",
+      "status": "Parent-reported remote stat observation, outside this audit base; not independently measured by this worker. No file-content digest revalidation, runtime/parity or speed conclusion follows. A parent durable inventory should be bound separately before treating these sizes as independently reviewed evidence."
+    }
+  },
+  "loop_disposition": [
+    {"source":"connected:301-302","operation":"for path,digest in record['input_guards'].items(): bound_file(context['guards'],path,digest)","disposition":"Smallest conditional candidate: replace only with existing root batch_bound_files(context['guards'], record['input_guards'].items()). No historical file or original reader changes."},
+    {"source":"identity_v5:508","operation":"Serial right-biased candidate receipt union through frozen identity bound_file.","disposition":"Mechanically eligible for its own existing helper at149, with identical failure/ordering qualifications, but altering trainer-v5 changes frozen historical source authority. Current newer trainer is not an admissible substitute. Exclude from proposed connected-only change."},
+    {"source":"connected:226-227,408-416; identity_v5:173-181","operation":"Small closure and witness serial scans.","disposition":"Pure file checks within each closure could use that closure's same helper only after its manifest/schema checks and before imports; retain all occurrences. Not proposed: independent changes with no isolated timing evidence."},
+    {"source":"identity_v5:2638-2639; connected:1604-1605; quadratic_v7:207-208; adapted fitter inventories","operation":"FlatAdmission.bound_file descriptor loops.","disposition":"Not interchangeable with root helper. Reader owns entries, current size checks, verified and json_bytes; concurrent calls would change reader-state semantics. Preserve serial original ownership and full terminal predicates."},
+    {"source":"candidate_exporter:539-553; fit_exporter:134-143; genuine_trainer:396-397,464","operation":"Image path resolution/full FIT validation and older source replay loops.","disposition":"Preserve bounds, containment, aliases, uniqueness, order and all current-byte checks. No same-owner four-worker replacement is already wired in these frozen modules; cross-module batching or metadata reuse would require a separate source/predicate proof. Not part of the bounded proposal."},
+    {"source":"nearest_v5:326-575","operation":"Vendor RECORD parsing/ownership, fresh dependency and supplemental byte/size scans.","disposition":"Preserve every parse/inventory/size/global/function binding check. Existing private immutable metadata/API ownership already avoids reconstructing the API on reuse while rehashing source/supplemental files. No new cache or parallel rewrite proposed."}
+  ],
+  "smallest_proposed_change": {
+    "implementation_performed": false,
+    "target": "scripts/train_siglip2_connected_mlp.py:301",
+    "before": "for path,digest in record['input_guards'].items():\n    bound_file(context['guards'],path,digest)",
+    "after": "batch_bound_files(context['guards'], record['input_guards'].items())",
+    "existing_helper": "scripts/train_siglip2_connected_mlp.py:384-396; already used by admit_bundle:1109",
+    "unchanged_predicates": [
+      "Receipt and authority strict JSON duplicate-key/nonfinite rejection, capped fresh JSON bytes and exact file descriptors.",
+      "Every supplied occurrence validates absolute path, canonical regular file, lowercase 64-hex SHA, full current streaming bytes and POSIX_FADV_DONTNEED behavior through the SAME root bound_file.",
+      "Existing expected guards never skip reads. Owner conflicts reject; equal duplicate occurrences still get independent reads. No path, hash, inode or metadata deduplication.",
+      "Results are collected in original item order; successful guard insertion order and values equal the serial outcome, including preexisting entries. Existing owner authority cannot be overwritten by a different digest.",
+      "All receipt/gradient/view/encoder/lifetime/RNG predicates remain before the scan; complete witness closure check, original fresh terminal reader and all normal-exit/log/lock/cgroup predicates remain after it.",
+      "Historical trainer-v5 source, startup adapter, original reader, original CPU500 policy, connected CPU300/mechanics300/TRAIN600 policies, tensor checks and exit rehash remain unchanged."
+    ],
+    "explicit_behavior_differences": [
+      "Serial loop publishes each successful prefix entry before a later failure. Batch workers use private empty dicts; owner guards publish only after every file result and staged owner/duplicate conflict check succeeds. Any failure leaves owner guards unchanged.",
+      "All descriptors are prevalidated before submission. A malformed later descriptor may become the first error rather than an earlier byte failure. With valid descriptors, results are observed in input order, but owner conflicts are checked only after file results, so multiple-fault first-error precedence can still differ.",
+      "Physical open/read completion order is concurrent, not serial. A failure can cause more files to be read than the serial failing prefix. Executor shutdown joins submitted work before returning/raising; it does not promise cancellation of queued tasks.",
+      "The helper materializes items and submits all futures: four bounds active workers, not queued bookkeeping. Approximately four 1 MiB streaming buffers plus O(18620) items/futures/results/staged guards require actual RSS/resource qualification."
+    ],
+    "eligibility_condition": "Parent must accept these explicitly bounded failure/scheduling differences while preserving successful data order and rejection predicates. If the requirement is exact serial read order, first-error precedence, prefix-read count or partial guard publication, this existing helper is not eligible; retain the serial loop. No assertion of strict behavioral equivalence.",
+    "metadata_reuse_decision": "No added reuse. An expected digest, same stat/mtime/size, cached parsed receipt, reader.verified set or identical tensor payload is not authority to skip this root current-byte boundary. Existing FlatAdmission JSON/verification reuse and native owned API metadata stay within their original owners and lifetimes."
+  },
+  "smallest_falsifier": {
+    "status": "PROPOSED_ONLY_NOT_RUN",
+    "location": "One bounded check in the parent's existing connected trainer source-only harness; the existing identity trainer scan test near1279 is an inspectable pattern, not frozen trainer evidence.",
+    "resources": "Five tiny synthetic regular files plus repeated supplied items; stdlib only, at most5s/1GiB, short bounded thread barrier, no native imports/images/remote jobs.",
+    "requirements": [
+      "Extract the actual changed admit_actual_gradient statement from source. Inverting exactly that substitution must restore the entire baseline function AST; adjacent admission predicates and helper bodies remain identical.",
+      "Run baseline and candidate against identical fixed inputs with a preexisting guard. Compare exact final ordered guards and required callback order before/after replay. Instrument real bound_file calls: every supplied occurrence, including same-path/same-hash duplicates, must perform a real fresh read.",
+      "Use a bounded two-party barrier to establish concurrent progress; verify active readers never exceed four and all worker activity has ended before return or exception. Serial should fail the overlap assertion without hanging.",
+      "On a second call, mutate content without changing size and restore mtime; a preexisting expected guard must still reject. Wrong SHA, symlink/noncanonical path, directory/missing file and malformed descriptor must reject.",
+      "Exercise conflicting preexisting owner digest and duplicate supplied paths with incompatible digests. Candidate owner dict must remain byte-for-byte/order unchanged on any failure; successful serial and batch maps must match. Record serial prefix publication separately rather than demanding false failure-state parity.",
+      "Use two simultaneous faults to demonstrate/document descriptor-prevalidation and owner-conflict first-error differences. If callers need serial precedence or partial guards, reject the proposal. No replacement or clearing of original reader entries/verified/json_bytes is allowed."
+    ],
+    "rejection_rule": "Any missing fresh occurrence, weakened byte/path/schema/conflict/terminal predicate, changed surrounding AST, owner mutation on batch failure, unjoined work or resource breach falsifies the proposal. Passing this source check establishes no speed or native qualification."
+  },
+  "parent_native_decision_boundary": {
+    "authorization_from_this_audit": false,
+    "needed_evidence": "After parent accepts the source-only falsifier and freezes a new connected exact2 source, only parent may select a prospective native gate. Measure the replay and complete authority/service separately, with original frozen helpers, equivalent authenticated inventory, identical scientific recipe and full normal exit/portable parity. One sequential original/candidate comparison without overlapping jobs can test performance; no gain follows from worker count or stat volume.",
+    "resource_and_scientific_guards": "Keep connected CPU300/mechanics300/TRAIN600, host8GiB, no swap/disallowed events, CUDA allocation<10000000000B when applicable, both lifetime locks, fresh selected prerequisites and full uncached exit. Do not widen caps, skip duplicate boundaries, reuse failed state, borrow newer historical trainer bytes or reclassify old timeouts.",
+    "stop_rule": "Reject on correctness/resource/complete-exit failure; absent measured improvement, retain serial. Parent owns any further experiment decision."
+  }
+}
