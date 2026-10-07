@@ -1,0 +1,30 @@
+{
+  "authority_sha256": "990052085cefa9802af6bc43f95e94cbb1a3dd193c02817533cfe54775daf2f1",
+  "batch_worker_commit": "4d5e226ca97aa326e634c0c55343e4a343a02563",
+  "deadline_basis": "CPU600 is prospective whole-lifecycle engineering ceiling, not measured completion estimate. Opus rejectedCPU500; Astra conditional correctness GO. Mechanics300/TRAIN600 not qualified by this CPU run.",
+  "execution_sha256": "5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f",
+  "files": {
+    "authority-cpu-v3.json": "990052085cefa9802af6bc43f95e94cbb1a3dd193c02817533cfe54775daf2f1",
+    "cpu-v3-command.sh": "2db6141c54917743da980d1fe0f5ef48472c32e4f04cb5cf7ee807e2dc5c94c2",
+    "cpu-v3-launch.sh": "9715cdb6bbd6991dda06384b434d23b2b458b76e197b994cb34bc0d8f78aa88c",
+    "execution.json": "5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f",
+    "source-only-original.log": "73797e97c6266831b598b092d1afd3ab08874c21709938b74ffa4c676aacbcf4",
+    "test_siglip2_connected_mlp.py": "35daffe103bc52fe3fbbc4af33a0348494b9477ce49052db7f5d0cf5be083cc1",
+    "train_siglip2_connected_mlp.py": "55935d5a7e7299d1a11f14617cd5ef07f4232afd32148abf942c74edbc636e99"
+  },
+  "historical_failures_remain": "FAIL",
+  "native_unrun_at_freeze": true,
+  "output": "/home/riomus/runs/sfora-connected-mlp-cpu-v3",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "review_group": "7a8bbd2320e64e4f",
+  "schema": "connected-mlp-parent-freeze-v2",
+  "source_commit": "434ce9e",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-train-source-v3",
+  "stop_rule": "ONE CPU600 engineering gate. Full original source/witness/CPU-v5 admission, discarded complete actual candidateB64 two-view update, current all448/frozen444/four absolute tensors, independent strict complete state reload, owned portable raw/unit/packed parity and mutants, both-seed initializer admission, lifetime/cache/full uncached exit and normal original terminal, <=8GiB zeroevents/swap CUDAhidden bothlocks. Any failure closes arm; no partial reuse or GPU/quality admission.",
+  "unit": "sfora-connected-mlp-cpu-v3"
+}
