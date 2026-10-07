@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stdlib source-only falsifiers; no native/model-fit/quality qualification."""
+"""Prospective export1500 stdlib falsifiers; no native/model-fit/quality qualification."""
 import argparse
 import ast
 import copy
@@ -39,8 +39,22 @@ def metadata_api():
     return SimpleNamespace(**namespace)
 
 
+def evaluator_export_envelope_inverse(raw):
+    """Undo only export1500; restore the complete original900 production source."""
+    new = b"return {'seconds': 1500 if phase == 'export' else 500, 'host_bytes':8*1024**3,"
+    old = b"return {'seconds': 900 if phase == 'export' else 500, 'host_bytes':8*1024**3,"
+    assert raw.count(new) == 1 and raw.count(old) == 0, 'exact export envelope literal differs'
+    raw = raw.replace(new, old, 1)
+    assert hashlib.sha256(raw).hexdigest() == \
+        'ca122f669078e39a3c300246f425d441f4c53356b95a156865dfd33cbe177581', 'export inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw), include_attributes=False).encode()).hexdigest() == \
+        '834109b46372a3f3d283c74b36c8c8d433aac04a250f8b6f883e8677e7cd0b6b', 'export inverse AST differs'
+    return raw
+
+
 def evaluator_repin_inverse(raw):
     """Undo only the authorized v6 literals; preserve every old byte and predicate."""
+    raw = evaluator_export_envelope_inverse(raw)
     replacements = (
         (b'mechanics1200 + fresh TRAIN128 (3000s) normal exits', b'mechanics300 + fresh TRAIN128 normal exits', 1),
         (b'sfora-connected-mlp-train-source-v6', b'sfora-connected-mlp-train-source-v3', 2),
@@ -230,15 +244,18 @@ def source_contract(e, trainer, reference):
     assert e.TRAINING_CPU == cpu_unit
     assert e.TRAINING_CPU['receipt']['sha256'] == hashlib.sha256((EVIDENCE/'connected-mlp-cpu-v6/receipt.json').read_bytes()).hexdigest()
     assert e.policy('cpu')['seconds'] == e.policy('score')['seconds'] == 500
-    assert e.policy('export')['seconds'] == 900
+    assert e.policy('export')['seconds'] == 1500
     assert e.COST_POLICY['whole_service_ratio_max'] == e.COST_POLICY['total_training_core_ratio_max'] == 1.50
     assert 'candidate_cache' not in e.LAUNCH_KEYS and 'evaluator_reference' in e.LAUNCH_KEYS
+    original_policy = next(n for n in ast.parse(evaluator_export_envelope_inverse(DRIVER.read_bytes())).body
+                           if isinstance(n, ast.FunctionDef) and n.name == 'policy')
     for name in ('require', 'strict_json', 'sha', 'check_file', 'bound_file', 'read_json', 'closure',
                  'merge_guards', 'load_authenticated', 'policy', 'check_unit', 'check_resource_facts',
                  'batch_sizes', 'resources', 'accept_unit'):
         prior = next(n for n in ast.parse((HERE / 'evaluate_siglip2_identity_diversity.py').read_text()).body
                      if isinstance(n, ast.FunctionDef) and n.name == name)
-        assert ast.dump(functions[name], include_attributes=False) == ast.dump(prior, include_attributes=False), name
+        current = original_policy if name == 'policy' else functions[name]
+        assert ast.dump(current, include_attributes=False) == ast.dump(prior, include_attributes=False), name
     assert source('run').index('authority(args)') < source('run').index('native_start(context)')
     admission = source('authority')
     assert admission.index('trainer.authority(targs)') < admission.index("admit_endpoints(context, launch['endpoints'][:2])")
@@ -266,6 +283,57 @@ def source_contract(e, trainer, reference):
     # No assignments to imported module globals or reconstructed function objects.
     assert not any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == 'FunctionType'
                    for n in ast.walk(tree))
+
+
+def export_envelope_contract(e):
+    assert e.policy('export') == {'seconds': 1500, 'host_bytes': 8*1024**3,
+                                  'swap_bytes': 0, 'cuda_visible_devices': '0'}
+    for phase in ('cpu', 'score'):
+        assert e.policy(phase) == {'seconds': 500, 'host_bytes': 8*1024**3,
+                                   'swap_bytes': 0, 'cuda_visible_devices': ''}
+    rejects(lambda: e.policy('train'), 'fixed evaluation phase')
+    original = EVIDENCE/'connected-mlp-evaluation-first-cpu-v1'
+    unit = json.loads((original/'unit.json').read_bytes())
+    raw = (original/'receipt.json').read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == unit['receipt']['sha256']
+    cpu = json.loads(raw)
+    assert cpu['source_code'][DRIVER.name] == hashlib.sha256(
+        evaluator_export_envelope_inverse(DRIVER.read_bytes())).hexdigest()
+    assert cpu['launch']['resource_policies']['export']['seconds'] == 900
+    args = SimpleNamespace(execution_sha256=cpu['execution_sha256'], phase='cpu', arm=None, seed=None)
+    e.check_resource_facts(cpu, 'cpu')  # CPU500 stays valid; its original900 launch cannot qualify1500.
+    rejects(lambda: e.check_launch(cpu['launch'], args), 'launch differs')
+    launch = copy.deepcopy(cpu['launch'])
+    launch['resource_policies'] = {p: e.policy(p) for p in ('cpu', 'export', 'score')}
+    e.check_launch(launch, args)  # Policy-bound launch fixture only, never a new native qualification.
+    facts = {'resource_policy': e.policy('export'), 'wall_seconds': 1499.999,
+        'process_peak_rss_kib': 8*1024**2, 'peak_cuda_allocated_bytes': 9_999_999_999,
+        'cuda_initialized': True}
+    e.check_resource_facts(facts, 'export')
+    for seconds in (1500, 1501):
+        rejects(lambda: e.check_resource_facts({**facts, 'wall_seconds': seconds}, 'export'), 'resources')
+    for key, value in (('seconds', 900), ('seconds', 1501), ('host_bytes', 8*1024**3+1),
+                       ('swap_bytes', 1), ('cuda_visible_devices', '')):
+        bad = {**e.policy('export'), key: value}
+        rejects(lambda: e.check_resource_facts({**facts, 'resource_policy': bad}, 'export'), 'resources')
+        rejects(lambda: e.check_launch({**launch, 'resource_policies':
+            {**launch['resource_policies'], 'export': bad}}, args), 'launch differs')
+    for key, value in (('wall_seconds', 0), ('wall_seconds', float('nan')), ('wall_seconds', True),
+                       ('process_peak_rss_kib', 0), ('process_peak_rss_kib', 8*1024**2+1),
+                       ('peak_cuda_allocated_bytes', 0), ('peak_cuda_allocated_bytes', 10_000_000_000),
+                       ('peak_cuda_allocated_bytes', True), ('cuda_initialized', False)):
+        rejects(lambda: e.check_resource_facts({**facts, key: value}, 'export'), 'resources')
+    for phase in ('cpu', 'score'):
+        hidden = {**facts, 'resource_policy': e.policy(phase), 'wall_seconds': 499.999,
+                  'peak_cuda_allocated_bytes': 0, 'cuda_initialized': False}
+        e.check_resource_facts(hidden, phase)
+        rejects(lambda: e.check_resource_facts({**hidden, 'wall_seconds': 500}, phase), 'resources')
+        rejects(lambda: e.check_resource_facts({**hidden, 'peak_cuda_allocated_bytes': 1}, phase), 'resources')
+    context = {'args': args, 'launch': launch, 'code': {name: hashlib.sha256((HERE/name).read_bytes()).hexdigest()
+        for name in e.FILES}, 'training_context': {'source': cpu['source']}}
+    for record in (cpu, {**cpu, 'launch': launch}):
+        rejects(lambda: e.check_receipt(context, record, 'cpu'), 'complete source/resource evaluator receipt')
+    print('PASS prospective export1500 boundary/caps; original900 CPU launch/source binding rejected; fresh ownCPU500 required')
 
 
 def launch_contract(e):
@@ -381,6 +449,7 @@ def main():
     args = parser.parse_args()
     e = module('_connected_eval_source_test', DRIVER)
     trainer = module('_connected_eval_trainer_api', HERE/'train_siglip2_connected_mlp.py')
+    export_envelope_contract(e)
     repin_contract(e, trainer)
     nested_binding()
     if not args.narrow:
