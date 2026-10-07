@@ -1,0 +1,9 @@
+# Connected MLP review decision
+
+Review group 5180387d64624356 completed both independent critics. The original candidate source 7389fd68 is integrated for review, not native-qualified. Fix the demonstrated core-timer dilution, asymmetric internal wall comparison, and terminal CUDA/qualification validation omissions before freezing any new job. Retain the original full-state/source checks and all prospective limits.
+
+The research critic's phase-runtime ranges are estimates, not measurements of this trainer. Repeated full encoder hashes are source-visible overhead, but native transfer/hash/reload costs and CPU fit remain unmeasured. Do not increase caps or introduce a cross-boundary hash cache based on these estimates. One corrected CPU engineering gate may falsify feasibility; it grants no TRAIN or quality admission. Preserve its failure if it fails.
+
+The scientific intervention remains the frozen same-scope last-MLP adaptation with original cached gallery supervision. Symmetric public re-encoding is a prospective evaluation requirement, not an established quality gain. Cached-versus-adapted gallery mismatch is a risk to test at the TRAIN selection stage; do not add asymmetric serving as an alternate selection path or change the training objective during this repair. Seeds share the deterministic row augmentation rule. Regression and ranking gradient contributions must remain separately reported; successful connectivity is not successful learning.
+
+Next gates: corrected CPU strict updated save/reload/portable bundle, paired same-seed uninterrupted17 versus independent8+9 mechanics, then fresh matched TRAIN only if both mechanics pass. Enforce actual update-core and original normal-exit whole-service ratios independently against fresh live control. No current result proves model-fit, quality, end-to-end serving speed, or the production goal.
