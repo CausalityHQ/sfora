@@ -1,0 +1,19 @@
+{
+  "date_utc": "2026-10-07",
+  "decision": "Do not compare headline asymmetric gains to current symmetric native256 Sfora quality or speed. Require matching query/gallery encoders, resolutions, data, scorer and complete evaluation protocol plus corrected absolute results. No candidate intervention or quality claim follows from this screening.",
+  "experiment_changes": false,
+  "observations": [
+    "ACD CVPR2026 Findings trains the gallery network while keeping the query network frozen.",
+    "The documented SOP asymmetric example uses ResNet101 gallery at256x256 and ResNet18 query at64x64.",
+    "The authors disclose incorrect UGD gain values in paper Table2 and corrected MSMT17 architecture/results."
+  ],
+  "remaining": [
+    "Read exact corrected SOP/InShop absolute tables and evaluation configs.",
+    "Separate symmetric from asymmetric query/gallery scoring.",
+    "Verify strongest matched reference beyond dated UNICOM before final production claims."
+  ],
+  "schema": "sfora-primary-reference-protocol-screen-v1",
+  "source": "https://github.com/SCY-X/Asymmetric_Collaborative_Distillation",
+  "source_role": "official author implementation",
+  "status": "incomplete_screen_not_sota_admission"
+}
