@@ -1,0 +1,347 @@
+{
+  "id": "5720fbd12cf04829",
+  "provider": "codex",
+  "model": "gpt-6-astra",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791366903,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791368103,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nONE read-only bounded next-trainer implementation contract, not another general research/critique. Repo master0d23a8fd, docs/inshop_actual_objective_gradient_plan_2026-10-07.md + inshop_connected_encoder_dual_critique_2026-10-06.json. Root ACTIVE original actual-loss engineering gate exec1425 unit sfora-actual-objective-gradient-v1, source /home/riomus/runs/sfora-actual-objective-gradient-source-v1; no assumptions of PASS. No SSH/Torch/native/jobs/edits/children/operator. Conditional next method: accepted CONTROL1008 scope both arms sameCPUv5initializer061/069/A0zeroC/frozenhead/means/mu/P/teacher/twoview/gallery/schedules original128B64micro16; both LIVE genuine image anchors, control448frozen trainsA/C, candidate additionally exactfourlayer26MLP (9,921,872 parameters), same original allpositive SmoothAP+P[label] loss with currentA/C complete6355 cached canonical gallery; query encoder adapted, inference bothquery/gallery updated. Need smallest reuse plan for exact standalone CPU qualification -> paired17vs8+9 -> freshmatchedTRAIN, with original integrity/RNG/roles/resources/whole/core cost<=1.50 againstFRESH LIVEcontrol, no cached101s threshold. Focus ONE hard implementation seam: complete updated448 source identity/portable checkpoint and independent restore without reconstructing legacy warmmodel or retaining mmap step scalars; reuse original q factory/checkpointpages/canonical init and current witness loader. How to persist original authenticated base + EXACT four absolute updated tensors plus optimizer/RNG/A/C/fullstatic, strict restored444unchanged/config/nonpersistent/head/raw-unit-packed/exclusivepublicloader while keeping originalsource proof separate. Avoid parameterization/newloss/hashcache/globalrebinding. Return exact APIs/files/closure/typedpayload additions, loader/restore lifetime order, minimal falsifier; list concrete prospective optimizer/group/rate/clipping and resource/cost decisions root mustfreeze beforeimplementation. No guessed future hashes/cap rescues or quality reads. Actual-loss test current sourceonlypasses; nativeoutcome pending. Engineering backend FP32B16 frozen45.05 connected42.87img/s, B32connected44.20 (~3.1% sequential gain); retainmicro16, these are syntheticcotangent only, notfulltraining cost. Source formulas unchanged. Keep answer precise enough to assignoneboundedimplementation after actualgate, no code now.",
+  "prompt_sha256": "7b5a8262eb9330161b45aacf0c562a06e90ef464ce329c6a696832fcecd290c8",
+  "prompt_bytes": 2682,
+  "fingerprint": "9f5c97590c6b4cdca5ed62e722afc9ad78431a1e63775568d8e57f4a4f316322",
+  "evidence": {
+    "git_commit": "0d23a8fd026131d21d63c56180538304bb10ed70",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "03d25915f810c1e11b448c2e36f3c924ff207e5a33edd929d4e008c989b1c568",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6-astra",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "9ac37b35-aac2-41bf-aa18-c6218a063ffa"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-5720fbd12cf04829.service",
+  "pid": 3340934,
+  "pgid": 3340934,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "budget_usd": null,
+      "timeout_seconds": 1198,
+      "started_at": 1791366905
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791367297,
+  "event_cursor": 108,
+  "events": [
+    {
+      "seq": 85,
+      "at": 1791367049,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 86,
+      "at": 1791367049,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 87,
+      "at": 1791367049,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 88,
+      "at": 1791367049,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 89,
+      "at": 1791367049,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 90,
+      "at": 1791367049,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 91,
+      "at": 1791367050,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 92,
+      "at": 1791367061,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 93,
+      "at": 1791367061,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 94,
+      "at": 1791367061,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 95,
+      "at": 1791367061,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 96,
+      "at": 1791367061,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 97,
+      "at": 1791367061,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 98,
+      "at": 1791367061,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 99,
+      "at": 1791367061,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 100,
+      "at": 1791367075,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 101,
+      "at": 1791367076,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 102,
+      "at": 1791367076,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 103,
+      "at": 1791367076,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 104,
+      "at": 1791367077,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 105,
+      "at": 1791367077,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 106,
+      "at": 1791367098,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 107,
+      "at": 1791367296,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 108,
+      "at": 1791367297,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 101,
+        "at": 1791367076,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 102,
+        "at": 1791367076,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 103,
+        "at": 1791367076,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 104,
+        "at": 1791367077,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 105,
+        "at": 1791367077,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 106,
+        "at": 1791367098,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 107,
+        "at": 1791367296,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 108,
+        "at": 1791367297,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Implement one new trainer and one test, conditional on terminal PASS from the original `exec1425` / `sfora-actual-objective-gradient-v1` gate.** Source-only PASS does not admit training; that native outcome remains pending.\n\n1. **Files and reuse boundary**\n\n   Create `scripts/train_siglip2_connected_mlp.py` and `scripts/test_siglip2_connected_mlp.py`. Leave the active witness and historical trainers unchanged.\n\n   The new driver owns these APIs:\n\n   - `load_initializer(context, qualification) -> (state, original_identity)`\n   - `fresh(context, arm, seed, device) -> state`\n   - `payload(context, state, identity) -> dict`\n   - `check_payload(context, saved, identity, step) -> None`\n   - `integrity(context, state, identity) -> None`\n   - `save(context, state, identity, path) -> (file_sha256, payload_sha256)`\n   - `restore(context, path, file_sha256, payload_sha256, identity, step) -> state`\n   - `update(context, state, identity, step) -> diagnostic`\n   - `export_bundle(context, members, directory) -> FileFact`\n   - `load_inference(directory, bundle_sha256, device) -> endpoint`\n   - `inference_outputs(endpoint, images) -> raw/unit/codes/inverse_norms/wire`\n   - Explicit training and inference release functions.\n\n   Reuse the authenticated source-v5 trainer\u2019s `authority`, `admit_terminal`, `canonical_initial_witness`, `ranking_membership`, `loss_terms`, `fingerprint`, and `exit_rehash`. Reuse `q.construct`, original `load_vision`, `CheckpointPages`, and `CheckpointWriter`.\n\n   Port the small [model-free initializer loader](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_actual_objective_encoder_gradients.py:116) into the new driver, replacing its **061-specific constants with the selected authenticated qualification fields**. Select exactly one CPU **control** qualification for each seed, 179061/179069; never select the historical candidate initializer or rewrite module globals.\n\n   The old [integrity and optimizer validators](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1004) cannot validate the new live trainer unchanged: they require A/C-only optimizer ownership and no live encoder. Preserve their predicates in explicit new validators; retain the original validators for historical initializer admission.\n\n2. **Freeze one method, with scope separate from experimental arm**\n\n   Both experimental arms use the unchanged CONTROL1008 scope, all 6,355 rows, the corresponding accepted initializer, A0, zero C, frozen head, means, \u03bc, teachers, both views, schedules and masks.\n\n   Both consume genuine pixels using the witness\u2019s `pixels_for` preparation. Both perform 128 B64 updates in micro16, retaining the full-B64 `K`, regression denominator `128*e0`, and ranking denominator `2*K`. Candidate raw queries use `connected_residual_readout.raw_features`; the original `loss_terms` builds the complete cached canonical gallery through current A/C for every microbatch. No formula changes or teacher refresh.\n\n   The only additional candidate parameters are, in this order:\n\n   | Exact name | Shape |\n   |---|---|\n   | `encoder.layers.26.mlp.fc1.weight` | `[4304,1152]` |\n   | `encoder.layers.26.mlp.fc1.bias` | `[4304]` |\n   | `encoder.layers.26.mlp.fc2.weight` | `[1152,4304]` |\n   | `encoder.layers.26.mlp.fc2.bias` | `[1152]` |\n\n   These are **9,921,872 absolute parameters**, not deltas or a parameterization. Control freezes all 448 encoder parameters; candidate freezes the other 444. Inference re-encodes **both query and gallery** with the arm\u2019s restored endpoint.\n\n3. **Checkpoint contract: original base plus four absolute tensors**\n\n   Introduce a new schema while retaining every original `STATIC_KEYS` member and the complete A/C, optimizer, scaler, counter, numerical flags, CPU RNG and CUDA RNG payload.\n\n   Add these typed members:\n\n   | Member | Required contents |\n   |---|---|\n   | `base_vision` | Original authenticated checkpoint file fact and complete typed base-vision digest |\n   | `encoder` | Dictionary containing exactly the four names above, detached finite FP32 tensors |\n   | `vision_sha256` | Uncached typed fingerprint of the **actual complete reconstructed 448-tensor state** |\n\n   Extend `identity` with the original initializer\u2019s file fact, typed payload digest and **typed disk identity**; experimental arm; control scope identity; ordered trainable names/shapes/groups; initial four-tensor digests; frozen-444 digest; and runtime/role expectations. Preserve tuple-valued optimizer fields\u2014receipt JSON is a comparison form, not the restored identity.\n\n   Keep historical `source` and `provenance.encoder.source_proof` unchanged. They authenticate the original base. They must never be rewritten to describe updated weights or compared wholesale against the adapted model.\n\n   Store the four tensors in both arms for one strict schema. At step zero, all equal the authenticated base; thereafter control remains equal, while candidate must satisfy genuine gradient/update checks and its recorded current identity. A \u201cchanged from original\u201d predicate alone is insufficient: decay can change a disconnected parameter.\n\n   Each integrity boundary freshly checks current tensor bytes, exact 448-name inventory, frozen 444, buffers, configuration, processor, head, static state, optimizer ownership and RNG. Include `embeddings.position_ids` and its **nonpersistent registration**, which `state_dict()` omits. Retain expected digests as evidence; never use pointer/version-based hash caching.\n\n4. **Restore lifetime order**\n\n   **Admission first:** perform the original historical source/CPU admission before native construction; then bind the new authority. Run original initializer integrity and `canonical_initial_witness` while no encoder exists. Do not call `prepare_native`, `prepare_scope`, or `fitter.prepare_original`.\n\n   **Release first:** before independent restore, release the previous model, optimizer, parameter lists, graphs, readout objects, loop locals and temporary outputs. Verify weakrefs; retain only checkpoint facts, diagnostics and small witnesses.\n\n   **Map and validate:** open the new checkpoint with `weights_only=True`, `map_location='cpu'`, `mmap=True`; validate exact keys/types and the complete typed digest using `CheckpointPages`. Independently authenticate the original base archive.\n\n   **Construct once on CPU:** use the authenticated `q.construct`, strict original `load_vision`, and explicit buffer loading. Check original source facts **before overlay application**. Copy the four absolute tensors into their exact existing parameters; reject missing/extra names or shape/dtype substitutions. Recompute full-448 and frozen-444 fingerprints, configuration, nonpersistent-buffer and runtime facts.\n\n   **Transfer before optimizer binding:** establish final device and roles, then construct the ordered optimizer over the final A/C and encoder `Parameter` objects. Do not retain optimizer bindings across model transfer.\n\n   **Own every restored tensor:** copy static tensors, A/C and moments into independent storage. Use `pages.copy(value, 'cpu')` for every Adam step scalar and `pages.copy(value, device)` for moments. Copy RNG tensors too. This preserves the existing [step-scalar ownership fix](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:1355); a four-byte scalar must not retain an archive mapping.\n\n   **Restore RNG last:** after constructors and loading, restore scaler, counter and saved RNG. Delete disk dictionaries, mapped aliases, page helpers and loop references; collect and verify mapping/storage release. Then run new integrity and compare the complete reconstructed payload digest with the saved digest.\n\n   On final release, run the original complete uncached `exit_rehash`, plus the new closure checks. Do not clear ownership registries to conceal live references.\n\n5. **Portable endpoint and authenticated closure**\n\n   Reuse the existing [owned-bundle structure](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1704):\n\n   - `vision.pt`: a regular, exclusively owned copy of the authenticated **original** base.\n   - `endpoint.pt`: four absolute tensors, updated full-448 digest, A/C, frozen head/statistics/configuration/buffers and provenance.\n   - `processor.json` and an authenticated manifest.\n\n   Keep optimizer, teachers, schedules, caches and TRAIN paths out of serving dependencies. The loader uses only bundle-owned files and admitted installed packages. It strictly loads the base, applies the four replacements, verifies the updated complete identity, then freezes all encoder parameters for inference.\n\n   The serving closure is the new driver/test plus the existing `SERVING_FILES` set and `joint_relational_compaction.py`. Keep historical/witness imports inside training entry points so importing the copied public loader cannot reach historical run directories.\n\n   The training closure additionally binds the current witness `FILES`, original source-v5 `TRAIN_CODE`, and their admitted transitive dependencies. Freeze actual hashes after implementation; use no placeholders.\n\n   Qualify two sequential fresh public loads under `deny_training_dependencies`. Require identical raw, unit, packed codes, inverse norms and wire bytes against the same-role oracle. Use the existing value-equivalent inference readout; the connected helper intentionally rejects `no_grad`. Add uncached current encoder checks to public inference so `.data` mutation cannot bypass validation.\n\n6. **Smallest falsifier and subsequent gates**\n\n   The new test\u2019s source-only mode checks authority/schema, control-scope selection, exact parameter/group order, closure separation and rejection paths without native imports.\n\n   After actual-loss terminal PASS, the **standalone CPU qualification** must include one discarded genuine candidate B64/two-view update, accumulated through micro16 with the original complete gallery. Save its nonzero four-tensor state and populated optimizer, release everything, independently restore it, and require exact complete state plus same-role image\u2192raw\u2192unit\u2192packed parity. Qualify both seeds\u2019 accepted initial states sequentially.\n\n   The same bounded test must reject:\n\n   - Original MLP tensors substituted into the updated endpoint.\n   - A same-shaped pooling-head tensor substituted for a nominated encoder tensor.\n   - One changed frozen tensor, nonpersistent-buffer registration, configuration or head.\n   - Missing/reordered optimizer ownership or an mmap-backed step scalar.\n   - A public loader that reaches TRAIN dependencies or serves the original encoder.\n\n   Then run **both arms**, sequentially, through uninterrupted17 versus independently initialized8\u2192serialize\u2192release\u2192restore\u21929. Compare complete terminal payloads and all deterministic diagnostics, including moments, scaler, counters, RNG, schedules and static state. The uninterrupted branch must not save at step8.\n\n   Only terminal resource/integrity PASS for both arms admits fresh matched 128-update TRAIN. Discard qualification/mechanics state. Fresh first17 must replay mechanics. No quality read belongs to this implementation qualification.\n\n7. **Root decisions to freeze before assignment**\n\n   | Decision | Concrete proposed contract |\n   |---|---|\n   | Optimizer | AdamW; group 0 `[A,C]`, LR `1e-4`; candidate group 1 the four names above, LR `1e-5` |\n   | Other optimizer settings | Both groups: betas `(0.9,0.999)`, \u03b5 `1e-8`, weight decay `.05`; retain original false flags for amsgrad/maximize/foreach/capturable/differentiable/fused; constant rates, no sweep |\n   | Clipping | One global norm-1 clip over all active optimizer members, after unscale; explicitly accept its coupling of candidate encoder gradients to A/C updates |\n   | Numerical roles | FP32 live training, autocast disabled, micro16; original CUDA scaler128 semantics and no skipped/rescaled steps. Freeze serving precision separately: existing public CUDA inference is FP16, so its parity oracle must also be FP16 |\n   | Resources | Mechanics remains **300 seconds**, host \u22648 GiB, zero swap/disallowed events, CUDA allocation <10,000,000,000 bytes, both lifetime locks, no peak reset |\n   | Phase deadlines | Explicitly bind CPU and fresh-TRAIN deadlines. Historical identity-diversity code uses CPU500/non-CPU600; do **not** accidentally inherit its 600-second mechanics allowance |\n   | Cost accounting | Both whole-service and core candidate/control ratios \u22641.50 against a **fresh live frozen control**. Core includes actual pixel preparation, gallery/mining, forward/backward, optimizer and integrity work; whole includes admission, construction, serialization, restore, export and exit |\n   | Admission evidence | Freeze exact phase boundaries, seed pairing, terminal receipt requirements and cost aggregation before running; never substitute a projected or cached-control threshold |\n\nThe main risks are archive aliases surviving release, accidental CONTROL2016 scope selection, treating original-source proof as updated identity, and unaffordable complete hashing/restore. Any bounded gate failure stops this method without a cap rescue. The reported FP32 synthetic-cotangent throughput supports retaining micro16; it establishes neither actual training cost nor the \u22641.50 ratios.\n\nRead-only inspection completed at `0d23a8fd`; no edits, native execution, jobs or quality reads performed.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Implement one new trainer and one test, conditional on terminal PASS from the original `exec1425` / `sfora-actual-objective-gradient-v1` gate.** Source-only PASS does not admit training; that native outcome remains pending.\n\n1. **Files and reuse boundary**\n\n   Create `scripts/train_siglip2_connected_mlp.py` and `scripts/test_siglip2_connected_mlp.py`. Leave the active witness and historical trainers unchanged.\n\n   The new driver owns these APIs:\n\n   - `load_initializer(context, qualification) -> (state, original_identity)`\n   - `fresh(context, arm, seed, device) -> state`\n   - `payload(context, state, identity) -> dict`\n   - `check_payload(context, saved, identity, step) -> None`\n   - `integrity(context, state, identity) -> None`\n   - `save(context, state, identity, path) -> (file_sha256, payload_sha256)`\n   - `restore(context, path, file_sha256, payload_sha256, identity, step) -> state`\n   - `update(context, state, identity, step) -> diagnostic`\n   - `export_bundle(context, members, directory) -> FileFact`\n   - `load_inference(directory, bundle_sha256, device) -> endpoint`\n   - `inference_outputs(endpoint, images) -> raw/unit/codes/inverse_norms/wire`\n   - Explicit training and inference release functions.\n\n   Reuse the authenticated source-v5 trainer\u2019s `authority`, `admit_terminal`, `canonical_initial_witness`, `ranking_membership`, `loss_terms`, `fingerprint`, and `exit_rehash`. Reuse `q.construct`, original `load_vision`, `CheckpointPages`, and `CheckpointWriter`.\n\n   Port the small [model-free initializer loader](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_actual_objective_encoder_gradients.py:116) into the new driver, replacing its **061-specific constants with the selected authenticated qualification fields**. Select exactly one CPU **control** qualification for each seed, 179061/179069; never select the historical candidate initializer or rewrite module globals.\n\n   The old [integrity and optimizer validators](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1004) cannot validate the new live trainer unchanged: they require A/C-only optimizer ownership and no live encoder. Preserve their predicates in explicit new validators; retain the original validators for historical initializer admission.\n\n2. **Freeze one method, with scope separate from experimental arm**\n\n   Both experimental arms use the unchanged CONTROL1008 scope, all 6,355 rows, the corresponding accepted initializer, A0, zero C, frozen head, means, \u03bc, teachers, both views, schedules and masks.\n\n   Both consume genuine pixels using the witness\u2019s `pixels_for` preparation. Both perform 128 B64 updates in micro16, retaining the full-B64 `K`, regression denominator `128*e0`, and ranking denominator `2*K`. Candidate raw queries use `connected_residual_readout.raw_features`; the original `loss_terms` builds the complete cached canonical gallery through current A/C for every microbatch. No formula changes or teacher refresh.\n\n   The only additional candidate parameters are, in this order:\n\n   | Exact name | Shape |\n   |---|---|\n   | `encoder.layers.26.mlp.fc1.weight` | `[4304,1152]` |\n   | `encoder.layers.26.mlp.fc1.bias` | `[4304]` |\n   | `encoder.layers.26.mlp.fc2.weight` | `[1152,4304]` |\n   | `encoder.layers.26.mlp.fc2.bias` | `[1152]` |\n\n   These are **9,921,872 absolute parameters**, not deltas or a parameterization. Control freezes all 448 encoder parameters; candidate freezes the other 444. Inference re-encodes **both query and gallery** with the arm\u2019s restored endpoint.\n\n3. **Checkpoint contract: original base plus four absolute tensors**\n\n   Introduce a new schema while retaining every original `STATIC_KEYS` member and the complete A/C, optimizer, scaler, counter, numerical flags, CPU RNG and CUDA RNG payload.\n\n   Add these typed members:\n\n   | Member | Required contents |\n   |---|---|\n   | `base_vision` | Original authenticated checkpoint file fact and complete typed base-vision digest |\n   | `encoder` | Dictionary containing exactly the four names above, detached finite FP32 tensors |\n   | `vision_sha256` | Uncached typed fingerprint of the **actual complete reconstructed 448-tensor state** |\n\n   Extend `identity` with the original initializer\u2019s file fact, typed payload digest and **typed disk identity**; experimental arm; control scope identity; ordered trainable names/shapes/groups; initial four-tensor digests; frozen-444 digest; and runtime/role expectations. Preserve tuple-valued optimizer fields\u2014receipt JSON is a comparison form, not the restored identity.\n\n   Keep historical `source` and `provenance.encoder.source_proof` unchanged. They authenticate the original base. They must never be rewritten to describe updated weights or compared wholesale against the adapted model.\n\n   Store the four tensors in both arms for one strict schema. At step zero, all equal the authenticated base; thereafter control remains equal, while candidate must satisfy genuine gradient/update checks and its recorded current identity. A \u201cchanged from original\u201d predicate alone is insufficient: decay can change a disconnected parameter.\n\n   Each integrity boundary freshly checks current tensor bytes, exact 448-name inventory, frozen 444, buffers, configuration, processor, head, static state, optimizer ownership and RNG. Include `embeddings.position_ids` and its **nonpersistent registration**, which `state_dict()` omits. Retain expected digests as evidence; never use pointer/version-based hash caching.\n\n4. **Restore lifetime order**\n\n   **Admission first:** perform the original historical source/CPU admission before native construction; then bind the new authority. Run original initializer integrity and `canonical_initial_witness` while no encoder exists. Do not call `prepare_native`, `prepare_scope`, or `fitter.prepare_original`.\n\n   **Release first:** before independent restore, release the previous model, optimizer, parameter lists, graphs, readout objects, loop locals and temporary outputs. Verify weakrefs; retain only checkpoint facts, diagnostics and small witnesses.\n\n   **Map and validate:** open the new checkpoint with `weights_only=True`, `map_location='cpu'`, `mmap=True`; validate exact keys/types and the complete typed digest using `CheckpointPages`. Independently authenticate the original base archive.\n\n   **Construct once on CPU:** use the authenticated `q.construct`, strict original `load_vision`, and explicit buffer loading. Check original source facts **before overlay application**. Copy the four absolute tensors into their exact existing parameters; reject missing/extra names or shape/dtype substitutions. Recompute full-448 and frozen-444 fingerprints, configuration, nonpersistent-buffer and runtime facts.\n\n   **Transfer before optimizer binding:** establish final device and roles, then construct the ordered optimizer over the final A/C and encoder `Parameter` objects. Do not retain optimizer bindings across model transfer.\n\n   **Own every restored tensor:** copy static tensors, A/C and moments into independent storage. Use `pages.copy(value, 'cpu')` for every Adam step scalar and `pages.copy(value, device)` for moments. Copy RNG tensors too. This preserves the existing [step-scalar ownership fix](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:1355); a four-byte scalar must not retain an archive mapping.\n\n   **Restore RNG last:** after constructors and loading, restore scaler, counter and saved RNG. Delete disk dictionaries, mapped aliases, page helpers and loop references; collect and verify mapping/storage release. Then run new integrity and compare the complete reconstructed payload digest with the saved digest.\n\n   On final release, run the original complete uncached `exit_rehash`, plus the new closure checks. Do not clear ownership registries to conceal live references.\n\n5. **Portable endpoint and authenticated closure**\n\n   Reuse the existing [owned-bundle structure](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1704):\n\n   - `vision.pt`: a regular, exclusively owned copy of the authenticated **original** base.\n   - `endpoint.pt`: four absolute tensors, updated full-448 digest, A/C, frozen head/statistics/configuration/buffers and provenance.\n   - `processor.json` and an authenticated manifest.\n\n   Keep optimizer, teachers, schedules, caches and TRAIN paths out of serving dependencies. The loader uses only bundle-owned files and admitted installed packages. It strictly loads the base, applies the four replacements, verifies the updated complete identity, then freezes all encoder parameters for inference.\n\n   The serving closure is the new driver/test plus the existing `SERVING_FILES` set and `joint_relational_compaction.py`. Keep historical/witness imports inside training entry points so importing the copied public loader cannot reach historical run directories.\n\n   The training closure additionally binds the current witness `FILES`, original source-v5 `TRAIN_CODE`, and their admitted transitive dependencies. Freeze actual hashes after implementation; use no placeholders.\n\n   Qualify two sequential fresh public loads under `deny_training_dependencies`. Require identical raw, unit, packed codes, inverse norms and wire bytes against the same-role oracle. Use the existing value-equivalent inference readout; the connected helper intentionally rejects `no_grad`. Add uncached current encoder checks to public inference so `.data` mutation cannot bypass validation.\n\n6. **Smallest falsifier and subsequent gates**\n\n   The new test\u2019s source-only mode checks authority/schema, control-scope selection, exact parameter/group order, closure separation and rejection paths without native imports.\n\n   After actual-loss terminal PASS, the **standalone CPU qualification** must include one discarded genuine candidate B64/two-view update, accumulated through micro16 with the original complete gallery. Save its nonzero four-tensor state and populated optimizer, release everything, independently restore it, and require exact complete state plus same-role image\u2192raw\u2192unit\u2192packed parity. Qualify both seeds\u2019 accepted initial states sequentially.\n\n   The same bounded test must reject:\n\n   - Original MLP tensors substituted into the updated endpoint.\n   - A same-shaped pooling-head tensor substituted for a nominated encoder tensor.\n   - One changed frozen tensor, nonpersistent-buffer registration, configuration or head.\n   - Missing/reordered optimizer ownership or an mmap-backed step scalar.\n   - A public loader that reaches TRAIN dependencies or serves the original encoder.\n\n   Then run **both arms**, sequentially, through uninterrupted17 versus independently initialized8\u2192serialize\u2192release\u2192restore\u21929. Compare complete terminal payloads and all deterministic diagnostics, including moments, scaler, counters, RNG, schedules and static state. The uninterrupted branch must not save at step8.\n\n   Only terminal resource/integrity PASS for both arms admits fresh matched 128-update TRAIN. Discard qualification/mechanics state. Fresh first17 must replay mechanics. No quality read belongs to this implementation qualification.\n\n7. **Root decisions to freeze before assignment**\n\n   | Decision | Concrete proposed contract |\n   |---|---|\n   | Optimizer | AdamW; group 0 `[A,C]`, LR `1e-4`; candidate group 1 the four names above, LR `1e-5` |\n   | Other optimizer settings | Both groups: betas `(0.9,0.999)`, \u03b5 `1e-8`, weight decay `.05`; retain original false flags for amsgrad/maximize/foreach/capturable/differentiable/fused; constant rates, no sweep |\n   | Clipping | One global norm-1 clip over all active optimizer members, after unscale; explicitly accept its coupling of candidate encoder gradients to A/C updates |\n   | Numerical roles | FP32 live training, autocast disabled, micro16; original CUDA scaler128 semantics and no skipped/rescaled steps. Freeze serving precision separately: existing public CUDA inference is FP16, so its parity oracle must also be FP16 |\n   | Resources | Mechanics remains **300 seconds**, host \u22648 GiB, zero swap/disallowed events, CUDA allocation <10,000,000,000 bytes, both lifetime locks, no peak reset |\n   | Phase deadlines | Explicitly bind CPU and fresh-TRAIN deadlines. Historical identity-diversity code uses CPU500/non-CPU600; do **not** accidentally inherit its 600-second mechanics allowance |\n   | Cost accounting | Both whole-service and core candidate/control ratios \u22641.50 against a **fresh live frozen control**. Core includes actual pixel preparation, gallery/mining, forward/backward, optimizer and integrity work; whole includes admission, construction, serialization, restore, export and exit |\n   | Admission evidence | Freeze exact phase boundaries, seed pairing, terminal receipt requirements and cost aggregation before running; never substitute a projected or cached-control threshold |\n\nThe main risks are archive aliases surviving release, accidental CONTROL2016 scope selection, treating original-source proof as updated identity, and unaffordable complete hashing/restore. Any bounded gate failure stops this method without a cap rescue. The reported FP32 synthetic-cotangent throughput supports retaining micro16; it establishes neither actual training cost nor the \u22641.50 ratios.\n\nRead-only inspection completed at `0d23a8fd`; no edits, native execution, jobs or quality reads performed."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 2682,
+  "output_bytes": 13479,
+  "elapsed_seconds": 394,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)",
+  "progress_truncated": false,
+  "result": "**Implement one new trainer and one test, conditional on terminal PASS from the original `exec1425` / `sfora-actual-objective-gradient-v1` gate.** Source-only PASS does not admit training; that native outcome remains pending.\n\n1. **Files and reuse boundary**\n\n   Create `scripts/train_siglip2_connected_mlp.py` and `scripts/test_siglip2_connected_mlp.py`. Leave the active witness and historical trainers unchanged.\n\n   The new driver owns these APIs:\n\n   - `load_initializer(context, qualification) -> (state, original_identity)`\n   - `fresh(context, arm, seed, device) -> state`\n   - `payload(context, state, identity) -> dict`\n   - `check_payload(context, saved, identity, step) -> None`\n   - `integrity(context, state, identity) -> None`\n   - `save(context, state, identity, path) -> (file_sha256, payload_sha256)`\n   - `restore(context, path, file_sha256, payload_sha256, identity, step) -> state`\n   - `update(context, state, identity, step) -> diagnostic`\n   - `export_bundle(context, members, directory) -> FileFact`\n   - `load_inference(directory, bundle_sha256, device) -> endpoint`\n   - `inference_outputs(endpoint, images) -> raw/unit/codes/inverse_norms/wire`\n   - Explicit training and inference release functions.\n\n   Reuse the authenticated source-v5 trainer\u2019s `authority`, `admit_terminal`, `canonical_initial_witness`, `ranking_membership`, `loss_terms`, `fingerprint`, and `exit_rehash`. Reuse `q.construct`, original `load_vision`, `CheckpointPages`, and `CheckpointWriter`.\n\n   Port the small [model-free initializer loader](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_actual_objective_encoder_gradients.py:116) into the new driver, replacing its **061-specific constants with the selected authenticated qualification fields**. Select exactly one CPU **control** qualification for each seed, 179061/179069; never select the historical candidate initializer or rewrite module globals.\n\n   The old [integrity and optimizer validators](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1004) cannot validate the new live trainer unchanged: they require A/C-only optimizer ownership and no live encoder. Preserve their predicates in explicit new validators; retain the original validators for historical initializer admission.\n\n2. **Freeze one method, with scope separate from experimental arm**\n\n   Both experimental arms use the unchanged CONTROL1008 scope, all 6,355 rows, the corresponding accepted initializer, A0, zero C, frozen head, means, \u03bc, teachers, both views, schedules and masks.\n\n   Both consume genuine pixels using the witness\u2019s `pixels_for` preparation. Both perform 128 B64 updates in micro16, retaining the full-B64 `K`, regression denominator `128*e0`, and ranking denominator `2*K`. Candidate raw queries use `connected_residual_readout.raw_features`; the original `loss_terms` builds the complete cached canonical gallery through current A/C for every microbatch. No formula changes or teacher refresh.\n\n   The only additional candidate parameters are, in this order:\n\n   | Exact name | Shape |\n   |---|---|\n   | `encoder.layers.26.mlp.fc1.weight` | `[4304,1152]` |\n   | `encoder.layers.26.mlp.fc1.bias` | `[4304]` |\n   | `encoder.layers.26.mlp.fc2.weight` | `[1152,4304]` |\n   | `encoder.layers.26.mlp.fc2.bias` | `[1152]` |\n\n   These are **9,921,872 absolute parameters**, not deltas or a parameterization. Control freezes all 448 encoder parameters; candidate freezes the other 444. Inference re-encodes **both query and gallery** with the arm\u2019s restored endpoint.\n\n3. **Checkpoint contract: original base plus four absolute tensors**\n\n   Introduce a new schema while retaining every original `STATIC_KEYS` member and the complete A/C, optimizer, scaler, counter, numerical flags, CPU RNG and CUDA RNG payload.\n\n   Add these typed members:\n\n   | Member | Required contents |\n   |---|---|\n   | `base_vision` | Original authenticated checkpoint file fact and complete typed base-vision digest |\n   | `encoder` | Dictionary containing exactly the four names above, detached finite FP32 tensors |\n   | `vision_sha256` | Uncached typed fingerprint of the **actual complete reconstructed 448-tensor state** |\n\n   Extend `identity` with the original initializer\u2019s file fact, typed payload digest and **typed disk identity**; experimental arm; control scope identity; ordered trainable names/shapes/groups; initial four-tensor digests; frozen-444 digest; and runtime/role expectations. Preserve tuple-valued optimizer fields\u2014receipt JSON is a comparison form, not the restored identity.\n\n   Keep historical `source` and `provenance.encoder.source_proof` unchanged. They authenticate the original base. They must never be rewritten to describe updated weights or compared wholesale against the adapted model.\n\n   Store the four tensors in both arms for one strict schema. At step zero, all equal the authenticated base; thereafter control remains equal, while candidate must satisfy genuine gradient/update checks and its recorded current identity. A \u201cchanged from original\u201d predicate alone is insufficient: decay can change a disconnected parameter.\n\n   Each integrity boundary freshly checks current tensor bytes, exact 448-name inventory, frozen 444, buffers, configuration, processor, head, static state, optimizer ownership and RNG. Include `embeddings.position_ids` and its **nonpersistent registration**, which `state_dict()` omits. Retain expected digests as evidence; never use pointer/version-based hash caching.\n\n4. **Restore lifetime order**\n\n   **Admission first:** perform the original historical source/CPU admission before native construction; then bind the new authority. Run original initializer integrity and `canonical_initial_witness` while no encoder exists. Do not call `prepare_native`, `prepare_scope`, or `fitter.prepare_original`.\n\n   **Release first:** before independent restore, release the previous model, optimizer, parameter lists, graphs, readout objects, loop locals and temporary outputs. Verify weakrefs; retain only checkpoint facts, diagnostics and small witnesses.\n\n   **Map and validate:** open the new checkpoint with `weights_only=True`, `map_location='cpu'`, `mmap=True`; validate exact keys/types and the complete typed digest using `CheckpointPages`. Independently authenticate the original base archive.\n\n   **Construct once on CPU:** use the authenticated `q.construct`, strict original `load_vision`, and explicit buffer loading. Check original source facts **before overlay application**. Copy the four absolute tensors into their exact existing parameters; reject missing/extra names or shape/dtype substitutions. Recompute full-448 and frozen-444 fingerprints, configuration, nonpersistent-buffer and runtime facts.\n\n   **Transfer before optimizer binding:** establish final device and roles, then construct the ordered optimizer over the final A/C and encoder `Parameter` objects. Do not retain optimizer bindings across model transfer.\n\n   **Own every restored tensor:** copy static tensors, A/C and moments into independent storage. Use `pages.copy(value, 'cpu')` for every Adam step scalar and `pages.copy(value, device)` for moments. Copy RNG tensors too. This preserves the existing [step-scalar ownership fix](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:1355); a four-byte scalar must not retain an archive mapping.\n\n   **Restore RNG last:** after constructors and loading, restore scaler, counter and saved RNG. Delete disk dictionaries, mapped aliases, page helpers and loop references; collect and verify mapping/storage release. Then run new integrity and compare the complete reconstructed payload digest with the saved digest.\n\n   On final release, run the original complete uncached `exit_rehash`, plus the new closure checks. Do not clear ownership registries to conceal live references.\n\n5. **Portable endpoint and authenticated closure**\n\n   Reuse the existing [owned-bundle structure](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1704):\n\n   - `vision.pt`: a regular, exclusively owned copy of the authenticated **original** base.\n   - `endpoint.pt`: four absolute tensors, updated full-448 digest, A/C, frozen head/statistics/configuration/buffers and provenance.\n   - `processor.json` and an authenticated manifest.\n\n   Keep optimizer, teachers, schedules, caches and TRAIN paths out of serving dependencies. The loader uses only bundle-owned files and admitted installed packages. It strictly loads the base, applies the four replacements, verifies the updated complete identity, then freezes all encoder parameters for inference.\n\n   The serving closure is the new driver/test plus the existing `SERVING_FILES` set and `joint_relational_compaction.py`. Keep historical/witness imports inside training entry points so importing the copied public loader cannot reach historical run directories.\n\n   The training closure additionally binds the current witness `FILES`, original source-v5 `TRAIN_CODE`, and their admitted transitive dependencies. Freeze actual hashes after implementation; use no placeholders.\n\n   Qualify two sequential fresh public loads under `deny_training_dependencies`. Require identical raw, unit, packed codes, inverse norms and wire bytes against the same-role oracle. Use the existing value-equivalent inference readout; the connected helper intentionally rejects `no_grad`. Add uncached current encoder checks to public inference so `.data` mutation cannot bypass validation.\n\n6. **Smallest falsifier and subsequent gates**\n\n   The new test\u2019s source-only mode checks authority/schema, control-scope selection, exact parameter/group order, closure separation and rejection paths without native imports.\n\n   After actual-loss terminal PASS, the **standalone CPU qualification** must include one discarded genuine candidate B64/two-view update, accumulated through micro16 with the original complete gallery. Save its nonzero four-tensor state and populated optimizer, release everything, independently restore it, and require exact complete state plus same-role image\u2192raw\u2192unit\u2192packed parity. Qualify both seeds\u2019 accepted initial states sequentially.\n\n   The same bounded test must reject:\n\n   - Original MLP tensors substituted into the updated endpoint.\n   - A same-shaped pooling-head tensor substituted for a nominated encoder tensor.\n   - One changed frozen tensor, nonpersistent-buffer registration, configuration or head.\n   - Missing/reordered optimizer ownership or an mmap-backed step scalar.\n   - A public loader that reaches TRAIN dependencies or serves the original encoder.\n\n   Then run **both arms**, sequentially, through uninterrupted17 versus independently initialized8\u2192serialize\u2192release\u2192restore\u21929. Compare complete terminal payloads and all deterministic diagnostics, including moments, scaler, counters, RNG, schedules and static state. The uninterrupted branch must not save at step8.\n\n   Only terminal resource/integrity PASS for both arms admits fresh matched 128-update TRAIN. Discard qualification/mechanics state. Fresh first17 must replay mechanics. No quality read belongs to this implementation qualification.\n\n7. **Root decisions to freeze before assignment**\n\n   | Decision | Concrete proposed contract |\n   |---|---|\n   | Optimizer | AdamW; group 0 `[A,C]`, LR `1e-4`; candidate group 1 the four names above, LR `1e-5` |\n   | Other optimizer settings | Both groups: betas `(0.9,0.999)`, \u03b5 `1e-8`, weight decay `.05`; retain original false flags for amsgrad/maximize/foreach/capturable/differentiable/fused; constant rates, no sweep |\n   | Clipping | One global norm-1 clip over all active optimizer members, after unscale; explicitly accept its coupling of candidate encoder gradients to A/C updates |\n   | Numerical roles | FP32 live training, autocast disabled, micro16; original CUDA scaler128 semantics and no skipped/rescaled steps. Freeze serving precision separately: existing public CUDA inference is FP16, so its parity oracle must also be FP16 |\n   | Resources | Mechanics remains **300 seconds**, host \u22648 GiB, zero swap/disallowed events, CUDA allocation <10,000,000,000 bytes, both lifetime locks, no peak reset |\n   | Phase deadlines | Explicitly bind CPU and fresh-TRAIN deadlines. Historical identity-diversity code uses CPU500/non-CPU600; do **not** accidentally inherit its 600-second mechanics allowance |\n   | Cost accounting | Both whole-service and core candidate/control ratios \u22641.50 against a **fresh live frozen control**. Core includes actual pixel preparation, gallery/mining, forward/backward, optimizer and integrity work; whole includes admission, construction, serialization, restore, export and exit |\n   | Admission evidence | Freeze exact phase boundaries, seed pairing, terminal receipt requirements and cost aggregation before running; never substitute a projected or cached-control threshold |\n\nThe main risks are archive aliases surviving release, accidental CONTROL2016 scope selection, treating original-source proof as updated identity, and unaffordable complete hashing/restore. Any bounded gate failure stops this method without a cap rescue. The reported FP32 synthetic-cotangent throughput supports retaining micro16; it establishes neither actual training cost nor the \u22641.50 ratios.\n\nRead-only inspection completed at `0d23a8fd`; no edits, native execution, jobs or quality reads performed.",
+  "result_truncated": false
+}
