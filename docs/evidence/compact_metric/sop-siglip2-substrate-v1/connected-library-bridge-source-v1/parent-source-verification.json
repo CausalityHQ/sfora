@@ -1,0 +1,23 @@
+{
+  "base": "b43fecc2e06008c9de9a96fd6a15a8c42617db28",
+  "command": "timeout 120s python3 runner: RLIMIT_AS=1073741824; syntax compile; python3 scripts/test_connected_compact_serving.py; git diff --cached --check",
+  "commit": "d151167980327ee2e12b8f2d5050380d8855bdf9",
+  "diff_exit": 0,
+  "elapsed_seconds": 0.4337274859426543,
+  "exit_code": 0,
+  "files": {
+    "scripts/test_connected_compact_serving.py": "b7c05f10c18a3801f69ae013ee417d3161989033687c9d2e0e4ca16191d64b01",
+    "src/sfora/connected_compact_serving.py": "133d9cbc8d46b47da39f9958f98a11e9e8011a20dafa6b6073d2b9bdb2ed1fb6"
+  },
+  "independent_review_group": "a6d562ab76844e7b",
+  "integration_pending_review": true,
+  "log": "/home/rb/agents/handoffs/sfora-connected-library-bridge-20261007-final-check.log",
+  "log_sha256": "5b13e453c03b60b6baa2b0dfa1e342ee983574e4c1ded8b645b6d5a664220c4d",
+  "native_qualification": false,
+  "qualification": "SOURCE ONLY; real Torch/Numpy/PIL/native imports, native parity, native lifecycle, GPU quality and speed UNRUN; original DGX job untouched",
+  "rlimit_as_bytes": 1073741824,
+  "root_parent_source_hashes_verified": true,
+  "schema": "sfora-connected-library-bridge-source-check-v1",
+  "test_exit": 0,
+  "wall_timeout_seconds": 120
+}

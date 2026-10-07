@@ -1,0 +1,3 @@
+PASS: syntax compile for both owned files (no imports)
+PASS: connected bridge source-only admission, exact wire, failure cleanup, registry ownership, lifecycle lock
+affected_test_exit=0; diff_check_exit=0

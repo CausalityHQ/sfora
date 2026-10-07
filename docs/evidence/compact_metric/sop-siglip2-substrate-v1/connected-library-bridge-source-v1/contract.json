@@ -1,0 +1,32 @@
+{
+  "schema": "sfora-connected-library-bridge-worker-contract-v1",
+  "base": "b43fecc2",
+  "files": [
+    "src/sfora/connected_compact_serving.py",
+    "scripts/test_connected_compact_serving.py"
+  ],
+  "api": "ConnectedCompactIndex.from_bundle(*, bundle_dir: Path, expected_bundle_sha256: str, gallery_path: Path, expected_gallery_sha256: str, gallery_count: int, native_library_path: Path, expected_native_library_sha256: str); search_images(images: list|tuple of PIL.Image.Image, length 1..32); close(); context manager",
+  "admission": "Canonical regular single-link bundle manifest/code/artifacts; explicit SHA256 of manifest binds exact copied trainer bytes before compile/exec in unique owned module. Exact supported bundle-v1 schema/closure before execution. Genuine load_inference(bundle_dir, SHA, cuda) keeps updated448/absolute4/readout/source/processor admission. Canonical regular supplied gallery and native library have explicit SHA, gallery_count int>=10, existing parser dimensions=128.",
+  "search": "Lifetime RLock; fresh copied trainer hash/path and owned registry/public callable identity; genuine inference_outputs retains original tensor/role/RNG/helper-source/processor-source checks; parse exact returned wire count=len(images),dimensions=128; existing search_packed(k=10) result passthrough. No normalization/repacking/hash cache. Manifest/gallery/native external inputs pinned at startup only; no new post-startup disk mutation policy. Native gallery owns copied resident bytes; original serving source filesystem dependencies must remain.",
+  "cleanup": "Exact traceback frames from authenticated owned trainer capture load_inference locals modules/endpoint and load_authenticated local module. Remove only matching captured registry identities. Clear only finished owned-source frames; preserve traceback locations and original exceptions/causes. Endpoint-present cleanup calls genuine release; pre-endpoint native cleanup explicitly UNRUN and no native qualification claim. Native close/genuine release/final registry cleanup on init/search/close errors; preserve foreign replacements.",
+  "checks": "python3 scripts/test_connected_compact_serving.py (stdlib synthetic portable module and fake packed/native/PIL imports only); syntax via compile without imports; git diff --check. One final affected check timeout120 and RLIMIT_AS<=1GiB, durable logs beside contract.",
+  "limits": "Source only. No real Torch/Numpy/PIL/native imports, GPU, SSH, cloud, images, jobs, consults, children, operator messages. No native parity, quality, or latency qualification. No merge or push.",
+  "control_brief_sha256": "5808e43b8c737fd659fa1e2e1aac8f80732ef471988e2274f21d00bcf7a81a90",
+  "status": "completed source-only; parent integration and native qualification pending",
+  "tests": "One executable stdlib script checks synthetic public module seams and actual finite authenticated load_inference/load_authenticated helper-registration failure before any Torch import. Startup SHA/path/schema/source tamper, live source hash/path/API/registry substitution, exact wire count128/native passthrough, malformed wire, cleanup/errors, registry collision/foreign replacement, idempotence/context manager/after-close denial and concurrent/reentrant lifetime lock.",
+  "commit": "d151167980327ee2e12b8f2d5050380d8855bdf9",
+  "parent_commit": "b43fecc2e06008c9de9a96fd6a15a8c42617db28",
+  "file_sha256": {
+    "src/sfora/connected_compact_serving.py": "133d9cbc8d46b47da39f9958f98a11e9e8011a20dafa6b6073d2b9bdb2ed1fb6",
+    "scripts/test_connected_compact_serving.py": "b7c05f10c18a3801f69ae013ee417d3161989033687c9d2e0e4ca16191d64b01"
+  },
+  "check_receipt": "/home/rb/agents/handoffs/sfora-connected-library-bridge-20261007-final-check.json",
+  "check_log": "/home/rb/agents/handoffs/sfora-connected-library-bridge-20261007-final-check.log",
+  "check_log_sha256": "5b13e453c03b60b6baa2b0dfa1e342ee983574e4c1ded8b645b6d5a664220c4d",
+  "affected_check_exit": 0,
+  "git_identity": "Roman Bartusiak <riomus@gmail.com> | Roman Bartusiak <riomus@gmail.com>\nAdd authenticated connected compact serving bridge",
+  "clean_worktree": true,
+  "control_brief_unchanged": true,
+  "native_lifecycle_limitation": "Real native load/inference/teardown UNRUN. Pre-endpoint failures have no genuine release target; only exact owned module registry identities and finished owned-frame references are cleaned. Unrelated/active frames and original causes remain untouched; native ownership before endpoint construction cannot be qualified by source-only seams.",
+  "integration": "Parent must independently verify commit, integrate and push; child did not merge or push."
+}
