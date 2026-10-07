@@ -1,0 +1,22 @@
+{
+  "current_stat_total_bytes": 15557986904,
+  "guard_count": 18620,
+  "limitations": [
+    "File bytes/digests were not reverified by this stat inventory.",
+    "No per-file read duration or batching speedup measured.",
+    "All original integrity reads remain required."
+  ],
+  "method": "Authenticated DGX read-only stdlib receipt SHA verification and regular-file stat inventory, original SSH exit0. No image/tensor file content opened.",
+  "missing_count": 0,
+  "qualification_eligible": false,
+  "receipt_sha256": "e7da19ba546f9d5375697d3d0347b3c96f9cfe0ee5183f9341d473114461d896",
+  "remote_receipt": "/home/riomus/runs/sfora-actual-objective-gradient-v2/receipt.json",
+  "schema": "witness-guard-stat-inventory-v1",
+  "selected_suffix_bytes": {
+    ".jpg": 264928011,
+    ".pt": 9029732427,
+    ".py": 36819705,
+    ".safetensors": 1711601328,
+    ".so": 1401716393
+  }
+}
