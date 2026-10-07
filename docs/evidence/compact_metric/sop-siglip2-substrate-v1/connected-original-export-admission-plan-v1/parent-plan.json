@@ -1,0 +1,15 @@
+{
+  "cpu_v4_cannot_qualify_new_admission_source": true,
+  "cpu_v4_verdict": "PASS478.750",
+  "critique_group": "427468ca1325492c",
+  "critique_status": "running",
+  "engineering_critic": "310799ce83494e0f",
+  "native_job_active": false,
+  "new_quality_accepted": false,
+  "original_score500_verdict": "FAIL_TIMEOUT",
+  "plan_read_only": true,
+  "research_critic": "d2fdc1ed6ed74a4d",
+  "root_review": "Original-context composition is a concrete minimal approach; do not reuse current exact-source receipt validator for original exports. Every original predicate and current independent qualification remains required. Implementation may proceed before reviews finish; integration/native requires reconciled reviews and fresh exact-source CPU500.",
+  "schema": "connected-original-export-admission-parent-plan-v1",
+  "terminal_plan_id": "de27ee7470344c69"
+}
