@@ -1,0 +1,12 @@
+{
+  "command": "timeout 120s python3 scripts/test_connected_compact_serving.py",
+  "syntax_exit": 0,
+  "exit_code": 0,
+  "rlimit_as_bytes": 1073741824,
+  "wall_timeout_seconds": 120,
+  "elapsed_seconds": 0.606921300990507,
+  "peak_child_rss_kib": 44896,
+  "log": "/tmp/sfora-connected-package-source-check.log",
+  "log_sha256": "19193bb25961e2a12e147fb82670c91ec93175e984a622b7254296cac33ee378",
+  "qualification": "SOURCE ONLY; native/quality/latency UNRUN"
+}

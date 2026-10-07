@@ -1,0 +1,56 @@
+{
+  "base": "5a7d500b74eb02df159fcd867cad60c5094fe31b",
+  "owned": [
+    "src/sfora/connected_compact_serving.py",
+    "scripts/test_connected_compact_serving.py"
+  ],
+  "changes": "Formatting, precise internal annotations, casts/type narrowing and exception variable names only; historical hashes preserved with exact source correspondence if needed.",
+  "preserve": [
+    "runtime/math/public APIs/lazy imports",
+    "source-authenticated independent copied release",
+    "authority/predicates/cache teardown/frame/registry behavior"
+  ],
+  "checks": [
+    "ruff==0.15.20 check and format --check owned files",
+    "mypy==2.1.0 --follow-imports=skip owned production; PIL stub absence verified separately",
+    "runtime AST equivalence ledger excluding annotations/static casts and exact exception renames/contextlib.suppress correspondence",
+    "ONE source-only standin script timeout120 RLIMIT_AS=1073741824",
+    "git diff --check; exact two files; Roman identity; clean commit"
+  ],
+  "prohibited": "Torch/NumPy/PIL/native execution, ML installs, SSH/GPU/images/cloud/consultations/children/operator, push/merge",
+  "qualification": "SOURCE ONLY; native lifecycle/parity/quality/latency UNRUN; no ML/native imports executed",
+  "status": "completed source-only",
+  "commit": "0011a3c0682601186a968d3683968af97182dbf7",
+  "parent": "5a7d500b74eb02df159fcd867cad60c5094fe31b",
+  "identity": "Roman Bartusiak <riomus@gmail.com> | Roman Bartusiak <riomus@gmail.com>",
+  "clean": true,
+  "pushed": false,
+  "merged": false,
+  "file_sha256": {
+    "scripts/test_connected_compact_serving.py": "a238d2adcd23400dae74ebe0944b059b9c0f3b80d7daf6e9d55b88c734d4d694",
+    "src/sfora/connected_compact_serving.py": "99da5bd76dd8d49c0ed0c69bf3517d4ee4a976bdb9978addfcffba04f62fefc4"
+  },
+  "ruff_check_exit": 0,
+  "ruff_format_check_exit": 0,
+  "diff_check_exit": 0,
+  "mypy_isolated_exit": 1,
+  "mypy_isolated_remaining": "Only missing PIL.Image implementation/stub in isolated mypy tool; standalone /tmp/sfora-connected-package-pil-probe.py reproduces import-not-found with no package code.",
+  "mypy_static_pil_exit": 0,
+  "static_pil_stub": "/tmp/sfora-connected-package-static-pil/PIL/Image.pyi; static-only class Image, no dependency installation/import or repo policy change",
+  "source_check": {
+    "command": "timeout 120s python3 scripts/test_connected_compact_serving.py",
+    "syntax_exit": 0,
+    "exit_code": 0,
+    "rlimit_as_bytes": 1073741824,
+    "wall_timeout_seconds": 120,
+    "elapsed_seconds": 0.606921300990507,
+    "peak_child_rss_kib": 44896,
+    "log": "/tmp/sfora-connected-package-source-check.log",
+    "log_sha256": "19193bb25961e2a12e147fb82670c91ec93175e984a622b7254296cac33ee378",
+    "qualification": "SOURCE ONLY; native/quality/latency UNRUN"
+  },
+  "ast_ledger": "/tmp/sfora-connected-package-ast-ledger.json",
+  "ast_checker": "/tmp/sfora-connected-package-ast-ledger.py",
+  "lint_exceptions": "Narrow I001 preserves original lazy native import order; F841 preserves foreign traceback local witness. No type ignores or strict/config relaxation.",
+  "control_brief_sha256": "e95d2aa98ec151d57945c9a729e1fba3fb26163635d6cbf32c88ba750e3f0fc7"
+}

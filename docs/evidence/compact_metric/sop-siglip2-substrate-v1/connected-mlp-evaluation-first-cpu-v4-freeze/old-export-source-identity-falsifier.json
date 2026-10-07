@@ -1,0 +1,20 @@
+{
+  "native_modules": [],
+  "new_execution_sha256": "41bb4700ebd5bf0b8cdc4e4f292081ddb833d8a67ba7923378df3c9c8828ba31",
+  "new_score_launch_admissible_with_current_direct_admission": false,
+  "next": "Read-only original-export admission composition plan de27ee7470344c69; preserve original predicates and current liveCPU job.",
+  "old_exports_still_original_pass": true,
+  "results": [
+    {
+      "arm": "control",
+      "old_export_execution_sha256": "c76330fe0bb0cefa5f3ec7d3a4e82785ffc7620bae6583ddf55af67b6aca651f",
+      "rejected_at_original_source_identity_gate": true
+    },
+    {
+      "arm": "candidate",
+      "old_export_execution_sha256": "c76330fe0bb0cefa5f3ec7d3a4e82785ffc7620bae6583ddf55af67b6aca651f",
+      "rejected_at_original_source_identity_gate": true
+    }
+  ],
+  "schema": "connected-old-export-source-identity-falsifier-v1"
+}

@@ -1,0 +1,4 @@
+src/sfora/connected_compact_serving.py:293: error: Cannot find implementation or library stub for module named "PIL.Image"  [import-not-found]
+src/sfora/connected_compact_serving.py:293: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+pyproject.toml: note: unused section(s): module = ['datasets', 'h5py', 'sentence_transformers', 'sklearn.*', 'torch', 'torchvision', 'torchvision.*']
+Found 1 error in 1 file (checked 1 source file)

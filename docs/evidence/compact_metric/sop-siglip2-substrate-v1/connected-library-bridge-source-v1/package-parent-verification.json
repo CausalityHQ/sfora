@@ -1,0 +1,28 @@
+{
+  "actual_child_commit": "0011a3c0682601186a968d3683968af97182dbf7",
+  "actual_git_head_and_final_contract_agree": true,
+  "full_repository_ci_qualified": false,
+  "integration_commit": "a446ca55",
+  "invalid_archived_summary_commit_rejected": "0011a3c0b21e1bd57f808e83358910dcbb1ac3bb",
+  "mypy_with_static_pil_stub_exit": 0,
+  "mypy_without_missing_pil_stub_exit": 1,
+  "native_serving_qualified": false,
+  "quality_qualified": false,
+  "root_exact_correspondence_checker_exit": 0,
+  "ruff_format_exit": 0,
+  "ruff_lint_exit": 0,
+  "schema": "connected-serving-package-parent-verification-v1",
+  "speed_qualified": false,
+  "worker_source_check_reused": {
+    "command": "timeout 120s python3 scripts/test_connected_compact_serving.py",
+    "elapsed_seconds": 0.606921300990507,
+    "exit_code": 0,
+    "log": "/tmp/sfora-connected-package-source-check.log",
+    "log_sha256": "19193bb25961e2a12e147fb82670c91ec93175e984a622b7254296cac33ee378",
+    "peak_child_rss_kib": 44896,
+    "qualification": "SOURCE ONLY; native/quality/latency UNRUN",
+    "rlimit_as_bytes": 1073741824,
+    "syntax_exit": 0,
+    "wall_timeout_seconds": 120
+  }
+}

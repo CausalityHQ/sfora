@@ -1,0 +1,15 @@
+{
+  "active_state": "active",
+  "invocation_id": "faf3c18819894609aced8e81f6acb3d4",
+  "main_pid": 952178,
+  "memory_max_bytes": 8589934592,
+  "memory_swap_max_bytes": 0,
+  "native_qualification_accepted": false,
+  "new_source_entry_hashes_pass": true,
+  "original_ssh_exec_session": 46464,
+  "runtime_cap_seconds": 500,
+  "schema": "connected-cpu-v4-original-launch-observation-v1",
+  "sub_state": "running",
+  "terminal_result_collected": false,
+  "unit": "sfora-connected-mlp-evaluation-first-cpu-v4"
+}
