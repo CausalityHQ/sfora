@@ -1,11 +1,27 @@
 {
   "additional_reference_screen": {
     "author_code": "https://github.com/MrZilinXiao/LongContextReranker",
-    "direct_pdf_read": "CVF returned403; search-index primary abstract read only.",
+    "direct_pdf_read": "CVF403; arXivv1 full HTML table2 read successfully.",
     "method": "LOCORE CVPR2025",
     "observation": "Local-descriptor shortlist reranking reports results on SOP/InShop/CUB with a shared global retrieval method. This is a second-stage system, so matching requires first-stage encoder, shortlist, descriptors and total query-to-result latency.",
+    "primary_full_text": "https://arxiv.org/html/2503.21772v1",
     "primary_paper": "https://openaccess.thecvf.com/content/CVPR2025/html/Xiao_LOCORE_Image_Re-ranking_with_Long-Context_Sequence_Modeling_CVPR_2025_paper.html",
-    "status": "Absolute corrected numbers and full protocol not yet audited; no strongest-reference or performance claim."
+    "primary_table": "Table2, top100 reranking; mAP means mAP@R",
+    "reported_percent": {
+      "InShop": {
+        "LOCORE_small_R1": 89.4,
+        "LOCORE_small_mAP_R": 78.8,
+        "global_R1": 88.5,
+        "global_mAP_R": 74.8
+      },
+      "SOP": {
+        "LOCORE_base_R1": 83.8,
+        "LOCORE_base_mAP_R": 71.0,
+        "global_R1": 80.8,
+        "global_mAP_R": 65.1
+      }
+    },
+    "status": "Primary v1 table inspected. These are author-reported results, not Sfora measurements; weaker absolute R1 than dated UNICOM anchors and different first-stage system. Not admitted as strongest matched reference."
   },
   "date_utc": "2026-10-07",
   "decision": "Do not compare headline asymmetric gains to current symmetric native256 Sfora quality or speed. Require matching query/gallery encoders, resolutions, data, scorer and complete evaluation protocol plus corrected absolute results. No candidate intervention or quality claim follows from this screening.",
