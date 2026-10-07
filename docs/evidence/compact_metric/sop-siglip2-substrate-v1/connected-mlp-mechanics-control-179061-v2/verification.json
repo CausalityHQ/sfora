@@ -1,0 +1,34 @@
+{
+  "both_source_and_mechanics_freezes_exit_rehashed": true,
+  "engineering_only": true,
+  "full17_vs_independent8_plus9_exact": true,
+  "memory_events_zero": true,
+  "next_gate": "ONE fresh candidate061 mechanics1200 on SAME code. TRAIN/quality remain blocked until both full mechanics pass. No mechanics checkpoint state reuse.",
+  "original_launch_exit": 0,
+  "pass": true,
+  "peak_cuda_allocated_bytes": 2021260288,
+  "quality_read": false,
+  "schema": "connected-mlp-mechanics-parent-verification-v1",
+  "service_seconds": 914.944,
+  "state_reuse_eligible": false,
+  "strict_public_reload_raw_unit_packed": true,
+  "swap_bytes": 0,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "3c101a7659b3426284a99d03c17b07e8",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/mechanics-control-179061-v2-original.log",
+      "sha256": "e09082628c888c54b34ab33e9ff21db8cb2cd2e3cc24ce606aac8303320cd71f"
+    },
+    "native_peak_rss_kib": 5117408,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-mechanics-control-179061-v2/receipt.json",
+      "sha256": "2500ae1d8215479fb5259d547a3ff2cc499a690fa1c5eb26db4ea60c98e276c1"
+    },
+    "service_seconds": 914.944,
+    "unit": "sfora-connected-mlp-mechanics-control-179061-v2"
+  },
+  "total_training_core_seconds": 461.0654139880062,
+  "update_core_seconds_median": 13.069773117997102,
+  "whole_unit_peak_host_bytes": 6173646848
+}
