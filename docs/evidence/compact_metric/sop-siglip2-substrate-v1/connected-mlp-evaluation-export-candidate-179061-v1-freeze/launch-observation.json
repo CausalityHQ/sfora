@@ -1,0 +1,14 @@
+{
+  "active_state": "active",
+  "completion_inferred": false,
+  "controller_pid": 916356,
+  "host_bytes": 8589934592,
+  "idle_no_gpu_process_and_both_locks_verified_before_launch": true,
+  "invocation_id": "06071c350b134c0991b12f45ba1550c8",
+  "main_pid": 916372,
+  "quality_read": false,
+  "runtime_max_seconds": 1500,
+  "schema": "connected-export-launch-observation-v1",
+  "swap_bytes": 0,
+  "unit": "sfora-connected-mlp-evaluation-export-candidate-179061-v1"
+}
