@@ -4,17 +4,25 @@ Native parity, quality and latency require independent qualification. In
 particular, a loader failure before an endpoint exists has no release API:
 only proven registry ownership and finished owned-frame references are cleaned.
 """
+
 from __future__ import annotations
 
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
 import re
 import sys
 import threading
-from types import FunctionType, ModuleType
 import uuid
+from collections.abc import Iterable
+from contextlib import suppress
+from importlib.machinery import ModuleSpec
+from pathlib import Path
+from types import CodeType, FunctionType, ModuleType
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from sfora.cutile_int8 import CutilePackedInt8Gallery
 
 # Supported registry writers (including integrations replacing an owned entry)
 # must acquire this lock. Arbitrary unsynchronized sys.modules writes are outside
@@ -23,15 +31,27 @@ _REGISTRY_LOCK = threading.RLock()
 
 _TRAINER = "train_siglip2_connected_mlp.py"
 _CODE = {
-    _TRAINER, "test_siglip2_connected_mlp.py", "qualify_siglip2_substrate_cpu.py",
-    "extract_siglip2_vision_source.py", "train_siglip2_cached_readout.py",
-    "train_siglip2_substrate_adaptation.py", "prototype_residual_readout.py",
-    "quadratic_readout.py", "joint_relational_compaction.py",
+    _TRAINER,
+    "test_siglip2_connected_mlp.py",
+    "qualify_siglip2_substrate_cpu.py",
+    "extract_siglip2_vision_source.py",
+    "train_siglip2_cached_readout.py",
+    "train_siglip2_substrate_adaptation.py",
+    "prototype_residual_readout.py",
+    "quadratic_readout.py",
+    "joint_relational_compaction.py",
 }
 _FILES = {"vision.pt", "endpoint.pt", "processor.json"}
 _MANIFEST = {
-    "schema", "code", "files", "endpoint_state_sha256", "environment",
-    "encoder_identity", "base_vision_sha256", "vision_sha256", "scope",
+    "schema",
+    "code",
+    "files",
+    "endpoint_state_sha256",
+    "environment",
+    "encoder_identity",
+    "base_vision_sha256",
+    "vision_sha256",
+    "scope",
 }
 
 
@@ -41,13 +61,23 @@ def _require(condition: object, message: str) -> None:
 
 
 def _checked_file(path: Path, digest: str, owned: bool = False) -> Path:
-    _require(isinstance(path, Path) and path.is_absolute() and path.resolve() == path
-             and path.is_file() and not path.is_symlink(), "canonical regular file required")
-    _require(isinstance(digest, str) and re.fullmatch("[0-9a-f]{64}", digest), "explicit SHA256 required")
+    _require(
+        isinstance(path, Path)
+        and path.is_absolute()
+        and path.resolve() == path
+        and path.is_file()
+        and not path.is_symlink(),
+        "canonical regular file required",
+    )
+    _require(
+        isinstance(digest, str) and re.fullmatch("[0-9a-f]{64}", digest), "explicit SHA256 required"
+    )
     _require(not owned or path.stat().st_nlink == 1, "single-link owned bundle required")
     with path.open("rb") as stream:
-        _require(hashlib.file_digest(stream, "sha256").hexdigest() == digest,
-                 "current file bytes differ: " + str(path))
+        _require(
+            hashlib.file_digest(stream, "sha256").hexdigest() == digest,
+            "current file bytes differ: " + str(path),
+        )
     return path
 
 
@@ -73,35 +103,57 @@ class ConnectedCompactIndex:
     def __init__(self) -> None:
         self._lock = threading.RLock()
         self._closed = False
-        self._module = self._endpoint = self._gallery = None
+        self._module: ModuleType | None = None
+        self._endpoint: dict[str, Any] | None = None
+        self._gallery: CutilePackedInt8Gallery | None = None
         self._owned: dict[str, ModuleType] = {}
-        self._apis: dict[str, tuple[FunctionType, object]] = {}
+        self._apis: dict[str, tuple[FunctionType, CodeType]] = {}
         self._release: FunctionType | None = None
         self._release_modules: tuple[ModuleType, ...] = ()
         self._guards: tuple[tuple[Path, str, bool], ...] = ()
 
     @classmethod
     def from_bundle(
-        cls, *, bundle_dir: Path, expected_bundle_sha256: str,
-        gallery_path: Path, expected_gallery_sha256: str, gallery_count: int,
-        native_library_path: Path, expected_native_library_sha256: str,
+        cls,
+        *,
+        bundle_dir: Path,
+        expected_bundle_sha256: str,
+        gallery_path: Path,
+        expected_gallery_sha256: str,
+        gallery_count: int,
+        native_library_path: Path,
+        expected_native_library_sha256: str,
     ) -> ConnectedCompactIndex:
         """Load explicit caller-pinned bytes; device, dimensions and k are fixed."""
         self = cls()
         try:
-            _require(isinstance(bundle_dir, Path) and bundle_dir.is_absolute()
-                     and bundle_dir.resolve() == bundle_dir and bundle_dir.is_dir(),
-                     "canonical bundle directory required")
-            _require(type(gallery_count) is int and gallery_count >= 10, "gallery count must be >=10")
+            _require(
+                isinstance(bundle_dir, Path)
+                and bundle_dir.is_absolute()
+                and bundle_dir.resolve() == bundle_dir
+                and bundle_dir.is_dir(),
+                "canonical bundle directory required",
+            )
+            _require(
+                type(gallery_count) is int and gallery_count >= 10, "gallery count must be >=10"
+            )
             manifest_path = bundle_dir / "bundle.json"
             raw = _read_checked(manifest_path, expected_bundle_sha256, True)
-            manifest = json.loads(raw, object_pairs_hook=_json_pairs,
-                                  parse_constant=lambda value: _require(False, "nonfinite manifest"))
-            _require(isinstance(manifest, dict) and manifest.keys() == _MANIFEST
-                     and manifest["schema"] == "siglip2-connected-mlp-bundle-v1"
-                     and isinstance(manifest["code"], dict) and manifest["code"].keys() == _CODE
-                     and isinstance(manifest["files"], dict) and manifest["files"].keys() == _FILES,
-                     "unsupported connected bundle schema/closure")
+            manifest = json.loads(
+                raw,
+                object_pairs_hook=_json_pairs,
+                parse_constant=lambda value: _require(False, "nonfinite manifest"),
+            )
+            _require(
+                isinstance(manifest, dict)
+                and manifest.keys() == _MANIFEST
+                and manifest["schema"] == "siglip2-connected-mlp-bundle-v1"
+                and isinstance(manifest["code"], dict)
+                and manifest["code"].keys() == _CODE
+                and isinstance(manifest["files"], dict)
+                and manifest["files"].keys() == _FILES,
+                "unsupported connected bundle schema/closure",
+            )
             for name, digest in (manifest["code"] | manifest["files"]).items():
                 _checked_file(bundle_dir / name, digest, True)
             trainer_path, trainer_sha = bundle_dir / _TRAINER, manifest["code"][_TRAINER]
@@ -111,29 +163,46 @@ class ConnectedCompactIndex:
             self._guards = ((trainer_path, trainer_sha, True),)
             name = "_sfora_connected_compact_" + uuid.uuid4().hex
             spec = importlib.util.spec_from_file_location(name, trainer_path)
-            _require(spec is not None and spec.loader is not None, "connected loader origin required")
-            self._module = importlib.util.module_from_spec(spec)
+            _require(
+                spec is not None and spec.loader is not None, "connected loader origin required"
+            )
+            self._module = importlib.util.module_from_spec(cast(ModuleSpec, spec))
             with _REGISTRY_LOCK:
                 _require(name not in sys.modules, "fresh connected loader namespace required")
                 self._owned[name] = self._module
                 sys.modules[name] = self._module
                 exec(compile(source, str(trainer_path), "exec"), vars(self._module))
-            for api in ("load_inference", "load_authenticated", "inference_outputs", "release_inference"):
+            for api in (
+                "load_inference",
+                "load_authenticated",
+                "inference_outputs",
+                "release_inference",
+            ):
                 fn = getattr(self._module, api)
-                _require(type(fn) is FunctionType and fn.__globals__ is vars(self._module),
-                         "genuine connected public function required")
+                _require(
+                    type(fn) is FunctionType and fn.__globals__ is vars(self._module),
+                    "genuine connected public function required",
+                )
                 self._apis[api] = (fn, fn.__code__)
             fn, code = self._apis["release_inference"]
-            self._release = FunctionType(code, fn.__globals__, fn.__name__, fn.__defaults__, fn.__closure__)
+            self._release = FunctionType(
+                code, fn.__globals__, fn.__name__, fn.__defaults__, fn.__closure__
+            )
             # Imports are deliberately lazy; source-only checks substitute these seams.
-            from sfora.joint_relational_compaction import PackedInt8Embeddings
+            # Preserve the original order of these lazy imports.
+            from sfora.joint_relational_compaction import PackedInt8Embeddings  # noqa: I001
             from sfora.cutile_int8 import CutilePackedInt8Gallery
 
-            packed = PackedInt8Embeddings.from_bytes(gallery_wire, count=gallery_count, dimensions=128)
+            packed = PackedInt8Embeddings.from_bytes(
+                gallery_wire, count=gallery_count, dimensions=128
+            )
             # ponytail: serialize helper registration at startup; an original
             # synchronized registrar is needed only for parallel bundle loading.
             with _REGISTRY_LOCK:
-                self._endpoint = self._apis["load_inference"][0](bundle_dir, expected_bundle_sha256, "cuda")
+                self._endpoint = cast(
+                    dict[str, Any],
+                    self._apis["load_inference"][0](bundle_dir, expected_bundle_sha256, "cuda"),
+                )
                 self._release_modules = tuple(self._endpoint["modules"].values())
                 self._remember(self._release_modules)
             self._check_current()
@@ -145,14 +214,14 @@ class ConnectedCompactIndex:
             self._close_after_error(error)
             raise
 
-    def _remember(self, modules: object) -> None:
+    def _remember(self, modules: Iterable[object]) -> None:
         for module in modules:
             if type(module) is ModuleType:
                 self._owned[module.__name__] = module
 
-    def _capture_failure(self, error: BaseException) -> None:
+    def _capture_failure(self, error: BaseException | None) -> None:
         """Use exact authenticated loader frames, never a registry diff or sweep."""
-        trace = error.__traceback__
+        trace = cast(BaseException, error).__traceback__
         frames = []
         while trace is not None:
             frame = trace.tb_frame
@@ -180,22 +249,32 @@ class ConnectedCompactIndex:
                 trace = trace.tb_next
             error = error.__cause__ or error.__context__
         for frame in frames:
-            try:
+            # An active frame retains its own lifetime; never clear it.
+            with suppress(RuntimeError):
                 frame.clear()
-            except RuntimeError:
-                pass  # An active frame retains its own lifetime; never clear it.
 
     def _check_current(self) -> None:
         for guard in self._guards:
             _checked_file(*guard)
-        _require(all(sys.modules.get(name) is module for name, module in self._owned.items()),
-                 "owned connected registry changed")
+        _require(
+            all(sys.modules.get(name) is module for name, module in self._owned.items()),
+            "owned connected registry changed",
+        )
         for name, (fn, code) in self._apis.items():
-            _require(getattr(self._module, name) is fn and fn.__code__ is code
-                     and fn.__globals__ is vars(self._module), "connected public callable changed")
-        _require(self._module.__file__ == str(self._guards[0][0])
-                 and self._module.__spec__.origin == self._module.__file__
-                 and self._module.__spec__.name == self._module.__name__, "connected loader origin changed")
+            _require(
+                getattr(cast(ModuleType, self._module), name) is fn
+                and fn.__code__ is code
+                and fn.__globals__ is vars(cast(ModuleType, self._module)),
+                "connected public callable changed",
+            )
+        _require(
+            cast(ModuleType, self._module).__file__ == str(self._guards[0][0])
+            and cast(ModuleSpec, cast(ModuleType, self._module).__spec__).origin
+            == cast(ModuleType, self._module).__file__
+            and cast(ModuleSpec, cast(ModuleType, self._module).__spec__).name
+            == cast(ModuleType, self._module).__name__,
+            "connected loader origin changed",
+        )
 
     def _close_after_error(self, error: BaseException) -> None:
         try:
@@ -212,13 +291,22 @@ class ConnectedCompactIndex:
             images = list(images)
             _require(1 <= len(images) <= 32, "PIL image batch length must be 1..32")
             from PIL.Image import Image
-            _require(all(isinstance(image, Image) for image in images), "PIL image objects required")
+
+            _require(
+                all(isinstance(image, Image) for image in images), "PIL image objects required"
+            )
             try:
                 self._check_current()
                 from sfora.joint_relational_compaction import PackedInt8Embeddings
+
                 output = self._apis["inference_outputs"][0](self._endpoint, images)
-                queries = PackedInt8Embeddings.from_bytes(output["wire"], count=len(images), dimensions=128)
-                return self._gallery.search_packed(queries, k=10)
+                queries = PackedInt8Embeddings.from_bytes(
+                    output["wire"], count=len(images), dimensions=128
+                )
+                return cast(
+                    tuple[object, object],
+                    cast("CutilePackedInt8Gallery", self._gallery).search_packed(queries, k=10),
+                )
             except BaseException as error:
                 self._capture_failure(error)
                 self._close_after_error(error)
@@ -259,7 +347,7 @@ class ConnectedCompactIndex:
                     # cache clearing/emptiness, endpoint clearing, GC, every resource
                     # lifetime predicate and CUDA cleanup using its original globals.
                     self._endpoint["modules"] = {}
-                    self._release(self._endpoint)
+                    cast(FunctionType, self._release)(self._endpoint)
             except BaseException as error:
                 errors.append(error)
             finally:
@@ -274,15 +362,15 @@ class ConnectedCompactIndex:
                     for name, module in self._owned.items():
                         if sys.modules.get(name) is module:
                             del sys.modules[name]
-                for error in errors:
-                    self._capture_failure(error)
+                for failure in errors:
+                    self._capture_failure(failure)
                 self._endpoint = self._gallery = self._module = self._release = None
                 self._owned.clear()
                 self._apis.clear()
                 self._release_modules = ()
             if errors:
-                for error in errors[1:]:
-                    errors[0].add_note("connected cleanup also failed: " + repr(error))
+                for failure in errors[1:]:
+                    errors[0].add_note("connected cleanup also failed: " + repr(failure))
                 raise errors[0]
 
     def __enter__(self) -> ConnectedCompactIndex:
