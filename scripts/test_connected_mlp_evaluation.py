@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prospective export1500 stdlib falsifiers; no native/model-fit/quality qualification."""
+"""Prospective score700/export1500 stdlib falsifiers; no native/model-fit/quality qualification."""
 import argparse
 import ast
 import copy
@@ -39,8 +39,22 @@ def metadata_api():
     return SimpleNamespace(**namespace)
 
 
+def evaluator_score_envelope_inverse(raw):
+    """Undo only score700; restore the complete original500/export1500 source."""
+    new = b"return {'seconds': 1500 if phase == 'export' else 700 if phase == 'score' else 500, 'host_bytes':8*1024**3,"
+    old = b"return {'seconds': 1500 if phase == 'export' else 500, 'host_bytes':8*1024**3,"
+    assert raw.count(new) == 1 and raw.count(old) == 0, 'exact score envelope literal differs'
+    raw = raw.replace(new, old, 1)
+    assert hashlib.sha256(raw).hexdigest() == \
+        'bce0c43bae6d24f50ab8ce7c60f8410abd307697ec81d91825e0a043a20efe08', 'score inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw), include_attributes=False).encode()).hexdigest() == \
+        '7e6ae659a786d3e554ccbd17450e25054b80437b8454476d9edce50ca42c5c44', 'score inverse AST differs'
+    return raw
+
+
 def evaluator_export_envelope_inverse(raw):
     """Undo only export1500; restore the complete original900 production source."""
+    raw = evaluator_score_envelope_inverse(raw)
     new = b"return {'seconds': 1500 if phase == 'export' else 500, 'host_bytes':8*1024**3,"
     old = b"return {'seconds': 900 if phase == 'export' else 500, 'host_bytes':8*1024**3,"
     assert raw.count(new) == 1 and raw.count(old) == 0, 'exact export envelope literal differs'
@@ -243,7 +257,8 @@ def source_contract(e, trainer, reference):
     cpu_unit = json.loads((EVIDENCE/'connected-mlp-cpu-v6/verification.json').read_text())['terminal']
     assert e.TRAINING_CPU == cpu_unit
     assert e.TRAINING_CPU['receipt']['sha256'] == hashlib.sha256((EVIDENCE/'connected-mlp-cpu-v6/receipt.json').read_bytes()).hexdigest()
-    assert e.policy('cpu')['seconds'] == e.policy('score')['seconds'] == 500
+    assert e.policy('cpu')['seconds'] == 500
+    assert e.policy('score')['seconds'] == 700
     assert e.policy('export')['seconds'] == 1500
     assert e.COST_POLICY['whole_service_ratio_max'] == e.COST_POLICY['total_training_core_ratio_max'] == 1.50
     assert 'candidate_cache' not in e.LAUNCH_KEYS and 'evaluator_reference' in e.LAUNCH_KEYS
@@ -288,8 +303,8 @@ def source_contract(e, trainer, reference):
 def export_envelope_contract(e):
     assert e.policy('export') == {'seconds': 1500, 'host_bytes': 8*1024**3,
                                   'swap_bytes': 0, 'cuda_visible_devices': '0'}
-    for phase in ('cpu', 'score'):
-        assert e.policy(phase) == {'seconds': 500, 'host_bytes': 8*1024**3,
+    for phase, seconds in (('cpu', 500), ('score', 700)):
+        assert e.policy(phase) == {'seconds': seconds, 'host_bytes': 8*1024**3,
                                    'swap_bytes': 0, 'cuda_visible_devices': ''}
     rejects(lambda: e.policy('train'), 'fixed evaluation phase')
     original = EVIDENCE/'connected-mlp-evaluation-first-cpu-v1'
@@ -323,17 +338,23 @@ def export_envelope_contract(e):
                        ('peak_cuda_allocated_bytes', 0), ('peak_cuda_allocated_bytes', 10_000_000_000),
                        ('peak_cuda_allocated_bytes', True), ('cuda_initialized', False)):
         rejects(lambda: e.check_resource_facts({**facts, key: value}, 'export'), 'resources')
-    for phase in ('cpu', 'score'):
-        hidden = {**facts, 'resource_policy': e.policy(phase), 'wall_seconds': 499.999,
+    for phase, seconds in (('cpu', 500), ('score', 700)):
+        hidden = {**facts, 'resource_policy': e.policy(phase), 'wall_seconds': seconds-.001,
                   'peak_cuda_allocated_bytes': 0, 'cuda_initialized': False}
         e.check_resource_facts(hidden, phase)
-        rejects(lambda: e.check_resource_facts({**hidden, 'wall_seconds': 500}, phase), 'resources')
+        for wall in (seconds, seconds+1):
+            rejects(lambda: e.check_resource_facts({**hidden, 'wall_seconds': wall}, phase), 'resources')
         rejects(lambda: e.check_resource_facts({**hidden, 'peak_cuda_allocated_bytes': 1}, phase), 'resources')
+    for seconds in (500, 701):
+        bad = {**e.policy('score'), 'seconds': seconds}
+        rejects(lambda: e.check_resource_facts({**hidden, 'resource_policy': bad}, 'score'), 'resources')
+        rejects(lambda: e.check_launch({**launch, 'resource_policies':
+            {**launch['resource_policies'], 'score': bad}}, args), 'launch differs')
     context = {'args': args, 'launch': launch, 'code': {name: hashlib.sha256((HERE/name).read_bytes()).hexdigest()
         for name in e.FILES}, 'training_context': {'source': cpu['source']}}
     for record in (cpu, {**cpu, 'launch': launch}):
         rejects(lambda: e.check_receipt(context, record, 'cpu'), 'complete source/resource evaluator receipt')
-    print('PASS prospective export1500 boundary/caps; original900 CPU launch/source binding rejected; fresh ownCPU500 required')
+    print('PASS prospective score700/export1500 boundaries/caps; historical CPU launch/source binding rejected; fresh ownCPU500 required')
 
 
 def launch_contract(e):
