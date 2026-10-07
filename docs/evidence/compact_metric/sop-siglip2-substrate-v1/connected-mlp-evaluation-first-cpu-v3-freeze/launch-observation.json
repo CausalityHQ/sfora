@@ -1,0 +1,17 @@
+{
+  "schema": "connected-evaluator-cpu-v3-original-launch-observation-v1",
+  "source_commit": "75f1d1c6",
+  "unit": "sfora-connected-mlp-evaluation-first-cpu-v3",
+  "invocation_id": "be2906d7e30d4badbca8373ec0f2ab6e",
+  "original_controller_pid": 878974,
+  "main_pid": 878993,
+  "observed_state": "active",
+  "runtime_seconds": 500,
+  "memory_max_bytes": 8589934592,
+  "memory_swap_max_bytes": 0,
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3",
+  "log": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/first-cpu-v3-original.log",
+  "status": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/first-cpu-v3-terminal-status.txt",
+  "output": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-cpu-v3",
+  "verdict": "PENDING_NO_QUALIFICATION"
+}
