@@ -1,0 +1,25 @@
+{
+  "arm": "control",
+  "both_locks_required": true,
+  "completion_within_cap": "UNQUALIFIED; no CUDA mechanics lifecycle measurement yet.",
+  "cuda_allocated_bytes_exclusive": 10000000000,
+  "execution_sha256": "5947257ef8e2656fe9b30e94b13c873a55f571f3ed5990f2988d29a085603a3f",
+  "files": {
+    "authority-mechanics-control-179061-v1.json": "92f7c6fb22d79a3399c018de023ad89761dfc8bbbd982511c81c9dbd93519d5e",
+    "cpu-v3-original.log": "1cfb38cc9752e2e0feee40fecd13f1ae2b5a2252dea4e8eb6f92fe5fa1305c22",
+    "mechanics-control-179061-v1-command.sh": "30beef674a6cf9d6df3c053df3295dc1cc4094e026d60dbcd517b83b3dfc19f7",
+    "mechanics-control-179061-v1-launch.sh": "2d44f288b6d05c622793fbe4d297089c1f431841d5be2dc380276d17920c215c"
+  },
+  "host_bytes": 8589934592,
+  "ordered_next": "Candidate061 only after independently authenticated normal-exit complete control PASS. No TRAIN/quality until paired mechanics PASS.",
+  "output": "/home/riomus/runs/sfora-connected-mlp-mechanics-control-179061-v1",
+  "phase": "mechanics",
+  "review_group": "497df2865a014f0d",
+  "schema": "connected-mlp-mechanics-freeze-v1",
+  "seconds": 300,
+  "seed": 179061,
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-train-source-v3",
+  "stop_rule": "Exactly one original job; any timeout/equality/resource/incomplete terminal closes this attempt; preserve old failures and discard partial state. No cap/hash/science change.",
+  "swap_bytes": 0,
+  "unit": "sfora-connected-mlp-mechanics-control-179061-v1"
+}

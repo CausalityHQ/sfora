@@ -1,0 +1,723 @@
+{
+  "schema": "connected-mlp-mechanics-review-decision-v1",
+  "group": "497df2865a014f0d",
+  "raw": {
+    "id": "497df2865a014f0d",
+    "status": "completed",
+    "started_at": 1791381405,
+    "agent": "sfora/emafactorial",
+    "force_reason": "New complete original CPUv3 normal-exit PASS430.965s with full portable parity and phase evidence changes next decision to paired GPU mechanics300; prior group7a8bbd2320e64e4f addressed CPU500/600 before this result. No duplicate review of this measured terminal or GPU next-gate exists.",
+    "rolling_6h_count": 3,
+    "prompt_preview": "READ ONLY next-gate review, no edits/imports/SSH/jobs/children/operator. Repo /home/rb/worktrees/sfora-positive-causality master f7e74e30. COMPLETE new original CPUv3 evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v3/{original.log,receipt.json,verification.json}; exact source/launch frozen sibling connected-mlp-cpu-v3-freeze. CPU600 normal exit0 service430.965s, peak7161212928B events0swap0, full updated448 strict2load raw/unit/packed parity/mutants/both original initializers/uncachedexit. Receipt authority101.541003s, complete arm239.505390s, genuine CPU firstB64 two-view update62.944174s; inclusive timings overlap. GPU gradient-v2 original source evidence actual-objective-gradient-v2 and connected-encoder-backend-profile-v1; do not extrapolate CPU update to GPU as measurement. Proposed next: unchanged exact source CPU600/mechanics300/TRAIN600; prospective sequential control061 then candidate061 mechanics ONLY, complete uninterrupted17 versus independent8+save/release/strictrestore+9, full current448/typed config/buffers/optimizer/scaler/RNG/rawpacked portableparity/full uncachedexit, 8GiB/zero events/swap/CUDA<10GB/bothlocks, original runtime pinned, no quality/state reuse/TRAIN until both pass. selected_cpu UNIT actual CPUv3 receipt/log binding. Freeze each own actual authority/command/launcher/source; no duplicate GPU controller. Review whether launching ONE control mechanics300 as unchanged bounded falsifier is admissible or a demonstrable lifecycle/correctness blocker requires a smallest prospective correction BEFORElaunch. Do not propose blanket caps/hash skips/statecache/new loss. Prior Opus mechanics feasibility concern was ESTIMATE before full CPU result; assess source-complete path and distinguish actual measurements from estimates. Candidate only after control terminal PASS; kill arm on failure, oldtimeouts remainFAIL; controlTRAIN must be fresh baseline and candidate core/whole<=1.50, no cached101s cost. Return conditional GO or KILL with exact blocker/smallest solution. Current production goal jointly SOP/InShop quality+speed still unmet.",
+    "prompt_sha256": "b29abcbbbc11d02931a48db77e2f213b6be995e81e18a27a814d8ebc0af7ccda",
+    "prompt_bytes": 2122,
+    "fingerprint": "dd273c0643b455b7e159f7c25688b4602ce4da344e431510210a96ea5df530b3",
+    "evidence": {
+      "git_commit": "f7e74e300b6d84f2cb517e43ac401f5205974dd7",
+      "git_branch": "master",
+      "git_dirty": true,
+      "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+      "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+      "worktree_evidence_truncated": false,
+      "active_goal": {
+        "id": "goal-1790540789-1790540789754989478-2322852",
+        "agent": "sfora/emafactorial",
+        "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+        "status": "queued",
+        "revision": 1,
+        "actor": "operator",
+        "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+        "created_at": 1790540789,
+        "updated_at": 1790540789
+      }
+    },
+    "reviewers": [
+      {
+        "role": "research_critic",
+        "id": "72f867524fbc4533",
+        "provider": "claude",
+        "model": "claude-opus-5-5",
+        "fallbacks": [
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5"
+          },
+          {
+            "provider": "codex",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "effort": "",
+        "agent": "sfora/emafactorial",
+        "cwd": "/home/rb/worktrees/sfora-positive-causality",
+        "status": "completed",
+        "runner_started": true,
+        "started_at": 1791381405,
+        "timeout_seconds": 1200,
+        "deadline_at": 1791382605,
+        "budget_usd": 4,
+        "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY next-gate review, no edits/imports/SSH/jobs/children/operator. Repo /home/rb/worktrees/sfora-positive-causality master f7e74e30. COMPLETE new original CPUv3 evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v3/{original.log,receipt.json,verification.json}; exact source/launch frozen sibling connected-mlp-cpu-v3-freeze. CPU600 normal exit0 service430.965s, peak7161212928B events0swap0, full updated448 strict2load raw/unit/packed parity/mutants/both original initializers/uncachedexit. Receipt authority101.541003s, complete arm239.505390s, genuine CPU firstB64 two-view update62.944174s; inclusive timings overlap. GPU gradient-v2 original source evidence actual-objective-gradient-v2 and connected-encoder-backend-profile-v1; do not extrapolate CPU update to GPU as measurement. Proposed next: unchanged exact source CPU600/mechanics300/TRAIN600; prospective sequential control061 then candidate061 mechanics ONLY, complete uninterrupted17 versus independent8+save/release/strictrestore+9, full current448/typed config/buffers/optimizer/scaler/RNG/rawpacked portableparity/full uncachedexit, 8GiB/zero events/swap/CUDA<10GB/bothlocks, original runtime pinned, no quality/state reuse/TRAIN until both pass. selected_cpu UNIT actual CPUv3 receipt/log binding. Freeze each own actual authority/command/launcher/source; no duplicate GPU controller. Review whether launching ONE control mechanics300 as unchanged bounded falsifier is admissible or a demonstrable lifecycle/correctness blocker requires a smallest prospective correction BEFORElaunch. Do not propose blanket caps/hash skips/statecache/new loss. Prior Opus mechanics feasibility concern was ESTIMATE before full CPU result; assess source-complete path and distinguish actual measurements from estimates. Candidate only after control terminal PASS; kill arm on failure, oldtimeouts remainFAIL; controlTRAIN must be fresh baseline and candidate core/whole<=1.50, no cached101s cost. Return conditional GO or KILL with exact blocker/smallest solution. Current production goal jointly SOP/InShop quality+speed still unmet.",
+        "prompt_sha256": "6f4c8d4fae7d1a84dda5abaf481ab262e9e14dcf7d99480a0b252932ad698340",
+        "prompt_bytes": 2492,
+        "fingerprint": "426f183ad9eadbe5fbd1496114f97d581762826df65d02c41596bc80c5c45749",
+        "evidence": {
+          "git_commit": "f7e74e300b6d84f2cb517e43ac401f5205974dd7",
+          "git_branch": "master",
+          "git_dirty": true,
+          "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+          "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+          "worktree_evidence_truncated": false,
+          "active_goal": {
+            "id": "goal-1790540789-1790540789754989478-2322852",
+            "agent": "sfora/emafactorial",
+            "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+            "status": "queued",
+            "revision": 1,
+            "actor": "operator",
+            "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+            "created_at": 1790540789,
+            "updated_at": 1790540789
+          }
+        },
+        "previous_fingerprint": "d4540beb470edde4ab059e7e9f7f1dae5773042ba5bc57a2edb1384b0dc9a1e6",
+        "reused": false,
+        "critique_id": "497df2865a014f0d",
+        "critique_role": "research_critic",
+        "systemd_unit": "devbox-consult-72f867524fbc4533.service",
+        "pid": 2582368,
+        "pgid": 2582368,
+        "attempt": 1,
+        "attempts": [
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5"
+          },
+          {
+            "provider": "codex",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "attempt_history": [
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5",
+            "budget_usd": 4,
+            "timeout_seconds": 1199,
+            "started_at": 1791381406
+          }
+        ],
+        "exit_code": 0,
+        "finished_at": 1791381720,
+        "event_cursor": 37,
+        "events": [
+          {
+            "seq": 14,
+            "at": 1791381505,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 15,
+            "at": 1791381519,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 16,
+            "at": 1791381528,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 17,
+            "at": 1791381546,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 18,
+            "at": 1791381549,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 19,
+            "at": 1791381553,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 20,
+            "at": 1791381556,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 21,
+            "at": 1791381565,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 22,
+            "at": 1791381569,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 23,
+            "at": 1791381688,
+            "provider": "claude",
+            "kind": "tool",
+            "label": "Bash started"
+          },
+          {
+            "seq": 24,
+            "at": 1791381702,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 25,
+            "at": 1791381703,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 26,
+            "at": 1791381705,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 27,
+            "at": 1791381706,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 28,
+            "at": 1791381708,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 29,
+            "at": 1791381709,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 30,
+            "at": 1791381710,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 31,
+            "at": 1791381712,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 32,
+            "at": 1791381713,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 33,
+            "at": 1791381714,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 34,
+            "at": 1791381715,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 35,
+            "at": 1791381716,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 36,
+            "at": 1791381718,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 37,
+            "at": 1791381719,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ],
+        "events_truncated": true,
+        "provider_events": {
+          "claude": [
+            {
+              "seq": 30,
+              "at": 1791381710,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 31,
+              "at": 1791381712,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 32,
+              "at": 1791381713,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 33,
+              "at": 1791381714,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 34,
+              "at": 1791381715,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 35,
+              "at": 1791381716,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 36,
+              "at": 1791381718,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 37,
+              "at": 1791381719,
+              "provider": "claude",
+              "kind": "phase",
+              "label": "Consultation completed",
+              "detail": "exit 0"
+            }
+          ]
+        },
+        "partial_result": "# Verdict: KILL. Do not launch control mechanics300 on the unchanged source\n\nLaunching it is not a useful bounded falsifier, because the result is already known. The CPUv3 run's own measured lifecycle shows that this source cannot finish the mechanics phase within 300 s, even with an infinitely fast GPU and zero extra mechanics work. Under the kill-on-failure rule, a predictable timeout would close the control arm and add one more permanent FAIL, without testing anything about correctness. Nothing I found points to a correctness defect in CPUv3. The blocker is the deadline the lifecycle has to fit into.\n\n## What was actually measured\n\nAll of this comes from CPUv3 (`receipt.json`, `original.log`, `verification.json`) at invocation `a8bd65d9…`:\n\n| Item | Seconds |\n|---|---|\n| Service time | 430.965 |\n| Python wall time | 428.808 |\n| Authority (admission) | 101.541 |\n| Complete arm work | 239.505 |\n| Arm work inside the candidate qualification | 231.457 |\n| Exit tail (arm end at 341.8 s → receipt at 428.8 s), including measured rehash phases 22.9 + 12.8 + 0.75 + 6.56 | ≈87 |\n| Single update core (CPU, includes its audit hashing) | 62.944 |\n\n- **Event order:** the arm starts at about 102.3 s, the first reload ends at 107.8 s, and the two reloads in the public bundle check run at 336–341.8 s. That means the two public loads plus their mutant inference took only about 5.6 s, so serving inference is not where the time goes.\n- **Host cost:** `/usr/bin/time` reports 141 % CPU and 318 M filesystem input blocks (about 163 GB re-read in 431 s). The lifecycle is bound by host hashing and disk I/O, not by the compute device.\n- **Hash cache:** the fingerprint function has no cache by design (\"No stat, version, or tensor-hash cache: every call reads current bytes\"). On CUDA it also adds a device-side concatenate and a device-to-host copy, so moving to the GPU can only make hashing slower.\n\n## Lower bound for mechanics300, using only measured CPUv3 numbers\n\nMechanics runs the same authority step (plus admitting the `selected_cpu` receipt) and the same arm steps: fresh construction, the mutant checks, two image checks, save, restore, export and two public loads. Its exit is heavier, because `audit_origin_diagnostics` only runs when the phase is not CPU. Its only real saving is device compute. Even so:\n\n430.97 − 62.94 (the whole CPU update, generously treated as device work) − 8.05 (the second-seed initializer check, which only the CPU phase does) − 20 (a generous allowance for CPU witness inference) ≈ **340 s, which is already over 300 s.**\n\nThe mechanics path then adds work on top of that. The per-call costs below come from `connected-mlp-cpu-phase-diag-v2`, which ran on older source:\n\n| Extra mechanics work | Seconds |\n|---|---|\n| One more fresh construction | ~34.8 |\n| One more restore | ~22.5 |\n| Two more saves | ~8–12 |\n| 33 more updates, host audit cost only | ~185 |\n\nThe per-update audit cost follows from the frozen `update()`. It calls `integrity()` at the start and the end (about 1.91 s each), plus `encoder_facts` (1.16 s), plus the payload fingerprint. Each of these re-hashes the 1.7 GB encoder, so the total is about 9 full-encoder hashes and about 5.6 s per update before any GPU work. The control arm pays the same cost.\n\nMy estimate for the GPU mechanics run is **about 650–750 s.** That figure is an estimate: the CUDA cost of each integrity call has never been measured. The **≥340 s lower bound does not depend on that**, because it uses only CPUv3 measurements.\n\nThe earlier mechanics passes (231–256 s) all come from the cached-feature line with a frozen encoder. They are not evidence that this connected-encoder source can fit in 300 s. The old Opus feasibility concern was an estimate, and the full CPU result now confirms it with measurements.\n\n## The same problem hits TRAIN600 and the cost ratio\n\n- **TRAIN600:** 128 updates × about 5.6 s of host audit alone is about 717 s, before the roughly 190 s of fixed lifecycle and any GPU time. So 600 s cannot be met either. Fixing only the mechanics deadline would just move the timeout to TRAIN.\n- **The ≤1.50 core-time gate:** both arms re-hash the same 1.7 GB encoder several times per update, so the \"core\" time is dominated by audit work that is identical in both arms. The ratio will sit near 1.0 by construction. A pass would tell you almost nothing about the method's speed, which is the speed half of the production goal.\n\n## Smallest correction before any launch\n\nThis does not involve hash skips, state caches, a new loss, or a blanket cap.\n\n1. **Measure first, without qualifying anything.** Run one CUDA phase observation of the exact frozen mechanics path, in the same style as `connected-mlp-cpu-phase-diag-v2`: no qualification, no state reuse, results labelled as diagnostic. It should record CUDA timings for `integrity`, `encoder_facts`, `fingerprint`, `fresh`, `restore`, `save`, and the update core. That per-call CUDA cost is the one missing piece of evidence. The observation will also time out, but by design and without consuming the arm.\n2. **Then make one decision before launching anything, and get it reviewed.** There are two options:\n   - **(a) Re-derive the mechanics and TRAIN budgets** from the measured cost model: CPUv3's fixed lifecycle, plus the measured CUDA per-call cost times the exact call counts from the frozen source, plus a stated margin. This changes the `policy()` at line 122, the launch `resource_policy` and `RuntimeMaxSec`. A budget derived this way is not a blanket cap, because the 300/600 constants were inherited from the cached-feature line and are now shown to be wrong for this source.\n   - **(b) If budgets must not change at all,** the connected-MLP method cannot be qualified on this source line. Removing duplicate back-to-back `integrity()` calls inside `update()` would save at most about 65 s, which is well short of the ≥40 s already over the limit plus the 33 extra updates. In that case the honest call is KILL for the whole family, not a retry.\n\nUntil option 1 is done and one of 2a or 2b is chosen, launch neither the control nor the candidate mechanics. All earlier timeouts remain FAIL.\n\n## Limitations of this review\n\n- The per-call audit costs come from v2 source. v3 batched the witness reads (authority dropped from 135.8 s to 101.5 s), so per-call costs in v3 may be lower. The ≥340 s lower bound does not rely on them.\n- The 62.9 s CPU update mixes forward-pass and hashing time with no split inside it.\n- The one GPU number that would close the question, the CUDA cost of each integrity call, does not exist yet.",
+        "partial_result_truncated": false,
+        "provider_partials": {
+          "claude": "# Verdict: KILL. Do not launch control mechanics300 on the unchanged source\n\nLaunching it is not a useful bounded falsifier, because the result is already known. The CPUv3 run's own measured lifecycle shows that this source cannot finish the mechanics phase within 300 s, even with an infinitely fast GPU and zero extra mechanics work. Under the kill-on-failure rule, a predictable timeout would close the control arm and add one more permanent FAIL, without testing anything about correctness. Nothing I found points to a correctness defect in CPUv3. The blocker is the deadline the lifecycle has to fit into.\n\n## What was actually measured\n\nAll of this comes from CPUv3 (`receipt.json`, `original.log`, `verification.json`) at invocation `a8bd65d9…`:\n\n| Item | Seconds |\n|---|---|\n| Service time | 430.965 |\n| Python wall time | 428.808 |\n| Authority (admission) | 101.541 |\n| Complete arm work | 239.505 |\n| Arm work inside the candidate qualification | 231.457 |\n| Exit tail (arm end at 341.8 s → receipt at 428.8 s), including measured rehash phases 22.9 + 12.8 + 0.75 + 6.56 | ≈87 |\n| Single update core (CPU, includes its audit hashing) | 62.944 |\n\n- **Event order:** the arm starts at about 102.3 s, the first reload ends at 107.8 s, and the two reloads in the public bundle check run at 336–341.8 s. That means the two public loads plus their mutant inference took only about 5.6 s, so serving inference is not where the time goes.\n- **Host cost:** `/usr/bin/time` reports 141 % CPU and 318 M filesystem input blocks (about 163 GB re-read in 431 s). The lifecycle is bound by host hashing and disk I/O, not by the compute device.\n- **Hash cache:** the fingerprint function has no cache by design (\"No stat, version, or tensor-hash cache: every call reads current bytes\"). On CUDA it also adds a device-side concatenate and a device-to-host copy, so moving to the GPU can only make hashing slower.\n\n## Lower bound for mechanics300, using only measured CPUv3 numbers\n\nMechanics runs the same authority step (plus admitting the `selected_cpu` receipt) and the same arm steps: fresh construction, the mutant checks, two image checks, save, restore, export and two public loads. Its exit is heavier, because `audit_origin_diagnostics` only runs when the phase is not CPU. Its only real saving is device compute. Even so:\n\n430.97 − 62.94 (the whole CPU update, generously treated as device work) − 8.05 (the second-seed initializer check, which only the CPU phase does) − 20 (a generous allowance for CPU witness inference) ≈ **340 s, which is already over 300 s.**\n\nThe mechanics path then adds work on top of that. The per-call costs below come from `connected-mlp-cpu-phase-diag-v2`, which ran on older source:\n\n| Extra mechanics work | Seconds |\n|---|---|\n| One more fresh construction | ~34.8 |\n| One more restore | ~22.5 |\n| Two more saves | ~8–12 |\n| 33 more updates, host audit cost only | ~185 |\n\nThe per-update audit cost follows from the frozen `update()`. It calls `integrity()` at the start and the end (about 1.91 s each), plus `encoder_facts` (1.16 s), plus the payload fingerprint. Each of these re-hashes the 1.7 GB encoder, so the total is about 9 full-encoder hashes and about 5.6 s per update before any GPU work. The control arm pays the same cost.\n\nMy estimate for the GPU mechanics run is **about 650–750 s.** That figure is an estimate: the CUDA cost of each integrity call has never been measured. The **≥340 s lower bound does not depend on that**, because it uses only CPUv3 measurements.\n\nThe earlier mechanics passes (231–256 s) all come from the cached-feature line with a frozen encoder. They are not evidence that this connected-encoder source can fit in 300 s. The old Opus feasibility concern was an estimate, and the full CPU result now confirms it with measurements.\n\n## The same problem hits TRAIN600 and the cost ratio\n\n- **TRAIN600:** 128 updates × about 5.6 s of host audit alone is about 717 s, before the roughly 190 s of fixed lifecycle and any GPU time. So 600 s cannot be met either. Fixing only the mechanics deadline would just move the timeout to TRAIN.\n- **The ≤1.50 core-time gate:** both arms re-hash the same 1.7 GB encoder several times per update, so the \"core\" time is dominated by audit work that is identical in both arms. The ratio will sit near 1.0 by construction. A pass would tell you almost nothing about the method's speed, which is the speed half of the production goal.\n\n## Smallest correction before any launch\n\nThis does not involve hash skips, state caches, a new loss, or a blanket cap.\n\n1. **Measure first, without qualifying anything.** Run one CUDA phase observation of the exact frozen mechanics path, in the same style as `connected-mlp-cpu-phase-diag-v2`: no qualification, no state reuse, results labelled as diagnostic. It should record CUDA timings for `integrity`, `encoder_facts`, `fingerprint`, `fresh`, `restore`, `save`, and the update core. That per-call CUDA cost is the one missing piece of evidence. The observation will also time out, but by design and without consuming the arm.\n2. **Then make one decision before launching anything, and get it reviewed.** There are two options:\n   - **(a) Re-derive the mechanics and TRAIN budgets** from the measured cost model: CPUv3's fixed lifecycle, plus the measured CUDA per-call cost times the exact call counts from the frozen source, plus a stated margin. This changes the `policy()` at line 122, the launch `resource_policy` and `RuntimeMaxSec`. A budget derived this way is not a blanket cap, because the 300/600 constants were inherited from the cached-feature line and are now shown to be wrong for this source.\n   - **(b) If budgets must not change at all,** the connected-MLP method cannot be qualified on this source line. Removing duplicate back-to-back `integrity()` calls inside `update()` would save at most about 65 s, which is well short of the ≥40 s already over the limit plus the 33 extra updates. In that case the honest call is KILL for the whole family, not a retry.\n\nUntil option 1 is done and one of 2a or 2b is chosen, launch neither the control nor the candidate mechanics. All earlier timeouts remain FAIL.\n\n## Limitations of this review\n\n- The per-call audit costs come from v2 source. v3 batched the witness reads (authority dropped from 135.8 s to 101.5 s), so per-call costs in v3 may be lower. The ≥340 s lower bound does not rely on them.\n- The 62.9 s CPU update mixes forward-pass and hashing time with no split inside it.\n- The one GPU number that would close the question, the CUDA cost of each integrity call, does not exist yet."
+        },
+        "providers_used": [
+          "claude"
+        ],
+        "active_provider": "claude",
+        "phase": "Consultation completed",
+        "input_bytes": 2492,
+        "output_bytes": 6633,
+        "elapsed_seconds": 315,
+        "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)",
+        "progress_truncated": false,
+        "result": "# Verdict: KILL. Do not launch control mechanics300 on the unchanged source\n\nLaunching it is not a useful bounded falsifier, because the result is already known. The CPUv3 run's own measured lifecycle shows that this source cannot finish the mechanics phase within 300 s, even with an infinitely fast GPU and zero extra mechanics work. Under the kill-on-failure rule, a predictable timeout would close the control arm and add one more permanent FAIL, without testing anything about correctness. Nothing I found points to a correctness defect in CPUv3. The blocker is the deadline the lifecycle has to fit into.\n\n## What was actually measured\n\nAll of this comes from CPUv3 (`receipt.json`, `original.log`, `verification.json`) at invocation `a8bd65d9…`:\n\n| Item | Seconds |\n|---|---|\n| Service time | 430.965 |\n| Python wall time | 428.808 |\n| Authority (admission) | 101.541 |\n| Complete arm work | 239.505 |\n| Arm work inside the candidate qualification | 231.457 |\n| Exit tail (arm end at 341.8 s → receipt at 428.8 s), including measured rehash phases 22.9 + 12.8 + 0.75 + 6.56 | ≈87 |\n| Single update core (CPU, includes its audit hashing) | 62.944 |\n\n- **Event order:** the arm starts at about 102.3 s, the first reload ends at 107.8 s, and the two reloads in the public bundle check run at 336–341.8 s. That means the two public loads plus their mutant inference took only about 5.6 s, so serving inference is not where the time goes.\n- **Host cost:** `/usr/bin/time` reports 141 % CPU and 318 M filesystem input blocks (about 163 GB re-read in 431 s). The lifecycle is bound by host hashing and disk I/O, not by the compute device.\n- **Hash cache:** the fingerprint function has no cache by design (\"No stat, version, or tensor-hash cache: every call reads current bytes\"). On CUDA it also adds a device-side concatenate and a device-to-host copy, so moving to the GPU can only make hashing slower.\n\n## Lower bound for mechanics300, using only measured CPUv3 numbers\n\nMechanics runs the same authority step (plus admitting the `selected_cpu` receipt) and the same arm steps: fresh construction, the mutant checks, two image checks, save, restore, export and two public loads. Its exit is heavier, because `audit_origin_diagnostics` only runs when the phase is not CPU. Its only real saving is device compute. Even so:\n\n430.97 − 62.94 (the whole CPU update, generously treated as device work) − 8.05 (the second-seed initializer check, which only the CPU phase does) − 20 (a generous allowance for CPU witness inference) ≈ **340 s, which is already over 300 s.**\n\nThe mechanics path then adds work on top of that. The per-call costs below come from `connected-mlp-cpu-phase-diag-v2`, which ran on older source:\n\n| Extra mechanics work | Seconds |\n|---|---|\n| One more fresh construction | ~34.8 |\n| One more restore | ~22.5 |\n| Two more saves | ~8–12 |\n| 33 more updates, host audit cost only | ~185 |\n\nThe per-update audit cost follows from the frozen `update()`. It calls `integrity()` at the start and the end (about 1.91 s each), plus `encoder_facts` (1.16 s), plus the payload fingerprint. Each of these re-hashes the 1.7 GB encoder, so the total is about 9 full-encoder hashes and about 5.6 s per update before any GPU work. The control arm pays the same cost.\n\nMy estimate for the GPU mechanics run is **about 650–750 s.** That figure is an estimate: the CUDA cost of each integrity call has never been measured. The **≥340 s lower bound does not depend on that**, because it uses only CPUv3 measurements.\n\nThe earlier mechanics passes (231–256 s) all come from the cached-feature line with a frozen encoder. They are not evidence that this connected-encoder source can fit in 300 s. The old Opus feasibility concern was an estimate, and the full CPU result now confirms it with measurements.\n\n## The same problem hits TRAIN600 and the cost ratio\n\n- **TRAIN600:** 128 updates × about 5.6 s of host audit alone is about 717 s, before the roughly 190 s of fixed lifecycle and any GPU time. So 600 s cannot be met either. Fixing only the mechanics deadline would just move the timeout to TRAIN.\n- **The ≤1.50 core-time gate:** both arms re-hash the same 1.7 GB encoder several times per update, so the \"core\" time is dominated by audit work that is identical in both arms. The ratio will sit near 1.0 by construction. A pass would tell you almost nothing about the method's speed, which is the speed half of the production goal.\n\n## Smallest correction before any launch\n\nThis does not involve hash skips, state caches, a new loss, or a blanket cap.\n\n1. **Measure first, without qualifying anything.** Run one CUDA phase observation of the exact frozen mechanics path, in the same style as `connected-mlp-cpu-phase-diag-v2`: no qualification, no state reuse, results labelled as diagnostic. It should record CUDA timings for `integrity`, `encoder_facts`, `fingerprint`, `fresh`, `restore`, `save`, and the update core. That per-call CUDA cost is the one missing piece of evidence. The observation will also time out, but by design and without consuming the arm.\n2. **Then make one decision before launching anything, and get it reviewed.** There are two options:\n   - **(a) Re-derive the mechanics and TRAIN budgets** from the measured cost model: CPUv3's fixed lifecycle, plus the measured CUDA per-call cost times the exact call counts from the frozen source, plus a stated margin. This changes the `policy()` at line 122, the launch `resource_policy` and `RuntimeMaxSec`. A budget derived this way is not a blanket cap, because the 300/600 constants were inherited from the cached-feature line and are now shown to be wrong for this source.\n   - **(b) If budgets must not change at all,** the connected-MLP method cannot be qualified on this source line. Removing duplicate back-to-back `integrity()` calls inside `update()` would save at most about 65 s, which is well short of the ≥40 s already over the limit plus the 33 extra updates. In that case the honest call is KILL for the whole family, not a retry.\n\nUntil option 1 is done and one of 2a or 2b is chosen, launch neither the control nor the candidate mechanics. All earlier timeouts remain FAIL.\n\n## Limitations of this review\n\n- The per-call audit costs come from v2 source. v3 batched the witness reads (authority dropped from 135.8 s to 101.5 s), so per-call costs in v3 may be lower. The ≥340 s lower bound does not rely on them.\n- The 62.9 s CPU update mixes forward-pass and hashing time with no split inside it.\n- The one GPU number that would close the question, the CUDA cost of each integrity call, does not exist yet.",
+        "result_truncated": false
+      },
+      {
+        "role": "engineering_critic",
+        "id": "46faf581f80944cd",
+        "provider": "codex",
+        "model": "gpt-6-astra",
+        "fallbacks": [
+          {
+            "provider": "codex",
+            "model": "gpt-6-astra"
+          },
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5"
+          },
+          {
+            "provider": "codex",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "effort": "",
+        "agent": "sfora/emafactorial",
+        "cwd": "/home/rb/worktrees/sfora-positive-causality",
+        "status": "completed",
+        "runner_started": true,
+        "started_at": 1791381406,
+        "timeout_seconds": 1200,
+        "deadline_at": 1791382606,
+        "budget_usd": null,
+        "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY next-gate review, no edits/imports/SSH/jobs/children/operator. Repo /home/rb/worktrees/sfora-positive-causality master f7e74e30. COMPLETE new original CPUv3 evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v3/{original.log,receipt.json,verification.json}; exact source/launch frozen sibling connected-mlp-cpu-v3-freeze. CPU600 normal exit0 service430.965s, peak7161212928B events0swap0, full updated448 strict2load raw/unit/packed parity/mutants/both original initializers/uncachedexit. Receipt authority101.541003s, complete arm239.505390s, genuine CPU firstB64 two-view update62.944174s; inclusive timings overlap. GPU gradient-v2 original source evidence actual-objective-gradient-v2 and connected-encoder-backend-profile-v1; do not extrapolate CPU update to GPU as measurement. Proposed next: unchanged exact source CPU600/mechanics300/TRAIN600; prospective sequential control061 then candidate061 mechanics ONLY, complete uninterrupted17 versus independent8+save/release/strictrestore+9, full current448/typed config/buffers/optimizer/scaler/RNG/rawpacked portableparity/full uncachedexit, 8GiB/zero events/swap/CUDA<10GB/bothlocks, original runtime pinned, no quality/state reuse/TRAIN until both pass. selected_cpu UNIT actual CPUv3 receipt/log binding. Freeze each own actual authority/command/launcher/source; no duplicate GPU controller. Review whether launching ONE control mechanics300 as unchanged bounded falsifier is admissible or a demonstrable lifecycle/correctness blocker requires a smallest prospective correction BEFORElaunch. Do not propose blanket caps/hash skips/statecache/new loss. Prior Opus mechanics feasibility concern was ESTIMATE before full CPU result; assess source-complete path and distinguish actual measurements from estimates. Candidate only after control terminal PASS; kill arm on failure, oldtimeouts remainFAIL; controlTRAIN must be fresh baseline and candidate core/whole<=1.50, no cached101s cost. Return conditional GO or KILL with exact blocker/smallest solution. Current production goal jointly SOP/InShop quality+speed still unmet.",
+        "prompt_sha256": "7d8eb431d9cf8c3796dabc40552af46ba2a27adbe7904faed4f180cedec7bf4f",
+        "prompt_bytes": 2526,
+        "fingerprint": "8f3185db523ca33d25fa5d91cfbacff13939fc146f098fadcb096905604f335e",
+        "evidence": {
+          "git_commit": "f7e74e300b6d84f2cb517e43ac401f5205974dd7",
+          "git_branch": "master",
+          "git_dirty": true,
+          "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+          "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+          "worktree_evidence_truncated": false,
+          "active_goal": {
+            "id": "goal-1790540789-1790540789754989478-2322852",
+            "agent": "sfora/emafactorial",
+            "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+            "status": "queued",
+            "revision": 1,
+            "actor": "operator",
+            "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+            "created_at": 1790540789,
+            "updated_at": 1790540789
+          }
+        },
+        "previous_fingerprint": "426f183ad9eadbe5fbd1496114f97d581762826df65d02c41596bc80c5c45749",
+        "reused": false,
+        "critique_id": "497df2865a014f0d",
+        "critique_role": "engineering_critic",
+        "systemd_unit": "devbox-consult-46faf581f80944cd.service",
+        "pid": 2582677,
+        "pgid": 2582677,
+        "attempt": 1,
+        "attempts": [
+          {
+            "provider": "codex",
+            "model": "gpt-6-astra"
+          },
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5"
+          },
+          {
+            "provider": "codex",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "attempt_history": [
+          {
+            "provider": "codex",
+            "model": "gpt-6-astra",
+            "budget_usd": null,
+            "timeout_seconds": 1200,
+            "started_at": 1791381406
+          }
+        ],
+        "exit_code": 0,
+        "finished_at": 1791381854,
+        "event_cursor": 126,
+        "events": [
+          {
+            "seq": 103,
+            "at": 1791381735,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 104,
+            "at": 1791381735,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 105,
+            "at": 1791381735,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 106,
+            "at": 1791381735,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 107,
+            "at": 1791381736,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 108,
+            "at": 1791381736,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 109,
+            "at": 1791381739,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 110,
+            "at": 1791381739,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 111,
+            "at": 1791381739,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 112,
+            "at": 1791381778,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 113,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 114,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 115,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 116,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 117,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 118,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 119,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 120,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 121,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 122,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 123,
+            "at": 1791381790,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 124,
+            "at": 1791381791,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 125,
+            "at": 1791381851,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 126,
+            "at": 1791381854,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ],
+        "events_truncated": true,
+        "provider_events": {
+          "codex": [
+            {
+              "seq": 119,
+              "at": 1791381790,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command started"
+            },
+            {
+              "seq": 120,
+              "at": 1791381790,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command started"
+            },
+            {
+              "seq": 121,
+              "at": 1791381790,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command started"
+            },
+            {
+              "seq": 122,
+              "at": 1791381790,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command completed",
+              "detail": "exit 0"
+            },
+            {
+              "seq": 123,
+              "at": 1791381790,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command completed",
+              "detail": "exit 0"
+            },
+            {
+              "seq": 124,
+              "at": 1791381791,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command completed",
+              "detail": "exit 0"
+            },
+            {
+              "seq": 125,
+              "at": 1791381851,
+              "provider": "codex",
+              "kind": "partial",
+              "label": "Answer available"
+            },
+            {
+              "seq": 126,
+              "at": 1791381854,
+              "provider": "codex",
+              "kind": "phase",
+              "label": "Consultation completed",
+              "detail": "exit 0"
+            }
+          ]
+        },
+        "partial_result": "**Conditional GO for ONE unchanged control061 mechanics300 run.** I found no demonstrated lifecycle or correctness blocker requiring a source correction before this bounded falsifier. Completion within 300 seconds remains unqualified.\n\n- **CPUv3 is valid new evidence.** Trainer/test hashes match the freeze; receipt/log hashes match verification. Original terminal reports exit 0, **430.965s**, **7,161,212,928 bytes**, zero memory events and swap. This supports CPU engineering qualification only. [Verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v3/verification.json)\n\n- **The mechanics lifecycle implements the requested comparison.** It runs uninterrupted17, saves and releases, independently initializes8, saves/releases/restores, runs9, compares deterministic diagnostics and the complete terminal payload, then independently restores and qualifies two portable loads. Restore copies optimizer moments and CPU step scalars, restores RNG last, and checks mapping release. [Mechanics](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1445), [restore](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:847)\n\n- **Runtime risk is substantial but remains an estimate.** CPU authority **101.541003s**, complete-arm **239.505390s**, and update **62.944174s** have overlapping scopes. Mechanics additionally admits CPUv3, executes **34 updates**, and performs extra reconstruction. Gradient-v2 times the first **16 anchors per view**, with pixel preparation outside its timer; the backend profile excludes decoding, retrieval objective and optimizer work. Neither measures this complete GPU lifecycle or proves a 300-second impossibility. [Gradient timing boundary](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_actual_objective_encoder_gradients.py:266)\n\nTwo concrete launch conditions matter:\n\n1. **Preserve the admitted source location.** `admit_terminal` checks prerequisite argv and source guards against the current `connected_root`. Moving identical code into a differently named execution root would reject CPUv3 admission. Freeze each launch’s actual artifacts while retaining `/home/riomus/runs/sfora-connected-mlp-train-source-v3` as the execution root. No validator weakening is needed. [Binding checks](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1590)\n\n2. **The controller must enforce sequencing.** Mechanics authority requires CPU admission but does not require a preceding control mechanics PASS. Freeze control’s actual CPUv3 UNIT, authority, command and launcher; enforce mechanics300, 8GiB, zero events/swap, CUDA allocation <10GB and both lifetime locks. Start candidate only after independently verified original control terminal PASS. [Launch contract](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:135)\n\nAny timeout, failed equality, resource violation or incomplete terminal is **KILL for this attempt**; retain failures and discard state. Both mechanics must pass before fresh matched TRAIN, with independent core and whole-service candidate/control ratios ≤1.50. Historical cached costs cannot supply that baseline.\n\nArchived tests and native CPU evidence were inspected; no imports, execution jobs, edits, SSH, children or operator contact occurred. The joint SOP/InShop quality-and-speed production goal remains unmet.",
+        "partial_result_truncated": false,
+        "provider_partials": {
+          "codex": "**Conditional GO for ONE unchanged control061 mechanics300 run.** I found no demonstrated lifecycle or correctness blocker requiring a source correction before this bounded falsifier. Completion within 300 seconds remains unqualified.\n\n- **CPUv3 is valid new evidence.** Trainer/test hashes match the freeze; receipt/log hashes match verification. Original terminal reports exit 0, **430.965s**, **7,161,212,928 bytes**, zero memory events and swap. This supports CPU engineering qualification only. [Verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v3/verification.json)\n\n- **The mechanics lifecycle implements the requested comparison.** It runs uninterrupted17, saves and releases, independently initializes8, saves/releases/restores, runs9, compares deterministic diagnostics and the complete terminal payload, then independently restores and qualifies two portable loads. Restore copies optimizer moments and CPU step scalars, restores RNG last, and checks mapping release. [Mechanics](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1445), [restore](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:847)\n\n- **Runtime risk is substantial but remains an estimate.** CPU authority **101.541003s**, complete-arm **239.505390s**, and update **62.944174s** have overlapping scopes. Mechanics additionally admits CPUv3, executes **34 updates**, and performs extra reconstruction. Gradient-v2 times the first **16 anchors per view**, with pixel preparation outside its timer; the backend profile excludes decoding, retrieval objective and optimizer work. Neither measures this complete GPU lifecycle or proves a 300-second impossibility. [Gradient timing boundary](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_actual_objective_encoder_gradients.py:266)\n\nTwo concrete launch conditions matter:\n\n1. **Preserve the admitted source location.** `admit_terminal` checks prerequisite argv and source guards against the current `connected_root`. Moving identical code into a differently named execution root would reject CPUv3 admission. Freeze each launch’s actual artifacts while retaining `/home/riomus/runs/sfora-connected-mlp-train-source-v3` as the execution root. No validator weakening is needed. [Binding checks](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1590)\n\n2. **The controller must enforce sequencing.** Mechanics authority requires CPU admission but does not require a preceding control mechanics PASS. Freeze control’s actual CPUv3 UNIT, authority, command and launcher; enforce mechanics300, 8GiB, zero events/swap, CUDA allocation <10GB and both lifetime locks. Start candidate only after independently verified original control terminal PASS. [Launch contract](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:135)\n\nAny timeout, failed equality, resource violation or incomplete terminal is **KILL for this attempt**; retain failures and discard state. Both mechanics must pass before fresh matched TRAIN, with independent core and whole-service candidate/control ratios ≤1.50. Historical cached costs cannot supply that baseline.\n\nArchived tests and native CPU evidence were inspected; no imports, execution jobs, edits, SSH, children or operator contact occurred. The joint SOP/InShop quality-and-speed production goal remains unmet."
+        },
+        "providers_used": [
+          "codex"
+        ],
+        "active_provider": "codex",
+        "phase": "Consultation completed",
+        "input_bytes": 2526,
+        "output_bytes": 3491,
+        "elapsed_seconds": 448,
+        "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)",
+        "progress_truncated": false,
+        "result": "**Conditional GO for ONE unchanged control061 mechanics300 run.** I found no demonstrated lifecycle or correctness blocker requiring a source correction before this bounded falsifier. Completion within 300 seconds remains unqualified.\n\n- **CPUv3 is valid new evidence.** Trainer/test hashes match the freeze; receipt/log hashes match verification. Original terminal reports exit 0, **430.965s**, **7,161,212,928 bytes**, zero memory events and swap. This supports CPU engineering qualification only. [Verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v3/verification.json)\n\n- **The mechanics lifecycle implements the requested comparison.** It runs uninterrupted17, saves and releases, independently initializes8, saves/releases/restores, runs9, compares deterministic diagnostics and the complete terminal payload, then independently restores and qualifies two portable loads. Restore copies optimizer moments and CPU step scalars, restores RNG last, and checks mapping release. [Mechanics](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1445), [restore](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:847)\n\n- **Runtime risk is substantial but remains an estimate.** CPU authority **101.541003s**, complete-arm **239.505390s**, and update **62.944174s** have overlapping scopes. Mechanics additionally admits CPUv3, executes **34 updates**, and performs extra reconstruction. Gradient-v2 times the first **16 anchors per view**, with pixel preparation outside its timer; the backend profile excludes decoding, retrieval objective and optimizer work. Neither measures this complete GPU lifecycle or proves a 300-second impossibility. [Gradient timing boundary](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_actual_objective_encoder_gradients.py:266)\n\nTwo concrete launch conditions matter:\n\n1. **Preserve the admitted source location.** `admit_terminal` checks prerequisite argv and source guards against the current `connected_root`. Moving identical code into a differently named execution root would reject CPUv3 admission. Freeze each launch’s actual artifacts while retaining `/home/riomus/runs/sfora-connected-mlp-train-source-v3` as the execution root. No validator weakening is needed. [Binding checks](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1590)\n\n2. **The controller must enforce sequencing.** Mechanics authority requires CPU admission but does not require a preceding control mechanics PASS. Freeze control’s actual CPUv3 UNIT, authority, command and launcher; enforce mechanics300, 8GiB, zero events/swap, CUDA allocation <10GB and both lifetime locks. Start candidate only after independently verified original control terminal PASS. [Launch contract](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:135)\n\nAny timeout, failed equality, resource violation or incomplete terminal is **KILL for this attempt**; retain failures and discard state. Both mechanics must pass before fresh matched TRAIN, with independent core and whole-service candidate/control ratios ≤1.50. Historical cached costs cannot supply that baseline.\n\nArchived tests and native CPU evidence were inspected; no imports, execution jobs, edits, SSH, children or operator contact occurred. The joint SOP/InShop quality-and-speed production goal remains unmet.",
+        "result_truncated": false
+      }
+    ],
+    "reused": false,
+    "finished_at": 1791381855,
+    "elapsed_seconds": 449,
+    "input_bytes": 2122,
+    "output_bytes": 10124
+  },
+  "root_decision": "GO_ONE_UNCHANGED_CONTROL061_MECHANICS300",
+  "reconciliation": "Astra independently confirms no demonstrated correctness/lifecycle blocker and exact same execution-root requirement. Opus substantial host validation concern accepted as runtime risk; its purported >=340s lower bound assumes CPU-to-CUDA cost invariance and subtracts an estimated20s allowance, so it is not a measured/proven GPU lower bound. No projected completion or product speed claim. One bounded actual complete CUDA lifecycle falsifier; candidate conditional on original control full normal PASS; failure closes attempt. No new cap, hash skips, caches, source/science changes or reusable state.",
+  "next_gate": "Control061 mechanics300 only; both locks/8GiB/zero events-swap/CUDA<10GB/current448/parity/full exit mandatory."
+}
