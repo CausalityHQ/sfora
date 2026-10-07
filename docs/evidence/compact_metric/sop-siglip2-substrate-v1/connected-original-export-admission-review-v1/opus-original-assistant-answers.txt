@@ -1,0 +1,66 @@
+Reading the plan done; now reading the evaluator source (check_receipt/accept_unit, authority, guard_helpers, exit rehash) and the committed receipts to check the plan's claims.
+
+Checking timing budgets now: the failed score's admission/exit timestamps versus the CPUv4 log, to see whether the extra admissions in the plan fit inside 700 s.
+
+The composition plan works, but I'd hold it in favour of a simpler path: re-export both 061 arms under source-v4. If you keep the plan, it needs the corrections below before implementation. Everything here comes from reading the plan, source lines 990–1099, 448–554, guard_helpers, exit_rehash, native_start and audit_origins, and the committed receipts. No files edited, no jobs touched.
+
+## Verdict: HOLD for now. Conditional GO if the root keeps the composition.
+
+## What the receipts show
+
+- **Payload facts are identical.** CPU‑v3 = CPU‑v4 = control export = candidate export for both labels. So the score-phase payload check (`:943`) against a fresh CPU will pass.
+- **Guard sets are identical apart from own files.** CPU‑v4's 18,775 guards differ from each export's guards only by four source‑v4 files: three closure files plus its authority. No path has conflicting hashes across CPU‑v3, CPU‑v4 and the two exports. The "shared snapshot ∪ original three closure files" rule will pass the original reader's common-guards check (`:1079`).
+- **Shared fields match.** `source`, `preparation_costs`, `cost`, `numerical_flags`, `binding`, `origins.packages` and the Python interpreter are equal across all four receipts. Both exports' `argv[0]` is the source‑v3 root path, so the original `cli()` check holds when that module is loaded from its own root.
+- **The original score launch (`d25da123`) is clean.** Against the CPU‑v4 launch it differs only in `execution_sha256`, `phase`, `selected_cpu`, `exports` and `resource_policies.score`. Its `exports` equal the two committed `unit.json` files exactly.
+- **No quality leaked from the failed score.** The failed score500 log has no quality or decision lines, so it computed quality in memory but never wrote it out.
+- **Adding a module won't trip the native-package audit.** `audit_origins` only audits the selected native packages, so an extra helper module in the import registry won't trip it.
+
+## Projected run time for the composed score
+| Step | Seconds |
+|---|---|
+| authority (CPU v3/v4 "admitted" points) | ~360 |
+| admitting each receipt (measured 39–42 s) | ~41 each |
+| composed admissions: new CPU + CPU‑v3 + 2 exports | ~164, so admitted at ~524 |
+| native start + scoring (484.3 → 486.3 in the failed run) | ~2 |
+| exit rehash (CPU runs took 74–82; score exit is a bit larger) | ~80–90 |
+| **total** | **~605–620, about 80–95 s spare under 700** |
+
+Re-exporting under source‑v4 instead gives ~566 s, about 134 s spare.
+
+## Why HOLD: re-exporting under source‑v4 looks better
+- **Zero new code.** CPU‑v4 already passed (478.750 s). Two source‑v4 exports (~1,290 s each, ~43 min of GPU time) plus one score700 then run exactly the qualified path. There is no adapter, no source‑v5, no fresh CPU500 and no review cycle.
+- **CPU500 margin is thin.** CPU‑v4 took 478.75 s against a 500 s cap, so only ~21 s spare. A source‑v5 has to pass that again.
+- **The GPU saving is one-time.** First-stage exports can't be reused at the full stage: the receipt's stage and endpoints must match the full launch (`:551`, `:1016–1017`). The full stage re-exports 061 anyway, so the composition saves only these 43 minutes. In exchange it puts a foreign-receipt reader into the source that every later full-stage and VAL run must carry and prove inactive.
+- **Source changes compound.** The first-selection receipt binds the source identity (`:537` → `:993`). If source‑v5 ever changes, you'd need a source‑v6 that loads v5 that loads v3.
+- **Free bonus.** Byte-for-byte equality between the new source‑v4 exports and the v3 export files would be a determinism check at no extra cost.
+- **It isn't utilization work.** Re-encoding for source identity is a different purpose from the prohibited "repeat GPU encoding just for utilization". Repeating paid work is still a root/operator call.
+
+## Mandatory corrections if the composition goes ahead
+1. **Activate the adapter only in one case.** Phase is score, stage `first`, panel `selection`, `first_selection` and `selection_go` are None, and the current `exports` equal the two pinned UNITs exactly (whole-dict equality, both present). Otherwise the adapter does nothing and loads nothing. This blocks a stage trap: through the original context, the original reader defaults to stage `first`, so it *would* admit the v3 first-stage exports into a full-stage selection score.
+2. **Enforce an exact launch difference.** The pinned original launch may differ from the current launch only in `execution_sha256`, `selected_cpu` and `resource_policies.score.seconds` (500 → 700). Also run the original module's `check_launch` on it (score phase, no arm or seed). Require its `selected_cpu` to equal each export record's `launch.selected_cpu`.
+3. **Fix the plan's misattributed reason for keeping CPU‑v3.** Lines 1024 and 1043 aren't selected-CPU checks. The real ones (`:1022`, `:1039`) compare against `context['launch']`, not `context['cpu']`. Because payload facts are identical, putting the *new* CPU into the original context's `cpu` would pass silently. Keeping CPU‑v3 admission is a fidelity rule, not something the code enforces. Pin it in a test so nobody "saves 40 s" by dropping it.
+4. **Use shared objects by identity, not copies.** Build the original context right after the current CPU admission as `{**context, six overrides}`. Assert every other key is the *same object* (`is`), especially `guards`, `accepted_units`, `costs`, `records`, `manifests`, `terminal_reader`, `helper` and `score_context`. A copied `guards` would keep v3 outputs and receipts out of exit rehashing. A copied `accepted_units` would weaken the distinct-unit check in `native_start` (`:566`).
+5. **Give the original context only the execution SHA in `args`.** That is all the original reader uses. Remove the current output path from it; it's unused and misleading.
+6. **Add zero work to the CPU and export phases.** No original-root closure check and no module load there; CPU500 has ~21 s spare. The original-root exit closure check runs only when the adapter is active.
+7. **Guard the original module like the other helpers.** Snapshot it in `guard_helpers` before `:535`, under a fixed new name that is never removed from the module registry. Add its descriptor to the exit closure loop (`:1110`). Extend the root/output separation check to cover the source‑v3 root.
+8. **Should-fix:** add an explicit, descriptive provenance field to the score result: the original owner's descriptor, the failed-score launch FILE, and "admitted by original reader". Nothing currently mislabels the exports, but the receipt shouldn't rely on readers inferring this.
+9. **Should-fix:** `required_guards` (`:547`) is set and never read. Don't add any meaning to it.
+
+## Falsifying tests (one test, source-only, ≤120 s / 1 GiB, native imports forbidden)
+- **Byte inverse:** stripping the adapter from v5 gives exactly `f1c95755`, then the existing inverse chain gives `bce0c43b`. This proves `check_receipt`, `accept_unit` and `policy` are unchanged. It also repairs the existing inverse chain, which otherwise breaks.
+- **Routing must reject:**
+  - a full-stage or validation launch carrying the pinned UNITs;
+  - one pinned export plus one fresh export;
+  - a pinned UNIT with one byte changed (log or invocation id);
+  - an original launch that differs in any field outside the allowed set.
+- **Identity checks** from correction 4 (`is` on shared keys), and mutating a global in the original module makes `guard_helpers` reject.
+- **Common guards:** the current and original sets differ by exactly the three closure entries. Dropping one shared entry is rejected.
+- **CPU and export phases:** the original module is never registered after `authority()`.
+
+I'm saving this verdict to memory as a project note.
+
+Verdict saved to memory; the review is above.
+
+Nothing in the repo was edited, and no jobs or remote systems were touched. The receipt checks were stdlib-only reads of the committed JSON. The run-time projection (~605–620 s for the composed score700) is an estimate built from measured stage times, not a run.
+
+Whether to re-export under source‑v4 (~43 GPU-min) or build the source‑v5 composition is the root's or operator's decision.

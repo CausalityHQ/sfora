@@ -1,0 +1,35 @@
+{
+  "dual_id": "427468ca1325492c",
+  "engineering_id": "310799ce83494e0f",
+  "engineering_verdict": "GO bounded implementation; HOLD integration/native pending corrections",
+  "files": {
+    "dual-original-result.json": "687aaea9789f7ce4c913b5de6855b3ccf0bf9bcb9d2fbf3c19505d7e815f6c66",
+    "opus-original-assistant-answers.txt": "68031c4181eea4990ad96a9f98fed7918a77ea8338cc559655a5d79a0e853fb6"
+  },
+  "implementation": "sfora/connected-original-export-owner-20261007",
+  "integration_eligible": false,
+  "mandatory": [
+    "Only score/first/selection, both exact pinned export UNITs, no first_selection or selection_go",
+    "No old module/closure/admission work in CPU/export/inactive phases",
+    "Exact original/current launch difference limited to own execution, selected CPU and score.seconds500->700",
+    "Original CPU fidelity admission and shared-ledger identity",
+    "Authenticate complete immutable helper snapshot ownership and original namespace at dispatch/exit",
+    "Unchanged original and current check_receipt/accept_unit, full inverse proof, full uncached combined exit",
+    "No relabel of old PASS exports, failed score remains FAIL, no quality admission from partial outputs"
+  ],
+  "native_eligible": false,
+  "original_transcript": {
+    "path": "/home/rb/.claude/projects/-home-rb-worktrees-sfora-positive-causality/6ff2583a-26e1-4dd3-b589-8242ada8f816.jsonl",
+    "sha256": "69145cf5e5248c1c37e6d47435151f629ebfe42c83507c3cf7af03cd128b952b"
+  },
+  "research_id": "d2fdc1ed6ed74a4d",
+  "research_verdict": "HOLD preferred re-export; conditional GO composition with corrections",
+  "result_extraction_note": "Final memory-save tail overwrote substantive earlier assistant response. Original prior assistant text recovered from same original session, no repeated consultation.",
+  "root_decision": "Implement finite first-selection-only original-owner composition, avoiding 2554.045s repeated encoding. Full/VAL exports stay current reader; no historical full-stage reuse. Final source requires fresh CPU500 then ONE score700.",
+  "runtime_estimate_qualified": false,
+  "runtime_estimate_seconds": [
+    605,
+    620
+  ],
+  "schema": "connected-original-export-review-reconciliation-v1"
+}
