@@ -1,0 +1,20 @@
+{
+  "controller_pid": 841633,
+  "cuda_hidden": true,
+  "freeze_sha256": "a686ec59a612dc04683a3e9988ae22089137f0a76acc8cd9b07fcdc6baa2514e",
+  "idle_and_both_locks_before_launch": true,
+  "invocation_id": "282c8bd4e350400fbb7d0131dc1aeee2",
+  "main_pid": 841653,
+  "memory_max_bytes": 8589934592,
+  "observed_at_utc": "2026-10-07T18:11:16.641013+00:00",
+  "original_controller_launch_exit": 0,
+  "qualification_claim": false,
+  "quality_read": false,
+  "runtime_max_seconds": 500,
+  "schema": "connected-mlp-first-evaluator-cpu-launch-observation-v1",
+  "source_and_cpu_freeze_endpoint_cost_command_cli_preflight": true,
+  "state": "active/running",
+  "swap_max_bytes": 0,
+  "terminal_pending": true,
+  "unit": "sfora-connected-mlp-evaluation-first-cpu-v1"
+}
