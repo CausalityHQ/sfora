@@ -1,0 +1,21 @@
+{
+  "events_zero": true,
+  "exit_rehash_entered_seconds": 486.2649921389966,
+  "invocation_id": "b31a71d7f3804c44ad1f1658839294e8",
+  "last_original_old_exit_begin_seconds": 498.43256761498924,
+  "log_sha256": "cae716c3266ca0a9f661c502f06b5c698c220a3b09164d2c341e7f6bb4ef0d16",
+  "next": "source-only prospective score700 policy proposal with unchanged CPU500/export1500/memory/locks/science. Estimated486.265 + observed companion exit80.010 =566.275s, not measured completed score. Freeze new actual source and qualify ownCPU before any new score.",
+  "original_controller_exit": 1,
+  "partial_outputs_eligible": false,
+  "pass": false,
+  "prospective_cap_seconds": 500,
+  "quality_decision_accepted": false,
+  "schema": "connected-score-original-timeout-verification-v1",
+  "service_seconds": 500.078,
+  "success_receipt_absent_on_original_host": true,
+  "swap_bytes": 0,
+  "train_069_or_validation_admitted": false,
+  "unit": "sfora-connected-mlp-evaluation-first-selection-score-v1",
+  "verdict": "FAIL_TIMEOUT",
+  "whole_host_peak_bytes": 1659973632
+}
