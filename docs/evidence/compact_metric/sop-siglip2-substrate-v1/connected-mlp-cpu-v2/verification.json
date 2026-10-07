@@ -1,0 +1,34 @@
+{
+  "final_qualification_receipt_present": false,
+  "first_discarded_update_core_seconds": 65.28716395101219,
+  "host_peak_bytes": 7158538240,
+  "invocation_id": "c1767021c21b4c1ba8954cf3c94e1855",
+  "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "native_state_reuse_eligible": false,
+  "original_log_sha256": "8e01894d51d0cb43bdf97fae21eb1f230d6b0bd80b3c8b9702c8aaebc91a4a20",
+  "quality_read": false,
+  "schema": "connected-mlp-parent-terminal-verification-v1",
+  "service_seconds": 300.224,
+  "ssh_exit_status": 1,
+  "ssh_session": 48221,
+  "stop": {
+    "exit_code": "killed",
+    "exit_status": "TERM",
+    "invocation_id": "c1767021c21b4c1ba8954cf3c94e1855",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-mlp-cpu-v2.service",
+    "service_result": "timeout",
+    "values": {
+      "memory.current": "1582030848",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "7158538240",
+      "memory.stat": "anon 607944704\nfile 842579968\nkernel 110149632\nkernel_stack 16384\npagetables 4861952\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 377532416\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 625774592\ninactive_file 247971840\nactive_file 594608128\nunevictable 0\nslab_reclaimable 104367888\nslab_unreclaimable 913640\nslab 105281528\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 18761269\npgmajfault 12824\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 2926\nthp_collapse_alloc 2\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "swap_peak_bytes": 0,
+  "unit": "sfora-connected-mlp-cpu-v2",
+  "verdict": "FAIL_TIMEOUT"
+}
