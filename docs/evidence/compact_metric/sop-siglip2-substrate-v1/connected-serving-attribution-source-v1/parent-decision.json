@@ -1,0 +1,59 @@
+{
+  "all_source_log_contract_review_hashes_verified": true,
+  "engineering_critic": "b6df87bdb66d453a",
+  "exclusive_latency": "UNMEASURED",
+  "native": "HOLD_UNRUN",
+  "native_required_seams": [
+    "actual qualified survivor/source/bundle/gallery/native/TRAIN pins",
+    "authenticated same-group original raw/unit/packed/wire oracle",
+    "original terminal admission/full uncached exit",
+    "both locks and unchanged whole-process/resource/cancellation limits",
+    "serial original/observation admission/release",
+    "native ID/score/tie parity"
+  ],
+  "original_worker_full_suite_exit": 0,
+  "parameter_occurrence_bytes_source_only": 3423104512,
+  "parent_narrow_cases": [
+    "bundle",
+    "transient",
+    "cleanup",
+    "c-metadata",
+    "ambient",
+    "predicate",
+    "prepare"
+  ],
+  "parent_narrow_exit": 0,
+  "parent_narrow_original_session": 37721,
+  "performance_or_quality_adoption": false,
+  "remaining_limitations": [
+    "metadata CLI is preparation only",
+    "original same-group raw/unit/packed/wire oracle required",
+    "actual native ID/score/tie parity required",
+    "whole-process/resources/locks/uncached exit require original native receipt",
+    "recursive inclusive times overlap; exclusive phase totals only",
+    "CUDA durations and opaque phases unmeasured"
+  ],
+  "research_critic": "4ad9ad08b88645a6",
+  "resolutions": [
+    "observer transients released without removing traceback locations",
+    "cancellation propagated and secondary cleanup failures preserved",
+    "actual admitted bundle serializer and output-code binding",
+    "stable C event matching",
+    "request-local cleanup state",
+    "predicate-sync-plus-wait label"
+  ],
+  "review_group": "707edf09bf664b33",
+  "reviewed_candidate": "ccdf2b919b2edb2f0af5fcedaa8202371fde2a86",
+  "root_native_job_untouched": {
+    "invocation_id": "408c181541ee41e9bde23fea0580f583",
+    "session": 49359
+  },
+  "schema": "connected-serving-attribution-parent-source-review-v1",
+  "source_only_integration": "GO",
+  "state_reuse_eligible": false,
+  "superseded_candidates": [
+    "74771f3e8e5c0bfc2d2ef2491c744cc0d9a8a276",
+    "fe393927ac4ce615354a64661623ce37714b037a"
+  ],
+  "unchanged_full_suite_not_repeated": true
+}

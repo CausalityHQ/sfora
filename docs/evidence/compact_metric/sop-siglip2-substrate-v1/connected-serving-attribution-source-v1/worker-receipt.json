@@ -1,0 +1,229 @@
+{
+  "schema": "connected-serving-attribution-source-review-receipt-v3",
+  "created_at_utc": "2026-10-07T23:35:14.514057+00:00",
+  "status": "READY_FOR_PARENT_REVIEW; integration HOLD pending parent; native UNRUN",
+  "commit": "ccdf2b919b2edb2f0af5fcedaa8202371fde2a86",
+  "parent_commit": "fe393927ac4ce615354a64661623ce37714b037a",
+  "original_base": "09c0866766615ea0360a5a621d1d24100844e4a9",
+  "branch": "devbox/connected-serving-attribution-20261007",
+  "previous_draft_status": "74771f3e and fe393927 superseded HOLD; no integration or native acceptance inferred",
+  "review_consumed": {
+    "ids": [
+      "immediate-1791412750699801408-2965865",
+      "immediate-1791413178443559283-2965865",
+      "immediate-1791414387535091586-2965865",
+      "immediate-1791414492835790444-2965865",
+      "immediate-1791414779307675339-2965865"
+    ],
+    "read_via": "Immediate instructions and durable agent_messages; failed final Opus delta recovered through own durable mailbox plus full saved original Opus verdict before expanded-contract edits",
+    "critics": [
+      {
+        "path": "/home/rb/agents/handoffs/sfora-serving-observer-engineering-review-b6df87bdb66d453a.json",
+        "sha256": "4416f6783e82ce7fc62c910c7306f1314547b847e8efb04d20f397235375ddab",
+        "id": "b6df87bdb66d453a",
+        "status": "completed",
+        "group": "707edf09bf664b33"
+      },
+      {
+        "path": "/home/rb/agents/handoffs/sfora-serving-observer-research-review-4ad9ad08b88645a6.json",
+        "sha256": "3b9cd6571bd51dbc0c070b31170fe6994218bf2e8aa996ac2563f8a906fe4b74",
+        "id": "4ad9ad08b88645a6",
+        "status": "completed",
+        "group": "707edf09bf664b33"
+      }
+    ],
+    "ack_metadata": "No acknowledgement fabricated or retried. Parent explicitly said already-delivered ack metadata is not a blocker; final receipt attests actual consumption.",
+    "final_suite_hold": "Held until original Opus final delta supplied/recovered; both original critics terminal, no duplicate consultation"
+  },
+  "repairs": [
+    "Successful public observations require complete original fingerprint/tensor/output witnesses; scalar observe_call remains valid and stack mismatch/residual frames fail incomplete.",
+    "Profiler propagates the identical cancellation; only observer-owned transient frame/tensor/local-dict/bound-method references are released before genuine bridge teardown; traceback locations remain.",
+    "All image and genuine index cleanup attempted; cancellation outranks ordinary errors, every secondary exception identity is retained in a cause group and notes.",
+    "Observer binds admitted endpoint actual freshly loaded serializer and exact inference output code. Trainer/serializer FILE pins require canonical bundle paths; wrong repo owner fails public witness.",
+    "C-call returns match stable name/module/qualname plus exact Python frame/event kind instead of ephemeral bound-method address; balanced sort passes, mismatched function fails.",
+    "Cleanup uses only its own captured body/cleanup failures; unrelated outer except cannot swallow image-close failure.",
+    "Observed item calls explicitly report predicate-sync-plus-wait; CUDA duration remains UNMEASURED."
+  ],
+  "files": [
+    {
+      "path": "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/observe_connected_serving.py",
+      "sha256": "9db77a32edf5164dc9ca29f6a567d4cd4e5d28d80ce3563cb24f7236eb0b5719"
+    },
+    {
+      "path": "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py",
+      "sha256": "71d6d4415d57cf4187f82d8c970cd7e136d72a7130bb38fad40bdf96782a1dcd"
+    }
+  ],
+  "contracts": {
+    "v3_pre_edit": {
+      "path": "/tmp/sfora-connected-serving-attribution-20261007.contract.v3.json",
+      "sha256": "341bb4847695f045131263de331afb46b2a3a9a86398c7cf27f6ddfde07fd8c3"
+    },
+    "v3_expanded_pre_opus_edit": {
+      "path": "/tmp/sfora-connected-serving-attribution-20261007.contract.v3-expanded.json",
+      "sha256": "e3ab4f9830d8e6bde9c150f3a1ffbc31443916c71c66f93a336e0028ee10a7a6"
+    }
+  },
+  "narrow_red_green": {
+    "transient": {
+      "red_exit": 1,
+      "green_exit": 0,
+      "red": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-transient-red.log",
+        "sha256": "39a037b43375144d6d9384ffddfe2e49f6b8d3678f5a1b483049ff0da063ddf3"
+      },
+      "green": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-transient-green.log",
+        "sha256": "59a39b97c776dad3dca0b001942ae0a6409e976714597e2fcf8fb0e9cd66b2f9"
+      }
+    },
+    "cleanup": {
+      "red_exit": 1,
+      "green_exit": 0,
+      "red": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-cleanup-red.log",
+        "sha256": "dd4da502fad85ec411a2b4b52ac36dc9a274bd9efe2c94928ded66902758c831"
+      },
+      "green": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-cleanup-green.log",
+        "sha256": "65ff7f5287cbe04cef85b43f958c117d80e8284159eb7e4de3b98a9fe4434642"
+      }
+    },
+    "bundle": {
+      "red_exit": 1,
+      "green_exit": 0,
+      "red": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-bundle-red.log",
+        "sha256": "a34af589e34ed3c1424d6cd5974efee3a01bc83806c040a741520553f59d05cf"
+      },
+      "green": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-bundle-green.log",
+        "sha256": "a7f3a8416952b21bba50c37957c512ac3a92f934421ee9bda8d170e0589b902e"
+      }
+    },
+    "prepare": {
+      "red_exit": 1,
+      "green_exit": 0,
+      "red": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-prepare-red.log",
+        "sha256": "c6b5732b1ddfb6db404c15af22ab52684ad0022d5b77703aa9d17e47622c033f"
+      },
+      "green": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-prepare-green.log",
+        "sha256": "cc1a6d83555bd87e4c834cb5d85a50c8d462a707566fab38724169423b3f4311"
+      }
+    },
+    "c-metadata": {
+      "red_exit": 1,
+      "green_exit": 0,
+      "red": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-c-metadata-red.log",
+        "sha256": "0b9f701b4ba5e330b1446c4132c57d4c1e682cc38e90f1eca87da0987d6cff46"
+      },
+      "green": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-c-metadata-green.log",
+        "sha256": "372506850a2c2136efab282cd61baf803acb923d863064507cd031ec0fa03859"
+      }
+    },
+    "ambient": {
+      "red_exit": 1,
+      "green_exit": 0,
+      "red": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-ambient-red.log",
+        "sha256": "acf8c33b93e30589fbe41a1e2faf3e11cc5aefa9f7e3909b794f9eb8b916e7c5"
+      },
+      "green": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-ambient-green.log",
+        "sha256": "2397d2fbcc38e328ab6d0a7fc9b5c9c05d6e2a11e30a2d3d663cf60f89bc474c"
+      }
+    },
+    "predicate": {
+      "red_exit": 1,
+      "green_exit": 0,
+      "red": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-predicate-red.log",
+        "sha256": "274c192f926c37de06daf7cb9828084c9da95a5b200318b4df42e7061865950c"
+      },
+      "green": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-predicate-green.log",
+        "sha256": "c343af846af445fcc56977d2cb2af2b68ea127bfca93511882cb9b979f9cdb2d"
+      }
+    }
+  },
+  "actual_bundle_focused_rechecks": [
+    {
+      "exit": 0,
+      "log": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-transient-actual-bundle-green.log",
+        "sha256": "59a39b97c776dad3dca0b001942ae0a6409e976714597e2fcf8fb0e9cd66b2f9"
+      }
+    },
+    {
+      "exit": 0,
+      "log": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-cleanup-actual-bundle-green.log",
+        "sha256": "65ff7f5287cbe04cef85b43f958c117d80e8284159eb7e4de3b98a9fe4434642"
+      }
+    }
+  ],
+  "final": {
+    "exit": 0,
+    "log": {
+      "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-final.log",
+      "sha256": "a401391639cf3e880cc9df5e149e5e73a6444f15e9d38e457e72724731fd26f0"
+    },
+    "command": "timeout 120 python3 -B scripts/test_observe_connected_serving.py; RLIMIT_AS=1073741824; pipefail",
+    "fresh_pre_gate_audit": {
+      "path": "/tmp/sfora-connected-serving-attribution-20261007.v3-suite-audit.json",
+      "sha256": "9b13e8601a34c7f7ea395925e7aefe56445d51bf583cacdf144e08b9d1bc1e48"
+    },
+    "complete_v3_gate_runs": 1,
+    "thirdparty_imports": "forbidden by runnable source-only falsifier"
+  },
+  "preserved_prior_evidence": {
+    "initial_contract": {
+      "path": "/tmp/sfora-connected-serving-attribution-20261007.contract.json",
+      "sha256": "f651ffc0be6617b7fbc9360da3f7a1c1563fda4f5873be94658bb2faff2b941d"
+    },
+    "v2_receipt": {
+      "path": "/tmp/sfora-connected-serving-attribution-20261007.receipt.v2.json",
+      "sha256": "abe4eb84074e5dbbb5ba1930e948f9af66f75a8783918dec64cc3d7d399ab8eb"
+    },
+    "v2_contract": {
+      "path": "/tmp/sfora-connected-serving-attribution-20261007.contract.v2.json",
+      "sha256": "2a7983a395b63837affc6abb3a4d0da1c81ac6769928b637e4d697a02e3f6808"
+    },
+    "v2_final": {
+      "exit": 0,
+      "log": {
+        "path": "/tmp/sfora-connected-serving-attribution-20261007.v2-final.log",
+        "sha256": "a401391639cf3e880cc9df5e149e5e73a6444f15e9d38e457e72724731fd26f0"
+      },
+      "command": "timeout 120 python3 -B scripts/test_observe_connected_serving.py; RLIMIT_AS=1073741824",
+      "fresh_pre_gate_audit": "LIVE_LOCAL_SUITES []",
+      "complete_gate_runs": 1
+    },
+    "v2_logs": "All narrow_red_green hashes verified unchanged against original v2 receipt; previous source hashes verified from Git fe393927"
+  },
+  "clean_worktree": true,
+  "only_exact_two_owned_files_changed": true,
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "no_attribution_trailers": true,
+  "no_merge_or_push": true,
+  "qualification_eligible": false,
+  "optimization_eligible": false,
+  "state_reuse_eligible": false,
+  "root_required_seams": [
+    "actual qualified survivor/source/bundle/gallery/native/TRAIN pins",
+    "authenticated same-group original raw/unit/packed/wire oracle",
+    "original terminal admission/full uncached exit",
+    "both locks and unchanged whole-process/resource/cancellation limits",
+    "serial original/observation admission/release",
+    "native ID/score/tie parity"
+  ],
+  "unmeasured": [
+    "baseline internal raw/unit/packed/wire parity",
+    "native CUDA/opaque subdivisions and deployed latency"
+  ],
+  "untouched": "Control brief, production/trainer/bridge/helper/serializer APIs and predicates, native/SSH/GPU/images/quality/cloud, original root control069 TRAIN92036. No new jobs/consultations/children/operator contact; integration root-owned."
+}

@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 652, in <module>
+    main()
+    ~~~~^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 604, in main
+    public_check(d, original, bridge, Path(scratch), bundle_only=True)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 320, in public_check
+    assert hasattr(d.RequestObserver, 'from_index'), 'admitted-index observer missing'
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: admitted-index observer missing

@@ -1,0 +1,1 @@
+PASS balanced C calls use stable callable metadata; wrong C function rejected

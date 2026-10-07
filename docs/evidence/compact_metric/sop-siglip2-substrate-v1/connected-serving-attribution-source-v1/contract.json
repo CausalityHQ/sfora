@@ -1,0 +1,136 @@
+{
+  "schema": "connected-serving-attribution-contract-v1",
+  "base": "09c0866766615ea0360a5a621d1d24100844e4a9",
+  "owned_files": [
+    "scripts/observe_connected_serving.py",
+    "scripts/test_observe_connected_serving.py"
+  ],
+  "scope": "Source-only observer plus falsifier. No native launch, adoption, optimization or product claim.",
+  "cli": [
+    "python",
+    "-B",
+    "scripts/observe_connected_serving.py",
+    "--authority",
+    "FILE",
+    "--authority-sha256",
+    "SHA",
+    "--output",
+    "NEWFILE"
+  ],
+  "authority": {
+    "schema": "connected-serving-attribution-authority-v1",
+    "sources": {
+      "observer": "FILE",
+      "test": "FILE",
+      "bridge": "FILE",
+      "trainer": "FILE",
+      "serializer": "FILE"
+    },
+    "bundle": {
+      "directory": "canonical absolute directory",
+      "manifest": "FILE"
+    },
+    "gallery": {
+      "file": "FILE",
+      "count": "integer >=10"
+    },
+    "native": "FILE",
+    "train_images": "exactly32 distinct FILEs, declared fixed canonical TRAIN inputs",
+    "qualified_terminal": "FILE; pinning alone is not terminal admission; root must apply original full terminal reader",
+    "cache_conditions": "nonempty explicit string",
+    "resource_policy": {
+      "body_seconds": 120,
+      "host_bytes": 8589934592,
+      "swap_bytes": 0,
+      "cuda_allocated_bytes_exclusive": 10000000000,
+      "whole_process_seconds": "unchanged parent supplied cap",
+      "exit_reserve_seconds": "positive parent supplied reserve"
+    },
+    "both_locks_held": true,
+    "qualification_eligible": false,
+    "state_reuse_eligible": false
+  },
+  "FILE": {
+    "path": "canonical absolute regular nonsymlink file",
+    "sha256": "explicit actual64; no defaults/guesses/cache"
+  },
+  "public_api": "measure_request(index, read_images, synchronize, paths, observer=None): exact unchanged index.search_images(images). Root supplies native read/decode/synchronization and original terminal/resource/lock/full-exit admission.",
+  "proposed_native_gate": {
+    "requires": "Root qualified quality survivor, actual pins, original uncached terminal/resource admission, both locks, fresh whole-process reserve; no launch by worker/CLI.",
+    "calls": 22,
+    "batches": [
+      1,
+      32
+    ],
+    "canonical_grouping": "B1 first pinned image; B32 all32 in pinned order",
+    "serial_ownership": "original owner: two warmups plus eight uninstrumented timed calls at each size (20); release; observation owner: one instrumented call at each size (2); release. No overlapping endpoints.",
+    "timer": "synchronize before start; start before file read/decode; stop after genuine returned native top10 completion synchronize; image close follows and is charged separately",
+    "separate_costs": [
+      "both admissions",
+      "both genuine releases",
+      "full uncached exit",
+      "image cleanup",
+      "observer callback overhead",
+      "instrumented-vs-uninstrumented descriptive difference"
+    ],
+    "parity": "Native IDs/scores exact vs all same-group original calls. Profiled return captures exact raw/unit/codes/inverse_norms/wire bytes. Baseline raw/unit/packed output is absent from unchanged public return; full cross-owner parity needs root authenticated original oracle for same grouping or is explicitly UNMEASURED. Synthetic tied-score standin checks source wiring only; native tie qualification remains root-owned/unrun.",
+    "stop": "Any parity/source/predicate/resource/ownership/cleanup failure stops; body120 inside unchanged parent cap; no extension. Incomplete observations prohibit a target/adoption decision."
+  },
+  "profile": {
+    "seam": "stdlib sys.setprofile with all Python/C events on calling thread; only primitive records survive callbacks, no saved frames/tensors/endpoints; previous profiler restored in finally",
+    "identity": "Original functions/globals/code/modules/registry remain intact. No AST derivative/rebinding; disabling profiler is the mechanical inverse.",
+    "counter": "Actual original fingerprint visit(item) call locals record fresh tensor occurrence order, dtype, shape, logical numel*element_size; fingerprint return records original digest; consumed still original. Counts are occurrences, not unique storage. Byte counters fail incomplete on any inspection failure.",
+    "timing": "Python/C-call inclusive and exclusive host intervals by stack, callback overhead separately subtracted/recorded; return events may include unwind. .cpu labelled copy-plus-wait; opaque preprocessing/forward/readout native kernels and CUDA durations unmeasured unless genuine Python/C events expose them. No additive overlapping CUDA/host claim.",
+    "phases": [
+      "integrity/source/module/config/roles/processor-cache",
+      "fingerprint traversal/framing",
+      "inner SHA",
+      "layout",
+      "copy-plus-wait",
+      "preprocess",
+      "encoder forward",
+      "readout",
+      "output transfers",
+      "packing/wire parsing",
+      "native search",
+      "read/decode",
+      "completion synchronization"
+    ]
+  },
+  "fresh_byte_and_predicate_rules": "Preserve every buffer/frozen444/full448/four-leaf/readout occurrence; SHA/framing/dtype/config/buffers/roles/hooks/nonpersistent/module-origin/processor-cache/code/numerics/RNG/native-ID-score-tie/release/lifetime/uncached exit predicate. No hash caches.",
+  "known_evidence": {
+    "parameter_occurrence_bytes": 3423104512,
+    "exclusive_cost": "UNMEASURED",
+    "prior_batching": "KILL43.637ms->45.224ms; not repeated",
+    "plan": "d860d199 completed; not repeated"
+  },
+  "source_falsifier": "Actual unchanged public bridge/profiler path with stdlib standins, original pinned serializer and release rejection. Exact digest/byte/occurrence order, same-version .data mutation, aliases/noncontig/scalar/empty/types, consumed callback, exceptions/profile restoration/lifetimes, stale source/registry/closure rejection. Narrow RED/GREEN then final timeout120/AS1GiB/no thirdparty imports; no concurrent suite.",
+  "revision": 3,
+  "review_base": "fe393927ac4ce615354a64661623ce37714b037a",
+  "consumed_review_ids": [
+    "immediate-1791412750699801408-2965865",
+    "immediate-1791413178443559283-2965865",
+    "immediate-1791414387535091586-2965865",
+    "immediate-1791414779307675339-2965865 (failed delivery; read durable mailbox plus full saved Opus4ad9ad08b88645a6 verdict)"
+  ],
+  "review_fixes": {
+    "public_witness": "Successful instrumented PUBLIC requests require at least one completed original fingerprint, fresh tensor occurrence and exact captured raw/unit/codes/inverse_norms/wire proof; generic observe_call scalars still valid. Missing witnesses close genuine index and fail incomplete.",
+    "stack": "Return mismatch fails incomplete; only explicit install/uninstall transition events and surrounding predating frame are excluded. Residual tracked frames fail incomplete; do not silently clear bad timing as complete.",
+    "cancellation": "Ordinary profiler inspection errors are caught as Exception and fail incomplete; KeyboardInterrupt/SystemExit/other BaseException cancellation must propagate while profiler restoration/genuine close/image cleanup still run.",
+    "verification": "Separate narrow RED/GREEN regressions, then ONE final timeout120/AS1GiB source-only affected gate after fresh no-live-suite audit. Existing logs untouched; v2 logs are new files."
+  },
+  "review_fixes_v3": {
+    "transient_refs": "Before genuine bridge teardown, release only observer-owned transient frame/tensor/bound-method/local-dict references in observer callbacks when any BaseException escapes. Keep the identical cancellation object and traceback/frame/code locations; do not clear original or thirdparty traceback frames, do not clear the observer traceback externally.",
+    "lifetime_red_green": "A real endpoint-owned tensor numel cancellation must demonstrate retained ownership after original frames are cleared on v2, then original authentic release/lifetime checks pass on v3 with cancellation/traceback preserved and sys.getprofile restored.",
+    "cleanup_order": "Attempt all image cleanup and genuine index.close. Preserve every failure as exception identity or explicit notes/causal context. When a cancellation occurs amid ordinary errors, propagate that same cancellation rather than the ordinary error, including index.close handlers. Keep original target error and other cleanup failures attached without losing them.",
+    "cleanup_falsifiers": "Actual public bridge standins: target ordinary error plus cleanup cancellation; multiple image failures ordinary first then KeyboardInterrupt; index cleanup cancellation; exact primary identity, retained secondary errors/notes, profile restoration, genuine cache/registry/lifetime cleanup.",
+    "verification": "Narrow individual RED/GREEN then ONE final <=120s/AS1GiB stdlib affected suite after a fresh no-live-suite audit. Existing v2 draft/logs/hashes remain immutable. Root owns native/integration; no consultation duplicates."
+  },
+  "opus_delta": {
+    "actual_owner": "RequestObserver.from_index binds exact admitted index endpoint serializer and saved genuine inference_outputs code; no filename-only public output matching. prepare requires canonical bundle trainer/serializer FILE paths. All public fixtures load unchanged real serializer bytes freshly into endpoint modules under actual key; repo observer is a public-witness negative.",
+    "c_events": "C-call/return match stable name/module/qualname metadata plus original Python frame and event kind, not ephemeral bound-method object ID. Balanced list.sort with key retaining b'x'.upper must pass; genuinely mismatched function/frame must fail.",
+    "ambient_exception": "Cleanup uses its own captured body errors, never ambient sys.exception. Add outer except KeyError cleanup regression; v3 P2 already removes ambient exception dependence.",
+    "sync_label": "Explicit predicate-sync-plus-wait phase for observed item calls; no pure GPU elapsed-time claim.",
+    "scope": "Only original completed Opus/Astra results read; no new/duplicate consultation. Nonblocking suggestions are outside this bounded correction. All native/oracle/resource/authority gaps remain UNMEASURED and ineligible."
+  }
+}

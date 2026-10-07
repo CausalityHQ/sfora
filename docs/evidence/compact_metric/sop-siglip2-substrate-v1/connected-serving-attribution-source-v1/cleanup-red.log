@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 628, in <module>
+    main()
+    ~~~~^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 588, in main
+    public_check(d, original, bridge, Path(scratch), cleanup_only=True)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 345, in public_check
+    assert caught is errors[preferred], 'cleanup cancellation/primary identity lost: ' + repr(caught)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: cleanup cancellation/primary identity lost: ValueError('first close')

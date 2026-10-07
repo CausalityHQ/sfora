@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 688, in <module>
+    main()
+    ~~~~^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 630, in main
+    c_metadata_check(d, original)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 207, in c_metadata_check
+    assert d.observe_call(probe, target) == original.fingerprint(3)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/observe_connected_serving.py", line 362, in observe_call
+    require(not observer.failures and all(row['sha256'] is not None for row in [*observer.leaves,*observer.fingerprints]),
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            'incomplete observation: ' + '; '.join(observer.failures))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/observe_connected_serving.py", line 62, in require
+    raise ValueError(message)
+ValueError: incomplete observation: ValueError: profile return stack mismatch

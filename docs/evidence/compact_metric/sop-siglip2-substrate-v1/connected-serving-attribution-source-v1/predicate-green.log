@@ -1,0 +1,1 @@
+PASS item is explicit predicate-sync-plus-wait; CUDA time stays unmeasured

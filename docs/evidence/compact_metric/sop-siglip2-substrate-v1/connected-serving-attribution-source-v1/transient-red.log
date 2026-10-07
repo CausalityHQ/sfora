@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 569, in <module>
+    main()
+    ~~~~^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 534, in main
+    public_check(d, original, bridge, Path(scratch), transient_only=True)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-serving-attribution-20261007/scripts/test_observe_connected_serving.py", line 330, in public_check
+    assert ref() is None, 'observer traceback retained endpoint-owned tensor after original frames cleared'
+           ^^^^^^^^^^^^^
+AssertionError: observer traceback retained endpoint-owned tensor after original frames cleared
