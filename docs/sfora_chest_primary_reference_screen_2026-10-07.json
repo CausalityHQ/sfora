@@ -1,0 +1,34 @@
+{
+  "arxiv": "2510.05643v1",
+  "audited_sections": [
+    "4.1",
+    "4.2",
+    "Tables4-5"
+  ],
+  "comparison_decision": "Primary published rows lower than dated UNICOM96.7 In-Shop/91.2 SOP; not a stronger global quality floor. No matched hardware/packed128/end-to-end latency evidence, exact query/gallery manifests unverified. Does not validate any Sfora SOTA claim or alter frozen method/gates.",
+  "new_native_job": false,
+  "new_sfora_quality_read": false,
+  "paper": "Combined Hyperbolic and Euclidean Soft Triple Loss Beyond the Single Space Deep Metric Learning",
+  "protocol": "ImageNet21k-pretrained ViT;224 center-crop test; AdamW; one RTX A6000 48GB. In-Shop30000/SOP50000 training steps. Hyperbolic alternate uses512dimensions and distinct distance.",
+  "published": "2025-10-07",
+  "reported_rows": [
+    {
+      "dataset": "DeepFashion In-Shop",
+      "dimensions": 1024,
+      "map_at_r_percent": 63.6,
+      "method": "CHEST-ViT-B-E",
+      "recall_at_1_percent": 94.5,
+      "split": "conventional DML query/gallery per paper, exact protocol not independently reproduced"
+    },
+    {
+      "dataset": "Stanford Online Products",
+      "dimensions": 1024,
+      "map_at_r_percent": 67.3,
+      "method": "CHEST-ViT-B-E",
+      "recall_at_1_percent": 88.2,
+      "split": "conventional DML split per paper, exact protocol not independently reproduced"
+    }
+  ],
+  "schema": "sfora-primary-reference-screen-v1",
+  "source": "https://arxiv.org/html/2510.05643v1"
+}
