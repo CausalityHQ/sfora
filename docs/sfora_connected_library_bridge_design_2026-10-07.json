@@ -1,0 +1,19 @@
+{
+  "schema": "sfora-connected-library-bridge-design-v1",
+  "purpose": "Deploy current accepted updated-encoder bundle into image-to-top10 library and make full request speed measurable; preserve original model output and exact packed-score/tie semantics.",
+  "evidence": [
+    "docs/sfora_connected_serving_cost_audit_2026-10-07.json",
+    "scripts/train_siglip2_connected_mlp.py:load_inference/inference_outputs/release_inference",
+    "src/sfora/cutile_int8.py:open_packed/search_packed",
+    "src/sfora/joint_relational_compaction.py:PackedInt8Embeddings.from_bytes"
+  ],
+  "scope": [
+    "new src/sfora/connected_compact_serving.py",
+    "new scripts/test_connected_compact_serving.py"
+  ],
+  "design": "Thin owned lifecycle wrapper. Canonical regular bundle and expected manifest hash authenticate exact copied trainer code before module execution; genuine loader owns complete updated448/absolute4/readout/processor/source/runtime admission. Supplied canonical packed gallery+SHA+count and native library+SHA admitted before native open; existing PackedInt8Embeddings parser128 and CutilePackedInt8Gallery. Each search keeps genuine inference_outputs currentbyte/role/RNG/source checks, takes wire directly without normalization/repacking, calls exact native top10 under lifecycle lock. Close/load/search errors preserve genuine release and native gallery cleanup; unique registry-owned loader removed safely. No model or loss change, hashing cache, new dependency, GPU profiling or hidden native work.",
+  "local_acceptance": "One stdlib-only genuine module seam test using standin portable/native/packed imports: hash/path/manifest/code tamper, wire identity/count/dimensions, exact result passthrough, failure cleanup, close idempotence/no postclose search, lock/lifetime/source checks. Compile/diff. Native parity and speed UNRUN, root-only after quality gate.",
+  "native_gate": "Only after complete paired export and frozen scientific survivor. Matched TRAIN end-to-end native packed parity including IDs/scores/ties first, then batch1/32 small paired latency falsifier; full10000 paired calls+CI required for p99 claim. Cold load and guards remain included/reported, never subtract costs.",
+  "resources": "No local Torch/Numpy/PIL/native imports, SSH/GPU/images/cloud/consults/children; one affectedstdlib120s/AS1GiB, root owns experiment.",
+  "authorization": "Operator standing Approved all-do not ask; full productiongoal requests deployed image-to-topk and safe parallel source work. Current original export job must remain untouched."
+}
