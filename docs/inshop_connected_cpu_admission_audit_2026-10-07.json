@@ -1,0 +1,346 @@
+{
+  "id": "22f3f3b3044f4eee",
+  "provider": "codex",
+  "model": "gpt-6-astra",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791369949,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791371149,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nONE independent read-only CPU critical-path audit, no edit/code/native/Torch/SSH/jobs/children/operator. Repo /home/rb/worktrees/sfora-positive-causality master997baa98; active source childconnected-mlp-trainer-20261007 owns newtrainer2, do not duplicate its design. Evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2: whole160.916/service163.485s, independentinitializerreload begin92.627/end94.845; actualcanonical+augmented connectedcore.464814/.450375s, allgatesPASS. B16/B32 backend alreadyanswered; no moreGPUfiller. Original identity sourcev5 authority/admit_terminal/FlatAdmission performs fullfresh source/data/environment admission, exit_rehash completefresh; docs actual-objective-v2-freeze closure and root witness source. Prior isolated20,302file exit-scan A/B serialmedian32.4336 vs4workers10.1931 SAMEfreshreads/guards, receipts export-exit-scan-ab-v1; batchinghelper exists. Question: identify ONE smallest procedure-owned source change for NEW connected trainer admission/exit path that can reduce repeated CPUprep/I/O without skipping current-byte checks, no cache/stat shortcut/globalrebinding/oldfrozen-source modifications. Trace actual original admission and rehash caller graph/file inventories; distinguish verified phases vs unmeasuredcost estimates. Can existing bounded4workerbatch helper be reused at a fresh-reader boundary while preserving ordered everyoccurrence checks/conflict semantics/authority footprints and mandatory uncachedexit? Return exact callsite/ownership seams, \u2264onefile-change proposal ifpossible, smallest source-only falsifier plus one prospective native A/B gate/stoprule, transfer/ISA EC2 suitability only if data-independent. Do not replan updatedencoder checkpoint/optimizer/trainer. New recipegatesunchanged8GiBnoswapCUDA/onejob; no quality/state reuse or projection claim. Concrete source evidence and any actual unknown must be explicit. Root retains nativegoal and experiments. This parallel research targets idleGPU CPUcriticalpath only.",
+  "prompt_sha256": "d6bea0b3d0978a198c75804f698a115f34c393be7c29498cfaad8f7aa4582375",
+  "prompt_bytes": 2328,
+  "fingerprint": "ae5d4469c2320956345a5d0cce2ba59915115f6d202cda10915e1770dc4c7a0c",
+  "evidence": {
+    "git_commit": "997baa98858bafb3745332fbea5fc32368c123d6",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "9f5c97590c6b4cdca5ed62e722afc9ad78431a1e63775568d8e57f4a4f316322",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6-astra",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "93c4aae5-87b1-4d06-9812-d3d5bf9d5faa"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-22f3f3b3044f4eee.service",
+  "pid": 804736,
+  "pgid": 804736,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "budget_usd": null,
+      "timeout_seconds": 1196,
+      "started_at": 1791369953
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791370442,
+  "event_cursor": 156,
+  "events": [
+    {
+      "seq": 133,
+      "at": 1791370233,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 134,
+      "at": 1791370256,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 135,
+      "at": 1791370256,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 136,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 137,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 138,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 139,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 140,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 141,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 142,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 143,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 144,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 145,
+      "at": 1791370275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 146,
+      "at": 1791370342,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 147,
+      "at": 1791370349,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 148,
+      "at": 1791370349,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 149,
+      "at": 1791370349,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 150,
+      "at": 1791370349,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 151,
+      "at": 1791370349,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 152,
+      "at": 1791370349,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 153,
+      "at": 1791370351,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 154,
+      "at": 1791370352,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 155,
+      "at": 1791370440,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 156,
+      "at": 1791370441,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 149,
+        "at": 1791370349,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 150,
+        "at": 1791370349,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 151,
+        "at": 1791370349,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 152,
+        "at": 1791370349,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 153,
+        "at": 1791370351,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 154,
+        "at": 1791370352,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 155,
+        "at": 1791370440,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 156,
+        "at": 1791370441,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Recommendation: reuse the existing four-worker helper at the new trainer\u2019s own candidate-cache inventory replay. Keep the original admission predicates and complete exit path intact.** This overlaps fresh reads; it does not reduce the required bytes or reuse verification results.\n\nThere is one ownership limitation: `newtrainer2` is absent from this checkout. If its owner calls frozen `trainer.authority(...)` directly, the proposed inner callsite is inaccessible without changing that design. Do not add rebinding, an adapter, or a second scan to force this optimization.\n\n1. **Exact source seam and proposed change**\n\n   Frozen source-v5 [`admit_candidate_cache`, line 508](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:508) serially replays:\n\n   `{**proof['input_guards'], **proof['original_input_guards']}.items()`\n\n   Replace only that raw replay, **where owned by the new procedure**, with the existing `batch_bound_files(guards, \u2026)` call. Leave the preceding source/scope/terminal predicates, separate exporter `own_guards`, and following cache semantic validation unchanged.\n\n   This exact one-statement replacement already exists in [the working source](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:508). I verified that reversing it reproduces the frozen file by ordinary diff: it is the sole difference between current trainer SHA `094d9725\u2026` and frozen SHA `840c5d82\u2026`. Thus, reuse the implementation rather than inventing another batching layer.\n\n   **One production-file delta is possible only if the new trainer already owns this replay.** Its exact filename and accessibility remain unverified until the active owner\u2019s source is available.\n\n2. **Actual admission and exit graph**\n\n   The [v2 witness](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2-freeze/qualify_actual_objective_encoder_gradients.py:409) authenticates source-v5, calls `trainer.authority`, then `trainer.admit_terminal` for CPU-v5.\n\n   Admission descends through nearest\u2019s authenticated startup adapter \u2192 prototype fitter authority \u2192 quadratic authority \u2192 genuine trainer authority \u2192 genuine exporter \u2192 substrate exporter \u2192 original source authority. These retain source closures, environment/package checks, checkpoint inventories, FIT metadata/images, and terminal evidence. Identity admission additionally reconstructs candidate exporter stage guards and performs the proposed raw replay.\n\n   `admit_terminal` authenticates the genuine reader, validates receipt/launch/CLI/resources, invokes the authenticated original terminal reader, then processes every receipt guard through [`FlatAdmission.bound_file`](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:214). That method performs canonical-path, size and conflict registration on every call, while deduplicating hashes already verified within that invocation.\n\n   [Original exit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:2744) creates a **new** `FlatAdmission`, audits actual imported origins, and shares that exit-owned reader through the existing exact substitutions. Quadratic exit checks all 13,283 FIT images, FIT resolution, nested guard inventories, source/exporter closures, TRAIN mapping and ImageRows source. Fitter and identity inventories follow; final API authentication and another fresh origin audit remain mandatory.\n\n   Consequently, `FlatAdmission.bound_file` is **not** interchangeable with the raw batch helper. Replacing its loops directly would alter reader state, size checks and deduplication behavior.\n\n3. **Inventories and measured costs**\n\n   Counts below come from the local receipts, not a new native run:\n\n   | Inventory | Paths |\n   |---|---:|\n   | Candidate exporter own guards | 6,377 |\n   | Candidate original-source guards | 15,075 |\n   | Their overlap / merged replay | 3,185 / **18,267** |\n   | CPU-v5 terminal guards | 18,610 |\n   | Actual-objective-v2 final guards | **18,620** |\n\n   The two candidate dictionaries have no conflicting overlapping digests in this receipt. Actual-objective-v2 adds ten paths to CPU-v5\u2019s inventory and removes none; its final inventory contains 16,506 dataset paths, 1,902 site-package paths, 198 run artifacts and 14 other paths.\n\n   The [actual log](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2/original.log:25) measures:\n\n   | Phase | Seconds |\n   |---|---:|\n   | Independent reload | 2.218 |\n   | Source exit, including nested quadratic/fitter work | 23.528 |\n   | Own exit | 13.085 |\n   | Post-exit API authentication | 0.735 |\n   | Post-exit origin audit | 8.349 |\n   | Entire exit interval | **45.697** |\n\n   The **92.627 seconds before reload is an aggregate interval**, including admission and earlier initializer validation. It does not isolate candidate replay, hashing, storage waits or Python processing.\n\n   The separate [20,302-file benchmark](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1/verification.json) establishes 32.434 \u2192 10.193 seconds for that inventory. It does **not** establish a 22.240-second saving for this 18,267-path replay or for the new trainer.\n\n4. **Preservation requirements and risks**\n\n   The [existing helper](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:149) hashes every supplied occurrence with private guards, uses at most four workers, collects results in input order, checks owner conflicts and publishes only after complete success.\n\n   Preserve the exact existing dictionary expression, including its right-biased overlap behavior. Do not merge additional stage inventories, seed `verified`, substitute expected hashes for reads, or retain startup results into exit.\n\n   Two qualifications matter:\n\n   - Ordered results and guard publication do **not** mean serial physical read order. The helper also prevalidates descriptors, so first-error precedence can differ for multiple simultaneous faults.\n   - Four workers bound active reads, not queued futures; the helper submits the full inventory. Memory and storage contention therefore require measurement under the unchanged envelope.\n\n5. **Smallest source-only falsifier**\n\n   Use one bounded test in the owner\u2019s existing source-only harness, following [the existing scan contract](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_identity_diversity.py:1279): five tiny files, \u226455 seconds, no native imports.\n\n   Require:\n\n   - Reversing the one callsite change restores the baseline function AST; every surrounding predicate remains identical.\n   - Serial and batch success produce identical ordered guards; a duplicate supplied occurrence causes another real read.\n   - A preexisting expected guard cannot admit same-size, restored-mtime mutation.\n   - Wrong SHA, noncanonical path and conflicting authority reject; failed batches publish nothing and join their workers.\n   - Actual overlap occurs, with active readers never exceeding four.\n\n   Failure of any assertion rejects the proposal. This audit did not run or modify that test.\n\n6. **One prospective native gate and stop rule**\n\n   After the owner\u2019s source exposes the seam, root may freeze **one sequential serial/batch A/B pair** of the same discarded native qualification workload. Change only this replay; record its entry/exit time, whole-service time, guard footprint and complete exit result.\n\n   Preserve the applicable recipe deadline, \u22648 GiB host, zero swap/disallowed events, CUDA allocation below 10,000,000,000 bytes, both locks, one job, and all existing scientific/state gates. Stop on the first correctness/resource failure. Adopt only if both runs pass, inventories match, and measured replay **and whole-service** time improve; otherwise retain serial and record the result as inconclusive or unsuccessful. No automatic repetition or cap rescue.\n\nOnly the stdlib fixture and source audit are data-independent transfer candidates. Native performance qualification depends on the admitted data, filesystem and environment; the witness explicitly binds an aarch64 interpreter and libraries. No EC2/ISA speedup follows from this evidence.\n\nRead-only audit completed at `997baa98`; no files edited, native experiments launched, or trainer design duplicated.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Recommendation: reuse the existing four-worker helper at the new trainer\u2019s own candidate-cache inventory replay. Keep the original admission predicates and complete exit path intact.** This overlaps fresh reads; it does not reduce the required bytes or reuse verification results.\n\nThere is one ownership limitation: `newtrainer2` is absent from this checkout. If its owner calls frozen `trainer.authority(...)` directly, the proposed inner callsite is inaccessible without changing that design. Do not add rebinding, an adapter, or a second scan to force this optimization.\n\n1. **Exact source seam and proposed change**\n\n   Frozen source-v5 [`admit_candidate_cache`, line 508](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:508) serially replays:\n\n   `{**proof['input_guards'], **proof['original_input_guards']}.items()`\n\n   Replace only that raw replay, **where owned by the new procedure**, with the existing `batch_bound_files(guards, \u2026)` call. Leave the preceding source/scope/terminal predicates, separate exporter `own_guards`, and following cache semantic validation unchanged.\n\n   This exact one-statement replacement already exists in [the working source](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:508). I verified that reversing it reproduces the frozen file by ordinary diff: it is the sole difference between current trainer SHA `094d9725\u2026` and frozen SHA `840c5d82\u2026`. Thus, reuse the implementation rather than inventing another batching layer.\n\n   **One production-file delta is possible only if the new trainer already owns this replay.** Its exact filename and accessibility remain unverified until the active owner\u2019s source is available.\n\n2. **Actual admission and exit graph**\n\n   The [v2 witness](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2-freeze/qualify_actual_objective_encoder_gradients.py:409) authenticates source-v5, calls `trainer.authority`, then `trainer.admit_terminal` for CPU-v5.\n\n   Admission descends through nearest\u2019s authenticated startup adapter \u2192 prototype fitter authority \u2192 quadratic authority \u2192 genuine trainer authority \u2192 genuine exporter \u2192 substrate exporter \u2192 original source authority. These retain source closures, environment/package checks, checkpoint inventories, FIT metadata/images, and terminal evidence. Identity admission additionally reconstructs candidate exporter stage guards and performs the proposed raw replay.\n\n   `admit_terminal` authenticates the genuine reader, validates receipt/launch/CLI/resources, invokes the authenticated original terminal reader, then processes every receipt guard through [`FlatAdmission.bound_file`](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:214). That method performs canonical-path, size and conflict registration on every call, while deduplicating hashes already verified within that invocation.\n\n   [Original exit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:2744) creates a **new** `FlatAdmission`, audits actual imported origins, and shares that exit-owned reader through the existing exact substitutions. Quadratic exit checks all 13,283 FIT images, FIT resolution, nested guard inventories, source/exporter closures, TRAIN mapping and ImageRows source. Fitter and identity inventories follow; final API authentication and another fresh origin audit remain mandatory.\n\n   Consequently, `FlatAdmission.bound_file` is **not** interchangeable with the raw batch helper. Replacing its loops directly would alter reader state, size checks and deduplication behavior.\n\n3. **Inventories and measured costs**\n\n   Counts below come from the local receipts, not a new native run:\n\n   | Inventory | Paths |\n   |---|---:|\n   | Candidate exporter own guards | 6,377 |\n   | Candidate original-source guards | 15,075 |\n   | Their overlap / merged replay | 3,185 / **18,267** |\n   | CPU-v5 terminal guards | 18,610 |\n   | Actual-objective-v2 final guards | **18,620** |\n\n   The two candidate dictionaries have no conflicting overlapping digests in this receipt. Actual-objective-v2 adds ten paths to CPU-v5\u2019s inventory and removes none; its final inventory contains 16,506 dataset paths, 1,902 site-package paths, 198 run artifacts and 14 other paths.\n\n   The [actual log](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2/original.log:25) measures:\n\n   | Phase | Seconds |\n   |---|---:|\n   | Independent reload | 2.218 |\n   | Source exit, including nested quadratic/fitter work | 23.528 |\n   | Own exit | 13.085 |\n   | Post-exit API authentication | 0.735 |\n   | Post-exit origin audit | 8.349 |\n   | Entire exit interval | **45.697** |\n\n   The **92.627 seconds before reload is an aggregate interval**, including admission and earlier initializer validation. It does not isolate candidate replay, hashing, storage waits or Python processing.\n\n   The separate [20,302-file benchmark](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1/verification.json) establishes 32.434 \u2192 10.193 seconds for that inventory. It does **not** establish a 22.240-second saving for this 18,267-path replay or for the new trainer.\n\n4. **Preservation requirements and risks**\n\n   The [existing helper](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:149) hashes every supplied occurrence with private guards, uses at most four workers, collects results in input order, checks owner conflicts and publishes only after complete success.\n\n   Preserve the exact existing dictionary expression, including its right-biased overlap behavior. Do not merge additional stage inventories, seed `verified`, substitute expected hashes for reads, or retain startup results into exit.\n\n   Two qualifications matter:\n\n   - Ordered results and guard publication do **not** mean serial physical read order. The helper also prevalidates descriptors, so first-error precedence can differ for multiple simultaneous faults.\n   - Four workers bound active reads, not queued futures; the helper submits the full inventory. Memory and storage contention therefore require measurement under the unchanged envelope.\n\n5. **Smallest source-only falsifier**\n\n   Use one bounded test in the owner\u2019s existing source-only harness, following [the existing scan contract](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_identity_diversity.py:1279): five tiny files, \u226455 seconds, no native imports.\n\n   Require:\n\n   - Reversing the one callsite change restores the baseline function AST; every surrounding predicate remains identical.\n   - Serial and batch success produce identical ordered guards; a duplicate supplied occurrence causes another real read.\n   - A preexisting expected guard cannot admit same-size, restored-mtime mutation.\n   - Wrong SHA, noncanonical path and conflicting authority reject; failed batches publish nothing and join their workers.\n   - Actual overlap occurs, with active readers never exceeding four.\n\n   Failure of any assertion rejects the proposal. This audit did not run or modify that test.\n\n6. **One prospective native gate and stop rule**\n\n   After the owner\u2019s source exposes the seam, root may freeze **one sequential serial/batch A/B pair** of the same discarded native qualification workload. Change only this replay; record its entry/exit time, whole-service time, guard footprint and complete exit result.\n\n   Preserve the applicable recipe deadline, \u22648 GiB host, zero swap/disallowed events, CUDA allocation below 10,000,000,000 bytes, both locks, one job, and all existing scientific/state gates. Stop on the first correctness/resource failure. Adopt only if both runs pass, inventories match, and measured replay **and whole-service** time improve; otherwise retain serial and record the result as inconclusive or unsuccessful. No automatic repetition or cap rescue.\n\nOnly the stdlib fixture and source audit are data-independent transfer candidates. Native performance qualification depends on the admitted data, filesystem and environment; the witness explicitly binds an aarch64 interpreter and libraries. No EC2/ISA speedup follows from this evidence.\n\nRead-only audit completed at `997baa98`; no files edited, native experiments launched, or trainer design duplicated."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 2328,
+  "output_bytes": 8780,
+  "elapsed_seconds": 493,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)\ndevbox-ask: codex consult still running (8m 00s)",
+  "progress_truncated": false,
+  "result": "**Recommendation: reuse the existing four-worker helper at the new trainer\u2019s own candidate-cache inventory replay. Keep the original admission predicates and complete exit path intact.** This overlaps fresh reads; it does not reduce the required bytes or reuse verification results.\n\nThere is one ownership limitation: `newtrainer2` is absent from this checkout. If its owner calls frozen `trainer.authority(...)` directly, the proposed inner callsite is inaccessible without changing that design. Do not add rebinding, an adapter, or a second scan to force this optimization.\n\n1. **Exact source seam and proposed change**\n\n   Frozen source-v5 [`admit_candidate_cache`, line 508](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:508) serially replays:\n\n   `{**proof['input_guards'], **proof['original_input_guards']}.items()`\n\n   Replace only that raw replay, **where owned by the new procedure**, with the existing `batch_bound_files(guards, \u2026)` call. Leave the preceding source/scope/terminal predicates, separate exporter `own_guards`, and following cache semantic validation unchanged.\n\n   This exact one-statement replacement already exists in [the working source](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:508). I verified that reversing it reproduces the frozen file by ordinary diff: it is the sole difference between current trainer SHA `094d9725\u2026` and frozen SHA `840c5d82\u2026`. Thus, reuse the implementation rather than inventing another batching layer.\n\n   **One production-file delta is possible only if the new trainer already owns this replay.** Its exact filename and accessibility remain unverified until the active owner\u2019s source is available.\n\n2. **Actual admission and exit graph**\n\n   The [v2 witness](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2-freeze/qualify_actual_objective_encoder_gradients.py:409) authenticates source-v5, calls `trainer.authority`, then `trainer.admit_terminal` for CPU-v5.\n\n   Admission descends through nearest\u2019s authenticated startup adapter \u2192 prototype fitter authority \u2192 quadratic authority \u2192 genuine trainer authority \u2192 genuine exporter \u2192 substrate exporter \u2192 original source authority. These retain source closures, environment/package checks, checkpoint inventories, FIT metadata/images, and terminal evidence. Identity admission additionally reconstructs candidate exporter stage guards and performs the proposed raw replay.\n\n   `admit_terminal` authenticates the genuine reader, validates receipt/launch/CLI/resources, invokes the authenticated original terminal reader, then processes every receipt guard through [`FlatAdmission.bound_file`](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:214). That method performs canonical-path, size and conflict registration on every call, while deduplicating hashes already verified within that invocation.\n\n   [Original exit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:2744) creates a **new** `FlatAdmission`, audits actual imported origins, and shares that exit-owned reader through the existing exact substitutions. Quadratic exit checks all 13,283 FIT images, FIT resolution, nested guard inventories, source/exporter closures, TRAIN mapping and ImageRows source. Fitter and identity inventories follow; final API authentication and another fresh origin audit remain mandatory.\n\n   Consequently, `FlatAdmission.bound_file` is **not** interchangeable with the raw batch helper. Replacing its loops directly would alter reader state, size checks and deduplication behavior.\n\n3. **Inventories and measured costs**\n\n   Counts below come from the local receipts, not a new native run:\n\n   | Inventory | Paths |\n   |---|---:|\n   | Candidate exporter own guards | 6,377 |\n   | Candidate original-source guards | 15,075 |\n   | Their overlap / merged replay | 3,185 / **18,267** |\n   | CPU-v5 terminal guards | 18,610 |\n   | Actual-objective-v2 final guards | **18,620** |\n\n   The two candidate dictionaries have no conflicting overlapping digests in this receipt. Actual-objective-v2 adds ten paths to CPU-v5\u2019s inventory and removes none; its final inventory contains 16,506 dataset paths, 1,902 site-package paths, 198 run artifacts and 14 other paths.\n\n   The [actual log](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/actual-objective-gradient-v2/original.log:25) measures:\n\n   | Phase | Seconds |\n   |---|---:|\n   | Independent reload | 2.218 |\n   | Source exit, including nested quadratic/fitter work | 23.528 |\n   | Own exit | 13.085 |\n   | Post-exit API authentication | 0.735 |\n   | Post-exit origin audit | 8.349 |\n   | Entire exit interval | **45.697** |\n\n   The **92.627 seconds before reload is an aggregate interval**, including admission and earlier initializer validation. It does not isolate candidate replay, hashing, storage waits or Python processing.\n\n   The separate [20,302-file benchmark](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1/verification.json) establishes 32.434 \u2192 10.193 seconds for that inventory. It does **not** establish a 22.240-second saving for this 18,267-path replay or for the new trainer.\n\n4. **Preservation requirements and risks**\n\n   The [existing helper](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:149) hashes every supplied occurrence with private guards, uses at most four workers, collects results in input order, checks owner conflicts and publishes only after complete success.\n\n   Preserve the exact existing dictionary expression, including its right-biased overlap behavior. Do not merge additional stage inventories, seed `verified`, substitute expected hashes for reads, or retain startup results into exit.\n\n   Two qualifications matter:\n\n   - Ordered results and guard publication do **not** mean serial physical read order. The helper also prevalidates descriptors, so first-error precedence can differ for multiple simultaneous faults.\n   - Four workers bound active reads, not queued futures; the helper submits the full inventory. Memory and storage contention therefore require measurement under the unchanged envelope.\n\n5. **Smallest source-only falsifier**\n\n   Use one bounded test in the owner\u2019s existing source-only harness, following [the existing scan contract](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_identity_diversity.py:1279): five tiny files, \u226455 seconds, no native imports.\n\n   Require:\n\n   - Reversing the one callsite change restores the baseline function AST; every surrounding predicate remains identical.\n   - Serial and batch success produce identical ordered guards; a duplicate supplied occurrence causes another real read.\n   - A preexisting expected guard cannot admit same-size, restored-mtime mutation.\n   - Wrong SHA, noncanonical path and conflicting authority reject; failed batches publish nothing and join their workers.\n   - Actual overlap occurs, with active readers never exceeding four.\n\n   Failure of any assertion rejects the proposal. This audit did not run or modify that test.\n\n6. **One prospective native gate and stop rule**\n\n   After the owner\u2019s source exposes the seam, root may freeze **one sequential serial/batch A/B pair** of the same discarded native qualification workload. Change only this replay; record its entry/exit time, whole-service time, guard footprint and complete exit result.\n\n   Preserve the applicable recipe deadline, \u22648 GiB host, zero swap/disallowed events, CUDA allocation below 10,000,000,000 bytes, both locks, one job, and all existing scientific/state gates. Stop on the first correctness/resource failure. Adopt only if both runs pass, inventories match, and measured replay **and whole-service** time improve; otherwise retain serial and record the result as inconclusive or unsuccessful. No automatic repetition or cap rescue.\n\nOnly the stdlib fixture and source audit are data-independent transfer candidates. Native performance qualification depends on the admitted data, filesystem and environment; the witness explicitly binds an aarch64 interpreter and libraries. No EC2/ISA speedup follows from this evidence.\n\nRead-only audit completed at `997baa98`; no files edited, native experiments launched, or trainer design duplicated.",
+  "result_truncated": false
+}
