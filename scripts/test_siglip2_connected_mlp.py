@@ -681,6 +681,166 @@ def cost_terminal_falsifiers(d):
                 rejects(lambda:d.check_terminal(context,record,phase,'control',d.SEEDS[0]), 'terminal')
 
 
+def original_terminal_binding(d):
+    """Catch unbound terminal readers using the real signed AST and cgroup API."""
+    modules = {}
+    try:
+        for name in ('train_siglip2_substrate_adaptation', 'fit_siglip2_prototype_residual',
+                     'export_siglip2_substrate_fit', 'train_siglip2_nearest_ranking',
+                     'train_siglip2_quadratic_readout'):
+            spec = importlib.util.spec_from_file_location('_terminal_test_'+name, HERE/(name+'.py'))
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[spec.name] = module  # The fitter's dataclass needs its module.
+            modules[name] = module
+            spec.loader.exec_module(module)
+        original, fitter, init, nearest, old = modules.values()
+        assert hashlib.sha256(Path(original.__file__).read_bytes()).hexdigest() == fitter.TERMINAL_SOURCE_SHA
+        assert hashlib.sha256(Path(init.__file__).read_bytes()).hexdigest() == \
+               '163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8'
+        admission = original.FlatAdmission()
+        admission.init = init  # Actual quadratic bootstrap contract.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            def write(path, value):
+                path.write_text(value if isinstance(value,str) else json.dumps(value))
+                return {'path':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+            guards = {m.__file__:hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() for m in modules.values()}
+            source_guards = dict(guards)
+            launch = {'witness':{'root':str(root/'witness'),'files':{}},'fresh_control':None}
+            auth = write(root/'authority.json',launch)
+            execution = write(root/'execution.json',{})
+            launch_fact = {'python':'/python','python_sha256':'b'*64,'python_version':'3'}
+            legacy = {'original':original,'admission':admission,'selected':{'genuine':{'reference':init}},
+                      'invocations':set()}
+            context = {'trainer':None,'guards':guards,'legacy':legacy,'nearest':nearest,'fitter':fitter,'old':old,
+                       'fit_context':{'legacy':legacy,'guards':guards},'connected_root':root,
+                       'connected_args':SimpleNamespace(execution_sha256=execution['sha256']),
+                       'connected_code':{},'connected_launch':launch,
+                       'original_cpu_record':{'invocation':launch_fact},'witness':SimpleNamespace(POLICY={'seconds':300})}
+            def fixture(unit_name, identity, arm, seconds, core):
+                values = {'memory.max':str(8*1024**3),'memory.current':'1','memory.peak':'3',
+                          'memory.swap.current':'0','memory.swap.peak':'0','memory.swap.max':'0',
+                          'memory.events':'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0'}
+                cgroup = {'path':'/sys/fs/cgroup/'+unit_name+'.service','values':values}
+                final = {**copy.deepcopy(cgroup),'invocation_id':identity,'command_exit_status':0}
+                log = '\n'.join([f'Running as unit: {unit_name}.service; invocation ID: {identity}',
+                    '\tExit status: 0','Finished with result: success',
+                    'Main processes terminated with: code=exited/status=0','\tSwaps: 0','Memory swap peak: 0B',
+                    '\tMaximum resident set size (kbytes): 2',f'Service runtime: {seconds}s',
+                    'FINAL_CGROUP '+json.dumps(final)])+'\n'
+                unit = {'receipt':{'path':str(root/(arm+'.json')),'sha256':'a'*64},
+                        'log':write(root/(arm+'.log'),log),'unit':unit_name,'invocation_id':identity,
+                        'service_seconds':seconds,'native_peak_rss_kib':2,'both_locks_held':True}
+                record = {'authority':auth,'authority_sha256':auth['sha256'],'launch':copy.deepcopy(launch),
+                          'invocation':{**launch_fact,'invocation_id':identity,'optimize':0,
+                          'argv':d.cli(root,auth['path'],auth['sha256'],execution['sha256'],
+                                       'train',arm,d.SEEDS[0],root)},
+                          'input_guards':{execution['path']:execution['sha256']},'wall_seconds':1.,
+                          'whole_seconds':1.,'process_peak_rss_kib':1,'total_training_core_seconds':core,
+                          'cgroup_before':copy.deepcopy(cgroup),'cgroup_after':copy.deepcopy(cgroup)}
+                unit['receipt'] = write(Path(unit['receipt']['path']),record)
+                return record,unit,log,final
+            _,control_unit,control_log,_ = fixture('control','c'*32,'control',10.,10.)
+            launch['fresh_control'] = control_unit
+            auth.update(write(Path(auth['path']),launch))
+            candidate,unit,log,final = fixture('candidate','d'*32,'candidate',14.,14.)
+            # Receipt model/state predicates have their own falsifiers above;
+            # all file/authority/CLI/source/log/lock/cgroup/cost predicates run here.
+            def admit():
+                legacy['invocations'].clear()
+                guards.clear(); guards.update(source_guards)
+                return d.admit_terminal(context,unit,'train','candidate',d.SEEDS[0])
+            with patch.object(d,'check_terminal',lambda *a:None):
+                assert admit() == candidate  # RED: actual signed reader reaches missing self.init.
+                assert context['connected_terminal_cgroups'][f'train:{d.SEEDS[0]}:candidate'] == final
+                # The actual-gradient projection/call statements, unchanged from
+                # the NEW driver, exercise its separate reader construction.
+                node = function(ast.parse(DRIVER.read_text()),'admit_actual_gradient')
+                seam = [n for n in node.body if isinstance(n,ast.Assign) and
+                        isinstance(n.targets[0],ast.Name) and n.targets[0].id in ('projected','final')]
+                namespace = {**vars(d),'context':context,'record':{**candidate,'invocation_id':unit['invocation_id']},
+                             'selected':{'terminal':unit}}
+                exec(compile(ast.Module(body=seam,type_ignores=[]),'<actual gradient terminal seam>','exec'),namespace)
+                assert namespace['final'] == final
+                reader1,reader2 = d.fresh_terminal_reader(context),d.fresh_terminal_reader(context)
+                assert reader1 is not reader2 and reader1 is not admission and reader1.init is reader2.init is init
+                assert reader1.entries == reader2.entries == {} and reader1.verified == reader2.verified == set()
+                for wrong in (None,SimpleNamespace(admit_cgroup=lambda *a:None)):
+                    admission.init = wrong
+                    rejects(admit,'genuine terminal initializer')
+                del admission.init
+                rejects(admit,'genuine terminal initializer')
+                admission.init = init
+                prior = source_guards.pop(init.__file__)
+                rejects(admit,init.__file__)
+                source_guards[init.__file__] = '0'*64
+                rejects(admit,'bytes')
+                source_guards[init.__file__] = prior
+                # Fresh reader must reject changed bytes even after success.
+                Path(unit['log']['path']).write_text(log+'changed\n')
+                rejects(admit,'SHA256')
+                Path(unit['log']['path']).write_text(log)
+                required = log.splitlines()[:-1]
+                for line in required:
+                    for mutated in (log.replace(line+'\n',''),log+line+'\n'):
+                        unit['log'] = write(Path(unit['log']['path']),mutated)
+                        rejects(admit,'original')
+                unit['log'] = write(Path(unit['log']['path']),log)
+                for change,text in [({'both_locks_held':False},'UNIT'),({'service_seconds':601.},'caps'),
+                                    ({'native_peak_rss_kib':8*1024**2+1},'caps')]:
+                    saved = dict(unit)
+                    unit.update(change)
+                    rejects(admit,text)
+                    unit.clear(); unit.update(saved)
+                for stage in ('cgroup_before','cgroup_after'):
+                    saved = copy.deepcopy(candidate[stage])
+                    for value,text in [({},'path'),({**saved,'path':'relative/candidate.service'},'enclosing unit'),
+                                       ({**saved,'values':{**saved['values'],'memory.swap.max':'1'}},'caps'),
+                                       ({**saved,'values':{**saved['values'],'memory.events':
+                                                          'low 1\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0'}},
+                                        'disallowed cgroup event')]:
+                        candidate[stage] = value
+                        unit['receipt'] = write(Path(unit['receipt']['path']),candidate)
+                        rejects(admit,text)
+                    candidate[stage] = saved
+                unit['receipt'] = write(Path(unit['receipt']['path']),candidate)
+                for mutated,text in [(None,'footer'),({**final,'invocation_id':'e'*32},'footer'),
+                                     ({**final,'path':'/wrong.service'},'enclosing cgroup'),
+                                     ({**final,'values':{**final['values'],'memory.peak':'2'}},'whole-unit peak')]:
+                    footer = '' if mutated is None else 'FINAL_CGROUP '+json.dumps(mutated)+'\n'
+                    unit['log'] = write(Path(unit['log']['path']),log[:log.index('FINAL_CGROUP ')]+footer)
+                    rejects(admit,text)
+                for key,value in [('memory.max','1'),('memory.current','0'),('memory.peak',str(8*1024**3+1)),
+                                  ('memory.swap.current','1'),('memory.swap.peak','1'),('memory.swap.max','1'),
+                                  ('memory.events','max 1\noom 0\noom_kill 0')]:
+                    mutated = copy.deepcopy(final)
+                    mutated['values'][key] = value
+                    unit['log'] = write(Path(unit['log']['path']),log[:log.index('FINAL_CGROUP ')]+
+                                        'FINAL_CGROUP '+json.dumps(mutated)+'\n')
+                    rejects(admit,'caps' if key != 'memory.events' else 'failure events')
+                unit['log'] = write(Path(unit['log']['path']),log)
+                unit['log'] = write(Path(unit['log']['path']),log+log[log.index('FINAL_CGROUP '):])
+                rejects(admit,'footer')
+                unit['log'] = write(Path(unit['log']['path']),log)
+                # The separate live-control cost reader must also keep the cgroup
+                # and normal-exit predicates; the candidate's valid log cannot cover it.
+                control_unit['log'] = write(Path(control_unit['log']['path']),control_log.replace('\tExit status: 0','\tExit status: 1'))
+                candidate['launch']['fresh_control'] = control_unit
+                unit['receipt'] = write(Path(unit['receipt']['path']),candidate)
+                launch['fresh_control'] = control_unit
+                auth.update(write(Path(auth['path']),launch))
+                candidate['authority_sha256'] = auth['sha256']
+                candidate['invocation']['argv'] = d.cli(root,auth['path'],auth['sha256'],execution['sha256'],
+                                                       'train','candidate',d.SEEDS[0],root)
+                unit['receipt'] = write(Path(unit['receipt']['path']),candidate)
+                rejects(admit,'normal-exit')
+        assert not {n.split('.')[0] for n in sys.modules} & d.NATIVE
+        print('PASS real original terminal AST: connected/gradient/control seams and binding/log/cgroup falsifiers')
+    finally:
+        for module in modules.values():
+            sys.modules.pop(module.__name__,None)
+
+
 def main():
     p = argparse.ArgumentParser(allow_abbrev=False)
     p.add_argument('--source-only', action='store_true', required=True)
@@ -701,6 +861,7 @@ def main():
     current_encoder_seam(d)
     processor_release_seam(d)
     cost_terminal_falsifiers(d)
+    original_terminal_binding(d)
     print('PASS source-only connected MLP contracts/falsifiers; native UNRUN')
 
 

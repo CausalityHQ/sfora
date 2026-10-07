@@ -261,6 +261,17 @@ def authority(args):
     return context
 
 
+def fresh_terminal_reader(context):
+    """Fresh byte admission with the quadratic bootstrap's genuine cgroup API."""
+    legacy,guards = context['legacy'],context['guards']
+    init = legacy['selected']['genuine']['reference']
+    require(getattr(legacy['admission'],'init',None) is init, 'genuine terminal initializer binding differs')
+    bound_file(guards,init.__file__,guards[init.__file__])
+    reader = legacy['original'].FlatAdmission()
+    reader.init = init
+    return reader
+
+
 def admit_actual_gradient(context):
     launch,trainer = context['connected_launch'],context['trainer']
     selected = launch['actual_gradient']
@@ -296,7 +307,7 @@ def admit_actual_gradient(context):
     projected = {**record,'invocation':{'invocation_id':record['invocation_id'],'optimize':0},
                  'wall_seconds':record['whole_seconds'],'process_peak_rss_kib':selected['terminal']['native_peak_rss_kib']}
     final = context['fitter'].original_terminal_reader(context['fit_context'])(
-        context['legacy']['original'].FlatAdmission(),projected,selected['terminal'],context['witness'].POLICY['seconds'],context['guards'])
+        fresh_terminal_reader(context),projected,selected['terminal'],context['witness'].POLICY['seconds'],context['guards'])
     for cgroup in (record['cgroup_before'],record['cgroup_after'],final):
         context['old'].zero_events(cgroup)
 
@@ -1581,7 +1592,7 @@ def admit_terminal(context, unit, phase, arm, seed):
     """NEW terminal predicates plus the unchanged original uncached UNIT reader."""
     trainer,guards = context['trainer'],context['guards']
     check_unit(unit)
-    reader = context['legacy']['original'].FlatAdmission()
+    reader = fresh_terminal_reader(context)
     record = context['nearest'].read_json(unit['receipt'],guards,admission=reader)
     check_terminal(context,record,phase,arm,seed)
     require(record['authority']['sha256'] == record['authority_sha256'] and
