@@ -1,0 +1,22 @@
+{
+  "authority_sha256": "2e58c2564ab0c22115686acf3d9a7fc316fb5ef26ff6f6c49e2e90506ea5e15e",
+  "execution_sha256": "731cc7a4f5adb9f892a660013243643ee6d0a9417f8e36f82c165d30b72a8422",
+  "files": {
+    "authority-cpu-v1.json": "2e58c2564ab0c22115686acf3d9a7fc316fb5ef26ff6f6c49e2e90506ea5e15e",
+    "cpu-v1-command.sh": "a3b884a32fcda984ab4ae808ebc8dcd20c782e2b26eeebd145b95bdcf931071d",
+    "cpu-v1-launch.sh": "a5f2a15d16a5eb59cd2ad126a52ac9b8ee8022dae5f53cb6beb205b9e19a6254",
+    "execution.json": "731cc7a4f5adb9f892a660013243643ee6d0a9417f8e36f82c165d30b72a8422",
+    "test_siglip2_connected_mlp.py": "ba9d2e75aa4af7f931c5bd65b1fc4aa22eb8c3ebf93a004a95730cf72c346c96",
+    "train_siglip2_connected_mlp.py": "e088eedb694992c6b20edde408412f2d857f563f91f09e23987af6d21a69c497"
+  },
+  "native_unrun_at_freeze": true,
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 300,
+    "swap_bytes": 0
+  },
+  "schema": "connected-mlp-parent-freeze-v1",
+  "stop_rule": "ONE CPU300 engineering gate: original authority7+CPU500 unchanged; discarded complete actual candidateB64/two-view update, all448/frozen444/four absolute parameters/full optimizer scaler RNG, independent strict restored state and owned portable bundle/raw-unit-packed parity and negative mutants; release/cache/uncached source exit/normal terminal/8GiB zeroevents swap0 CUDAhidden, bothlocks. Failure closes gate; no reuse or GPU/quality admission until pass.",
+  "worker_commit": "1978a92e734b2221234af2a0b06f35f1b072f575"
+}
