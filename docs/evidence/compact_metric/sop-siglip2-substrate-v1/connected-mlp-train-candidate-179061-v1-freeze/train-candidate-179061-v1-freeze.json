@@ -1,0 +1,93 @@
+{
+  "arm": "candidate",
+  "authority_sha256": "578b92a6ae1b7831820dde7ab1d50fb0ad0fa5fa4b681e1e310c24fa8cc96ec3",
+  "command_consistency": "PASS both equal SHA tables, all own paths, exact CLI and launcher policy; actual remote full preflight required",
+  "execution_sha256": "a3d4e1e4ea76084a4036a1c7626b00353401adc3833838375974509aed2f2e8c",
+  "files": {
+    "authority-train-candidate-179061-v1.json": "578b92a6ae1b7831820dde7ab1d50fb0ad0fa5fa4b681e1e310c24fa8cc96ec3",
+    "train-candidate-179061-v1-command.sh": "6dda3281c4cb1fb920fc6c5fc3e1017b94a351f67d92952bad69e9c90b0b737c",
+    "train-candidate-179061-v1-controller.sh": "29301797d5da28e893e7bb4bab258ce9ea5b3f1a00873aadc2e579068623c9ca",
+    "train-candidate-179061-v1-launch.sh": "9b9cc777a23d0ca641cda7da50df971c175d81851204786ed76f736cbe1ad677"
+  },
+  "native_unrun_at_freeze": true,
+  "original_cpu_source_files": {
+    "test_siglip2_connected_mlp.py": "8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f045bc25",
+    "train_siglip2_connected_mlp.py": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1",
+  "requires_accepted_control": {
+    "both_locks_held": true,
+    "invocation_id": "3c101a7659b3426284a99d03c17b07e8",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/mechanics-control-179061-v2-original.log",
+      "sha256": "e09082628c888c54b34ab33e9ff21db8cb2cd2e3cc24ce606aac8303320cd71f"
+    },
+    "native_peak_rss_kib": 5117408,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-mechanics-control-179061-v2/receipt.json",
+      "sha256": "2500ae1d8215479fb5259d547a3ff2cc499a690fa1c5eb26db4ea60c98e276c1"
+    },
+    "service_seconds": 914.944,
+    "unit": "sfora-connected-mlp-mechanics-control-179061-v2"
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 3000,
+    "swap_bytes": 0
+  },
+  "schema": "connected-mlp-train-parent-freeze-v1",
+  "seed": 179061,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "230a11e4f1334336b6d195f60bc0bd7e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/cpu-v6-original.log",
+      "sha256": "a5c767cee5a689c5d0e0c29b4e355488e8350286033b77b2199e665d816dae14"
+    },
+    "native_peak_rss_kib": 6426592,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-cpu-v6/receipt.json",
+      "sha256": "4ecd63f75a09ff1757a9a1bdf1e80c29865c5bfb75483c63f3a3e09bc9aeeaa8"
+    },
+    "service_seconds": 433.509,
+    "unit": "sfora-connected-mlp-cpu-v6"
+  },
+  "selected_mechanics": {
+    "candidate": {
+      "both_locks_held": true,
+      "invocation_id": "259ef4e636c449619ae07888ff190247",
+      "log": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/mechanics-candidate-179061-v2-original.log",
+        "sha256": "d1dc58a6c9b797a94f99ed641a6e85a87d14790b4c23035b1df72480f905ed93"
+      },
+      "native_peak_rss_kib": 5098080,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-mechanics-candidate-179061-v2/receipt.json",
+        "sha256": "e72afc5dbb0e08688149b1460752eb4dd585b324a32eaf182fc8023e35c15206"
+      },
+      "service_seconds": 929.945,
+      "unit": "sfora-connected-mlp-mechanics-candidate-179061-v2"
+    },
+    "control": {
+      "both_locks_held": true,
+      "invocation_id": "3c101a7659b3426284a99d03c17b07e8",
+      "log": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/mechanics-control-179061-v2-original.log",
+        "sha256": "e09082628c888c54b34ab33e9ff21db8cb2cd2e3cc24ce606aac8303320cd71f"
+      },
+      "native_peak_rss_kib": 5117408,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-mechanics-control-179061-v2/receipt.json",
+        "sha256": "2500ae1d8215479fb5259d547a3ff2cc499a690fa1c5eb26db4ea60c98e276c1"
+      },
+      "service_seconds": 914.944,
+      "unit": "sfora-connected-mlp-mechanics-control-179061-v2"
+    }
+  },
+  "source_commit": "919e365e03c9177e180922c71d319cbeb79cc24c",
+  "source_freeze_sha256": "2f113dee0557e72158c3d6b8610c324e4dadc4c4ea8373e3c96a9bdbe02e6965",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-train-source-v6",
+  "stop_rule": "ONE fresh candidate061 TRAIN3000 on SAME source-v6 after BOTH full mechanics and normal live control061 TRAIN PASS; fresh initializer/no mechanics state reuse, first17 exact candidate mechanics, all128 updates/strict independent owned reload/current448/full uncached exit/normal original terminal/bothlocks/host8GiB/zero swap/events/CUDA<10GB. Actual core AND normal whole ratios<=1.50 against exact fresh_control. Failure closes arm and blocks quality. No held/official quality reads in TRAIN.",
+  "unit": "sfora-connected-mlp-train-candidate-179061-v1"
+}
