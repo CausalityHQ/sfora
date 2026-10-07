@@ -1,0 +1,19 @@
+{
+  "schema": "connected-export1500-original-launch-observation-v1",
+  "source_commit": "69908c81",
+  "unit": "sfora-connected-mlp-evaluation-export-control-179061-v2",
+  "invocation_id": "c8a9ba3f025744519d3e6411e3809161",
+  "original_controller_pid": 883444,
+  "main_pid": 883460,
+  "observed_state": "active",
+  "runtime_seconds": 1500,
+  "memory_max_bytes": 8589934592,
+  "memory_swap_max_bytes": 0,
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3",
+  "original_log": "export-control-179061-v2-original.log",
+  "original_terminal_status": "export-control-179061-v2-terminal-status.txt",
+  "output": "/home/riomus/runs/sfora-connected-mlp-evaluation-export-control-179061-v2",
+  "verdict": "PENDING_NO_QUALIFICATION",
+  "held_panel": "In-Shop previously exposed TRAIN selection1734query/1715gallery/498products",
+  "quality_read": false
+}
