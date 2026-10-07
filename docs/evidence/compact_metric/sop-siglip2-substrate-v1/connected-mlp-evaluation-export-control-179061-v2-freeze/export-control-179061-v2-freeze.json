@@ -1,0 +1,35 @@
+{
+  "execution_sha256": "c76330fe0bb0cefa5f3ec7d3a4e82785ffc7620bae6583ddf55af67b6aca651f",
+  "files": {
+    "authority-export-control-179061-v2.json": "5a78476e93a5a886f14d45f704c3977ad7ed4b6acb149e7c19c262d3f96637db",
+    "export-control-179061-v2-command.sh": "3432a5d6eb5d71985ac00fed81263b2fcfbe8ed087aef40575b695ec77f37d27",
+    "export-control-179061-v2-controller.sh": "3bdacd1f8cf5c0b4a1d9e4e733c0ea5b01abc3c2da3414ec52fd06faa551c257",
+    "export-control-179061-v2-launch.sh": "a77d98822144be216d186239e9513eb72858416bcafa7c98a04260de97c09537"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-evaluation-export-control-179061-v2",
+  "policy": {
+    "cuda_visible_devices": "0",
+    "host_bytes": 8589934592,
+    "seconds": 1500,
+    "swap_bytes": 0
+  },
+  "schema": "connected-export1500-parent-freeze-v1",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "be2906d7e30d4badbca8373ec0f2ab6e",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/first-cpu-v3-original.log",
+      "sha256": "1288d9f2ba13e87f9acc2f2110458588c303d47cf0debb1afc26ebb6d8c5114c"
+    },
+    "native_peak_rss_kib": 1398616,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-cpu-v3/receipt.json",
+      "sha256": "324ac4a56d35d9f7d0ec4c1556e01ae006ce878b88d480abbe59bfe93f99bdc7"
+    },
+    "service_seconds": 485.327,
+    "unit": "sfora-connected-mlp-evaluation-first-cpu-v3"
+  },
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3",
+  "stop_rule": "ONE new control export1500. Complete two independent B32 query/gallery passes/tails6/19/oracles/readbacks/current448/frozen444/nativeexactfour/fulluncachedexit/normal0/bothlocks/8GiB/zeroevents/noSwap/CUDA<10GB required. Failure closes arm; original900failure/partials remain ineligible. Candidate export then first061 quality only after complete gates. No TRAIN repeat or cap extension.",
+  "unit": "sfora-connected-mlp-evaluation-export-control-179061-v2"
+}

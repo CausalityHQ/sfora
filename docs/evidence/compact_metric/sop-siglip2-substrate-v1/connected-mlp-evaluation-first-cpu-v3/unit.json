@@ -1,0 +1,15 @@
+{
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-first-cpu-v3/receipt.json",
+    "sha256": "324ac4a56d35d9f7d0ec4c1556e01ae006ce878b88d480abbe59bfe93f99bdc7"
+  },
+  "log": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v3/first-cpu-v3-original.log",
+    "sha256": "1288d9f2ba13e87f9acc2f2110458588c303d47cf0debb1afc26ebb6d8c5114c"
+  },
+  "unit": "sfora-connected-mlp-evaluation-first-cpu-v3",
+  "invocation_id": "be2906d7e30d4badbca8373ec0f2ab6e",
+  "service_seconds": 485.327,
+  "native_peak_rss_kib": 1398616,
+  "both_locks_held": true
+}
