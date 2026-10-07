@@ -1,0 +1,350 @@
+{
+  "consultation": {
+    "id": "0daf0bb3185441d6",
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "fallbacks": [
+      {
+        "provider": "codex",
+        "model": "gpt-6.1-sol"
+      },
+      {
+        "provider": "claude",
+        "model": "claude-opus-5-5"
+      }
+    ],
+    "agent": "sfora/emafactorial",
+    "cwd": "/home/rb/worktrees/sfora-positive-causality",
+    "status": "completed",
+    "runner_started": true,
+    "started_at": 1791376133,
+    "timeout_seconds": 1200,
+    "deadline_at": 1791377333,
+    "budget_usd": null,
+    "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded evaluator integration plan while original DGX CPU qualification runs; no edits/imports/SSH/jobs/children/reviews. Repo /home/rb/worktrees/sfora-positive-causality master162a0b87. Read frozen docs/inshop_connected_mlp_frozen_recipe_2026-10-07.md, review_decision, current_decision_table, scripts/train_siglip2_connected_mlp.py public serving APIs and existing scripts/evaluate_siglip2_identity_diversity.py + live-top1/compact evaluator seams. Objective unchanged production BOTH SOP/InShop quality+matchedspeed, current nextintervention sameCONTROL1008/6355/seed061069 lastMLP candidate vs freshLIVEfrozencontrol A/C. Actualgradientv2PASS noquality; newCPU300originalexec67341 live, no TRAINqualified. Need minimal future evaluator contract after paired mechanics/TRAIN normalexit passes: exact endpoint4/seeds/owned base+absolute4 closure + nooriginal/witness servingdeps, actualupdated public fullquery/gallery B32 tails parity/rawunitpacked/readbacks before metrics; TRAIN previouslyexposed selectionfirstseedstrictR1, bothseedperquery/sharedbootstrap/floors + VAL conditional unchanged, original costcore+whole each<=1.50. Identify exact reusable existingfunctions/sourcepins and smallest ownedfiles/authoritynewfields; no novel losses/asymmetricselection/threshold/caps/qualityreads. Name real compatibility risks and ONE fast stdlib falsifier, no speculative fullimplementation. Distinguish engineeringadmission, heldquality and product image-to-top-k latency/10k pairedp99 gates. Deliver concise API/receipt matrix and ordered validation, conditional on actualtrainerPASS; this is new evaluatorquestion, notduplicate trainercritique.",
+    "prompt_sha256": "56a7f6c357ac7a812d5ffc838ac987ada77172190c1dd8dc379622044ac54582",
+    "prompt_bytes": 1948,
+    "fingerprint": "e0daf3dcb7885d9e5ceebb54e40736e06e5dce257d3be7797f8b74b0943d3b5f",
+    "evidence": {
+      "git_commit": "162a0b878ee50f5b8987cfcad407eb6f401861d1",
+      "git_branch": "master",
+      "git_dirty": true,
+      "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+      "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+      "worktree_evidence_truncated": false,
+      "active_goal": {
+        "id": "goal-1790540789-1790540789754989478-2322852",
+        "agent": "sfora/emafactorial",
+        "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+        "status": "queued",
+        "revision": 1,
+        "actor": "operator",
+        "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+        "created_at": 1790540789,
+        "updated_at": 1790540789
+      }
+    },
+    "previous_fingerprint": "e1aff43017342b44982b8c1ae72aa349399878de458976a09a04ecdacd3f4368",
+    "reused": false,
+    "specialist_route": {
+      "model": "gpt-6.1-sol",
+      "effort": "xhigh",
+      "source": "jev",
+      "decision_id": "26027e08-7ff7-4966-94de-9e2b10667379"
+    },
+    "launch_command": "specialist_start",
+    "systemd_unit": "devbox-consult-0daf0bb3185441d6.service",
+    "pid": 4093646,
+    "pgid": 4093646,
+    "attempt": 1,
+    "attempts": [
+      {
+        "provider": "codex",
+        "model": "gpt-6.1-sol"
+      },
+      {
+        "provider": "claude",
+        "model": "claude-opus-5-5"
+      }
+    ],
+    "attempt_history": [
+      {
+        "provider": "codex",
+        "model": "gpt-6.1-sol",
+        "budget_usd": null,
+        "timeout_seconds": 1198,
+        "started_at": 1791376135
+      }
+    ],
+    "exit_code": 0,
+    "finished_at": 1791376648,
+    "event_cursor": 111,
+    "events": [
+      {
+        "seq": 88,
+        "at": 1791376398,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 89,
+        "at": 1791376398,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 90,
+        "at": 1791376403,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 91,
+        "at": 1791376403,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 92,
+        "at": 1791376406,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 93,
+        "at": 1791376408,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 94,
+        "at": 1791376443,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 95,
+        "at": 1791376443,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 96,
+        "at": 1791376443,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 97,
+        "at": 1791376449,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 98,
+        "at": 1791376450,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 2"
+      },
+      {
+        "seq": 99,
+        "at": 1791376451,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 100,
+        "at": 1791376503,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 101,
+        "at": 1791376503,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 102,
+        "at": 1791376503,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 103,
+        "at": 1791376503,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 104,
+        "at": 1791376503,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 105,
+        "at": 1791376503,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 1"
+      },
+      {
+        "seq": 106,
+        "at": 1791376513,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 107,
+        "at": 1791376513,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 108,
+        "at": 1791376513,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 109,
+        "at": 1791376513,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 110,
+        "at": 1791376647,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 111,
+        "at": 1791376648,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ],
+    "events_truncated": true,
+    "provider_events": {
+      "codex": [
+        {
+          "seq": 104,
+          "at": 1791376503,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 105,
+          "at": 1791376503,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 106,
+          "at": 1791376513,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 107,
+          "at": 1791376513,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 108,
+          "at": 1791376513,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 109,
+          "at": 1791376513,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 110,
+          "at": 1791376647,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 111,
+          "at": 1791376648,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ]
+    },
+    "partial_result": "Add **one connected-MLP evaluator and one stdlib contract test**, conditional on the original CPU300 gate, paired mechanics and fresh TRAIN128 normal-exit admission. Actual-gradient-v2 PASS supplies connectivity evidence only; do not infer TRAIN qualification from exec67341 being live.\n\nThe inspected trainer bytes match commit `162a0b87` and the [frozen execution manifest](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v1-freeze/execution.json), SHA256 `731cc7a4f5adb9f892a660013243643ee6d0a9417f8e36f82c165d30b72a8422`.\n\n| Seam | Exact reuse | Connected evaluator contract |\n|---|---|---|\n| TRAIN admission | Trainer `authority`, `check_launch`, `method`, `admit_terminal`, `check_terminal` | Bind each endpoint to TRAIN128, its seed-specific mechanics pair, selected CPU and original normal-exit UNIT. Candidate `fresh_control` must equal the paired control UNIT. |\n| Endpoint projection | Trainer `result` and `result.parity`; `admit_bundle` | Checkpoint is `result.checkpoint`; bundle is `result.parity.bundle`; inference digest comes from authenticated manifest `endpoint_state_sha256`. Actual paths are `<arm>-<seed>-terminal.pt` and `<arm>-<seed>-bundle/bundle.json`, rather than legacy `resume.pt` paths. |\n| Complete state | `check_payload`, `fingerprint`, `encoder_facts`, `apply_overlay` | Authenticate original base separately; exactly four absolute FP32 MLP replacements; reconstructed448 digest, frozen444, buffers/config/roles and complete A/C/optimizer/scaler/RNG identity. Control retains original four; candidate changes all four. |\n| Public serving | Copied `load_inference`, `inference_outputs`, `release_inference` | Only owned bundle files and admitted installed packages. Deny original checkpoint, TRAIN/cache and witness paths during public loading/forward. Preserve independent storage, mapping release and processor-cache teardown. |\n| Export/readback | Nearest `image_rows`, `read_wires`; baseline `write_wires`, `readback_wires`, `value_facts`, `scoring_math`; identity evaluator’s export flow | Re-encode **both complete query and gallery** using each endpoint. Two sequential independent public loads; B32 and tails; raw/unit/codes/inverse-norm/wire equality and persisted readbacks before metrics. Independent concat-plus-centered-C oracle uses that endpoint’s updated image features. |\n| Decisions | Identity `paired_cost`, `metric_deltas`, `immediate_quality_pass`, `selection_floors_pass`, `decide`; genuine `averaged_deltas`, `first_gate`, `quality_gate`; reference `paired_intervals`, `qualify_bootstrap` | Preserve existing per-query scoring, source/concat floors, equal-seed averaging and shared bootstrap procedure. |\n\nUse the exact `NEAREST_EVALUATOR`, `GENUINE_PINS`/`GENUINE_EXECUTION_SHA` and `REFERENCE` descriptors already recorded in [the evaluator](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_identity_diversity.py:628). The corrected live-top1 source pair is pinned by its [freeze receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-evaluator-source-v1/corrected-freeze-receipt.json); preserve that seam without adopting its trainer identity.\n\nCurrent identity-evaluator source pins are:\n\n```text\nevaluate_siglip2_identity_diversity.py  95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d\ntest_identity_diversity_evaluation.py  1cdbd7fef94f9f6812534e03cde9d009d5108b2a57d97cf09d9394d6046715e0\n```\n\nThese differ from its historical CPU freeze. Authenticate the selected source pair explicitly; do not substitute historical qualification.\n\nThe smallest future owned files are `scripts/evaluate_siglip2_connected_mlp.py` and `scripts/test_connected_mlp_evaluation.py`. Give them new evaluator/launch schemas. Retain the eight-field endpoint descriptor and existing phase/stage/panel/export/continuation fields. Replace `training` with the connected descriptor; remove the diversity-specific `candidate_cache`; retain the same CONTROL scope for both arms. If importing reusable evaluator functions, add one authenticated `evaluator_reference` CODE descriptor. Extend payload facts with typed digests for `base_vision`, `encoder` and `encoder_identity`; existing `vision_sha256` now means reconstructed updated448. Derive remaining serving requirements from trainer constants.\n\nValidate in this order:\n\n1. **Admit training before held-image access.** Require terminal CPU PASS, each requested seed’s paired mechanics PASS, complete fresh TRAIN128 receipts, distinct invocations and same-seed CONTROL initializer/schedule/static/RNG binding. Recompute both ratios from original UNIT `service_seconds` and actual summed update-core seconds; each must be ≤1.50. Preserve phase costs without subtraction.\n2. **Authenticate payloads and qualify exports.** Preserve original source proof separately from updated encoder identity. Export complete selection panels: 1,734 queries/1,715 gallery. Require same-role numerical parity, including tails; compare FP32 CPU with FP32 CPU and CUDA FP16 with CUDA FP16. Finish every admitted endpoint’s independent readbacks before candidate metrics.\n3. **Score 061 first.** Require strict candidate-minus-control R@1 gain, nonnegative AP delta and unchanged source/concat floors. Retained selection floors remain R@1 `>.9648212226066898`, mAP@R `≥.8177754035543956`. Failure is KILL; no first CI, 069 or VAL.\n4. **Only after CONTINUE, admit 069.** Full endpoint order remains `C061,A061,A069,C069`. Require each seed’s strict R@1/nonnegative AP, equal-seed mean gains ≥`.002` for both metrics, and both product lower95 bounds >0. Preserve shared 5,000 draws/seed179019 and report query intervals.\n5. **Only same-four selection GO admits unchanged VAL**, 1,749 queries/1,730 gallery, without retuning or refitting.\n\nConcrete risks are the nested receipt/path mismatch; legacy reuse of 061 mechanics for 069; diversity scope assumptions; and stale-cache equality checks that would reject legitimate adapted descriptors. Cached-gallery training versus adapted-gallery serving remains the scientific risk resolved by selection. Repeated full448 hashing/public reloads may exceed existing export limits or impair latency; failure must remain failure.\n\n**One fast falsifier:** a stdlib-only, in-memory metadata test accepts the correctly nested four-endpoint binding, then replaces candidate manifest `vision_sha256` with the authenticated base digest while retaining its trained payload/parity digests. Admission must reject before a sentinel native loader or scorer is called. Extract only metadata validator definitions with `ast`; import no trainer/native modules. This tests binding, without claiming numerical qualification.\n\nEngineering admission and TRAIN/VAL utility still leave the production gate open: official quality on **both SOP and In-Shop**, plus matched image-to-top-k latency/QPS including decode through native search. A p99 claim still requires 10,000 interleaved paired calls and its confidence interval.\n\nRead-only planning completed; no files, jobs or remote state changed.",
+    "partial_result_truncated": false,
+    "provider_partials": {
+      "codex": "Add **one connected-MLP evaluator and one stdlib contract test**, conditional on the original CPU300 gate, paired mechanics and fresh TRAIN128 normal-exit admission. Actual-gradient-v2 PASS supplies connectivity evidence only; do not infer TRAIN qualification from exec67341 being live.\n\nThe inspected trainer bytes match commit `162a0b87` and the [frozen execution manifest](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v1-freeze/execution.json), SHA256 `731cc7a4f5adb9f892a660013243643ee6d0a9417f8e36f82c165d30b72a8422`.\n\n| Seam | Exact reuse | Connected evaluator contract |\n|---|---|---|\n| TRAIN admission | Trainer `authority`, `check_launch`, `method`, `admit_terminal`, `check_terminal` | Bind each endpoint to TRAIN128, its seed-specific mechanics pair, selected CPU and original normal-exit UNIT. Candidate `fresh_control` must equal the paired control UNIT. |\n| Endpoint projection | Trainer `result` and `result.parity`; `admit_bundle` | Checkpoint is `result.checkpoint`; bundle is `result.parity.bundle`; inference digest comes from authenticated manifest `endpoint_state_sha256`. Actual paths are `<arm>-<seed>-terminal.pt` and `<arm>-<seed>-bundle/bundle.json`, rather than legacy `resume.pt` paths. |\n| Complete state | `check_payload`, `fingerprint`, `encoder_facts`, `apply_overlay` | Authenticate original base separately; exactly four absolute FP32 MLP replacements; reconstructed448 digest, frozen444, buffers/config/roles and complete A/C/optimizer/scaler/RNG identity. Control retains original four; candidate changes all four. |\n| Public serving | Copied `load_inference`, `inference_outputs`, `release_inference` | Only owned bundle files and admitted installed packages. Deny original checkpoint, TRAIN/cache and witness paths during public loading/forward. Preserve independent storage, mapping release and processor-cache teardown. |\n| Export/readback | Nearest `image_rows`, `read_wires`; baseline `write_wires`, `readback_wires`, `value_facts`, `scoring_math`; identity evaluator’s export flow | Re-encode **both complete query and gallery** using each endpoint. Two sequential independent public loads; B32 and tails; raw/unit/codes/inverse-norm/wire equality and persisted readbacks before metrics. Independent concat-plus-centered-C oracle uses that endpoint’s updated image features. |\n| Decisions | Identity `paired_cost`, `metric_deltas`, `immediate_quality_pass`, `selection_floors_pass`, `decide`; genuine `averaged_deltas`, `first_gate`, `quality_gate`; reference `paired_intervals`, `qualify_bootstrap` | Preserve existing per-query scoring, source/concat floors, equal-seed averaging and shared bootstrap procedure. |\n\nUse the exact `NEAREST_EVALUATOR`, `GENUINE_PINS`/`GENUINE_EXECUTION_SHA` and `REFERENCE` descriptors already recorded in [the evaluator](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_identity_diversity.py:628). The corrected live-top1 source pair is pinned by its [freeze receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-evaluator-source-v1/corrected-freeze-receipt.json); preserve that seam without adopting its trainer identity.\n\nCurrent identity-evaluator source pins are:\n\n```text\nevaluate_siglip2_identity_diversity.py  95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d\ntest_identity_diversity_evaluation.py  1cdbd7fef94f9f6812534e03cde9d009d5108b2a57d97cf09d9394d6046715e0\n```\n\nThese differ from its historical CPU freeze. Authenticate the selected source pair explicitly; do not substitute historical qualification.\n\nThe smallest future owned files are `scripts/evaluate_siglip2_connected_mlp.py` and `scripts/test_connected_mlp_evaluation.py`. Give them new evaluator/launch schemas. Retain the eight-field endpoint descriptor and existing phase/stage/panel/export/continuation fields. Replace `training` with the connected descriptor; remove the diversity-specific `candidate_cache`; retain the same CONTROL scope for both arms. If importing reusable evaluator functions, add one authenticated `evaluator_reference` CODE descriptor. Extend payload facts with typed digests for `base_vision`, `encoder` and `encoder_identity`; existing `vision_sha256` now means reconstructed updated448. Derive remaining serving requirements from trainer constants.\n\nValidate in this order:\n\n1. **Admit training before held-image access.** Require terminal CPU PASS, each requested seed’s paired mechanics PASS, complete fresh TRAIN128 receipts, distinct invocations and same-seed CONTROL initializer/schedule/static/RNG binding. Recompute both ratios from original UNIT `service_seconds` and actual summed update-core seconds; each must be ≤1.50. Preserve phase costs without subtraction.\n2. **Authenticate payloads and qualify exports.** Preserve original source proof separately from updated encoder identity. Export complete selection panels: 1,734 queries/1,715 gallery. Require same-role numerical parity, including tails; compare FP32 CPU with FP32 CPU and CUDA FP16 with CUDA FP16. Finish every admitted endpoint’s independent readbacks before candidate metrics.\n3. **Score 061 first.** Require strict candidate-minus-control R@1 gain, nonnegative AP delta and unchanged source/concat floors. Retained selection floors remain R@1 `>.9648212226066898`, mAP@R `≥.8177754035543956`. Failure is KILL; no first CI, 069 or VAL.\n4. **Only after CONTINUE, admit 069.** Full endpoint order remains `C061,A061,A069,C069`. Require each seed’s strict R@1/nonnegative AP, equal-seed mean gains ≥`.002` for both metrics, and both product lower95 bounds >0. Preserve shared 5,000 draws/seed179019 and report query intervals.\n5. **Only same-four selection GO admits unchanged VAL**, 1,749 queries/1,730 gallery, without retuning or refitting.\n\nConcrete risks are the nested receipt/path mismatch; legacy reuse of 061 mechanics for 069; diversity scope assumptions; and stale-cache equality checks that would reject legitimate adapted descriptors. Cached-gallery training versus adapted-gallery serving remains the scientific risk resolved by selection. Repeated full448 hashing/public reloads may exceed existing export limits or impair latency; failure must remain failure.\n\n**One fast falsifier:** a stdlib-only, in-memory metadata test accepts the correctly nested four-endpoint binding, then replaces candidate manifest `vision_sha256` with the authenticated base digest while retaining its trained payload/parity digests. Admission must reject before a sentinel native loader or scorer is called. Extract only metadata validator definitions with `ast`; import no trainer/native modules. This tests binding, without claiming numerical qualification.\n\nEngineering admission and TRAIN/VAL utility still leave the production gate open: official quality on **both SOP and In-Shop**, plus matched image-to-top-k latency/QPS including decode through native search. A p99 claim still requires 10,000 interleaved paired calls and its confidence interval.\n\nRead-only planning completed; no files, jobs or remote state changed."
+    },
+    "providers_used": [
+      "codex"
+    ],
+    "active_provider": "codex",
+    "phase": "Consultation completed",
+    "input_bytes": 1948,
+    "output_bytes": 7160,
+    "elapsed_seconds": 515,
+    "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)\ndevbox-ask: codex consult still running (8m 00s)\ndevbox-ask: codex consult still running (8m 30s)",
+    "progress_truncated": false,
+    "result": "Add **one connected-MLP evaluator and one stdlib contract test**, conditional on the original CPU300 gate, paired mechanics and fresh TRAIN128 normal-exit admission. Actual-gradient-v2 PASS supplies connectivity evidence only; do not infer TRAIN qualification from exec67341 being live.\n\nThe inspected trainer bytes match commit `162a0b87` and the [frozen execution manifest](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v1-freeze/execution.json), SHA256 `731cc7a4f5adb9f892a660013243643ee6d0a9417f8e36f82c165d30b72a8422`.\n\n| Seam | Exact reuse | Connected evaluator contract |\n|---|---|---|\n| TRAIN admission | Trainer `authority`, `check_launch`, `method`, `admit_terminal`, `check_terminal` | Bind each endpoint to TRAIN128, its seed-specific mechanics pair, selected CPU and original normal-exit UNIT. Candidate `fresh_control` must equal the paired control UNIT. |\n| Endpoint projection | Trainer `result` and `result.parity`; `admit_bundle` | Checkpoint is `result.checkpoint`; bundle is `result.parity.bundle`; inference digest comes from authenticated manifest `endpoint_state_sha256`. Actual paths are `<arm>-<seed>-terminal.pt` and `<arm>-<seed>-bundle/bundle.json`, rather than legacy `resume.pt` paths. |\n| Complete state | `check_payload`, `fingerprint`, `encoder_facts`, `apply_overlay` | Authenticate original base separately; exactly four absolute FP32 MLP replacements; reconstructed448 digest, frozen444, buffers/config/roles and complete A/C/optimizer/scaler/RNG identity. Control retains original four; candidate changes all four. |\n| Public serving | Copied `load_inference`, `inference_outputs`, `release_inference` | Only owned bundle files and admitted installed packages. Deny original checkpoint, TRAIN/cache and witness paths during public loading/forward. Preserve independent storage, mapping release and processor-cache teardown. |\n| Export/readback | Nearest `image_rows`, `read_wires`; baseline `write_wires`, `readback_wires`, `value_facts`, `scoring_math`; identity evaluator’s export flow | Re-encode **both complete query and gallery** using each endpoint. Two sequential independent public loads; B32 and tails; raw/unit/codes/inverse-norm/wire equality and persisted readbacks before metrics. Independent concat-plus-centered-C oracle uses that endpoint’s updated image features. |\n| Decisions | Identity `paired_cost`, `metric_deltas`, `immediate_quality_pass`, `selection_floors_pass`, `decide`; genuine `averaged_deltas`, `first_gate`, `quality_gate`; reference `paired_intervals`, `qualify_bootstrap` | Preserve existing per-query scoring, source/concat floors, equal-seed averaging and shared bootstrap procedure. |\n\nUse the exact `NEAREST_EVALUATOR`, `GENUINE_PINS`/`GENUINE_EXECUTION_SHA` and `REFERENCE` descriptors already recorded in [the evaluator](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_identity_diversity.py:628). The corrected live-top1 source pair is pinned by its [freeze receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-evaluator-source-v1/corrected-freeze-receipt.json); preserve that seam without adopting its trainer identity.\n\nCurrent identity-evaluator source pins are:\n\n```text\nevaluate_siglip2_identity_diversity.py  95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d\ntest_identity_diversity_evaluation.py  1cdbd7fef94f9f6812534e03cde9d009d5108b2a57d97cf09d9394d6046715e0\n```\n\nThese differ from its historical CPU freeze. Authenticate the selected source pair explicitly; do not substitute historical qualification.\n\nThe smallest future owned files are `scripts/evaluate_siglip2_connected_mlp.py` and `scripts/test_connected_mlp_evaluation.py`. Give them new evaluator/launch schemas. Retain the eight-field endpoint descriptor and existing phase/stage/panel/export/continuation fields. Replace `training` with the connected descriptor; remove the diversity-specific `candidate_cache`; retain the same CONTROL scope for both arms. If importing reusable evaluator functions, add one authenticated `evaluator_reference` CODE descriptor. Extend payload facts with typed digests for `base_vision`, `encoder` and `encoder_identity`; existing `vision_sha256` now means reconstructed updated448. Derive remaining serving requirements from trainer constants.\n\nValidate in this order:\n\n1. **Admit training before held-image access.** Require terminal CPU PASS, each requested seed’s paired mechanics PASS, complete fresh TRAIN128 receipts, distinct invocations and same-seed CONTROL initializer/schedule/static/RNG binding. Recompute both ratios from original UNIT `service_seconds` and actual summed update-core seconds; each must be ≤1.50. Preserve phase costs without subtraction.\n2. **Authenticate payloads and qualify exports.** Preserve original source proof separately from updated encoder identity. Export complete selection panels: 1,734 queries/1,715 gallery. Require same-role numerical parity, including tails; compare FP32 CPU with FP32 CPU and CUDA FP16 with CUDA FP16. Finish every admitted endpoint’s independent readbacks before candidate metrics.\n3. **Score 061 first.** Require strict candidate-minus-control R@1 gain, nonnegative AP delta and unchanged source/concat floors. Retained selection floors remain R@1 `>.9648212226066898`, mAP@R `≥.8177754035543956`. Failure is KILL; no first CI, 069 or VAL.\n4. **Only after CONTINUE, admit 069.** Full endpoint order remains `C061,A061,A069,C069`. Require each seed’s strict R@1/nonnegative AP, equal-seed mean gains ≥`.002` for both metrics, and both product lower95 bounds >0. Preserve shared 5,000 draws/seed179019 and report query intervals.\n5. **Only same-four selection GO admits unchanged VAL**, 1,749 queries/1,730 gallery, without retuning or refitting.\n\nConcrete risks are the nested receipt/path mismatch; legacy reuse of 061 mechanics for 069; diversity scope assumptions; and stale-cache equality checks that would reject legitimate adapted descriptors. Cached-gallery training versus adapted-gallery serving remains the scientific risk resolved by selection. Repeated full448 hashing/public reloads may exceed existing export limits or impair latency; failure must remain failure.\n\n**One fast falsifier:** a stdlib-only, in-memory metadata test accepts the correctly nested four-endpoint binding, then replaces candidate manifest `vision_sha256` with the authenticated base digest while retaining its trained payload/parity digests. Admission must reject before a sentinel native loader or scorer is called. Extract only metadata validator definitions with `ast`; import no trainer/native modules. This tests binding, without claiming numerical qualification.\n\nEngineering admission and TRAIN/VAL utility still leave the production gate open: official quality on **both SOP and In-Shop**, plus matched image-to-top-k latency/QPS including decode through native search. A p99 claim still requires 10,000 interleaved paired calls and its confidence interval.\n\nRead-only planning completed; no files, jobs or remote state changed.",
+    "result_truncated": false
+  },
+  "root_status_note": "Collected after CPUv1 original exec67341 terminal exit1: missing genuine initializer on fresh terminal reader. Historical live status in consultation prompt is superseded; no TRAIN qualification or evaluator implementation authorized by this plan alone."
+}
