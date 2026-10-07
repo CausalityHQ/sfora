@@ -1,0 +1,12 @@
+{
+  "both_exact_original_export_UNITs": true,
+  "cpu5_payload_facts_equal_original_cpu3": true,
+  "metadata_only": true,
+  "native_qualified": false,
+  "original_current_launch_differ_only_exact_allowlist": true,
+  "panel": "selection",
+  "pass": true,
+  "quality_result_available": false,
+  "score_seconds": 700,
+  "stage": "first"
+}
