@@ -55,7 +55,8 @@ def source_contract(d):
     assert d.parameter_roles('control') == (['A', 'C'], [[128,160],[128,1152]], 167936)
     assert d.parameter_roles('candidate') == (['A','C',*d.MLP], [[128,160],[128,1152],*d.MLP_SHAPES], 10089808)
     rejects(lambda: d.parameter_roles('CONTROL2016'), 'arm')
-    assert d.policy('cpu')['seconds'] == d.policy('mechanics')['seconds'] == 300
+    assert d.policy('cpu')['seconds'] == 600
+    assert d.policy('mechanics')['seconds'] == 300
     assert d.policy('train')['seconds'] == 600
     assert all(d.policy(p)['host_bytes'] == 8*1024**3 and d.policy(p)['swap_bytes'] == 0
                for p in ('cpu','mechanics','train'))
@@ -98,7 +99,9 @@ def authority_falsifiers(d):
               'selected_cpu':None, 'selected_mechanics':None, 'fresh_control':None}
     d.check_launch(launch, args)
     for key, value in [('schema','wrong'), ('seed',True), ('arm','candidate'),
+                       ('resource_policy', {**d.policy('cpu'),'seconds':300}),
                        ('resource_policy', {**d.policy('cpu'),'seconds':500}),
+                       ('resource_policy', {**d.policy('cpu'),'seconds':601}),
                        ('both_locks_held',False), ('selected_cpu',unit)]:
         rejects(lambda k=key,v=value: d.check_launch({**launch,k:v},args), 'launch')
     for key, value in [('classes', {'control':1008,'candidate':2016}), ('microbatch',32),
@@ -122,13 +125,25 @@ def authority_falsifiers(d):
         rejects(lambda: d.bound_file({},path,digest), 'bytes')
 
 
+def cpu_envelope_inverse(raw):
+    replacements = (
+        (b'one NEW CPU600 UNIT', b'one NEW CPU300 UNIT'),
+        (b'Gates: ownCPU600/mechanics300/TRAIN600', b'Gates: ownCPU300/mechanics300/TRAIN600'),
+        (b"'seconds':300 if phase == 'mechanics' else 600", b"'seconds':600 if phase == 'train' else 300"),
+    )
+    for new, old in replacements:
+        assert raw.count(new) == 1, 'exact prospective CPU envelope differs'
+        raw = raw.replace(new, old)
+    return raw
+
+
 def actual_gradient_scan_falsifier(d):
     """Real fresh reads at the extracted callsite; no native/speed qualification."""
     import os
     import threading
     from collections import Counter
 
-    raw = DRIVER.read_bytes()
+    raw = cpu_envelope_inverse(DRIVER.read_bytes())
     old = (b"    for path,digest in record['input_guards'].items():\n"
            b"        bound_file(context['guards'],path,digest)\n")
     new = b"    batch_bound_files(context['guards'],record['input_guards'].items())\n"

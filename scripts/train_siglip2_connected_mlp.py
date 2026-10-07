@@ -11,7 +11,7 @@ Durable implementation/launch contract (the parent freezes actual hashes):
  FILE={path:absolute canonical regular file,sha256:actual SHA256}; UNIT has
  receipt:FILE,log:FILE,unit,invocation_id,service_seconds,native_peak_rss_kib,
  both_locks_held:true. No inferred/future hashes. Historical policies unchanged.
- selected_cpu is null only for cpu, otherwise one NEW CPU300 UNIT. CPU launch
+ selected_cpu is null only for cpu, otherwise one NEW CPU600 UNIT. CPU launch
  is control061; it validates both CONTROL initializers and discards a genuine
  candidate061 B64/two-view update, independently restores it and qualifies its
  nonzero-four public bundle. selected_mechanics is null except TRAIN, where
@@ -39,7 +39,7 @@ Durable implementation/launch contract (the parent freezes actual hashes):
  APIs: load_initializer, fresh, payload, check_payload, integrity, save,
  restore, update, export_bundle, load_inference, inference_outputs, release,
  release_inference. State/checkpoint/bundle storage and processor lifetimes
- are independent and audited. Gates: ownCPU300/mechanics300/TRAIN600, 8GiB,
+ are independent and audited. Gates: ownCPU600/mechanics300/TRAIN600, 8GiB,
  no swap/events, CUDA allocation <10GB, both locks, original uncached exit.
  Source tests authorize no native/model-fit/quality/cost/state reuse claims.
 """
@@ -119,7 +119,7 @@ def require(condition, message):
 
 def policy(phase):
     require(phase in ('cpu','mechanics','train'), 'fixed phase required')
-    return {'seconds':600 if phase == 'train' else 300,'host_bytes':8*1024**3,
+    return {'seconds':300 if phase == 'mechanics' else 600,'host_bytes':8*1024**3,
             'swap_bytes':0,'cuda_allocated_bytes_exclusive':10_000_000_000}
 
 
