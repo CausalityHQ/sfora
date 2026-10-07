@@ -1,0 +1,13 @@
+{
+  "base": "81014eed",
+  "candidate_blobs": "d151167980327ee2e12b8f2d5050380d8855bdf9",
+  "predicate_correspondence": {
+    "release1307": "Snapshot COMPLETE endpoint module tuple before teardown. Explicitly evaluate every sys.modules.get(module.__name__) is module before AND after independent teardown, under shared registry lock; mismatches deferred until genuine cleanup. Final identity test/removal atomic for supported writers. No helper filtering; original pop-only loop delegated via explicit empty map, its full identity predicates retained non-vacuously in wrapper.",
+    "release1297-1306": "Independent FunctionType captured code+original globals retains weakref construction, genuine processor cache authority check, cache_clear, empty-cache require and endpoint.clear unchanged.",
+    "release1308-1311": "gc.collect, every resource weakref expired, CUDA cache work remain unchanged in independent release code.",
+    "wrapper_owned_registry": "Complete _owned predicate retained/executed before+after teardown; foreign identities survive.",
+    "public_callable": "Plain-close saved callable and code identity/origin/source mismatches recorded before cleanup and raised afterward; cloned release unaffected by saved fn code mutation.",
+    "input": "Pure validation/list snapshot outside request destruction; inference errors continue genuine cleanup."
+  },
+  "limits": "Only two assigned files; stdlib only; no original globals/functions rebinding. Shared RLock supported writers; no arbitrary unsynchronized sys.modules guarantee. Native lifecycle/parity/latency UNRUN."
+}

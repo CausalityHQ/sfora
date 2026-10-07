@@ -1,0 +1,16 @@
+{
+  "active_state": "active",
+  "complete_both_export_parent_verifications_pass": true,
+  "completion_inferred": false,
+  "controller_pid": 922434,
+  "cuda_visible_devices": "",
+  "host_bytes": 8589934592,
+  "idle_no_gpu_process_and_both_locks_verified_before_launch": true,
+  "invocation_id": "b31a71d7f3804c44ad1f1658839294e8",
+  "main_pid": 922453,
+  "quality_result_inferred": false,
+  "runtime_max_seconds": 500,
+  "schema": "connected-score-launch-observation-v1",
+  "swap_bytes": 0,
+  "unit": "sfora-connected-mlp-evaluation-first-selection-score-v1"
+}

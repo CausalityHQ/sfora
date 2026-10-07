@@ -1,0 +1,28 @@
+{
+  "base": "81014eed237c05d295f061473f861c4518fadfa9",
+  "rlimit_as_bytes": 1073741824,
+  "wall_timeout_seconds": 120,
+  "qualification": "SOURCE ONLY; native lifecycle/parity/latency UNRUN",
+  "contract": "/home/rb/agents/handoffs/sfora-connected-bridge-teardown-contract.json",
+  "syntax_exit": 0,
+  "test_exit": 0,
+  "diff_exit": 0,
+  "exit_code": 0,
+  "elapsed_seconds": 0.49049393297173083,
+  "log": "/home/rb/agents/handoffs/sfora-connected-bridge-teardown-final-check.log",
+  "log_sha256": "19193bb25961e2a12e147fb82670c91ec93175e984a622b7254296cac33ee378",
+  "files": {
+    "src/sfora/connected_compact_serving.py": "06a41df0482be8bf32bc03bd42bd9224d4338c89ee6d1a25c14071671ef156dd",
+    "scripts/test_connected_compact_serving.py": "431f90b69a1cdb9e8389ee7e6639b9a4522a4fd498c8808db3518548122b09f4"
+  },
+  "commit": "c162bc2d59c6d463618e61a9230f216ef537eefe",
+  "clean": true,
+  "attribution": "Roman Bartusiak <riomus@gmail.com>",
+  "red_failures": [
+    "actual release mutation: genuine cache cleanup skipped",
+    "actual processor-cache replacement: foreign helper removed during cache work",
+    "plain-close replacement: accepted plain close registry tampering"
+  ],
+  "tests": "All prior test cases retained; invalid-request closes expectation narrowly changed. Actual finite original release body exercises success, mutation rejection, both helper identities before/during cleanup, shared-lock writer, cache authority/lifetime/parameter lifetime, original load failures, inference/native standin failures, idempotence, mutable input snapshot.",
+  "limits": "No real Torch/Numpy/PIL/native imports, no SSH/GPU/images/cloud/paid reviews/children/operator, no merge/push, no original trainer edits; live export untouched; arbitrary unsynchronized registry writers outside lock contract."
+}
