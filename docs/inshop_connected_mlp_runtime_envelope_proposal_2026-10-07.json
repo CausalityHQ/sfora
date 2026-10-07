@@ -1,0 +1,93 @@
+{
+  "diagnostic": {
+    "completed_updates": 5,
+    "host_peak_bytes": 5135122432,
+    "invocation_id": "06dd64f1f30f442f91fbec327faf13da",
+    "log_sha256": "ecc608570d3f3dc79a8c7fb3118ecfdfd278b194facbbd56aa911b9099e3e5b8",
+    "measurement_limits": "Inclusive function scopes overlap and cannot be summed; exclusive values subtract only observed same-source phase children, not all imported helper calls. sys.setprofile overhead is charged and is not an unprofiled native speed measurement. No full replay/portable parity/exit completed.",
+    "service_seconds": 300.482
+  },
+  "diagnostic_phase_summary_inclusive_not_additive": {
+    "authority": {
+      "count": 1,
+      "exclusive_within_observed_source_phases_median_seconds": 157.62696563299687,
+      "inclusive_median_seconds": 157.62696563299687,
+      "inclusive_sum_seconds": 157.62696563299687
+    },
+    "construct_encoder": {
+      "count": 1,
+      "exclusive_within_observed_source_phases_median_seconds": 16.70529926099698,
+      "inclusive_median_seconds": 16.70529926099698,
+      "inclusive_sum_seconds": 16.70529926099698
+    },
+    "encoder_facts": {
+      "count": 18,
+      "exclusive_within_observed_source_phases_median_seconds": 1.7432117645003018,
+      "inclusive_median_seconds": 1.7432117645003018,
+      "inclusive_sum_seconds": 30.798228329978883
+    },
+    "fingerprint": {
+      "count": 100,
+      "exclusive_within_observed_source_phases_median_seconds": 0.09564873850467848,
+      "inclusive_median_seconds": 0.09564873850467848,
+      "inclusive_sum_seconds": 27.507956067071063
+    },
+    "fresh": {
+      "count": 1,
+      "exclusive_within_observed_source_phases_median_seconds": 0.762004412987153,
+      "inclusive_median_seconds": 38.84113586699823,
+      "inclusive_sum_seconds": 38.84113586699823
+    },
+    "integrity": {
+      "count": 12,
+      "exclusive_within_observed_source_phases_median_seconds": 2.013219452004705,
+      "inclusive_median_seconds": 5.0101726980065,
+      "inclusive_sum_seconds": 59.30931155802682
+    },
+    "load_initializer": {
+      "count": 1,
+      "exclusive_within_observed_source_phases_median_seconds": 14.428149854997173,
+      "inclusive_median_seconds": 14.428149854997173,
+      "inclusive_sum_seconds": 14.428149854997173
+    },
+    "update": {
+      "count": 5,
+      "exclusive_within_observed_source_phases_median_seconds": 4.2902648220042465,
+      "inclusive_median_seconds": 18.540643988992088,
+      "inclusive_sum_seconds": 92.54909290498472
+    }
+  },
+  "estimated_budget_basis_NOT_measurement": {
+    "mechanics_margin": "1200 admits445.3s estimated update subtotal plus complete admission, two independent constructions/restores, saves/portable parity/full exit and margin; candidate unmeasured, conditional after control complete PASS.",
+    "mechanics_updates34_times_observed_control_median_seconds": 445.27074403587903,
+    "train_margin": "3000 admits1676.3s estimated control update subtotal plus full lifecycle. Candidate still must core/normal whole<=1.50 actual fresh same-seed control; cap cannot rescue failed cost. These estimates do not predict a pass.",
+    "train_updates128_times_observed_control_median_seconds": 1676.3133893115446
+  },
+  "full_goal_achieved": false,
+  "original_unprofiled": {
+    "completed_uninterrupted_updates": 12,
+    "host_peak_bytes": 5138878464,
+    "invocation_id": "5c115f36b03e400c83a898bc06d3f64b",
+    "log_sha256": "cce919a078f1d365519c736538b9752beff8c0d2d20c5fdbd1cdb8cbcd92a74c",
+    "service_seconds": 300.075,
+    "update_core_median_seconds": 13.096198353996442
+  },
+  "proposed_phase_seconds": {
+    "cpu": 600,
+    "mechanics": 1200,
+    "train": 3000
+  },
+  "qualification_sequence": "New code identity requires ONE fresh CPU600 on exact new freeze before any paired GPU1200 gates; old CPUv3 PASS remains its original execution proof, not a replacement proof. Control061 mechanics first; candidate only after full control PASS. Fresh TRAIN control061 then candidate conditional paired mechanics, then first strict quality stop. 069/VAL only after unchanged scientific continuation.",
+  "root_causal_conclusion": "CUDA mechanics source is substantially host-validation/serialization bound; three complete current encoder checks per update plus typed state validation recur. Diagnostic profiler overhead is material; raw unprofiled13.096s median remains native baseline. No data proves compute alone or one SHA loop is sole bottleneck. A speculative parallel SHA rewrite is deferred until method quality earns it.",
+  "schema": "connected-mlp-runtime-envelope-proposal-v1",
+  "source_change_boundary": "ONLY prospective policy seconds and exact doc/own TRAIN terminal deadline constants plus source-contract/inverse tests; mathematical recipe,34 mechanics updates/128 TRAIN, complete current byte reads, origin/runtime guards, optimizer/scaler/RNG/parity/lifetimes/full uncached exit and scientific decisions unchanged. No hashing cache or predicates removed.",
+  "status": "PROPOSAL_ONLY_NOT_APPLIED_NOT_LAUNCHED",
+  "stop_rule": "Every new gate prospectively frozen with exact code/inputs/locks/resources/stop rule, one original job at a time. Any incomplete parity/resource/terminal closes attempt. Previous timeouts remain FAIL; no state reuse or retroactive pass. No automatic duplicate, blanket resource increase or product speed/quality claim.",
+  "unchanged_limits": {
+    "both_locks_required": true,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "events_zero_required": true,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0
+  }
+}
