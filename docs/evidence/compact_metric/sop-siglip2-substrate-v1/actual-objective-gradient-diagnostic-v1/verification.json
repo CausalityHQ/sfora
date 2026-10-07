@@ -1,0 +1,15 @@
+{
+  "schema": "actual-objective-diagnostic-result-v1",
+  "verdict": "FAIL",
+  "qualification_eligible": false,
+  "invocation_id": "32c62da5a92542e1b59d12b3cb378f33",
+  "service_seconds": 110.592,
+  "host_peak_bytes": 6967689216,
+  "swap_bytes": 0,
+  "events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "observed_survivor": "SiglipImageProcessor",
+  "original_caught_exception_printed": false,
+  "log_sha256": "91883a09fad71c4aeb39ed714aa76b71db907e24cd11369ebee4c7d289e1afcd",
+  "source_root": "/home/riomus/runs/sfora-actual-objective-gradient-diagnostic-source-v1",
+  "next": "trace actual processor ownership; preserve every original predicate and failure"
+}
