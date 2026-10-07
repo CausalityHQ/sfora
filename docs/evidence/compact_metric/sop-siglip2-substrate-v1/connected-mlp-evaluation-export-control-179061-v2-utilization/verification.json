@@ -1,0 +1,18 @@
+{
+  "schema": "connected-export-readonly-utilization-sample-v1",
+  "unit": "sfora-connected-mlp-evaluation-export-control-179061-v2",
+  "invocation_id": "c8a9ba3f025744519d3e6411e3809161",
+  "original_job_still_active": true,
+  "sample_source": "nvidia-smi utilization.gpu, one-second requested cadence,22-second timeout",
+  "monitor_exit": 124,
+  "monitor_timeout_intentional": true,
+  "new_native_experiment": false,
+  "samples": 22,
+  "mean_percent": 17.227272727272727,
+  "median_percent": 4.0,
+  "max_percent": 96,
+  "original_log_sha256": "3f2808f87f0d76b9dda72217e2030ad86519bec9c97a809de35b282f42133ad3",
+  "interpretation": "Burst CUDA work with substantial idle intervals in this short window. Driver utilization samples are not full-run integrated GPU occupancy or pure-kernel timings. Original export CUDA batches progressed; no proof of sustained max utilization.",
+  "source_inferred_costs": "Guarded public call hashes3423104512 parameter bytes plus readout/source before encoder. Runtime inventory loop1941 files about0.34s observed in original live export log. Remaining CPU/preprocess/transfer/kernel components are not independently timed in this run.",
+  "next_decision": "Preserve live originalexport and all gates. After paired scientific survivor, qualify minimal librarybridge and measured full image-to-topk latency; separate inclusive guards, preprocess, encoder, packing/native topk. No guard bypass, duplicate job, quality read or unqualified GPU filler."
+}
