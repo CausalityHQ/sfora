@@ -1,0 +1,64 @@
+{
+  "candidate_export_not_launched": true,
+  "completed_batch_windows": 133,
+  "decision": "FAIL_TIMEOUT",
+  "engineering_only": true,
+  "invocation_id": "774658e4ed3d4694b280402da4f49e0c",
+  "last_batch_events": [
+    {
+      "batch_size": 32,
+      "batch_start": 704,
+      "boundary": "end",
+      "event": "COMPACT_TIMING",
+      "role": "query",
+      "seconds": 896.0899770279939,
+      "stage": "images_outputs"
+    },
+    {
+      "batch_size": 32,
+      "batch_start": 736,
+      "boundary": "begin",
+      "event": "COMPACT_TIMING",
+      "role": "query",
+      "seconds": 896.0915817929927,
+      "stage": "images_outputs"
+    },
+    {
+      "batch_size": 32,
+      "batch_start": 736,
+      "boundary": "end",
+      "event": "COMPACT_TIMING",
+      "role": "query",
+      "seconds": 898.7658224490006,
+      "stage": "images_outputs"
+    },
+    {
+      "batch_size": 32,
+      "batch_start": 768,
+      "boundary": "begin",
+      "event": "COMPACT_TIMING",
+      "role": "query",
+      "seconds": 898.7676074859919,
+      "stage": "images_outputs"
+    }
+  ],
+  "log_sha256": "d0e2a29317259d2017ce76a55524aa66c198e72ca6d205095ae4fdda676cc750",
+  "memory_events_zero": true,
+  "next_gate": "Prospective export-only1500 proposal/source assurance/review, then fresh ownCPU500 under actual new evaluator2 before ONE new control export. Original900 remains FAIL; no partial reuse or scoring.",
+  "normal_exit": false,
+  "observed_batch32_window_median_seconds": 2.7723296959884465,
+  "original_controller_exit": 1,
+  "partial_files_ineligible": true,
+  "pass": false,
+  "quality_read": false,
+  "runtime_policy_seconds": 900,
+  "schema": "connected-export-parent-failure-verification-v1",
+  "service_seconds": 900.115,
+  "source_and_native_preparation_observed_seconds": 390.25115435199405,
+  "state_reuse_eligible": false,
+  "success_receipt_present": false,
+  "swap_bytes": 0,
+  "unit": "sfora-connected-mlp-evaluation-export-control-179061-v1",
+  "whole_replay_and_exit_not_qualified": true,
+  "whole_unit_peak_host_bytes": 5428408320
+}

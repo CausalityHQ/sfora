@@ -1,0 +1,658 @@
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2/export-control-179061-v1-command.sh: OK
+Running as unit: sfora-connected-mlp-evaluation-export-control-179061-v1.service; invocation ID: 774658e4ed3d4694b280402da4f49e0c
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/native-authority.json: OK
+/home/riomus/runs/sfora-cudnn-wheel-provenance-v1/proof.json: OK
+/home/riomus/runs/sfora-cudnn-wheel-provenance-source-v1/decision.json: OK
+/home/riomus/runs/sfora-cudnn-wheel-provenance-source-v1/original.log: OK
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/authority-cpu-v5.json: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/execution.json: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/nearest_ranking_readout.py: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/test_siglip2_nearest_ranking.py: OK
+/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/train_siglip2_nearest_ranking.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-concat-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/authority-fit-concat-v1.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit-concat-v1.log: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/fit_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/prototype_residual_readout.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-fit-source-v2/test_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/train_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/test_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/execution.json: OK
+/home/riomus/runs/sfora-so400-fullfeature-residual-train-source-v1/authority-cpu-v1.json: OK
+/home/riomus/runs/sfora-so400-smooth-ap-train-candidate-179061-v1/bundle/bundle.json: OK
+/home/riomus/runs/sfora-so400-smooth-ap-train-candidate-179061-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-smooth-ap-train-candidate-179061-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1/authority-train-candidate-179061-v1.json: OK
+/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1/execution.json: OK
+/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1/test_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1/train-candidate-179061-v1.log: OK
+/home/riomus/runs/sfora-so400-smooth-ap-train-source-v1/train_siglip2_compact_ranking.py: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/authority-train-control-179061-v1.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/execution.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/test_siglip2_identity_diversity.py: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/train_siglip2_identity_diversity.py: OK
+/home/riomus/runs/sfora-so400-identity-diversity-view-export-candidate-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-view-source-v2/export-candidate-v1.log: OK
+/home/riomus/runs/sfora-so400-identity-diversity-view-export-candidate-v1/augmented.npy: OK
+/home/riomus/runs/sfora-so400-identity-diversity-view-export-candidate-v1/canonical.npy: OK
+/home/riomus/runs/sfora-identity-diversity-metadata-v1/scope.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-view-source-v2/authority.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-cpu-v5/receipt.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/cpu-v5.log: OK
+/home/riomus/runs/sfora-so400-identity-diversity-mechanics-control-179061-v2/receipt.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/mechanics-control-179061-v2.log: OK
+/home/riomus/runs/sfora-so400-identity-diversity-mechanics-candidate-179061-v2/receipt.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/mechanics-candidate-179061-v2.log: OK
+/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/execution.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/evaluate_siglip2_identity_diversity.py: OK
+/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/test_identity_diversity_evaluation.py: OK
+/home/riomus/runs/sfora-so400-identity-diversity-evaluation-source-v1/authority-first-cpu-v1.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-control-179061-v2/receipt.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/train-control-179061-v2.log: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-control-179061-v2/resume.pt: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-control-179061-v2/bundle/bundle.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/authority-train-candidate-179061-v1.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-candidate-179061-v1/receipt.json: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/train-candidate-179061-v1.log: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-candidate-179061-v1/resume.pt: OK
+/home/riomus/runs/sfora-so400-identity-diversity-train-candidate-179061-v1/bundle/bundle.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2/authority-first-cpu-v1.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2/execution.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2/test_connected_mlp_evaluation.py: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2/evaluate_siglip2_connected_mlp.py: OK
+/home/riomus/runs/sfora-connected-mlp-train-source-v6/execution.json: OK
+/home/riomus/runs/sfora-connected-mlp-train-source-v6/train_siglip2_connected_mlp.py: OK
+/home/riomus/runs/sfora-connected-mlp-train-source-v6/test_siglip2_connected_mlp.py: OK
+/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/execution.json: OK
+/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/evaluate_siglip2_identity_diversity.py: OK
+/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/test_identity_diversity_evaluation.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/execution.json: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/evaluate_siglip2_nearest_ranking.py: OK
+/home/riomus/runs/sfora-so400-compact-ranking-evaluation-reference-v1/test_nearest_ranking_evaluation.py: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/execution.json: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/evaluate_siglip2_genuine_views.py: OK
+/home/riomus/runs/sfora-so400-genuine-view-evaluation-source-v4/test_siglip2_genuine_view_evaluation.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/execution.json: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/evaluate_siglip2_prototype_residual.py: OK
+/home/riomus/runs/sfora-so400-signed-concat-evaluation-source-v2/test_siglip2_prototype_residual_evaluation.py: OK
+/home/riomus/runs/sfora-connected-mlp-train-source-v6/authority-train-control-179061-v1.json: OK
+/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-terminal.pt: OK
+/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json: OK
+/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/receipt.json: OK
+/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-control-179061-v1-original.log: OK
+/home/riomus/runs/sfora-connected-mlp-train-source-v6/authority-train-candidate-179061-v1.json: OK
+/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/candidate-179061-terminal.pt: OK
+/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/candidate-179061-bundle/bundle.json: OK
+/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/receipt.json: OK
+/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-candidate-179061-v1-original.log: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2/authority-export-control-179061-v1.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-first-cpu-v1/receipt.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v2/first-cpu-v1-original.log: OK
+{"event": "COMPACT_PHASE", "phase": "shared_source_preparation", "boundary": "begin", "seconds": 363.11033148199203}
+{"event": "COMPACT_PHASE", "phase": "shared_source_preparation", "boundary": "end", "delta_seconds": 18.742645948004792, "seconds": 381.8529795420036}
+{"event": "COMPACT_PHASE", "phase": "cache_target_preparation", "boundary": "begin", "seconds": 381.8530247259914}
+{"event": "COMPACT_PHASE", "phase": "cache_target_preparation", "boundary": "end", "delta_seconds": 2.2653718760120682, "seconds": 384.11839978599164}
+{"event": "INITIAL_NATIVE_ORIGIN_DIAGNOSTICS_V1", "expected": {"/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9": "3b765736f63d724a0de67b7ce915b0d0a780154fe4a2d515ab14040224aa7db4", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_runtime_compiled.so.9": "7b8f371a7718c29549317efdbdeb8d7c301874f9471762a04830846ac4e83510", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_graph.so.9": "b601fddd333d84ced4a3d833e75bb412c204e39b21755d79cb890335dce660b8", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_heuristic.so.9": "368687b9b5c2c01b55c21f74bd930cb05d3654b4e901e998b7bfb33cebac6ae8"}, "observed_difference": {}, "missing": ["/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_runtime_compiled.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_graph.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_heuristic.so.9"], "extra": [], "missing_native": ["/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_runtime_compiled.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_graph.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_heuristic.so.9"]}
+{"progress": "admitted", "phase": "export", "stage": "first", "seconds": 390.25115435199405}
+{"event": "COMPACT_PHASE", "phase": "independent_reload", "boundary": "begin", "seconds": 391.0779684189911}
+{"event": "COMPACT_PHASE", "phase": "independent_reload", "boundary": "end", "delta_seconds": 1.4555964910105104, "seconds": 392.53356759800226}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3034248000039952, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 0, "batch_size": 32, "seconds": 432.2539967499906}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.23028741500456817, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.34829275000083726, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 0, "batch_size": 32, "seconds": 450.3056913019973}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 32, "batch_size": 32, "seconds": 450.30844699099544}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3074170239997329, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 32, "batch_size": 32, "seconds": 453.13023109699134}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 64, "batch_size": 32, "seconds": 453.1315667729941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3108510970050702, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 64, "batch_size": 32, "seconds": 455.8162484009954}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 96, "batch_size": 32, "seconds": 455.8186465710023}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3113878660078626, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 96, "batch_size": 32, "seconds": 458.62981989099353}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 128, "batch_size": 32, "seconds": 458.6316682219913}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3368141989922151, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 128, "batch_size": 32, "seconds": 461.4557613569923}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 160, "batch_size": 32, "seconds": 461.4565795620001}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.314490325996303, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 160, "batch_size": 32, "seconds": 464.1774035300041}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 192, "batch_size": 32, "seconds": 464.1799453949934}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.47367298501194455, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 192, "batch_size": 32, "seconds": 467.0802999239968}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 224, "batch_size": 32, "seconds": 467.0810972659965}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33275613898877054, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 224, "batch_size": 32, "seconds": 469.8121932219947}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 256, "batch_size": 32, "seconds": 469.81371201800357}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33347074799530674, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 256, "batch_size": 32, "seconds": 472.5814179459994}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 288, "batch_size": 32, "seconds": 472.58325029299886}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3180342799896607, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 288, "batch_size": 32, "seconds": 475.3469966720004}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 320, "batch_size": 32, "seconds": 475.34990695200395}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3238605229998939, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 320, "batch_size": 32, "seconds": 478.1788085070002}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 352, "batch_size": 32, "seconds": 478.1809308859956}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3072431299951859, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 352, "batch_size": 32, "seconds": 480.8852935659961}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 384, "batch_size": 32, "seconds": 480.8859547799948}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.31775161800032947, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 384, "batch_size": 32, "seconds": 483.62940644999617}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 416, "batch_size": 32, "seconds": 483.6302058400033}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.34307849599281326, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 416, "batch_size": 32, "seconds": 486.4200607059902}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 448, "batch_size": 32, "seconds": 486.42159534199163}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33327738899970427, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 448, "batch_size": 32, "seconds": 489.2686869589961}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 480, "batch_size": 32, "seconds": 489.2696328449965}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2952314599970123, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 480, "batch_size": 32, "seconds": 492.0560316070041}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 512, "batch_size": 32, "seconds": 492.0575779869978}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2811121400009142, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 512, "batch_size": 32, "seconds": 494.7609844769904}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 544, "batch_size": 32, "seconds": 494.7641303089913}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.29939113500586245, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 544, "batch_size": 32, "seconds": 497.5453562490002}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 576, "batch_size": 32, "seconds": 497.5465657820023}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33389781501318794, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 576, "batch_size": 32, "seconds": 500.32465471299656}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 608, "batch_size": 32, "seconds": 500.32545613500406}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.4471265300089726, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 608, "batch_size": 32, "seconds": 503.27394240499416}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 640, "batch_size": 32, "seconds": 503.2766757579957}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3326914229983231, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 640, "batch_size": 32, "seconds": 506.0238813920005}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 672, "batch_size": 32, "seconds": 506.0260190980043}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.314973792003002, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 672, "batch_size": 32, "seconds": 508.7231339549908}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 704, "batch_size": 32, "seconds": 508.723962449003}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3500454150052974, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 704, "batch_size": 32, "seconds": 511.50613225800043}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 736, "batch_size": 32, "seconds": 511.50794137400226}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.27777741200407036, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 736, "batch_size": 32, "seconds": 514.3122764610016}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 768, "batch_size": 32, "seconds": 514.313640073}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3213471900089644, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 768, "batch_size": 32, "seconds": 517.1279987250018}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 800, "batch_size": 32, "seconds": 517.1295452810009}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30957776799914427, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 800, "batch_size": 32, "seconds": 519.8634588809946}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 832, "batch_size": 32, "seconds": 519.864369390998}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3189049630018417, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 832, "batch_size": 32, "seconds": 522.632324923994}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 864, "batch_size": 32, "seconds": 522.6335567609931}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3319989150040783, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 864, "batch_size": 32, "seconds": 525.4158915269945}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 896, "batch_size": 32, "seconds": 525.418403136995}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.34351568900456186, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 896, "batch_size": 32, "seconds": 528.1878962929914}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 928, "batch_size": 32, "seconds": 528.1889236190036}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3310453550075181, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 928, "batch_size": 32, "seconds": 530.9375334889919}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 960, "batch_size": 32, "seconds": 530.9388371660025}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.29098182599409483, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 960, "batch_size": 32, "seconds": 533.7211641879985}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 992, "batch_size": 32, "seconds": 533.7219942660013}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.324428865002119, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 992, "batch_size": 32, "seconds": 536.5140223729977}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1024, "batch_size": 32, "seconds": 536.5152928339958}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.4878690649929922, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1024, "batch_size": 32, "seconds": 539.5274398359907}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1056, "batch_size": 32, "seconds": 539.5287806639972}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33598487300332636, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1056, "batch_size": 32, "seconds": 542.2954170699959}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1088, "batch_size": 32, "seconds": 542.2968442979909}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30879158299649134, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1088, "batch_size": 32, "seconds": 544.9781703769986}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1120, "batch_size": 32, "seconds": 544.9798823890014}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30525028199190274, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1120, "batch_size": 32, "seconds": 547.7776301659906}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1152, "batch_size": 32, "seconds": 547.778279139995}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3533221489924472, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1152, "batch_size": 32, "seconds": 550.6190650399949}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1184, "batch_size": 32, "seconds": 550.6203633730038}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3283988210023381, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1184, "batch_size": 32, "seconds": 553.4301362660044}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1216, "batch_size": 32, "seconds": 553.4312951269967}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.26549817800696474, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1216, "batch_size": 32, "seconds": 556.1035195619916}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1248, "batch_size": 32, "seconds": 556.1081801109976}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.36179274499590974, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1248, "batch_size": 32, "seconds": 558.8493889399979}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1280, "batch_size": 32, "seconds": 558.85240045299}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33647285599727184, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1280, "batch_size": 32, "seconds": 561.6270033320034}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1312, "batch_size": 32, "seconds": 561.6284242730035}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33084274499560706, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1312, "batch_size": 32, "seconds": 564.4115279510006}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1344, "batch_size": 32, "seconds": 564.4136372899957}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.337271355005214, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1344, "batch_size": 32, "seconds": 567.1908189550013}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1376, "batch_size": 32, "seconds": 567.191692665001}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.31147882899676915, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1376, "batch_size": 32, "seconds": 569.8681013449968}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1408, "batch_size": 32, "seconds": 569.869555422003}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33927708301052917, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1408, "batch_size": 32, "seconds": 572.8502672259929}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1440, "batch_size": 32, "seconds": 572.8516497179953}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3161187579971738, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1440, "batch_size": 32, "seconds": 575.64812918799}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1472, "batch_size": 32, "seconds": 575.6516542519967}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.34225085699290503, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1472, "batch_size": 32, "seconds": 578.4313613809936}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1504, "batch_size": 32, "seconds": 578.4331738409965}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30586781101010274, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1504, "batch_size": 32, "seconds": 581.1610221860028}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1536, "batch_size": 32, "seconds": 581.1646774090041}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3377834169950802, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1536, "batch_size": 32, "seconds": 583.998024992994}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1568, "batch_size": 32, "seconds": 583.9991024780029}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3108116119983606, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1568, "batch_size": 32, "seconds": 586.7611246509914}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1600, "batch_size": 32, "seconds": 586.7628478789993}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30551247399125714, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1600, "batch_size": 32, "seconds": 589.5867760839901}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1632, "batch_size": 32, "seconds": 589.5887823520025}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.32320203399285674, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1632, "batch_size": 32, "seconds": 592.3161134599941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1664, "batch_size": 32, "seconds": 592.3169182589918}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2765424340032041, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1664, "batch_size": 32, "seconds": 595.0645711779944}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1696, "batch_size": 32, "seconds": 595.0657545830036}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.32855392899364233, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1696, "batch_size": 32, "seconds": 597.838084278992}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 1728, "batch_size": 6, "seconds": 597.8409209279926}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.328087885005516, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33808701499947347, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 1728, "batch_size": 6, "seconds": 613.6818534149934}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 0, "batch_size": 32, "seconds": 613.6819388379954}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3234876039932715, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.513622750993818, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 0, "batch_size": 32, "seconds": 630.8364815279929}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 32, "batch_size": 32, "seconds": 630.8385964030022}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3121186829957878, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 32, "batch_size": 32, "seconds": 633.6366128139925}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 64, "batch_size": 32, "seconds": 633.6378153559926}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2846775149955647, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 64, "batch_size": 32, "seconds": 636.2371567299997}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 96, "batch_size": 32, "seconds": 636.2383235119923}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3207265379896853, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 96, "batch_size": 32, "seconds": 639.0676845589915}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 128, "batch_size": 32, "seconds": 639.069865145997}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3360542979935417, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 128, "batch_size": 32, "seconds": 641.8524730359932}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 160, "batch_size": 32, "seconds": 641.8550548380008}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.31364447899977677, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 160, "batch_size": 32, "seconds": 644.670616591}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 192, "batch_size": 32, "seconds": 644.671041581998}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3119719719979912, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 192, "batch_size": 32, "seconds": 647.3379290439916}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 224, "batch_size": 32, "seconds": 647.3404277429945}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3301044300023932, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 224, "batch_size": 32, "seconds": 650.0675447349931}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 256, "batch_size": 32, "seconds": 650.0686332449986}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.34910765300446656, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 256, "batch_size": 32, "seconds": 652.9035120289918}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 288, "batch_size": 32, "seconds": 652.9073029489955}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.361636219007778, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 288, "batch_size": 32, "seconds": 655.6723410729901}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 320, "batch_size": 32, "seconds": 655.6745045080024}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3361171419965103, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 320, "batch_size": 32, "seconds": 658.4795279690006}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 352, "batch_size": 32, "seconds": 658.4815697720041}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.32211232600093354, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 352, "batch_size": 32, "seconds": 661.3098998539936}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 384, "batch_size": 32, "seconds": 661.3112311150035}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2723197830055142, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 384, "batch_size": 32, "seconds": 664.0383434690011}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 416, "batch_size": 32, "seconds": 664.0407492869999}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.4584072629950242, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 416, "batch_size": 32, "seconds": 666.9586999739986}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 448, "batch_size": 32, "seconds": 666.9607505930035}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2842079999973066, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 448, "batch_size": 32, "seconds": 669.6918098030001}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 480, "batch_size": 32, "seconds": 669.6942581339972}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3399394320003921, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 480, "batch_size": 32, "seconds": 672.5107524039922}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 512, "batch_size": 32, "seconds": 672.5131850229955}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.28645367799617816, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 512, "batch_size": 32, "seconds": 675.2629356149992}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 544, "batch_size": 32, "seconds": 675.2648519789946}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33013328099332284, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 544, "batch_size": 32, "seconds": 678.0966327759961}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 576, "batch_size": 32, "seconds": 678.0983756369969}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3272758649982279, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 576, "batch_size": 32, "seconds": 680.8901006499946}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 608, "batch_size": 32, "seconds": 680.8931451709941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3167935070086969, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 608, "batch_size": 32, "seconds": 683.7243552349973}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 640, "batch_size": 32, "seconds": 683.7251141129964}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30907534799189307, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 640, "batch_size": 32, "seconds": 686.4377089289919}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 672, "batch_size": 32, "seconds": 686.4393637089961}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.31117404899850953, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 672, "batch_size": 32, "seconds": 689.253196945996}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 704, "batch_size": 32, "seconds": 689.2544587989978}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3331205640133703, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 704, "batch_size": 32, "seconds": 692.0812834800017}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 736, "batch_size": 32, "seconds": 692.084481361002}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3181837020092644, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 736, "batch_size": 32, "seconds": 694.8581482189911}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 768, "batch_size": 32, "seconds": 694.8604113509937}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.5048410010058433, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 768, "batch_size": 32, "seconds": 697.8095011940022}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 800, "batch_size": 32, "seconds": 697.8105976079969}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3303577759943437, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 800, "batch_size": 32, "seconds": 700.6392138529918}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 832, "batch_size": 32, "seconds": 700.640185835}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3304618730035145, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 832, "batch_size": 32, "seconds": 703.4130660859955}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 864, "batch_size": 32, "seconds": 703.4149606900028}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3009635540074669, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 864, "batch_size": 32, "seconds": 706.1336766219902}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 896, "batch_size": 32, "seconds": 706.1360518010042}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33278793600038625, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 896, "batch_size": 32, "seconds": 708.9271121240017}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 928, "batch_size": 32, "seconds": 708.928075385993}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.28082852700026706, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 928, "batch_size": 32, "seconds": 711.6890607459936}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 960, "batch_size": 32, "seconds": 711.6911446459999}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.26324442199256737, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 960, "batch_size": 32, "seconds": 714.387675356993}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 992, "batch_size": 32, "seconds": 714.3894914489938}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.32851737400051206, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 992, "batch_size": 32, "seconds": 717.2222415040014}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1024, "batch_size": 32, "seconds": 717.223436093991}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33100084199395496, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1024, "batch_size": 32, "seconds": 720.0730621289986}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1056, "batch_size": 32, "seconds": 720.0744953579997}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3468222350056749, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1056, "batch_size": 32, "seconds": 722.8527885969961}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1088, "batch_size": 32, "seconds": 722.8559843669937}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3249700910091633, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1088, "batch_size": 32, "seconds": 725.6323334170011}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1120, "batch_size": 32, "seconds": 725.6336170779978}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.25788308000483084, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1120, "batch_size": 32, "seconds": 728.4204466480005}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1152, "batch_size": 32, "seconds": 728.4224932039942}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33785384299699217, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1152, "batch_size": 32, "seconds": 731.1654316799977}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1184, "batch_size": 32, "seconds": 731.1663381099934}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.5148743270110572, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1184, "batch_size": 32, "seconds": 734.1013910670008}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1216, "batch_size": 32, "seconds": 734.1037519899983}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3318313630006742, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1216, "batch_size": 32, "seconds": 736.8199110299902}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1248, "batch_size": 32, "seconds": 736.8218583699927}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33584966100170277, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1248, "batch_size": 32, "seconds": 739.6136590599926}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1280, "batch_size": 32, "seconds": 739.617171965001}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.32665046499460004, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1280, "batch_size": 32, "seconds": 742.4372269629966}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1312, "batch_size": 32, "seconds": 742.4397503499931}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2978620779904304, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1312, "batch_size": 32, "seconds": 745.1388127459941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1344, "batch_size": 32, "seconds": 745.1400130149996}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30077232999610715, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1344, "batch_size": 32, "seconds": 747.8613091709994}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1376, "batch_size": 32, "seconds": 747.8618691059964}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.31875867799681146, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1376, "batch_size": 32, "seconds": 750.6646741970035}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1408, "batch_size": 32, "seconds": 750.6671758400043}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.31512729500536807, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1408, "batch_size": 32, "seconds": 753.5297920229932}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1440, "batch_size": 32, "seconds": 753.5308741649933}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2975190930010285, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1440, "batch_size": 32, "seconds": 756.3504220189934}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1472, "batch_size": 32, "seconds": 756.3521788310027}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2996252500015544, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1472, "batch_size": 32, "seconds": 759.1236455479957}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1504, "batch_size": 32, "seconds": 759.1243051950005}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.27571888400416356, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1504, "batch_size": 32, "seconds": 761.7865164169925}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1536, "batch_size": 32, "seconds": 761.787831965994}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33705172200279776, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1536, "batch_size": 32, "seconds": 764.5537560319935}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1568, "batch_size": 32, "seconds": 764.5605375229934}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.47167111599992495, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1568, "batch_size": 32, "seconds": 767.5440472619957}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1600, "batch_size": 32, "seconds": 767.5455372269935}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3308756569895195, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1600, "batch_size": 32, "seconds": 770.3114994959906}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1632, "batch_size": 32, "seconds": 770.3129686930042}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2898378209938528, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1632, "batch_size": 32, "seconds": 773.0095812100044}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1664, "batch_size": 32, "seconds": 773.0108019920008}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3221477089973632, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1664, "batch_size": 32, "seconds": 775.759371601991}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "gallery", "batch_start": 1696, "batch_size": 19, "seconds": 775.7616559979942}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3464776950131636, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3033822769939434, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "gallery", "batch_start": 1696, "batch_size": 19, "seconds": 792.3005881190038}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.27052373001060914, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 0, "batch_size": 32, "seconds": 819.9689787079988}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2749851039989153, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2877619609935209, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 0, "batch_size": 32, "seconds": 836.6540231609979}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 32, "batch_size": 32, "seconds": 836.6575027389918}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30206934800662566, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 32, "batch_size": 32, "seconds": 839.4110389870038}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 64, "batch_size": 32, "seconds": 839.4141043889977}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30907207299605943, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 64, "batch_size": 32, "seconds": 842.1038982089958}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 96, "batch_size": 32, "seconds": 842.1069176750025}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.310941254007048, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 96, "batch_size": 32, "seconds": 844.7904466219916}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 128, "batch_size": 32, "seconds": 844.7928183609911}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2900958550017094, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 128, "batch_size": 32, "seconds": 847.442890692997}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 160, "batch_size": 32, "seconds": 847.4449171529996}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3070784800074762, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 160, "batch_size": 32, "seconds": 850.1051534279977}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 192, "batch_size": 32, "seconds": 850.1070970569999}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.49385963499662466, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 192, "batch_size": 32, "seconds": 852.9568213719904}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 224, "batch_size": 32, "seconds": 852.9581455299922}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.29571696699713357, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 224, "batch_size": 32, "seconds": 855.6502228229947}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 256, "batch_size": 32, "seconds": 855.6513903409941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3435595829942031, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 256, "batch_size": 32, "seconds": 858.3711920089991}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 288, "batch_size": 32, "seconds": 858.3724930629978}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3197478689980926, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 288, "batch_size": 32, "seconds": 861.061079726991}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 320, "batch_size": 32, "seconds": 861.0626824130013}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3431764350098092, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 320, "batch_size": 32, "seconds": 863.7794469079963}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 352, "batch_size": 32, "seconds": 863.7820055589982}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3439306420041248, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 352, "batch_size": 32, "seconds": 866.4701683729945}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 384, "batch_size": 32, "seconds": 866.471045843995}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3354979709984036, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 384, "batch_size": 32, "seconds": 869.1518271139939}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 416, "batch_size": 32, "seconds": 869.1536040069914}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.3568242530018324, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 416, "batch_size": 32, "seconds": 871.8620494289935}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 448, "batch_size": 32, "seconds": 871.8643671839964}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.29989080798986834, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 448, "batch_size": 32, "seconds": 874.5719844739942}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 480, "batch_size": 32, "seconds": 874.5744159890019}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2817922820104286, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 480, "batch_size": 32, "seconds": 877.2339390729903}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 512, "batch_size": 32, "seconds": 877.2358892449993}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30648158099211287, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 512, "batch_size": 32, "seconds": 879.9148414560041}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 544, "batch_size": 32, "seconds": 879.9160011339991}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.34294286101066973, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 544, "batch_size": 32, "seconds": 882.6366811490007}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 576, "batch_size": 32, "seconds": 882.6389345369971}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.29519566900853533, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 576, "batch_size": 32, "seconds": 885.2724861140014}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 608, "batch_size": 32, "seconds": 885.2749886059901}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.49549365701386705, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 608, "batch_size": 32, "seconds": 888.1036118369957}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 640, "batch_size": 32, "seconds": 888.1053838340013}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.33355616198969074, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 640, "batch_size": 32, "seconds": 890.8019574920036}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 672, "batch_size": 32, "seconds": 890.8042341120017}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2842006360006053, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 672, "batch_size": 32, "seconds": 893.4420031979971}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 704, "batch_size": 32, "seconds": 893.4456385039957}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.30821604999073315, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 704, "batch_size": 32, "seconds": 896.0899770279939}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 736, "batch_size": 32, "seconds": 896.0915817929927}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1941}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.31891595100751147, "item_count": 1941}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "end", "role": "query", "batch_start": 736, "batch_size": 32, "seconds": 898.7658224490006}
+{"event": "COMPACT_TIMING", "stage": "images_outputs", "boundary": "begin", "role": "query", "batch_start": 768, "batch_size": 32, "seconds": 898.7676074859919}
+FINAL_CGROUP {"command_exit_status": 0, "invocation_id": "774658e4ed3d4694b280402da4f49e0c", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-mlp-evaluation-export-control-179061-v1.service", "values": {"memory.current": "5394403328", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "5428408320", "memory.stat": "anon 3715330048\nfile 1538387968\nkernel 126939136\nkernel_stack 49152\npagetables 10735616\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 50794496\nzswap 0\nzswapped 0\nfile_mapped 516210688\nfile_dirty 8192\nfile_writeback 0\nswapcached 0\nanon_thp 1858076672\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 3775791104\ninactive_file 769159168\nactive_file 718434304\nunevictable 0\nslab_reclaimable 107490576\nslab_unreclaimable 1037704\nslab 108528280\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 2346875\npgmajfault 10470\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1171\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+STOP_CGROUP {"exit_code": "killed", "exit_status": "TERM", "invocation_id": "774658e4ed3d4694b280402da4f49e0c", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-mlp-evaluation-export-control-179061-v1.service", "service_result": "timeout", "values": {"memory.current": "5391626240", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "5428408320", "memory.stat": "anon 3713847296\nfile 1538387968\nkernel 126758912\nkernel_stack 16384\npagetables 10747904\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 50794496\nzswap 0\nzswapped 0\nfile_mapped 516210688\nfile_dirty 8192\nfile_writeback 0\nswapcached 0\nanon_thp 1858076672\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 3774447616\ninactive_file 769159168\nactive_file 718434304\nunevictable 0\nslab_reclaimable 107490576\nslab_unreclaimable 901984\nslab 108392560\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 2347978\npgmajfault 10470\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1171\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: timeout
+Main processes terminated with: code=killed/status=TERM
+Service runtime: 15min 115ms
+CPU time consumed: 11min 51.284s
+Memory peak: 5.0G
+Memory swap peak: 0B
