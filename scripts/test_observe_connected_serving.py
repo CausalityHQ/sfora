@@ -166,7 +166,34 @@ def serializer_check(d, original):
             sys.setprofile(None)
 
 
-def public_check(d, original, bridge, root):
+def stack_check(d, original):
+    sources = {'serializer':binding(Path(original.__file__))}
+    class MismatchedReturn(d.RequestObserver):
+        def _event(self, frame, event, arg, tick):
+            super()._event(frame, event, arg, tick)
+            if event == 'call' and frame.f_code is self.fingerprint_code:
+                super()._event(frame.f_back, 'return', None, tick)
+    class ResidualAtStop(d.RequestObserver):
+        def _event(self, frame, event, arg, tick):
+            super()._event(frame, event, arg, tick)
+            if event == 'c_call' and arg is sys.setprofile:
+                self.stack.append({'pending':True})
+    with modules({'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8')}):
+        for observer_type, message in ((MismatchedReturn,'profile return stack mismatch'),
+                                       (ResidualAtStop,'profile stack at stop')):
+            probe = observer_type(original.fingerprint, sources)
+            rejects(lambda:d.observe_call(probe, lambda:original.fingerprint(3)), message)
+            assert not probe.report()['complete'] and not probe.stack
+            assert sys.getprofile() is None
+        unexpected = d.RequestObserver(original.fingerprint, sources)
+        unexpected(sys._getframe(), 'return', None)
+        assert unexpected.failures and 'profile return stack empty' in unexpected.failures[0]
+        normal = d.RequestObserver(original.fingerprint, sources)
+        assert d.observe_call(normal, lambda:original.fingerprint(3)) == original.fingerprint(3)
+        assert normal.report()['complete'] and not normal.stack
+
+
+def public_check(d, original, bridge, root, *, witness_only=False, cancel_only=False):
     # Real bridge authentication, registry, serializer, exact wire and release predicates.
     trainer_source = (ROOT / 'scripts/train_siglip2_connected_mlp.py').read_text()
     tree = ast.parse(trainer_source)
@@ -266,6 +293,68 @@ def inference_outputs(endpoint, images):
                        row['completion_sync_seconds']) < 1e-9
             assert bytes(result[0]) == struct.pack('10q', *range(10))
             return row
+        if cancel_only:
+            class Cancelled(BaseException): pass
+            for cancellation in (KeyboardInterrupt('stop'), SystemExit(37), Cancelled('stop')):
+                class CancelObserver(d.RequestObserver):
+                    def _event(self, frame, event, arg, tick):
+                        if event == 'call' and frame.f_code is self.fingerprint_code:
+                            raise cancellation
+                        super()._event(frame, event, arg, tick)
+                index = bridge.ConnectedCompactIndex.from_bundle(**args)
+                probe = CancelObserver(original.fingerprint, sources)
+                try:
+                    request(index, probe)
+                except BaseException as error:
+                    assert error is cancellation, 'cancellation replaced by ' + type(error).__name__
+                else:
+                    raise AssertionError('cancellation swallowed')
+                assert probe.target_error == type(cancellation).__name__ and not probe.report()['complete']
+                assert sys.getprofile() is None and index._closed and not index._owned
+                assert events.cache.cache_info().currsize == 0 and all(ref() is None for ref in events.refs)
+                assert not any(n.startswith(('_sfora_connected_compact_', '_connected_serving_attribution_fixture')) for n in sys.modules)
+            class InspectionError(d.RequestObserver):
+                def _event(self, frame, event, arg, tick):
+                    if event == 'call' and frame.f_code is self.fingerprint_code:
+                        raise ValueError('bad counter inspection')
+                    super()._event(frame, event, arg, tick)
+            index = bridge.ConnectedCompactIndex.from_bundle(**args)
+            probe = InspectionError(original.fingerprint, sources)
+            rejects(lambda:request(index, probe), 'incomplete observation')
+            assert index._closed and events.cache.cache_info().currsize == 0
+            assert not probe.report()['complete'] and sys.getprofile() is None
+            return
+        if witness_only:
+            # Generic scalar profiling is valid; PUBLIC profiling needs byte/output witnesses.
+            scalar = d.RequestObserver(original.fingerprint, sources)
+            assert d.observe_call(scalar, lambda:original.fingerprint(3)) == original.fingerprint(3)
+            assert scalar.report()['complete'] and not scalar.leaves
+            class SilentObserver(d.RequestObserver):
+                def __call__(self, frame, event, arg): pass
+            class MissingOutput(d.RequestObserver):
+                def _event(self, frame, event, arg, tick):
+                    super()._event(frame, event, arg, tick)
+                    self.output = None
+            class MissingFingerprint(d.RequestObserver):
+                def _event(self, frame, event, arg, tick):
+                    super()._event(frame, event, arg, tick)
+                    if event == 'return' and frame.f_code is self.fingerprint_code:
+                        self.fingerprints.clear()
+            class MissingLeaves(d.RequestObserver):
+                def _event(self, frame, event, arg, tick):
+                    super()._event(frame, event, arg, tick)
+                    if event == 'return' and frame.f_code is self.fingerprint_code:
+                        self.leaves.clear()
+            for observer_type in (SilentObserver, MissingOutput, MissingFingerprint, MissingLeaves):
+                index = bridge.ConnectedCompactIndex.from_bundle(**args)
+                probe = observer_type(original.fingerprint, sources)
+                rejects(lambda: request(index, probe), 'public witness')
+                assert not probe.report()['complete']
+                assert index._closed and not index._owned
+                assert events.cache.cache_info().currsize == 0 and all(ref() is None for ref in events.refs)
+                assert sys.getprofile() is None
+                assert not any(n.startswith(('_sfora_connected_compact_', '_connected_serving_attribution_fixture')) for n in sys.modules)
+            return
         index = bridge.ConnectedCompactIndex.from_bundle(**args)
         globals_before = dict(vars(index._module))
         row = request(index)
@@ -392,10 +481,30 @@ def main():
         d = load(owned[0], path)
         original = load(owned[1], ROOT / 'scripts/train_siglip2_substrate_adaptation.py')
         bridge = load(owned[2], ROOT / 'src/sfora/connected_compact_serving.py')
+        if '--review-stack' in sys.argv:
+            stack_check(d, original)
+            print('PASS mismatched/unfinished profile stacks reject; valid scalar stack completes')
+            return
+        if '--review-witness' in sys.argv:
+            with tempfile.TemporaryDirectory(prefix='connected-serving-witness-') as scratch:
+                public_check(d, original, bridge, Path(scratch), witness_only=True)
+            print('PASS successful public request requires fingerprint/tensor/output witnesses')
+            return
+        if '--review-cancellation' in sys.argv:
+            with tempfile.TemporaryDirectory(prefix='connected-serving-cancellation-') as scratch:
+                public_check(d, original, bridge, Path(scratch), cancel_only=True)
+            print('PASS exact profiler cancellation propagates with restoration/genuine cleanup')
+            return
         serializer_check(d, original)
+        stack_check(d, original)
         with tempfile.TemporaryDirectory(prefix='connected-serving-observer-') as scratch:
-            public_check(d, original, bridge, Path(scratch))
-            preparation_check(d, Path(scratch))
+            root = Path(scratch)
+            public_check(d, original, bridge, root)
+            preparation_check(d, root)
+            witness, cancel = root / 'missing-witness', root / 'cancellation'
+            witness.mkdir(); cancel.mkdir()
+            public_check(d, original, bridge, witness, witness_only=True)
+            public_check(d, original, bridge, cancel, cancel_only=True)
         assert not any(n.split('.')[0] in NATIVE for n in sys.modules)
         print('PASS source-only genuine public/profiler, fresh-byte, parity and release falsifier')
     finally:

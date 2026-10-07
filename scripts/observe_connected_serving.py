@@ -13,6 +13,9 @@ measure_request(index, read_images, synchronize, pinned_paths, observer=probe).
 The index is the unchanged ConnectedCompactIndex. No native imports, globals,
 functions or registry entries are replaced. Removing the observer argument
 recovers the same public request. No tensor/hash snapshot cache exists.
+Successful instrumented PUBLIC requests require completed fingerprint, fresh
+tensor and captured raw/unit/codes/inverse_norms/wire witnesses; a scalar-only
+standalone observe_call does not authorize a public observation.
 
 Proposed22calls: original owner B1/B32 each2warm+8timed; genuine release;
 observation owner B1/B32 each1instrumented; genuine release. Charge both
@@ -33,6 +36,8 @@ capture overhead are subsets of callback time, not additional costs to sum.
 CPU calls are copy-plus-wait. CUDA intervals and opaque native subdivisions
 are UNMEASURED; overlapping host/CUDA intervals must never be added. Return
 events can include unwind and do not establish successful source completion.
+Mismatched/residual profile stacks fail incomplete. Process cancellation escapes
+the callback unchanged; ordinary inspection errors only invalidate observation.
 """
 import argparse
 import hashlib
@@ -174,6 +179,7 @@ class RequestObserver:
         self.started = False
         self.target_completed = False
         self.target_error = None
+        self.owner_frame_id = None
 
     def phase(self, name, filename):
         ancestors = {row['name'] for row in self.stack}
@@ -206,13 +212,17 @@ class RequestObserver:
         try:
             if not self.failures:
                 self._event(frame, event, arg, entered - self.overhead)
-        except BaseException as error:
-            # The diagnostic must never replace the target's error or unwind.
+        except Exception as error:
+            # Ordinary inspection errors must not replace a target error; cancellation propagates.
             if len(self.failures) < 8: self.failures.append(type(error).__name__ + ': ' + str(error))
         finally:
             self.overhead += time.perf_counter_ns() - entered
 
     def _event(self, frame, event, arg, tick):
+        # Only the exact install/uninstall calls and predating caller are outside the stack.
+        if id(frame) == self.owner_frame_id and ((event in ('c_call','c_return','c_exception') and
+                arg is sys.setprofile) or (event == 'return' and not self.stack)):
+            return
         if event in ('call', 'c_call'):
             self.calls += 1
             require(self.calls <= 2_000_000 and len(self.stack) < 512, 'profile resource bound exceeded')
@@ -225,7 +235,7 @@ class RequestObserver:
                 filename = str(getattr(arg, '__module__', None))
                 key = ('c', filename, str(getattr(arg, '__qualname__', name)), 0)
             row = {'id':id(frame), 'kind':event, 'key':key, 'name':name, 'start':tick,
-                   'children':0, 'phase':self.phase(name, filename)}
+                   'children':0, 'phase':self.phase(name, filename), 'c_id':id(arg) if event == 'c_call' else None}
             if event == 'call' and code is self.fingerprint_code:
                 require(frame.f_locals.get('frozen') is None, 'serializer hash cache is forbidden')
                 row['fingerprint'] = len(self.fingerprints)
@@ -243,11 +253,10 @@ class RequestObserver:
                 self.inspection += time.perf_counter_ns() - started
             self.stack.append(row)
         elif event in ('return', 'c_return', 'c_exception'):
-            if not self.stack: return  # The surrounding frame predates setprofile.
+            require(self.stack, 'profile return stack empty')
             row = self.stack[-1]
-            # setprofile(None) itself has no subsequent observable c_return.
-            if row['id'] != id(frame) or row['kind'] != ('call' if event == 'return' else 'c_call'):
-                return
+            require(row['id'] == id(frame) and row['kind'] == ('call' if event == 'return' else 'c_call') and
+                    (event == 'return' or row['c_id'] == id(arg)), 'profile return stack mismatch')
             self.stack.pop()
             elapsed = max(0, tick - row['start'])
             if self.stack: self.stack[-1]['children'] += elapsed
@@ -305,6 +314,7 @@ def observe_call(observer, call):
     require(sys.getprofile() is None and not observer.started, 'fresh unprofiled observer required')
     previous = sys.getprofile()
     observer.started = True
+    observer.owner_frame_id = id(sys._getframe())
     try:
         sys.setprofile(observer)
         result = call()
@@ -314,7 +324,10 @@ def observe_call(observer, call):
         raise
     finally:
         sys.setprofile(previous)
+        if observer.stack and not observer.failures:
+            observer.failures.append('incomplete profile stack at stop')
         observer.stack.clear()
+        observer.owner_frame_id = None
     require(not observer.failures and all(row['sha256'] is not None for row in [*observer.leaves,*observer.fingerprints]),
             'incomplete observation: ' + '; '.join(observer.failures))
     return result
@@ -334,6 +347,10 @@ def measure_request(index, read_images, synchronize, paths, *, observer=None):
         require(len(images) == len(paths), 'decoder image count differs')
         call = lambda: index.search_images(images)
         result = call() if observer is None else observe_call(observer, call)
+        if observer is not None and not (observer.fingerprints and observer.leaves and
+                type(observer.output) is dict and observer.output.keys() == (OUTPUT_KEYS - {'wire'}) | {'wire_hex'}):
+            observer.failures.append('incomplete public witness: fingerprint/tensor/output required')
+            raise ValueError(observer.failures[-1])
         returned = time.perf_counter()
         synchronize()
         completed = time.perf_counter()
