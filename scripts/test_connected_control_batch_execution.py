@@ -30,8 +30,77 @@ def load(path, name):
     return module
 
 
-def cuda_diagnostic_inverse(raw):
+
+def workspace_inverse(raw):
     tree = ast.parse(raw)
+    expected = ast.parse("""failure = None
+try:
+    try:
+        workspace_dispose()
+    except BaseException as caught:
+        failure = caught
+        caught.__traceback__ = None
+    if failure is None:
+        cuda_ownership_snapshot()
+finally:
+    try:
+        diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)
+    except BaseException as final_failure:
+        if failure is not None:
+            final_failure.add_note('workspace cleanup: '+repr(failure))
+        raise
+    if failure is not None:
+        raise failure
+""").body
+    counts = [0, 0, 0]
+    class Restore(ast.NodeTransformer):
+        def visit_FunctionDef(self, node):
+            if node.name == 'capture_workspace_owner' and node.col_offset == 0:
+                counts[0] += 1
+                return None
+            if node.name == 'final_resources':
+                if ast.dump(ast.Module(body=node.body, type_ignores=[]), include_attributes=False) != ast.dump(ast.Module(body=expected, type_ignores=[]), include_attributes=False):
+                    raise ValueError('workspace final callback seam differs')
+                counts[1] += 1
+                node.body = ast.parse("""try:
+    cuda_ownership_snapshot()
+finally:
+    diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)
+""").body
+            return self.generic_visit(node)
+        def visit_Assign(self, node):
+            if ast.unparse(node) == 'workspace_dispose = capture_workspace_owner(torch, context)':
+                counts[2] += 1
+                return None
+            return self.generic_visit(node)
+    tree = Restore().visit(tree)
+    if counts != [1, 1, 1]:
+        raise ValueError('workspace exact seam counts differ')
+    return tree
+
+
+def workspace_test_inverse(raw):
+    tree = ast.parse(raw)
+    class Restore(ast.NodeTransformer):
+        def visit_FunctionDef(self, node):
+            if node.name in ('workspace_inverse', 'workspace_test_inverse') or node.name.startswith('test_workspace_'):
+                return None
+            if node.name == 'cuda_diagnostic_inverse':
+                node.body[0].value = ast.parse('ast.parse(raw)', mode='eval').body
+            return self.generic_visit(node)
+        def visit_Dict(self, node):
+            items = [(k, v) for k, v in zip(node.keys, node.values) if not (isinstance(k, ast.Constant) and k.value in ('capture_workspace_owner', 'workspace_dispose'))]
+            node.keys = [k for k, v in items]; node.values = [v for k, v in items]
+            return self.generic_visit(node)
+        def visit_Call(self, node):
+            if isinstance(node.func, ast.Name) and node.func.id == 'workspace_test_inverse':
+                return ast.copy_location(ast.Call(func=ast.Attribute(value=ast.Name(id='ast', ctx=ast.Load()), attr='parse', ctx=ast.Load()), args=[node.args[0]], keywords=[]), node)
+            return self.generic_visit(node)
+    return Restore().visit(tree)
+
+
+def cuda_diagnostic_inverse(raw):
+    tree = workspace_inverse(raw)
     expected = ast.parse("""try:
     cuda_ownership_snapshot()
 finally:
@@ -589,6 +658,7 @@ class ObserverTests(unittest.TestCase):
                     'bind_control':lambda *a:(events.append('prospective_bind') or endpoint,{}),
                     'authenticated':lambda *a,**k:b'', 'check_capture_ast':lambda *a:None,
                     'check_endpoint':lambda *a:None,'observe':observe,'exact_four':lambda *a:None,
+                    'capture_workspace_owner':lambda *a:lambda:None,
                     'rehash':rehash,'remove_source':lambda m:events.append('remove'),'memory_snapshot':sample}
                 for name,value in patches.items():stack.enter_context(patch.object(self.o,name,value))
                 stack.enter_context(patch.dict('os.environ',{'CUDA_VISIBLE_DEVICES':'0','CUBLAS_WORKSPACE_CONFIG':':4096:8',
@@ -699,7 +769,7 @@ class ObserverTests(unittest.TestCase):
                 events = []
                 cuda = SimpleNamespace(is_initialized=lambda:True, synchronize=lambda:events.append('synchronize'),
                     max_memory_allocated=lambda:64, memory_allocated=lambda:32, memory_reserved=lambda:128)
-                namespace = {**vars(self.o), 'diagnostic':self.d,
+                namespace = {**vars(self.o), 'workspace_dispose':lambda:None, 'diagnostic':self.d,
                     'budget':SimpleNamespace(check=lambda:events.append('budget')),
                     'source':SimpleNamespace(cgroup_memory=lambda:{'path':'/test.service'}),
                     'initializer':SimpleNamespace(admit_cgroup=lambda *a:events.append('cgroup')),
@@ -731,7 +801,7 @@ class ObserverTests(unittest.TestCase):
             self.assertNotEqual(ast.dump(changed, include_attributes=False), ast.dump(restored, include_attributes=False))
         with self.assertRaisesRegex(ValueError, 'seam'):
             cuda_diagnostic_inverse(raw.replace(b'diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)', b'diagnostic.final_state(budget, source, initializer, before, rng, flags, None)', 1))
-        tests = ast.parse(Path(__file__).read_bytes())
+        tests = workspace_test_inverse(Path(__file__).read_bytes())
         tests.body = [n for n in tests.body if not (isinstance(n, ast.FunctionDef) and n.name == 'cuda_diagnostic_inverse')]
         suite = next(n for n in tests.body if isinstance(n, ast.ClassDef) and n.name == 'ObserverTests')
         names = {'test_cuda_ownership_diagnostic_is_bounded_and_metadata_only',
@@ -744,6 +814,123 @@ class ObserverTests(unittest.TestCase):
         assignment.value = ast.parse('Restore().visit(ast.parse(DRIVER.read_bytes()))', mode='eval').body
         self.assertEqual(hashlib.sha256(ast.dump(tests, include_attributes=False).encode()).hexdigest(),
                          '58edb1f4a7ea766905901a2144e571ea583ce3f45fe707734118154ff57e3555')
+
+    def test_workspace_capture_rejects_python_and_foreign_modules(self):
+        from types import ModuleType
+        torch = ModuleType('torch'); native = ModuleType('torch._C'); version = ModuleType('torch.version')
+        torch._C = native; torch.version = version
+        native._cuda_clearCublasWorkspaces = lambda:None
+        with patch.dict(sys.modules, {'torch':torch, 'torch._C':native, 'torch.version':version}):
+            with self.assertRaisesRegex(ValueError, 'builtin'):
+                self.o.capture_workspace_owner(torch, {})
+            native._cuda_clearCublasWorkspaces = sys.getsizeof
+            with self.assertRaisesRegex(ValueError, 'builtin'):
+                self.o.capture_workspace_owner(torch, {})
+            sys.modules['torch._C'] = ModuleType('torch._C')
+            with self.assertRaisesRegex(ValueError, 'module ownership'):
+                self.o.capture_workspace_owner(torch, {})
+
+    def test_workspace_real_callbacks_preserve_tensor_guard_and_failures(self):
+        from types import ModuleType
+        # Stdlib owner simulation replaces only the two builtin-type predicates;
+        # it cannot establish actual private API type/self binding or native causality.
+        tree = ast.parse(DRIVER.read_bytes())
+        helper = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'capture_workspace_owner')
+        count = 0
+        class BuiltinSeam(ast.NodeTransformer):
+            def visit_Call(self, node):
+                nonlocal count
+                if ast.unparse(node) == 'type(sys.getsizeof)':
+                    count += 1
+                    return ast.copy_location(ast.parse('type(clear)', mode='eval').body, node)
+                return self.generic_visit(node)
+        helper = BuiltinSeam().visit(helper)
+        self.assertEqual(count, 2)
+        namespace = dict(vars(self.o))
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[helper], type_ignores=[])), str(DRIVER), 'exec'), namespace)
+        run = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'run')
+        callback = next(n for n in ast.walk(run) if isinstance(n, ast.FunctionDef) and n.name == 'final_resources')
+        for mutant in (None, 'tensor', 'clear', 'clear_released', 'after', 'before', 'callable', 'module', 'registry', 'version', 'source', 'hash', 'config', 'self', 'name', 'call_module', 'path', 'reserved'):
+            with self.subTest(mutant=mutant), tempfile.TemporaryDirectory() as tmp:
+                events = []; owner = {'workspace':33554432, 'tensor':8 if mutant == 'tensor' else 0}
+                torch = ModuleType('torch'); native = ModuleType('torch._C'); version = ModuleType('torch.version')
+                torch._C = native; torch.version = version
+                torch.__version__ = version.__version__ = '2.12.1+cu130'
+                version.git_version = '7269437d655783a26cba32aa88195b741ff496aa'
+                def clear():
+                    events.append('clear')
+                    if mutant == 'clear':raise ValueError('clear failure')
+                    owner['workspace'] = 1 if mutant == 'after' else 0
+                    if mutant == 'clear_released':raise ValueError('clear failure after release')
+                clear.__name__ = '_cuda_clearCublasWorkspaces'; clear.__module__ = 'torch._C'; clear.__self__ = native
+                native._cuda_clearCublasWorkspaces = clear
+                cuda = SimpleNamespace(is_initialized=lambda:True, synchronize=lambda:events.append('sync'),
+                    max_memory_allocated=lambda:33554440, memory_allocated=lambda:owner['workspace']+owner['tensor'],
+                    memory_reserved=lambda:0 if mutant == 'reserved' else 33554440)
+                torch.cuda = cuda
+                facts = {}
+                for module in (torch, native, version):
+                    path = Path(tmp)/module.__name__; path.write_text(module.__name__); module.__file__ = str(path)
+                    facts[str(path)] = 'c846964f2d105f1f367cdc92dea045debcdcc09557b5da60591e8079f1b2c828' if module is version else hashlib.sha256(path.read_bytes()).hexdigest()
+                context = {'guards':dict(facts), 'source_cpu':{'origins':{'files':dict(facts)}}, 'warm':{'origins':{'files':{}}}}
+                def authenticate(fact, guards):
+                    self.assertEqual(fact['sha256'], facts[fact['path']])
+                    if mutant == 'source' and 'changed' in events:raise ValueError('source changed')
+                with patch.dict(sys.modules, {'torch':torch, 'torch._C':native, 'torch.version':version}), patch.dict(os.environ, {'CUBLAS_WORKSPACE_CONFIG':':4096:8'}), redirect_stderr(stderr := io.StringIO()):
+                    namespace['authenticated'] = authenticate
+                    dispose = namespace['capture_workspace_owner'](torch, context)
+                    if mutant == 'before':owner['workspace'] = 1
+                    if mutant == 'callable':native._cuda_clearCublasWorkspaces = lambda:None
+                    if mutant == 'module':torch._C = ModuleType('torch._C')
+                    if mutant == 'registry':sys.modules['torch._C'] = ModuleType('torch._C')
+                    if mutant == 'version':version.git_version = 'wrong'
+                    if mutant == 'source':events.append('changed')
+                    if mutant == 'hash':context['guards'][native.__file__] = 'wrong'
+                    if mutant == 'config':os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'
+                    if mutant == 'self':clear.__self__ = ModuleType('torch._C')
+                    if mutant == 'name':clear.__name__ = 'wrong'
+                    if mutant == 'call_module':clear.__module__ = 'wrong'
+                    if mutant == 'path':native.__file__ = version.__file__
+                    env = {**vars(self.o), 'workspace_dispose':dispose, 'cuda_ownership_snapshot':lambda:None,
+                        'diagnostic':self.d, 'budget':SimpleNamespace(check=lambda:None),
+                        'source':SimpleNamespace(cgroup_memory=lambda:(events.append('final') or {'path':'/test.service'})),
+                        'initializer':SimpleNamespace(admit_cgroup=lambda *a:None), 'before':{'path':'/test.service'},
+                        'rng':None, 'flags':None, 'receipt':{}}
+                    exec(compile(ast.Module(body=[callback], type_ignores=[]), str(DRIVER), 'exec'), env)
+                    if mutant:
+                        with self.assertRaises(ValueError) as failure:env['final_resources']()
+                        if mutant == 'tensor':self.assertEqual(str(failure.exception), 'final CUDA tensor cleanup differs')
+                        if mutant == 'clear':
+                            self.assertEqual(str(failure.exception), 'final CUDA tensor cleanup differs')
+                            self.assertTrue(any('clear failure' in n for n in failure.exception.__notes__))
+                        if mutant == 'clear_released':
+                            self.assertEqual(str(failure.exception), 'clear failure after release')
+                            self.assertIn('cgroup_after', env['receipt'])
+                        else:
+                            self.assertEqual(env['receipt'], {})
+                    else:
+                        env['final_resources']()
+                        self.assertEqual(owner['workspace'], 0)
+                        self.assertIn('cgroup_after', env['receipt'])
+                    self.assertIn('final', events)
+                    self.assertEqual(events.count('clear'), int(mutant in (None, 'tensor', 'clear', 'clear_released', 'after')))
+                    with self.assertRaisesRegex(ValueError, 'already attempted'):dispose()
+                    if mutant in (None, 'tensor', 'after'):
+                        report = json.loads(stderr.getvalue()); self.assertFalse(report['native_causality_established'])
+                        self.assertEqual(report['before']['allocated_bytes'] - report['after']['allocated_bytes'], 33554431 if mutant == 'after' else 33554432)
+
+    def test_workspace_inverse_preserves_complete_production_and_tests(self):
+        raw = DRIVER.read_bytes()
+        restored = workspace_inverse(raw)
+        self.assertEqual(hashlib.sha256(ast.dump(restored, include_attributes=False).encode()).hexdigest(),
+                         '61a3ab1a22c7714ba695ce292f7affa96e30702d2e8f12b29184f4358c565007')
+        original_tests = workspace_test_inverse(Path(__file__).read_bytes())
+        self.assertEqual(hashlib.sha256(ast.dump(original_tests, include_attributes=False).encode()).hexdigest(),
+                         '57ad8473b14d2d3d8457f39eaec8daaaf0a13e66ed432f28481fcd0795fbb5cd')
+        with self.assertRaisesRegex(ValueError, 'seam'):
+            workspace_inverse(raw.replace(b'workspace_dispose()', b'workspace_dispose(None)', 1))
+        changed = workspace_inverse(raw.replace(b'len(images) <= 32', b'len(images) <= 33', 1))
+        self.assertNotEqual(ast.dump(changed, include_attributes=False), ast.dump(restored, include_attributes=False))
 
     def test_cli_and_no_native_imports(self):
         self.assertFalse({'torch','numpy','PIL','transformers','torchvision','sfora'}.intersection(sys.modules))

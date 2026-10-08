@@ -472,6 +472,69 @@ def cuda_ownership_snapshot():
         sort_keys=True, allow_nan=False), file=sys.stderr, flush=True)
 
 
+def capture_workspace_owner(torch, context):
+    """Admitted runtime binding only, not cryptographic C function-pointer identity."""
+    native = torch._C
+    version = torch.version
+    clear = native._cuda_clearCublasWorkspaces
+    require(type(torch) is type(sys) and type(native) is type(sys) and type(version) is type(sys) and
+            sys.modules.get('torch') is torch and sys.modules.get('torch._C') is native and
+            sys.modules.get('torch.version') is version, 'workspace module ownership differs')
+    require(type(clear) is type(sys.getsizeof) and clear.__name__ == '_cuda_clearCublasWorkspaces' and
+            clear.__module__ in ('torch', 'torch._C') and (clear.__self__ is None or clear.__self__ is native),
+            'workspace genuine builtin binding required')
+    require(version.git_version == '7269437d655783a26cba32aa88195b741ff496aa' and
+            version.__version__ == torch.__version__ == '2.12.1+cu130', 'workspace version differs')
+    known = {}
+    for record in (context['source_cpu'], context['warm']):
+        known.update(record['origins']['files'])
+    facts = []
+    for module in (torch, native, version):
+        path = str(Path(module.__file__).resolve())
+        require(known.get(path) == context['guards'].get(path) and path in known,
+                'workspace original guarded origin required')
+        facts.append({'path': path, 'sha256': known[path]})
+    require(facts[2]['sha256'] == 'c846964f2d105f1f367cdc92dea045debcdcc09557b5da60591e8079f1b2c828',
+            'workspace version source hash differs')
+    binding = (clear.__name__, clear.__module__, clear.__self__)
+    used = False
+    def authenticate():
+        require(sys.modules.get('torch') is torch and sys.modules.get('torch._C') is native and
+                sys.modules.get('torch.version') is version and torch._C is native and torch.version is version and
+                native._cuda_clearCublasWorkspaces is clear and type(clear) is type(sys.getsizeof) and
+                (clear.__name__, clear.__module__, clear.__self__) == binding and
+                version.git_version == '7269437d655783a26cba32aa88195b741ff496aa' and
+                version.__version__ == torch.__version__ == '2.12.1+cu130' and
+                os.environ.get('CUBLAS_WORKSPACE_CONFIG') == ':4096:8', 'workspace captured ownership differs')
+        for module, fact in zip((torch, native, version), facts, strict=True):
+            require(str(Path(module.__file__).resolve()) == fact['path'] and
+                    context['guards'].get(fact['path']) == fact['sha256'], 'workspace guarded binding differs')
+            authenticated(fact, {})
+    authenticate()
+    def dispose():
+        nonlocal used
+        require(not used, 'workspace cleanup already attempted')
+        used = True
+        authenticate()
+        torch.cuda.synchronize()
+        before = {'allocated_bytes': torch.cuda.memory_allocated(), 'reserved_bytes': torch.cuda.memory_reserved()}
+        require(all(type(v) is int and v >= 0 for v in before.values()) and
+                before['reserved_bytes'] >= before['allocated_bytes'] >= 33554432, 'workspace before scalars differ')
+        clear()
+        torch.cuda.synchronize()
+        authenticate()
+        after = {'allocated_bytes': torch.cuda.memory_allocated(), 'reserved_bytes': torch.cuda.memory_reserved()}
+        print(json.dumps({'diagnostic': 'cuda_workspace_disposal', 'status': 'UNACCEPTED',
+            'before': before, 'after': after, 'native_causality_established': False,
+            'ownership_limit': 'captured admitted builtin binding; C function pointer not authenticated'},
+            sort_keys=True, allow_nan=False), file=sys.stderr, flush=True)
+        require(all(type(v) is int and v >= 0 for v in after.values()) and
+                before['allocated_bytes'] - after['allocated_bytes'] == 33554432 and
+                after['allocated_bytes'] <= after['reserved_bytes'] <= before['reserved_bytes'],
+                'workspace after scalars differ')
+    return dispose
+
+
 def run(args):
     started = time.perf_counter()
     prospective = context = diagnostic = sources = state = audit = receipt = None
@@ -517,6 +580,7 @@ def run(args):
         admitted = True
         memory_snapshot(before['path'], 'after_admission')
         import torch
+        workspace_dispose = capture_workspace_owner(torch, context)
         require(not torch.cuda.is_initialized(), 'CUDA initialized before admission')
         flags = copy.deepcopy(context['exports'][KEY]['numerical_flags'])
         require(flags == context['cpu']['numerical_flags'] and flags['cudnn_allow_tf32'] is True and
@@ -531,10 +595,24 @@ def run(args):
         sources.checks.append(guard(packing, context['launch']['sources']['packing']['sha256'], context['guards']))
         budget = SimpleNamespace(check=lambda: elapsed_cap(started))
         def final_resources():
+            failure = None
             try:
-                cuda_ownership_snapshot()
+                try:
+                    workspace_dispose()
+                except BaseException as caught:
+                    failure = caught
+                    caught.__traceback__ = None
+                if failure is None:
+                    cuda_ownership_snapshot()
             finally:
-                diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)
+                try:
+                    diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)
+                except BaseException as final_failure:
+                    if failure is not None:
+                        final_failure.add_note('workspace cleanup: '+repr(failure))
+                    raise
+                if failure is not None:
+                    raise failure
         callbacks.append(final_resources)
         connected = m['connected']
         def boundary():
