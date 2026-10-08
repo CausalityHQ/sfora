@@ -1,0 +1,54 @@
+{
+  "both_original_lock_guards_pass": true,
+  "cuda": "hidden; original before/after assertions passed",
+  "decision": "ACCEPT_DESCRIPTIVE_EXACT_REPLAY_ONLY",
+  "exact_replay_pairs": 6936,
+  "final_cgroup": {
+    "command_exit_status": 0,
+    "invocation_id": "51b7debeae40426cb7aa9b5113a0de0e",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-exact-torch-census-v1.service",
+    "values": {
+      "memory.current": "2965979136",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "3338244096",
+      "memory.stat": "anon 5824512\nfile 2951741440\nkernel 7266304\nkernel_stack 32768\npagetables 258048\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 4096\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5722112\ninactive_file 2895228928\nactive_file 56512512\nunevictable 0\nslab_reclaimable 6852544\nslab_unreclaimable 87472\nslab 6940016\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 108862\npgmajfault 732\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 15\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "full_uncached_exit_pass": true,
+  "host_peak_bytes": 3338244096,
+  "invocation_id": "51b7debeae40426cb7aa9b5113a0de0e",
+  "limits": "engineering/descriptive only; no quality/product/speed/causal family GO",
+  "log_sha256": "2c174a8d1f0bdbf55d488e156ccdd8b1a008455f09759e0f4babad0514726254",
+  "memory_events": 0,
+  "native_peak_rss_kib": 608700,
+  "original_quality_decision": "KILL unchanged",
+  "python_wall_seconds": 13.915480408992153,
+  "receipt_sha256": "931425db03a67c02c909326162e2f16786b89ee32a99cdc0ef42bb41b0d567e4",
+  "schema": "exact-torch-census-parent-verification-v1",
+  "service_seconds": 14.287,
+  "ssh_exit": 0,
+  "ssh_session": 48016,
+  "stop_cgroup": {
+    "exit_code": "exited",
+    "exit_status": "0",
+    "invocation_id": "51b7debeae40426cb7aa9b5113a0de0e",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-exact-torch-census-v1.service",
+    "service_result": "success",
+    "values": {
+      "memory.current": "2965491712",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "3338244096",
+      "memory.stat": "anon 5431296\nfile 2951741440\nkernel 7016448\nkernel_stack 0\npagetables 98304\nsec_pagetables 0\npercpu 1056\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 4096\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5394432\ninactive_file 2895228928\nactive_file 56512512\nunevictable 0\nslab_reclaimable 6849096\nslab_unreclaimable 44408\nslab 6893504\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 110359\npgmajfault 732\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 15\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "swap_bytes": 0,
+  "unit": "sfora-connected-exact-torch-census-v1"
+}

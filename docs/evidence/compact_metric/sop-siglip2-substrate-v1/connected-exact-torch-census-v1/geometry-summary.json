@@ -1,0 +1,111 @@
+{
+  "core_queries": 44,
+  "dataset": "DeepFashion In-Shop",
+  "decision": "All176 margins negative; tie-only explanation falsified. Near-positive rank is descriptive, not proof of information availability or a new training admission. Original candidate KILL unchanged.",
+  "endpoints": {
+    "candidate-179061": {
+      "best_positive_rank": {
+        "le10": 39,
+        "le5": 33,
+        "le81": 44,
+        "max": 30,
+        "median": 2.5,
+        "min": 2
+      },
+      "count": 44,
+      "positive_minus_impostor_margin": {
+        "max": -0.002047717571258545,
+        "median": -0.056793197989463806,
+        "min": -0.2636561989784241,
+        "negative": 44,
+        "zero": 0
+      }
+    },
+    "candidate-179069": {
+      "best_positive_rank": {
+        "le10": 39,
+        "le5": 34,
+        "le81": 44,
+        "max": 33,
+        "median": 2.5,
+        "min": 2
+      },
+      "count": 44,
+      "positive_minus_impostor_margin": {
+        "max": -0.0025003552436828613,
+        "median": -0.05759984254837036,
+        "min": -0.2783631682395935,
+        "negative": 44,
+        "zero": 0
+      }
+    },
+    "control-179061": {
+      "best_positive_rank": {
+        "le10": 37,
+        "le5": 29,
+        "le81": 44,
+        "max": 31,
+        "median": 3.0,
+        "min": 2
+      },
+      "count": 44,
+      "positive_minus_impostor_margin": {
+        "max": -0.0008503198623657227,
+        "median": -0.07557451725006104,
+        "min": -0.3389650583267212,
+        "negative": 44,
+        "zero": 0
+      }
+    },
+    "control-179069": {
+      "best_positive_rank": {
+        "le10": 37,
+        "le5": 31,
+        "le81": 44,
+        "max": 31,
+        "median": 3.0,
+        "min": 2
+      },
+      "count": 44,
+      "positive_minus_impostor_margin": {
+        "max": -0.0008296072483062744,
+        "median": -0.08221976459026337,
+        "min": -0.3501162827014923,
+        "negative": 44,
+        "zero": 0
+      }
+    }
+  },
+  "gallery_images": 1715,
+  "median_four_endpoint_positive_rank": {
+    "histogram": {
+      "10.5": 1,
+      "11.5": 1,
+      "13.5": 1,
+      "15.0": 1,
+      "15.5": 1,
+      "2.0": 13,
+      "2.5": 7,
+      "27.0": 1,
+      "3.0": 7,
+      "31.0": 1,
+      "4.0": 2,
+      "4.5": 2,
+      "5.0": 2,
+      "5.5": 1,
+      "7.0": 1,
+      "7.5": 2
+    },
+    "le10": 37,
+    "le5": 33,
+    "max": 31.0,
+    "median": 3.0
+  },
+  "products": 498,
+  "query_images": 1734,
+  "receipt_sha256": "931425db03a67c02c909326162e2f16786b89ee32a99cdc0ef42bb41b0d567e4",
+  "same_top_impostor_image_all4": 37,
+  "same_top_impostor_product_all4": 41,
+  "schema": "exact-core-score-descriptive-summary-v1",
+  "split": "previously exposed TRAIN selection"
+}
