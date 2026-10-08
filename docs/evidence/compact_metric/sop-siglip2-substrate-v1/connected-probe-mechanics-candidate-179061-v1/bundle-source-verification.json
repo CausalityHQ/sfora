@@ -1,0 +1,20 @@
+{
+  "schema": "connected-probe-mechanics-bundle-source-verification-v1",
+  "binding": "accepted mechanics receipt result.parity.bundle SHA",
+  "bundle_sha256": "ae132cb56539fa2690e62e117d8e5c556352a938f300bf6c04a46d6203b32ef0",
+  "code9": {
+    "extract_siglip2_vision_source.py": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d",
+    "joint_relational_compaction.py": "4ca0de1b0579ea6165c81e9057e9afe77e6dd4141f0b4a0adb281de25300de67",
+    "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+    "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+    "qualify_siglip2_substrate_cpu.py": "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38",
+    "test_siglip2_connected_probe.py": "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120",
+    "train_siglip2_cached_readout.py": "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c",
+    "train_siglip2_connected_probe.py": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e",
+    "train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+  },
+  "matches_library_preedit_contract": true,
+  "model_weights_or_images_downloaded": false,
+  "source_vector_only": true,
+  "deployment_quality_speed_qualified": false
+}
