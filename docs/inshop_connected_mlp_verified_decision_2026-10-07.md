@@ -1,6 +1,6 @@
 # Connected last-MLP: verified decision
 
-Status: first-seed selection **CONTINUE**, both second-seed mechanics gates and both fresh second-seed TRAIN128 gates passed; the full-stage CPU500 is prospectively frozen. The production joint quality-and-speed objective remains unmet. All numbers below are measured and receipt-verified; no official result or speed result is inferred from TRAIN selection.
+Status: first-seed selection **CONTINUE**, both second-seed mechanics gates and both fresh second-seed TRAIN128 gates passed; the first full-stage CPU500 timed out and is ineligible for export. The production joint quality-and-speed objective remains unmet. All numbers below are measured and receipt-verified; no official result or speed result is inferred from TRAIN selection.
 
 | Dataset / split / seed | Control | Candidate | Baseline | Decision and uncertainty |
 |---|---:|---:|---:|---|
@@ -50,3 +50,5 @@ Evidence:
 - [Candidate069 TRAIN verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-candidate-179069-v1/verification.json) and [full-stage CPU prospective freeze](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-cpu-v1-freeze/full-cpu-v1-freeze.json).
 
 - [Second-seed receipt-derived throughput accounting](evidence/compact_metric/sop-siglip2-substrate-v1/connected-training-throughput-accounting-seed179069-v1.json).
+
+Full-stage CPU-v1 original invocation `4e74777ab12642969ad612b495cf326d` timed out at 500.114 s (frozen 500 s), host peak 1,571,721,216 B, zero memory events/swap. No receipt or admitted-progress marker was published. The exact admission/native-start subphase is unproven; footer command status0 does not override killed/TERM/timeout. No fresh full-stage GPU export or new held quality read was admitted. [Original failure evidence](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-cpu-v1/failure.json) is preserved. Next: bounded admission-path audit and one source-only correction or a precisely scoped diagnostic, then a new prospective qualification.
