@@ -1,0 +1,46 @@
+{
+  "qualify_connected_control_serving.py": {
+    "sha256": "6c39c21f52cee94438243a7a06a6210455152f21cd8f06b7d772db90299648e9",
+    "changed_definitions": [
+      "run",
+      "validate_receipt"
+    ]
+  },
+  "connected_control_native_authority.py": {
+    "sha256": "6501e0d30b5a88311e3e07143b331e9f0fcd94195747d4e3f1af261114ba154b",
+    "changed_definitions": []
+  },
+  "test_connected_control_serving.py": {
+    "sha256": "5cd0b8a362a6edc1fee7784da7a5807b06e32647c25574032694d279c6af0c26",
+    "changed_definitions": [
+      "ControlTests",
+      "genuine_exit_fixture",
+      "measurement_fixture",
+      "terminal_fixture"
+    ]
+  },
+  "qualify_connected_serving_requests.py": {
+    "sha256": "fb4636f299fbf48296fc059a6a896275cd49b7a06d06e9ab0e39f9400208d2ca",
+    "changed_definitions": []
+  },
+  "evaluate_siglip2_connected_mlp.py": {
+    "sha256": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4",
+    "changed_definitions": []
+  },
+  "train_siglip2_nearest_ranking.py": {
+    "sha256": "4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c",
+    "changed_definitions": []
+  },
+  "fit_siglip2_prototype_residual.py": {
+    "sha256": "95295794ef234967d40bdf5713d04f41d6710dae4e9d2b95bca76f0f31adc13b",
+    "changed_definitions": []
+  },
+  "train_siglip2_quadratic_readout.py": {
+    "sha256": "17cf2dac93a45aae3ba929ad5c36e73f4c33576eae9bb5f9dec670c272a1731f",
+    "changed_definitions": []
+  },
+  "qualify_siglip2_substrate_cpu.py": {
+    "sha256": "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38",
+    "changed_definitions": []
+  }
+}

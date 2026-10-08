@@ -1,0 +1,17 @@
+{
+  "artifact_sha256": {
+    "sfora-control-review-fixes-affected-suite.log": "7a402f8253cdb2c6a3538edd2549905a74885c8d4588a544049b5b290ef869ed",
+    "sfora-control-review-fixes-evaluator-narrow.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sfora-control-review-fixes-final-control-suite.log": "72d2dadef96dcb9c9e8c4de65461981920b4ff683d58a6456c9c5f40ed45495c",
+    "sfora-control-review-fixes-ledger-after.json": "6179c6b7ee2ce3882bdb2f442722f3eac42a1a9a3c338ee716d388d442499f5f",
+    "sfora-control-review-fixes-ledger-before.json": "97efe55c0e9f1280b96f5378bf6602d3646df6e5105d40c943dc621779bf5706",
+    "sfora-control-review-fixes-red-python3.log": "a23017aa217e65484d5698bc3eaaa9fb9519ae9c070fddacb4155cac0ae82aa3",
+    "sfora-control-review-fixes-result.json": "b35c4a6bc05c912cbe3a511a3f147f8fb6c1728c58d65eedd24789d355e3ff27",
+    "sfora-control-review-fixes-startup-red.log": "43161e05f6ab1b29b2fdb951516563d7c158be0ce8f15b4d285bd1ce4cf80eda"
+  },
+  "candidate_status": "KILL",
+  "checks": "exact3 hashes/production AST changed only run+validate_receipt, native helper executable AST unchanged, original helper bytes unchanged",
+  "native_qualified": false,
+  "original_evaluator_suite_verdict": "UNFINISHED_TIMEOUT",
+  "source_commit": "f376b15dcb561a071cf9a16117d9c6b3c9387221"
+}

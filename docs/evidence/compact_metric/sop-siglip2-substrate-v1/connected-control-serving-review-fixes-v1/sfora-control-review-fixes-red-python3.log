@@ -1,0 +1,347 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='timed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='original_warmup_oracles')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='observations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='owners')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='oracle_semantics')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='timing_semantics')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='product_p99')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='row seconds')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='row read_decode_seconds')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='row public_call_seconds')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='row completion_sync_seconds')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='row native_capture_seconds')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='row image_cleanup_seconds')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='row native')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='row instrumented')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant='row qualification_eligible')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'instrumented')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'native')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'read_decode_seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'public_call_seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'image_cleanup_seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 0, 'instrumented')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('timed', '1', 'measured_images_per_second')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('timed', '1', 'seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('original_warmup_oracles', '1', 'output', 'raw', 'hex')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('observations', '1', 'fingerprints')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('observations', '1', 'tensor_occurrences')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('observations', '1', 'callback_seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('observations', '1', 'complete')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('owners', 0, 'admission_seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('owners', 1, 'release_seconds')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('owners',)")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('ties', 'native', 0, 0, 'hex')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'native', 0, 'shape')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+======================================================================
+FAIL: test_complete_measurement_receipt_rejects_missing_and_forged_evidence (__main__.ControlTests.test_complete_measurement_receipt_rejects_missing_and_forged_evidence) (mutant="('calls', 2, 'native', 1, 'format')")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 181, in test_complete_measurement_receipt_rejects_missing_and_forged_evidence
+    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                                    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'ValueError'>, <class 'KeyError'>, <class 'TypeError'>) not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.333s
+
+FAILED (failures=38)

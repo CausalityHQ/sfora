@@ -1,0 +1,30 @@
+RUN scripts/test_connected_control_serving.py
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 63.191s
+
+OK
+EXIT 0 elapsed 63.399
+RUN scripts/test_connected_serving_requests.py
+....................
+----------------------------------------------------------------------
+Ran 20 tests in 5.415s
+
+OK
+EXIT 0 elapsed 68.98
+RUN scripts/test_observe_connected_serving.py
+PASS source-only genuine public/profiler, fresh-byte, parity and release falsifier
+EXIT 0 elapsed 72.424
+RUN scripts/test_siglip2_nearest_ranking.py
+.....................{"event": "PROTOTYPE_PHASE", "phase": "old_exit_begin", "seconds": 4.703380284947343}
+{"event": "PROTOTYPE_PHASE", "phase": "old_exit_begin", "seconds": 4.815163118997589}
+{"event": "PROTOTYPE_PHASE", "phase": "old_exit_begin", "seconds": 5.008469910011627}
+{"event": "PROTOTYPE_PHASE", "phase": "old_exit_begin", "seconds": 5.496414095978253}
+{"event": "PROTOTYPE_PHASE", "phase": "old_exit_begin", "seconds": 8.662032468942925}
+.......................
+----------------------------------------------------------------------
+Ran 44 tests in 42.713s
+
+OK
+EXIT 0 elapsed 115.4
+RUN scripts/test_connected_mlp_evaluation.py --source-only

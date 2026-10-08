@@ -1,0 +1,55 @@
+{
+  "base": "16b4b0d99593f801da190445e0aa53820a82b429",
+  "production_changed_definitions": [
+    "qualify_connected_control_serving.validate_receipt",
+    "qualify_connected_control_serving.run"
+  ],
+  "adapter_substitutions": {
+    "audit": 2,
+    "quadratic": 0,
+    "fitter": 1,
+    "evaluator": 1
+  },
+  "source_sha256": {
+    "connected_control_native_authority.py": "6501e0d30b5a88311e3e07143b331e9f0fcd94195747d4e3f1af261114ba154b",
+    "qualify_connected_control_serving.py": "6c39c21f52cee94438243a7a06a6210455152f21cd8f06b7d772db90299648e9",
+    "test_connected_control_serving.py": "5cd0b8a362a6edc1fee7784da7a5807b06e32647c25574032694d279c6af0c26"
+  },
+  "verification": [
+    {
+      "log": "/tmp/sfora-control-review-fixes-red-python3.log",
+      "exit_code": 1,
+      "result": "RED: 38 evidence mutations incorrectly accepted by base validator"
+    },
+    {
+      "log": "/tmp/sfora-control-review-fixes-startup-red.log",
+      "exit_code": 1,
+      "result": "RED: missing fitter clock, explicit required FILEs and premature exact-four admission"
+    },
+    {
+      "log": "/tmp/sfora-control-review-fixes-affected-suite.log",
+      "exit_code": 124,
+      "result": "TIMEOUT at 120 seconds; completed control14, request20, observer, nearest44 all PASS; full evaluator unfinished"
+    },
+    {
+      "log": "/tmp/sfora-control-review-fixes-evaluator-narrow.log",
+      "exit_code": 124,
+      "result": "TIMEOUT at 120 seconds; original narrow evaluator handle collected, no verdict"
+    },
+    {
+      "log": "/tmp/sfora-control-review-fixes-final-control-suite.log",
+      "exit_code": 0,
+      "result": "PASS all14 affected control tests in41.393s; AS1GiB; timeout120s"
+    }
+  ],
+  "limits": [
+    "No native/Torch/thirdparty/SSH/GPU/cloud execution, consultation, child or operator contact.",
+    "Original complete evaluator suite and narrow evaluator wrapper did not finish within their supplied aggregate/individual deadlines.",
+    "Candidate KILL, scientific eligibility, quality/GO/reuse and resource caps unchanged; root retains freeze/native/integration authority.",
+    "Actual lazy CUDA loader behavior, remote inode/dev behavior, builtin additions, native full closure and cap feasibility remain unverified.",
+    "Original once-only export invocation admission remains; acceptance/retry requires a fresh parent context."
+  ],
+  "commit": "f376b15dcb561a071cf9a16117d9c6b3c9387221",
+  "identity": "Roman Bartusiak <riomus@gmail.com>\nRoman Bartusiak <riomus@gmail.com>",
+  "worktree_clean": true
+}

@@ -1,0 +1,40 @@
+FFE
+======================================================================
+ERROR: test_startup_frozen_inputs_clock_and_lazy_four_members (__main__.ControlTests.test_startup_frozen_inputs_clock_and_lazy_four_members)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 343, in test_startup_frozen_inputs_clock_and_lazy_four_members
+    execute(body[start:end],{'api':g.api,'context':g.context})
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 324, in execute
+    exec(compile(ast.Module(body=copy.deepcopy(nodes),type_ignores=[]),driver.__file__,'exec'),namespace)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/qualify_connected_control_serving.py", line 416, in <module>
+    api.audit_origins(context['training_context']['legacy'],require_exact=True)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/train_siglip2_nearest_ranking.py", line 512, in audit_origins
+  File "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/train_siglip2_nearest_ranking.py", line 93, in require
+ValueError: observed native difference must be exact four
+
+======================================================================
+FAIL: test_startup_frozen_inputs_clock_and_lazy_four_members (__main__.ControlTests.test_startup_frozen_inputs_clock_and_lazy_four_members) (contract='fitter starts with control unit')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 331, in test_startup_frozen_inputs_clock_and_lazy_four_members
+    self.assertEqual(context['training_context']['fit_context']['unit_started'],driver.STARTED)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: -1 != 865285.056629009
+
+======================================================================
+FAIL: test_startup_frozen_inputs_clock_and_lazy_four_members (__main__.ControlTests.test_startup_frozen_inputs_clock_and_lazy_four_members) (contract='explicit bundle and terminal freeze')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-control-serving-review-fixes-20261008/scripts/test_connected_control_serving.py", line 338, in test_startup_frozen_inputs_clock_and_lazy_four_members
+    self.assertTrue({'bundle','export'} <= set(namespace['frozen']))
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 1 test in 1.716s
+
+FAILED (failures=2, errors=1)
