@@ -1,0 +1,75 @@
+{
+  "copy_exit": 0,
+  "fetch_manifest_sha256": "6643f70f52d8a4464ebeed5b86f468f0bc1730dc7f017e649c7b3885382052a6",
+  "files": [
+    {
+      "arm": "control",
+      "bytes": 1766016,
+      "npy": {
+        "descr": "<f4",
+        "fortran_order": false,
+        "shape": [
+          3449,
+          128
+        ]
+      },
+      "path": "/tmp/sfora-connected-archived-precision-unit-inputs-v1/control-179061.unit.npy",
+      "seed": 179061,
+      "sha256": "d72036deccb573fa6d9c8d945c4149598c4c80ebea5e0fe9879d8edc10fa3716",
+      "source_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/control-179061.unit.npy"
+    },
+    {
+      "arm": "candidate",
+      "bytes": 1766016,
+      "npy": {
+        "descr": "<f4",
+        "fortran_order": false,
+        "shape": [
+          3449,
+          128
+        ]
+      },
+      "path": "/tmp/sfora-connected-archived-precision-unit-inputs-v1/candidate-179061.unit.npy",
+      "seed": 179061,
+      "sha256": "ba784878bafbe54ebb48c3697ed92114a4897e9c8ee6ad57bb6569b16e4fdc4d",
+      "source_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-candidate-179061-v2/candidate-179061.unit.npy"
+    },
+    {
+      "arm": "control",
+      "bytes": 1766016,
+      "npy": {
+        "descr": "<f4",
+        "fortran_order": false,
+        "shape": [
+          3449,
+          128
+        ]
+      },
+      "path": "/tmp/sfora-connected-archived-precision-unit-inputs-v1/control-179069.unit.npy",
+      "seed": 179069,
+      "sha256": "718ecee33a7bbf092f4ac621dcaef5c2de0566a56e6fb447f63ecbc1f4bcfa9a",
+      "source_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179069-v2/control-179069.unit.npy"
+    },
+    {
+      "arm": "candidate",
+      "bytes": 1766016,
+      "npy": {
+        "descr": "<f4",
+        "fortran_order": false,
+        "shape": [
+          3449,
+          128
+        ]
+      },
+      "path": "/tmp/sfora-connected-archived-precision-unit-inputs-v1/candidate-179069.unit.npy",
+      "seed": 179069,
+      "sha256": "bd79e523c0740c998a6502854682dc7d15aaa1f0dd14703e9702de763c61412b",
+      "source_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-candidate-179069-v2/candidate-179069.unit.npy"
+    }
+  ],
+  "images_read": false,
+  "native_executed": false,
+  "original_packed_inputs_reused": true,
+  "schema": "archived-precision-unit-fetch-receipt-v1",
+  "ssh_copy_session": 73474
+}
