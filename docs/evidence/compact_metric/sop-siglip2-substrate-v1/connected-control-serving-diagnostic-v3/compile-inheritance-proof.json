@@ -1,0 +1,33 @@
+{
+  "actual_genuine_load_authenticated_executed": true,
+  "bridge_has_future_annotations": true,
+  "bridge_path": "src/sfora/connected_compact_serving.py",
+  "cause_scope": "Source reproduction of deterministic future-annotations inheritance affecting serializer code comparison. Native v3 did not log individual failed conjuncts; this is not a new successful native gate.",
+  "rows": [
+    {
+      "actual_co_flags": 67108867,
+      "attribute_identity": true,
+      "code_equal": true,
+      "expected_co_flags": 67108867,
+      "file_identity": true,
+      "globals_identity": true,
+      "inherited_annotations_flag": 0,
+      "registry_identity": true
+    },
+    {
+      "actual_co_flags": 83886083,
+      "attribute_identity": true,
+      "code_equal": false,
+      "expected_co_flags": 67108867,
+      "file_identity": true,
+      "globals_identity": true,
+      "inherited_annotations_flag": 16777216,
+      "registry_identity": true
+    }
+  ],
+  "schema": "connected-serving-compile-inheritance-proof-v1",
+  "serializer_sha256": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+  "source_expression": "exec(compile(source, str(trainer_path), 'exec'), vars(self._module))",
+  "thirdparty_modules": [],
+  "trainer_sha256": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
+}

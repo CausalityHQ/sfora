@@ -1,0 +1,27 @@
+{
+  "accepted": false,
+  "both_locks_held": true,
+  "cause": "UNPROVEN at terminal; source audit follows",
+  "cleanup_failure": "observed native difference must be exact four",
+  "exit": 1,
+  "host_peak_bytes": 3767771136,
+  "invocation_id": "88f92d062a374a7d8167752b412c4e9b",
+  "log_sha256": "6c4bbd69f45164794a69bcaa7bda7b0883966514d72cee55d907689e7b4927c6",
+  "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "native_peak_rss_kib": 3340516,
+  "original_native_origin_frontier_v2": "no repeated rejected-origin JSON in this v3 log; no final native qualification",
+  "performance_qualified": false,
+  "phase_evidence": {
+    "cache_target_preparation_seconds": 2.2936694030067883,
+    "independent_reload_seconds": 1.6369171590195037,
+    "shared_source_preparation_seconds": 18.5606145359925
+  },
+  "primary_failure": "original serializer code/module identity differs",
+  "quality_read": false,
+  "schema": "connected-control-serving-original-terminal-v1",
+  "service_seconds": 484.367,
+  "source_root": "/home/riomus/runs/sfora-connected-control-serving-source-v3",
+  "ssh_session": 72064,
+  "swap_peak_bytes": 0,
+  "unit": "sfora-connected-control-serving-diagnostic-v3"
+}
