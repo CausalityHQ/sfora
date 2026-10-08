@@ -1,0 +1,189 @@
+{
+  "both_locks_held": true,
+  "bundle": {
+    "directory": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle",
+    "manifest": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json",
+      "sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153"
+    }
+  },
+  "cache_conditions": "Same resident accepted-control gallery; exact32 declared exposed official-TRAIN selection queries, same B1/B32 inputs; per-size independent parity; discarded engineering diagnostic, not quality/speed qualification.",
+  "control_export_receipt": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/receipt.json",
+    "sha256": "db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407"
+  },
+  "gallery": {
+    "count": 1715,
+    "file": {
+      "path": "/home/riomus/runs/sfora-connected-control-serving-gallery-v1/gallery.bin",
+      "sha256": "386f3b2289f74f7d154efc9d47838f26def6a8c7a18368faac1d3c690ec6bd28"
+    }
+  },
+  "native": {
+    "path": "/home/riomus/runs/sfora-cutile-threads-v1/candidate.so",
+    "sha256": "3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526"
+  },
+  "qualification_eligible": false,
+  "resource_policy": {
+    "body_seconds": 120,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "exit_reserve_seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_process_seconds": 1500
+  },
+  "schema": "connected-control-serving-attribution-authority-v1",
+  "sources": {
+    "bridge": {
+      "path": "/home/riomus/runs/sfora-connected-control-serving-package-v1/src/sfora/connected_compact_serving.py",
+      "sha256": "99da5bd76dd8d49c0ed0c69bf3517d4ee4a976bdb9978addfcffba04f62fefc4"
+    },
+    "observer": {
+      "path": "/home/riomus/runs/sfora-connected-control-serving-source-v2/observe_connected_serving.py",
+      "sha256": "22ea23ff185e8566ad35f89d222ea54c44b292dce2b3221e662310239e44bc0f"
+    },
+    "serializer": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/train_siglip2_substrate_adaptation.py",
+      "sha256": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+    },
+    "test": {
+      "path": "/home/riomus/runs/sfora-connected-control-serving-source-v2/test_observe_connected_serving.py",
+      "sha256": "c660a217d154a14d1ab5c8e20a28519999366e17d339efe4919470aa90f1b41a"
+    },
+    "trainer": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_mlp.py",
+      "sha256": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
+    }
+  },
+  "state_reuse_eligible": false,
+  "train_images": [
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007859/05_1_front.jpg",
+      "sha256": "4871a5f8061c027bb9c78831a9753a6d76362a0722c1aa3215df9cdca3bd9da5"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007859/06_1_front.jpg",
+      "sha256": "81a70bdb936e67a5cde276e2332d5decbf35ba0235bd4ac73194d66cdc2b5bd4"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007859/06_2_side.jpg",
+      "sha256": "6ddf08e7769e52e418adbe24c0b264b18ac2eda45c4658b2e529790f17e665c6"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007859/06_3_back.jpg",
+      "sha256": "90971af6275fe2ad4a0cb41de103eebe6a86c8cdffc7b5456ac6bc012d3e9975"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Pants/id_00007872/03_3_back.jpg",
+      "sha256": "4113819ce24f3f93f1e2c8c0347f711759ca5e53cc4e936af4c321046ab66668"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Pants/id_00007872/03_7_additional.jpg",
+      "sha256": "21c479d0f01c4259b1b712754d21e57ef2d63d2b47039d46f6139ff6f65f6c32"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007899/09_1_front.jpg",
+      "sha256": "9042aee85af55ce4c6e4009c2b2edd4560e634ac154c495dbeb0877c7003245f"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007899/09_4_full.jpg",
+      "sha256": "ae20024b472ee9c0f6f86e3ffed1512939a7016ac4543efb940f840a48abeb50"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007899/10_3_back.jpg",
+      "sha256": "d82cd48d4e3fb60b04bc02c97ce37664f4dce74840a4d011a152ee6e03d76995"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007899/10_4_full.jpg",
+      "sha256": "30a5c75ca288a2ba00dd273a97ff81b845ff7fced74d45a1abb03e76f6add831"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007899/11_3_back.jpg",
+      "sha256": "d2cc2f9d036a9b4635e5edad00cb930098028e7be272642e77a9cb913a58a40d"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007899/12_1_front.jpg",
+      "sha256": "a84dcf433bb6119df52c1413fa66ce7d7b029629a350541497b8c549e428111a"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007899/12_3_back.jpg",
+      "sha256": "4e05f941421f7e38562e7c3b30a6894394eb2a918088f46f4865b72cd0352ffc"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007899/13_1_front.jpg",
+      "sha256": "b0ca54c531d5174894809c43db9cbbece7f8fa2ad887ddae2e700f738a112e04"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007899/13_3_back.jpg",
+      "sha256": "a700ff7c5004d95253c7c422b32da650f9c1497435eb42dc3d4a7bb5b8aa367f"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00007905/01_3_back.jpg",
+      "sha256": "9c2b04cc30f1d928f3bf7705fff1f4f1962f1d092e11926a2abbdd26f19e80a7"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00007905/01_4_full.jpg",
+      "sha256": "08de6e3887962d9f189cbec74589cd07662a3fcb36026ba1ee30b3e04d20fb8d"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007912/02_3_back.jpg",
+      "sha256": "818f17d209df79741121fc03981634076c1903a328c27b97d9f0cb9d86778041"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Shorts/id_00007916/01_2_side.jpg",
+      "sha256": "c4de49e9553f15251c29724672f3ee212bda1a82cccbb9dc51e0c11e933a1b4d"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Shorts/id_00007916/01_3_back.jpg",
+      "sha256": "b28618b2a4a811d582e07a3c1d3b0e55dda249ad87785d9a91e685f709f2fe80"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007918/04_2_side.jpg",
+      "sha256": "15fe8fce85bd7d8bd2931ca1a1daf206db9087825f59b9dba2b819507638e5c3"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007918/04_4_full.jpg",
+      "sha256": "8fd82c1888109e025ccf7a45c901f17dbf6f9daea79a7b02ef0f158c236ebdc4"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007918/05_1_front.jpg",
+      "sha256": "0a452a041118fdc528468b53f0f1c06b2651bcd2ab279d1a875475568fc6156e"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007918/05_2_side.jpg",
+      "sha256": "1e348b198dc97135cb731b1e8d0692e973a198331da075def72598a75c4c8c3a"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007918/05_4_full.jpg",
+      "sha256": "2bed256cd8ab0aa8f608d0c43e638f751a87c134d81efa09a9260d8116577f09"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00007918/13_2_side.jpg",
+      "sha256": "39d86eb15f12f598a165f890fdf08ca5cfa1ca58323d0d3f2c9d0d2d14e88cac"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00007922/01_1_front.jpg",
+      "sha256": "9358b6c237f65f6e5c5de3e1d38491e9f120fd3b9ee6f32548f6b9fbdcc0e717"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00007922/01_2_side.jpg",
+      "sha256": "3c58deb873253c4c7c69122a7969dcd1de1a216f4bb5ee66572ddf5e7bdab2e1"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00007922/01_3_back.jpg",
+      "sha256": "c3470adbb8f14d0a855e22a886257bc1458f484b1b0124f7ca38ac6e061920df"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007938/03_2_side.jpg",
+      "sha256": "f0ff949088ce04b0739e9181d08ed8a051704be96a5a69d62c95af140530fbf0"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007938/03_3_back.jpg",
+      "sha256": "602d414438307368e3e08e0468c7f0416ec43469399ef59027c0d9db5a7fd014"
+    },
+    {
+      "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007938/03_4_full.jpg",
+      "sha256": "e3f637562738a8de011a15772349013ba2eeb382fb4d02cf10783040a69f5c42"
+    }
+  ]
+}
