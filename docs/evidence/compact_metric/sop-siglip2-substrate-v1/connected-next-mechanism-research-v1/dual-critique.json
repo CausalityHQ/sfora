@@ -1,0 +1,716 @@
+{
+  "id": "99c221b6e4404eca",
+  "status": "completed",
+  "started_at": 1791445441,
+  "agent": "sfora/emafactorial",
+  "force_reason": "Materially NEW terminal scientific decision: verified full paired score557.514s is KILL after previous reviews addressed source admission only. Fable proposed a new causal census-to-intervention plan with arithmetic and inference errors independently corrected. Need required Opus/Astra result-gated methodological review before any new scientific/native gate; this is not a duplicate source-release critique or cooldown workaround.",
+  "rolling_6h_count": 3,
+  "prompt_preview": "NEW result-gated SCIENTIFIC plan review. Read-only/noedits/native/Torch/images/SSH/GPU/cloud/jobs/children/newconsults/fulltests. Repo /home/rb/worktrees/sfora-positive-causality HEAD280e2e1 (resolve full), SAME UNBOUNDED production SOP+InShop quality+matched image-to-topk speed goal, not completed. Read docs/connected_mlp_decision_2026-10-08.md; docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/{original-research.json,parent-arithmetic-check.json,parent-screen.json}; full-selection-score-v1 evidence receipt/verification/query+product transitions/gallery-source-dataflow-audit.json. Original new Fable72bd928039e44f38 terminal0 proposes zero-GPU saved-wire census D0 before ONE pose-disjoint supervision arm or lane stop. ROOT HAS NOT ACCEPTED those causal conclusions/actionmap. Actual paired full TRAIN selection1734queries/1715gallery/498products KILL: meanR1+.346021pp/productCI[-.084842,+.828167], AP+2.300189pp/productCI[1.771016,2.852259]; core44wrong incontrol/candidatebothseeds,39sourceerrors/43concaterrors; 9sharedwins/5sharedlosses; net6winsperseed. CoreAP means corrected and only85-87%APgain frombothcorrect, not>95%. Fable unsupported AP->rank4-8, universal.5ppfloor, duplicateceiling, packingbug, unchangedlatency and budgetexhaustion rejected byparent. SourcePROVES candidatequeriesupdatedencoder vs inherited gallerycurrentA/C on immutable originalcanonicalfeatures; actualdrift/cause/cost UNKNOWN, not detachedACgallery. NoVAL/officialnewread; candidate CLOSED, thresholds preserved. Assess NEW census decision: using ONLY already accepted fullstage raw/unit[3449,128]+130bytepacked rows, originalpartition702f..+FITd32f.. labels/path order, ALL4 endpoints, originalscore source/concat perqueryarrays. Diagnose firstpositive ranks,float/packednearest margins, quantizationflips and filename-view metadata onpersistentcore/sourceerrors/sharedwins/losses. Must reproduce ALL4 packedperqueryR1 EXACT with original lowerordinalties before output; independent parent raw/wire arithmetic; no newimages/models or survivorclaim. Source-only+CPUfalsifier then one frozen CPU-onlyDGX engineering job under8GiB/0swap/CUDA0/unchangedsource/read/hash/normalterminal limits; actual cost UNMEASURED. Do not accept source150line/2minuteclaims withoutcheckingAPI/paths. Keyquestion: does this census discriminate cheapest nextcausal mechanism enough to warrant one gate, or should cheapest diagnostic instead test encoder/gallerybank freshness on TRAIN? Need one concrete method, small falsifier, precise observable-to-next-action mapping and stop rule; no sweep/probechain/extra seed to rescueclosedarm/loss-tweakseries. Challenge filenamepose semantics, class-threshold overlap/exposedselection adaptation, causalclaims/qualpermissions; define which facts can merely halt a lane vs justify a new bounded substrate method while fullgoalcontinues. Check exact current scoremath and packdecode API, originalpanelindex/class/path mapping (scope6355 NOT selectionorder), data provenance/nativecaps/time likely. If an accepted causaldiscriminator needs a minimal source-only runner/cachedwireread seam, describeactualinputs/API. Recommend APPROVE a bounded diagnostic or BLOCK with concrete smallest repair; don't inventfloors/costs/newhashes/futureproof. No production source/method integration or native launch approved by thisreview. Consequential nextintervention requires matchedfixedbackbone/data/128steps/seeds/cost<=1.50/packedparity/originalproductLCB>0/AP+.002/heldconfirmationfirewalls unchanged; prospectivechangedlayercanbe considered but not stop entireunboundedgoal. Root current source-only publicservingdriver childworks independently, NO native survivor currentlyeligible. Compute only boundedstdlibreceipt arithmetic ifnecessary; no localnative/suites.",
+  "prompt_sha256": "2513810c30f98cbba432ae60cf5baee7325012e863dfdbbf88978a1790626036",
+  "prompt_bytes": 3817,
+  "fingerprint": "0b6cbd5f993e7aeba84aa25cf69898017e082759b06a1c414bc83315ebad1a76",
+  "evidence": {
+    "git_commit": "280e2e169b4226c62418c603c1b65f5dbee90185",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "644ba6f42f3645d3",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791445441,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791446641,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nNEW result-gated SCIENTIFIC plan review. Read-only/noedits/native/Torch/images/SSH/GPU/cloud/jobs/children/newconsults/fulltests. Repo /home/rb/worktrees/sfora-positive-causality HEAD280e2e1 (resolve full), SAME UNBOUNDED production SOP+InShop quality+matched image-to-topk speed goal, not completed. Read docs/connected_mlp_decision_2026-10-08.md; docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/{original-research.json,parent-arithmetic-check.json,parent-screen.json}; full-selection-score-v1 evidence receipt/verification/query+product transitions/gallery-source-dataflow-audit.json. Original new Fable72bd928039e44f38 terminal0 proposes zero-GPU saved-wire census D0 before ONE pose-disjoint supervision arm or lane stop. ROOT HAS NOT ACCEPTED those causal conclusions/actionmap. Actual paired full TRAIN selection1734queries/1715gallery/498products KILL: meanR1+.346021pp/productCI[-.084842,+.828167], AP+2.300189pp/productCI[1.771016,2.852259]; core44wrong incontrol/candidatebothseeds,39sourceerrors/43concaterrors; 9sharedwins/5sharedlosses; net6winsperseed. CoreAP means corrected and only85-87%APgain frombothcorrect, not>95%. Fable unsupported AP->rank4-8, universal.5ppfloor, duplicateceiling, packingbug, unchangedlatency and budgetexhaustion rejected byparent. SourcePROVES candidatequeriesupdatedencoder vs inherited gallerycurrentA/C on immutable originalcanonicalfeatures; actualdrift/cause/cost UNKNOWN, not detachedACgallery. NoVAL/officialnewread; candidate CLOSED, thresholds preserved. Assess NEW census decision: using ONLY already accepted fullstage raw/unit[3449,128]+130bytepacked rows, originalpartition702f..+FITd32f.. labels/path order, ALL4 endpoints, originalscore source/concat perqueryarrays. Diagnose firstpositive ranks,float/packednearest margins, quantizationflips and filename-view metadata onpersistentcore/sourceerrors/sharedwins/losses. Must reproduce ALL4 packedperqueryR1 EXACT with original lowerordinalties before output; independent parent raw/wire arithmetic; no newimages/models or survivorclaim. Source-only+CPUfalsifier then one frozen CPU-onlyDGX engineering job under8GiB/0swap/CUDA0/unchangedsource/read/hash/normalterminal limits; actual cost UNMEASURED. Do not accept source150line/2minuteclaims withoutcheckingAPI/paths. Keyquestion: does this census discriminate cheapest nextcausal mechanism enough to warrant one gate, or should cheapest diagnostic instead test encoder/gallerybank freshness on TRAIN? Need one concrete method, small falsifier, precise observable-to-next-action mapping and stop rule; no sweep/probechain/extra seed to rescueclosedarm/loss-tweakseries. Challenge filenamepose semantics, class-threshold overlap/exposedselection adaptation, causalclaims/qualpermissions; define which facts can merely halt a lane vs justify a new bounded substrate method while fullgoalcontinues. Check exact current scoremath and packdecode API, originalpanelindex/class/path mapping (scope6355 NOT selectionorder), data provenance/nativecaps/time likely. If an accepted causaldiscriminator needs a minimal source-only runner/cachedwireread seam, describeactualinputs/API. Recommend APPROVE a bounded diagnostic or BLOCK with concrete smallest repair; don't inventfloors/costs/newhashes/futureproof. No production source/method integration or native launch approved by thisreview. Consequential nextintervention requires matchedfixedbackbone/data/128steps/seeds/cost<=1.50/packedparity/originalproductLCB>0/AP+.002/heldconfirmationfirewalls unchanged; prospectivechangedlayercanbe considered but not stop entireunboundedgoal. Root current source-only publicservingdriver childworks independently, NO native survivor currentlyeligible. Compute only boundedstdlibreceipt arithmetic ifnecessary; no localnati",
+      "prompt_sha256": "e87ac56a79790ccbbd053c10527fa37bd6235f7e25dec929c5b39ae01393c04b",
+      "prompt_bytes": 4187,
+      "fingerprint": "9276c9653c54c6c847bf972540fbfe6aa7e1c2f533f98f3518ce3633493d0461",
+      "evidence": {
+        "git_commit": "280e2e169b4226c62418c603c1b65f5dbee90185",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "ba08f88f9a57664db23843f12efae6832d4560fb311320c88f82d6afb1ead446",
+      "reused": false,
+      "critique_id": "99c221b6e4404eca",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-644ba6f42f3645d3.service",
+      "pid": 1367572,
+      "pgid": 1367572,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1791445441
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791445803,
+      "event_cursor": 55,
+      "events": [
+        {
+          "seq": 32,
+          "at": 1791445710,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 33,
+          "at": 1791445779,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 34,
+          "at": 1791445780,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 35,
+          "at": 1791445782,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 36,
+          "at": 1791445783,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1791445784,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 38,
+          "at": 1791445785,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1791445786,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 40,
+          "at": 1791445787,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 41,
+          "at": 1791445788,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 42,
+          "at": 1791445789,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 43,
+          "at": 1791445790,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 44,
+          "at": 1791445791,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 45,
+          "at": 1791445792,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 46,
+          "at": 1791445793,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 47,
+          "at": 1791445794,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 48,
+          "at": 1791445795,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 49,
+          "at": 1791445796,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 50,
+          "at": 1791445797,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 51,
+          "at": 1791445798,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 52,
+          "at": 1791445800,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 53,
+          "at": 1791445801,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 54,
+          "at": 1791445802,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 55,
+          "at": 1791445802,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 48,
+            "at": 1791445795,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 49,
+            "at": 1791445796,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 50,
+            "at": 1791445797,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 51,
+            "at": 1791445798,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 52,
+            "at": 1791445800,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 53,
+            "at": 1791445801,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 54,
+            "at": 1791445802,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 55,
+            "at": 1791445802,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: BLOCK the census and its action map as proposed. APPROVE, subject to a source-only review, one different bounded CPU diagnostic: a 2×2 test of encoder update × gallery freshness on the existing selection artifacts. The census measurements may run in the same job, but only as descriptive facts that can halt a lane, never fund one.**\n\nHEAD resolves to `280e2e169b4226c62418c603c1b65f5dbee90185`. I edited nothing. Using stdlib only, I recomputed the error sets from `receipt.json`. Everything the parent reported reproduces exactly:\n- errors: controls 56/57, candidates 50/51, source 64, concat 61;\n- persistent core 44, of which 39 are source errors and 43 concat errors;\n- wins 11/12 (9 shared), losses 5/6 (5 shared);\n- wins that were source errors 9/9, losses that were source errors 1/1.\n\nAll 39 source errors in the core survive every current endpoint. The parent's corrections stand.\n\n## Why the census as proposed is blocked\n\n1. **It repeats a measurement already made, and its funded action is a third try at a failed lane.** `docs/inshop_crop_view_preflight_2026-09-27.md` already ran this metadata-only framing census on the same In-Shop TRAIN roles (`diagnose_inshop_crop_view_twin.py`). Misses were 2.35% with a same-framing positive in the gallery and 4.17% without one (1.777×). The framing arm it funded then failed: −0.18 pp R1 and −0.0051 mAP@R. Separately, the prior role-matched SmoothAP, genuine-view, mixing and crop arms all failed (as the proposal itself notes). Even the no-twin miss rate is only 4.17%, so missing a twin cannot be the main reason a query fails. \"Class P → pose-disjoint positive masks\" is a change to which rows count as positives in the loss. That is the loss-tweak series the brief excludes.\n2. **The metadata does not mean \"pose\".** The file stem is `NN_V_label`:\n   - `flat` is a product-only flat lay and `additional` is a detail or other shot, not a human pose.\n   - `full` is a framing (full body), not a viewpoint.\n   - The `NN` prefix groups images within a product, and its meaning (outfit, model or session) is unverified. The proposal ignores it, yet it is at least as plausible a confound as the view label.\n   - \"Category directory plus small margin\" cannot prove a near-duplicate. Class N's \"ceiling\" is not identifiable from these inputs.\n3. **The proposal does not match the actual scoring API or panel binding.**\n   - The pinned `packed_quality` is the AST-pinned `compare_inshop_sop_warmstart_100.py`, sha `8827bed4…`. It re-quantizes the **unit** array (`values[1]`): round(×127) to int8, with fp16 inverse norms. It keeps only the top `width = max relevant` columns and returns only hits and AP@R. It cannot produce rank of first positive > 10, so class D's observable needs a new full-sort path whose column 0 must first be shown equal to the pinned `per_query_r1`.\n   - Ties go to the lower gallery-list position (stable descending sort).\n   - The panel comes from `s['partition']['panels']['selection']`: `original_rows`, `query`, `gallery`, with labels `fit.class_names[fit.targets[r]]`. The proposal binds row order to the scope file (`55cde4ef…`), which is the training bank of at most 6355 rows. That is wrong.\n4. **The thresholds are invented and the classes overlap.** The cut-offs 22/44, 5, 26/44 and 0.01 carry no power argument, and a query can fall into P, C and N at once with no precedence rule. The default branch, \"STOP: substrate change is outside budget\", restates the budget-exhaustion claim the parent already rejected.\n5. **Class C cannot support \"fix the packing layout\".** A float-correct/packed-wrong flip measures int8 rounding loss under a fixed 130-byte contract, not a bug.\n\n## Why freshness is the sharper question\n\nThe training gallery comes from `ranking_gallery`: `raw_features(state.views.canonical)` (`train_siglip2_identity_diversity.py:1239`), i.e. pooled features from the initial encoder passed through the current A/C. The candidate's queries come from the updated encoder.\n\nSo the candidate was trained on an asymmetric objective: new-encoder queries against an old-encoder gallery. This is the setting of backward-compatible training (Shen et al., BCT 2020) and of XBM-style stale memory banks (Wang et al. 2020, whose \"slow drift\" argument is the counter-hypothesis). Serving evaluates it symmetrically, with both sides fresh. That mechanism is specific to the candidate; the core errors, by contrast, are shared by every endpoint.\n\nThe test needs no images and no encoder forward:\n- `raw_features(features, head_object, A, means, C, mu_train, arm, quadratic)` consumes pooled features at the same tap as `s['baseline'].cache_rows(...)`. The evaluator already uses that cache for the source/concat endpoints.\n- Packing is row-wise, so mixing query rows from one source with gallery rows from another is exact.\n\n## The approved diagnostic\n\nRun on the selection panel only, per seed. Q is the query side and G the gallery side. Each is either fresh (the accepted candidate wire) or stale (the candidate's own terminal A/C/means/mu_train/head applied to `cache_rows(panel.original_rows)`).\n\n**Instrument checks, before any readout:**\n- **Step 0:** `fixed.packed_quality` on all four accepted unit wires must reproduce the receipt's per-query R1 and AP arrays exactly. If not, stop on an instrument failure.\n- **F0 (tap identity):** the control head on the cache must reproduce both control seeds' per-query R1 arrays exactly. Report max |Δunit|. If F0 fails, the stale arm is confounded: halt the freshness readout and report descriptive facts only.\n\n**Readouts, in strict order:**\n\n| Readout | Comparison | Result → next action |\n|---|---|---|\n| (a) encoder attribution | (F,F) vs (S,S), using the pinned `paired_intervals` (5000 draws, seed 179019) on R1 and AP | Both intervals contain 0 → halt the encoder-adaptation (connected) lane: the gain is head co-adaptation, and freshness is moot. AP interval above 0 → go to (b). |\n| (b) freshness | (F,S) vs (F,F) | Per-query R1 identical in both seeds → asymmetry is closed as non-causal; arm stays closed, lane halts. |\n| | | (F,S) has fewer errors in both seeds **and** the product R1 lower bound of (F,S) − control is above 0 under the unchanged gate → this funds **one** prospective method: training against a gallery encoded by the current encoder. All gates stay unchanged (same backbone/data, 128 steps, seeds, refresh cost counted inside ≤1.50, packed parity, product lower bound > 0, AP +.002, sealed-VAL confirmation). Selection is no longer confirmatory for that method. |\n| | | Anything else → inconclusive: no arm, lane halts. |\n\n(F,S) itself is never a survivor: it would be chosen on an exposed panel.\n\n**Census, as byproducts of the same job:** rank of first positive (full stable sort, column 0 asserted equal to pinned R1), float vs packed nearest margins, quantization flips, and framing plus `NN` group, reported for the core, source errors, shared wins and shared losses. These facts can only halt a lane. Halting a lane never stops the overall goal.\n\n## Seam the source-only runner needs (no hashes or costs claimed)\n\n- Reuse the score job's admission context: `native.read_wires`, `s['baseline'].scoring_math(s)`, `context['reference'].paired_intervals`.\n- Confirm `cache_rows` accepts selection rows. It is only exercised for validation at `evaluate_siglip2_connected_mlp.py:1409`.\n- Load each endpoint's terminal state from its bound checkpoint path and sha with weights-only loading. Construct no encoder and initialize no CUDA.\n\n**Source-only falsifiers:**\n- identical-row composition reproduces `packed_quality`;\n- a single swapped gallery row is detected;\n- the full-sort column 0 must match the pinned scorer.\n\n**Job and stop rule:** then one frozen DGX run: CPU only, ≤8 GiB, 0 swap, 0 CUDA. Peak memory from loading the checkpoint, and the job's actual cost, are unmeasured. Fable's 2-minute, 100 MB and 150-line figures are not verified. Run it once; no re-thresholding, no extra seeds, no second diagnostic on this arm. An instrument failure gets at most one reviewed repair.\n\n**Still open:** whether the 498 selection products are disjoint from the FIT training products. If they overlap, the core census measures memorisation rather than generalisation.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: BLOCK the census and its action map as proposed. APPROVE, subject to a source-only review, one different bounded CPU diagnostic: a 2×2 test of encoder update × gallery freshness on the existing selection artifacts. The census measurements may run in the same job, but only as descriptive facts that can halt a lane, never fund one.**\n\nHEAD resolves to `280e2e169b4226c62418c603c1b65f5dbee90185`. I edited nothing. Using stdlib only, I recomputed the error sets from `receipt.json`. Everything the parent reported reproduces exactly:\n- errors: controls 56/57, candidates 50/51, source 64, concat 61;\n- persistent core 44, of which 39 are source errors and 43 concat errors;\n- wins 11/12 (9 shared), losses 5/6 (5 shared);\n- wins that were source errors 9/9, losses that were source errors 1/1.\n\nAll 39 source errors in the core survive every current endpoint. The parent's corrections stand.\n\n## Why the census as proposed is blocked\n\n1. **It repeats a measurement already made, and its funded action is a third try at a failed lane.** `docs/inshop_crop_view_preflight_2026-09-27.md` already ran this metadata-only framing census on the same In-Shop TRAIN roles (`diagnose_inshop_crop_view_twin.py`). Misses were 2.35% with a same-framing positive in the gallery and 4.17% without one (1.777×). The framing arm it funded then failed: −0.18 pp R1 and −0.0051 mAP@R. Separately, the prior role-matched SmoothAP, genuine-view, mixing and crop arms all failed (as the proposal itself notes). Even the no-twin miss rate is only 4.17%, so missing a twin cannot be the main reason a query fails. \"Class P → pose-disjoint positive masks\" is a change to which rows count as positives in the loss. That is the loss-tweak series the brief excludes.\n2. **The metadata does not mean \"pose\".** The file stem is `NN_V_label`:\n   - `flat` is a product-only flat lay and `additional` is a detail or other shot, not a human pose.\n   - `full` is a framing (full body), not a viewpoint.\n   - The `NN` prefix groups images within a product, and its meaning (outfit, model or session) is unverified. The proposal ignores it, yet it is at least as plausible a confound as the view label.\n   - \"Category directory plus small margin\" cannot prove a near-duplicate. Class N's \"ceiling\" is not identifiable from these inputs.\n3. **The proposal does not match the actual scoring API or panel binding.**\n   - The pinned `packed_quality` is the AST-pinned `compare_inshop_sop_warmstart_100.py`, sha `8827bed4…`. It re-quantizes the **unit** array (`values[1]`): round(×127) to int8, with fp16 inverse norms. It keeps only the top `width = max relevant` columns and returns only hits and AP@R. It cannot produce rank of first positive > 10, so class D's observable needs a new full-sort path whose column 0 must first be shown equal to the pinned `per_query_r1`.\n   - Ties go to the lower gallery-list position (stable descending sort).\n   - The panel comes from `s['partition']['panels']['selection']`: `original_rows`, `query`, `gallery`, with labels `fit.class_names[fit.targets[r]]`. The proposal binds row order to the scope file (`55cde4ef…`), which is the training bank of at most 6355 rows. That is wrong.\n4. **The thresholds are invented and the classes overlap.** The cut-offs 22/44, 5, 26/44 and 0.01 carry no power argument, and a query can fall into P, C and N at once with no precedence rule. The default branch, \"STOP: substrate change is outside budget\", restates the budget-exhaustion claim the parent already rejected.\n5. **Class C cannot support \"fix the packing layout\".** A float-correct/packed-wrong flip measures int8 rounding loss under a fixed 130-byte contract, not a bug.\n\n## Why freshness is the sharper question\n\nThe training gallery comes from `ranking_gallery`: `raw_features(state.views.canonical)` (`train_siglip2_identity_diversity.py:1239`), i.e. pooled features from the initial encoder passed through the current A/C. The candidate's queries come from the updated encoder.\n\nSo the candidate was trained on an asymmetric objective: new-encoder queries against an old-encoder gallery. This is the setting of backward-compatible training (Shen et al., BCT 2020) and of XBM-style stale memory banks (Wang et al. 2020, whose \"slow drift\" argument is the counter-hypothesis). Serving evaluates it symmetrically, with both sides fresh. That mechanism is specific to the candidate; the core errors, by contrast, are shared by every endpoint.\n\nThe test needs no images and no encoder forward:\n- `raw_features(features, head_object, A, means, C, mu_train, arm, quadratic)` consumes pooled features at the same tap as `s['baseline'].cache_rows(...)`. The evaluator already uses that cache for the source/concat endpoints.\n- Packing is row-wise, so mixing query rows from one source with gallery rows from another is exact.\n\n## The approved diagnostic\n\nRun on the selection panel only, per seed. Q is the query side and G the gallery side. Each is either fresh (the accepted candidate wire) or stale (the candidate's own terminal A/C/means/mu_train/head applied to `cache_rows(panel.original_rows)`).\n\n**Instrument checks, before any readout:**\n- **Step 0:** `fixed.packed_quality` on all four accepted unit wires must reproduce the receipt's per-query R1 and AP arrays exactly. If not, stop on an instrument failure.\n- **F0 (tap identity):** the control head on the cache must reproduce both control seeds' per-query R1 arrays exactly. Report max |Δunit|. If F0 fails, the stale arm is confounded: halt the freshness readout and report descriptive facts only.\n\n**Readouts, in strict order:**\n\n| Readout | Comparison | Result → next action |\n|---|---|---|\n| (a) encoder attribution | (F,F) vs (S,S), using the pinned `paired_intervals` (5000 draws, seed 179019) on R1 and AP | Both intervals contain 0 → halt the encoder-adaptation (connected) lane: the gain is head co-adaptation, and freshness is moot. AP interval above 0 → go to (b). |\n| (b) freshness | (F,S) vs (F,F) | Per-query R1 identical in both seeds → asymmetry is closed as non-causal; arm stays closed, lane halts. |\n| | | (F,S) has fewer errors in both seeds **and** the product R1 lower bound of (F,S) − control is above 0 under the unchanged gate → this funds **one** prospective method: training against a gallery encoded by the current encoder. All gates stay unchanged (same backbone/data, 128 steps, seeds, refresh cost counted inside ≤1.50, packed parity, product lower bound > 0, AP +.002, sealed-VAL confirmation). Selection is no longer confirmatory for that method. |\n| | | Anything else → inconclusive: no arm, lane halts. |\n\n(F,S) itself is never a survivor: it would be chosen on an exposed panel.\n\n**Census, as byproducts of the same job:** rank of first positive (full stable sort, column 0 asserted equal to pinned R1), float vs packed nearest margins, quantization flips, and framing plus `NN` group, reported for the core, source errors, shared wins and shared losses. These facts can only halt a lane. Halting a lane never stops the overall goal.\n\n## Seam the source-only runner needs (no hashes or costs claimed)\n\n- Reuse the score job's admission context: `native.read_wires`, `s['baseline'].scoring_math(s)`, `context['reference'].paired_intervals`.\n- Confirm `cache_rows` accepts selection rows. It is only exercised for validation at `evaluate_siglip2_connected_mlp.py:1409`.\n- Load each endpoint's terminal state from its bound checkpoint path and sha with weights-only loading. Construct no encoder and initialize no CUDA.\n\n**Source-only falsifiers:**\n- identical-row composition reproduces `packed_quality`;\n- a single swapped gallery row is detected;\n- the full-sort column 0 must match the pinned scorer.\n\n**Job and stop rule:** then one frozen DGX run: CPU only, ≤8 GiB, 0 swap, 0 CUDA. Peak memory from loading the checkpoint, and the job's actual cost, are unmeasured. Fable's 2-minute, 100 MB and 150-line figures are not verified. Run it once; no re-thresholding, no extra seeds, no second diagnostic on this arm. An instrument failure gets at most one reviewed repair.\n\n**Still open:** whether the 498 selection products are disjoint from the FIT training products. If they overlap, the core census measures memorisation rather than generalisation."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 4187,
+      "output_bytes": 8287,
+      "elapsed_seconds": 362,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)",
+      "progress_truncated": false,
+      "result": "**Verdict: BLOCK the census and its action map as proposed. APPROVE, subject to a source-only review, one different bounded CPU diagnostic: a 2×2 test of encoder update × gallery freshness on the existing selection artifacts. The census measurements may run in the same job, but only as descriptive facts that can halt a lane, never fund one.**\n\nHEAD resolves to `280e2e169b4226c62418c603c1b65f5dbee90185`. I edited nothing. Using stdlib only, I recomputed the error sets from `receipt.json`. Everything the parent reported reproduces exactly:\n- errors: controls 56/57, candidates 50/51, source 64, concat 61;\n- persistent core 44, of which 39 are source errors and 43 concat errors;\n- wins 11/12 (9 shared), losses 5/6 (5 shared);\n- wins that were source errors 9/9, losses that were source errors 1/1.\n\nAll 39 source errors in the core survive every current endpoint. The parent's corrections stand.\n\n## Why the census as proposed is blocked\n\n1. **It repeats a measurement already made, and its funded action is a third try at a failed lane.** `docs/inshop_crop_view_preflight_2026-09-27.md` already ran this metadata-only framing census on the same In-Shop TRAIN roles (`diagnose_inshop_crop_view_twin.py`). Misses were 2.35% with a same-framing positive in the gallery and 4.17% without one (1.777×). The framing arm it funded then failed: −0.18 pp R1 and −0.0051 mAP@R. Separately, the prior role-matched SmoothAP, genuine-view, mixing and crop arms all failed (as the proposal itself notes). Even the no-twin miss rate is only 4.17%, so missing a twin cannot be the main reason a query fails. \"Class P → pose-disjoint positive masks\" is a change to which rows count as positives in the loss. That is the loss-tweak series the brief excludes.\n2. **The metadata does not mean \"pose\".** The file stem is `NN_V_label`:\n   - `flat` is a product-only flat lay and `additional` is a detail or other shot, not a human pose.\n   - `full` is a framing (full body), not a viewpoint.\n   - The `NN` prefix groups images within a product, and its meaning (outfit, model or session) is unverified. The proposal ignores it, yet it is at least as plausible a confound as the view label.\n   - \"Category directory plus small margin\" cannot prove a near-duplicate. Class N's \"ceiling\" is not identifiable from these inputs.\n3. **The proposal does not match the actual scoring API or panel binding.**\n   - The pinned `packed_quality` is the AST-pinned `compare_inshop_sop_warmstart_100.py`, sha `8827bed4…`. It re-quantizes the **unit** array (`values[1]`): round(×127) to int8, with fp16 inverse norms. It keeps only the top `width = max relevant` columns and returns only hits and AP@R. It cannot produce rank of first positive > 10, so class D's observable needs a new full-sort path whose column 0 must first be shown equal to the pinned `per_query_r1`.\n   - Ties go to the lower gallery-list position (stable descending sort).\n   - The panel comes from `s['partition']['panels']['selection']`: `original_rows`, `query`, `gallery`, with labels `fit.class_names[fit.targets[r]]`. The proposal binds row order to the scope file (`55cde4ef…`), which is the training bank of at most 6355 rows. That is wrong.\n4. **The thresholds are invented and the classes overlap.** The cut-offs 22/44, 5, 26/44 and 0.01 carry no power argument, and a query can fall into P, C and N at once with no precedence rule. The default branch, \"STOP: substrate change is outside budget\", restates the budget-exhaustion claim the parent already rejected.\n5. **Class C cannot support \"fix the packing layout\".** A float-correct/packed-wrong flip measures int8 rounding loss under a fixed 130-byte contract, not a bug.\n\n## Why freshness is the sharper question\n\nThe training gallery comes from `ranking_gallery`: `raw_features(state.views.canonical)` (`train_siglip2_identity_diversity.py:1239`), i.e. pooled features from the initial encoder passed through the current A/C. The candidate's queries come from the updated encoder.\n\nSo the candidate was trained on an asymmetric objective: new-encoder queries against an old-encoder gallery. This is the setting of backward-compatible training (Shen et al., BCT 2020) and of XBM-style stale memory banks (Wang et al. 2020, whose \"slow drift\" argument is the counter-hypothesis). Serving evaluates it symmetrically, with both sides fresh. That mechanism is specific to the candidate; the core errors, by contrast, are shared by every endpoint.\n\nThe test needs no images and no encoder forward:\n- `raw_features(features, head_object, A, means, C, mu_train, arm, quadratic)` consumes pooled features at the same tap as `s['baseline'].cache_rows(...)`. The evaluator already uses that cache for the source/concat endpoints.\n- Packing is row-wise, so mixing query rows from one source with gallery rows from another is exact.\n\n## The approved diagnostic\n\nRun on the selection panel only, per seed. Q is the query side and G the gallery side. Each is either fresh (the accepted candidate wire) or stale (the candidate's own terminal A/C/means/mu_train/head applied to `cache_rows(panel.original_rows)`).\n\n**Instrument checks, before any readout:**\n- **Step 0:** `fixed.packed_quality` on all four accepted unit wires must reproduce the receipt's per-query R1 and AP arrays exactly. If not, stop on an instrument failure.\n- **F0 (tap identity):** the control head on the cache must reproduce both control seeds' per-query R1 arrays exactly. Report max |Δunit|. If F0 fails, the stale arm is confounded: halt the freshness readout and report descriptive facts only.\n\n**Readouts, in strict order:**\n\n| Readout | Comparison | Result → next action |\n|---|---|---|\n| (a) encoder attribution | (F,F) vs (S,S), using the pinned `paired_intervals` (5000 draws, seed 179019) on R1 and AP | Both intervals contain 0 → halt the encoder-adaptation (connected) lane: the gain is head co-adaptation, and freshness is moot. AP interval above 0 → go to (b). |\n| (b) freshness | (F,S) vs (F,F) | Per-query R1 identical in both seeds → asymmetry is closed as non-causal; arm stays closed, lane halts. |\n| | | (F,S) has fewer errors in both seeds **and** the product R1 lower bound of (F,S) − control is above 0 under the unchanged gate → this funds **one** prospective method: training against a gallery encoded by the current encoder. All gates stay unchanged (same backbone/data, 128 steps, seeds, refresh cost counted inside ≤1.50, packed parity, product lower bound > 0, AP +.002, sealed-VAL confirmation). Selection is no longer confirmatory for that method. |\n| | | Anything else → inconclusive: no arm, lane halts. |\n\n(F,S) itself is never a survivor: it would be chosen on an exposed panel.\n\n**Census, as byproducts of the same job:** rank of first positive (full stable sort, column 0 asserted equal to pinned R1), float vs packed nearest margins, quantization flips, and framing plus `NN` group, reported for the core, source errors, shared wins and shared losses. These facts can only halt a lane. Halting a lane never stops the overall goal.\n\n## Seam the source-only runner needs (no hashes or costs claimed)\n\n- Reuse the score job's admission context: `native.read_wires`, `s['baseline'].scoring_math(s)`, `context['reference'].paired_intervals`.\n- Confirm `cache_rows` accepts selection rows. It is only exercised for validation at `evaluate_siglip2_connected_mlp.py:1409`.\n- Load each endpoint's terminal state from its bound checkpoint path and sha with weights-only loading. Construct no encoder and initialize no CUDA.\n\n**Source-only falsifiers:**\n- identical-row composition reproduces `packed_quality`;\n- a single swapped gallery row is detected;\n- the full-sort column 0 must match the pinned scorer.\n\n**Job and stop rule:** then one frozen DGX run: CPU only, ≤8 GiB, 0 swap, 0 CUDA. Peak memory from loading the checkpoint, and the job's actual cost, are unmeasured. Fable's 2-minute, 100 MB and 150-line figures are not verified. Run it once; no re-thresholding, no extra seeds, no second diagnostic on this arm. An instrument failure gets at most one reviewed repair.\n\n**Still open:** whether the 498 selection products are disjoint from the FIT training products. If they overlap, the core census measures memorisation rather than generalisation.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "89970e78757f4858",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791445441,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791446641,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nNEW result-gated SCIENTIFIC plan review. Read-only/noedits/native/Torch/images/SSH/GPU/cloud/jobs/children/newconsults/fulltests. Repo /home/rb/worktrees/sfora-positive-causality HEAD280e2e1 (resolve full), SAME UNBOUNDED production SOP+InShop quality+matched image-to-topk speed goal, not completed. Read docs/connected_mlp_decision_2026-10-08.md; docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/{original-research.json,parent-arithmetic-check.json,parent-screen.json}; full-selection-score-v1 evidence receipt/verification/query+product transitions/gallery-source-dataflow-audit.json. Original new Fable72bd928039e44f38 terminal0 proposes zero-GPU saved-wire census D0 before ONE pose-disjoint supervision arm or lane stop. ROOT HAS NOT ACCEPTED those causal conclusions/actionmap. Actual paired full TRAIN selection1734queries/1715gallery/498products KILL: meanR1+.346021pp/productCI[-.084842,+.828167], AP+2.300189pp/productCI[1.771016,2.852259]; core44wrong incontrol/candidatebothseeds,39sourceerrors/43concaterrors; 9sharedwins/5sharedlosses; net6winsperseed. CoreAP means corrected and only85-87%APgain frombothcorrect, not>95%. Fable unsupported AP->rank4-8, universal.5ppfloor, duplicateceiling, packingbug, unchangedlatency and budgetexhaustion rejected byparent. SourcePROVES candidatequeriesupdatedencoder vs inherited gallerycurrentA/C on immutable originalcanonicalfeatures; actualdrift/cause/cost UNKNOWN, not detachedACgallery. NoVAL/officialnewread; candidate CLOSED, thresholds preserved. Assess NEW census decision: using ONLY already accepted fullstage raw/unit[3449,128]+130bytepacked rows, originalpartition702f..+FITd32f.. labels/path order, ALL4 endpoints, originalscore source/concat perqueryarrays. Diagnose firstpositive ranks,float/packednearest margins, quantizationflips and filename-view metadata onpersistentcore/sourceerrors/sharedwins/losses. Must reproduce ALL4 packedperqueryR1 EXACT with original lowerordinalties before output; independent parent raw/wire arithmetic; no newimages/models or survivorclaim. Source-only+CPUfalsifier then one frozen CPU-onlyDGX engineering job under8GiB/0swap/CUDA0/unchangedsource/read/hash/normalterminal limits; actual cost UNMEASURED. Do not accept source150line/2minuteclaims withoutcheckingAPI/paths. Keyquestion: does this census discriminate cheapest nextcausal mechanism enough to warrant one gate, or should cheapest diagnostic instead test encoder/gallerybank freshness on TRAIN? Need one concrete method, small falsifier, precise observable-to-next-action mapping and stop rule; no sweep/probechain/extra seed to rescueclosedarm/loss-tweakseries. Challenge filenamepose semantics, class-threshold overlap/exposedselection adaptation, causalclaims/qualpermissions; define which facts can merely halt a lane vs justify a new bounded substrate method while fullgoalcontinues. Check exact current scoremath and packdecode API, originalpanelindex/class/path mapping (scope6355 NOT selectionorder), data provenance/nativecaps/time likely. If an accepted causaldiscriminator needs a minimal source-only runner/cachedwireread seam, describeactualinputs/API. Recommend APPROVE a bounded diagnostic or BLOCK with concrete smallest repair; don't inventfloors/costs/newhashes/futureproof. No production source/method integration or native launch approved by thisreview. Consequential nextintervention requires matchedfixedbackbone/data/128steps/seeds/cost<=1.50/packedparity/originalproductLCB>0/AP+.002/heldconfirmationfirewalls unchanged; prospectivechangedlayercanbe considered but not stop entireunboundedgoal. Root current source-only publicservingdriver childworks independently, NO native survivor currentlyeligible. Compute only boundedstdlibreceipt ar",
+      "prompt_sha256": "a7fee0a452949c1877edcbb4efbcd06f91629c4f54e458de59a8b21491160692",
+      "prompt_bytes": 4221,
+      "fingerprint": "0252a5315d05c56c753df225027d7d846601a03ab3ca9517fe7a885330aea527",
+      "evidence": {
+        "git_commit": "280e2e169b4226c62418c603c1b65f5dbee90185",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "9276c9653c54c6c847bf972540fbfe6aa7e1c2f533f98f3518ce3633493d0461",
+      "reused": false,
+      "critique_id": "99c221b6e4404eca",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-89970e78757f4858.service",
+      "pid": 1367633,
+      "pgid": 1367633,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1791445441
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791446032,
+      "event_cursor": 101,
+      "events": [
+        {
+          "seq": 78,
+          "at": 1791445682,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 79,
+          "at": 1791445682,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 80,
+          "at": 1791445703,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 81,
+          "at": 1791445722,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 82,
+          "at": 1791445723,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 83,
+          "at": 1791445723,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 84,
+          "at": 1791445723,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 85,
+          "at": 1791445829,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 86,
+          "at": 1791445829,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 87,
+          "at": 1791445829,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 88,
+          "at": 1791445829,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 89,
+          "at": 1791445834,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 90,
+          "at": 1791445834,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 91,
+          "at": 1791445834,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 92,
+          "at": 1791445836,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 93,
+          "at": 1791445849,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 94,
+          "at": 1791445849,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 95,
+          "at": 1791445849,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 96,
+          "at": 1791445849,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 97,
+          "at": 1791445930,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 98,
+          "at": 1791445935,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 99,
+          "at": 1791445936,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 100,
+          "at": 1791446031,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 101,
+          "at": 1791446031,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 94,
+            "at": 1791445849,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 95,
+            "at": 1791445849,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 96,
+            "at": 1791445849,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 97,
+            "at": 1791445930,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 98,
+            "at": 1791445935,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 99,
+            "at": 1791445936,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 100,
+            "at": 1791446031,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 101,
+            "at": 1791446031,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "What this change does: D0 examines saved TRAIN descriptors after the connected arm’s scientific KILL. **Verdict: BLOCK the current census-to-intervention plan. The smallest repair is one bounded wire-versus-float falsifier, with no automatic training authorization.**\n\nReviewed HEAD `280e2e169b4226c62418c603c1b65f5dbee90185`. I independently authenticated the four export receipts against the score receipt, checked their complete row mappings against partition `702f…`, and reproduced the 44-query core and corrected AP contributions.\n\n1. **The census cannot select pose supervision over gallery freshness.** All four exports contain descriptors produced by their respective current encoders. None provides the missing counterfactual: the *same candidate readout* applied to initial versus updated encoder features. Control-versus-candidate differences also include different A/C weights. Thus ranks, margins and filename associations cannot identify freshness as—or exclude it from—the training failure. The [dataflow audit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json:18) correctly leaves that unresolved.\n\n   **Repair:** restrict this census to quantization effects and descriptive error geometry. A freshness experiment would require additional authenticated inputs and a separately reviewed scope; its cost is unmeasured. Neither diagnostic currently warrants a pose arm.\n\n2. **The proposed pose arm is more than a membership-mask change.** `P[label]` is a fixed class centroid, constructed from all canonical members; it cannot represent an anchor-dependent different-view target. Moreover, removing same-view positives while retaining the current `eligible` set makes those same-product rows contribute as negatives to SmoothAP’s denominator. This contradicts “negatives unchanged.” See [centroid construction](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:740) and [ranking/loss arithmetic](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1225).\n\n   **Repair:** do not authorize that arm from D0. Any later proposal must specify excluded-row treatment, anchor-specific targets, empty-positive behavior and global loss denominators before claiming a single changed mechanism.\n\n3. **Existing evaluator helpers breach the proposed read boundary.** [`image_rows`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_nearest_ranking.py:628) hashes image files through `bound_file`; [`read_wires`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_nearest_ranking.py:774) imports Torch and repacks. Calling the existing evaluator also brings its broader admission machinery. These are not a metadata-only census API.\n\n   **Repair:** use a separate, narrowly authenticated cached-wire reader. Preserve existing evaluator and production code. Do not traverse every path in the inherited `input_guards`, which includes images.\n\n4. **Ordinary cosine is insufficient to verify packed ranks.** The accepted scorer uses signed codes, stored FP16 inverse norms, two ordered FP32 multiplications, and stable descending sorting. Renormalizing decoded vectors, omitting inverse norms, or combining their multiplication can change close rankings and ties. The proposed independent “brute-force cosine” check only checks float geometry. See [accepted scoring arithmetic](/home/rb/worktrees/sfora-positive-causality/scripts/compare_inshop_sop_warmstart_100.py:35) and [wire decoding API](/home/rb/worktrees/sfora-positive-causality/src/sfora/joint_relational_compaction.py:275).\n\n   **Repair:** independently verify packed arithmetic and float arithmetic as separate quantities.\n\nThe smallest concrete diagnostic I would accept for source preparation is:\n\n- **Inputs:** the original score receipt; its four authenticated full-export receipts; each receipt’s exact `output` and three `files` entries; partition `702f…`; original FIT metadata `d32f…`. Each endpoint has two `[3449,128]` float32 arrays and exactly **448,370 packed bytes**, with no artifact header.\n- **Mapping:** descriptor row `p` corresponds to `panel.original_rows[p]`; query result ordinal `i` corresponds to `panel.query[i]`. Labels come from `fit.class_names[fit.targets[original_row]]`; paths come from the corresponding FIT row. Cross-check export `images[*].rows` and `ordered_images_sha256`. The 6,355-row scope is not this panel’s order.\n- **Packed arithmetic:** decode each row as 128 signed bytes followed by little-endian FP16 inverse norm. Compute  \n  `score = float32(float32(integer_dot * query_inverse) * gallery_inverse)`.  \n  Preserve the original gallery sequence and lower-ordinal ties. Its sorted order is confirmed in the original partition.\n- **Admission:** reproduce all four original 1,734-element packed R@1 arrays exactly **before releasing diagnostic results**. Any mismatch terminates the diagnostic as an engineering failure.\n- **Measurements:** first-positive rank, best-positive/best-negative IDs and margins, and both directions of float↔packed correctness changes across the whole panel. Then summarize the core, source-error, shared-win and shared-loss cohorts, retaining overlaps explicitly. Source/concat per-query arrays define cohorts; they cannot supply source/concat score margins.\n- **Independent check:** separately implemented wire decoding and rank arithmetic must verify the full packed results. Raw-vector cosine independently checks float results; numerically sensitive disagreements remain unresolved rather than becoming causal classifications.\n\nThe small pre-launch falsifier should contain signed codes, unequal inverse norms, an exact cross-label tie, and interleaved query/gallery panel indices. It must reject a changed wire byte, wrong endian interpretation, swapped row mapping and wrong expected R@1. It must also demonstrate that image/model access fails and malformed NPY inputs cannot enable pickle loading. These are proposed checks; I did not execute them.\n\nUse this replacement action map, removing the unsupported P/C/N/D thresholds:\n\n| Observable | Permitted next action |\n|---|---|\n| Hash, mapping, arithmetic or resource failure | Stop; repair the diagnostic. Draw no scientific conclusion. |\n| No float/packed correctness changes | Reject quantization-induced R@1 changes as the explanation on these endpoints. Close this diagnostic. |\n| Correctness changes occur | Report recoveries **and harms**, by endpoint and product. This establishes quantization effects, not a packing-layout defect. It can justify proposing one bounded compression method, subject to separate review. |\n| Deep float errors or filename/category associations | Record unresolved representation/supervision/freshness hypotheses. No automatic pose arm, duplicate ceiling or substrate impossibility claim. |\n\nFilename metadata particularly needs restraint. Receipt-only arithmetic gives **34/44** core queries without a same-suffix positive, versus **964/1734** queries overall. That measures filename-view coverage. “Additional,” “full” and matching suffixes do not establish physical pose, and the proposed classes can overlap. Repeated seeds do not make this exposed selection panel independent confirmation.\n\nA prospective CPU run must retain the existing score engineering ceiling of 700 seconds, 8 GiB host limit, zero swap, no CUDA, authenticated sources/inputs and normal-terminal verification. The numeric payload is about **15.9 MB**, but four export receipts add approximately **24.7 MB of JSON** before parsing overhead. Neither “under 100 MB,” “under two minutes,” nor “150 lines” is established.\n\nThe original candidate remains **KILL**. Any consequential new method still requires matched backbone/data/128 steps/seeds, both cost ratios ≤1.50, packed parity, original product R@1 LCB >0, AP +.002 and unchanged confirmation firewalls. A lane can end without ending the unbounded SOP+InShop quality-and-speed goal. This review authorizes no native launch or production integration.\n\nNot checked: remote wire contents, native execution, test suites, bootstrap recomputation or runtime; no files edited.  \nRemaining risk: even a correct census cannot establish that gallery refresh or pose supervision would improve training.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "What this change does: D0 examines saved TRAIN descriptors after the connected arm’s scientific KILL. **Verdict: BLOCK the current census-to-intervention plan. The smallest repair is one bounded wire-versus-float falsifier, with no automatic training authorization.**\n\nReviewed HEAD `280e2e169b4226c62418c603c1b65f5dbee90185`. I independently authenticated the four export receipts against the score receipt, checked their complete row mappings against partition `702f…`, and reproduced the 44-query core and corrected AP contributions.\n\n1. **The census cannot select pose supervision over gallery freshness.** All four exports contain descriptors produced by their respective current encoders. None provides the missing counterfactual: the *same candidate readout* applied to initial versus updated encoder features. Control-versus-candidate differences also include different A/C weights. Thus ranks, margins and filename associations cannot identify freshness as—or exclude it from—the training failure. The [dataflow audit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json:18) correctly leaves that unresolved.\n\n   **Repair:** restrict this census to quantization effects and descriptive error geometry. A freshness experiment would require additional authenticated inputs and a separately reviewed scope; its cost is unmeasured. Neither diagnostic currently warrants a pose arm.\n\n2. **The proposed pose arm is more than a membership-mask change.** `P[label]` is a fixed class centroid, constructed from all canonical members; it cannot represent an anchor-dependent different-view target. Moreover, removing same-view positives while retaining the current `eligible` set makes those same-product rows contribute as negatives to SmoothAP’s denominator. This contradicts “negatives unchanged.” See [centroid construction](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:740) and [ranking/loss arithmetic](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1225).\n\n   **Repair:** do not authorize that arm from D0. Any later proposal must specify excluded-row treatment, anchor-specific targets, empty-positive behavior and global loss denominators before claiming a single changed mechanism.\n\n3. **Existing evaluator helpers breach the proposed read boundary.** [`image_rows`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_nearest_ranking.py:628) hashes image files through `bound_file`; [`read_wires`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_nearest_ranking.py:774) imports Torch and repacks. Calling the existing evaluator also brings its broader admission machinery. These are not a metadata-only census API.\n\n   **Repair:** use a separate, narrowly authenticated cached-wire reader. Preserve existing evaluator and production code. Do not traverse every path in the inherited `input_guards`, which includes images.\n\n4. **Ordinary cosine is insufficient to verify packed ranks.** The accepted scorer uses signed codes, stored FP16 inverse norms, two ordered FP32 multiplications, and stable descending sorting. Renormalizing decoded vectors, omitting inverse norms, or combining their multiplication can change close rankings and ties. The proposed independent “brute-force cosine” check only checks float geometry. See [accepted scoring arithmetic](/home/rb/worktrees/sfora-positive-causality/scripts/compare_inshop_sop_warmstart_100.py:35) and [wire decoding API](/home/rb/worktrees/sfora-positive-causality/src/sfora/joint_relational_compaction.py:275).\n\n   **Repair:** independently verify packed arithmetic and float arithmetic as separate quantities.\n\nThe smallest concrete diagnostic I would accept for source preparation is:\n\n- **Inputs:** the original score receipt; its four authenticated full-export receipts; each receipt’s exact `output` and three `files` entries; partition `702f…`; original FIT metadata `d32f…`. Each endpoint has two `[3449,128]` float32 arrays and exactly **448,370 packed bytes**, with no artifact header.\n- **Mapping:** descriptor row `p` corresponds to `panel.original_rows[p]`; query result ordinal `i` corresponds to `panel.query[i]`. Labels come from `fit.class_names[fit.targets[original_row]]`; paths come from the corresponding FIT row. Cross-check export `images[*].rows` and `ordered_images_sha256`. The 6,355-row scope is not this panel’s order.\n- **Packed arithmetic:** decode each row as 128 signed bytes followed by little-endian FP16 inverse norm. Compute  \n  `score = float32(float32(integer_dot * query_inverse) * gallery_inverse)`.  \n  Preserve the original gallery sequence and lower-ordinal ties. Its sorted order is confirmed in the original partition.\n- **Admission:** reproduce all four original 1,734-element packed R@1 arrays exactly **before releasing diagnostic results**. Any mismatch terminates the diagnostic as an engineering failure.\n- **Measurements:** first-positive rank, best-positive/best-negative IDs and margins, and both directions of float↔packed correctness changes across the whole panel. Then summarize the core, source-error, shared-win and shared-loss cohorts, retaining overlaps explicitly. Source/concat per-query arrays define cohorts; they cannot supply source/concat score margins.\n- **Independent check:** separately implemented wire decoding and rank arithmetic must verify the full packed results. Raw-vector cosine independently checks float results; numerically sensitive disagreements remain unresolved rather than becoming causal classifications.\n\nThe small pre-launch falsifier should contain signed codes, unequal inverse norms, an exact cross-label tie, and interleaved query/gallery panel indices. It must reject a changed wire byte, wrong endian interpretation, swapped row mapping and wrong expected R@1. It must also demonstrate that image/model access fails and malformed NPY inputs cannot enable pickle loading. These are proposed checks; I did not execute them.\n\nUse this replacement action map, removing the unsupported P/C/N/D thresholds:\n\n| Observable | Permitted next action |\n|---|---|\n| Hash, mapping, arithmetic or resource failure | Stop; repair the diagnostic. Draw no scientific conclusion. |\n| No float/packed correctness changes | Reject quantization-induced R@1 changes as the explanation on these endpoints. Close this diagnostic. |\n| Correctness changes occur | Report recoveries **and harms**, by endpoint and product. This establishes quantization effects, not a packing-layout defect. It can justify proposing one bounded compression method, subject to separate review. |\n| Deep float errors or filename/category associations | Record unresolved representation/supervision/freshness hypotheses. No automatic pose arm, duplicate ceiling or substrate impossibility claim. |\n\nFilename metadata particularly needs restraint. Receipt-only arithmetic gives **34/44** core queries without a same-suffix positive, versus **964/1734** queries overall. That measures filename-view coverage. “Additional,” “full” and matching suffixes do not establish physical pose, and the proposed classes can overlap. Repeated seeds do not make this exposed selection panel independent confirmation.\n\nA prospective CPU run must retain the existing score engineering ceiling of 700 seconds, 8 GiB host limit, zero swap, no CUDA, authenticated sources/inputs and normal-terminal verification. The numeric payload is about **15.9 MB**, but four export receipts add approximately **24.7 MB of JSON** before parsing overhead. Neither “under 100 MB,” “under two minutes,” nor “150 lines” is established.\n\nThe original candidate remains **KILL**. Any consequential new method still requires matched backbone/data/128 steps/seeds, both cost ratios ≤1.50, packed parity, original product R@1 LCB >0, AP +.002 and unchanged confirmation firewalls. A lane can end without ending the unbounded SOP+InShop quality-and-speed goal. This review authorizes no native launch or production integration.\n\nNot checked: remote wire contents, native execution, test suites, bootstrap recomputation or runtime; no files edited.  \nRemaining risk: even a correct census cannot establish that gallery refresh or pose supervision would improve training."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 4221,
+      "output_bytes": 8441,
+      "elapsed_seconds": 591,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)\ndevbox-ask: codex consult still running (8m 00s)\ndevbox-ask: codex consult still running (8m 30s)\ndevbox-ask: codex consult still running (9m 00s)\ndevbox-ask: codex consult still running (9m 30s)",
+      "progress_truncated": false,
+      "result": "What this change does: D0 examines saved TRAIN descriptors after the connected arm’s scientific KILL. **Verdict: BLOCK the current census-to-intervention plan. The smallest repair is one bounded wire-versus-float falsifier, with no automatic training authorization.**\n\nReviewed HEAD `280e2e169b4226c62418c603c1b65f5dbee90185`. I independently authenticated the four export receipts against the score receipt, checked their complete row mappings against partition `702f…`, and reproduced the 44-query core and corrected AP contributions.\n\n1. **The census cannot select pose supervision over gallery freshness.** All four exports contain descriptors produced by their respective current encoders. None provides the missing counterfactual: the *same candidate readout* applied to initial versus updated encoder features. Control-versus-candidate differences also include different A/C weights. Thus ranks, margins and filename associations cannot identify freshness as—or exclude it from—the training failure. The [dataflow audit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json:18) correctly leaves that unresolved.\n\n   **Repair:** restrict this census to quantization effects and descriptive error geometry. A freshness experiment would require additional authenticated inputs and a separately reviewed scope; its cost is unmeasured. Neither diagnostic currently warrants a pose arm.\n\n2. **The proposed pose arm is more than a membership-mask change.** `P[label]` is a fixed class centroid, constructed from all canonical members; it cannot represent an anchor-dependent different-view target. Moreover, removing same-view positives while retaining the current `eligible` set makes those same-product rows contribute as negatives to SmoothAP’s denominator. This contradicts “negatives unchanged.” See [centroid construction](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:740) and [ranking/loss arithmetic](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1225).\n\n   **Repair:** do not authorize that arm from D0. Any later proposal must specify excluded-row treatment, anchor-specific targets, empty-positive behavior and global loss denominators before claiming a single changed mechanism.\n\n3. **Existing evaluator helpers breach the proposed read boundary.** [`image_rows`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_nearest_ranking.py:628) hashes image files through `bound_file`; [`read_wires`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_nearest_ranking.py:774) imports Torch and repacks. Calling the existing evaluator also brings its broader admission machinery. These are not a metadata-only census API.\n\n   **Repair:** use a separate, narrowly authenticated cached-wire reader. Preserve existing evaluator and production code. Do not traverse every path in the inherited `input_guards`, which includes images.\n\n4. **Ordinary cosine is insufficient to verify packed ranks.** The accepted scorer uses signed codes, stored FP16 inverse norms, two ordered FP32 multiplications, and stable descending sorting. Renormalizing decoded vectors, omitting inverse norms, or combining their multiplication can change close rankings and ties. The proposed independent “brute-force cosine” check only checks float geometry. See [accepted scoring arithmetic](/home/rb/worktrees/sfora-positive-causality/scripts/compare_inshop_sop_warmstart_100.py:35) and [wire decoding API](/home/rb/worktrees/sfora-positive-causality/src/sfora/joint_relational_compaction.py:275).\n\n   **Repair:** independently verify packed arithmetic and float arithmetic as separate quantities.\n\nThe smallest concrete diagnostic I would accept for source preparation is:\n\n- **Inputs:** the original score receipt; its four authenticated full-export receipts; each receipt’s exact `output` and three `files` entries; partition `702f…`; original FIT metadata `d32f…`. Each endpoint has two `[3449,128]` float32 arrays and exactly **448,370 packed bytes**, with no artifact header.\n- **Mapping:** descriptor row `p` corresponds to `panel.original_rows[p]`; query result ordinal `i` corresponds to `panel.query[i]`. Labels come from `fit.class_names[fit.targets[original_row]]`; paths come from the corresponding FIT row. Cross-check export `images[*].rows` and `ordered_images_sha256`. The 6,355-row scope is not this panel’s order.\n- **Packed arithmetic:** decode each row as 128 signed bytes followed by little-endian FP16 inverse norm. Compute  \n  `score = float32(float32(integer_dot * query_inverse) * gallery_inverse)`.  \n  Preserve the original gallery sequence and lower-ordinal ties. Its sorted order is confirmed in the original partition.\n- **Admission:** reproduce all four original 1,734-element packed R@1 arrays exactly **before releasing diagnostic results**. Any mismatch terminates the diagnostic as an engineering failure.\n- **Measurements:** first-positive rank, best-positive/best-negative IDs and margins, and both directions of float↔packed correctness changes across the whole panel. Then summarize the core, source-error, shared-win and shared-loss cohorts, retaining overlaps explicitly. Source/concat per-query arrays define cohorts; they cannot supply source/concat score margins.\n- **Independent check:** separately implemented wire decoding and rank arithmetic must verify the full packed results. Raw-vector cosine independently checks float results; numerically sensitive disagreements remain unresolved rather than becoming causal classifications.\n\nThe small pre-launch falsifier should contain signed codes, unequal inverse norms, an exact cross-label tie, and interleaved query/gallery panel indices. It must reject a changed wire byte, wrong endian interpretation, swapped row mapping and wrong expected R@1. It must also demonstrate that image/model access fails and malformed NPY inputs cannot enable pickle loading. These are proposed checks; I did not execute them.\n\nUse this replacement action map, removing the unsupported P/C/N/D thresholds:\n\n| Observable | Permitted next action |\n|---|---|\n| Hash, mapping, arithmetic or resource failure | Stop; repair the diagnostic. Draw no scientific conclusion. |\n| No float/packed correctness changes | Reject quantization-induced R@1 changes as the explanation on these endpoints. Close this diagnostic. |\n| Correctness changes occur | Report recoveries **and harms**, by endpoint and product. This establishes quantization effects, not a packing-layout defect. It can justify proposing one bounded compression method, subject to separate review. |\n| Deep float errors or filename/category associations | Record unresolved representation/supervision/freshness hypotheses. No automatic pose arm, duplicate ceiling or substrate impossibility claim. |\n\nFilename metadata particularly needs restraint. Receipt-only arithmetic gives **34/44** core queries without a same-suffix positive, versus **964/1734** queries overall. That measures filename-view coverage. “Additional,” “full” and matching suffixes do not establish physical pose, and the proposed classes can overlap. Repeated seeds do not make this exposed selection panel independent confirmation.\n\nA prospective CPU run must retain the existing score engineering ceiling of 700 seconds, 8 GiB host limit, zero swap, no CUDA, authenticated sources/inputs and normal-terminal verification. The numeric payload is about **15.9 MB**, but four export receipts add approximately **24.7 MB of JSON** before parsing overhead. Neither “under 100 MB,” “under two minutes,” nor “150 lines” is established.\n\nThe original candidate remains **KILL**. Any consequential new method still requires matched backbone/data/128 steps/seeds, both cost ratios ≤1.50, packed parity, original product R@1 LCB >0, AP +.002 and unchanged confirmation firewalls. A lane can end without ending the unbounded SOP+InShop quality-and-speed goal. This review authorizes no native launch or production integration.\n\nNot checked: remote wire contents, native execution, test suites, bootstrap recomputation or runtime; no files edited.  \nRemaining risk: even a correct census cannot establish that gallery refresh or pose supervision would improve training.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1791446260,
+  "elapsed_seconds": 591,
+  "input_bytes": 3817,
+  "output_bytes": 16728
+}

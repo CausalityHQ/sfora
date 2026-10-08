@@ -1,0 +1,23 @@
+{
+  "group": "99c221b6e4404eca",
+  "status": "both original reviewers completed exit 0",
+  "candidate": "KILL remains unchanged",
+  "decision": "Reject census-to-pose intervention. Prepare a source-only freshness-counterfactual contract before choosing a native diagnostic.",
+  "accepted_findings": [
+    "Filename framing does not establish physical pose or irreducible ambiguity.",
+    "Saved current wires alone cannot isolate encoder freshness from different readout weights.",
+    "Packed arithmetic and float geometry require separate checks; quantization flips do not prove a layout bug.",
+    "Original panel order, labels and complete per-query R1/AP replay must precede any diagnostic readout.",
+    "Original cached features plus the same candidate terminal readout provide a concrete counterfactual seam, subject to source and numerical tap verification."
+  ],
+  "rejected_reviewer_inferences": [
+    "Confidence intervals containing zero do not prove head co-adaptation.",
+    "Identical rank-1 results on this panel do not prove gallery freshness globally noncausal.",
+    "A post-hoc counterfactual on exposed selection is not an accepted endpoint or confirmation.",
+    "Original FIT contains held roles; active training-scope disjointness must be checked separately."
+  ],
+  "next_source_gate": "Bind original cache_rows tap, candidate endpoint.pt readout, accepted fresh wires, original scorer and exact active-scope separation. Require stronger control tap checks than rank-1 alone. Define descriptive outcomes without automatic training admission.",
+  "native_authorized_by_this_record": false,
+  "runtime_memory_and_freshness_cause": "UNMEASURED",
+  "serving_driver": "Source-only commit 5250ed93b1e15d509519c6f91b0703100ee96d68 integrated as 56fdb525; current KILL must reject before native imports. Native serving unqualified."
+}
