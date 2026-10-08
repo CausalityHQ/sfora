@@ -1,0 +1,33 @@
+{
+  "both_locks_required": true,
+  "files": {
+    "inputs.tar.gz": "7b5e9f44bacc849caa375455e013b8d7741fea3bf95fcddb43922c100770e294",
+    "inventory.json": "b2bdb9d192a8a3a7711a89328be347204523a6ec7ebb167a5b289000bc431af8",
+    "launch.sh": "38fdd8654e8c885ef9602fcc7e1e193f22ae84e363e04a5fc2626373bab7f728",
+    "run.py": "dc1efd271d0da140dbbea37078178ac2ba4092b60d4ba00c7c4ac029683151f6"
+  },
+  "policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 1073741824,
+    "seconds": 120,
+    "swap_bytes": 0
+  },
+  "previous_assurance": "v3 original PASS, prior evaluator bytes",
+  "prior_failure": {
+    "cause": "systemd default cwd with relative runner",
+    "exit_status": 2,
+    "invocation_id": "8fc6c7cb625d4e05b5f1c5fd6c447cc2",
+    "tests_started": false,
+    "unit": "sfora-connected-py313-assurance-v1"
+  },
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "qualification_eligible": false,
+  "remote_root": "/home/riomus/runs/sfora-connected-py313-assurance-v4",
+  "schema": "connected-py313-source-only-assurance-v1",
+  "source_execution_sha256": "046fbeb6db0e162e905492b7ae10828bf018c1ffd35359ac9c9e723172bed33f",
+  "state_reuse_eligible": false,
+  "unit": "sfora-connected-py313-assurance-v4"
+}

@@ -1,0 +1,27 @@
+{
+  "code": {
+    "evaluate_siglip2_connected_mlp.py": "0a807abc27cbf7150824b2dd202e7be75aaa548f0e27918a1d5b1c862908850b",
+    "test_connected_mlp_evaluation.py": "09818ee1aab610160db21d95f16689c679000e26b1062296e81bb1f988fcbf63"
+  },
+  "execution_sha256": "046fbeb6db0e162e905492b7ae10828bf018c1ffd35359ac9c9e723172bed33f",
+  "files": {
+    "authority-full-cpu-v4.json": "156140e6ef654a620322c20d1ec4ef40c1beaa78c2256a5dcbf8d9a24ac06ccb",
+    "evaluate_siglip2_connected_mlp.py": "0a807abc27cbf7150824b2dd202e7be75aaa548f0e27918a1d5b1c862908850b",
+    "execution.json": "046fbeb6db0e162e905492b7ae10828bf018c1ffd35359ac9c9e723172bed33f",
+    "full-cpu-v4-command.sh": "635dae6ab5ba856654c9b000bc359b93173e63c98f2d5802735b27911d145763",
+    "full-cpu-v4-controller.sh": "3b313d2cb63961b84c6366e18d56e40df260c4525e1a83bde1a55276f0e0fc26",
+    "full-cpu-v4-launch.sh": "3dff7209e11d8168a3e597be59764e0eb9fe577bfc838adba5ea3d5f60883342",
+    "test_connected_mlp_evaluation.py": "09818ee1aab610160db21d95f16689c679000e26b1062296e81bb1f988fcbf63"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v4",
+  "policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 500,
+    "swap_bytes": 0
+  },
+  "schema": "connected-evaluator-cpu-prospective-freeze-v1",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8",
+  "stop_rule": "ONE fresh CPU500, original metadata/parity/source/whole normal0/8GiB/zeroSwap/bothlocks/full uncached exit mandatory. Four fresh stage-specific exports1500 then score700 only after this full CPU PASS; historical first exports cannot serve full stage. Preserve original score500 FAIL; no quality or state reuse from partial score.",
+  "unit": "sfora-connected-mlp-evaluation-full-cpu-v4"
+}
