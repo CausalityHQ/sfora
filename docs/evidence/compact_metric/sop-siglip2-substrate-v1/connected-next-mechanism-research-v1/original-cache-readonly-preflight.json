@@ -1,0 +1,17 @@
+{
+  "schema": "original-cache-readonly-preflight-v1",
+  "path": "/home/riomus/runs/sfora-native256-fit-export-so400-v1/fit.npy",
+  "sha256": "c418df0354408c8b33dca07f21e7b3cbf9d5089f7f278b93003a614f21085716",
+  "size": 61208192,
+  "npy_version": [1, 0],
+  "header": {"descr": "<f4", "fortran_order": false, "shape": [13283, 1152]},
+  "data_offset": 128,
+  "canonical_path_and_stable_stat": true,
+  "sha_matches_original_partition": true,
+  "native_imports": false,
+  "images_read": false,
+  "qualification_eligible": false,
+  "original_ssh_exit": 0,
+  "original_exec_chunk": "362918",
+  "purpose": "Read-only input availability and complete-byte validation; not a numerical freshness or performance experiment."
+}
