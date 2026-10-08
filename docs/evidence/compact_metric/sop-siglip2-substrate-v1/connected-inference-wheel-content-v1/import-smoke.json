@@ -1,0 +1,11 @@
+{
+  "bridge_import_from_actual_wheel": true,
+  "literal_authority_hash_verified": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+  "native_installed_qualification": "UNRUN",
+  "native_or_model_execution": false,
+  "public_search_signature": "(self, images: 'list[object] | tuple[object, ...]') -> 'tuple[object, object]'",
+  "schema": "connected-wheel-stdlib-import-smoke-v1",
+  "thirdparty_inference_modules_loaded": [],
+  "typed_snapshot_mutant_rejected": true,
+  "wheel_sha256": "a1ff1b26f4d1d696e016344e03099ae2618621624929de70395dba81e5671eb6"
+}
