@@ -1,0 +1,34 @@
+{
+  "base": "6841013ea0e20cde27cfa2ca8787b66ff1eadc9f",
+  "clean": true,
+  "commit": "15eb6e0c6ff450d95e1d4c07b01bb360f8d42dd7",
+  "correction": "Exact root mutable initializer delegate RED reproduced. Independent lexical import-time identity/code/default/global/builtin/name/closure metadata checks now precede adoption and run in every returned source guard, including ordinary registered guards. Delegate/checker code and each delegate closure-cell mutation, joint context/snapshot mutation, and replacement inside genuine terminal check_unit all reject.",
+  "files": {
+    "scripts/evaluate_siglip2_connected_mlp.py": "04fb4f774b61a28bc7314da051eb106344da4d3ca2a04719d9c1bdfbaf7ca527",
+    "scripts/test_connected_mlp_evaluation.py": "f15d98ddbbe8a585ee0185b79c47a6dd9a3bd434c775889fc0831d20a1b242e0"
+  },
+  "logs": {
+    "/tmp/initializer-delegate-final-focused.log": "0dc034dc3b2abb44a559eca91c8b2e785efb252b1bcb834e04f6113aba003f39",
+    "/tmp/initializer-delegate-final.log": "4eb3c967ccdf63281484b5e8c0ece075672d780d898048af443d65186fac50f1",
+    "/tmp/initializer-delegate-final.metrics": "8a91e0335d1e18eb195ccad914f966e6f4dbf7a39daa021b43dd7606c3949ee0",
+    "/tmp/initializer-delegate-focused.log": "d5b1b473e47341f25de280a0ec8b1abd0d9f70de34dc2b89c8c06dca75d36526",
+    "/tmp/initializer-delegate-green.log": "72547a481ab6a74b86cdd1acce4ec1fdeacacf9f30c24d846bd065440a95fa42",
+    "/tmp/initializer-delegate-root-red.log": "f0130e1be90400a06f2750cae00f2ea3724a66c6eece3ec06e00556c73eb6ddc",
+    "/tmp/initializer-delegate-test-red.log": "a33f8809f456849fc26826fa2223d22dad6e7823aedb37b5d7ec4714409c4f77"
+  },
+  "merged": false,
+  "native_run": false,
+  "previous_narrower_receipt": {
+    "path": "/tmp/initializer-origin-final-receipt.json",
+    "sha256": "7f92e95d6787ea4c6b07a3e0c602f9c83f17d50410b0492776cb68bb9fb8a80e"
+  },
+  "pushed": false,
+  "qualification_eligible": false,
+  "verification": {
+    "command": "timeout 120s prlimit --as=1073741824 python3 -B scripts/test_connected_mlp_evaluation.py --source-only",
+    "elapsed_seconds": 39.5,
+    "exit_status": 0,
+    "peak_rss_kib": 158664,
+    "replacement_full_suite_runs": 1
+  }
+}

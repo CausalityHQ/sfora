@@ -1,0 +1,22 @@
+PASS original all-four constructors; finite initializer initial/cached/call/exit tamper rejection
+PASS immutable import-time builtin baseline all cases
+PASS builtin namespace/control primitive rejection all cases
+PASS genuine transitive check_steps code/object capture/call/exit rejection
+PASS actual UNIT mutation after preguard rejected by admission finally
+PASS actual initializer holder replacement after preguard rejected by admission finally
+PASS initializer delegate import/fresh/cached/call/finally/exit identity and metadata binding
+PASS endpoint genuine source/class/callback/state/join/derivative and once-only first-CONTINUE owner
+PASS actual authority loop: old overlap1 / new overlap2..4, exact fresh occurrences
+PASS actual accept_unit loop: old overlap1 / new overlap2..4, exact fresh occurrences
+PASS actual admission scans: mutation/symlink/roles/conflict/duplicates/errors, atomic owner and joined failures
+PASS historical first-selection source/execution rejection retained; candidate full-stage requalification blocked
+PASS exact original-owner closure/authority/context, unchanged original readers, CPU/payload/CLI/guard/UNIT/VAL and live snapshot falsifiers
+PASS prospective score700/export1500 boundaries/caps; historical CPU launch/source binding rejected; fresh ownCPU500 required
+PASS evaluator v6 origin, v3 CPU rejection, phase tampering, exact source/AST inverse
+PASS initializer runtime: real restore/direct/canonical RED500 -> phase GREEN; unchanged predicates/origins
+PASS witness scan: inverse source/AST, fresh occurrences, ordered owner, bounded/joined workers, negatives
+PASS exact runtime/CPU/batch/historical source and historical test inverses
+PASS executed producer-shaped full mechanics receipt: first17/steps/missing/tamper negatives
+PASS real original terminal AST: connected/gradient/control seams and binding/log/cgroup falsifiers
+PASS source-only connected MLP contracts/falsifiers; native UNRUN
+PASS connected evaluator source-only affected suite
