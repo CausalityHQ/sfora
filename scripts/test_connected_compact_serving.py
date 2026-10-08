@@ -15,7 +15,7 @@ from types import CodeType, FunctionType, ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 ACTUAL_SOURCE = (
-    Path(__file__).resolve().parents[1] / "scripts/train_siglip2_connected_mlp.py"
+    Path(__file__).resolve().parents[1] / "src/sfora/connected_inference.py"
 ).read_text()
 RELEASE_SOURCE = ast.get_source_segment(
     ACTUAL_SOURCE,
@@ -47,6 +47,16 @@ import gc
 import weakref
 from functools import lru_cache
 import _connected_test_events as events
+FIXTURE_FLAGS = {"empty": False, "numeric": 1, "nested": {1: [1]}, "frozen": frozenset({1})}
+
+def _bind_runtime(historical_code, runtime_guards):
+    assert historical_code == events.historical_code
+    assert tuple(Path(path).name for path, digest in runtime_guards) == (
+        "connected_inference.py", "_connected_inference_authority.py", "packed_int8.py")
+
+def admit_bundle(directory, digest):
+    assert directory == events.bundle
+    assert digest == events.digest or digest == events.admission_digest
 
 def load_authenticated(name, path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -62,10 +72,12 @@ def load_authenticated(name, path):
 def load_inference(directory, digest, device):
     assert device == "cuda" and directory == events.bundle and digest == events.digest
     events.calls.append("load")
+    if events.fail == "load_cancel":
+        raise events.cancellation
     modules = {}
     for number in range(2):
         name = "_connected_serving_" + str(time.time_ns()) + "_" + str(number)
-        modules[str(number)] = load_authenticated(name, directory / "quadratic_readout.py")
+        modules[str(number)] = load_authenticated(name, Path(__file__).parent / "helper.py")
     if events.fail == "before_endpoint":
         raise ValueError("before endpoint")
     class Atom:
@@ -99,6 +111,8 @@ def inference_outputs(endpoint, images):
     if events.started is not None:
         events.started.set()
         assert events.resume.wait(5), "test did not release search"
+    if events.fail == "infer_cancel":
+        raise events.cancellation
     if events.fail == "infer":
         raise ValueError("inference failure")
     wire = events.wire if events.wire is not None else b"\x81" * (130 * len(images))
@@ -110,7 +124,7 @@ def require(condition, message):
     if not condition:
         raise ValueError(message)
 
-def _processor_cache(processor, guards):
+def _processor_cache(processor, guards, *, empty=False):
     events.calls.append("release")
     if events.swap is not None:
         events.swap()
@@ -118,6 +132,7 @@ def _processor_cache(processor, guards):
         raise ValueError("release failure")
     if events.fail == "cache_authority":
         return object()
+    require(not empty or processor.cache.cache_info().currsize == 0, "cache must initially be empty")
     return processor.cache
 """
     + "\n"
@@ -139,7 +154,11 @@ def fails(call, label):
 
 
 class NoNativeImports(importlib.abc.MetaPathFinder):
+    hook = None
+
     def find_spec(self, fullname, path=None, target=None):
+        if fullname == "torch" and self.hook is not None:
+            self.hook()
         if fullname.split(".")[0] in {"torch", "numpy", "PIL", "sfora"}:
             raise AssertionError("real native/package import: " + fullname)
 
@@ -161,6 +180,42 @@ def teardown_regressions(bridge, load, events, Image, result, opened, no_owned_r
     assert opened[-1].closes == 1
     index.close()
     no_owned_registry()
+
+    # Namespace/default mutation must reject while saved genuine teardown still runs.
+    for mutation in ('defaults', 'kwdefaults', 'numeric_bool_literal', 'bool_numeric_default', 'numeric_bool_key', 'list_tuple_literal', 'frozenset_numeric_bool', 'helper_code', 'helper_global', 'literal_global', 'extra_global'):
+        index = load()
+        module = index._module
+        if mutation == 'defaults':
+            module.inference_outputs.__defaults__ = (None,)
+        elif mutation == 'kwdefaults':
+            module._processor_cache.__kwdefaults__['empty'] = True
+        elif mutation == 'numeric_bool_literal':
+            module.FIXTURE_FLAGS['numeric'] = True
+        elif mutation == 'bool_numeric_default':
+            module._processor_cache.__kwdefaults__['empty'] = 0
+        elif mutation == 'numeric_bool_key':
+            nested = module.FIXTURE_FLAGS['nested']
+            value = nested.pop(1)
+            nested[True] = value
+        elif mutation == 'list_tuple_literal':
+            module.FIXTURE_FLAGS['nested'][1] = (1,)
+        elif mutation == 'frozenset_numeric_bool':
+            module.FIXTURE_FLAGS['frozen'] = frozenset({True})
+        elif mutation == 'helper_code':
+            module._processor_cache.__code__ = (lambda processor, guards: object()).__code__
+        elif mutation == 'helper_global':
+            module._processor_cache = lambda processor, guards: object()
+        elif mutation == 'literal_global':
+            module.FIXTURE_FLAGS['empty'] = True
+        else:
+            module.added = True
+        if mutation in ("numeric_bool_literal", "bool_numeric_default", "numeric_bool_key", "list_tuple_literal", "frozenset_numeric_bool"):
+            fails(index._check_current, mutation)
+        fails(lambda index=index: index.search_images([Image()]), mutation)
+        assert events.cache.cache_info().currsize == 0 and all(ref() is None for ref in events.refs)
+        assert opened[-1].closes == 1
+        index.close()
+        no_owned_registry()
 
     registry_regressions(bridge, load, events, Image, result, opened, no_owned_registry)
 
@@ -247,214 +302,23 @@ def registry_regressions(bridge, load, events, Image, result, opened, no_owned_r
 
 
 def compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registry):
-    # Removing dont_inherit must reproduce the genuine serializer identity failure.
-    bridge_bytes = Path(bridge.__file__).read_bytes()
-    inverse = bridge_bytes.replace(b", dont_inherit=True", b"", 1)
-    assert sha(inverse) == "99da5bd76dd8d49c0ed0c69bf3517d4ee4a976bdb9978addfcffba04f62fefc4"
-    assert sha(ast.dump(ast.parse(inverse), include_attributes=False).encode()) == (
-        "02cfe02bb65cbfd0f6aec976083cd993331d28f0cd58342e074ff93a2abe975e"
-    )
-    trainer_path = bundle / "train_siglip2_connected_mlp.py"
-    serializer_path = bundle / "train_siglip2_substrate_adaptation.py"
-    trainer_bytes = (ROOT / "scripts" / trainer_path.name).read_bytes()
-    serializer_bytes = (ROOT / "scripts" / serializer_path.name).read_bytes()
-    assert sha(trainer_bytes) == "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
-    serializer_sha = "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
-    assert sha(serializer_bytes) == serializer_sha
-    spec = importlib.util.spec_from_file_location(
-        "connected_compile_observer", ROOT / "scripts/observe_connected_serving.py"
-    )
-    observer = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(observer)
-    saved = {
-        path: path.read_bytes() for path in (trainer_path, serializer_path, bundle / "bundle.json")
-    }
-    captured = []
-    annotation_flag = __future__.annotations.compiler_flag
-
-    class CompileProbe(bridge.ConnectedCompactIndex):
-        def __init__(self):
-            super().__init__()
-            captured.append(self)
-
-    class ProbeComplete(Exception):
-        pass
-
-    def reject(call, message):
-        try:
-            call()
-        except ValueError as error:
-            assert str(error) == message, str(error)
-        else:
-            raise AssertionError("accepted " + message)
-
-    def probe(wire, *, count, dimensions):
-        assert wire == b"G" * 1300 and count == 10 and dimensions == 128
-        index = captured[-1]
-        trainer = index._module
-        expected_trainer = compile(
-            trainer_path.read_bytes(), str(trainer_path), "exec", dont_inherit=True
-        )
-        expected_loader = next(
-            code for code in expected_trainer.co_consts
-            if isinstance(code, CodeType) and code.co_name == "load_authenticated"
-        )
-        loader = trainer.load_authenticated
-        name = trainer.__name__ + "_serializer"
-        guards = {}
-        serializer = loader(name, serializer_path, serializer_sha, guards)
-        try:
-            expected = next(
-                code for code in compile(
-                    serializer_bytes, str(serializer_path), "exec", dont_inherit=True
-                ).co_consts
-                if isinstance(code, CodeType) and code.co_name == "fingerprint"
-            )
-            fingerprint = serializer.fingerprint
-            assert sys.modules[name] is serializer and vars(serializer) is fingerprint.__globals__
-            assert serializer.fingerprint is fingerprint
-            assert serializer.__file__ == str(serializer_path)
-            explicit_future = bool(expected_loader.co_flags & annotation_flag)
-            print("compile identity:", json.dumps({
-                "actual_flags": fingerprint.__code__.co_flags,
-                "expected_flags": expected.co_flags,
-                "code_equal": fingerprint.__code__ == expected,
-                "explicit_future": explicit_future,
-                "registry_globals_attribute_file_identity": True,
-            }), flush=True)
-            if explicit_future:
-                assert fingerprint.__code__.co_flags & annotation_flag
-                reject(
-                    lambda: observer.RequestObserver(fingerprint, sources),
-                    "original serializer code/module identity differs",
-                )
-            else:
-                assert fingerprint.__code__ == expected, "genuine serializer code identity differs"
-                assert loader.__code__ == expected_loader, "bridge inherited caller compiler flags"
-                assert fingerprint.__defaults__ == (None, None)
-                index._endpoint = {"modules": {serializer_path.name: serializer}}
-                try:
-                    admitted = observer.RequestObserver.from_index(index, sources)
-                    assert admitted.fingerprint_code is fingerprint.__code__
-                    reject(
-                        lambda: loader(name, serializer_path, serializer_sha, guards),
-                        "fresh helper namespace required",
-                    )
-                    assert sys.modules[name] is serializer
-                    changed_defaults = serializer_bytes.replace(
-                        b"def fingerprint(value, frozen=None, consumed=None):",
-                        b"def fingerprint(value, frozen={}, consumed=None):",
-                    )
-                    assert changed_defaults != serializer_bytes
-                    serializer_path.write_bytes(changed_defaults)
-                    try:
-                        reject(
-                            lambda: loader(name + "_tampered", serializer_path, serializer_sha, {}),
-                            "current FILE bytes differ: " + str(serializer_path),
-                        )
-                        assert name + "_tampered" not in sys.modules
-                    finally:
-                        serializer_path.write_bytes(serializer_bytes)
-                    original_code = fingerprint.__code__
-                    fingerprint.__code__ = original_code.replace(
-                        co_flags=original_code.co_flags | annotation_flag
-                    )
-                    try:
-                        reject(
-                            lambda: observer.RequestObserver.from_index(index, sources),
-                            "original serializer code/module identity differs",
-                        )
-                    finally:
-                        fingerprint.__code__ = original_code
-                    serializer.fingerprint = FunctionType(original_code, dict(vars(serializer)))
-                    try:
-                        reject(
-                            lambda: observer.RequestObserver.from_index(index, sources),
-                            "original serializer code/module identity differs",
-                        )
-                    finally:
-                        serializer.fingerprint = fingerprint
-                    foreign = ModuleType(name)
-                    sys.modules[name] = foreign
-                    try:
-                        reject(
-                            lambda: observer.RequestObserver.from_index(index, sources),
-                            "original serializer code/module identity differs",
-                        )
-                        assert sys.modules[name] is foreign
-                    finally:
-                        sys.modules[name] = serializer
-                    serializer.__file__ = str(bundle / "foreign.py")
-                    try:
-                        reject(
-                            lambda: observer.RequestObserver.from_index(index, sources),
-                            "admitted bundle source FILE paths required",
-                        )
-                    finally:
-                        serializer.__file__ = str(serializer_path)
-                    loader_code = loader.__code__
-                    loader.__code__ = loader_code.replace(
-                        co_flags=loader_code.co_flags | annotation_flag
-                    )
-                    try:
-                        reject(index._check_current, "connected public callable changed")
-                    finally:
-                        loader.__code__ = loader_code
-                    # Report preexisting live-default coverage separately; do not add a guard.
-                    for label, fn, changed in (
-                        ("trainer", loader, ("bad-digest", {})),
-                        ("serializer", fingerprint, ({}, None)),
-                    ):
-                        defaults = fn.__defaults__
-                        fn.__defaults__ = changed
-                        try:
-                            try:
-                                observer.RequestObserver.from_index(index, sources)
-                            except ValueError:
-                                rejected = True
-                            else:
-                                rejected = False
-                            print("live defaults:", label, "rejected:", rejected, flush=True)
-                        finally:
-                            fn.__defaults__ = defaults
-                    admitted = observer.RequestObserver.from_index(index, sources)
-                    assert admitted.fingerprint_code == expected
-                finally:
-                    index._endpoint = None
-            print(
-                "PASS: real bridge/trainer/serializer compile identity; explicit future:",
-                explicit_future,
-            )
-            assert loader.__code__ == expected_loader
-        finally:
-            assert sys.modules.pop(name) is serializer
-        raise ProbeComplete()
-
+    # The actual package serializer must use the package's own compiler flags.
+    actual = (ROOT / 'src/sfora/connected_inference.py').read_bytes()
+    spec = importlib.util.spec_from_file_location('_package_compile_subject', ROOT / 'src/sfora/connected_inference.py')
+    runtime = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = runtime
     try:
-        serializer_path.write_bytes(serializer_bytes)
-        # A source directive remains effective; only caller flags are excluded.
-        for raw in (trainer_bytes, b"from __future__ import annotations\n" + trainer_bytes):
-            trainer_path.write_bytes(raw)
-            current = manifest | {"code": manifest["code"] | {
-                trainer_path.name: sha(raw), serializer_path.name: serializer_sha,
-            }}
-            (bundle / "bundle.json").write_text(json.dumps(current))
-            sources = {"trainer": {"path": str(trainer_path), "sha256": sha(raw)},
-                       "serializer": {"path": str(serializer_path), "sha256": serializer_sha}}
-            with patch.object(Packed, "from_bytes", side_effect=probe):
-                try:
-                    CompileProbe.from_bundle(**(args | {
-                        "expected_bundle_sha256": sha((bundle / "bundle.json").read_bytes()),
-                    }))
-                except ProbeComplete:
-                    pass
-                else:
-                    raise AssertionError("compile probe did not stop before native inference")
-            assert captured[-1]._closed and not captured[-1]._owned
-            no_owned_registry()
+        spec.loader.exec_module(runtime)
+        expected = next(code for code in compile(actual, runtime.__file__, 'exec', dont_inherit=True).co_consts
+                        if isinstance(code, CodeType) and code.co_name == 'fingerprint')
+        assert runtime.fingerprint.__code__ == expected
+        assert runtime.fingerprint.__defaults__ == (None, None)
+        assert runtime.fingerprint.__globals__ is vars(runtime)
+        inherited = compile(actual, runtime.__file__, 'exec', flags=__future__.annotations.compiler_flag)
+        changed = next(code for code in inherited.co_consts if isinstance(code, CodeType) and code.co_name == 'fingerprint')
+        assert changed != expected, 'serializer compiler-flag negative did not differ'
     finally:
-        for path, raw in saved.items():
-            path.write_bytes(raw)
+        del sys.modules[spec.name]
 
 
 def main():
@@ -469,6 +333,8 @@ def main():
     events = ModuleType("_connected_test_events")
     events.calls, events.helpers = [], []
     events.fail = events.wire = events.started = events.resume = events.swap = None
+    events.cancellation = events.cleanup_error = None
+    events.admission_digest = None
     parsed, opened = [], []
     result = (object(), object())
 
@@ -507,6 +373,8 @@ def main():
         def close(self):
             self.closes += 1
             events.calls.append("close")
+            if events.cleanup_error is not None:
+                raise events.cleanup_error
             if events.fail == "close":
                 raise ValueError("close failure")
 
@@ -516,12 +384,12 @@ def main():
         "PIL",
         "PIL.Image",
         "sfora.cutile_int8",
-        "sfora.joint_relational_compaction",
+        "sfora.packed_int8",
     ):
         stubs[name] = ModuleType(name)
     stubs["PIL.Image"].Image = Image
     stubs["sfora.cutile_int8"].CutilePackedInt8Gallery = Gallery
-    stubs["sfora.joint_relational_compaction"].PackedInt8Embeddings = Packed
+    stubs["sfora.packed_int8"].PackedInt8Embeddings = Packed
     guard = NoNativeImports()
     sys.meta_path.insert(0, guard)
     try:
@@ -536,7 +404,7 @@ def main():
             bundle.mkdir()
             for name in CODE_NAMES:
                 (bundle / name).write_bytes(
-                    SOURCE.encode() if name == "train_siglip2_connected_mlp.py" else b"# helper\n"
+                    b"raise AssertionError(\"historical evidence executed\")\n"
                 )
             for name in ("vision.pt", "endpoint.pt", "processor.json"):
                 (bundle / name).write_bytes(b"synthetic owned bytes")
@@ -558,6 +426,28 @@ def main():
             gallery, library = root / "gallery.bin", root / "library.so"
             gallery.write_bytes(b"G" * 1300)
             library.write_bytes(b"synthetic native bytes")
+            installed = root / "installed"
+            installed.mkdir()
+            runtime_path = installed / "connected_inference.py"
+            runtime_path.write_text(SOURCE)
+            (installed / "helper.py").write_bytes(b"# installed ownership fixture\n")
+            packed_path = installed / "packed_int8.py"
+            packed_path.write_bytes(b"# shared packing ownership fixture\n")
+            authority_path = installed / "_connected_inference_authority.py"
+            def install_authority(code=None):
+                historical = tuple(sorted((manifest["code"] if code is None else code).items()))
+                record = {"SCHEMA": "sfora-connected-inference-extraction-v1", "HISTORICAL_CODE": historical,
+                          "SOURCE_SYMBOLS": (), "PACKED_SOURCE_SYMBOLS": (), "SUBSTITUTIONS": (),
+                          "RUNTIME_SHA256": sha(runtime_path.read_bytes()), "PACKED_SHA256": sha(packed_path.read_bytes())}
+                authority_path.write_text('\n'.join(key + ' = ' + repr(value) for key, value in record.items()) + '\n')
+                events.historical_code = historical
+                return authority_path, sha(authority_path.read_bytes())
+            authority = install_authority()
+            bridge._installed_authority = lambda: authority
+            bridge.__file__ = str(installed / 'connected_compact_serving.py')
+            packed_module = stubs['sfora.packed_int8']
+            packed_module.__file__ = str(packed_path)
+            packed_module.__spec__ = importlib.util.spec_from_file_location(packed_module.__name__, packed_path)
             events.bundle, events.digest, events.library = (
                 bundle,
                 sha((bundle / "bundle.json").read_bytes()),
@@ -641,6 +531,16 @@ def main():
             )
             fails(load, "copied source hash")
             trainer.write_bytes(original_source)
+            changed_source = original_source + b'# unknown historical closure\n'
+            trainer.write_bytes(changed_source)
+            changed_manifest = manifest | {'code': manifest['code'] | {trainer.name: sha(changed_source)}}
+            raw = json.dumps(changed_manifest).encode()
+            (bundle / 'bundle.json').write_bytes(raw)
+            before = len(events.calls)
+            fails(lambda: load(expected_bundle_sha256=sha(raw)), 'unknown authenticated historical closure')
+            assert len(events.calls) == before
+            trainer.write_bytes(original_source)
+            (bundle / 'bundle.json').write_bytes(original_manifest)
             linked = root / "hardlink"
             linked.hardlink_to(trainer)
             fails(load, "multiply linked owned source")
@@ -685,7 +585,7 @@ def main():
                 path.write_bytes(original + b"x")
                 fails(load, "startup bytes " + path.name)
                 path.write_bytes(original)
-            for path in (trainer,):
+            for path in (trainer, runtime_path, authority_path, packed_path):
                 for kind in ("bytes", "symlink"):
                     index = load()
                     original = path.read_bytes()
@@ -721,6 +621,18 @@ def main():
                 del sys.modules[owned.__name__]
                 no_owned_registry()
 
+            index = load()
+            shared = sys.modules['sfora.packed_int8']
+            foreign_packing = ModuleType('sfora.packed_int8')
+            sys.modules['sfora.packed_int8'] = foreign_packing
+            try:
+                fails(lambda: index.search_images([Image()]), 'shared canonical packing registry replacement')
+                assert sys.modules['sfora.packed_int8'] is foreign_packing
+            finally:
+                sys.modules['sfora.packed_int8'] = shared
+            assert sys.modules['sfora.packed_int8'] is shared
+            no_owned_registry()
+
             # Unchanged public callable objects/code are part of source admission.
             index = load()
             index._module.inference_outputs = lambda *a: {"wire": b""}
@@ -744,88 +656,84 @@ def main():
                 no_owned_registry()
             events.fail = None
 
-            # The actual trainer runs only through finite helper registration, before
-            # endpoint/Torch construction. This proves exact pre-return ownership capture.
-            actual_source = (ROOT / "scripts/train_siglip2_connected_mlp.py").read_bytes()
-            constants = {
-                node.targets[0].id: ast.literal_eval(node.value)
-                for node in ast.parse(actual_source).body
-                if isinstance(node, ast.Assign)
-                and isinstance(node.targets[0], ast.Name)
-                and node.targets[0].id in {"SCOPE_SHA256", "CONTROL_SHA256"}
-            }
-            saved = {name: (bundle / name).read_bytes() for name in CODE_NAMES}
-            installed = root / "installed"
-            installed.mkdir()
-            constructor = installed / "constructor.py"
-            constructor.write_bytes(b"# synthetic installed source\n")
-
-            def foreign_failure():
-                foreign_marker = result  # noqa: F841 - asserted through the preserved foreign traceback.
-                raise LookupError("foreign failure diagnostic")
-
-            events.foreign_failure = foreign_failure
-            failure_source = (
-                b"import sys, _connected_test_events as events\n"
-                b"events.helpers.append(sys.modules[__name__])\n"
-                b"try:\n    events.foreign_failure()\n"
-                b"except LookupError as error:\n"
-                b"    raise ValueError('actual authenticated helper registration failure')"
-                b" from error\n"
-            )
-            for name in CODE_NAMES:
-                (bundle / name).write_bytes(
-                    actual_source if name == trainer.name else failure_source
-                )
+            # Run the actual installed loader through admission to its first denied
+            # native import; genuine package frames must release all owned references.
+            saved_runtime = runtime_path.read_bytes()
+            runtime_path.write_bytes((ROOT / 'src/sfora/connected_inference.py').read_bytes())
+            constructor = installed / 'constructor.py'
+            constructor.write_bytes(b'# authenticated constructor evidence\n')
+            actual_source = runtime_path.read_text()
+            constants = {node.targets[0].id: ast.literal_eval(node.value)
+                         for node in ast.parse(actual_source).body if isinstance(node, ast.Assign)
+                         and isinstance(node.targets[0], ast.Name)
+                         and node.targets[0].id in {'SCOPE_SHA256', 'CONTROL_SHA256'}}
             actual_manifest = manifest | {
-                "code": {name: sha((bundle / name).read_bytes()) for name in CODE_NAMES},
-                "scope": {
-                    "arm": "control",
-                    "manifest_sha256": constants["SCOPE_SHA256"],
-                    "arm_sha256": constants["CONTROL_SHA256"],
-                },
-                "environment": {
-                    "packages": {
-                        name: {"root": str(installed)}
-                        for name in (
-                            "torch",
-                            "numpy",
-                            "PIL",
-                            "transformers",
-                            "safetensors",
-                            "torchvision",
-                        )
-                    },
-                    "files": {str(constructor): sha(constructor.read_bytes())},
-                    "native_files": {},
-                    "vision_constructor": str(constructor),
-                },
-            }
-            (bundle / "bundle.json").write_text(json.dumps(actual_manifest))
-            before = len(events.helpers)
+                'scope': {'arm': 'control', 'manifest_sha256': constants['SCOPE_SHA256'],
+                          'arm_sha256': constants['CONTROL_SHA256']},
+                'environment': {'packages': {name: {'root': str(installed)} for name in (
+                    'torch', 'numpy', 'PIL', 'transformers', 'safetensors', 'torchvision')},
+                    'files': {str(constructor): sha(constructor.read_bytes())}, 'native_files': {},
+                    'vision_constructor': str(constructor)}}
+            (bundle / 'bundle.json').write_text(json.dumps(actual_manifest))
+            authority = install_authority()
+            retained = []
+            class GenuineProbe(bridge.ConnectedCompactIndex):
+                def _snapshot(self, module, source):
+                    if module is self._module:
+                        import weakref
+                        retained.append(weakref.ref(module))
+                    return super()._snapshot(module, source)
             try:
-                load(expected_bundle_sha256=sha((bundle / "bundle.json").read_bytes()))
-            except ValueError as error:
-                assert str(error) == "actual authenticated helper registration failure"
-                names = []
+                GenuineProbe.from_bundle(**(args | {'expected_bundle_sha256': sha((bundle / 'bundle.json').read_bytes())}))
+            except AssertionError as error:
+                assert str(error) == 'real native/package import: torch'
                 trace = error.__traceback__
+                owned_frames = []
                 while trace is not None:
-                    names.append(trace.tb_frame.f_code.co_name)
+                    if trace.tb_frame.f_code.co_name == 'load_inference':
+                        owned_frames.append(trace.tb_frame)
                     trace = trace.tb_next
-                assert "load_inference" in names and "load_authenticated" in names
-                assert isinstance(error.__cause__, LookupError)
-                assert str(error.__cause__) == "foreign failure diagnostic"
-                trace = error.__cause__.__traceback__
-                while trace.tb_frame.f_code.co_name != "foreign_failure":
-                    trace = trace.tb_next
-                assert trace.tb_frame.f_locals["foreign_marker"] is result
+                assert owned_frames and all(not frame.f_locals for frame in owned_frames)
+                del owned_frames, trace
             else:
-                raise AssertionError("actual helper registration failure accepted")
-            assert len(events.helpers) == before + 1
+                raise AssertionError('actual installed pre-return failure accepted')
+            def foreign_failure():
+                foreign_marker = result
+                raise LookupError('foreign failure diagnostic')
+            def denied_native():
+                try:
+                    foreign_failure()
+                except LookupError as cause:
+                    raise ValueError('actual package pre-return rejection') from cause
+            guard.hook = denied_native
+            try:
+                GenuineProbe.from_bundle(**(args | {'expected_bundle_sha256': sha((bundle / 'bundle.json').read_bytes())}))
+            except ValueError as error:
+                assert str(error) == 'actual package pre-return rejection'
+                assert isinstance(error.__cause__, LookupError)
+                trace = error.__cause__.__traceback__
+                while trace.tb_frame.f_code.co_name != 'foreign_failure':
+                    trace = trace.tb_next
+                assert trace.tb_frame.f_locals['foreign_marker'] is result
+                trace = error.__traceback__
+                owned_frames = []
+                while trace is not None:
+                    if trace.tb_frame.f_code.co_name == 'load_inference':
+                        owned_frames.append(trace.tb_frame)
+                    trace = trace.tb_next
+                assert owned_frames and all(not frame.f_locals for frame in owned_frames)
+                del owned_frames, trace
+            else:
+                raise AssertionError('genuine error chain lost')
+            finally:
+                guard.hook = None
+            import gc
+            gc.collect()
+            assert retained and all(ref() is None for ref in retained), 'package runtime retained after failure'
             no_owned_registry()
-            for name, raw in saved.items():
-                (bundle / name).write_bytes(raw)
-            (bundle / "bundle.json").write_bytes(original_manifest)
+            runtime_path.write_bytes(saved_runtime)
+            authority = install_authority()
+            (bundle / 'bundle.json').write_bytes(original_manifest)
 
             for failure in ("infer", "search", "close", "release"):
                 index = load()
@@ -840,6 +748,27 @@ def main():
                 index.close()
                 no_owned_registry()
                 events.fail = None
+            for phase in ('load_cancel', 'infer_cancel'):
+                index = None if phase == 'load_cancel' else load()
+                events.fail = phase
+                events.cancellation = KeyboardInterrupt('original cancellation')
+                events.cleanup_error = ValueError('gallery cleanup failure') if index is not None else None
+                original = events.cancellation
+                try:
+                    load() if index is None else index.search_images([Image()])
+                except KeyboardInterrupt as error:
+                    assert error is original, 'cleanup replaced original cancellation'
+                    if index is not None:
+                        assert any('gallery cleanup failure' in note for note in error.__notes__)
+                        assert events.cache.cache_info().currsize == 0 and all(ref() is None for ref in events.refs)
+                        assert opened[-1].closes == 1
+                else:
+                    raise AssertionError('cancellation swallowed')
+                if index is not None:
+                    index.close()
+                no_owned_registry()
+                events.fail = events.cancellation = events.cleanup_error = None
+
             for wire in (b"", b"X" * 129, b"X" * 131, bytearray(b"X" * 130)):
                 index = load()
                 events.wire = wire

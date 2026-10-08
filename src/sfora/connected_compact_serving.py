@@ -8,6 +8,8 @@ only proven registry ownership and finished owned-frame references are cleaned.
 from __future__ import annotations
 
 import hashlib
+import ast
+import copy
 import importlib.util
 import json
 import re
@@ -53,6 +55,24 @@ _MANIFEST = {
     "vision_sha256",
     "scope",
 }
+
+
+def _installed_authority() -> tuple[Path, str]:
+    return (
+        Path(__file__).absolute().parent / "_connected_inference_authority.py",
+        "6e1027127d827f031db6673cac668a8da943f0395f652319d28dce5d8afc536b",
+    )
+
+
+def _literal_state(value: object) -> object:
+    """Snapshot only mutable literal globals; modules/callables retain identity."""
+    if type(value) is dict:
+        return dict, tuple((_literal_state(key), _literal_state(item)) for key, item in cast(dict[object, object], value).items())
+    if type(value) in (tuple, list):
+        return type(value), tuple(_literal_state(item) for item in cast(tuple[object, ...], value))
+    if type(value) in (set, frozenset):
+        return type(value), frozenset(_literal_state(item) for item in cast(set[object] | frozenset[object], value))
+    return type(value), value
 
 
 def _require(condition: object, message: str) -> None:
@@ -111,6 +131,9 @@ class ConnectedCompactIndex:
         self._release: FunctionType | None = None
         self._release_modules: tuple[ModuleType, ...] = ()
         self._guards: tuple[tuple[Path, str, bool], ...] = ()
+        self._namespaces: list[tuple[ModuleType | type[Any], dict[str, object], dict[str, object]]] = []
+        self._callables: list[tuple[FunctionType, CodeType, object, object, object, object, object]] = []
+        self._shared: tuple[ModuleType, ...] = ()
 
     @classmethod
     def from_bundle(
@@ -156,13 +179,46 @@ class ConnectedCompactIndex:
             )
             for name, digest in (manifest["code"] | manifest["files"]).items():
                 _checked_file(bundle_dir / name, digest, True)
-            trainer_path, trainer_sha = bundle_dir / _TRAINER, manifest["code"][_TRAINER]
-            source = _read_checked(trainer_path, trainer_sha, True)
+            authority_path, authority_sha = _installed_authority()
+            authority_source = _read_checked(authority_path, authority_sha)
+            # The authenticated record is literal data and never binds the bridge.
+            tree = ast.parse(authority_source)
+            _require(
+                all(
+                    isinstance(node, ast.Assign)
+                    and len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name)
+                    or isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+                    and isinstance(node.value.value, str)
+                    for node in tree.body
+                ),
+                "literal installed inference authority required",
+            )
+            record = {
+                node.targets[0].id: ast.literal_eval(node.value)
+                for node in tree.body if isinstance(node, ast.Assign)
+            }
+            _require(
+                record.keys() == {"SCHEMA", "HISTORICAL_CODE", "SOURCE_SYMBOLS", "PACKED_SOURCE_SYMBOLS",
+                                  "SUBSTITUTIONS", "RUNTIME_SHA256", "PACKED_SHA256"}
+                and record["SCHEMA"] == "sfora-connected-inference-extraction-v1"
+                and tuple(sorted(manifest["code"].items())) == record["HISTORICAL_CODE"],
+                "unsupported historical inference closure",
+            )
+            runtime_path = Path(__file__).resolve().parent / "connected_inference.py"
+            packed_path = runtime_path.parent / "packed_int8.py"
+            source = _read_checked(runtime_path, record["RUNTIME_SHA256"])
+            _checked_file(packed_path, record["PACKED_SHA256"])
             gallery_wire = _read_checked(gallery_path, expected_gallery_sha256)
             _checked_file(native_library_path, expected_native_library_sha256)
-            self._guards = ((trainer_path, trainer_sha, True),)
+            self._guards = (
+                (runtime_path, record["RUNTIME_SHA256"], False),
+                (authority_path, authority_sha, False),
+                (packed_path, record["PACKED_SHA256"], False),
+                *((bundle_dir / name, digest, True) for name, digest in manifest["code"].items()),
+            )
             name = "_sfora_connected_compact_" + uuid.uuid4().hex
-            spec = importlib.util.spec_from_file_location(name, trainer_path)
+            spec = importlib.util.spec_from_file_location(name, runtime_path)
             _require(
                 spec is not None and spec.loader is not None, "connected loader origin required"
             )
@@ -171,27 +227,51 @@ class ConnectedCompactIndex:
                 _require(name not in sys.modules, "fresh connected loader namespace required")
                 self._owned[name] = self._module
                 sys.modules[name] = self._module
-                exec(compile(source, str(trainer_path), "exec", dont_inherit=True), vars(self._module))
-            for api in (
-                "load_inference",
-                "load_authenticated",
-                "inference_outputs",
-                "release_inference",
-            ):
+                exec(compile(source, str(runtime_path), "exec", dont_inherit=True), vars(self._module))
+            self._snapshot(self._module, source)
+            self._module._bind_runtime(
+                record["HISTORICAL_CODE"], tuple((str(path), sha) for path, sha, owned in self._guards[:3])
+            )
+            # The one permitted namespace change occurs during authenticated binding.
+            self._namespaces.clear()
+            self._callables.clear()
+            self._snapshot(self._module, source)
+            for api in ("load_inference", "inference_outputs", "release_inference"):
                 fn = getattr(self._module, api)
                 _require(
                     type(fn) is FunctionType and fn.__globals__ is vars(self._module),
                     "genuine connected public function required",
                 )
                 self._apis[api] = (fn, fn.__code__)
+            # Validate scope, environment and every v1 data/source predicate
+            # before the shared packing import can load Torch or NumPy.
+            self._apis["admit_bundle"][0](bundle_dir, expected_bundle_sha256)
             fn, code = self._apis["release_inference"]
+            # Cleanup uses an independent saved namespace, including genuine helpers.
+            # Mutable function objects and runtime globals cannot replace that graph.
+            release_globals = dict(fn.__globals__)
+            for key, value in tuple(release_globals.items()):
+                if type(value) is FunctionType and value.__globals__ is fn.__globals__:
+                    release_globals[key] = FunctionType(
+                        value.__code__, release_globals, value.__name__, copy.deepcopy(value.__defaults__), value.__closure__
+                    )
+                    release_globals[key].__kwdefaults__ = copy.deepcopy(value.__kwdefaults__)
             self._release = FunctionType(
-                code, fn.__globals__, fn.__name__, fn.__defaults__, fn.__closure__
+                code, release_globals, fn.__name__, fn.__defaults__, fn.__closure__
             )
             # Imports are deliberately lazy; source-only checks substitute these seams.
             # Preserve the original order of these lazy imports.
-            from sfora.joint_relational_compaction import PackedInt8Embeddings  # noqa: I001
+            from sfora.packed_int8 import PackedInt8Embeddings  # noqa: I001
             from sfora.cutile_int8 import CutilePackedInt8Gallery
+
+            shared = sys.modules["sfora.packed_int8"]
+            _require(
+                shared.__file__ == str(packed_path) and shared.__spec__.origin == str(packed_path),
+                "canonical shared packing origin differs",
+            )
+            self._shared = (shared,)
+            self._snapshot(shared, _read_checked(packed_path, record["PACKED_SHA256"]))
+            self._check_current()
 
             packed = PackedInt8Embeddings.from_bytes(
                 gallery_wire, count=gallery_count, dimensions=128
@@ -199,6 +279,7 @@ class ConnectedCompactIndex:
             # ponytail: serialize helper registration at startup; an original
             # synchronized registrar is needed only for parallel bundle loading.
             with _REGISTRY_LOCK:
+                self._check_current()
                 self._endpoint = cast(
                     dict[str, Any],
                     self._apis["load_inference"][0](bundle_dir, expected_bundle_sha256, "cuda"),
@@ -217,7 +298,50 @@ class ConnectedCompactIndex:
     def _remember(self, modules: Iterable[object]) -> None:
         for module in modules:
             if type(module) is ModuleType:
-                self._owned[module.__name__] = module
+                if module not in self._shared:
+                    self._owned[module.__name__] = module
+
+    def _snapshot(self, module: ModuleType, source: bytes) -> None:
+        namespace = vars(module)
+        expected = compile(source, module.__file__, "exec", dont_inherit=True)
+        declarations = {node.name for node in ast.parse(source).body
+                        if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
+        codes = {code.co_name: code for code in expected.co_consts
+                 if isinstance(code, CodeType) and code.co_name in declarations}
+        for key, code in codes.items():
+            value = namespace.get(key)
+            if type(value) is FunctionType:
+                _require(value.__code__ == code and value.__globals__ is namespace,
+                         "installed inference callable source differs")
+                self._save_callable(value)
+                if module is self._module:
+                    self._apis[key] = (value, value.__code__)
+            elif type(value) is type:
+                methods = {c.co_name: c for c in code.co_consts if isinstance(c, CodeType)}
+                class_values = dict(vars(value))
+                self._namespaces.append((value, class_values, {
+                    name: _literal_state(item) for name, item in class_values.items()
+                    if type(item) in (dict, list, set, tuple)
+                }))
+                for name, item in class_values.items():
+                    item = item.__func__ if isinstance(item, (classmethod, staticmethod)) else item
+                    item = item.fget if isinstance(item, property) else item
+                    if type(item) is FunctionType:
+                        _require(name not in methods or item.__code__ == methods[name]
+                                 and item.__globals__ is namespace, "canonical packing method source differs")
+                        self._save_callable(item)
+            else:
+                _require(False, "installed inference definition missing")
+        values = dict(namespace)
+        literals = {
+            key: _literal_state(value) for key, value in values.items()
+            if key != "__builtins__" and type(value) in (dict, list, set, tuple)
+        }
+        self._namespaces.append((module, values, literals))
+
+    def _save_callable(self, value: FunctionType) -> None:
+        self._callables.append((value, value.__code__, value.__defaults__, value.__kwdefaults__, value.__closure__,
+                                _literal_state(value.__defaults__), _literal_state(value.__kwdefaults__)))
 
     def _capture_failure(self, error: BaseException | None) -> None:
         """Use exact authenticated loader frames, never a registry diff or sweep."""
@@ -257,7 +381,8 @@ class ConnectedCompactIndex:
         for guard in self._guards:
             _checked_file(*guard)
         _require(
-            all(sys.modules.get(name) is module for name, module in self._owned.items()),
+            all(sys.modules.get(name) is module for name, module in self._owned.items())
+            and all(sys.modules.get(module.__name__) is module for module in self._shared),
             "owned connected registry changed",
         )
         for name, (fn, code) in self._apis.items():
@@ -266,6 +391,27 @@ class ConnectedCompactIndex:
                 and fn.__code__ is code
                 and fn.__globals__ is vars(cast(ModuleType, self._module)),
                 "connected public callable changed",
+            )
+        for fn, code, defaults, kwdefaults, closure, default_state, kwdefault_state in self._callables:
+            _require(
+                fn.__code__ is code and fn.__defaults__ is defaults
+                and fn.__kwdefaults__ is kwdefaults and fn.__closure__ is closure
+                and _literal_state(fn.__defaults__) == default_state
+                and _literal_state(fn.__kwdefaults__) == kwdefault_state,
+                "installed inference callable state changed",
+            )
+        for module, values, literals in self._namespaces:
+            namespace = vars(module)
+            _require(
+                namespace.keys() == values.keys()
+                and all(namespace[key] is value for key, value in values.items())
+                and all(_literal_state(namespace[key]) == state for key, state in literals.items()),
+                "installed inference globals changed",
+            )
+        for module in self._shared:
+            _require(
+                module.__file__ == str(self._guards[2][0]) and module.__spec__.origin == module.__file__
+                and module.__spec__.name == module.__name__, "canonical shared packing origin changed",
             )
         _require(
             cast(ModuleType, self._module).__file__ == str(self._guards[0][0])
@@ -297,7 +443,7 @@ class ConnectedCompactIndex:
             )
             try:
                 self._check_current()
-                from sfora.joint_relational_compaction import PackedInt8Embeddings
+                from sfora.packed_int8 import PackedInt8Embeddings
 
                 output = self._apis["inference_outputs"][0](self._endpoint, images)
                 queries = PackedInt8Embeddings.from_bytes(
@@ -368,6 +514,9 @@ class ConnectedCompactIndex:
                 self._owned.clear()
                 self._apis.clear()
                 self._release_modules = ()
+                self._namespaces.clear()
+                self._callables.clear()
+                self._shared = ()
             if errors:
                 for failure in errors[1:]:
                     errors[0].add_note("connected cleanup also failed: " + repr(failure))
