@@ -60,7 +60,7 @@ _MANIFEST = {
 def _installed_authority() -> tuple[Path, str]:
     return (
         Path(__file__).absolute().parent / "_connected_inference_authority.py",
-        "e14b125071083dbdb0a2254701597c232ef40cafb2bbb2defad1e4ab0fe62160",
+        "d1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b",
     )
 
 

@@ -135,6 +135,11 @@ def pipeline_inverse(source):
     record = pipeline_record()
     start = source.index('\n\ndef _sha_cpu_bytes(')
     end = source.index('\n\ndef fingerprint(', start)
+    # The blind deletion below may remove exactly the two helper defs and nothing else.
+    removed = ast.parse(source[start:end]).body
+    assert len(removed) == 2 and all(type(n) is ast.FunctionDef for n in removed)
+    assert [(n.name, n.decorator_list) for n in removed] == [
+        ('_sha_cpu_bytes', []), ('_fingerprint_cuda_dict', [])]
     source = source[:start] + source[end:]
     for before, after in record['replacements']:
         assert source.count(after) == 1
@@ -149,6 +154,15 @@ def pipeline_contract_check():
     base = pipeline_inverse(source)
     # Historical whole-file hashes and every prior extraction assertion survive.
     assert sha(base.encode()) == record['base_runtime_sha256'] == '52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512'
+    # An extra top-level statement hidden in the deleted helper region must not be inverted away.
+    for marker in ('\n\ndef _fingerprint_cuda_dict(', '\n\ndef fingerprint('):
+        smuggled = source.replace(marker, '\n\nSMUGGLED = 1' + marker, 1)
+        try:
+            pipeline_inverse(smuggled)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('pipeline inverse deleted an extra top-level statement')
     nodes = {n.name: ast.get_source_segment(source, n) for n in ast.parse(source).body
              if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
     astsha = lambda text: sha(ast.dump(ast.parse(text), include_attributes=False).encode())
@@ -365,6 +379,7 @@ def admission_check(values):
             serializer_check(runtime)
             fresh_sha_check(runtime)
             pipeline_failure_context_check(runtime)
+            submit_lifetime_check(runtime)
             pipeline_routing_check(runtime)
         finally:
             sys.modules.pop(spec.name, None)
@@ -745,6 +760,106 @@ def pipeline_failure_context_check(runtime):
     gc.collect()
     assert all(ref() is None for ref in refs), 'new exception chain retained tensor aliases'
     assert all(ref() is None for ref in snapshot_refs), 'new exception chain retained CPU snapshots'
+
+
+def submit_lifetime_check(runtime):
+    """A submit that raises after queueing must not release the view before the executor joins."""
+    import threading
+    import weakref
+    import gc
+    from array import array
+    from concurrent.futures import ThreadPoolExecutor
+
+    real_sha = hashlib.sha256
+    expected = real_sha(bytes([1])).hexdigest()
+    torch = ModuleType('torch')
+    for mode in ('adjust_thread_count', 'after_submit_returned'):
+        submitted, outcome, refs = [], [], []
+        joining, entered, proceed = threading.Event(), threading.Event(), threading.Event()
+
+        class Tensor:
+            def __init__(self, ordinal):
+                self.ordinal, self.dtype, self.shape, self._version = ordinal, 'torch.float32', (1,), 0
+                self.device = SimpleNamespace(type='cuda')
+            def data_ptr(self): return id(self)
+            def numel(self): return 1
+            def element_size(self): return 1
+            def detach(self): return self
+            def cpu(self): return self
+            def contiguous(self): return self
+            def reshape(self, width): return self
+            def view(self, dtype): return self
+            def numpy(self):
+                raw = array('B', [self.ordinal])
+                refs.append(weakref.ref(raw))
+                return raw
+        torch.Tensor, torch.uint8 = Tensor, object()
+
+        class QueueThenRaise(ThreadPoolExecutor):
+            # The stdlib queues the work item before _adjust_thread_count; the second leaf's
+            # future is therefore queued yet never reaches the caller's pending list.
+            def submit(self, fn, *args, **kwargs):
+                submitted.append(args[0])
+                future = super().submit(fn, *args, **kwargs)
+                if mode == 'after_submit_returned' and len(submitted) == 2:
+                    raise KeyboardInterrupt('signal between submit and pending.append')
+                return future
+            def _adjust_thread_count(self):
+                super()._adjust_thread_count()
+                if mode == 'adjust_thread_count' and len(submitted) == 2:
+                    raise RuntimeError("can't start new thread")
+            def shutdown(self, *args, **kwargs):
+                joining.set()
+                return super().shutdown(*args, **kwargs)
+
+        def gated_sha(raw=b''):
+            if not (isinstance(raw, memoryview) and len(submitted) == 2 and raw is submitted[1]):
+                return real_sha(raw)
+            entered.set()
+            assert proceed.wait(2), 'queued SHA task was never released'
+            try:
+                outcome.append(real_sha(raw).hexdigest())
+            except ValueError as error:
+                outcome.append('view released before join: ' + str(error))
+                raise
+            return real_sha(raw)
+
+        def release_after_join_starts():
+            joining.wait(2)
+            proceed.set()
+        releaser = threading.Thread(target=release_after_join_starts)
+        releaser.start()
+        tensors = [Tensor(0), Tensor(1)]
+        refs.extend(weakref.ref(tensor) for tensor in tensors)
+        caught = None
+        try:
+            with patch.dict(sys.modules, {'torch': torch}), \
+                 patch.object(runtime.hashlib, 'sha256', gated_sha), \
+                 patch.object(runtime, 'ThreadPoolExecutor', QueueThenRaise):
+                runtime._fingerprint_cuda_dict(dict(zip('ab', tensors)))
+        except BaseException as error:
+            caught = error
+        finally:
+            proceed.set()
+            releaser.join(2)
+        assert not releaser.is_alive() and entered.is_set() and joining.is_set(), mode
+        expected_error = (RuntimeError, "can't start new thread") if mode == 'adjust_thread_count' \
+            else (KeyboardInterrupt, 'signal between submit and pending.append')
+        assert type(caught) is expected_error[0] and str(caught) == expected_error[1], (mode, caught)
+        assert caught.__context__ is None, mode
+        assert outcome == [expected], (mode, outcome)
+        try:
+            submitted[1].tobytes()
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('queued view survived the call unreleased: ' + mode)
+        # The raised error stays live: it may keep the released view in submit's args, but no Tensor or snapshot.
+        tensors = None
+        submitted.clear()
+        gc.collect()
+        assert all(ref() is None for ref in refs), 'live submit failure retained tensors or CPU snapshots: ' + mode
+        caught = None
 
 
 def literal_pin_check():

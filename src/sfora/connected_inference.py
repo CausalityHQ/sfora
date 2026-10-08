@@ -919,24 +919,21 @@ def _fingerprint_cuda_dict(value):
                     drain()
             except BaseException as error:
                 failure = error
-            try:
-                if failure is not None:
-                    # Join outside except so a later copy error cannot become SHA context.
-                    earlier = failed_future
-                    for entry in pending:
-                        try:
-                            entry[0].result()
-                        except BaseException as worker_error:
-                            if not earlier:
-                                failure, earlier = worker_error, True
-                    raise failure
-            finally:
-                if view is not None:
-                    view.release()
-                raw = view = item = entry = value = None
-                pending.clear()
+            if failure is not None:
+                # Join outside except so a later copy error cannot become SHA context.
+                earlier = failed_future
+                for entry in pending:
+                    try:
+                        entry[0].result()
+                    except BaseException as worker_error:
+                        if not earlier:
+                            failure, earlier = worker_error, True
+                raise failure
         return digest.hexdigest()
     finally:
+        # Executor exit has joined every task, even one queued by a submit that then raised.
+        if view is not None:
+            view.release()
         raw = view = item = entry = value = None
         pending.clear()
 
