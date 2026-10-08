@@ -1,0 +1,56 @@
+{
+  "schema": "control-batch-cublas-owner-worker-v1",
+  "base": "b1dfcca8b08831c78a713ea3a2d6de56cc1bd36c",
+  "commit": "4bcf27e2ede6a0e8fe74486304bf32be46a55da9",
+  "files": {
+    "scripts/observe_connected_control_batch_execution.py": "977ae48e43feaded1301c4c4f3d2f2c46c9e0638ec1ad1e26b813cf2193a0c5a",
+    "scripts/test_connected_control_batch_execution.py": "abf32ffd41879e41cafc55a277dfcbf6974f2c7bc0727a1296babc9d4e1a133b"
+  },
+  "clean": true,
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "affected_suite": {
+    "command": "ulimit -v 1048576; timeout 120s python3 -B -m unittest scripts.test_connected_control_batch_execution",
+    "tests": 24,
+    "seconds": 4.529,
+    "exit": 0,
+    "address_space_bytes": 1073741824
+  },
+  "historical_suite_failure": {
+    "tests": 24,
+    "seconds": 4.974,
+    "exit": 1,
+    "failures": [
+      "direct-script __main__ metadata length assumption",
+      "diagnostic/final precedence changed in first draft"
+    ],
+    "retained": true
+  },
+  "intermediate_suite": {
+    "tests": 24,
+    "seconds": 4.999,
+    "exit": 0,
+    "superseded_by_parent_error_precedence_clarification": true
+  },
+  "checks": [
+    "targeted ownership/type/identity/hash/config/source/scalar failures",
+    "live tensor remains rejected by genuine allocated0 guard",
+    "clear failure plus original final rejection retains clear note",
+    "clear failure after release still fails",
+    "full production AST inverse matches committed base",
+    "full historical test AST inverse matches committed base",
+    "unchanged original flags/math/all44 and final guard",
+    "git diff --check"
+  ],
+  "limits": [
+    "builtin type/name/module/self and exact captured registry binding only; no cryptographic arbitrary C function-pointer identity",
+    "None-self admission does not establish native C owner alone",
+    "stdlib test callback type seam is simulation, not actual private API binding evidence",
+    "native workspace causality UNRUN; root owns one causal before/after gate"
+  ],
+  "native_executed": false,
+  "merged": false,
+  "pushed": false,
+  "historical_failures_and_KILL_unchanged": true,
+  "source_ledger": "/tmp/control-batch-cublas-owner-source-ledger.json",
+  "precode_contract": "/tmp/control-batch-cublas-owner-contract.txt"
+}
