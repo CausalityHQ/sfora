@@ -1,0 +1,22 @@
+{
+  "count": 1715,
+  "gallery": {
+    "path": "/home/riomus/runs/sfora-connected-control-serving-gallery-v1/gallery.bin",
+    "sha256": "386f3b2289f74f7d154efc9d47838f26def6a8c7a18368faac1d3c690ec6bd28"
+  },
+  "inputs_sha256": "e7ae306ac5282c81e6e9c26bc32844db08b5f264049931df19caa2eaffdfa017",
+  "native_imports": [],
+  "native_qualified": false,
+  "partition": {
+    "path": "/home/riomus/runs/sfora-identity-diversity-metadata-v1/roles.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "quality_read": false,
+  "rows": 3449,
+  "schema": "connected-control-gallery-preparation-v1",
+  "source": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/control-179061.packed.bin",
+    "sha256": "c2260ca93cedf8ae5c0840034d2ed06d10860539d33df562fe82a7eac30b1558"
+  },
+  "wire_row_bytes": 130
+}

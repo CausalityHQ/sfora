@@ -1,0 +1,21 @@
+{
+  "files": {
+    "authority.json": "90bb3a99f5d1293038054bdce677034c4971cd9787fec16e0e42c7c64508c07c",
+    "command.sh": "86e56a7d03c5c646e32b8d48a10c52d9667ae79182ea8bfb6cde4862adfc4d15",
+    "connected_control_native_authority.py": "6501e0d30b5a88311e3e07143b331e9f0fcd94195747d4e3f1af261114ba154b",
+    "launch.sh": "fe0686245b1a86f0f82fb0464ec54bf2a067b52a75652f07f3105834fb70c77f",
+    "observation.json": "172081c8490c22ac083708793dc56654e9b7899428eb657191beb97944f050e9",
+    "observe_connected_serving.py": "22ea23ff185e8566ad35f89d222ea54c44b292dce2b3221e662310239e44bc0f",
+    "qualify_connected_control_serving.py": "6c39c21f52cee94438243a7a06a6210455152f21cd8f06b7d772db90299648e9",
+    "qualify_connected_serving_requests.py": "fb4636f299fbf48296fc059a6a896275cd49b7a06d06e9ab0e39f9400208d2ca",
+    "test_connected_control_serving.py": "5cd0b8a362a6edc1fee7784da7a5807b06e32647c25574032694d279c6af0c26",
+    "test_connected_serving_requests.py": "38d92f05594fc61d9d6afae1859bca1c99080454daa5cb8876f347f821e0d1f2",
+    "test_observe_connected_serving.py": "c660a217d154a14d1ab5c8e20a28519999366e17d339efe4919470aa90f1b41a"
+  },
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-control-serving-diagnostic-v1",
+  "pythonpath": "/home/riomus/runs/sfora-connected-control-serving-package-v1/src",
+  "root": "/home/riomus/runs/sfora-connected-control-serving-source-v1",
+  "schema": "connected-control-serving-freeze-v1",
+  "stop_rule": "ONE control-only 22 public calls; per-size oracle+native top10/ties exact; body120/whole1500/exitreserve300/8GiB/max0/swap0/CUDA<10GB/both inherited locks/full current hashes+native H union S. Original quality KILL remains; all failures remain FAIL; no quality/production speed/optimization/reuse claim."
+}
