@@ -1,0 +1,41 @@
+{
+  "added_fixtures": [
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-control-179061-v1-freeze/authority-train-control-179061-v1.json",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-mechanics-control-179061-v2/receipt.json",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-mechanics-control-179061-v2/original.log",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-mechanics-candidate-179061-v2/receipt.json",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-mechanics-candidate-179061-v2/original.log"
+  ],
+  "both_locks_required": true,
+  "files": {
+    "inputs.tar.gz": "d2bbe55f22477eb754a54d0e55fcebdba150eacad324a27aa64eecce77433d9c",
+    "inventory.json": "661962da5112945c19fc3edc0f49bd221a8dcaa96f6a64e3c7d2726b69607322",
+    "launch.sh": "4d3e9f3dc5d5258ceb61d84ba2c7cbadac442b5b9cfa940e5618455f3a6bdfe9",
+    "run.py": "f092054d4dd1706b12d463c9d234a0e22536b185bde90fd62f3808c53c1941ab"
+  },
+  "narrow_layer_isolation": "separate pinned process before final full suite, same original bounded unit",
+  "policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 1073741824,
+    "seconds": 120,
+    "swap_bytes": 0
+  },
+  "previous_assurance": "v4 FAIL missing five committed bootstrap fixtures, unchanged production2; narrow layer then ONE replacement full suite",
+  "prior_failure": {
+    "cause": "systemd default cwd with relative runner",
+    "exit_status": 2,
+    "invocation_id": "8fc6c7cb625d4e05b5f1c5fd6c447cc2",
+    "tests_started": false,
+    "unit": "sfora-connected-py313-assurance-v1"
+  },
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "qualification_eligible": false,
+  "remote_root": "/home/riomus/runs/sfora-connected-py313-assurance-v5",
+  "schema": "connected-py313-source-only-assurance-v1",
+  "source_execution_sha256": "046fbeb6db0e162e905492b7ae10828bf018c1ffd35359ac9c9e723172bed33f",
+  "state_reuse_eligible": false,
+  "unit": "sfora-connected-py313-assurance-v5"
+}

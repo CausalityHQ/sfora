@@ -18,7 +18,7 @@ from unittest.mock import patch
 import weakref
 
 PATH = Path(__file__).resolve().with_name('observe_connected_full_authority.py')
-FREEZE = PATH.parent.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-cpu-v3-freeze'
+FREEZE = PATH.parent.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-full-cpu-v4-freeze'
 
 
 def binding(path):
@@ -99,13 +99,13 @@ class ObservationTest(unittest.TestCase):
 
     def test_pins_match_original_command_and_source_without_executing_it(self):
         d = driver()
-        freeze = json.loads((FREEZE / 'full-cpu-v3-freeze.json').read_bytes())
+        freeze = json.loads((FREEZE / 'full-cpu-v4-freeze.json').read_bytes())
         for fact in (d.EVALUATOR, d.EVALUATOR_TEST, d.EXECUTION, d.AUTHORITY, d.COMMAND):
             path = FREEZE / Path(fact['path']).name
             self.assertEqual(binding(path)['sha256'], fact['sha256'])
             self.assertEqual(freeze['files'][path.name], fact['sha256'])
         import shlex
-        command = (FREEZE / 'full-cpu-v3-command.sh').read_text()
+        command = (FREEZE / 'full-cpu-v4-command.sh').read_text()
         line = next(line for line in command.splitlines() if line.startswith('/home/riomus/group-learning/.venv/bin/python -B '))
         self.assertEqual(shlex.split(line)[2:], d.original_argv())
         self.assertIn(d.PYTHON['sha256'] + '  ' + d.PYTHON['path'], command)
@@ -122,24 +122,24 @@ class ObservationTest(unittest.TestCase):
                          '97c653e45519549fd023909a41a88c61d7f80684ca2cd4ad73c0dd4b9813b9a0')
         inverse = PATH.read_bytes()
         for new, old in (
-            (b'ONE genuine frozen v7 full-CPU', b'ONE genuine frozen v5 full-CPU'),
-            (b'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v7/',
+            (b'ONE genuine frozen v8 full-CPU', b'ONE genuine frozen v5 full-CPU'),
+            (b'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8/',
              b'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5/'),
-            (b'9cf3ba0e005fcf1b9c1433359bae09a2540fb6143d6a5c83b8c2b1cfc60802a3',
+            (b'0a807abc27cbf7150824b2dd202e7be75aaa548f0e27918a1d5b1c862908850b',
              b'919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69'),
-            (b'2e869791c5667558a6c4d5d2459c4fba973a6705c08d5921a16ffac002ddef8d',
+            (b'09818ee1aab610160db21d95f16689c679000e26b1062296e81bb1f988fcbf63',
              b'df1e233279e04bacd64b6bbd47361d43d350740fd496434e79de7b53b9f66ccb'),
-            (b'56dd3f10a2eefdcb9ce63b63b134d9b934d14f50ecaf58ca67668b363002b6e7',
+            (b'046fbeb6db0e162e905492b7ae10828bf018c1ffd35359ac9c9e723172bed33f',
              b'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a'),
-            (b'authority-full-cpu-v3.json', b'authority-full-cpu-v1.json'),
-            (b'a7f4ea4e438df350b87c7a70d4591c1ba1dbcf3c1ea12c084bb71279b089b994',
+            (b'authority-full-cpu-v4.json', b'authority-full-cpu-v1.json'),
+            (b'156140e6ef654a620322c20d1ec4ef40c1beaa78c2256a5dcbf8d9a24ac06ccb',
              b'd8f3b0f92a02937f63539782f2653a20c4d7fbc320022c1554ee261f718fe71f'),
-            (b'full-cpu-v3-command.sh', b'full-cpu-v1-command.sh'),
-            (b'66d11f73c0a49ef0a66878b8517d13c31865c8fb4f88d6930bf197511b1bd3fd',
+            (b'full-cpu-v4-command.sh', b'full-cpu-v1-command.sh'),
+            (b'635dae6ab5ba856654c9b000bc359b93173e63c98f2d5802735b27911d145763',
              b'911428b835ed6323b2c58c927db996121e10b4845a0c306f3c815b2a012998f0'),
-            (b'/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v3',
+            (b'/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v4',
              b'/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v1'),
-            (b'_connected_full_authority_v7', b'_connected_full_authority_v5'),
+            (b'_connected_full_authority_v8', b'_connected_full_authority_v5'),
         ):
             self.assertEqual(inverse.count(new), 1, new)
             inverse = inverse.replace(new, old, 1)
@@ -152,11 +152,11 @@ class ObservationTest(unittest.TestCase):
         self.assertEqual(raw, PATH.with_name('evaluate_siglip2_connected_mlp.py').read_bytes())
         self.assertEqual(json.loads((FREEZE / 'execution.json').read_bytes()),
                          {Path(p['path']).name: p['sha256'] for p in (d.EVALUATOR, d.EVALUATOR_TEST)})
-        freeze = json.loads((FREEZE / 'full-cpu-v3-freeze.json').read_bytes())
+        freeze = json.loads((FREEZE / 'full-cpu-v4-freeze.json').read_bytes())
         self.assertEqual(d.ROOT, freeze['source_root'] + '/')
         self.assertEqual(d.OLD_OUTPUT, freeze['output'])
-        self.assertEqual(d.MODULE, '_connected_full_authority_v7')
-        self.assertEqual(json.loads((FREEZE / 'authority-full-cpu-v3.json').read_bytes())['execution_sha256'],
+        self.assertEqual(d.MODULE, '_connected_full_authority_v8')
+        self.assertEqual(json.loads((FREEZE / 'authority-full-cpu-v4.json').read_bytes())['execution_sha256'],
                          d.EXECUTION['sha256'])
         spec = importlib.util.spec_from_file_location(d.MODULE, d.EVALUATOR['path'])
         self.assertEqual(spec.name, d.MODULE)
