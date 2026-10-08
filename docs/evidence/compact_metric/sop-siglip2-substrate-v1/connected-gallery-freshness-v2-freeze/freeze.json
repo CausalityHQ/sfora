@@ -1,0 +1,16 @@
+{
+  "commit": "9f250e7b",
+  "files": {
+    "authority.json": "5422a9938258f3fce8c79f3f2a965aa1c682df827a55f15e650ef3e00737d333",
+    "command.sh": "ee5e80da68d9aef400eccd8f0802c8f324f03caef1e97c6ad04cdb89421f1105",
+    "diagnose_connected_gallery_freshness.py": "617564f93b78799f4d274bdd295088a53ebe220f8ba4c6ef157f5d69cd82f3d5",
+    "execution.json": "aa435769db7ba23975ee227f22488139820324245ca1c4d457d51b79981c9f27",
+    "launch.sh": "32b4705f083a503c7b66d3dfa22f3826638999d9d21c37b3084bb336e525506d",
+    "score-verification.json": "abcb080eecc205417f520e9d5b414f99fbdc2fb9ea6ac4793f47a573f87151be",
+    "test_connected_gallery_freshness.py": "a93fbefb8523860a729987a86de7373ca14414fda870849b7933fd4dc1ebb075"
+  },
+  "output": "/home/riomus/runs/sfora-connected-gallery-freshness-diagnostic-v2",
+  "schema": "connected-gallery-freshness-freeze-v2",
+  "source_root": "/home/riomus/runs/sfora-connected-gallery-freshness-source-v2",
+  "stop_rule": "One prospective diagnostic; any source/control parity/resource/integrity failure stops arm. Original v1 FAIL unchanged; candidate KILL; no qualification/state reuse."
+}

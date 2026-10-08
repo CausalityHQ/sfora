@@ -1,0 +1,11 @@
+{
+  "production_exact_scope_inverse_equals_base_text_and_AST": true,
+  "unrelated_test_AST_unchanged": true,
+  "original_Source_guard_unchanged": true,
+  "files": {
+    "scripts/diagnose_connected_gallery_freshness.py": "617564f93b78799f4d274bdd295088a53ebe220f8ba4c6ef157f5d69cd82f3d5",
+    "scripts/test_connected_gallery_freshness.py": "a93fbefb8523860a729987a86de7373ca14414fda870849b7933fd4dc1ebb075"
+  },
+  "production_AST_sha256": "75826d2d9a59b168e770eecb3435ed314af09eec6a76190e2e84e9cd59b7165e",
+  "inverse_base_AST_sha256": "9441f567632696f2f7e3150644fbded237e205003a1a239d5188ccb1415fc8b1"
+}
