@@ -14,6 +14,8 @@ the full inventory and mapped identities, then projects H for the historical
 predicates. install derives only private audit/quadratic/fitter/evaluator exits;
 each substitution has an exact AST inverse. Original owned API remains owned.
 No hash cache, library-unmapping assumption, scientific gate or native launch.
+Preliminary audits allow lazy historical loading; the complete evaluator exit
+and evidence always enforce exact historical four and the complete frozen S.
 load_evaluator_source retains original Source guards and authenticates only the
 evaluator builtin baseline by identity, plus its nested source guard functions.
 """

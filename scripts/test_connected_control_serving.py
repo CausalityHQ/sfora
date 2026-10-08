@@ -2,7 +2,7 @@
 """Bounded stdlib falsifier:120s/AS1GiB/fixtures16MiB; native work UNRUN."""
 import ast
 import copy
-from contextlib import redirect_stdout
+from contextlib import ExitStack, contextmanager, redirect_stdout
 import hashlib
 import importlib.abc
 import importlib.util
@@ -14,7 +14,7 @@ import resource
 import signal
 import sys
 import tempfile
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -132,7 +132,473 @@ def observation_fixture(root, observer):
     return value
 
 
+def measurement_fixture(root, driver):
+    helper = load('_control_measurement_fixture',HERE/'test_connected_serving_requests.py')
+    with helper.public_fixture(root) as f:
+        diagnostic = driver.requests.request_body(f.factory,f.observer,f.reader,lambda:None,f.paths,f.pins,lambda:None)
+        ties = driver.requests.native_ties(f.packed,f.gallery,f.native,f.observer)
+    authority = {'sources':{'control_driver':fact(Path(driver.__file__))},'control_export':{'receipt':fact(root/'native.so')}}
+    authority_fact = write_json(root/'authority.json',authority)
+    record = {'schema':'connected-control-serving-diagnostic-v1','status':'DISCARDED_DIAGNOSTIC','engineering_only':True,
+        'authority':authority_fact,'sources':authority['sources'],'control':dict(driver.CONTROL),
+        'control_export':authority['control_export'],'output':str(root/'out'),
+        **{k:False for k in ('quality_read','quality_eligible','qualification_eligible','state_reuse_eligible',
+            'optimization_eligible','product_go')},'full_uncached_exit_pass':True,
+        'normal_terminal_required':True,'owned_cleanup_requires_terminal':True,'ties':ties,**diagnostic,
+        'invocation':{'argv':driver.cli(authority_fact,str(root/'out'),driver.__file__),'optimize':0,
+            'cuda_visible_devices':'0','cublas_workspace_config':':4096:8'}}
+    return record,authority,authority_fact
+
+
+def terminal_fixture(root, f, name, invocation, record):
+    unit = {'unit':name,'invocation_id':invocation,'service_seconds':2,'native_peak_rss_kib':1001,'both_locks_held':True}
+    before,after,final = (f.cgroup(name,i) for i in (1,2,3))
+    final['invocation_id'] = invocation
+    log = [f'Running as unit: {name}.service; invocation ID: {invocation}', '\tExit status: 0',
+        'Finished with result: success','Main processes terminated with: code=exited/status=0','\tSwaps: 0',
+        'Memory swap peak: 0B','Service runtime: 2s','\tMaximum resident set size (kbytes): 1001','FINAL_CGROUP '+json.dumps(final)]
+    path = root/(name+'.log'); path.write_text('\n'.join(log)+'\n'); unit['log'] = fact(path)
+    record.update(cgroup_before=before,cgroup_after=after,wall_seconds=1,process_peak_rss_kib=1000)
+    record['invocation']['invocation_id'] = invocation
+    return unit
+
+
+@contextmanager
+def genuine_exit_fixture(root):
+    """Original source functions throughout; only files, maps and package data are fixtures."""
+    request = load('_genuine_requests',HERE/'qualify_connected_serving_requests.py')
+    observer = load('_genuine_observer',HERE/'observe_connected_serving.py')
+    native = load('_genuine_native',HERE/'connected_control_native_authority.py')
+    helpers = load('_genuine_nearest_tests',HERE/'test_siglip2_nearest_ranking.py')
+    f = helpers.NativeAdmissionFixture(root)
+    virtual = {}
+    def closure(name, names, pins=None):
+        directory = root/name; directory.mkdir()
+        for filename in names:
+            candidates = [HERE/filename]
+            if pins and (not candidates[0].is_file() or fact(candidates[0])['sha256'] != pins[filename]):
+                candidates = list((HERE.parent/'docs/evidence').rglob(filename))
+            path = next(p for p in candidates if p.is_file() and (not pins or fact(p)['sha256'] == pins[filename]))
+            (directory/filename).write_bytes(path.read_bytes())
+        code = {n:fact(directory/n)['sha256'] for n in names}
+        execution = write_json(directory/'execution.json',code)
+        return {'root':str(directory),'execution_sha256':execution['sha256'],'code':code}
+    def module(name, path):
+        actual = virtual.get(str(path),path)
+        spec = importlib.util.spec_from_file_location(name,path)
+        value = importlib.util.module_from_spec(spec); sys.modules[name] = value
+        exec(compile(actual.read_bytes(),str(path),'exec',dont_inherit=True),vars(value))
+        return value
+    source = module('_genuine_collector',HERE/'qualify_siglip2_substrate_cpu.py')
+    src = closure('collector',source.FILES)
+    extract = module('extract_siglip2_vision_source',Path(src['root'])/'extract_siglip2_vision_source.py')
+    f.source = source; f.extract = extract
+    f.legacy.update(source_driver=source,extract=extract)
+    exporter = module('_genuine_exporter',HERE/'export_siglip2_genuine_views.py')
+    reference = module('_genuine_fit_reference',HERE/'export_siglip2_substrate_fit.py')
+    ref = closure('fit-reference',reference.FILES)
+    export = closure('genuine-export',exporter.FILES)
+    images = root/'Img'; images.mkdir(); (root/'images').rename(images/'img')
+    targets,panels,offset,base = [],{},0,0
+    for name,count,classes,query in [('train',6355,1008,0),('selection',3449,498,1734),('validation',3479,498,1749)]:
+        targets.extend(base+i%classes for i in range(count))
+        panels[name] = {'original_rows':list(range(offset,offset+count)),'original_class_ids':list(range(base,base+classes))}
+        if query: panels[name].update(query=list(range(query)),gallery=list(range(query,count)))
+        offset += count; base += classes
+    fit = {'schema':'native256-frozen-fit-manifest-v1','fit_images':13283,'fit_identities':2004,'held_images_read':0,
+        'quality_read':False,'source_features_reused':False,'teacher_state_reused':False,'dataset_root':str(root),
+        'class_names':[str(i) for i in range(2004)],'targets':targets,
+        'rows':[{'relative_path':f'Img/img/{i}','train_row':i,'product':str(target),'image_sha256':hashlib.sha256(b'').hexdigest()}
+            for i,target in enumerate(targets)]}
+    partition = {'schema':'siglip2-identity-mix-partition-v1','global_class_names':fit['class_names'],
+        'original_cache':{'sha256':exporter.OLD_CACHE_SHA},'original_fit':{'sha256':exporter.MANIFEST_SHA},
+        'panels':panels,'partition_seeds':[179071,179072]}
+    prior = f.legacy['prior']
+    prior.update(source_driver=source,extract=extract,fit=fit,root=Path(src['root']),code=src['code'],
+        args=SimpleNamespace(execution_sha256=src['execution_sha256']),own_root=Path(ref['root']),own_code=ref['code'],
+        export_args=SimpleNamespace(execution_sha256=ref['execution_sha256']),images=source.fit_rows(extract,fit),
+        all_images=[root/row['relative_path'] for row in fit['rows']])
+    genuine = f.legacy['selected']['genuine']
+    genuine.update(reference=reference,root=Path(export['root']),code=export['code'],
+        args=SimpleNamespace(execution_sha256=export['execution_sha256']),
+        launch={'partition':write_json(root/'partition.json',partition),'image_rows':fact(HERE/'extract_siglip2_vision_source.py')},
+        selected=exporter.selected_manifest(partition,fit))
+    # The original ImageRows AST lives in the initializer's authenticated reference.
+    candidates = [p for p in HERE.glob('*.py') if b'class ImageRows' in p.read_bytes()]
+    for path in candidates:
+        try: exporter.image_rows_node(str(path))
+        except ValueError: continue
+        image_source = path; break
+    else: raise AssertionError('genuine ImageRows source unavailable')
+    genuine['launch']['image_rows'] = fact(image_source)
+    genuine['selected']['resolved_paths'] = [str(prior['all_images'][i]) for i in genuine['selected']['original_rows']]
+    f.legacy['selected']['exporter'] = exporter
+    training = module('_genuine_identity_trainer',HERE/'train_siglip2_identity_diversity.py')
+    nearest_path = Path(training.NEAREST['root'])/'train_siglip2_nearest_ranking.py'
+    virtual[str(nearest_path)] = HERE/nearest_path.name
+    nearest = module('_compact_nearest',nearest_path)
+    f.context.update(nearest=nearest,trainer=training)
+    fit_context = f.context['fit_context']; fit_root = Path(training.READOUT['path']).parent
+    for name in f.fitter.FILES | {'execution.json'}: virtual[str(fit_root/name)] = fit_context['root']/name
+    fit_context['root'] = fit_root
+    fit_context.pop('readout_authentication'); fit_context.pop('readout'); sys.modules.pop('_prototype_signed_readout')
+    evaluator_source = native.load_evaluator_source(fact(HERE/'evaluate_siglip2_connected_mlp.py'),request)
+    evaluator = evaluator_source.module
+    own = closure('evaluator',evaluator.FILES)
+    descriptors = {
+        'training':closure('training',evaluator.TRAIN_FILES),
+        'evaluator_reference':closure('identity-evaluation',evaluator.EVALUATOR_PINS,evaluator.EVALUATOR_PINS),
+        'nearest_evaluator':closure('nearest-evaluation',evaluator.NEAREST_EVALUATOR['code'],evaluator.NEAREST_EVALUATOR['code']),
+        'genuine_evaluator':closure('genuine-evaluation',evaluator.GENUINE_PINS,evaluator.GENUINE_PINS),
+        'reference':closure('reference',evaluator.REFERENCE['code'],evaluator.REFERENCE['code'])}
+    original = closure('original-evaluator',evaluator.FILES,evaluator.ORIGINAL_EXPORT_OWNER['code'])
+    # Keep the frozen remote CODE descriptor; its bytes are supplied at the filesystem boundary.
+    for name in evaluator.FILES: virtual[str(Path(evaluator.ORIGINAL_EXPORT_OWNER['root'])/name)] = Path(original['root'])/name
+    archived = HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
+    execution = next(p for p in archived.rglob('execution.json') if fact(p)['sha256'] == evaluator.ORIGINAL_EXPORT_OWNER['execution_sha256'])
+    virtual[str(Path(evaluator.ORIGINAL_EXPORT_OWNER['root'])/'execution.json')] = execution
+    bundle = root/'bundle'; bundle.mkdir()
+    trainer = module('_genuine_connected_trainer',HERE/'train_siglip2_connected_mlp.py')
+    code = trainer.FILES | trainer.SERVING_FILES | {'joint_relational_compaction.py'}
+    for name in code:
+        path = HERE/name if (HERE/name).is_file() else HERE.parent/'src/sfora'/name
+        (bundle/name).write_bytes(path.read_bytes())
+    for name in ('vision.pt','endpoint.pt','processor.json'): (bundle/name).write_bytes(b'bounded data fixture')
+    environment_file = fact(bundle/'processor.json')
+    manifest = write_json(bundle/'bundle.json',{'schema':trainer.BUNDLE_SCHEMA,'code':{n:fact(bundle/n)['sha256'] for n in code},
+        'files':{n:fact(bundle/n)['sha256'] for n in ('vision.pt','endpoint.pt','processor.json')},
+        'endpoint_state_sha256':'a'*64,'base_vision_sha256':'b'*64,'vision_sha256':'c'*64,'encoder_identity':{},
+        'scope':{'arm':'control','manifest_sha256':trainer.SCOPE_SHA256,'arm_sha256':trainer.CONTROL_SHA256},
+        'environment':{'packages':{n:{'root':str(bundle)} for n in trainer.NATIVE-{'sfora'}},
+            'files':{environment_file['path']:environment_file['sha256']},'native_files':{},'vision_constructor':environment_file['path']}})
+    context = {'training_context':f.context,'trainer':trainer,'guards':{},'root':Path(own['root']),'code':own['code'],
+        'args':SimpleNamespace(phase='export',execution_sha256=own['execution_sha256']),
+        'launch':{**descriptors,'endpoints':[{'bundle':manifest}]},'original_evaluator':module('_genuine_original',Path(original['root'])/'evaluate_siglip2_connected_mlp.py')}
+    for role,key,filename in [('evaluator_reference','evaluator_reference','evaluate_siglip2_identity_diversity.py'),
+        ('nearest_evaluator','nearest_evaluator','evaluate_siglip2_nearest_ranking.py'),
+        ('math','genuine_evaluator','evaluate_siglip2_genuine_views.py'),('reference','reference','evaluate_siglip2_prototype_residual.py')]:
+        context[role] = module('_genuine_'+role,Path(descriptors[key]['root'])/filename)
+    context['helper'] = module('_genuine_export_helper',HERE/'export_siglip2_substrate_adaptation.py')
+    context['baseline'] = module('_genuine_baseline',HERE/'evaluate_siglip2_quadratic_readout.py')
+    for value in (source,extract,nearest,training,request,observer,native,evaluator,*[context[k] for k in
+        ('trainer','evaluator_reference','nearest_evaluator','math','reference','helper','baseline','original_evaluator')]):
+        path = Path(value.__file__); digest = fact(virtual.get(str(path),path))['sha256']
+        f.context['guards'][str(path)] = context['guards'][str(path)] = digest
+    binary,runtime,runtime_fact = runtime_fixture(root)
+    map_paths = [*f.files,str(binary)]
+    def maps():
+        lines = []
+        for p in map_paths:
+            value = Path(p.removesuffix(' (deleted)')).stat()
+            lines.append(f'1000-2000 r-xp 0 {os.major(value.st_dev):x}:{os.minor(value.st_dev):x} {value.st_ino} {p}')
+        return '\n'.join(lines)
+    actual_open,actual_stat,actual_is_dir,actual_is_file = Path.open,Path.stat,Path.is_dir,Path.is_file
+    map_text = [None]
+    def open_file(path,*args,**kwargs):
+        if str(path) == '/proc/self/maps': return io.StringIO(maps() if map_text[0] is None else map_text[0])
+        return actual_open(virtual.get(str(path),path),*args,**kwargs)
+    def stat_file(path,*args,**kwargs): return actual_stat(virtual.get(str(path),path),*args,**kwargs)
+    virtual_dirs = {str(Path(p).parent) for p in virtual}
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(Path,'open',open_file))
+        stack.enter_context(patch.object(Path,'stat',stat_file))
+        stack.enter_context(patch.object(Path,'is_file',lambda p:actual_is_file(virtual.get(str(p),p))))
+        stack.enter_context(patch.object(Path,'is_dir',lambda p:str(p) in virtual_dirs or actual_is_dir(p)))
+        stack.enter_context(patch.object(native,'ARCHIVE_SHA',runtime['build_receipt']['sha256']))
+        stack.enter_context(patch.object(native,'BINARY_SHA',fact(binary)['sha256']))
+        packages = {}
+        for name in source.PACKAGES:
+            directory = root/'packages'/name; directory.mkdir(parents=True)
+            path = directory/'__init__.py'; path.write_bytes(b'# package origin data only\n')
+            value = ModuleType(name); value.__file__ = str(path); sys.modules[name] = value
+            packages[name] = {'root':str(directory)}
+        f.legacy['selected']['packages'] = packages
+        map_text[0] = ''
+        f.legacy['selected']['source_cpu']['origins'] = source.imported_origins(extract,packages)
+        map_text[0] = None
+        with patch.object(nearest,'NATIVE_PROOF_PINS',f.pins): original_api = nearest.native_source_api(f.context)
+        authority = native.CombinedAuthority(f.context,runtime_fact,observer,request)
+        api = authority.install(evaluator_source,context)
+        guard = evaluator.admission_exit_guard(evaluator.guard_helpers)
+        yield SimpleNamespace(f=f,request=request,observer=observer,native=native,source=evaluator_source,evaluator=evaluator,
+            context=context,api=api,authority=authority,original_api=original_api,binary=binary,runtime=runtime,runtime_fact=runtime_fact,
+            map_paths=map_paths,map_text=map_text,maps=maps,guard=guard,own=own,partition=partition,virtual=virtual)
+
+
 class ControlTests(unittest.TestCase):
+    def test_genuine_collector_and_real_proc_maps_agree(self):
+        source = load('_control_real_maps_collector',HERE/'qualify_siglip2_substrate_cpu.py')
+        extract = load('_control_real_maps_extract',HERE/'extract_siglip2_vision_source.py')
+        native = load('_control_real_maps_native',HERE/'connected_control_native_authority.py')
+        authority = native.CombinedAuthority.__new__(native.CombinedAuthority)
+        mappings = authority.mappings()
+        origins = source.imported_origins(extract,{})
+        self.assertTrue(mappings)
+        self.assertEqual(set(origins['native_files']),set(mappings))
+        self.assertEqual(origins['files'],{p:fact(Path(p))['sha256'] for p in mappings})
+
+    def test_complete_parent_acceptance_with_real_evaluator_and_terminal_reader(self):
+        driver = load('_control_complete_parent',HERE/'qualify_connected_control_serving.py')
+        with tempfile.TemporaryDirectory() as directory,patch.dict(sys.modules),genuine_exit_fixture(Path(directory)) as g:
+            root = Path(directory); context = g.context; e = g.evaluator; f = g.f
+            g.api.audit_origins(f.legacy,require_exact=True)
+            combined = g.api.evidence()
+            # Parent admission runs before native imports; receipt evidence describes the finished child.
+            g.map_paths.clear()
+            archived = HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
+            exported = json.loads((archived/'connected-mlp-evaluation-full-export-control-179061-v2/receipt.json').read_bytes())
+            manifest = context['launch']['endpoints'][0]['bundle']
+            bundle = Path(manifest['path']).parent
+            bundle.rename(root/'control-179061-bundle')
+            manifest = fact(root/'control-179061-bundle'/'bundle.json')
+            launch = exported['launch']; launch['execution_sha256'] = g.own['execution_sha256']
+            endpoint = next(v for v in launch['endpoints'] if (v['arm'],v['seed']) == ('control',179061))
+            endpoint['bundle'] = manifest
+            endpoint['terminal']['receipt']['path'] = str(root/'endpoint-receipt.json')
+            endpoint['checkpoint']['path'] = str(root/'control-179061-terminal.pt')
+            exported.update(source_code=g.own['code'],execution_sha256=g.own['execution_sha256'],source=f.context['source'],
+                binding=e.binding({'launch':launch}),origins=combined['historical_projection'])
+            export_dir = root/'export'; export_dir.mkdir(); exported['output'] = str(export_dir)
+            for name in exported['files']:
+                (export_dir/name).write_bytes(b'bounded export data'); exported['files'][name] = fact(export_dir/name)['sha256']
+            evaluation_fact = write_json(root/'evaluation.json',launch)
+            exported.update(authority=evaluation_fact,authority_sha256=evaluation_fact['sha256'])
+            eargs = SimpleNamespace(execution_sha256=g.own['execution_sha256'],authority=Path(evaluation_fact['path']),
+                authority_sha256=evaluation_fact['sha256'],phase='export',arm='control',seed=179061,output=export_dir)
+            exported['invocation']['argv'] = e.cli(eargs)
+            exported['invocation']['argv'][0] = str(Path(g.own['root'])/'evaluate_siglip2_connected_mlp.py')
+            export_unit = terminal_fixture(root,f,'export-terminal',driver.CONTROL_INVOCATION,exported)
+            common = {str(Path(g.own['root'])/n):h for n,h in g.own['code'].items()}
+            common[str(Path(g.own['root'])/'execution.json')] = g.own['execution_sha256']
+            exported['input_guards'] = {**common,**exported['origins']['files']}
+            export_unit['receipt'] = write_json(export_dir/'receipt.json',exported)
+            mapping = {'query':[],'gallery':[],'original_rows':[None]*3449}
+            for row in exported['images']:
+                for image in row['rows']:
+                    mapping[row['role']].append(image['panel_ordinal'])
+                    mapping['original_rows'][image['panel_ordinal']] = image['original_row']
+            context.update(args=eargs,launch=launch,costs=exported['cost'],preparation_costs=exported['preparation_costs'],
+                cpu={'payload_facts':{'control-179061':exported['payload_facts']}},common_guards=common,accepted_units=[],
+                terminal_reader=f.fitter.original_terminal_reader(f.context['fit_context']),
+                score_context={'partition':{'panels':{'selection':mapping}}})
+            f.legacy['selected']['source_cpu'].update(invocation=exported['invocation'],numerical_flags=exported['numerical_flags'])
+            obs_root = root/'observation'; obs_root.mkdir()
+            observation = observation_fixture(obs_root,g.observer)
+            observation['bundle'] = {'directory':str(Path(manifest['path']).parent),'manifest':manifest}
+            for role,name in [('trainer','train_siglip2_connected_mlp.py'),('serializer','train_siglip2_substrate_adaptation.py')]:
+                observation['sources'][role] = fact(Path(manifest['path']).parent/name)
+            observation.update(native=fact(g.binary),control_export_receipt=export_unit['receipt'])
+            observation_fact = write_json(root/'observation.json',observation)
+            sources = {role:fact(path) for role,path in {
+                'control_driver':Path(driver.__file__),'control_native':Path(g.native.__file__),'control_test':Path(__file__),
+                'request_driver':HERE/'qualify_connected_serving_requests.py','request_test':HERE/'test_connected_serving_requests.py',
+                'observer':Path(g.observer.__file__),'observer_test':HERE/'test_observe_connected_serving.py',
+                'bridge':HERE.parent/'src/sfora/connected_compact_serving.py','native_wrapper':HERE.parent/'src/sfora/cutile_int8.py',
+                'packing':HERE.parent/'src/sfora/joint_relational_compaction.py'}.items()}
+            authority = {'schema':driver.SCHEMA,'sources':sources,'evaluator':g.own,'evaluation_authority':evaluation_fact,
+                'control_export':export_unit,'control':dict(driver.CONTROL),'observation':observation_fact,
+                'native_runtime':g.runtime_fact,'locks':[]}
+            authority_fact = write_json(root/'control-authority.json',authority)
+            measurement_root = root/'measurement'; measurement_root.mkdir()
+            record,_,_ = measurement_fixture(measurement_root,driver)
+            record.update(authority=authority_fact,sources=sources,control_export=export_unit,observation=observation_fact,
+                native_runtime=g.runtime_fact,combined_native=combined,output=str(root/'diagnostic'),
+                resource_policy=observation['resource_policy'],whole_process_seconds=1)
+            record['invocation'].update({k:exported['invocation'][k] for k in ('python','python_sha256','python_version')})
+            record['invocation']['argv'] = driver.cli(authority_fact,record['output'],driver.__file__)
+            unit = terminal_fixture(root,f,'diagnostic-terminal','9'*32,record)
+            record['resources'] = {k:record.pop(k) for k in ('wall_seconds','process_peak_rss_kib','cgroup_before','cgroup_after')}
+            record['resources']['peak_cuda_allocated_bytes'] = 1
+            required = [authority_fact,observation_fact,g.runtime_fact,evaluation_fact,*sources.values(),*g.authority.provenance_facts(),
+                manifest,observation['gallery']['file'],export_unit['receipt'],*observation['train_images']]
+            record['input_guards'] = {**common,**{v['path']:v['sha256'] for v in required}}
+            output = Path(record['output']); output.mkdir()
+            baseline_guards = dict(context['guards'])
+            actual_load = driver.requests.Source.load
+            def load_source(file):
+                result = actual_load(file)
+                if file == sources['control_native']:
+                    result.module.ARCHIVE_SHA = g.runtime['build_receipt']['sha256']
+                    result.module.BINARY_SHA = g.runtime['library']['sha256']
+                return result
+            def accept(value,change=None,authority_file=authority_fact):
+                f.legacy['invocations'].clear(); context['accepted_units'].clear()
+                context['guards'] = dict(baseline_guards)
+                f.legacy['admission'] = f.original.FlatAdmission(); f.legacy['admission'].init = f.init
+                current = {**unit,'receipt':write_json(output/'receipt.json',value),**(change or {})}
+                return driver.accept_unit(context,current,authority_file)
+            with patch.object(driver,'CONTROL_RECEIPT_SHA',export_unit['receipt']['sha256']), \
+                    patch.object(f.context['nearest'],'NATIVE_PROOF_PINS',f.pins), \
+                    patch.object(driver.requests.Source,'load',load_source):
+                self.assertEqual(accept(record),record)
+                mutations = []
+                bad = copy.deepcopy(record); bad['combined_native']['inventory']['files'][str(root/'unknown.so')] = 'a'*64
+                mutations.append(('combined',bad))
+                for key in ('supplemental_files','historical_projection','mapped_identities'):
+                    bad = copy.deepcopy(record); bad['combined_native'][key] = {}; mutations.append((key,bad))
+                for file in required:
+                    bad = copy.deepcopy(record); del bad['input_guards'][file['path']]; mutations.append(('missing guard '+file['path'],bad))
+                bad = copy.deepcopy(record); bad['resource_policy']['whole_process_seconds'] = 1501; mutations.append(('cap',bad))
+                bad = copy.deepcopy(record); bad['resources']['peak_cuda_allocated_bytes'] = 10_000_000_000; mutations.append(('CUDA cap',bad))
+                for label,bad in mutations:
+                    with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError)):
+                        accept(bad)
+                for change in ({'both_locks_held':False},{'service_seconds':1501},{'invocation_id':'8'*32}):
+                    with self.subTest(mutant=change),self.assertRaises(ValueError): accept(record,change)
+                bad_observation = {**observation,'native':observation['gallery']['file']}
+                bad_observation_fact = write_json(root/'bad-observation.json',bad_observation)
+                bad_authority = {**authority,'observation':bad_observation_fact}
+                bad_authority_fact = write_json(root/'bad-authority.json',bad_authority)
+                bad = copy.deepcopy(record); bad.update(authority=bad_authority_fact,observation=bad_observation_fact)
+                bad['invocation']['argv'] = driver.cli(bad_authority_fact,record['output'],driver.__file__)
+                with self.assertRaisesRegex(ValueError,'terminal native FILE differs'):
+                    accept(bad,authority_file=bad_authority_fact)
+                with patch.object(context['args'],'execution_sha256','0'*64),self.assertRaisesRegex(ValueError,'original evaluator authority'):
+                    accept(record)
+                self.assertEqual(accept(record),record)
+                self.assertIn(driver.CONTROL_INVOCATION,f.legacy['invocations'])
+                self.assertIn(unit['invocation_id'],f.legacy['invocations'])
+                self.assertEqual(context['accepted_units'],[export_unit])
+                with self.assertRaisesRegex(ValueError,'reused terminal invocation'):
+                    driver.accept_unit(context,{**unit,'receipt':fact(output/'receipt.json')},authority_fact)
+
+    def test_startup_frozen_inputs_clock_and_lazy_four_members(self):
+        driver = load('_control_startup_driver',HERE/'qualify_connected_control_serving.py')
+        run = next(n for n in ast.parse(Path(driver.__file__).read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name == 'run')
+        body = next(n.body for n in run.body if isinstance(n,ast.Try))
+        def execute(nodes,values):
+            namespace = {**vars(driver),**values}
+            exec(compile(ast.Module(body=copy.deepcopy(nodes),type_ignores=[]),driver.__file__,'exec'),namespace)
+            return namespace
+        start = next(i for i,n in enumerate(body) if isinstance(n,ast.Assign) and ast.unparse(n.value) == 'evaluator.authority(eargs)')
+        end = next(i for i,n in enumerate(body) if isinstance(n,ast.Assign) and ast.unparse(n.value).startswith('admit_control('))
+        context = {'training_context':{'fit_context':{'unit_started':-1}}}
+        execute(body[start:end],{'evaluator':SimpleNamespace(authority=lambda args:(context,None)),'eargs':None})
+        with self.subTest(contract='fitter starts with control unit'):
+            self.assertEqual(context['training_context']['fit_context']['unit_started'],driver.STARTED)
+        frozen = next(n for n in body if isinstance(n,ast.Assign) and ast.unparse(n.targets[0]) == 'frozen')
+        observation = {'bundle':{'manifest':'bundle'},'gallery':{'file':'gallery'},'native':'native',
+            'control_export_receipt':'export','train_images':['image']}
+        namespace = execute([frozen],{'authority_fact':'authority','authority':{'observation':'observation',
+            'native_runtime':'runtime','evaluation_authority':'evaluation'},'sources':{'source':'source'},'observation':observation})
+        with self.subTest(contract='explicit bundle and terminal freeze'):
+            self.assertTrue({'bundle','export'} <= set(namespace['frozen']))
+        start = next(i for i,n in enumerate(body) if isinstance(n,ast.Expr) and ast.unparse(n).startswith('api.audit_origins('))
+        end = next(i for i in range(start+1,len(body)) if isinstance(body[i],ast.Expr) and ast.unparse(body[i]) == 'guard()')
+        with tempfile.TemporaryDirectory() as directory,patch.dict(sys.modules),genuine_exit_fixture(Path(directory)) as g:
+            historical = g.map_paths.pop(0)
+            execute(body[start:end],{'api':g.api,'context':g.context})
+            with self.assertRaisesRegex(ValueError,'exact four'):
+                g.api.evaluator_exit(g.context,g.guard)
+            g.map_paths.insert(0,historical)
+            with redirect_stdout(io.StringIO()): g.api.evaluator_exit(g.context,g.guard)
+
+    def test_genuine_collector_frozen_evaluator_exit_and_mutants(self):
+        with tempfile.TemporaryDirectory() as directory,patch.dict(sys.modules):
+            root = Path(directory)
+            with genuine_exit_fixture(root) as g:
+                def exit():
+                    g.f.context['fit_context']['phase_seconds'].clear()
+                    with redirect_stdout(io.StringIO()): return g.api.evaluator_exit(g.context,g.guard)
+                exit()
+                self.assertIsNotNone(g.guard)
+                self.assertEqual(g.api.asts['inverses']['evaluator'][2],1)
+                private = next(c.cell_contents for c in g.api.evaluator_exit.__closure__ if
+                    isinstance(c.cell_contents,g.request.FunctionType) and c.cell_contents.__name__ == 'exit_rehash')
+                for key,value in vars(g.evaluator).items():
+                    if key != 'exit_rehash': self.assertIs(private.__globals__[key],value,key)
+                self.assertEqual(g.evaluator.FILES,{'evaluate_siglip2_connected_mlp.py','test_connected_mlp_evaluation.py'})
+                historical = g.map_paths.pop(0)
+                with self.assertRaisesRegex(ValueError,'exact four'): exit()
+                g.map_paths.insert(0,historical)
+                unknown = root/'unknown.so'; unknown.write_bytes(b'unknown')
+                g.context['guards'][str(unknown)] = fact(unknown)['sha256']
+                g.map_paths.append(str(unknown))
+                with self.assertRaisesRegex(ValueError,'unknown'): exit()
+                g.map_paths.pop()
+                g.map_paths.remove(str(g.binary))
+                with self.assertRaisesRegex(ValueError,'supplemental'): exit()
+                g.map_paths.append(str(g.binary))
+                g.map_text[0] = g.maps().replace(str(g.binary),str(g.binary)+' (deleted)')
+                with self.assertRaisesRegex(ValueError,'deleted'): exit()
+                g.map_text[0] = g.maps().replace(str(g.binary.stat().st_ino)+' '+str(g.binary),'1 '+str(g.binary))
+                with self.assertRaisesRegex(ValueError,'inode'): exit()
+                g.map_text[0] = None
+                raw,saved = g.binary.read_bytes(),g.binary.stat()
+                g.binary.write_bytes(b'x'*len(raw)); os.utime(g.binary,ns=(saved.st_atime_ns,saved.st_mtime_ns))
+                with self.assertRaisesRegex(ValueError,'SHA256'): exit()
+                g.binary.write_bytes(raw)
+                backup = g.binary.with_suffix('.saved'); g.binary.rename(backup); g.binary.write_bytes(raw)
+                try:
+                    with self.assertRaisesRegex(ValueError,'inode'): exit()
+                finally: g.binary.unlink(); backup.rename(g.binary)
+                foreign = ModuleType('torch.foreign'); foreign.__file__ = sys.modules['torch'].__file__
+                with patch.dict(sys.modules,{'torch.foreign':foreign}),self.assertRaisesRegex(ValueError,'module'):
+                    exit()
+                with patch.dict(g.f.context['control_native_owned'],{'authenticate':lambda:None}),self.assertRaisesRegex(ValueError,'ownership'):
+                    exit()
+                with patch.object(g.f.source,'imported_origins',lambda *a:{}),self.assertRaisesRegex(ValueError,'binding changed|dependency changed'):
+                    exit()
+                with patch.dict(g.context['code'],{'foreign.py':'a'*64}),self.assertRaisesRegex(ValueError,'closure'):
+                    exit()
+                with patch.dict(g.f.context,{'live_training':lambda:object()}),self.assertRaisesRegex(ValueError,'training A'):
+                    exit()
+                with patch.object(g.context['trainer'],'admit_bundle',lambda *a:({},{})),self.assertRaisesRegex(ValueError,'helper live'):
+                    exit()
+                exit()
+                self.assertLess(sum(p.stat().st_size for p in root.rglob('*') if p.is_file()),16*1024**2)
+
+    def test_complete_measurement_receipt_rejects_missing_and_forged_evidence(self):
+        driver = load('_control_measurement_driver',HERE/'qualify_connected_control_serving.py')
+        with tempfile.TemporaryDirectory() as directory:
+            record,authority,authority_fact = measurement_fixture(Path(directory),driver)
+            driver.validate_receipt(record,authority,authority_fact)
+            # NumPy int64 buffers may expose native long instead of long long on LP64.
+            if driver.struct.calcsize('l') == 8:
+                long_ids = copy.deepcopy(record)
+                for pair in [*[row['native'] for row in long_ids['calls']],
+                    *[row['native'] for row in long_ids['original_warmup_oracles'].values()],*long_ids['ties']['native']]:
+                    pair[0]['format'] = 'l'
+                driver.validate_receipt(long_ids,authority,authority_fact)
+            mutants = []
+            for key in ('timed','original_warmup_oracles','observations','owners','oracle_semantics','timing_semantics','product_p99'):
+                bad = copy.deepcopy(record); del bad[key]; mutants.append((key,bad))
+            for key in record['calls'][0]:
+                bad = copy.deepcopy(record); del bad['calls'][0][key]; mutants.append(('row '+key,bad))
+            for path in [('timed','1'),('original_warmup_oracles','1'),('observations','1'),('owners',0),('ties',),
+                ('observations','1','fingerprints',0),('observations','1','tensor_occurrences',0),
+                ('observations','1','host_events',0),('calls',0,'native',0),('observations','1','output','raw')]:
+                target = record
+                for key in path: target = target[key]
+                for key in target:
+                    bad = copy.deepcopy(record); parent = bad
+                    for part in path: parent = parent[part]
+                    del parent[key]; mutants.append(('missing '+str((*path,key)),bad))
+            changes = [
+                (('calls',2,'seconds'),-1), (('calls',2,'instrumented'),True), (('calls',2,'native'),None),
+                (('calls',2,'seconds'),float('nan')), (('calls',2,'read_decode_seconds'),float('inf')),
+                (('calls',2,'public_call_seconds'),True), (('calls',2,'image_cleanup_seconds'),-1),
+                (('calls',2,'seconds'),1), (('calls',0,'instrumented'),False),
+                (('timed','1','measured_images_per_second'),0), (('timed','1','seconds'),[1]*8),
+                (('original_warmup_oracles','1','output','raw','hex'),'01'*512),
+                (('observations','1','fingerprints'),[]), (('observations','1','tensor_occurrences'),[]),
+                (('observations','1','callback_seconds'),-1), (('observations','1','complete'),False),
+                (('observations','1','fingerprints',0,'occurrences'),99),
+                (('observations','1','fingerprints',0,'sha256'),'x'*64),
+                (('observations','1','tensor_occurrences',0,'fingerprint'),99),
+                (('observations','1','host_events',0,'exclusive_seconds'),-1),
+                (('observations','1','exclusive_host_phase_seconds'),{}),
+                (('owners',0,'admission_seconds'),-1), (('owners',1,'release_seconds'),float('inf')),
+                (('owners',),[record['owners'][0]]), (('ties','native',0,0,'hex'),'00'*80),
+                (('calls',2,'native',0,'shape'),[32,10]), (('calls',2,'native',1,'format'),'d')]
+            for path,value in changes:
+                bad = copy.deepcopy(record); target = bad
+                for key in path[:-1]: target = target[key]
+                target[path[-1]] = value; mutants.append((str(path),bad))
+            for label,bad in mutants:
+                with self.subTest(mutant=label),self.assertRaises((ValueError,KeyError,TypeError)):
+                    driver.validate_receipt(bad,authority,authority_fact)
+
     def test_separate_source_contract(self):
         for name in ('qualify_connected_control_serving.py','connected_control_native_authority.py'):
             self.assertTrue((HERE/name).is_file(), 'missing separate control source: ' + name)
@@ -293,6 +759,10 @@ class ControlTests(unittest.TestCase):
                 'resources':{'wall_seconds':1,'process_peak_rss_kib':1000,'peak_cuda_allocated_bytes':1,
                     'cgroup_before':before,'cgroup_after':after},'whole_process_seconds':1,
                 'input_guards':{pinned['path']:pinned['sha256']}}
+            measurement_root = root/'measurement'; measurement_root.mkdir()
+            measured,_,_ = measurement_fixture(measurement_root,driver)
+            record.update({k:measured[k] for k in ('calls','body_seconds','ties','timed','owners','original_warmup_oracles',
+                'observations','oracle_semantics','timing_semantics','product_p99')})
             driver.validate_receipt(record,authority,authority_fact)
             for replacement,text in [({'invocation':{**record['invocation'],'argv':['old-evaluator']}},'CLI'),
                 ({'qualification_eligible':True},'discarded'),({'calls':record['calls'][:-1]},'22'),

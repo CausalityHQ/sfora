@@ -26,8 +26,11 @@ No candidate KILL or historical blocker is changed by this diagnostic.
 """
 import argparse
 import hashlib
+import math
 import os
 from pathlib import Path
+import re
+import struct
 import sys
 import time
 from types import SimpleNamespace
@@ -112,6 +115,25 @@ def cli(authority, output, driver):
 
 
 def validate_receipt(record, authority, authority_fact):
+    def exact(value, keys):
+        require(type(value) is dict and value.keys() == set(keys.split()), 'exact measurement evidence required')
+    def seconds(value):
+        require(type(value) in (int,float) and math.isfinite(value) and value >= 0, 'finite nonnegative measurement required')
+        return value
+    def digest(value):
+        require(type(value) is str and re.fullmatch('[0-9a-f]{64}',value), 'measurement SHA256 required')
+    def native(value, count):
+        require(type(value) is list and len(value) == 2, 'complete native ID/score witness required')
+        for row,fmt,width in zip(value,('q','f'),(8,4),strict=True):
+            exact(row,'format shape hex')
+            formats = ('q','l') if fmt == 'q' and struct.calcsize('l') == 8 else (fmt,)
+            require(row['format'] in formats and row['shape'] == [count,10] and
+                all(type(v) is int for v in row['shape']) and type(row['hex']) is str and
+                re.fullmatch('[0-9a-f]+',row['hex']) and len(row['hex']) == count*10*width*2,
+                'typed native ID/score bytes differ')
+        require(all(v[0] >= 0 for v in struct.iter_unpack('<q',bytes.fromhex(value[0]['hex']))) and
+            all(math.isfinite(v[0]) for v in struct.iter_unpack('<f',bytes.fromhex(value[1]['hex']))),
+            'finite native score/nonnegative ID required')
     require(record['schema'] == 'connected-control-serving-diagnostic-v1' and
         record['status'] == 'DISCARDED_DIAGNOSTIC' and record['engineering_only'] is True and
         record['authority'] == authority_fact and record['sources'] == authority['sources'] and
@@ -127,8 +149,99 @@ def validate_receipt(record, authority, authority_fact):
         record['invocation']['cublas_workspace_config'] == ':4096:8', 'exact new control diagnostic CLI/environment required')
     expected = [(b,k) for b in (1,32) for k in ['warm_oracle','warm']+['timed']*8] + [(1,'observation'),(32,'observation')]
     require([(r['batch'],r['kind']) for r in record['calls']] == expected and
-        0 < record['body_seconds'] <= 120 and record['ties']['ascending_ordinal_score_bits_exact'] is True,
+        0 < seconds(record['body_seconds']) <= 120 and record['ties']['ascending_ordinal_score_bits_exact'] is True,
         'unchanged22 public calls/oracle/tie body required')
+    require(type(record['calls']) is list and
+        record['oracle_semantics'] == 'instrumented first original warmup; second warmup and all8timed are unprofiled' and
+        record['timing_semantics'] == 'read/decode through synchronized native top10; capture/cleanup separate; observer overhead retained' and
+        record['product_p99'] == 'UNQUALIFIED; requires10000interleaved paired calls and confidence interval',
+        'unchanged measurement semantics required')
+    timing_keys = 'seconds read_decode_seconds public_call_seconds completion_sync_seconds native_capture_seconds image_cleanup_seconds'
+    for row in record['calls']:
+        exact(row,timing_keys+' native instrumented qualification_eligible batch kind')
+        require(type(row['batch']) is int and row['instrumented'] is (row['kind'] in ('warm_oracle','observation')) and
+            row['qualification_eligible'] is False, 'exact four instrumented calls required')
+        for key in timing_keys.split(): seconds(row[key])
+        require(row['seconds'] > 0 and abs(row['seconds']-sum(row[k] for k in
+            ('read_decode_seconds','public_call_seconds','completion_sync_seconds'))) < 1e-6,
+            'complete public request timing differs')
+        native(row['native'],row['batch'])
+    require(type(record['owners']) is list and len(record['owners']) == 2, 'two sequential owner charges required')
+    for owner in record['owners']:
+        exact(owner,'admission_seconds release_seconds')
+        for value in owner.values(): seconds(value)
+    charged = sum(sum(owner.values()) for owner in record['owners']) + sum(
+        row['seconds']+row['native_capture_seconds']+row['image_cleanup_seconds'] for row in record['calls'])
+    require(charged <= record['body_seconds']+1e-6, 'owner/request charges exceed body')
+    for key in ('timed','original_warmup_oracles','observations'): exact(record[key],'1 32')
+    for count in (1,32):
+        rows = [r for r in record['calls'] if r['batch'] == count]
+        oracle = record['original_warmup_oracles'][str(count)]
+        exact(oracle,'output native')
+        native(oracle['native'],count)
+        report = record['observations'][str(count)]
+        exact(report,'complete failures target_error tensor_occurrences fingerprints output callback_seconds counter_inspection_seconds '
+            'output_capture_seconds overhead_semantics host_events exclusive_host_phase_seconds phase_semantics cuda_seconds '
+            'opaque_native_subdivisions baseline_raw_unit_packed_wire_parity optimization_eligible qualification_eligible state_reuse_eligible')
+        require(report['failures'] == [] and report['target_error'] is None and
+            all(report[k] is False for k in ('optimization_eligible','qualification_eligible','state_reuse_eligible')) and
+            report['cuda_seconds'] is None and report['opaque_native_subdivisions'] == 'UNMEASURED' and
+            report['baseline_raw_unit_packed_wire_parity'] == 'UNMEASURED; parent authenticated same-group oracle required' and
+            report['overhead_semantics'] == 'inspection/capture are overlapping subsets of callback time; dispatch unmeasured' and
+            report['phase_semantics'] == 'event-name attribution; unresolved/opaque subdivisions stay UNMEASURED; inclusive rows overlap',
+            'complete discarded fingerprint observation required')
+        require(requests.witness(report,count) == oracle['output'] and
+            all(row['native'] == oracle['native'] for row in rows), 'same-group original/native oracle differs')
+        for key in ('callback_seconds','counter_inspection_seconds','output_capture_seconds'): seconds(report[key])
+        require(report['counter_inspection_seconds']+report['output_capture_seconds'] <= report['callback_seconds']+1e-6,
+            'observation callback subsets differ')
+        fingerprints,leaves = report['fingerprints'],report['tensor_occurrences']
+        require(type(fingerprints) is list and fingerprints and type(leaves) is list and 0 < len(leaves) <= 4096,
+            'complete fingerprint/tensor records required')
+        for leaf in leaves:
+            exact(leaf,'fingerprint dtype shape bytes sha256')
+            digest(leaf['sha256'])
+            require(type(leaf['fingerprint']) is int and 0 <= leaf['fingerprint'] < len(fingerprints) and
+                type(leaf['dtype']) is str and leaf['dtype'] and type(leaf['shape']) is list and
+                all(type(v) is int and v >= 0 for v in leaf['shape']) and type(leaf['bytes']) is int and leaf['bytes'] >= 0,
+                'typed fingerprint occurrence differs')
+        for i,fp in enumerate(fingerprints):
+            exact(fp,'sha256 occurrences bytes caller_filename caller_function caller_line host_seconds')
+            digest(fp['sha256']); seconds(fp['host_seconds'])
+            members = [leaf for leaf in leaves if leaf['fingerprint'] == i]
+            require(type(fp['occurrences']) is int and fp['occurrences'] == len(members) and
+                type(fp['bytes']) is int and fp['bytes'] == sum(leaf['bytes'] for leaf in members) and
+                all(type(fp[k]) is str and fp[k] for k in ('caller_filename','caller_function')) and
+                type(fp['caller_line']) is int and fp['caller_line'] > 0, 'fingerprint accounting differs')
+        require(type(report['host_events']) is list and 0 < len(report['host_events']) <= 4096,
+            'complete host timing events required')
+        phases = {}
+        for event in report['host_events']:
+            exact(event,'kind source function line phase calls inclusive_seconds exclusive_seconds c_exceptions end_semantics')
+            require(event['kind'] in ('python','c') and event['end_semantics'] == 'return_or_unwind' and
+                all(type(event[k]) is str and event[k] for k in ('source','function','phase')) and
+                type(event['line']) is int and event['line'] >= 0 and type(event['calls']) is int and event['calls'] > 0 and
+                type(event['c_exceptions']) is int and 0 <= event['c_exceptions'] <= event['calls'] and
+                seconds(event['exclusive_seconds']) <= seconds(event['inclusive_seconds']), 'host timing event differs')
+            phases[event['phase']] = phases.get(event['phase'],0)+event['exclusive_seconds']
+        require(type(report['exclusive_host_phase_seconds']) is dict and report['exclusive_host_phase_seconds'].keys() == phases.keys(),
+            'complete host phase summary required')
+        for phase,value in phases.items():
+            require(math.isclose(seconds(report['exclusive_host_phase_seconds'][phase]),value,rel_tol=1e-9,abs_tol=1e-9),
+                'host phase sum differs')
+        summary = record['timed'][str(count)]
+        exact(summary,'seconds measured_images_per_second')
+        times = [row['seconds'] for row in rows if row['kind'] == 'timed']
+        for value in summary['seconds']: seconds(value)
+        require(type(summary['seconds']) is list and summary['seconds'] == times and
+            seconds(summary['measured_images_per_second']) == count*8/sum(times), 'recomputed timed summary differs')
+    exact(record['ties'],'ascending_ordinal_score_bits_exact native gallery')
+    require(type(record['ties']['native']) is list and len(record['ties']['native']) == 2 and
+        record['ties']['gallery'] == 'separate discarded duplicate e1; resident public gallery unchanged', 'complete native ties required')
+    for count,value in zip((1,32),record['ties']['native'],strict=True):
+        native(value,count)
+        require(value[0]['hex'] == (struct.pack('<10q',*range(10))*count).hex() and
+            value[1]['hex'] == (struct.pack('<10f',*([1.]*10))*count).hex(), 'native tied ordinal/score bits differ')
 
 
 def accept_unit(context, unit, authority_fact):
@@ -266,9 +379,11 @@ def run(args):
             authority=Path(authority['evaluation_authority']['path']),authority_sha256=authority['evaluation_authority']['sha256'],
             phase='export',arm='control',seed=179061,output=output)
         context,exit_guard = evaluator.authority(eargs)
+        context['training_context']['fit_context']['unit_started'] = STARTED
         endpoint,exported = admit_control(evaluator,context,authority,observation)
         frozen = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],
-            *sources.values(),observation['gallery']['file'],observation['native'],*observation['train_images']]
+            *sources.values(),observation['bundle']['manifest'],observation['control_export_receipt'],
+            observation['gallery']['file'],observation['native'],*observation['train_images']]
         evaluator.merge_guards(context['guards'],{f['path']:f['sha256'] for f in frozen})
         runtime_authority = native_source.module.CombinedAuthority(context['training_context'],authority['native_runtime'],observer,requests)
         evaluator.merge_guards(context['guards'],{f['path']:f['sha256'] for f in runtime_authority.provenance_facts()})
@@ -302,8 +417,7 @@ def run(args):
         guard()
         ties = requests.native_ties(joint_relational_compaction.PackedInt8Embeddings,
             cutile_int8.CutilePackedInt8Gallery,observation['native'],observer)
-        api.audit_origins(context['training_context']['legacy'],require_exact=True)
-        api.evidence()
+        api.audit_origins(context['training_context']['legacy'])
         guard()
         def read_images(paths): return requests.decode_images(observer,Image,observation['train_images'],paths)
         with evaluator.endpoint_scope(context,endpoint):
