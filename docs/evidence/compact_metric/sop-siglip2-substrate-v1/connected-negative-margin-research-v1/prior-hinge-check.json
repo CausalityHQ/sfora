@@ -1,0 +1,45 @@
+{
+  "source": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/live-top1-first-selection-score-v1/receipt.json",
+  "sha256": "fe00e0b8fa86564d34014656e4fdc9374553421c55c37ff018f6f90f346d259a",
+  "dataset": "DeepFashion In-Shop",
+  "split": "exposed TRAIN-selection",
+  "queries": 1734,
+  "gallery": 1715,
+  "products": 498,
+  "seed": 179061,
+  "control": {
+    "map_at_r": 0.8273301284197361,
+    "recall_at_1": 0.9682814302191465
+  },
+  "candidate": {
+    "map_at_r": 0.8249859928208239,
+    "recall_at_1": 0.9682814302191465
+  },
+  "decision": "KILL",
+  "mean_deltas": {
+    "per_query_ap": -0.0023441355989122334,
+    "per_query_r1": 0
+  },
+  "cost": {
+    "179061": {
+      "candidate": {
+        "service_seconds": 437.753,
+        "total_training_core_seconds": 125.17960500810295
+      },
+      "control": {
+        "service_seconds": 419.282,
+        "total_training_core_seconds": 101.19301586924121
+      },
+      "pass": true,
+      "total_training_core_ratio": 1.2370379905452817,
+      "whole_service_ratio": 1.0440538825897605
+    }
+  },
+  "interpretation": "Earlier separate top1 hinge .05 added to SmoothAP: no R1 gain/AP loss. Does not prove negative-margin SmoothAP impossible, but the generic boundary-widening premise already has negative evidence.",
+  "native_work": "none; original receipt analysis only",
+  "query_transitions": {
+    "gains": 2,
+    "losses": 2,
+    "unchanged": 1730
+  }
+}

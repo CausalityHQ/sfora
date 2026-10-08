@@ -1,0 +1,28 @@
+{
+  "schema": "negative-column-margin-research-decision-v1",
+  "decision": "REJECT_IMPLEMENTATION_FOR_THIS_PROPOSAL",
+  "scientific_native_result": "UNRUN",
+  "reviews": {
+    "research_critic": "REJECT",
+    "engineering_critic": "HOLD; corrected firstB64 TRAIN gradient witness possible"
+  },
+  "reconciliation": [
+    "Negative-column SmoothAP shift is mathematically distinct from a separate top1 hinge; the earlier hinge KILL is negative prior evidence, not an exact test of this function.",
+    "Shift reweights already-correct separations and weakens some violations; held census cannot prove FIT saturation or an expected gain.",
+    "Reject held-core-rate quantile, source role substitution, unsupported runtime/cost and sigmoid claims.",
+    "The root declines another frozen-readout objective arm on this weak premise; no new FIT census, training, or threshold change.",
+    "Do not adopt representation-as-unique-cause, immutable-hub, paper-transfer equivalence, or inferred minimum-query-count claims."
+  ],
+  "prior_hinge": {
+    "R1_control": 0.9682814302191465,
+    "R1_candidate": 0.9682814302191465,
+    "AP_control": 0.8273301284197361,
+    "AP_candidate": 0.8249859928208239,
+    "gains": 2,
+    "losses": 2,
+    "decision": "KILL"
+  },
+  "next": "Bounded source feasibility plan for original single pooling probe adaptation on current Siglip substrate; check exact prior closure and reusable trainer roles before any implementation/native launch. No extra queries or layers; fixed objective/data/scorer/gates.",
+  "quality_speed_goal": "UNMET",
+  "new_native_jobs": 0
+}
