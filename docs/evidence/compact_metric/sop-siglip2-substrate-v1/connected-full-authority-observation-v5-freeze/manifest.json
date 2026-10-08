@@ -1,0 +1,69 @@
+{
+  "argv": [
+    "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8/evaluate_siglip2_connected_mlp.py",
+    "--execution-sha256",
+    "046fbeb6db0e162e905492b7ae10828bf018c1ffd35359ac9c9e723172bed33f",
+    "--authority",
+    "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8/authority-full-cpu-v4.json",
+    "--authority-sha256",
+    "156140e6ef654a620322c20d1ec4ef40c1beaa78c2256a5dcbf8d9a24ac06ccb",
+    "--phase",
+    "cpu",
+    "--output",
+    "/home/riomus/runs/sfora-connected-full-authority-observation-unused-v5"
+  ],
+  "authority": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8/authority-full-cpu-v4.json",
+    "sha256": "156140e6ef654a620322c20d1ec4ef40c1beaa78c2256a5dcbf8d9a24ac06ccb"
+  },
+  "both_locks_held": true,
+  "command": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8/full-cpu-v4-command.sh",
+    "sha256": "635dae6ab5ba856654c9b000bc359b93173e63c98f2d5802735b27911d145763"
+  },
+  "diagnostic": "/home/riomus/runs/sfora-connected-full-authority-observation-v5.jsonl",
+  "evaluator": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8/evaluate_siglip2_connected_mlp.py",
+    "sha256": "0a807abc27cbf7150824b2dd202e7be75aaa548f0e27918a1d5b1c862908850b"
+  },
+  "execution": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8/execution.json",
+    "sha256": "046fbeb6db0e162e905492b7ae10828bf018c1ffd35359ac9c9e723172bed33f"
+  },
+  "observer": {
+    "path": "/home/riomus/runs/sfora-connected-full-authority-observation-source-v5/observe_connected_full_authority.py",
+    "sha256": "86adf642e3f8d1070bdb80d21e8760a39b5c37f8733086f3eb37bb35caac6565"
+  },
+  "original_argv": [
+    "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8/evaluate_siglip2_connected_mlp.py",
+    "--execution-sha256",
+    "046fbeb6db0e162e905492b7ae10828bf018c1ffd35359ac9c9e723172bed33f",
+    "--authority",
+    "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v8/authority-full-cpu-v4.json",
+    "--authority-sha256",
+    "156140e6ef654a620322c20d1ec4ef40c1beaa78c2256a5dcbf8d9a24ac06ccb",
+    "--phase",
+    "cpu",
+    "--output",
+    "/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v4"
+  ],
+  "output": "/home/riomus/runs/sfora-connected-full-authority-observation-unused-v5",
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "qualification_eligible": false,
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 900,
+    "swap_bytes": 0
+  },
+  "schema": "connected-full-authority-observation-v1",
+  "state_reuse_eligible": false,
+  "test": {
+    "path": "/home/riomus/runs/sfora-connected-full-authority-observation-source-v5/test_connected_full_authority_observation.py",
+    "sha256": "77fb110aff0f185a4384bf50fb9f778b5038326f657a067a5e1ed99dd152d518"
+  },
+  "unit": "sfora-connected-full-authority-observation-v5"
+}
