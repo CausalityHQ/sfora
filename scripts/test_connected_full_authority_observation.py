@@ -18,7 +18,7 @@ from unittest.mock import patch
 import weakref
 
 PATH = Path(__file__).resolve().with_name('observe_connected_full_authority.py')
-FREEZE = PATH.parent.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-cpu-v1-freeze'
+FREEZE = PATH.parent.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-cpu-v2-freeze'
 
 
 def binding(path):
@@ -99,13 +99,13 @@ class ObservationTest(unittest.TestCase):
 
     def test_pins_match_original_command_and_source_without_executing_it(self):
         d = driver()
-        freeze = json.loads((FREEZE / 'full-cpu-v1-freeze.json').read_bytes())
+        freeze = json.loads((FREEZE / 'full-cpu-v2-freeze.json').read_bytes())
         for fact in (d.EVALUATOR, d.EVALUATOR_TEST, d.EXECUTION, d.AUTHORITY, d.COMMAND):
             path = FREEZE / Path(fact['path']).name
             self.assertEqual(binding(path)['sha256'], fact['sha256'])
             self.assertEqual(freeze['files'][path.name], fact['sha256'])
         import shlex
-        command = (FREEZE / 'full-cpu-v1-command.sh').read_text()
+        command = (FREEZE / 'full-cpu-v2-command.sh').read_text()
         line = next(line for line in command.splitlines() if line.startswith('/home/riomus/group-learning/.venv/bin/python -B '))
         self.assertEqual(shlex.split(line)[2:], d.original_argv())
         self.assertIn(d.PYTHON['sha256'] + '  ' + d.PYTHON['path'], command)
@@ -115,6 +115,67 @@ class ObservationTest(unittest.TestCase):
         self.assertEqual(ast.literal_eval(native.value), d.NATIVE)
         # Compile actual frozen authority bytecode without executing even its imports.
         compile(original, str(FREEZE / 'evaluate_siglip2_connected_mlp.py'), 'exec')
+
+    def test_v6_pin_update_has_exact_v2_observer_inverse(self):
+        original = (FREEZE.parent / 'connected-full-authority-observation-v2-freeze' / PATH.name).read_bytes()
+        self.assertEqual(hashlib.sha256(original).hexdigest(),
+                         '97c653e45519549fd023909a41a88c61d7f80684ca2cd4ad73c0dd4b9813b9a0')
+        inverse = PATH.read_bytes()
+        for new, old in (
+            (b'ONE genuine frozen v6 full-CPU', b'ONE genuine frozen v5 full-CPU'),
+            (b'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v6/',
+             b'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5/'),
+            (b'2390c60fe5e87e82ab122c5c0101476b378792541bc454470c37d6c7f0410d40',
+             b'919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69'),
+            (b'28d0297cebd6a7bab395a44bc60a4aa1bcaacb9160a8093044a54fa270b104d9',
+             b'df1e233279e04bacd64b6bbd47361d43d350740fd496434e79de7b53b9f66ccb'),
+            (b'a0c1f27db4da404e7777d89518dfc83e2e20b607fcc1031776978e9ca8ec9f3c',
+             b'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a'),
+            (b'authority-full-cpu-v2.json', b'authority-full-cpu-v1.json'),
+            (b'3444df504430a2ee92f33fac04cfed609c512de542d8993f08069dd4bd24e19d',
+             b'd8f3b0f92a02937f63539782f2653a20c4d7fbc320022c1554ee261f718fe71f'),
+            (b'full-cpu-v2-command.sh', b'full-cpu-v1-command.sh'),
+            (b'8998b7abb9ad2cbbb119aff15b722578845b39d42ae179c8a183c3000fa0e1f7',
+             b'911428b835ed6323b2c58c927db996121e10b4845a0c306f3c815b2a012998f0'),
+            (b'/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v2',
+             b'/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v1'),
+            (b'_connected_full_authority_v6', b'_connected_full_authority_v5'),
+        ):
+            self.assertEqual(inverse.count(new), 1, new)
+            inverse = inverse.replace(new, old, 1)
+        self.assertEqual(inverse, original)
+        self.assertEqual(ast.dump(ast.parse(inverse)), ast.dump(ast.parse(original)))
+
+    def test_current_evaluator_compile_only_metadata_cli_and_exact_two_pins(self):
+        d = driver()
+        raw = (FREEZE / 'evaluate_siglip2_connected_mlp.py').read_bytes()
+        self.assertEqual(raw, PATH.with_name('evaluate_siglip2_connected_mlp.py').read_bytes())
+        self.assertEqual(json.loads((FREEZE / 'execution.json').read_bytes()),
+                         {Path(p['path']).name: p['sha256'] for p in (d.EVALUATOR, d.EVALUATOR_TEST)})
+        freeze = json.loads((FREEZE / 'full-cpu-v2-freeze.json').read_bytes())
+        self.assertEqual(d.ROOT, freeze['source_root'] + '/')
+        self.assertEqual(d.OLD_OUTPUT, freeze['output'])
+        self.assertEqual(d.MODULE, '_connected_full_authority_v6')
+        self.assertEqual(json.loads((FREEZE / 'authority-full-cpu-v2.json').read_bytes())['execution_sha256'],
+                         d.EXECUTION['sha256'])
+        spec = importlib.util.spec_from_file_location(d.MODULE, d.EVALUATOR['path'])
+        self.assertEqual(spec.name, d.MODULE)
+        self.assertTrue(spec.has_location)
+        self.assertEqual(spec.origin, d.EVALUATOR['path'])
+        self.assertEqual(spec.loader.path, d.EVALUATOR['path'])
+        # Inspect genuine code objects; never execute evaluator imports or authority.
+        compiled = compile(raw, spec.origin, 'exec', dont_inherit=True)
+        functions = {code.co_name: code for code in compiled.co_consts if isinstance(code, type(compiled))}
+        for name in ('parser', 'cli', 'authority'):
+            self.assertEqual(functions[name].co_filename, spec.origin)
+        previous = (FREEZE.parent / 'connected-mlp-evaluation-full-cpu-v1-freeze' /
+                    'evaluate_siglip2_connected_mlp.py').read_bytes()
+        for name in ('parser', 'cli'):
+            current_node = next(node for node in ast.parse(raw).body if isinstance(node, ast.FunctionDef) and node.name == name)
+            previous_node = next(node for node in ast.parse(previous).body if isinstance(node, ast.FunctionDef) and node.name == name)
+            self.assertEqual(ast.dump(current_node), ast.dump(previous_node))
+        self.assertNotIn(d.MODULE, sys.modules)
+        d.no_native()
 
     def test_original_exception_survives_sampler_and_cleanup_failures(self):
         d = driver()

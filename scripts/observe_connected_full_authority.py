@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Engineering-only observation of ONE genuine frozen v5 full-CPU authority call.
+"""Engineering-only observation of ONE genuine frozen v6 full-CPU authority call.
 
 CLI: python -B observe_connected_full_authority.py --manifest FILE --manifest-sha256 SHA
 Exact manifest connected-full-authority-observation-v1: schema, observer, test,
@@ -37,24 +37,24 @@ import threading
 import time
 
 SCHEMA = 'connected-full-authority-observation-v1'
-ROOT = '/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5/'
+ROOT = '/home/riomus/runs/sfora-connected-mlp-evaluation-source-v6/'
 EVALUATOR = {'path': ROOT + 'evaluate_siglip2_connected_mlp.py',
-             'sha256': '919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69'}
+             'sha256': '2390c60fe5e87e82ab122c5c0101476b378792541bc454470c37d6c7f0410d40'}
 EVALUATOR_TEST = {'path': ROOT + 'test_connected_mlp_evaluation.py',
-                  'sha256': 'df1e233279e04bacd64b6bbd47361d43d350740fd496434e79de7b53b9f66ccb'}
+                  'sha256': '28d0297cebd6a7bab395a44bc60a4aa1bcaacb9160a8093044a54fa270b104d9'}
 EXECUTION = {'path': ROOT + 'execution.json',
-             'sha256': 'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a'}
-AUTHORITY = {'path': ROOT + 'authority-full-cpu-v1.json',
-             'sha256': 'd8f3b0f92a02937f63539782f2653a20c4d7fbc320022c1554ee261f718fe71f'}
-COMMAND = {'path': ROOT + 'full-cpu-v1-command.sh',
-           'sha256': '911428b835ed6323b2c58c927db996121e10b4845a0c306f3c815b2a012998f0'}
+             'sha256': 'a0c1f27db4da404e7777d89518dfc83e2e20b607fcc1031776978e9ca8ec9f3c'}
+AUTHORITY = {'path': ROOT + 'authority-full-cpu-v2.json',
+             'sha256': '3444df504430a2ee92f33fac04cfed609c512de542d8993f08069dd4bd24e19d'}
+COMMAND = {'path': ROOT + 'full-cpu-v2-command.sh',
+           'sha256': '8998b7abb9ad2cbbb119aff15b722578845b39d42ae179c8a183c3000fa0e1f7'}
 PYTHON = {'path': '/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13',
           'sha256': '9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b'}
 PYTHON_VERSION = '3.13.9 (main, Oct 14 2025, 21:26:54) [Clang 20.1.4 ]'
-OLD_OUTPUT = '/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v1'
+OLD_OUTPUT = '/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v2'
 POLICY = {'seconds': 900, 'host_bytes': 8 * 1024**3, 'swap_bytes': 0, 'cuda_visible_devices': ''}
 NATIVE = frozenset(('torch', 'numpy', 'PIL', 'transformers', 'safetensors', 'torchvision', 'sfora'))
-MODULE = '_connected_full_authority_v5'
+MODULE = '_connected_full_authority_v6'
 INTERVAL, MAX_SAMPLES, MAX_BYTES = 0.25, 3600, 16 * 1024**2
 
 
