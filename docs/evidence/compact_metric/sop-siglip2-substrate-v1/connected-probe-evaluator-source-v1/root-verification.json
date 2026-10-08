@@ -1,0 +1,15 @@
+{
+  "schema": "connected-probe-evaluator-root-source-verification-v1",
+  "child_commit": "b52fda62c2d0d3011961098170867cc0d0df7aea",
+  "integration_commit": "37f46b0c40d9843045e9ca8db3106cd0292b4a00",
+  "source_sha256": {
+    "scripts/evaluate_siglip2_connected_probe.py": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+    "scripts/test_connected_probe_evaluation.py": "c101bc5517acc720f66084a0d7859630f3d344a02831a671e2e790820fa68890"
+  },
+  "original_gate_log_sha256": "8c61cdd345403ab783b222e7f5b48ac532dae31ce8b86d24cbf509cea928796d",
+  "original_gate_exit_code": 0,
+  "source_gate_seconds": 113.69244155089837,
+  "dual_review": "6e6932c9a8cc48bf",
+  "native_evaluator_qualified": false,
+  "quality_or_speed_claim": false
+}

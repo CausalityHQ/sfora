@@ -1,0 +1,150 @@
+{
+  "status": "COMPLETE_SOURCE_ONLY",
+  "base": "ec648781a3fa6d3ec59c17718dabdef2a1531275",
+  "own2": [
+    "scripts/evaluate_siglip2_connected_probe.py",
+    "scripts/test_connected_probe_evaluation.py"
+  ],
+  "training": {
+    "root": "/home/riomus/runs/sfora-connected-probe-train-source-v2",
+    "execution_sha256": "d007a50139a839a5901a1dabbd1177def5665df89bfabe8f7f568d8dc94fff66",
+    "code": {
+      "test_siglip2_connected_probe.py": "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120",
+      "train_siglip2_connected_probe.py": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+    }
+  },
+  "training_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "3878bdb9b5814e97917b601bc3165c6f",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-probe-train-source-v2/cpu-v2-original.log",
+      "sha256": "8419e674475be126ed3f73fea352810e1ec6e986b71fad6466dcfdd2996a7c46"
+    },
+    "native_peak_rss_kib": 6058996,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-probe-cpu-v2/receipt.json",
+      "sha256": "e5ca67fc169dea5dc5054ad37d522131cbfce0e7b93f026766ce4e3b1c70c8aa"
+    },
+    "service_seconds": 415.363,
+    "unit": "sfora-connected-probe-cpu-v2"
+  },
+  "pending_constants": [],
+  "pending_callers": [],
+  "schemas": {
+    "evaluator": "siglip2-connected-probe-evaluation-v1",
+    "launch": "siglip2-connected-probe-evaluation-launch-v1",
+    "trainer": "siglip2-connected-probe-v1",
+    "trainer_launch": "siglip2-connected-probe-launch-v1",
+    "inference": "siglip2-connected-probe-inference-v1",
+    "bundle": "siglip2-connected-probe-bundle-v1"
+  },
+  "cli": "--execution-sha256 SHA --authority FILE --authority-sha256 SHA --phase cpu|export|score [--seed 179061|179069 --arm control|candidate] --output NEWDIR",
+  "file": "canonical absolute regular file + actual lowercase sha256",
+  "unit": "receipt/log FILE, unit, invocation_id, service_seconds, native_peak_rss_kib, both_locks_held:true; independent normal exit",
+  "closure": "execution.json exact own2; strict literal TRAINING; trainer public APIs unchanged",
+  "role": {
+    "api": "trainer.PROBE",
+    "names": [
+      "head.probe"
+    ],
+    "shapes": [
+      [
+        1,
+        1,
+        1152
+      ]
+    ],
+    "frozen_candidate": 447,
+    "full_fingerprint": 448
+  },
+  "trainer_authority_ast": "38827285a4eed3dcd67cf5310571a208b8ef2842be9509c0e2f076fee76d898b",
+  "trainer_terminal_ast": "1761ee02b913176ebc7f249f509801ac0ed527f1ddc480755bd0bef521f61f8b",
+  "historical": "ORIGINAL_EXPORT_OWNER/UNITS and FIRST_SELECTION_OWNER/UNIT unchanged; archive readers keep original MLP filename and exact historical own2. Historical first reader only for exact original UNIT; fresh probe full uses current accept_unit first CONTINUE with same first endpoints.",
+  "prerequisites": "new COMPLETE CPU600 then both fresh same-seed mechanics1200 then fresh TRAIN128 <=3000; costs <=1.50; evaluator ownCPU700/export1500/score700 unchanged; full CONTINUE before069, same-four selection GO before VAL",
+  "inference": "existing complete typed payload/owned public bundle/runtime/processor/public loaders/raw+unit+packed+reload+per-query parity/full current-byte uncached exit retained; only role and pinned method binding changes",
+  "verification": "finite exact production byte+AST inverse to b651f6a0 baseline plus all original inverse chain; original test byte+AST inverse; new binding/role/pin mutants and retained complete gates; final ONE <=120s RLIMIT_AS=1GiB serial affected suite after parent pins+slot",
+  "prohibitions": "no native/third-party/model/images/checkpoints/SSH/GPU/cloud/jobs/consult/children/operator/merge/push",
+  "cpu_evidence_commit": "2ba5cbb9",
+  "cpu_evidence": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-probe-cpu-v2/accepted-unit.json",
+  "serial_slot_authorization": "immediate-1791497007028259890-682739",
+  "source_sha256": {
+    "scripts/evaluate_siglip2_connected_probe.py": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+    "scripts/test_connected_probe_evaluation.py": "c101bc5517acc720f66084a0d7859630f3d344a02831a671e2e790820fa68890"
+  },
+  "evaluator_launch_keys": [
+    "arm",
+    "both_locks_held",
+    "cost_policy",
+    "endpoints",
+    "evaluator_reference",
+    "execution_sha256",
+    "exports",
+    "first_selection",
+    "genuine_evaluator",
+    "nearest_evaluator",
+    "panel",
+    "phase",
+    "reference",
+    "resource_policies",
+    "schema",
+    "scope",
+    "seed",
+    "selected_cpu",
+    "selection_go",
+    "selection_previously_exposed",
+    "stage",
+    "training"
+  ],
+  "trainer_launch_keys": [
+    "arm",
+    "both_locks_held",
+    "execution_sha256",
+    "fresh_control",
+    "historical_mlp_actual_gradient",
+    "original_cpu",
+    "phase",
+    "recipe",
+    "resource_policy",
+    "schema",
+    "seed",
+    "selected_cpu",
+    "selected_mechanics",
+    "witness"
+  ],
+  "proof_scope": "Full retained original test bodies executed unchanged under exact byte/AST test inverse; all historical source inverse hashes retained. New evaluator directly exercises actual probe bindings, public API signatures, actual probe role fingerprint, bootstrap compilation and source mutation, actual trainer source/initializer/builtin alias guards, fresh/archived first routing, all launch stages/panels, nested typed bundle metadata/parity, scientific gates, uncached current byte and fresh joined I/O.",
+  "no_native_claim": "Actual CPU UNIT accepted by parent only. Both fresh GPU mechanics, TRAIN, evaluator own CPU/export/score and quality/cost eligibility remain root-owned and unrun here.",
+  "verification_receipt": "/data/target/sfora-connected-probe-evaluator-20261008/source-gate.json",
+  "verification_log": "/data/target/sfora-connected-probe-evaluator-20261008/source-gate.log",
+  "verification_result": {
+    "command": [
+      "python3",
+      "-B",
+      "-u",
+      "scripts/test_connected_probe_evaluation.py",
+      "--source-only"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 113.69244155089837,
+    "rlimit_as_bytes": 1073741824,
+    "timeout_seconds": 120,
+    "max_child_rss_kib": 168284,
+    "source_before": {
+      "scripts/evaluate_siglip2_connected_probe.py": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+      "scripts/test_connected_probe_evaluation.py": "c101bc5517acc720f66084a0d7859630f3d344a02831a671e2e790820fa68890"
+    },
+    "source_after": {
+      "scripts/evaluate_siglip2_connected_probe.py": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+      "scripts/test_connected_probe_evaluation.py": "c101bc5517acc720f66084a0d7859630f3d344a02831a671e2e790820fa68890"
+    },
+    "log": "/tmp/sfora-connected-probe-evaluator-source-gate.log",
+    "log_sha256": "8c61cdd345403ab783b222e7f5b48ac532dae31ce8b86d24cbf509cea928796d",
+    "native_runtime_executed": false
+  },
+  "preserved_original_sha256": {
+    "scripts/evaluate_siglip2_connected_mlp.py": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4",
+    "scripts/test_connected_mlp_evaluation.py": "48b47ea04f0cdf5f1980583d2a219c8d6803d0215293628956bc3b408139b89b"
+  },
+  "commit": "b52fda62c2d0d3011961098170867cc0d0df7aea",
+  "clean_worktree": true,
+  "serial_source_slot_released": true
+}

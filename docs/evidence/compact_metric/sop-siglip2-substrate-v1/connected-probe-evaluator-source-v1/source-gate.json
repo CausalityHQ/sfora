@@ -1,0 +1,25 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-u",
+    "scripts/test_connected_probe_evaluation.py",
+    "--source-only"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 113.69244155089837,
+  "rlimit_as_bytes": 1073741824,
+  "timeout_seconds": 120,
+  "max_child_rss_kib": 168284,
+  "source_before": {
+    "scripts/evaluate_siglip2_connected_probe.py": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+    "scripts/test_connected_probe_evaluation.py": "c101bc5517acc720f66084a0d7859630f3d344a02831a671e2e790820fa68890"
+  },
+  "source_after": {
+    "scripts/evaluate_siglip2_connected_probe.py": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+    "scripts/test_connected_probe_evaluation.py": "c101bc5517acc720f66084a0d7859630f3d344a02831a671e2e790820fa68890"
+  },
+  "log": "/tmp/sfora-connected-probe-evaluator-source-gate.log",
+  "log_sha256": "8c61cdd345403ab783b222e7f5b48ac532dae31ce8b86d24cbf509cea928796d",
+  "native_runtime_executed": false
+}
