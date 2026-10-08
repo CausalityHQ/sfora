@@ -219,7 +219,7 @@ def repin_contract(e, trainer):
         rejects(lambda: admit_cpu(changed), 'CPUv6 UNIT')
     raw = DRIVER.read_bytes()
     evaluator_repin_inverse(raw)
-    for before, after in ((b"else 500, 'host_bytes'", b"else 600, 'host_bytes'"),
+    for before, after in ((b"else 700, 'host_bytes'", b"else 701, 'host_bytes'"),
                           (b"'whole_service_ratio_max':1.50", b"'whole_service_ratio_max':1.51"),
                           (b"first_receipt['decision'] == 'CONTINUE'", b"first_receipt['decision'] == 'GO'")):
         assert raw.count(before) == 1
@@ -259,7 +259,7 @@ def source_contract(e, trainer, reference):
     cpu_unit = json.loads((EVIDENCE/'connected-mlp-cpu-v6/verification.json').read_text())['terminal']
     assert e.TRAINING_CPU == cpu_unit
     assert e.TRAINING_CPU['receipt']['sha256'] == hashlib.sha256((EVIDENCE/'connected-mlp-cpu-v6/receipt.json').read_bytes()).hexdigest()
-    assert e.policy('cpu')['seconds'] == 500
+    assert e.policy('cpu')['seconds'] == 700
     assert e.policy('score')['seconds'] == 700
     assert e.policy('export')['seconds'] == 1500
     assert e.COST_POLICY['whole_service_ratio_max'] == e.COST_POLICY['total_training_core_ratio_max'] == 1.50
@@ -306,7 +306,7 @@ def source_contract(e, trainer, reference):
 def export_envelope_contract(e):
     assert e.policy('export') == {'seconds': 1500, 'host_bytes': 8*1024**3,
                                   'swap_bytes': 0, 'cuda_visible_devices': '0'}
-    for phase, seconds in (('cpu', 500), ('score', 700)):
+    for phase, seconds in (('cpu', 700), ('score', 700)):
         assert e.policy(phase) == {'seconds': seconds, 'host_bytes': 8*1024**3,
                                    'swap_bytes': 0, 'cuda_visible_devices': ''}
     rejects(lambda: e.policy('train'), 'fixed evaluation phase')
@@ -319,7 +319,7 @@ def export_envelope_contract(e):
         evaluator_export_envelope_inverse(DRIVER.read_bytes())).hexdigest()
     assert cpu['launch']['resource_policies']['export']['seconds'] == 900
     args = SimpleNamespace(execution_sha256=cpu['execution_sha256'], phase='cpu', arm=None, seed=None)
-    e.check_resource_facts(cpu, 'cpu')  # CPU500 stays valid; its original900 launch cannot qualify1500.
+    cpu500_resource_facts(cpu)  # CPU500 stays valid; its original900 launch cannot qualify1500.
     rejects(lambda: e.check_launch(cpu['launch'], args), 'launch differs')
     launch = copy.deepcopy(cpu['launch'])
     launch['resource_policies'] = {p: e.policy(p) for p in ('cpu', 'export', 'score')}
@@ -341,7 +341,7 @@ def export_envelope_contract(e):
                        ('peak_cuda_allocated_bytes', 0), ('peak_cuda_allocated_bytes', 10_000_000_000),
                        ('peak_cuda_allocated_bytes', True), ('cuda_initialized', False)):
         rejects(lambda: e.check_resource_facts({**facts, key: value}, 'export'), 'resources')
-    for phase, seconds in (('cpu', 500), ('score', 700)):
+    for phase, seconds in (('cpu', 700), ('score', 700)):
         hidden = {**facts, 'resource_policy': e.policy(phase), 'wall_seconds': seconds-.001,
                   'peak_cuda_allocated_bytes': 0, 'cuda_initialized': False}
         e.check_resource_facts(hidden, phase)
@@ -357,7 +357,7 @@ def export_envelope_contract(e):
         for name in e.FILES}, 'training_context': {'source': cpu['source']}}
     for record in (cpu, {**cpu, 'launch': launch}):
         rejects(lambda: e.check_receipt(context, record, 'cpu'), 'complete source/resource evaluator receipt')
-    print('PASS prospective score700/export1500 boundaries/caps; historical CPU launch/source binding rejected; fresh ownCPU500 required')
+    print('PASS prospective score700/export1500 boundaries/caps; historical CPU launch/source binding rejected; fresh ownCPU700 required')
 
 
 def launch_contract(e):
@@ -834,7 +834,7 @@ def original_owner_contract(e):
     nearest_seam = SimpleNamespace(native_source_api=lambda t:SimpleNamespace(audit_origins=lambda *args,**kwargs:None),
         NATIVE_PROOF_PINS=nearest_training.NATIVE_PROOF_PINS)
     def terminal(admission, record, unit, seconds, guards):
-        assert admission is legacy['admission'] and seconds == original.policy(record['phase'])['seconds']
+        assert admission is legacy['admission'] and seconds == (e if record['source_code'] == code else original).policy(record['phase'])['seconds']
         e.require(unit['invocation_id'] == record['invocation']['invocation_id'], 'fixture terminal invocation differs')
         return record['cgroup_after']
     panel = {'original_rows':[None]*e.PANELS['selection'][0],'query':[],'gallery':[]}
@@ -871,6 +871,7 @@ def original_owner_contract(e):
     fresh.update(execution_sha256='e'*64,source_code=code,output='/fixture/current-cpu-output',
         launch={**current_launch,'phase':'cpu','selected_cpu':None,'exports':{}},
         authority={'path':'/fixture/current-cpu-authority','sha256':'c'*64},authority_sha256='c'*64)
+    fresh['resource_policy'] = e.policy('cpu')
     fresh['binding'] = e.binding({'launch':fresh['launch']})
     fresh['invocation']['invocation_id'] = 'f'*32
     fresh['invocation']['argv'] = e.cli(SimpleNamespace(execution_sha256='e'*64,phase='cpu',arm=None,seed=None,
@@ -884,7 +885,12 @@ def original_owner_contract(e):
     known.update(fresh['input_guards'])
     current_launch['selected_cpu'] = fresh_unit
     context['cpu'] = current_reader.accept_unit(context,fresh_unit,'cpu',panel='selection')
-    original_guard = production.load_original_owner(context)
+    rejects(lambda:production.load_original_owner(context), 'original selection endpoint/procedure')
+    # Exercise the unchanged archived owner after proving actual CPU700 cannot adopt it.
+    context.setdefault('helper_snapshots',[])
+    archived_context = {**context,'launch':{**current_launch,'resource_policies':
+        {**current_launch['resource_policies'],'cpu':launch['resource_policies']['cpu']}}}
+    original_guard = production.load_original_owner(archived_context)
     before = dict(common); current_cpu = context['cpu']; accumulated = dict(context['guards'])
     owner = production.original_owner_context(context,original_guard)
     assert context['common_guards'] == before and context['cpu'] is current_cpu
@@ -1057,6 +1063,7 @@ def original_owner_test_inverse():
 
 def bootstrap_inverse(raw):
     """Exact complete evaluator restoration to 37e1cf50 before historical inverses."""
+    raw = evaluator_cpu_envelope_inverse(raw)
     start = raw.index(b'# BEGIN BOOTSTRAP PREREQUISITE READER\n')
     end = raw.index(b'# BEGIN ENDPOINT READER AUTHENTICATION\n',start)
     raw = raw[:start]+raw[end:]
@@ -1077,6 +1084,7 @@ def bootstrap_inverse(raw):
 
 
 def bootstrap_test_inverse(raw):
+    raw = cpu_envelope_test_inverse(raw)
     start = raw.index(b'# BEGIN BOOTSTRAP PREREQUISITE FALSIFIER\n')
     end = raw.index(b'# BEGIN INITIALIZER DICT FALSIFIER\n',start)
     raw = raw[:start]+raw[end:]
@@ -2521,6 +2529,119 @@ def endpoint_authentication_contract():
 # END ENDPOINT AUTHENTICATION FALSIFIER
 
 
+# BEGIN CPU700 FALSIFIER
+
+def evaluator_cpu_envelope_inverse(raw):
+    """Restore all ca5caa4d bytes by undoing only the prospective own CPU cap."""
+    new = b"return {'seconds': 1500 if phase == 'export' else 700 if phase == 'score' else 700, 'host_bytes':8*1024**3,"
+    old = b"return {'seconds': 1500 if phase == 'export' else 700 if phase == 'score' else 500, 'host_bytes':8*1024**3,"
+    assert raw.count(new) == 1 and raw.count(old) == 0, 'exact CPU envelope literal differs'
+    raw = raw.replace(new, old, 1)
+    assert hashlib.sha256(raw).hexdigest() == \
+        '0a807abc27cbf7150824b2dd202e7be75aaa548f0e27918a1d5b1c862908850b', 'CPU inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw), include_attributes=False).encode()).hexdigest() == \
+        'b9fde02142ddf953aad16a579dbd77bf0e9ad35302cbb0677a1e52d5e08e1e2e', 'CPU inverse AST differs'
+    return raw
+
+
+def cpu_envelope_test_inverse(raw):
+    start = raw.index(b'# BEGIN CPU700 FALSIFIER\n')
+    end = raw.index(b'def main():\n', start)
+    raw = raw[:start]+raw[end:]
+    edits = (
+        (b"    for before, after in ((b\"else 700, 'host_bytes'\", b\"else 701, 'host_bytes'\"),\n",
+         b"    for before, after in ((b\"else 500, 'host_bytes'\", b\"else 600, 'host_bytes'\"),\n", 1),
+        (b"    assert e.policy('cpu')['seconds'] == 700\n", b"    assert e.policy('cpu')['seconds'] == 500\n", 1),
+        (b"    for phase, seconds in (('cpu', 700), ('score', 700)):\n",
+         b"    for phase, seconds in (('cpu', 500), ('score', 700)):\n", 2),
+        (b"    cpu500_resource_facts(cpu)  # CPU500 stays valid; its original900 launch cannot qualify1500.\n",
+         b"    e.check_resource_facts(cpu, 'cpu')  # CPU500 stays valid; its original900 launch cannot qualify1500.\n", 1),
+        (b'fresh ownCPU700 required', b'fresh ownCPU500 required', 1),
+        (b"        assert admission is legacy['admission'] and seconds == (e if record['source_code'] == code else original).policy(record['phase'])['seconds']\n",
+         b"        assert admission is legacy['admission'] and seconds == original.policy(record['phase'])['seconds']\n", 1),
+        (b"    fresh['resource_policy'] = e.policy('cpu')\n", b'', 1),
+        (b"    rejects(lambda:production.load_original_owner(context), 'original selection endpoint/procedure')\n"
+         b"    # Exercise the unchanged archived owner after proving actual CPU700 cannot adopt it.\n"
+         b"    context.setdefault('helper_snapshots',[])\n"
+         b"    archived_context = {**context,'launch':{**current_launch,'resource_policies':\n"
+         b"        {**current_launch['resource_policies'],'cpu':launch['resource_policies']['cpu']}}}\n"
+         b"    original_guard = production.load_original_owner(archived_context)\n",
+         b'    original_guard = production.load_original_owner(context)\n', 1),
+        (b'    raw = evaluator_cpu_envelope_inverse(raw)\n', b'', 1),
+        (b'    raw = cpu_envelope_test_inverse(raw)\n', b'', 1),
+        (b'    cpu_envelope_contract(e)\n', b'', 1),
+    )
+    for new, old, count in edits:
+        assert raw.count(new) == count, 'exact CPU test inverse edit differs'
+        raw = raw.replace(new, old)
+    assert hashlib.sha256(raw).hexdigest() == \
+        '09818ee1aab610160db21d95f16689c679000e26b1062296e81bb1f988fcbf63', 'CPU test inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw), include_attributes=False).encode()).hexdigest() == \
+        'e9429d51597b5882fea42c90f1223b0065835b58907bb7cfe5a43c92e22d38dd', 'CPU test inverse AST differs'
+    return raw
+
+
+def cpu500_resource_facts(record):
+    """Read the archived CPU500 predicate independently of the actual CPU700 API."""
+    tree = ast.parse(evaluator_export_envelope_inverse(DRIVER.read_bytes()))
+    nodes = [n for n in tree.body if isinstance(n, (ast.Import, ast.ImportFrom, ast.Assign)) or
+             isinstance(n, ast.FunctionDef) and n.name in {'require', 'policy', 'check_resource_facts'}]
+    namespace = {'__file__': str(DRIVER)}
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(DRIVER), 'exec'), namespace)
+    assert namespace['policy']('cpu')['seconds'] == 500
+    namespace['check_resource_facts'](record, 'cpu')
+
+
+def cpu_envelope_contract(e):
+    assert e.policy('cpu') == {'seconds': 700, 'host_bytes': 8*1024**3,
+                               'swap_bytes': 0, 'cuda_visible_devices': ''}
+    raw = DRIVER.read_bytes()
+    evaluator_cpu_envelope_inverse(raw)
+    cpu_envelope_test_inverse(Path(__file__).read_bytes())
+    for before, after in ((b"else 700, 'host_bytes'", b"else 701, 'host_bytes'"),
+                          (b"'host_bytes':8*1024**3", b"'host_bytes':8*1024**3+1"),
+                          (b"'swap_bytes':0", b"'swap_bytes':1"),
+                          (b"peak<10_000_000_000", b"peak<=10_000_000_000")):
+        assert raw.count(before) == 1
+        try:
+            evaluator_cpu_envelope_inverse(raw.replace(before, after, 1))
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('CPU inverse accepted unrelated source mutation')
+    for phase, seconds in (('cpu', 700), ('score', 700), ('export', 1500)):
+        assert e.policy(phase) == {'seconds': seconds, 'host_bytes': 8*1024**3,
+            'swap_bytes': 0, 'cuda_visible_devices': '0' if phase == 'export' else ''}
+        facts = {'resource_policy': e.policy(phase), 'wall_seconds': seconds-.001,
+            'process_peak_rss_kib': 8*1024**2,
+            'peak_cuda_allocated_bytes': 9_999_999_999 if phase == 'export' else 0,
+            'cuda_initialized': phase == 'export'}
+        e.check_resource_facts(facts, phase)
+        for wall in (0, float('nan'), True, seconds, e.policy(phase)['seconds']+1):
+            rejects(lambda: e.check_resource_facts({**facts, 'wall_seconds': wall}, phase), 'resources')
+        for key, value in (('host_bytes', 8*1024**3+1), ('swap_bytes', 1)):
+            bad = {**e.policy(phase), key: value}
+            rejects(lambda: e.check_resource_facts({**facts, 'resource_policy': bad}, phase), 'resources')
+        for key, value in (('process_peak_rss_kib', 8*1024**2+1),
+                           ('peak_cuda_allocated_bytes', 10_000_000_000 if phase == 'export' else 1),
+                           ('cuda_initialized', phase != 'export')):
+            rejects(lambda: e.check_resource_facts({**facts, key: value}, phase), 'resources')
+    original = EVIDENCE/'connected-mlp-evaluation-first-cpu-v1'
+    unit = json.loads((original/'unit.json').read_bytes())
+    archived = (original/'receipt.json').read_bytes()
+    assert hashlib.sha256(archived).hexdigest() == unit['receipt']['sha256']
+    cpu = json.loads(archived)
+    assert cpu['resource_policy']['seconds'] == 500
+    cpu500_resource_facts(cpu)
+    rejects(lambda: e.check_resource_facts(cpu, 'cpu'), 'resources')
+    assert (original/'receipt.json').read_bytes() == archived
+    assert not any(n.split('.')[0] in {'torch', 'numpy', 'PIL', 'sfora', 'transformers'} for n in sys.modules)
+    print('PASS actual ownCPU700 strict700/701, unchanged host/swap/CUDA/export1500/score700, historical CPU500 and exact source/test inverses; UNQUALIFIED')
+
+
+# END CPU700 FALSIFIER
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source-only', action='store_true', required=True)
@@ -2530,6 +2651,7 @@ def main():
     endpoint_authentication_contract()
     actual_admission_scan_falsifier()
     e = module('_connected_eval_source_test', DRIVER)
+    cpu_envelope_contract(e)
     trainer = module('_connected_eval_trainer_api', HERE/'train_siglip2_connected_mlp.py')
     original_owner_contract(e)
     original_owner_test_inverse()
