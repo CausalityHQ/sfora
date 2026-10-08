@@ -1,0 +1,16 @@
+{
+  "failure": "authenticated module registry/origin differs",
+  "files": {
+    "diagnostic.jsonl": "9454bce2284f33ed78569edc49f3b0a837d92fa7a3108787fa593636295b7a3d",
+    "original.log": "e15e05cb0badef3c4a441fa29f760664ba1b3ff41a3f303f0ecf8e1700ec6f36",
+    "terminal-status.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  "host_peak_bytes": 589524992,
+  "invocation_id": "e9120ebc13ff449a8a5f1849388b5cd2",
+  "pass": false,
+  "qualification_eligible": false,
+  "service_seconds": 188.03,
+  "state_reuse_eligible": false,
+  "zero_events": true,
+  "zero_swap": true
+}
