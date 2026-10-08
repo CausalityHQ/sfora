@@ -1,0 +1,16 @@
+Thu Oct  8 17:11:57 UTC 2026
+MainPID=1633496
+MemoryCurrent=1538588672
+MemoryPeak=1581768704
+ActiveState=active
+InvocationID=3b6c15018a904e9cb5f11272bd54fd2d
+    PID     ELAPSED     TIME %CPU   RSS STAT
+1633502       07:07 00:06:26 90.4 1416308 Dl
+rchar: 403620830919
+wchar: 729339
+syscr: 1469208
+syscw: 92
+read_bytes: 400958484480
+write_bytes: 700416
+cancelled_write_bytes: 421888
+0 %

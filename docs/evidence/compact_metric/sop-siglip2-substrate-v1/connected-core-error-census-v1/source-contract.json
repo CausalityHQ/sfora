@@ -1,0 +1,35 @@
+{
+  "base": "2e216785d6acbc423deaa4b01d70d14b6f1fb5c1",
+  "owns": [
+    "scripts/census_connected_core_errors.py",
+    "scripts/test_connected_core_errors.py"
+  ],
+  "cli": "python3 scripts/census_connected_core_errors.py --inputs FILE --inputs-sha256 SHA --output NEWFILE",
+  "input": "Exact sfora-existing-core-census-inputs-v1 fetch-receipt schema; four fixed seed/arm packed files plus fit.json; accepted original receipt and partition; no new schema fields.",
+  "api": [
+    "admit_inputs(path, sha256) -> state with complete fresh guards, authenticated metadata and wires (no scoring)",
+    "map_rows(fit, partition, receipt) -> selection row provenance",
+    "core_queries(quality, query_count) -> ordered four-endpoint wrong intersection",
+    "decode_wire(bytes, row_count) -> signed 128 codes + LE binary16 inverse norms",
+    "packed_score(query_row, gallery_row) -> two ordered FP32 multiplications of exact integer dot",
+    "describe_query(rows, labels, query, gallery, width) -> ranks/R1/AP@R/scores/margin (fixture tests only)",
+    "build_census(state) -> exact 44 x 1715 x four; strict receipt scalar replay",
+    "publish(output, payload, guards) -> full fresh canonical hash check; exclusive complete JSON publication"
+  ],
+  "output": {
+    "schema": "sfora-connected-core-error-census-v1",
+    "scope": "previously exposed TRAIN-selection, descriptive; original KILL retained",
+    "core_query_indices": "44 exact receipt-order indices",
+    "queries": "query index/panel ordinal/original fit ordinal/role/path/product/hash; four endpoint best-positive and top-impostor gallery indices/panel/fit ordinals/path/product/hash/scores, positive-minus-impostor margin, R_q, exact R1/AP replay",
+    "products": "per-product core counts plus panel query/gallery counts (metadata only)",
+    "provenance": "all consumed canonical paths/complete SHA256/byte lengths, original fetch record, scorer/replay source pins, ordered mapping digest, source/self hash, command, elapsed time and peak RSS"
+  },
+  "scalar_policy": "Exact equality, pinned evaluate_siglip2_prototype_residual.py replay_equal actually called by connected score_exports. Per-hit precision FP32, scalar FP32 accumulation, final FP32 division. Torch sum reduction order is not specified by the Python scorer: differing last bits reject, never tolerance/fallback.",
+  "publication": "No output on admission/scoring/replay/exit rehash failure. Write/fsync sibling temp, fresh rehash all guards immediately before atomic hard-link exclusive destination; cleanup temp. Existing destinations including symlinks rejected.",
+  "verification": "RED/GREEN fixture and input negative tests <=15s/1GiB; one final source suite <=120s/1GiB only after parent serial slot; native/actual census UNRUN.",
+  "row_provenance": "Sparse train_row retained. Sole firstcomponent Img->img alias under /home/riomus/datasets/inshop_official_standard proved by parent read-only metadata log /tmp/sfora-core-census-existing-Img-alias-metadata.log ORIGINAL exit0; exact fit path/relative_path retained alongside unique original guard hash/canonical path, exact remaining suffix. Other alias/missing/multiple/traversal rejects.",
+  "source_sha256": {
+    "scripts/census_connected_core_errors.py": "0fdc170019de1137ac9d82b55868ec8c8f8b21867d2a71c8c31a29f9a5b333d2",
+    "scripts/test_connected_core_errors.py": "22ec30708b26c6025026672b70dc78db0e2e401767840c968fbbd9c71246e7da"
+  }
+}

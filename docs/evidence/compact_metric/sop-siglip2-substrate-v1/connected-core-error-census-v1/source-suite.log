@@ -1,0 +1,30 @@
+test_changed_core_selection_is_rejected_before_scoring (__main__.AdmissionTests.test_changed_core_selection_is_rejected_before_scoring) ... ok
+test_complete_admission_and_fixture_only_census (__main__.AdmissionTests.test_complete_admission_and_fixture_only_census) ... ok
+test_current_complete_real_input_provenance_without_scoring (__main__.AdmissionTests.test_current_complete_real_input_provenance_without_scoring) ... ok
+test_fixture_replay_failure_never_publishes (__main__.AdmissionTests.test_fixture_replay_failure_never_publishes) ... ok
+test_rejects_fetch_schema_roles_hashes_shape_and_unbound_original (__main__.AdmissionTests.test_rejects_fetch_schema_roles_hashes_shape_and_unbound_original) ... ok
+test_cli_bad_hash_exits_nonzero_without_output (__main__.FileTests.test_cli_bad_hash_exits_nonzero_without_output) ... ok
+test_destination_created_during_write_is_never_overwritten (__main__.FileTests.test_destination_created_during_write_is_never_overwritten) ... ok
+test_exclusive_publication_and_exit_rehash (__main__.FileTests.test_exclusive_publication_and_exit_rehash) ... ok
+test_exit_rejects_input_replaced_by_symlink_with_identical_bytes (__main__.FileTests.test_exit_rejects_input_replaced_by_symlink_with_identical_bytes) ... ok
+test_hash_admission_and_fresh_exit_reject_mutated_bytes (__main__.FileTests.test_hash_admission_and_fresh_exit_reject_mutated_bytes) ... ok
+test_input_changes_during_output_write_are_rejected (__main__.FileTests.test_input_changes_during_output_write_are_rejected) ... ok
+test_input_json_rejects_duplicate_keys_and_nonfinite (__main__.FileTests.test_input_json_rejects_duplicate_keys_and_nonfinite) ... ok
+test_rejects_symlink_ancestors_relative_noncanonical_and_nonregular (__main__.FileTests.test_rejects_symlink_ancestors_relative_noncanonical_and_nonregular) ... ok
+test_write_failure_cleans_temp_and_never_publishes (__main__.FileTests.test_write_failure_cleans_temp_and_never_publishes) ... ok
+test_exact_complete_fit_and_role_mapping (__main__.MappingTests.test_exact_complete_fit_and_role_mapping) ... ok
+test_manifest_spelling_and_unique_guarded_image_hash_join (__main__.MappingTests.test_manifest_spelling_and_unique_guarded_image_hash_join) ... ok
+test_rejects_mapping_order_role_inventory_labels_and_paths (__main__.MappingTests.test_rejects_mapping_order_role_inventory_labels_and_paths) ... ok
+test_unproven_alias_rejected (__main__.MappingTests.test_unproven_alias_rejected) ... ok
+test_ap_precision_is_binary32_and_only_r_positions_count (__main__.ScoringTests.test_ap_precision_is_binary32_and_only_r_positions_count) ... ok
+test_core_uses_all_four_endpoints_in_original_query_order (__main__.ScoringTests.test_core_uses_all_four_endpoints_in_original_query_order) ... ok
+test_decode_signed_codes_and_little_endian_half (__main__.ScoringTests.test_decode_signed_codes_and_little_endian_half) ... ok
+test_replay_rejects_even_one_scalar_ulp (__main__.ScoringTests.test_replay_rejects_even_one_scalar_ulp) ... ok
+test_stable_gallery_order_and_ap_at_r (__main__.ScoringTests.test_stable_gallery_order_and_ap_at_r) ... ok
+test_two_ordered_float32_multiplications (__main__.ScoringTests.test_two_ordered_float32_multiplications) ... ok
+test_wire_rejects_shape_zero_codes_and_invalid_norms (__main__.ScoringTests.test_wire_rejects_shape_zero_codes_and_invalid_norms) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.448s
+
+OK

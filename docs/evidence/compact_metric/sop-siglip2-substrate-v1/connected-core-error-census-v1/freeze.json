@@ -1,0 +1,19 @@
+{
+  "address_space_bytes": 1073741824,
+  "command_sha256": "39cf77eead0f9a059d2b531ace334d4f935fdee153c4b110e199353d86175bd6",
+  "files": {
+    "census_connected_core_errors.py": "0fdc170019de1137ac9d82b55868ec8c8f8b21867d2a71c8c31a29f9a5b333d2",
+    "compare_inshop_sop_warmstart_100.py": "8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250",
+    "evaluate_siglip2_prototype_residual.py": "e74b944dee26565029a4ec7e6ea2948d0f23e8564e5ee60ffd2f876453f529eb",
+    "test_connected_core_errors.py": "22ec30708b26c6025026672b70dc78db0e2e401767840c968fbbd9c71246e7da"
+  },
+  "images_read": 0,
+  "input_sha256": "ba98da59fa68676beaea3e20f9f6911e85af3c89163bfe2161c430671ab7af5c",
+  "model_executions": 0,
+  "original_decision": "KILL",
+  "qualification_eligible": false,
+  "schema": "sfora-descriptive-core-census-freeze-v1",
+  "seconds": 300,
+  "stop_rule": "Any admission/scoring/exact replay/uncached exit failure: no census published; no fallback/tolerance/duplicate run.",
+  "strict_replay": true
+}

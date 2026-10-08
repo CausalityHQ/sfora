@@ -1,0 +1,19 @@
+{
+  "actual_ap": 0.2909099757671356,
+  "census_published": false,
+  "decision": "FAIL_EXACT_REPLAY",
+  "expected_original_ap": 0.290910005569458,
+  "failure_query_index": 747,
+  "images_read": 0,
+  "integrated_commit": "c954eeb1",
+  "model_executions": 0,
+  "next": "Any prospective descriptive census must preserve original Torch FP32 reduction arithmetic. No tolerance rescue or repeat of this arm. GPU serving original38345 remains live.",
+  "original_candidate_decision": "KILL",
+  "original_exit": 1,
+  "peak_rss_kib": 80040,
+  "quality_gate_changed": false,
+  "schema": "sfora-core-census-terminal-v1",
+  "source_worker_commit": "00df50f64b9572af4bf2d9f5646ab066b5d72791",
+  "swaps": 0,
+  "wall_seconds": 0.8
+}
