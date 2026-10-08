@@ -90,7 +90,7 @@ def read_go(unit):
 
 class Source:
     """Fresh byte reads and authenticated code/live identities, never a hash cache."""
-    def __init__(self, module, fact):
+    def __init__(self, module, fact, *, packed_source=None):
         raw = read_file(fact)
         require(len(raw) <= 2*1024**2, 'source exceeds2MiB')
         require(module.__file__ == fact['path'] and sys.modules.get(module.__name__) is module and
@@ -124,8 +124,22 @@ class Source:
             for fn in (legacy_packing[0],legacy_packing[2],legacy_packing[3]):
                 require(type(fn) is FunctionType and fn.__globals__ is vars(module) and
                     fn.__code__ == expected.get(fn.__qualname__), 'live source code differs')
+        self.packed_source = packed_source
+        reexports = ()
+        self.packing_declarations = ()
+        if packed_source is not None:
+            require(type(packed_source) is Source and module.__name__ == 'sfora.joint_relational_compaction' and
+                packed_source.module.__name__ == 'sfora.packed_int8', 'exact packing source composition required')
+            packed_source.check()
+            names = ('_PACKED_INT8_ARTIFACT_MAGIC','_SHA256_BYTES','_unit_rows','PackedInt8Embeddings',
+                'fixed_int8_unit_codes','pack_int8_unit_embeddings')
+            require(all(name in packed_source.values and self.values.get(name) is packed_source.values[name]
+                for name in names), 'canonical packing reexports differ')
+            reexports = tuple(packed_source.values[name] for name in names)
+            self.packing_declarations = tuple(zip(names[2:],reexports[2:],strict=True))
         self.classes, self.functions = [], []
         for value in self.values.values():
+            if any(value is owned for owned in reexports): continue
             members = [value]
             generated = False
             if isinstance(value, type) and (value.__module__ == module.__name__ or value in legacy_packing):
@@ -160,6 +174,7 @@ class Source:
                     self.functions.append((original,original.__code__,original.__defaults__,copy.deepcopy(original.__kwdefaults__)))
         self.function_state = [(fn,dict(vars(fn)),tuple(c.cell_contents for c in fn.__closure__ or ()))
                                for fn,*rest in self.functions]
+        if packed_source is not None: self.check()
 
     @classmethod
     def load(cls, fact):
@@ -177,11 +192,14 @@ class Source:
             raise
 
     def check(self):
+        if self.packed_source is not None: self.packed_source.check()
         read_file(self.fact)
         module = self.module
         require(sys.modules.get(module.__name__) is module and vars(module).keys() == self.values.keys() and
                 all(vars(module)[k] is v for k,v in self.values.items()) and
                 all(vars(module)[k] == v for k,v in self.literals.items()) and
+                all(value.__module__ == module.__name__ and value.__name__ == name and value.__qualname__ == name
+                    for name,value in self.packing_declarations) and
                 all(vars(cls).keys() == values.keys() and all(vars(cls)[k] is v for k,v in values.items())
                     for cls,values in self.classes) and
                 all(fn.__code__ is code and fn.__defaults__ == defaults and
@@ -504,15 +522,15 @@ def run(args):
         from PIL import Image
         from sfora import cutile_int8, joint_relational_compaction, packed_int8
         native_source = Source(cutile_int8,sources['native_wrapper'])
-        packing_source = Source(joint_relational_compaction,sources['packing'])
         packed_source = Source(packed_int8,sources['packed'])
+        packing_source = Source(joint_relational_compaction,sources['packing'],packed_source=packed_source)
         bridge_source = Source.load(sources['bridge']); owned.append(bridge_source)
         torch.random.default_generator.manual_seed(survivor['seed'])
         torch.cuda.manual_seed_all(survivor['seed'])
         rng, cuda_rng = torch.random.get_rng_state().clone(), torch.cuda.get_rng_state_all()
         def guard(*, reserve=True):
             locks.check()
-            for source in (self_source,observer_source,evaluator_source,bridge_source,native_source,packing_source,packed_source): source.check()
+            for source in (self_source,observer_source,evaluator_source,bridge_source,native_source,packed_source,packing_source): source.check()
             for fact in [*sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],
                          authority_fact,authority['observation'],
                          authority['evaluation_authority'],observation['native'],observation['gallery']['file']]:

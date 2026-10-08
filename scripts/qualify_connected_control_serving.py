@@ -401,15 +401,15 @@ def run(args):
         from PIL import Image
         from sfora import cutile_int8,joint_relational_compaction,packed_int8
         wrapper_source = requests.Source(cutile_int8,sources['native_wrapper'])
-        packing_source = requests.Source(joint_relational_compaction,sources['packing'])
         packed_source = requests.Source(packed_int8,sources['packed'])
+        packing_source = requests.Source(joint_relational_compaction,sources['packing'],packed_source=packed_source)
         bridge_source = requests.Source.load(sources['bridge']); owned.append(bridge_source)
         torch.random.default_generator.manual_seed(179061); torch.cuda.manual_seed_all(179061)
         rng,cuda_rng = torch.random.get_rng_state().clone(),torch.cuda.get_rng_state_all()
         def guard(*,reserve=True):
             locks.check()
             for source in (self_source,request_source,observer_source,native_source,evaluator_source,
-                bridge_source,wrapper_source,packing_source,packed_source): source.check()
+                bridge_source,wrapper_source,packed_source,packing_source): source.check()
             for file in frozen: observer.file_bytes(file)
             observer.check_runtime_sources(observation['sources'],observation['bundle'])
             api.authenticate()

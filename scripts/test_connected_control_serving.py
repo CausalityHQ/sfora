@@ -870,7 +870,95 @@ CONTROL = {'arm':'control','seed':179061}
 }
 
 
+# Exact packing-owner composition delta from a4cd; reverse before historical inverses.
+ALIAS_DELTAS = {'qualify_connected_serving_requests.py': ('f525f40b13e60d2f4b4b1b5bdbcbbb4c0d68a20cd9acc0bba2462e27d23551f9',
+                                           [('    def __init__(self, module, fact):\n',
+                                             '    def __init__(self, module, fact, *, '
+                                             'packed_source=None):\n'),
+                                            ('        self.classes, self.functions = [], []\n',
+                                             '        self.packed_source = packed_source\n'
+                                             '        reexports = ()\n'
+                                             '        self.packing_declarations = ()\n'
+                                             '        if packed_source is not None:\n'
+                                             '            require(type(packed_source) is Source and '
+                                             "module.__name__ == 'sfora.joint_relational_compaction' and\n"
+                                             '                packed_source.module.__name__ == '
+                                             "'sfora.packed_int8', 'exact packing source composition "
+                                             "required')\n"
+                                             '            packed_source.check()\n'
+                                             '            names = '
+                                             "('_PACKED_INT8_ARTIFACT_MAGIC','_SHA256_BYTES','_unit_rows','PackedInt8Embeddings',\n"
+                                             '                '
+                                             "'fixed_int8_unit_codes','pack_int8_unit_embeddings')\n"
+                                             '            require(all(name in packed_source.values and '
+                                             'self.values.get(name) is packed_source.values[name]\n'
+                                             "                for name in names), 'canonical packing "
+                                             "reexports differ')\n"
+                                             '            reexports = tuple(packed_source.values[name] for '
+                                             'name in names)\n'
+                                             '            self.packing_declarations = '
+                                             'tuple(zip(names[2:],reexports[2:],strict=True))\n'
+                                             '        self.classes, self.functions = [], []\n'),
+                                            ('        for value in self.values.values():\n'
+                                             '            members = [value]\n',
+                                             '        for value in self.values.values():\n'
+                                             '            if any(value is owned for owned in reexports): '
+                                             'continue\n'
+                                             '            members = [value]\n'),
+                                            ('    def check(self):\n        read_file(self.fact)\n',
+                                             '    def check(self):\n'
+                                             '        if self.packed_source is not None: '
+                                             'self.packed_source.check()\n'
+                                             '        read_file(self.fact)\n'),
+                                            ('        packing_source = '
+                                             "Source(joint_relational_compaction,sources['packing'])\n"
+                                             '        packed_source = '
+                                             "Source(packed_int8,sources['packed'])\n",
+                                             "        packed_source = Source(packed_int8,sources['packed'])\n"
+                                             '        packing_source = '
+                                             "Source(joint_relational_compaction,sources['packing'],packed_source=packed_source)\n"),
+                                            ('bridge_source,native_source,packing_source,packed_source): '
+                                             'source.check()',
+                                             'bridge_source,native_source,packed_source,packing_source): '
+                                             'source.check()'),
+                                            ('                               for fn,*rest in '
+                                             'self.functions]\n',
+                                             '                               for fn,*rest in '
+                                             'self.functions]\n'
+                                             '        if packed_source is not None: self.check()\n'),
+                                            ('                all(vars(module)[k] == v for k,v in '
+                                             'self.literals.items()) and\n',
+                                             '                all(vars(module)[k] == v for k,v in '
+                                             'self.literals.items()) and\n'
+                                             '                all(value.__module__ == module.__name__ and '
+                                             'value.__name__ == name and value.__qualname__ == name\n'
+                                             '                    for name,value in '
+                                             'self.packing_declarations) and\n')]),
+ 'qualify_connected_control_serving.py': ('245aa7096358d723be94569e0e305f0e7404a1fd99472aa00331414f804ea901',
+                                          [('        packing_source = '
+                                            "requests.Source(joint_relational_compaction,sources['packing'])\n"
+                                            '        packed_source = '
+                                            "requests.Source(packed_int8,sources['packed'])\n",
+                                            '        packed_source = '
+                                            "requests.Source(packed_int8,sources['packed'])\n"
+                                            '        packing_source = '
+                                            "requests.Source(joint_relational_compaction,sources['packing'],packed_source=packed_source)\n"),
+                                           ('bridge_source,wrapper_source,packing_source,packed_source): '
+                                            'source.check()',
+                                            'bridge_source,wrapper_source,packed_source,packing_source): '
+                                            'source.check()')])}
+
+
+def reverse_alias(raw, name):
+    if name not in ALIAS_DELTAS: return raw
+    for before,after in reversed(ALIAS_DELTAS[name][1]):
+        if raw.count(after) != 1: raise ValueError('exact packing alias delta differs')
+        raw = raw.replace(after,before,1)
+    return raw
+
+
 def reverse_migration(raw, name):
+    raw = reverse_alias(raw,name)
     for before,after in reversed(MIGRATION_DELTAS[name][1]):
         if raw.count(after) != 1: raise ValueError("exact migration delta differs")
         raw = raw.replace(after,before,1)
@@ -1192,9 +1280,44 @@ def genuine_exit_fixture(root):
 
 
 class ControlTests(unittest.TestCase):
+    def test_alias_delta_reverses_complete_a4cd_driver_asts_and_rejects_mutants(self):
+        for name,(digest,changes) in ALIAS_DELTAS.items():
+            raw = (HERE/name).read_text()
+            with self.subTest(source=name): production_inverse(raw,digest,changes)
+            for before,after in changes:
+                with self.subTest(delta=after),self.assertRaisesRegex(ValueError,'delta'):
+                    production_inverse(raw.replace(after,after[:-1]+'?',1),digest,changes)
+                with self.subTest(duplicate=after),self.assertRaisesRegex(ValueError,'delta'):
+                    production_inverse(raw+after,digest,changes)
+            with self.subTest(retained=name),self.assertRaisesRegex(ValueError,'AST'):
+                production_inverse(raw.replace('raise ValueError(message)','raise RuntimeError(message)',1),digest,changes)
+
+    def test_both_drivers_compose_actual_packing_sources_in_dependency_order(self):
+        helpers = load('_control_actual_packing_helpers',HERE/'test_connected_serving_requests.py')
+        request = load('_control_actual_packing_request',HERE/'qualify_connected_serving_requests.py')
+        with helpers.actual_packing_modules() as (packed,joint):
+            for name in ('qualify_connected_serving_requests.py','qualify_connected_control_serving.py'):
+                tree = ast.parse((HERE/name).read_bytes())
+                run = next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name == 'run')
+                assignments = [n for n in ast.walk(run) if isinstance(n,ast.Assign) and
+                    isinstance(n.targets[0],ast.Name) and n.targets[0].id in ('packed_source','packing_source')]
+                assignments.sort(key=lambda n:n.lineno)
+                values = {'Source':request.Source,'requests':request,'packed_int8':packed,
+                    'joint_relational_compaction':joint,'sources':{
+                        'packed':fact(Path(packed.__file__)),'packing':fact(Path(joint.__file__))}}
+                with self.subTest(driver=name):
+                    exec(compile(ast.Module(body=assignments,type_ignores=[]),str(HERE/name),'exec'),values)
+                    self.assertEqual([n.targets[0].id for n in assignments],['packed_source','packing_source'])
+                    values['packing_source'].check()
+                    guard = next(n for n in ast.walk(run) if isinstance(n,ast.FunctionDef) and n.name == 'guard')
+                    loop = next(n for n in ast.walk(guard) if isinstance(n,ast.For) and
+                        isinstance(n.target,ast.Name) and n.target.id == 'source')
+                    order = [n.id for n in loop.iter.elts]
+                    self.assertLess(order.index('packed_source'),order.index('packing_source'))
+
     def test_migration_reverses_complete_three_production_asts_and_rejects_mutants(self):
         for name,(digest,changes) in MIGRATION_DELTAS.items():
-            raw = (HERE/name).read_text()
+            raw = reverse_alias((HERE/name).read_text(),name)
             with self.subTest(source=name): production_inverse(raw,digest,changes)
             for before,after in changes:
                 with self.subTest(delta=after),self.assertRaisesRegex(ValueError,'delta'):

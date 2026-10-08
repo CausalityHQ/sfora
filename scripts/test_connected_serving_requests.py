@@ -37,6 +37,20 @@ class NoNative(importlib.abc.MetaPathFinder):
 
 
 @contextmanager
+def actual_packing_modules():
+    """Execute both unchanged sources; tensor libraries remain inert import names."""
+    nn = ModuleType('torch.nn'); nn.Module = object
+    nn.functional = ModuleType('torch.nn.functional')
+    stubs = {'sfora':ModuleType('sfora'),'numpy':ModuleType('numpy'),
+        'torch':ModuleType('torch'),'torch.nn':nn,'torch.nn.functional':nn.functional}
+    with patch.dict(sys.modules,stubs):
+        packed = load('sfora.packed_int8',HERE.parent/'src/sfora/packed_int8.py')
+        joint = load('sfora.joint_relational_compaction',HERE.parent/'src/sfora/joint_relational_compaction.py')
+        stubs['sfora'].packed_int8, stubs['sfora'].joint_relational_compaction = packed,joint
+        yield packed,joint
+
+
+@contextmanager
 def public_fixture(root):
     """Real bridge/observer/serializer/release; native and PIL boundaries are standins."""
     helpers = load('_requests_fixture_helpers', HERE / 'test_observe_connected_serving.py')
@@ -143,6 +157,73 @@ class DriverTests(unittest.TestCase):
         self.assertTrue((HERE / 'qualify_connected_serving_requests.py').is_file(),
                         'request driver implementation missing')
         return self.driver
+
+    def test_actual_joint_default_source_rejects_packed_reexports(self):
+        driver = self.driver_module()
+        with actual_packing_modules() as (packed,joint):
+            driver.Source(packed,fact(Path(packed.__file__))).check()
+            with self.assertRaisesRegex(ValueError,'live source code differs'):
+                driver.Source(joint,fact(Path(joint.__file__)))
+
+    def test_actual_joint_composes_authenticated_packed_owner(self):
+        driver = self.driver_module()
+        with actual_packing_modules() as (packed,joint):
+            packed_source = driver.Source(packed,fact(Path(packed.__file__)))
+            source = driver.Source(joint,fact(Path(joint.__file__)),packed_source=packed_source)
+            source.check()
+            for fn in (joint._validate_basis,joint.RelationalLinearEncoder.forward,
+                    packed._unit_rows,packed.fixed_int8_unit_codes,packed.pack_int8_unit_embeddings,
+                    packed.PackedInt8Embeddings.from_bytes.__func__,packed.PackedInt8Embeddings.bytes_per_vector.fget):
+                code = fn.__code__
+                try:
+                    fn.__code__ = (lambda *a:None).__code__
+                    with self.subTest(function=fn.__qualname__):
+                        with self.assertRaisesRegex(ValueError,'live source'): source.check()
+                        with self.assertRaisesRegex(ValueError,'live source'):
+                            driver.Source(joint,fact(Path(joint.__file__)),packed_source=packed_source)
+                finally: fn.__code__ = code
+            for module,name in ((joint,'math'),(packed,'torch'),(joint,'RelationalLinearEncoder'),
+                    (joint,'PackedInt8Embeddings'),(joint,'_PACKED_INT8_ARTIFACT_MAGIC'),(joint,'_SHA256_BYTES')):
+                with self.subTest(binding=name),patch.object(module,name,object()):
+                    with self.assertRaisesRegex(ValueError,'live source'): source.check()
+            for name in ('_PACKED_INT8_ARTIFACT_MAGIC','_SHA256_BYTES','_unit_rows','PackedInt8Embeddings',
+                    'fixed_int8_unit_codes','pack_int8_unit_embeddings'):
+                with self.subTest(alias=name),patch.object(joint,name,object()):
+                    with self.assertRaisesRegex(ValueError,'packing reexports'):
+                        driver.Source(joint,fact(Path(joint.__file__)),packed_source=packed_source)
+            fn = packed._unit_rows
+            foreign = driver.FunctionType(fn.__code__,dict(fn.__globals__),fn.__name__)
+            foreign.__qualname__,foreign.__module__ = fn.__qualname__,fn.__module__
+            with patch.object(joint,'_unit_rows',foreign):
+                with self.assertRaisesRegex(ValueError,'packing reexports'):
+                    driver.Source(joint,fact(Path(joint.__file__)),packed_source=packed_source)
+            with patch.object(packed,'_unit_rows',foreign):
+                with self.assertRaisesRegex(ValueError,'live source'): source.check()
+                with self.assertRaisesRegex(ValueError,'live source'):
+                    driver.Source(packed,fact(Path(packed.__file__)))
+            for value in (packed._unit_rows,packed.PackedInt8Embeddings):
+                for attr in ('__name__','__qualname__','__module__'):
+                    original = getattr(value,attr)
+                    try:
+                        setattr(value,attr,'foreign')
+                        with self.subTest(metadata=attr):
+                            with self.assertRaisesRegex(ValueError,'live source'): source.check()
+                            with self.assertRaisesRegex(ValueError,'live source'):
+                                driver.Source(joint,fact(Path(joint.__file__)),packed_source=packed_source)
+                            with self.assertRaisesRegex(ValueError,'packing declarations'):
+                                driver.Source(packed,fact(Path(packed.__file__)))
+                    finally: setattr(value,attr,original)
+            wrong = driver.Source(driver,fact(Path(driver.__file__)))
+            for owner in (object(),wrong):
+                with self.subTest(owner=type(owner)),self.assertRaisesRegex(ValueError,'packing source composition'):
+                    driver.Source(joint,fact(Path(joint.__file__)),packed_source=owner)
+            with self.assertRaisesRegex(ValueError,'packing source composition'):
+                driver.Source(packed,fact(Path(packed.__file__)),packed_source=packed_source)
+            with patch.object(driver,'read_file',wraps=driver.read_file) as reads:
+                source.check(); source.check()
+                self.assertEqual([call.args[0]['path'] for call in reads.call_args_list],
+                    [packed.__file__,joint.__file__]*2)
+            source.check()
 
     def test_actual_packed_source_authenticates_legacy_metadata_and_globals(self):
         driver = self.driver_module()
