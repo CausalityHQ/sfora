@@ -1,0 +1,19 @@
+{
+  "CODE": {
+    "code": {
+      "evaluate_siglip2_connected_probe.py": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+      "test_connected_probe_evaluation.py": "c101bc5517acc720f66084a0d7859630f3d344a02831a671e2e790820fa68890"
+    },
+    "execution_sha256": "e1f5bb49de7f26cd582fa014381b0d0e30bf244f1c8e20d33e0cd1103452d0b4",
+    "root": "/home/riomus/runs/sfora-connected-probe-evaluation-source-v1"
+  },
+  "TRAINING_CPU_evidence": "connected-probe-cpu-v2 accepted-unit.json",
+  "historical_scope_cpu_PENDING": "historical planning only; superseded by accepted CPU UNIT3878bdb9 in executable source",
+  "native_quality_speed_qualified": false,
+  "native_scoring_authority": "NOT CREATED; requires actual accepted paired TRAIN endpoints and evaluator CPU",
+  "review": "6e6932c9a8cc48bf both terminal sourceGO",
+  "reviewed_commit": "37f46b0c40d9843045e9ca8db3106cd0292b4a00",
+  "schema": "connected-probe-evaluator-source-freeze-v1",
+  "source_gate_exit": 0,
+  "source_gate_seconds": 113.69244155089837
+}
