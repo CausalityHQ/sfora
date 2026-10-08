@@ -1053,10 +1053,95 @@ def original_owner_test_inverse():
 # END ORIGINAL OWNER FALSIFIER
 
 
+# BEGIN BUILTIN BASELINE FALSIFIER
+
+def builtin_baseline_inverse(raw):
+    """Restore the held repair exactly before applying its unchanged inverses."""
+    edits = [
+        (b"# BEGIN ENDPOINT READER AUTHENTICATION\n# Capture the interpreter bindings at evaluator import, before helper admission.\n_SOURCE_BUILTINS = tuple(vars(__import__('builtins')).items())\n\nFIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',\n", b"# BEGIN ENDPOINT READER AUTHENTICATION\n# Capture the interpreter bindings at evaluator import, before helper admission.\n_SOURCE_BUILTINS = vars(__import__('builtins')).copy()\n\nFIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',\n"),
+        (b'\n\ndef _capture_source_builtins(function):\n    """Keep the import-time baseline out of the mutable helper-admission globals."""\n    canonical = _SOURCE_BUILTINS\n    error,code = ValueError,function.__code__\n    def source_live_guard(module, digest, guards, names=None, class_name=None):\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error(\'authenticated builtin baseline/source binding changed\')\n        return function(canonical,module,digest,guards,names,class_name)\n    return source_live_guard\n\n\n@_capture_source_builtins\ndef source_live_guard(baseline, module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = {key:value for key,value in baseline}\n    builtin_namespace = canonical[\'__import__\'](\'builtins\').__dict__\n    namespaces = [module.__dict__,canonical[\'globals\']()]\n', b'\n\ndef source_live_guard(module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = _SOURCE_BUILTINS.copy()\n    builtin_namespace = canonical[\'__import__\'](\'builtins\').__dict__\n    namespaces = [module.__dict__,canonical[\'globals\']()]\n'),
+        (b"    def builtin_guard():\n        # No global/builtin calls: even all/any/type/ValueError may have changed.\n        if _SOURCE_BUILTINS is not baseline:\n            raise error('authenticated builtin baseline binding changed')\n        for key,value in canonical.items():\n            if builtin_namespace.get(key) is not value:\n", b'    def builtin_guard():\n        # No global/builtin calls: even all/any/type/ValueError may have changed.\n        for key,value in canonical.items():\n            if builtin_namespace.get(key) is not value:\n'),
+    ]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'builtin baseline source inverse edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == '08220b8dcb4ee5ad6b5cda7ecc9f587c3ef90f6ba52046a4af6ddadf4471fe0a', 'builtin baseline source inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == '695567e05996a71b56ebb8d345277ebb3737ae8178055229d8c0aebc50d9c996', 'builtin baseline source inverse AST differs'
+    return raw
+
+
+def builtin_baseline_test_inverse(raw):
+    start = raw.index(b'# BEGIN BUILTIN BASELINE FALSIFIER\n')
+    end = raw.index(b'# BEGIN TRANSITIVE AUTHENTICATION FALSIFIER\n',start)
+    raw = raw[:start]+raw[end:]
+    for added in (b'    raw = builtin_baseline_inverse(raw)\n', b'    raw = builtin_baseline_test_inverse(raw)\n', b'    builtin_baseline_contract(e)\n'):
+        assert raw.count(added) == 1, 'builtin baseline test inverse edit differs'
+        raw = raw.replace(added,b'',1)
+    assert hashlib.sha256(raw).hexdigest() == '42f95d16a86e4d7f13e7872597520bfc0c82ee5c6d66d9af859482ae6d036016', 'builtin baseline test inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == '5566cbae69e80179d4b641819b65ae743134d53b542c3d2a3eb2eb9fa05fdb60', 'builtin baseline test inverse AST differs'
+    return raw
+
+
+def builtin_baseline_contract(e, case=None):
+    """The import-time truth cannot be jointly poisoned with canonical all."""
+    import builtins
+    with tempfile.TemporaryDirectory() as directory:
+        path=Path(directory)/'genuine.py';path.write_text('def valid(v):\n    return all(v)\n')
+        genuine=module('_builtin_baseline_genuine',path)
+        digest=hashlib.sha256(path.read_bytes()).hexdigest()
+        cases=('poison_before','rebind_before','poison_after','rebind_after')
+        for selected in cases if case is None else (case,):
+            baseline=e._SOURCE_BUILTINS;saved=builtins.all;changed=False
+            values=dict(baseline)
+            replacement=lambda values:True
+            guard=e.source_live_guard(genuine,digest,{})
+            guard();assert genuine.valid([False]) is False
+            try:
+                if selected.startswith('poison'):
+                    try:
+                        baseline['all']=replacement
+                        changed=True
+                    except TypeError:
+                        assert values['all'] is saved
+                        if selected=='poison_after':
+                            guard()
+                            continue
+                else:
+                    e._SOURCE_BUILTINS={**values,'all':replacement}
+                if selected.endswith('before'):
+                    builtins.all=replacement
+                    assert genuine.valid([False]) is True
+                    rejects(lambda:e.source_live_guard(genuine,digest,{}),'builtin')
+                else:
+                    # The canonical builtin is unchanged: the baseline alone is guarded.
+                    rejects(guard,'builtin')
+            finally:
+                builtins.all=saved
+                if changed:
+                    baseline['all']=saved
+                e._SOURCE_BUILTINS=baseline
+            guard();assert genuine.valid([False]) is False
+        from types import FunctionType
+        core=next(cell.cell_contents for cell in e.source_live_guard.__closure__
+            if type(cell.cell_contents) is FunctionType)
+        saved=core.__code__
+        try:
+            core.__code__=(lambda *args:None).__code__
+            rejects(lambda:e.source_live_guard(genuine,digest,{}),'builtin baseline/source')
+        finally:
+            core.__code__=saved
+        e.source_live_guard(genuine,digest,{})()
+    print('PASS immutable import-time builtin baseline',case or 'all cases')
+
+
+# END BUILTIN BASELINE FALSIFIER
+
+
 # BEGIN TRANSITIVE AUTHENTICATION FALSIFIER
 
 def transitive_auth_inverse(raw):
     """Undo only this finite binding repair; retain every earlier inverse hash."""
+    raw = builtin_baseline_inverse(raw)
     edits = [
         (b"\n# BEGIN ENDPOINT READER AUTHENTICATION\n# Capture the interpreter bindings at evaluator import, before helper admission.\n_SOURCE_BUILTINS = vars(__import__('builtins')).copy()\n\nFIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',\n    'execution_sha256':'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a',\n", b"\n# BEGIN ENDPOINT READER AUTHENTICATION\nFIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',\n    'execution_sha256':'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a',\n"),
         (b'def source_live_guard(module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = _SOURCE_BUILTINS.copy()\n    builtin_namespace = canonical[\'__import__\'](\'builtins\').__dict__\n    namespaces = [module.__dict__,canonical[\'globals\']()]\n    error = canonical[\'ValueError\']\n    def builtin_guard():\n        # No global/builtin calls: even all/any/type/ValueError may have changed.\n        for key,value in canonical.items():\n            if builtin_namespace.get(key) is not value:\n                raise error(\'authenticated builtin binding changed: \'+key)\n            if key not in (\'__name__\',\'__doc__\',\'__package__\',\'__loader__\',\'__spec__\'):\n                for namespace in namespaces:\n                    if key in namespace:\n                        raise error(\'authenticated builtin shadow: \'+key)\n    def require(condition, message):\n        if not condition:\n            raise error(message)\n    builtin_guard()\n    import builtins\n    from types import ModuleType\n', b'def source_live_guard(module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    import builtins\n    from types import ModuleType\n'),
@@ -1077,6 +1162,7 @@ def transitive_auth_inverse(raw):
 
 
 def transitive_auth_test_inverse(raw):
+    raw = builtin_baseline_test_inverse(raw)
     start = raw.index(b'# BEGIN TRANSITIVE AUTHENTICATION FALSIFIER\n')
     end = raw.index(b'# BEGIN ENDPOINT AUTHENTICATION FALSIFIER\n',start)
     raw = raw[:start]+raw[end:]
@@ -1721,6 +1807,7 @@ def endpoint_authority_routing_contract(e):
 
 def endpoint_authentication_contract():
     e=module('_endpoint_complete_evaluator',DRIVER)
+    builtin_baseline_contract(e)
     builtin_namespace_contract(e)
     endpoint_auth_inverse(DRIVER.read_bytes())
     endpoint_auth_test_inverse(Path(__file__).read_bytes())

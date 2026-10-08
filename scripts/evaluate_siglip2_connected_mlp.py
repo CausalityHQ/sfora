@@ -79,7 +79,7 @@ MEMBERS = ('config','buffers','processor','head','A','means','C','mu_train','mu_
 
 # BEGIN ENDPOINT READER AUTHENTICATION
 # Capture the interpreter bindings at evaluator import, before helper admission.
-_SOURCE_BUILTINS = vars(__import__('builtins')).copy()
+_SOURCE_BUILTINS = tuple(vars(__import__('builtins')).items())
 
 FIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',
     'execution_sha256':'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a',
@@ -94,14 +94,28 @@ FIRST_SELECTION_UNIT = {'both_locks_held':True,'invocation_id':'c47869c3b2d24e70
     'service_seconds':617.915,'unit':'sfora-connected-mlp-evaluation-first-selection-score-v2'}
 
 
-def source_live_guard(module, digest, guards, names=None, class_name=None):
+def _capture_source_builtins(function):
+    """Keep the import-time baseline out of the mutable helper-admission globals."""
+    canonical = _SOURCE_BUILTINS
+    error,code = ValueError,function.__code__
+    def source_live_guard(module, digest, guards, names=None, class_name=None):
+        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:
+            raise error('authenticated builtin baseline/source binding changed')
+        return function(canonical,module,digest,guards,names,class_name)
+    return source_live_guard
+
+
+@_capture_source_builtins
+def source_live_guard(baseline, module, digest, guards, names=None, class_name=None):
     """Independent lexical source/runtime binding, including genuine class methods."""
-    canonical = _SOURCE_BUILTINS.copy()
+    canonical = {key:value for key,value in baseline}
     builtin_namespace = canonical['__import__']('builtins').__dict__
     namespaces = [module.__dict__,canonical['globals']()]
     error = canonical['ValueError']
     def builtin_guard():
         # No global/builtin calls: even all/any/type/ValueError may have changed.
+        if _SOURCE_BUILTINS is not baseline:
+            raise error('authenticated builtin baseline binding changed')
         for key,value in canonical.items():
             if builtin_namespace.get(key) is not value:
                 raise error('authenticated builtin binding changed: '+key)
