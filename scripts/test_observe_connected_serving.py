@@ -62,7 +62,7 @@ def modules(stubs):
 
 class Tensor:
     """Logical byte views model aliasing and unchanged-version .data mutation."""
-    widths = {'uint8': 1, 'float32': 4, 'int64': 8}
+    widths = {'uint8':1, 'float32':4, 'int64':8, 'torch.float32':4, 'torch.int8':1, 'torch.float16':2}
 
     def __init__(self, raw, dtype='uint8', shape=None, indices=None):
         self.data = raw if isinstance(raw, bytearray) else bytearray(raw)
@@ -166,6 +166,90 @@ def serializer_check(d, original):
         finally:
             sys.setprofile(None)
 
+
+
+def resource_accounting_check(d, original):
+    sources = {'serializer':binding(Path(original.__file__))}
+    with modules({'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8')}):
+        probe = d.RequestObserver(original.fingerprint, sources)
+        probe.calls = 2_000_000
+        expected = original.fingerprint(Tensor(b'ab'))
+        assert d.observe_call(probe, lambda:original.fingerprint(Tensor(b'ab'))) == expected
+        report = probe.report()
+        assert report['resource_usage']['total_calls'] > 2_000_000
+        assert report['instrumentation_policy']['total_calls'] == 'diagnostic_only'
+        assert report['first_failure'] is None
+        for predicate, seed in (
+                ('aggregate_keys', lambda p:p.events.update({('python','x',str(i),1,'other/unresolved'):[1,1,1,0] for i in range(4096)})),
+                ('tensor_occurrences', lambda p:p.leaves.extend([{}]*4096)),
+                ('fingerprint_records', lambda p:p.fingerprints.extend([{}]*4096)),
+                ('encoded_bytes', lambda p:setattr(p,'metadata_bytes',8*1024**2))):
+            probe = d.RequestObserver(original.fingerprint, sources)
+            seed(probe)
+            rejects(lambda:d.observe_call(probe, lambda:original.fingerprint(Tensor(b'ab'))), predicate)
+            failure = probe.first_failure
+            assert failure['predicate'] == predicate and failure['total_calls'] > 0
+            assert failure['code'] and failure['max_depth'] >= failure['current_depth']
+            assert sys.getprofile() is None and not probe.stack
+            assert len(json.dumps(failure)) < 8192
+        exact = d.RequestObserver(original.fingerprint, sources)
+        exact._reserve(8*1024**2-exact.metadata_bytes)
+        assert exact.metadata_bytes == 8*1024**2
+        rejects(lambda:exact._reserve(1),'encoded_bytes')
+        assert exact.metadata_bytes == 8*1024**2 and not exact.fingerprints and not exact.leaves
+        probe = d.RequestObserver(original.fingerprint, sources)
+        def recursive(n):
+            return recursive(n-1) if n else original.fingerprint(3)
+        rejects(lambda:d.observe_call(probe, lambda:recursive(600)), 'live_depth')
+        assert probe.first_failure['predicate'] == 'live_depth'
+        assert probe.first_failure['current_depth'] == probe.first_failure['max_depth'] == 512
+        assert not probe.stack and sys.getprofile() is None
+        # Repeated scalar fingerprints retain records even without tensor occurrences.
+        probe = d.RequestObserver(original.fingerprint, sources)
+        rejects(lambda:d.observe_call(probe, lambda:[original.fingerprint(i) for i in range(4097)]), 'fingerprint_records')
+        assert len(probe.fingerprints) == 4096 and not probe.leaves
+
+        probe = d.RequestObserver(original.fingerprint, sources)
+        tensor = Tensor(b'ab')
+        rejects(lambda:d.observe_call(probe, lambda:original.fingerprint([tensor]*4097)), 'tensor_occurrences')
+        assert len(probe.leaves) == 4096 and sys.getprofile() is None and not probe.stack
+        assert [row['sha256'] for row in probe.leaves] == [hashlib.sha256(b'ab').hexdigest()]*4096
+        namespace = {}
+        exec(compile('\n'.join(f'def key_{i}(): pass' for i in range(4097)),'distinct-keys','exec'),namespace)
+        funcs = [namespace[f'key_{i}'] for i in range(4097)]
+        probe = d.RequestObserver(original.fingerprint, sources)
+        def keys():
+            for fn in funcs: fn()
+        rejects(lambda:d.observe_call(probe,keys),'aggregate_keys')
+        assert len(probe.events) == 4096 and not probe.stack and sys.getprofile() is None
+
+
+def call_volume_check(d, original):
+    # Real extracted observer + original serializer, one pair under the external30s/256MiB guard.
+    with modules({'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8')}):
+        sources = {'serializer':binding(Path(original.__file__))}
+        expected = original.fingerprint(3)
+        def target():
+            for i in range(2_000_010): len(())
+            return original.fingerprint(3)
+        probe = d.RequestObserver(original.fingerprint, sources)
+        assert d.observe_call(probe,target) == expected
+        report = probe.report()
+        assert report['complete'] and probe.calls > 2_000_000
+        assert len(probe.events) < 64 and len(probe.fingerprints) == 1 and not probe.leaves
+        assert probe.fingerprints[0]['sha256'] == expected and sys.getprofile() is None
+        # Restore exactly the old resource conjunct in an isolated code namespace.
+        source = Path(d.__file__).read_text()
+        old = "                self._bound(len(self.stack) < 512, 'live_depth')"
+        assert source.count(old) == 1
+        mutant = ModuleType('_observer_old_policy_inverse')
+        mutant.__file__ = d.__file__
+        exec(compile(source.replace(old, "                require(self.calls <= 2_000_000 and len(self.stack) < 512, 'old call cap')"),d.__file__,'exec'),vars(mutant))
+        oldprobe = mutant.RequestObserver(original.fingerprint,sources)
+        rejects(lambda:mutant.observe_call(oldprobe,target),'old call cap')
+        assert oldprobe.calls == 2_000_001 and not oldprobe.stack and sys.getprofile() is None
+        print(json.dumps({'status':'PASS','new_calls':probe.calls,'old_calls':oldprobe.calls,
+            'keys':len(probe.events),'fingerprints':len(probe.fingerprints),'digest':expected}))
 
 def fingerprint_attribution_check(d, original):
     # Wrong callers, cached bytes or retained caller frames must reject attribution.
@@ -319,9 +403,9 @@ def inference_outputs(endpoint, images):
     require(digest == events.expected, 'current .data rejected')
     if events.target_error is not None: raise events.target_error
     if events.failure == 'inference': raise ValueError('inference failed')
-    wire = bytes([129]) * (130 * len(images))
-    return {'raw':events.Tensor(b'raw'), 'unit':events.Tensor(b'unit'),
-            'codes':events.Tensor(b'codes'), 'inverse_norms':events.Tensor(b'norm'), 'wire':wire}
+    wire = bytes(130 * len(images))
+    return {'raw':events.Tensor(bytes(512*len(images)), 'torch.float32', (len(images),128)), 'unit':events.Tensor(bytes(512*len(images)), 'torch.float32', (len(images),128)),
+            'codes':events.Tensor(bytes(128*len(images)), 'torch.int8', (len(images),128)), 'inverse_norms':events.Tensor(bytes(2*len(images)), 'torch.float16', (len(images),)), 'wire':wire}
 ''' + release + '\n'
     if transient_only:
         # A C tensor primitive leaves no Python `self` frame; mimic that boundary.
@@ -364,7 +448,7 @@ def inference_outputs(endpoint, images):
             assert k == 10
             if events.failure == 'native': raise RuntimeError('native failed')
             # Tied scores: fixed ascending IDs survive the real bridge untouched.
-            return memoryview(struct.pack('10q', *range(10))), memoryview(struct.pack('10f', *([1.] * 10)))
+            return memoryview(struct.pack('10q', *range(10))).cast('q'), memoryview(struct.pack('10f', *([1.] * 10))).cast('f')
         def close(self):
             closes.append('gallery')
             if events.close_error is not None: raise events.close_error
@@ -571,8 +655,8 @@ def inference_outputs(endpoint, images):
         observed = request(index, probe)
         assert row['native'] == observed['native']
         report = probe.report()
-        assert report['output']['wire_hex'] == (b'\x81' * 130).hex()
-        assert report['output']['raw']['hex'] == b'raw'.hex()
+        assert report['output']['wire_hex'] == bytes(130).hex()
+        assert report['output']['raw']['hex'] == bytes(512).hex()
         assert report['tensor_occurrences'][0]['sha256'] == hashlib.sha256(b'LIVE').hexdigest()
         assert 0 < report['output_capture_seconds'] <= report['callback_seconds']
         assert all(vars(index._module).get(k) is v for k, v in globals_before.items())
@@ -602,8 +686,8 @@ def inference_outputs(endpoint, images):
         events.param.data[0] = ord('L')
         index = bridge.ConnectedCompactIndex.from_bundle(**args)
         probe = d.RequestObserver.from_index(index, sources)
-        # A diagnostic counter failure closes the genuine endpoint too.
-        probe.calls = 2_000_000
+        # A retained-byte boundary failure closes the genuine endpoint too.
+        probe.metadata_bytes = 8*1024**2
         rejects(lambda: request(index, probe), 'incomplete observation')
         assert index._closed and events.cache.cache_info().currsize == 0
         index = bridge.ConnectedCompactIndex.from_bundle(**args)
@@ -752,6 +836,14 @@ def main():
                 public_check(d, original, bridge, Path(scratch), cancel_only=True)
             print('PASS exact profiler cancellation propagates with restoration/genuine cleanup')
             return
+        if '--resource-bounds' in sys.argv:
+            resource_accounting_check(d, original)
+            print('PASS retained resource boundaries and diagnostic calls')
+            return
+        if '--call-volume' in sys.argv:
+            call_volume_check(d, original)
+            return
+        resource_accounting_check(d, original)
         serializer_check(d, original)
         fingerprint_attribution_check(d, original)
         stack_check(d, original)

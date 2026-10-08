@@ -55,6 +55,11 @@ SCHEMA = 'connected-serving-attribution-authority-v1'
 LIMITS = {'body_seconds':120, 'host_bytes':8 * 1024**3, 'swap_bytes':0,
           'cuda_allocated_bytes_exclusive':10_000_000_000}
 OUTPUT_KEYS = {'raw', 'unit', 'codes', 'inverse_norms', 'wire'}
+INSTRUMENTATION_POLICY = {'schema':'connected-serving-retained-resources-v1',
+    'total_calls':'diagnostic_only', 'live_depth':512, 'aggregate_keys':4096,
+    'tensor_occurrences':4096, 'fingerprint_records':4096, 'encoded_bytes':8*1024**2,
+    'byte_semantics':'compact ASCII JSON upper-bound reservation; not Python RSS',
+    'output_batch_max':32, 'cuda_timing':'UNMEASURED'}
 
 
 def require(condition, message):
@@ -142,13 +147,16 @@ def prepare(path, digest):
     return authority
 
 
-def tensor_snapshot(value):
+def tensor_snapshot(value, dtype, shape, width):
     """Copy returned HOST bytes only; do not retain outputs or tensor references."""
     raw = None
     try:
         tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
         require(tensor_type is not None and isinstance(value, tensor_type) and value.device.type == 'cpu',
                 'genuine host output tensor required')
+        require(str(value.dtype) == dtype and list(value.shape) == shape and
+                int(value.numel()) * int(value.element_size()) == width,
+                'bounded typed output required before copy')
         raw = value.detach().cpu().contiguous().reshape(-1).view(sys.modules['torch'].uint8).numpy()
         return {'dtype':str(value.dtype), 'shape':list(value.shape), 'hex':memoryview(raw).tobytes().hex()}
     finally:
@@ -157,6 +165,14 @@ def tensor_snapshot(value):
 
 def native_snapshot(result):
     require(isinstance(result, tuple) and len(result) == 2, 'native ID/score pair required')
+    for value, formats, width in zip(result, (('q','l'),('f',)), (8,4), strict=True):
+        view = memoryview(value)
+        require(view.ndim in (1,2) and view.format in formats and view.itemsize == width and
+                1 <= view.nbytes // (10*width) <= 32 and view.nbytes % (10*width) == 0 and
+                (view.shape == (10,) or view.shape == (view.nbytes // (10*width),10)),
+                'bounded native output required before copy')
+    require(memoryview(result[0]).nbytes // 8 == memoryview(result[1]).nbytes // 4,
+            'native output batch differs')
     return [{'format':memoryview(value).format, 'shape':list(memoryview(value).shape),
              'hex':memoryview(value).tobytes().hex()} for value in result]
 
@@ -178,19 +194,47 @@ class RequestObserver:
         self.fingerprint_code = fingerprint.__code__
         self.visit_code = next(c for c in self.fingerprint_code.co_consts
             if isinstance(c, CodeType) and c.co_name == 'visit')
-        self.files = {}
-        for role, fact in sources.items():
-            file_bytes(fact)
-            self.files[fact['path']] = role
         self.stack, self.events, self.leaves, self.fingerprints = [], {}, [], []
         self.overhead = self.inspection = self.capture = 0
         self.failures, self.output = [], None
-        self.calls = 0
+        self.calls = self.max_depth = self.stack_bytes = 0
+        # Reserve static report, phase totals and a single bounded failure record.
+        self.metadata_bytes = 32*1024
+        self.first_failure = None
+        self.request_started = None
         self.started = False
         self.target_completed = False
         self.target_error = None
         self.owner_frame_id = None
         self.output_code = None
+        self.files = {}
+        for role, fact in sources.items():
+            file_bytes(fact)
+            self._reserve(128+6*(len(fact['path'])+len(role)))
+            self.files[fact['path']] = role
+
+    def _failure(self, predicate):
+        if self.first_failure is None:
+            self.first_failure = {'predicate':predicate, 'total_calls':self.calls,
+                'current_depth':len(self.stack), 'max_depth':self.max_depth,
+                'aggregate_keys':len(self.events), 'fingerprint_records':len(self.fingerprints),
+                'tensor_occurrences':len(self.leaves), 'encoded_bytes':self.metadata_bytes+self.stack_bytes,
+                'encoded_byte_budget':INSTRUMENTATION_POLICY['encoded_bytes'],
+                'elapsed_seconds':(time.perf_counter_ns()-(self.request_started or time.perf_counter_ns()))/1e9,
+                'callback_seconds':self.overhead/1e9,
+                'code':[{'kind':r['key'][0], 'source':r['key'][1][:256],
+                    'function':r['key'][2][:256], 'line':r['key'][3]} for r in self.stack[-4:]]}
+
+    def _bound(self, condition, predicate):
+        if not condition:
+            self._failure(predicate)
+            raise ValueError('profile resource bound exceeded: '+predicate)
+
+    def _reserve(self, size):
+        # Scalar upper bounds avoid repeated JSON serialization in the callback.
+        self._bound(self.metadata_bytes+self.stack_bytes+size <= INSTRUMENTATION_POLICY['encoded_bytes'],
+                    'encoded_bytes')
+        self.metadata_bytes += size
 
     @classmethod
     def from_index(cls, index, sources):
@@ -234,19 +278,26 @@ class RequestObserver:
 
     def __call__(self, frame, event, arg):
         entered = time.perf_counter_ns()
+        failed = False
         try:
             if not self.failures:
                 self._event(frame, event, arg, entered - self.overhead)
         except Exception as error:
             # Ordinary inspection errors must not replace a target error; cancellation propagates.
-            if len(self.failures) < 8: self.failures.append(type(error).__name__ + ': ' + str(error))
+            failed = True
+            self._failure('inspection_error')
+            if not self.first_failure['code']:
+                self.first_failure['code'] = [{'kind':event,'source':frame.f_code.co_filename[:256],
+                    'function':frame.f_code.co_qualname[:256],'line':frame.f_code.co_firstlineno}]
+            if len(self.failures) < 8: self.failures.append(type(error).__name__[:128] + ': ' + str(error)[:512])
         finally:
             # A propagated cancellation retains this frame, but must not retain its target.
             frame = arg = None
             self.overhead += time.perf_counter_ns() - entered
+            if failed: self.first_failure['callback_seconds'] = self.overhead/1e9
 
     def _event(self, frame, event, arg, tick):
-        item = local = fact = None
+        item = local = fact = value = None
         try:
             # Only the exact install/uninstall calls and predating caller are outside the stack.
             if id(frame) == self.owner_frame_id and ((event in ('c_call','c_return','c_exception') and
@@ -254,7 +305,7 @@ class RequestObserver:
                 return
             if event in ('call', 'c_call'):
                 self.calls += 1
-                require(self.calls <= 2_000_000 and len(self.stack) < 512, 'profile resource bound exceeded')
+                self._bound(len(self.stack) < 512, 'live_depth')
                 code = frame.f_code
                 if event == 'call':
                     name, filename = code.co_name, code.co_filename
@@ -263,11 +314,16 @@ class RequestObserver:
                     name = getattr(arg, '__name__', type(arg).__name__)
                     filename = str(getattr(arg, '__module__', None))
                     key = ('c', filename, str(getattr(arg, '__qualname__', name)), 0)
-                row = {'id':id(frame), 'kind':event, 'key':key, 'name':name, 'start':tick,
+                size = 1024 + 6*(len(key[1])+len(key[2])+len(name))
+                self._bound(self.metadata_bytes+self.stack_bytes+size <= INSTRUMENTATION_POLICY['encoded_bytes'],
+                            'encoded_bytes')
+                row = {'_encoded_bytes':size, 'id':id(frame), 'kind':event, 'key':key, 'name':name, 'start':tick,
                        'children':0, 'phase':self.phase(name, filename)}
                 if event == 'call' and code is self.fingerprint_code:
                     require(frame.f_locals.get('frozen') is None, 'serializer hash cache is forbidden')
                     row['fingerprint'] = len(self.fingerprints)
+                    self._bound(len(self.fingerprints) < 4096, 'fingerprint_records')
+                    self._reserve(1024+6*(len(frame.f_back.f_code.co_filename)+len(frame.f_back.f_code.co_qualname)))
                     self.fingerprints.append({'sha256':None, 'occurrences':0, 'bytes':0,
                         'caller_filename':frame.f_back.f_code.co_filename,
                         'caller_function':frame.f_back.f_code.co_qualname,
@@ -277,13 +333,18 @@ class RequestObserver:
                     tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
                     item = frame.f_locals['item']
                     if tensor_type is not None and isinstance(item, tensor_type):
-                        require(len(self.leaves) < 4096, 'tensor occurrence bound exceeded')
+                        self._bound(len(self.leaves) < 4096, 'tensor_occurrences')
+                        self._reserve(1024+6*len(str(item.dtype))+64*len(item.shape))
                         fp = next(r['fingerprint'] for r in reversed(self.stack) if 'fingerprint' in r)
                         row['leaf'] = len(self.leaves)
                         self.leaves.append({'fingerprint':fp, 'dtype':str(item.dtype), 'shape':list(item.shape),
                             'bytes':int(item.numel()) * int(item.element_size()), 'sha256':None})
                     self.inspection += time.perf_counter_ns() - started
+                self._bound(self.metadata_bytes+self.stack_bytes+size <= INSTRUMENTATION_POLICY['encoded_bytes'],
+                            'encoded_bytes')
+                self.stack_bytes += size
                 self.stack.append(row)
+                self.max_depth = max(self.max_depth,len(self.stack))
             elif event in ('return', 'c_return', 'c_exception'):
                 require(self.stack, 'profile return stack empty')
                 row = self.stack[-1]
@@ -292,10 +353,13 @@ class RequestObserver:
                          row['key'][1] == str(getattr(arg,'__module__',None)) and
                          row['key'][2] == str(getattr(arg,'__qualname__',row['name'])))), 'profile return stack mismatch')
                 self.stack.pop()
+                self.stack_bytes -= row['_encoded_bytes']
                 elapsed = max(0, tick - row['start'])
                 if self.stack: self.stack[-1]['children'] += elapsed
                 key = (*row['key'], row['phase'])
-                require(key in self.events or len(self.events) < 4096, 'host event bound exceeded')
+                self._bound(key in self.events or len(self.events) < 4096, 'aggregate_keys')
+                if key not in self.events:
+                    self._reserve(1024+6*(len(key[1])+len(key[2])+len(key[4])))
                 stats = self.events.setdefault(key, [0,0,0,0])
                 stats[0] += 1; stats[1] += elapsed; stats[2] += max(0, elapsed - row['children'])
                 stats[3] += event == 'c_exception'
@@ -320,18 +384,40 @@ class RequestObserver:
                     started = time.perf_counter_ns()
                     require(type(arg) is dict and arg.keys() == OUTPUT_KEYS and type(arg['wire']) is bytes,
                             'inference return/unwind incomplete')
-                    self.output = {name:tensor_snapshot(arg[name]) for name in OUTPUT_KEYS - {'wire'}}
+                    require(self.output is None, 'duplicate inference output capture')
+                    count = arg['raw'].shape[0] if len(arg['raw'].shape) == 2 else 0
+                    require(type(count) is int and 1 <= count <= 32 and len(arg['wire']) == count*130,
+                            'bounded output batch/wire required before copy')
+                    specs = (('raw','torch.float32',[count,128],count*512),
+                        ('unit','torch.float32',[count,128],count*512),
+                        ('codes','torch.int8',[count,128],count*128),
+                        ('inverse_norms','torch.float16',[count],count*2))
+                    # Admit all shapes before the first detach/cpu/copy/hex operation.
+                    for name,dtype,shape,width in specs:
+                        value = arg[name]
+                        tensor_type = getattr(sys.modules.get('torch'),'Tensor',None)
+                        require(tensor_type is not None and isinstance(value,tensor_type) and
+                            value.device.type == 'cpu' and str(value.dtype) == dtype and
+                            list(value.shape) == shape and int(value.numel())*int(value.element_size()) == width,
+                            'bounded typed output required before copy')
+                    value = None
+                    self._reserve(4096+2*(sum(spec[3] for spec in specs)+len(arg['wire'])))
+                    self.output = {name:tensor_snapshot(arg[name],dtype,shape,width) for name,dtype,shape,width in specs}
                     self.output['wire_hex'] = arg['wire'].hex()
                     self.capture += time.perf_counter_ns() - started
         finally:
             # Keep the exception/traceback locations; release only our borrowed references.
-            frame = arg = item = local = fact = None
+            frame = arg = item = local = fact = value = None
 
     def report(self):
         phases = {}
         for key,value in self.events.items():
             phases[key[4]] = phases.get(key[4], 0) + value[2] / 1e9
-        return {'complete':self.target_completed and not self.failures and
+        result = {'instrumentation_policy':dict(INSTRUMENTATION_POLICY),
+            'resource_usage':{'total_calls':self.calls,'max_depth':self.max_depth,
+                'aggregate_keys':len(self.events),'fingerprint_records':len(self.fingerprints),
+                'tensor_occurrences':len(self.leaves),'encoded_bytes':self.metadata_bytes},
+            'first_failure':self.first_failure, 'complete':self.target_completed and not self.failures and
                 all(r['sha256'] is not None for r in [*self.leaves,*self.fingerprints]),
             'failures':list(self.failures), 'target_error':self.target_error,
             'tensor_occurrences':self.leaves, 'fingerprints':self.fingerprints,
@@ -346,28 +432,37 @@ class RequestObserver:
             'cuda_seconds':None, 'opaque_native_subdivisions':'UNMEASURED',
             'baseline_raw_unit_packed_wire_parity':'UNMEASURED; parent authenticated same-group oracle required',
             'optimization_eligible':False, 'qualification_eligible':False, 'state_reuse_eligible':False}
+        encoded = sum(len(part) for part in json.JSONEncoder(ensure_ascii=True,separators=(',',':'),allow_nan=False).iterencode(result))
+        self._bound(encoded <= self.metadata_bytes <= INSTRUMENTATION_POLICY['encoded_bytes'], 'encoded_report_bytes')
+        return result
 
 
 def observe_call(observer, call):
     require(sys.getprofile() is None and not observer.started, 'fresh unprofiled observer required')
     previous = sys.getprofile()
     observer.started = True
+    observer.request_started = time.perf_counter_ns()
     observer.owner_frame_id = id(sys._getframe())
     try:
         sys.setprofile(observer)
         result = call()
         observer.target_completed = True
     except BaseException as error:
-        observer.target_error = type(error).__name__
+        observer.target_error = type(error).__name__[:128]
+        if observer.first_failure is not None:
+            error.add_note('observer first failure: '+json.dumps(observer.first_failure,separators=(',',':')))
         raise
     finally:
         sys.setprofile(previous)
         if observer.stack and not observer.failures:
             observer.failures.append('incomplete profile stack at stop')
         observer.stack.clear()
+        observer.stack_bytes = 0
         observer.owner_frame_id = None
     require(not observer.failures and all(row['sha256'] is not None for row in [*observer.leaves,*observer.fingerprints]),
-            'incomplete observation: ' + '; '.join(observer.failures))
+            'incomplete observation: ' + '; '.join(observer.failures) +
+            ('; observer first failure: '+json.dumps(observer.first_failure,separators=(',',':'))
+             if observer.first_failure is not None else ''))
     return result
 
 

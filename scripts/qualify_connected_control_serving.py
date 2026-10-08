@@ -180,7 +180,7 @@ def validate_receipt(record, authority, authority_fact):
         exact(oracle,'output native')
         native(oracle['native'],count)
         report = record['observations'][str(count)]
-        exact(report,'complete failures target_error tensor_occurrences fingerprints output callback_seconds counter_inspection_seconds '
+        exact(report,'instrumentation_policy resource_usage first_failure complete failures target_error tensor_occurrences fingerprints output callback_seconds counter_inspection_seconds '
             'output_capture_seconds overhead_semantics host_events exclusive_host_phase_seconds phase_semantics cuda_seconds '
             'opaque_native_subdivisions baseline_raw_unit_packed_wire_parity optimization_eligible qualification_eligible state_reuse_eligible')
         require(report['failures'] == [] and report['target_error'] is None and
@@ -196,7 +196,7 @@ def validate_receipt(record, authority, authority_fact):
         require(report['counter_inspection_seconds']+report['output_capture_seconds'] <= report['callback_seconds']+1e-6,
             'observation callback subsets differ')
         fingerprints,leaves = report['fingerprints'],report['tensor_occurrences']
-        require(type(fingerprints) is list and fingerprints and type(leaves) is list and 0 < len(leaves) <= 4096,
+        require(type(fingerprints) is list and 0 < len(fingerprints) <= 4096 and type(leaves) is list and 0 < len(leaves) <= 4096,
             'complete fingerprint/tensor records required')
         for leaf in leaves:
             exact(leaf,'fingerprint dtype shape bytes sha256')

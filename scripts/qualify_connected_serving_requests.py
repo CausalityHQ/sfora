@@ -210,7 +210,33 @@ def owner(factory, guard, charges):
         if failures: raise_failures(failures)
 
 
+
+def validate_instrumentation(report):
+    policy = {'schema':'connected-serving-retained-resources-v1',
+        'total_calls':'diagnostic_only','live_depth':512,'aggregate_keys':4096,
+        'tensor_occurrences':4096,'fingerprint_records':4096,'encoded_bytes':8*1024**2,
+        'byte_semantics':'compact ASCII JSON upper-bound reservation; not Python RSS',
+        'output_batch_max':32,'cuda_timing':'UNMEASURED'}
+    require(type(report.get('instrumentation_policy')) is dict and
+        report['instrumentation_policy'] == policy and
+        all(type(report['instrumentation_policy'][k]) is type(v) for k,v in policy.items()) and
+        report.get('first_failure','missing') is None, 'exact successful instrumentation policy required')
+    usage = report.get('resource_usage')
+    require(type(usage) is dict and usage.keys() == {'total_calls','max_depth','aggregate_keys',
+        'fingerprint_records','tensor_occurrences','encoded_bytes'} and
+        all(type(v) is int and v > 0 for k,v in usage.items() if k != 'tensor_occurrences') and
+        type(usage['tensor_occurrences']) is int and usage['tensor_occurrences'] >= 0 and
+        usage['max_depth'] <= 512 and
+        0 < usage['aggregate_keys'] == len(report['host_events']) <= 4096 and
+        0 < usage['fingerprint_records'] == len(report['fingerprints']) <= 4096 and
+        usage['tensor_occurrences'] == len(report['tensor_occurrences']) <= 4096 and
+        usage['total_calls'] == sum(r['calls'] for r in report['host_events']) and
+        usage['encoded_bytes'] <= 8*1024**2, 'complete retained resource accounting required')
+    encoded = sum(len(part) for part in json.JSONEncoder(ensure_ascii=True,separators=(',',':'),allow_nan=False).iterencode(report))
+    require(encoded <= usage['encoded_bytes'], 'encoded report exceeds reserved bytes')
+
 def witness(report, count):
+    validate_instrumentation(report)
     require(report['complete'] is True and not report['failures'] and report['target_error'] is None and
             report['fingerprints'] and report['tensor_occurrences'], 'complete original public witness required')
     output = report['output']

@@ -55,6 +55,493 @@ PRODUCTION_DELTAS = {
         ('', ORIGIN_DIAGNOSTIC)])}
 
 
+# Exact rootbase resource-only delta; reverse before the preserved compiler inverse.
+RESOURCE_DELTAS = {
+    'observe_connected_serving.py': ('aadab40502c22a73c53e0acc4c8d2be3ef0553f9a2e3b51d75cbfbb740ae9675', [
+        ('''LIMITS = {'body_seconds':120, 'host_bytes':8 * 1024**3, 'swap_bytes':0,
+          'cuda_allocated_bytes_exclusive':10_000_000_000}
+OUTPUT_KEYS = {'raw', 'unit', 'codes', 'inverse_norms', 'wire'}
+
+
+def require(condition, message):
+''', '''LIMITS = {'body_seconds':120, 'host_bytes':8 * 1024**3, 'swap_bytes':0,
+          'cuda_allocated_bytes_exclusive':10_000_000_000}
+OUTPUT_KEYS = {'raw', 'unit', 'codes', 'inverse_norms', 'wire'}
+INSTRUMENTATION_POLICY = {'schema':'connected-serving-retained-resources-v1',
+    'total_calls':'diagnostic_only', 'live_depth':512, 'aggregate_keys':4096,
+    'tensor_occurrences':4096, 'fingerprint_records':4096, 'encoded_bytes':8*1024**2,
+    'byte_semantics':'compact ASCII JSON upper-bound reservation; not Python RSS',
+    'output_batch_max':32, 'cuda_timing':'UNMEASURED'}
+
+
+def require(condition, message):
+'''),
+        ('''    return authority
+
+
+def tensor_snapshot(value):
+    """Copy returned HOST bytes only; do not retain outputs or tensor references."""
+    raw = None
+    try:
+        tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
+        require(tensor_type is not None and isinstance(value, tensor_type) and value.device.type == 'cpu',
+                'genuine host output tensor required')
+        raw = value.detach().cpu().contiguous().reshape(-1).view(sys.modules['torch'].uint8).numpy()
+        return {'dtype':str(value.dtype), 'shape':list(value.shape), 'hex':memoryview(raw).tobytes().hex()}
+    finally:
+''', '''    return authority
+
+
+def tensor_snapshot(value, dtype, shape, width):
+    """Copy returned HOST bytes only; do not retain outputs or tensor references."""
+    raw = None
+    try:
+        tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
+        require(tensor_type is not None and isinstance(value, tensor_type) and value.device.type == 'cpu',
+                'genuine host output tensor required')
+        require(str(value.dtype) == dtype and list(value.shape) == shape and
+                int(value.numel()) * int(value.element_size()) == width,
+                'bounded typed output required before copy')
+        raw = value.detach().cpu().contiguous().reshape(-1).view(sys.modules['torch'].uint8).numpy()
+        return {'dtype':str(value.dtype), 'shape':list(value.shape), 'hex':memoryview(raw).tobytes().hex()}
+    finally:
+'''),
+        ('''
+def native_snapshot(result):
+    require(isinstance(result, tuple) and len(result) == 2, 'native ID/score pair required')
+    return [{'format':memoryview(value).format, 'shape':list(memoryview(value).shape),
+             'hex':memoryview(value).tobytes().hex()} for value in result]
+
+''', '''
+def native_snapshot(result):
+    require(isinstance(result, tuple) and len(result) == 2, 'native ID/score pair required')
+    for value, formats, width in zip(result, (('q','l'),('f',)), (8,4), strict=True):
+        view = memoryview(value)
+        require(view.ndim in (1,2) and view.format in formats and view.itemsize == width and
+                1 <= view.nbytes // (10*width) <= 32 and view.nbytes % (10*width) == 0 and
+                (view.shape == (10,) or view.shape == (view.nbytes // (10*width),10)),
+                'bounded native output required before copy')
+    require(memoryview(result[0]).nbytes // 8 == memoryview(result[1]).nbytes // 4,
+            'native output batch differs')
+    return [{'format':memoryview(value).format, 'shape':list(memoryview(value).shape),
+             'hex':memoryview(value).tobytes().hex()} for value in result]
+
+'''),
+        ('''        self.fingerprint_code = fingerprint.__code__
+        self.visit_code = next(c for c in self.fingerprint_code.co_consts
+            if isinstance(c, CodeType) and c.co_name == 'visit')
+        self.files = {}
+        for role, fact in sources.items():
+            file_bytes(fact)
+            self.files[fact['path']] = role
+        self.stack, self.events, self.leaves, self.fingerprints = [], {}, [], []
+        self.overhead = self.inspection = self.capture = 0
+        self.failures, self.output = [], None
+        self.calls = 0
+        self.started = False
+        self.target_completed = False
+        self.target_error = None
+        self.owner_frame_id = None
+        self.output_code = None
+
+    @classmethod
+    def from_index(cls, index, sources):
+''', '''        self.fingerprint_code = fingerprint.__code__
+        self.visit_code = next(c for c in self.fingerprint_code.co_consts
+            if isinstance(c, CodeType) and c.co_name == 'visit')
+        self.stack, self.events, self.leaves, self.fingerprints = [], {}, [], []
+        self.overhead = self.inspection = self.capture = 0
+        self.failures, self.output = [], None
+        self.calls = self.max_depth = self.stack_bytes = 0
+        # Reserve static report, phase totals and a single bounded failure record.
+        self.metadata_bytes = 32*1024
+        self.first_failure = None
+        self.request_started = None
+        self.started = False
+        self.target_completed = False
+        self.target_error = None
+        self.owner_frame_id = None
+        self.output_code = None
+        self.files = {}
+        for role, fact in sources.items():
+            file_bytes(fact)
+            self._reserve(128+6*(len(fact['path'])+len(role)))
+            self.files[fact['path']] = role
+
+    def _failure(self, predicate):
+        if self.first_failure is None:
+            self.first_failure = {'predicate':predicate, 'total_calls':self.calls,
+                'current_depth':len(self.stack), 'max_depth':self.max_depth,
+                'aggregate_keys':len(self.events), 'fingerprint_records':len(self.fingerprints),
+                'tensor_occurrences':len(self.leaves), 'encoded_bytes':self.metadata_bytes+self.stack_bytes,
+                'encoded_byte_budget':INSTRUMENTATION_POLICY['encoded_bytes'],
+                'elapsed_seconds':(time.perf_counter_ns()-(self.request_started or time.perf_counter_ns()))/1e9,
+                'callback_seconds':self.overhead/1e9,
+                'code':[{'kind':r['key'][0], 'source':r['key'][1][:256],
+                    'function':r['key'][2][:256], 'line':r['key'][3]} for r in self.stack[-4:]]}
+
+    def _bound(self, condition, predicate):
+        if not condition:
+            self._failure(predicate)
+            raise ValueError('profile resource bound exceeded: '+predicate)
+
+    def _reserve(self, size):
+        # Scalar upper bounds avoid repeated JSON serialization in the callback.
+        self._bound(self.metadata_bytes+self.stack_bytes+size <= INSTRUMENTATION_POLICY['encoded_bytes'],
+                    'encoded_bytes')
+        self.metadata_bytes += size
+
+    @classmethod
+    def from_index(cls, index, sources):
+'''),
+        ('''
+    def __call__(self, frame, event, arg):
+        entered = time.perf_counter_ns()
+        try:
+            if not self.failures:
+                self._event(frame, event, arg, entered - self.overhead)
+        except Exception as error:
+            # Ordinary inspection errors must not replace a target error; cancellation propagates.
+            if len(self.failures) < 8: self.failures.append(type(error).__name__ + ': ' + str(error))
+        finally:
+            # A propagated cancellation retains this frame, but must not retain its target.
+            frame = arg = None
+            self.overhead += time.perf_counter_ns() - entered
+
+    def _event(self, frame, event, arg, tick):
+        item = local = fact = None
+        try:
+            # Only the exact install/uninstall calls and predating caller are outside the stack.
+            if id(frame) == self.owner_frame_id and ((event in ('c_call','c_return','c_exception') and
+''', '''
+    def __call__(self, frame, event, arg):
+        entered = time.perf_counter_ns()
+        failed = False
+        try:
+            if not self.failures:
+                self._event(frame, event, arg, entered - self.overhead)
+        except Exception as error:
+            # Ordinary inspection errors must not replace a target error; cancellation propagates.
+            failed = True
+            self._failure('inspection_error')
+            if not self.first_failure['code']:
+                self.first_failure['code'] = [{'kind':event,'source':frame.f_code.co_filename[:256],
+                    'function':frame.f_code.co_qualname[:256],'line':frame.f_code.co_firstlineno}]
+            if len(self.failures) < 8: self.failures.append(type(error).__name__[:128] + ': ' + str(error)[:512])
+        finally:
+            # A propagated cancellation retains this frame, but must not retain its target.
+            frame = arg = None
+            self.overhead += time.perf_counter_ns() - entered
+            if failed: self.first_failure['callback_seconds'] = self.overhead/1e9
+
+    def _event(self, frame, event, arg, tick):
+        item = local = fact = value = None
+        try:
+            # Only the exact install/uninstall calls and predating caller are outside the stack.
+            if id(frame) == self.owner_frame_id and ((event in ('c_call','c_return','c_exception') and
+'''),
+        ('''                return
+            if event in ('call', 'c_call'):
+                self.calls += 1
+                require(self.calls <= 2_000_000 and len(self.stack) < 512, 'profile resource bound exceeded')
+                code = frame.f_code
+                if event == 'call':
+                    name, filename = code.co_name, code.co_filename
+''', '''                return
+            if event in ('call', 'c_call'):
+                self.calls += 1
+                self._bound(len(self.stack) < 512, 'live_depth')
+                code = frame.f_code
+                if event == 'call':
+                    name, filename = code.co_name, code.co_filename
+'''),
+        ('''                    name = getattr(arg, '__name__', type(arg).__name__)
+                    filename = str(getattr(arg, '__module__', None))
+                    key = ('c', filename, str(getattr(arg, '__qualname__', name)), 0)
+                row = {'id':id(frame), 'kind':event, 'key':key, 'name':name, 'start':tick,
+                       'children':0, 'phase':self.phase(name, filename)}
+                if event == 'call' and code is self.fingerprint_code:
+                    require(frame.f_locals.get('frozen') is None, 'serializer hash cache is forbidden')
+                    row['fingerprint'] = len(self.fingerprints)
+                    self.fingerprints.append({'sha256':None, 'occurrences':0, 'bytes':0,
+                        'caller_filename':frame.f_back.f_code.co_filename,
+                        'caller_function':frame.f_back.f_code.co_qualname,
+''', '''                    name = getattr(arg, '__name__', type(arg).__name__)
+                    filename = str(getattr(arg, '__module__', None))
+                    key = ('c', filename, str(getattr(arg, '__qualname__', name)), 0)
+                size = 1024 + 6*(len(key[1])+len(key[2])+len(name))
+                self._bound(self.metadata_bytes+self.stack_bytes+size <= INSTRUMENTATION_POLICY['encoded_bytes'],
+                            'encoded_bytes')
+                row = {'_encoded_bytes':size, 'id':id(frame), 'kind':event, 'key':key, 'name':name, 'start':tick,
+                       'children':0, 'phase':self.phase(name, filename)}
+                if event == 'call' and code is self.fingerprint_code:
+                    require(frame.f_locals.get('frozen') is None, 'serializer hash cache is forbidden')
+                    row['fingerprint'] = len(self.fingerprints)
+                    self._bound(len(self.fingerprints) < 4096, 'fingerprint_records')
+                    self._reserve(1024+6*(len(frame.f_back.f_code.co_filename)+len(frame.f_back.f_code.co_qualname)))
+                    self.fingerprints.append({'sha256':None, 'occurrences':0, 'bytes':0,
+                        'caller_filename':frame.f_back.f_code.co_filename,
+                        'caller_function':frame.f_back.f_code.co_qualname,
+'''),
+        ('''                    tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
+                    item = frame.f_locals['item']
+                    if tensor_type is not None and isinstance(item, tensor_type):
+                        require(len(self.leaves) < 4096, 'tensor occurrence bound exceeded')
+                        fp = next(r['fingerprint'] for r in reversed(self.stack) if 'fingerprint' in r)
+                        row['leaf'] = len(self.leaves)
+                        self.leaves.append({'fingerprint':fp, 'dtype':str(item.dtype), 'shape':list(item.shape),
+                            'bytes':int(item.numel()) * int(item.element_size()), 'sha256':None})
+                    self.inspection += time.perf_counter_ns() - started
+                self.stack.append(row)
+            elif event in ('return', 'c_return', 'c_exception'):
+                require(self.stack, 'profile return stack empty')
+                row = self.stack[-1]
+''', '''                    tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
+                    item = frame.f_locals['item']
+                    if tensor_type is not None and isinstance(item, tensor_type):
+                        self._bound(len(self.leaves) < 4096, 'tensor_occurrences')
+                        self._reserve(1024+6*len(str(item.dtype))+64*len(item.shape))
+                        fp = next(r['fingerprint'] for r in reversed(self.stack) if 'fingerprint' in r)
+                        row['leaf'] = len(self.leaves)
+                        self.leaves.append({'fingerprint':fp, 'dtype':str(item.dtype), 'shape':list(item.shape),
+                            'bytes':int(item.numel()) * int(item.element_size()), 'sha256':None})
+                    self.inspection += time.perf_counter_ns() - started
+                self._bound(self.metadata_bytes+self.stack_bytes+size <= INSTRUMENTATION_POLICY['encoded_bytes'],
+                            'encoded_bytes')
+                self.stack_bytes += size
+                self.stack.append(row)
+                self.max_depth = max(self.max_depth,len(self.stack))
+            elif event in ('return', 'c_return', 'c_exception'):
+                require(self.stack, 'profile return stack empty')
+                row = self.stack[-1]
+'''),
+        ('''                         row['key'][1] == str(getattr(arg,'__module__',None)) and
+                         row['key'][2] == str(getattr(arg,'__qualname__',row['name'])))), 'profile return stack mismatch')
+                self.stack.pop()
+                elapsed = max(0, tick - row['start'])
+                if self.stack: self.stack[-1]['children'] += elapsed
+                key = (*row['key'], row['phase'])
+                require(key in self.events or len(self.events) < 4096, 'host event bound exceeded')
+                stats = self.events.setdefault(key, [0,0,0,0])
+                stats[0] += 1; stats[1] += elapsed; stats[2] += max(0, elapsed - row['children'])
+                stats[3] += event == 'c_exception'
+''', '''                         row['key'][1] == str(getattr(arg,'__module__',None)) and
+                         row['key'][2] == str(getattr(arg,'__qualname__',row['name'])))), 'profile return stack mismatch')
+                self.stack.pop()
+                self.stack_bytes -= row['_encoded_bytes']
+                elapsed = max(0, tick - row['start'])
+                if self.stack: self.stack[-1]['children'] += elapsed
+                key = (*row['key'], row['phase'])
+                self._bound(key in self.events or len(self.events) < 4096, 'aggregate_keys')
+                if key not in self.events:
+                    self._reserve(1024+6*(len(key[1])+len(key[2])+len(key[4])))
+                stats = self.events.setdefault(key, [0,0,0,0])
+                stats[0] += 1; stats[1] += elapsed; stats[2] += max(0, elapsed - row['children'])
+                stats[3] += event == 'c_exception'
+'''),
+        ('''                    started = time.perf_counter_ns()
+                    require(type(arg) is dict and arg.keys() == OUTPUT_KEYS and type(arg['wire']) is bytes,
+                            'inference return/unwind incomplete')
+                    self.output = {name:tensor_snapshot(arg[name]) for name in OUTPUT_KEYS - {'wire'}}
+                    self.output['wire_hex'] = arg['wire'].hex()
+                    self.capture += time.perf_counter_ns() - started
+        finally:
+            # Keep the exception/traceback locations; release only our borrowed references.
+            frame = arg = item = local = fact = None
+
+    def report(self):
+        phases = {}
+        for key,value in self.events.items():
+            phases[key[4]] = phases.get(key[4], 0) + value[2] / 1e9
+        return {'complete':self.target_completed and not self.failures and
+                all(r['sha256'] is not None for r in [*self.leaves,*self.fingerprints]),
+            'failures':list(self.failures), 'target_error':self.target_error,
+            'tensor_occurrences':self.leaves, 'fingerprints':self.fingerprints,
+''', '''                    started = time.perf_counter_ns()
+                    require(type(arg) is dict and arg.keys() == OUTPUT_KEYS and type(arg['wire']) is bytes,
+                            'inference return/unwind incomplete')
+                    require(self.output is None, 'duplicate inference output capture')
+                    count = arg['raw'].shape[0] if len(arg['raw'].shape) == 2 else 0
+                    require(type(count) is int and 1 <= count <= 32 and len(arg['wire']) == count*130,
+                            'bounded output batch/wire required before copy')
+                    specs = (('raw','torch.float32',[count,128],count*512),
+                        ('unit','torch.float32',[count,128],count*512),
+                        ('codes','torch.int8',[count,128],count*128),
+                        ('inverse_norms','torch.float16',[count],count*2))
+                    # Admit all shapes before the first detach/cpu/copy/hex operation.
+                    for name,dtype,shape,width in specs:
+                        value = arg[name]
+                        tensor_type = getattr(sys.modules.get('torch'),'Tensor',None)
+                        require(tensor_type is not None and isinstance(value,tensor_type) and
+                            value.device.type == 'cpu' and str(value.dtype) == dtype and
+                            list(value.shape) == shape and int(value.numel())*int(value.element_size()) == width,
+                            'bounded typed output required before copy')
+                    value = None
+                    self._reserve(4096+2*(sum(spec[3] for spec in specs)+len(arg['wire'])))
+                    self.output = {name:tensor_snapshot(arg[name],dtype,shape,width) for name,dtype,shape,width in specs}
+                    self.output['wire_hex'] = arg['wire'].hex()
+                    self.capture += time.perf_counter_ns() - started
+        finally:
+            # Keep the exception/traceback locations; release only our borrowed references.
+            frame = arg = item = local = fact = value = None
+
+    def report(self):
+        phases = {}
+        for key,value in self.events.items():
+            phases[key[4]] = phases.get(key[4], 0) + value[2] / 1e9
+        result = {'instrumentation_policy':dict(INSTRUMENTATION_POLICY),
+            'resource_usage':{'total_calls':self.calls,'max_depth':self.max_depth,
+                'aggregate_keys':len(self.events),'fingerprint_records':len(self.fingerprints),
+                'tensor_occurrences':len(self.leaves),'encoded_bytes':self.metadata_bytes},
+            'first_failure':self.first_failure, 'complete':self.target_completed and not self.failures and
+                all(r['sha256'] is not None for r in [*self.leaves,*self.fingerprints]),
+            'failures':list(self.failures), 'target_error':self.target_error,
+            'tensor_occurrences':self.leaves, 'fingerprints':self.fingerprints,
+'''),
+        ('''            'cuda_seconds':None, 'opaque_native_subdivisions':'UNMEASURED',
+            'baseline_raw_unit_packed_wire_parity':'UNMEASURED; parent authenticated same-group oracle required',
+            'optimization_eligible':False, 'qualification_eligible':False, 'state_reuse_eligible':False}
+
+
+def observe_call(observer, call):
+    require(sys.getprofile() is None and not observer.started, 'fresh unprofiled observer required')
+    previous = sys.getprofile()
+    observer.started = True
+    observer.owner_frame_id = id(sys._getframe())
+    try:
+        sys.setprofile(observer)
+        result = call()
+        observer.target_completed = True
+    except BaseException as error:
+        observer.target_error = type(error).__name__
+        raise
+    finally:
+        sys.setprofile(previous)
+        if observer.stack and not observer.failures:
+            observer.failures.append('incomplete profile stack at stop')
+        observer.stack.clear()
+        observer.owner_frame_id = None
+    require(not observer.failures and all(row['sha256'] is not None for row in [*observer.leaves,*observer.fingerprints]),
+            'incomplete observation: ' + '; '.join(observer.failures))
+    return result
+
+
+''', '''            'cuda_seconds':None, 'opaque_native_subdivisions':'UNMEASURED',
+            'baseline_raw_unit_packed_wire_parity':'UNMEASURED; parent authenticated same-group oracle required',
+            'optimization_eligible':False, 'qualification_eligible':False, 'state_reuse_eligible':False}
+        encoded = sum(len(part) for part in json.JSONEncoder(ensure_ascii=True,separators=(',',':'),allow_nan=False).iterencode(result))
+        self._bound(encoded <= self.metadata_bytes <= INSTRUMENTATION_POLICY['encoded_bytes'], 'encoded_report_bytes')
+        return result
+
+
+def observe_call(observer, call):
+    require(sys.getprofile() is None and not observer.started, 'fresh unprofiled observer required')
+    previous = sys.getprofile()
+    observer.started = True
+    observer.request_started = time.perf_counter_ns()
+    observer.owner_frame_id = id(sys._getframe())
+    try:
+        sys.setprofile(observer)
+        result = call()
+        observer.target_completed = True
+    except BaseException as error:
+        observer.target_error = type(error).__name__[:128]
+        if observer.first_failure is not None:
+            error.add_note('observer first failure: '+json.dumps(observer.first_failure,separators=(',',':')))
+        raise
+    finally:
+        sys.setprofile(previous)
+        if observer.stack and not observer.failures:
+            observer.failures.append('incomplete profile stack at stop')
+        observer.stack.clear()
+        observer.stack_bytes = 0
+        observer.owner_frame_id = None
+    require(not observer.failures and all(row['sha256'] is not None for row in [*observer.leaves,*observer.fingerprints]),
+            'incomplete observation: ' + '; '.join(observer.failures) +
+            ('; observer first failure: '+json.dumps(observer.first_failure,separators=(',',':'))
+             if observer.first_failure is not None else ''))
+    return result
+
+
+'''),
+    ]),
+    'qualify_connected_serving_requests.py': ('83cfa1c3c4ff415f6292adc8762a46e12da84499f4b3d31662a240a108d7200b', [
+        ('''        if failures: raise_failures(failures)
+
+
+def witness(report, count):
+    require(report['complete'] is True and not report['failures'] and report['target_error'] is None and
+            report['fingerprints'] and report['tensor_occurrences'], 'complete original public witness required')
+    output = report['output']
+''', '''        if failures: raise_failures(failures)
+
+
+
+def validate_instrumentation(report):
+    policy = {'schema':'connected-serving-retained-resources-v1',
+        'total_calls':'diagnostic_only','live_depth':512,'aggregate_keys':4096,
+        'tensor_occurrences':4096,'fingerprint_records':4096,'encoded_bytes':8*1024**2,
+        'byte_semantics':'compact ASCII JSON upper-bound reservation; not Python RSS',
+        'output_batch_max':32,'cuda_timing':'UNMEASURED'}
+    require(type(report.get('instrumentation_policy')) is dict and
+        report['instrumentation_policy'] == policy and
+        all(type(report['instrumentation_policy'][k]) is type(v) for k,v in policy.items()) and
+        report.get('first_failure','missing') is None, 'exact successful instrumentation policy required')
+    usage = report.get('resource_usage')
+    require(type(usage) is dict and usage.keys() == {'total_calls','max_depth','aggregate_keys',
+        'fingerprint_records','tensor_occurrences','encoded_bytes'} and
+        all(type(v) is int and v > 0 for k,v in usage.items() if k != 'tensor_occurrences') and
+        type(usage['tensor_occurrences']) is int and usage['tensor_occurrences'] >= 0 and
+        usage['max_depth'] <= 512 and
+        0 < usage['aggregate_keys'] == len(report['host_events']) <= 4096 and
+        0 < usage['fingerprint_records'] == len(report['fingerprints']) <= 4096 and
+        usage['tensor_occurrences'] == len(report['tensor_occurrences']) <= 4096 and
+        usage['total_calls'] == sum(r['calls'] for r in report['host_events']) and
+        usage['encoded_bytes'] <= 8*1024**2, 'complete retained resource accounting required')
+    encoded = sum(len(part) for part in json.JSONEncoder(ensure_ascii=True,separators=(',',':'),allow_nan=False).iterencode(report))
+    require(encoded <= usage['encoded_bytes'], 'encoded report exceeds reserved bytes')
+
+def witness(report, count):
+    validate_instrumentation(report)
+    require(report['complete'] is True and not report['failures'] and report['target_error'] is None and
+            report['fingerprints'] and report['tensor_occurrences'], 'complete original public witness required')
+    output = report['output']
+'''),
+    ]),
+    'qualify_connected_control_serving.py': ('b9f6879aa0503d4e1b19c7cc91088e63361191d2228f43bbae9184eafebd5ed6', [
+        ('''        exact(oracle,'output native')
+        native(oracle['native'],count)
+        report = record['observations'][str(count)]
+        exact(report,'complete failures target_error tensor_occurrences fingerprints output callback_seconds counter_inspection_seconds '
+            'output_capture_seconds overhead_semantics host_events exclusive_host_phase_seconds phase_semantics cuda_seconds '
+            'opaque_native_subdivisions baseline_raw_unit_packed_wire_parity optimization_eligible qualification_eligible state_reuse_eligible')
+        require(report['failures'] == [] and report['target_error'] is None and
+''', '''        exact(oracle,'output native')
+        native(oracle['native'],count)
+        report = record['observations'][str(count)]
+        exact(report,'instrumentation_policy resource_usage first_failure complete failures target_error tensor_occurrences fingerprints output callback_seconds counter_inspection_seconds '
+            'output_capture_seconds overhead_semantics host_events exclusive_host_phase_seconds phase_semantics cuda_seconds '
+            'opaque_native_subdivisions baseline_raw_unit_packed_wire_parity optimization_eligible qualification_eligible state_reuse_eligible')
+        require(report['failures'] == [] and report['target_error'] is None and
+'''),
+        ('''        require(report['counter_inspection_seconds']+report['output_capture_seconds'] <= report['callback_seconds']+1e-6,
+            'observation callback subsets differ')
+        fingerprints,leaves = report['fingerprints'],report['tensor_occurrences']
+        require(type(fingerprints) is list and fingerprints and type(leaves) is list and 0 < len(leaves) <= 4096,
+            'complete fingerprint/tensor records required')
+        for leaf in leaves:
+            exact(leaf,'fingerprint dtype shape bytes sha256')
+''', '''        require(report['counter_inspection_seconds']+report['output_capture_seconds'] <= report['callback_seconds']+1e-6,
+            'observation callback subsets differ')
+        fingerprints,leaves = report['fingerprints'],report['tensor_occurrences']
+        require(type(fingerprints) is list and 0 < len(fingerprints) <= 4096 and type(leaves) is list and 0 < len(leaves) <= 4096,
+            'complete fingerprint/tensor records required')
+        for leaf in leaves:
+            exact(leaf,'fingerprint dtype shape bytes sha256')
+'''),
+    ]),
+}
+
 def production_inverse(raw, digest, changes):
     for before,after in reversed(changes):
         if raw.count(after) != 1: raise ValueError('exact production delta differs')
@@ -372,6 +859,20 @@ def genuine_exit_fixture(root):
 class ControlTests(unittest.TestCase):
     def test_exact_production_delta_and_whole_ast_inverse(self):
         for name,(digest,changes) in PRODUCTION_DELTAS.items():
+            raw = (HERE/name).read_text()
+            if name in RESOURCE_DELTAS:
+                for before,after in reversed(RESOURCE_DELTAS[name][1]):
+                    if raw.count(after) != 1: raise ValueError('exact resource delta differs')
+                    raw = raw.replace(after,before,1)
+            with self.subTest(source=name): production_inverse(raw,digest,changes)
+            for before,after in changes:
+                with self.subTest(delta=after),self.assertRaisesRegex(ValueError,'delta'):
+                    production_inverse(raw.replace(after,after[:-1]+'?',1),digest,changes)
+            with self.subTest(retained=name),self.assertRaisesRegex(ValueError,'AST'):
+                production_inverse(raw.replace('raise ValueError(message)','raise RuntimeError(message)',1),digest,changes)
+
+    def test_resource_only_delta_reverses_entire_three_production_asts(self):
+        for name,(digest,changes) in RESOURCE_DELTAS.items():
             raw = (HERE/name).read_text()
             with self.subTest(source=name): production_inverse(raw,digest,changes)
             for before,after in changes:
@@ -738,7 +1239,8 @@ class ControlTests(unittest.TestCase):
                 bad = copy.deepcopy(record); del bad['calls'][0][key]; mutants.append(('row '+key,bad))
             for path in [('timed','1'),('original_warmup_oracles','1'),('observations','1'),('owners',0),('ties',),
                 ('observations','1','fingerprints',0),('observations','1','tensor_occurrences',0),
-                ('observations','1','host_events',0),('calls',0,'native',0),('observations','1','output','raw')]:
+                ('observations','1','host_events',0),('observations','1','instrumentation_policy'),
+                ('observations','1','resource_usage'),('calls',0,'native',0),('observations','1','output','raw')]:
                 target = record
                 for key in path: target = target[key]
                 for key in target:
@@ -759,6 +1261,16 @@ class ControlTests(unittest.TestCase):
                 (('observations','1','tensor_occurrences',0,'fingerprint'),99),
                 (('observations','1','host_events',0,'exclusive_seconds'),-1),
                 (('observations','1','exclusive_host_phase_seconds'),{}),
+                (('observations','1','first_failure'),{}),
+                (('observations','1','instrumentation_policy','total_calls'),'acceptance_cutoff'),
+                (('observations','1','instrumentation_policy','encoded_bytes'),True),
+                (('observations','1','resource_usage','max_depth'),513),
+                (('observations','1','resource_usage','aggregate_keys'),4097),
+                (('observations','1','resource_usage','fingerprint_records'),4097),
+                (('observations','1','resource_usage','tensor_occurrences'),4097),
+                (('observations','1','resource_usage','encoded_bytes'),8*1024**2+1),
+                (('observations','1','resource_usage','encoded_bytes'),1),
+                (('observations','1','resource_usage','total_calls'),True),
                 (('owners',0,'admission_seconds'),-1), (('owners',1,'release_seconds'),float('inf')),
                 (('owners',),[record['owners'][0]]), (('ties','native',0,0,'hex'),'00'*80),
                 (('calls',2,'native',0,'shape'),[32,10]), (('calls',2,'native',1,'format'),'d')]

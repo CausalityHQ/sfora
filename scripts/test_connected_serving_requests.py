@@ -50,11 +50,6 @@ def public_fixture(root):
     public = next(n for n in test_tree.body if isinstance(n, ast.FunctionDef) and n.name == 'public_check')
     source = next(n.value.left.left.value for n in public.body if isinstance(n, ast.Assign)
                   and any(isinstance(t, ast.Name) and t.id == 'source' for t in n.targets)) + release + '\n'
-    source = source.replace("events.Tensor(b'raw')", "events.Tensor(bytes(512*len(images)), 'torch.float32', (len(images),128))")
-    source = source.replace("events.Tensor(b'unit')", "events.Tensor(bytes(512*len(images)), 'torch.float32', (len(images),128))")
-    source = source.replace("events.Tensor(b'codes')", "events.Tensor(bytes(128*len(images)), 'torch.int8', (len(images),128))")
-    source = source.replace("events.Tensor(b'norm')", "events.Tensor(bytes(2*len(images)), 'torch.float16', (len(images),))")
-    source = source.replace('bytes([129]) * (130 * len(images))', 'bytes(130 * len(images))')
     widths = dict(helpers.Tensor.widths)
     helpers.Tensor.widths.update({'torch.float32':4, 'torch.int8':1, 'torch.float16':2})
     events = ModuleType('_attribution_events')
@@ -182,6 +177,63 @@ class DriverTests(unittest.TestCase):
             self.assertFalse(report['qualification_eligible'])
             self.assertFalse(report['state_reuse_eligible'])
             self.assertIsNone(sys.getprofile())
+
+    def test_retained_instrumentation_policy_and_counters_are_strict(self):
+        driver = self.driver_module()
+        with tempfile.TemporaryDirectory() as directory, public_fixture(Path(directory)) as f:
+            body = driver.request_body(f.factory,f.observer,f.reader,lambda:None,f.paths,f.pins,lambda:None)
+            report = body['observations']['1']
+            driver.validate_instrumentation(report)
+            import copy
+            for field,value in (('instrumentation_policy',{}),('resource_usage',{}),('first_failure',{})):
+                bad = copy.deepcopy(report); bad[field] = value
+                with self.subTest(field=field), self.assertRaises(ValueError): driver.validate_instrumentation(bad)
+            for field,value in (('max_depth',513),('aggregate_keys',4097),('fingerprint_records',4097),
+                    ('tensor_occurrences',4097),('encoded_bytes',8*1024**2+1),('encoded_bytes',1),('total_calls',True)):
+                bad = copy.deepcopy(report); bad['resource_usage'][field] = value
+                with self.subTest(field=field,value=value), self.assertRaises(ValueError): driver.validate_instrumentation(bad)
+            bad = copy.deepcopy(report); bad['instrumentation_policy']['total_calls'] = 'acceptance_cutoff'
+            with self.assertRaises(ValueError): driver.validate_instrumentation(bad)
+
+    def test_first_retained_failure_survives_genuine_cleanup_cancellation(self):
+        with tempfile.TemporaryDirectory() as directory, public_fixture(Path(directory)) as f:
+            index = f.factory()
+            probe = f.observer.RequestObserver.from_index(index,f.pins)
+            probe.metadata_bytes = 8*1024**2
+            cancellation = KeyboardInterrupt('genuine close cancellation')
+            f.events.close_error = cancellation
+            try:
+                f.observer.measure_request(index,f.reader,lambda:None,f.paths[:1],observer=probe)
+            except BaseException as error:
+                self.assertIs(error,cancellation)
+                self.assertTrue(any('observer first failure' in str(e) and 'encoded_bytes' in str(e)
+                    for e in error.__cause__.exceptions))
+                self.assertTrue(any('observer first failure' in note for note in error.__notes__))
+            else: self.fail('accepted bound failure')
+            self.assertEqual(probe.first_failure['predicate'],'encoded_bytes')
+            self.assertEqual(f.events.images,['closed'])
+            self.assertTrue(index._closed)
+            self.assertIsNone(sys.getprofile())
+            self.assertFalse(probe.stack)
+
+    def test_typed_outputs_and_bytes_are_bounded_before_copy(self):
+        helpers = load('_output_bound_helpers',HERE/'test_observe_connected_serving.py')
+        observer = load('_output_bound_observer',HERE/'observe_connected_serving.py')
+        copied = []
+        class Bomb(helpers.Tensor):
+            def detach(self): copied.append('detach'); raise AssertionError('copy attempted')
+        with helpers.modules({'torch':SimpleNamespace(Tensor=helpers.Tensor,uint8='uint8')}):
+            for tensor in (Bomb(bytes(512),'torch.float32',(33,128)),
+                    Bomb(bytes(512),'torch.int8',(1,128)),Bomb(bytes(4),'torch.float32',(1,128))):
+                with self.assertRaisesRegex(ValueError,'before copy'):
+                    observer.tensor_snapshot(tensor,'torch.float32',[1,128],512)
+            self.assertEqual(copied,[])
+        for count in (0,33):
+            ids = memoryview(bytes(count*80)).cast('q')
+            scores = memoryview(bytes(count*40)).cast('f')
+            with self.assertRaisesRegex(ValueError,'before copy'): observer.native_snapshot((ids,scores))
+        sys.modules.pop('_output_bound_helpers',None)
+        sys.modules.pop('_output_bound_observer',None)
 
     def test_authenticated_live_source_replacement_is_rejected(self):
         driver = self.driver_module()
