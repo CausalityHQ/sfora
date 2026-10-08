@@ -1,0 +1,23 @@
+{
+  "actual_current_guard_result": "ValueError: authenticated module registry/origin differs",
+  "inputs": {
+    "evaluate_siglip2_connected_mlp.py": "2390c60fe5e87e82ab122c5c0101476b378792541bc454470c37d6c7f0410d40",
+    "export_siglip2_genuine_views.py": "e5e98f9bc85680cab013d53752e7fa140da9d5e7f7ecd4537413b29b1047f65e",
+    "export_siglip2_substrate_fit.py": "163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8"
+  },
+  "kind": "executed-stdlib-original-loader-seam",
+  "native_imports": [],
+  "original_loader_statements": [
+    "spec = importlib.util.spec_from_file_location('_genuine_fit_reference', ref_root / 'export_siglip2_substrate_fit.py')",
+    "reference = importlib.util.module_from_spec(spec)",
+    "spec.loader.exec_module(reference)"
+  ],
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "qualification_eligible": false,
+  "registry_key": "_genuine_fit_reference",
+  "registry_state": "absent after original loader",
+  "runtime_failure_member_identity_observed": false,
+  "schema": "connected-original-initializer-root-reproduction-v1",
+  "source_helpers_modified": false,
+  "state_reuse_eligible": false
+}
