@@ -1,0 +1,17 @@
+{
+  "status": "FAIL_SOURCE_ADMISSION_UNACCEPTED",
+  "ssh_session": 34633,
+  "exit": 1,
+  "invocation_id": "ceaf361615b44310a0942f5c1c4e2183",
+  "unit": "sfora-connected-gradient-decomposition-v2",
+  "service_seconds": 0.506,
+  "host_peak_bytes": 14487552,
+  "events_max": 0,
+  "swap_bytes": 0,
+  "gpu_work": "NONE_BEFORE_SOURCE_ADMISSION",
+  "reason": "current FILE bytes differ while reading training execution.json; exact digest subsequently matches authority",
+  "cause": "UNPROVEN; stat equality includes access time, and outer preflight omitted reference execution manifests",
+  "original_log_sha256": "f23aec7cdeb4b8a75e78066a00a3fc608a33e777a1753af5710ebfb91afcd1ae",
+  "final_footer_environment": "CORRECT_FINAL_CGROUP_PRESENT",
+  "scientific_result_accepted": false
+}
