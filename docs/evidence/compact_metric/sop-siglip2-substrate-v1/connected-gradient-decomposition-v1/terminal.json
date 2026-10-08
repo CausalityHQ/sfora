@@ -22,7 +22,10 @@
   },
   "blockers": [
     "workspace disposal exact32MiB predicate rejected observed64MiB to0",
-    "host memory.events max17588 violates zero-events policy"
+    "host memory.events max17588 violates zero-events policy",
+    "FINAL_CGROUP footer missing SFORA_COMMAND_STATUS environment; KeyError preserved in original log"
   ],
-  "scientific_result_accepted": false
+  "scientific_result_accepted": false,
+  "final_cgroup_footer_available": false,
+  "terminal_authority": "original SSH exit1 and exact invocation STOP_CGROUP"
 }
