@@ -1,0 +1,23 @@
+{
+  "bootstrap": "exactly one genuine admitted first TRAIN image B1 request, immediate original exact-four native audit before hashwork",
+  "critique": "75cd7eb2284c4e58; source dd412aff matches both reviews, doc inference corrected; latest32 source gate passed",
+  "engineering_only": true,
+  "files": {
+    "command.sh": "5b75f040f4afb3fbefbb7078d9c16962f8b4d58fd457e95105440c477a030cf6",
+    "launch.sh": "65628acc9d5ed7f5ee3814614ccde854652ca7ebf0b712ce3099191c7eaaaf6d",
+    "proposal.json": "c1906ff40bf7d8e5666996c2ad09b087eaa5a9f92f14f96ed7d4c0edf48a9a41",
+    "qualify_connected_fresh_sha_bootstrap.py": "dd412affd5f3a86b441fa012fb505de92e2ea8f1aa260775e26028f017d9d1c3",
+    "test_connected_fresh_sha_bootstrap.py": "8bd0c55a24f3daa2d8f5b89be95132b3821b280532f06cb1eccf5e2894fafc22"
+  },
+  "policy": {
+    "body_seconds": 300,
+    "cuda_exclusive_bytes": 10000000000,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_seconds": 1500
+  },
+  "prior_v1": "FAIL_NATIVE_EXIT_EXACT_FOUR preserved; no accepted comparison",
+  "schema": "connected-fresh-sha-root-freeze-v2",
+  "source_commit": "3572b1f9bfbf706809fb83a9cab05c6e35b174df",
+  "stop_rule": "One new job; any bootstrap/authority/parity/mutation/lifetime/resource/original exit/normal-terminal failure closes v2; no second request, retry, quality or product/speed GO."
+}

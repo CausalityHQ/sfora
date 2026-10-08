@@ -1,0 +1,38 @@
+test_failure_restores_every_byte (__main__.Body.test_failure_restores_every_byte) ... ok
+test_falsify_owns_one_index_and_closes_it (__main__.Body.test_falsify_owns_one_index_and_closes_it) ... ok
+test_mutants_are_rejected (__main__.Body.test_mutants_are_rejected) ... ok
+test_passes_with_exact_evidence (__main__.Body.test_passes_with_exact_evidence) ... ok
+test_unauthenticated_identity_is_rejected (__main__.Body.test_unauthenticated_identity_is_rejected) ... ok
+test_audit_is_called_with_the_owned_legacy_context_only (__main__.Bootstrap.test_audit_is_called_with_the_owned_legacy_context_only) ... ok
+test_bootstrap_time_is_outside_every_bare_hash_clock (__main__.Bootstrap.test_bootstrap_time_is_outside_every_bare_hash_clock) ... ok
+test_decoder_failure_stops_before_any_forward (__main__.Bootstrap.test_decoder_failure_stops_before_any_forward) ... ok
+test_exactly_one_admitted_image_is_required (__main__.Bootstrap.test_exactly_one_admitted_image_is_required) ... ok
+test_extracted_seams_are_the_genuine_signatures (__main__.Bootstrap.test_extracted_seams_are_the_genuine_signatures) ... ok
+test_forward_failure_closes_images_and_index_and_stops (__main__.Bootstrap.test_forward_failure_closes_images_and_index_and_stops) ... ok
+test_guard_failure_after_the_forward_stops_hash_work (__main__.Bootstrap.test_guard_failure_after_the_forward_stops_hash_work) ... ok
+test_image_result_and_observer_aliases_are_cleared_before_hashing (__main__.Bootstrap.test_image_result_and_observer_aliases_are_cleared_before_hashing) ... ok
+test_one_genuine_b1_request_and_exact_four_audit_precede_all_hash_work (__main__.Bootstrap.test_one_genuine_b1_request_and_exact_four_audit_precede_all_hash_work) ... ok
+test_reassociated_observer_source_is_denied (__main__.Bootstrap.test_reassociated_observer_source_is_denied) ... ok
+test_unexpected_extra_native_origin_stops_hash_work (__main__.Bootstrap.test_unexpected_extra_native_origin_stops_hash_work) ... ok
+test_zero_forward_reproduces_the_v1_exit_failure_and_stops_hash_work (__main__.Bootstrap.test_zero_forward_reproduces_the_v1_exit_failure_and_stops_hash_work) ... ok
+test_accepts_exact_closure (__main__.Proposal.test_accepts_exact_closure) ... ok
+test_driver_must_carry_the_new_basename_beside_its_new_test (__main__.Proposal.test_driver_must_carry_the_new_basename_beside_its_new_test) ... ok
+test_native_prefix_is_proved_statically_and_at_runtime (__main__.Proposal.test_native_prefix_is_proved_statically_and_at_runtime) ... ok
+test_rejections (__main__.Proposal.test_rejections) ... ok
+test_source_load_executes_admitted_raw_bytes_not_a_poisoned_pyc (__main__.Proposal.test_source_load_executes_admitted_raw_bytes_not_a_poisoned_pyc) ... ok
+test_accepts_and_rejects_every_mutation (__main__.Receipt.test_accepts_and_rejects_every_mutation) ... ok
+test_bootstrap_evidence_is_exact_ordered_and_charged (__main__.Receipt.test_bootstrap_evidence_is_exact_ordered_and_charged) ... ok
+test_bootstrap_image_is_authenticated_against_the_actual_first_train_file (__main__.Receipt.test_bootstrap_image_is_authenticated_against_the_actual_first_train_file) ... ok
+test_receipt_must_name_the_new_driver_and_test_files (__main__.Receipt.test_receipt_must_name_the_new_driver_and_test_files) ... ok
+test_driver_and_original_survive_unchanged_source_authentication (__main__.SeamInverse.test_driver_and_original_survive_unchanged_source_authentication) ... ok
+test_every_seam_and_unseamed_statement_is_pinned (__main__.SeamInverse.test_every_seam_and_unseamed_statement_is_pinned) ... ok
+test_frozen_v1_files_are_unchanged_and_only_the_body_and_receipt_seams_differ (__main__.SeamInverse.test_frozen_v1_files_are_unchanged_and_only_the_body_and_receipt_seams_differ) ... ok
+test_missing_duplicate_and_changed_original_rejected (__main__.SeamInverse.test_missing_duplicate_and_changed_original_rejected) ... ok
+test_pins_and_real_inverse (__main__.SeamInverse.test_pins_and_real_inverse) ... ok
+test_unchanged_original_functions_and_old_tests_keep_their_asts (__main__.SeamInverse.test_unchanged_original_functions_and_old_tests_keep_their_asts) ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 16.618s
+
+OK
+exit=0

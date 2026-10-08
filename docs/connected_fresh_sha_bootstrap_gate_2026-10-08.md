@@ -7,10 +7,13 @@ was published. Its source, freeze and raw terminal remain immutable.
 
 The original control-serving exit requires all four authenticated cuDNN members.
 The accepted v2 control-serving body made genuine public image calls; the new
-hash-only body deliberately made zero forwards. Its initial mapped-origin report
-has all four absent and no extras. The only original terminal exception is the
-unchanged exact-four exit predicate. This establishes an incompatible bootstrap
-contract; it does not establish a speed result or qualification of the proposal.
+hash-only body deliberately made zero forwards. Both runs initially reported all
+four absent and no extras, so that initial report does not distinguish them.
+The v1 terminal passed the preceding unknown-origin check and rejected the
+unchanged exact-four exit predicate; its final member inventory was not logged.
+The differing forward paths support a missing-bootstrap inference, which the
+new immediate audit must test. No final missing-member count, speed result or
+qualification of the proposal is inferred from the initial report.
 
 ONE new prospective v2 may add a genuine first TRAIN image B1 request through
 the unchanged observer.measure_request/decode_images and the same owned baseline

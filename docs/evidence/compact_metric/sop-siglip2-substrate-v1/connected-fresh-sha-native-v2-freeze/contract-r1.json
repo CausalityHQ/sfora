@@ -1,0 +1,169 @@
+{
+  "FILE": {
+    "keys": [
+      "path",
+      "sha256"
+    ],
+    "path": "canonical absolute regular file, not symlink",
+    "sha256": "actual 64 lower hex of current bytes (requests.read_file)"
+  },
+  "base_commit": "820943ae7c3260e7f89a43e4a8ca32b652c5bfd7",
+  "bootstrap": {
+    "charge": "bootstrap seconds+native_capture+image_cleanup+audit counted in the unchanged body300 / whole1500 / 8GiB / swap0 / CUDA<10GB envelope; measure() timing pairs are bare hash calls and exclude it",
+    "forbidden": [
+      "simulated origins",
+      "explicit library loading",
+      "whitelist widening",
+      "cache clearing",
+      "editing original API/observer/bridge",
+      "new caps/thresholds/quality/GO/p99",
+      "second request",
+      "new images"
+    ],
+    "steps": [
+      "bounded()",
+      "observer.measure_request(index, read_images, torch.cuda.synchronize, [first admitted TRAIN image Path])  # observer kwarg omitted: unprofiled genuine public B1 search_images",
+      "result = None (no native result/tensor alias kept); images closed by measure_request own cleanup (read_images / index objects never retained)",
+      "api.audit_origins(legacy, require_exact=True)  # genuine original exact-four wrapper, IMMEDIATELY after the forward; raises -> owner closes index, measure() NEVER runs",
+      "bounded()",
+      "validate row: finite timings, seconds>0, seconds==read+call+sync (1e-6), instrumented False, qualification_eligible False, native typed ID/score snapshot for batch 1 (q|l shape [1,10] 160 hex; f shape [1,10] 80 hex)"
+    ],
+    "where": "falsify(): inside the SAME requests.owner(factory,bounded,charges) as index, BEFORE measure() (all hashes, mutants, timings)"
+  },
+  "cli": {
+    "argv": [
+      "<DRIVER abs path>",
+      "--authority",
+      "FILE.path",
+      "--authority-sha256",
+      "FILE.sha256",
+      "--proposal",
+      "FILE.path",
+      "--proposal-sha256",
+      "FILE.sha256",
+      "--output",
+      "NEWDIR"
+    ],
+    "driver_basename": "qualify_connected_fresh_sha_bootstrap.py",
+    "test_basename": "test_connected_fresh_sha_bootstrap.py",
+    "unchanged_vs_v1": true
+  },
+  "commit": "author Roman Bartusiak, exactly 2 new files, no trailers/attribution",
+  "dynamic_root_pins": "NO hash of either new file, proposal.json, authority or any future artifact appears in source. Root computes actual sha256 FILEs at freeze; read_proposal binds them at runtime to the byte-read files; the new test pins only ALREADY-COMMITTED frozen bytes (v1 driver/test, original control driver).",
+  "frozen_unchanged_actual_sha256": {
+    "scripts/connected_control_native_authority.py": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442",
+    "scripts/observe_connected_serving.py": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de",
+    "scripts/qualify_connected_control_serving.py": "2961c2b0129b762403273c1d550b44c0ba7e4e9ec231a3e39848a9ee57d68815",
+    "scripts/qualify_connected_fresh_sha.py": "fb8209554887c8a5cfc8a269a30c8dad619ec1cf40373a7c348fb98186f794ea",
+    "scripts/qualify_connected_serving_requests.py": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163",
+    "scripts/test_connected_fresh_sha.py": "32017c4c1ad6283cc62c8165124463d6bb151f9f10f3adb3bdfe439c2c65bf37",
+    "scripts/train_siglip2_nearest_ranking.py": "4803bca125f54fce9e2f59a1ae3f31dff51aa860cc7c5059ab13e28ff795a72c"
+  },
+  "known_risk_not_a_bypass": "The accepted v2 control body exited exact-four after B1 AND B32 forwards. A B1-only forward is the root-specified bootstrap; if B1 does not map all four cuDNN members the new audit fails and, per the gate doc, closes this v2.",
+  "limits": {
+    "final_affected_suite": "ONE run <=120s / AS 1GiB",
+    "forbidden": "torch/native/third-party imports, SSH, GPU, images, jobs, consults, children, operator contact, merge, push",
+    "narrow_tests": "<=15s / 1GiB AS"
+  },
+  "new_files_only": [
+    "scripts/qualify_connected_fresh_sha_bootstrap.py",
+    "scripts/test_connected_fresh_sha_bootstrap.py"
+  ],
+  "receipt_v2_changes": {
+    "bootstrap_keys": "batch kind image seconds read_decode_seconds public_call_seconds completion_sync_seconds native_capture_seconds image_cleanup_seconds native instrumented qualification_eligible audit_seconds audit_exact_four ended_body_seconds",
+    "charged_accounting": "owner admission+release + bootstrap(seconds+native_capture+image_cleanup+audit) <= body_seconds",
+    "file_binding": "validate_fresh_receipt requires driver/test basenames == the two new names and input_guards to contain each proposal_files() path -> sha256",
+    "forward_calls": 1,
+    "ordering": "0 < bootstrap.ended_body_seconds <= hash_started_body_seconds <= body_seconds",
+    "phases": "admission bootstrap falsifier timings hash_started_body_seconds (exact keys)",
+    "unchanged": [
+      "full444/448 baseline+mutants+restoration",
+      "near-96MiB transpose",
+      "over-budget exact message",
+      "retained-error weakrefs/threads",
+      "3 alternating OP,PO,OP pairs",
+      "all flags False",
+      "speed_go False",
+      "full uncached exit pass",
+      "both locks"
+    ]
+  },
+  "schema": "connected-fresh-sha-bootstrap-source-contract-v1",
+  "schemas": {
+    "proposal": "connected-fresh-sha-bootstrap-proposal-v2 (keys schema,driver,test,proposed{runtime,ledger,bridge},commit; driver.path == this file, test.path == sibling test basename, both byte-authenticated)",
+    "receipt": "connected-fresh-sha-bootstrap-falsifier-diagnostic-v2",
+    "v1_receipt_schema_never_reused": "connected-fresh-sha-falsifier-diagnostic-v1"
+  },
+  "seam_note": "Exactly 8 seams, ids S1..S8, inverse to genuine control.run via ast.dump with each statement-sequence replaced exactly once. Only S6 differs from v1: falsify now also receives the admitted observer, read_images, [first admitted TRAIN image Path] and the original native api + legacy context.",
+  "seams": [
+    {
+      "changed_vs_v1": false,
+      "id": "S1",
+      "original_control_run": "require(sys.argv == cli(authority_fact,str(args.output),sources['control_driver']['path']), 'fixed canonical control CLI order required')\n",
+      "v1_driver": "proposal_fact = {'path':str(args.proposal),'sha256':args.proposal_sha256}\nproposal = read_proposal(proposal_fact,sources)\nrequire(sys.argv == fresh_cli(authority_fact,proposal_fact,str(args.output),proposal['driver']['path']), 'fixed canonical fresh-sha CLI order required')\n",
+      "v2_driver": "proposal_fact = {'path':str(args.proposal),'sha256':args.proposal_sha256}\nproposal = read_proposal(proposal_fact,sources)\nrequire(sys.argv == fresh_cli(authority_fact,proposal_fact,str(args.output),proposal['driver']['path']), 'fixed canonical fresh-sha CLI order required')\n"
+    },
+    {
+      "changed_vs_v1": false,
+      "id": "S2",
+      "original_control_run": "self_source = requests.Source(sys.modules[__name__],sources['control_driver'])\n",
+      "v1_driver": "control_source = requests.Source(control,sources['control_driver'])\nself_source = requests.Source(sys.modules[__name__],proposal['driver'])\n",
+      "v2_driver": "control_source = requests.Source(control,sources['control_driver'])\nself_source = requests.Source(sys.modules[__name__],proposal['driver'])\n"
+    },
+    {
+      "changed_vs_v1": false,
+      "id": "S3",
+      "original_control_run": "locks = requests.Locks(authority['locks'])\n",
+      "v1_driver": "locks = requests.Locks(authority['locks'])\nproposed_source = requests.Source.load(proposal['proposed']['runtime']); owned.append(proposed_source)\nrequire_no_native()\n",
+      "v2_driver": "locks = requests.Locks(authority['locks'])\nproposed_source = requests.Source.load(proposal['proposed']['runtime']); owned.append(proposed_source)\nrequire_no_native()\n"
+    },
+    {
+      "changed_vs_v1": false,
+      "id": "S4",
+      "original_control_run": "frozen = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],\n    *sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],observation['control_export_receipt'],\n    observation['gallery']['file'],observation['native'],*observation['train_images']]\n",
+      "v1_driver": "frozen = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],\n    *sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],observation['control_export_receipt'],\n    observation['gallery']['file'],observation['native'],*observation['train_images'],\n    proposal_fact,*proposal_files(proposal)]\n",
+      "v2_driver": "frozen = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],\n    *sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],observation['control_export_receipt'],\n    observation['gallery']['file'],observation['native'],*observation['train_images'],\n    proposal_fact,*proposal_files(proposal)]\n"
+    },
+    {
+      "changed_vs_v1": false,
+      "id": "S5",
+      "original_control_run": "for source in (self_source,request_source,observer_source,native_source,evaluator_source,\n    bridge_source,wrapper_source,packed_source,packing_source): source.check()\n",
+      "v1_driver": "for source in (self_source,request_source,observer_source,native_source,evaluator_source,\n    bridge_source,wrapper_source,packed_source,packing_source,control_source,proposed_source): source.check()\n",
+      "v2_driver": "for source in (self_source,request_source,observer_source,native_source,evaluator_source,\n    bridge_source,wrapper_source,packed_source,packing_source,control_source,proposed_source): source.check()\n"
+    },
+    {
+      "changed_vs_v1": true,
+      "id": "S6",
+      "original_control_run": "diagnostic = requests.request_body(factory,observer,read_images,torch.cuda.synchronize,\n    [Path(f['path']) for f in observation['train_images']],observation['sources'],guard)\n",
+      "v1_driver": "diagnostic = falsify(factory,guard,torch,proposed_source)\n",
+      "v2_driver": "diagnostic = falsify(factory,guard,torch,proposed_source,observer,read_images,\n    [Path(observation['train_images'][0]['path'])],api,context['training_context']['legacy'])\n"
+    },
+    {
+      "changed_vs_v1": false,
+      "id": "S7",
+      "original_control_run": "record = {'schema':'connected-control-serving-diagnostic-v1','status':'DISCARDED_DIAGNOSTIC','engineering_only':True,\n    'authority':authority_fact,'sources':sources,'control':CONTROL,'control_export':authority['control_export'],\n    'observation':authority['observation'],'native_runtime':authority['native_runtime'],'output':str(output),\n    'ties':ties,**diagnostic,'quality_read':False,'quality_eligible':False,'qualification_eligible':False,\n    'state_reuse_eligible':False,'optimization_eligible':False,'product_go':False,'resource_policy':policy,\n    'normal_terminal_required':True,'owned_cleanup_requires_terminal':True,\n    'invocation':{'argv':sys.argv,'python':str(Path(sys.executable).resolve()),'python_sha256':prior['python_sha256'],\n        'python_version':sys.version,'pid':os.getpid(),'invocation_id':os.environ['INVOCATION_ID'],\n        'optimize':sys.flags.optimize,'cuda_visible_devices':os.environ['CUDA_VISIBLE_DEVICES'],\n        'cublas_workspace_config':os.environ.get('CUBLAS_WORKSPACE_CONFIG')}}\n",
+      "v1_driver": "record = {'schema':RECEIPT_SCHEMA,'status':'DISCARDED_DIAGNOSTIC','engineering_only':True,\n    'authority':authority_fact,'proposal':proposal_fact,'proposed':proposal['proposed'],'proposal_commit':proposal['commit'],\n    'sources':sources,'control':CONTROL,'control_export':authority['control_export'],\n    'observation':authority['observation'],'native_runtime':authority['native_runtime'],'output':str(output),\n    'ties':ties,**diagnostic,'quality_read':False,'quality_eligible':False,'qualification_eligible':False,\n    'state_reuse_eligible':False,'optimization_eligible':False,'product_go':False,'speed_go':False,'resource_policy':policy,\n    'normal_terminal_required':True,'owned_cleanup_requires_terminal':True,\n    'invocation':{'argv':sys.argv,'python':str(Path(sys.executable).resolve()),'python_sha256':prior['python_sha256'],\n        'python_version':sys.version,'pid':os.getpid(),'invocation_id':os.environ['INVOCATION_ID'],\n        'optimize':sys.flags.optimize,'cuda_visible_devices':os.environ['CUDA_VISIBLE_DEVICES'],\n        'cublas_workspace_config':os.environ.get('CUBLAS_WORKSPACE_CONFIG')}}\n",
+      "v2_driver": "record = {'schema':RECEIPT_SCHEMA,'status':'DISCARDED_DIAGNOSTIC','engineering_only':True,\n    'authority':authority_fact,'proposal':proposal_fact,'proposed':proposal['proposed'],'proposal_commit':proposal['commit'],\n    'sources':sources,'control':CONTROL,'control_export':authority['control_export'],\n    'observation':authority['observation'],'native_runtime':authority['native_runtime'],'output':str(output),\n    'ties':ties,**diagnostic,'quality_read':False,'quality_eligible':False,'qualification_eligible':False,\n    'state_reuse_eligible':False,'optimization_eligible':False,'product_go':False,'speed_go':False,'resource_policy':policy,\n    'normal_terminal_required':True,'owned_cleanup_requires_terminal':True,\n    'invocation':{'argv':sys.argv,'python':str(Path(sys.executable).resolve()),'python_sha256':prior['python_sha256'],\n        'python_version':sys.version,'pid':os.getpid(),'invocation_id':os.environ['INVOCATION_ID'],\n        'optimize':sys.flags.optimize,'cuda_visible_devices':os.environ['CUDA_VISIBLE_DEVICES'],\n        'cublas_workspace_config':os.environ.get('CUBLAS_WORKSPACE_CONFIG')}}\n"
+    },
+    {
+      "changed_vs_v1": false,
+      "id": "S8",
+      "original_control_run": "validate_receipt(record,authority,authority_fact)\n",
+      "v1_driver": "validate_fresh_receipt(record,authority,authority_fact,proposal,proposal_fact)\n",
+      "v2_driver": "validate_fresh_receipt(record,authority,authority_fact,proposal,proposal_fact)\n"
+    }
+  ],
+  "status": "PRE-CODE contract; every v2 behaviour below is implemented to match it, then SEAMS/constants are re-diffed against this file",
+  "tests_required": [
+    "bootstrap precedes every hash (event order)",
+    "exact-four failure prevents hash work and closes index",
+    "genuine observer.measure_request (real module) image cleanup + one read + one search_images",
+    "genuine requests.owner",
+    "genuine audit_origins wrapper extracted by AST from train_siglip2_nearest_ranking.native_source_api",
+    "malformed receipts",
+    "reassociated observer source denied",
+    "v2 seam inverse on actual driver + original",
+    "frozen v1 bytes unchanged"
+  ],
+  "worktree": "/home/rb/worktrees/sfora-connected-fresh-sha-bootstrap-20261008"
+}

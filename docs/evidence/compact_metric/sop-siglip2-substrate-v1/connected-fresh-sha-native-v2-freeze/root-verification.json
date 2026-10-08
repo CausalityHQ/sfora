@@ -1,0 +1,31 @@
+{
+  "files": {
+    "qualify_connected_fresh_sha_bootstrap.py": "dd412affd5f3a86b441fa012fb505de92e2ea8f1aa260775e26028f017d9d1c3",
+    "test_connected_fresh_sha_bootstrap.py": "8bd0c55a24f3daa2d8f5b89be95132b3821b280532f06cb1eccf5e2894fafc22"
+  },
+  "native_status": "UNRUN",
+  "prior_v1": "FAIL preserved",
+  "review_group": "75cd7eb2284c4e58",
+  "review_resolution": "No P1 source blocker; doc inference corrected, r2 contract carries S8 image binding. Prospective engineering only.",
+  "schema": "fresh-sha-bootstrap-root-source-verification-v1",
+  "source_suite": {
+    "exit": 0,
+    "max_rss_kib": 49532,
+    "swaps": 0,
+    "tests": 32,
+    "wall_seconds": 16.83
+  },
+  "stop_rule": "One new job; any bootstrap/authority/parity/mutation/lifetime/resource/original exit/normal-terminal failure closes v2; no second request, retry, quality or product/speed GO.",
+  "unchanged_functions": [
+    "measure",
+    "mutants",
+    "capture_error",
+    "same_bytes",
+    "tree_bytes",
+    "require_no_native",
+    "native_imports",
+    "proposal_files",
+    "seam_dump",
+    "check_seams"
+  ]
+}
