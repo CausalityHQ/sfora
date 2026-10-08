@@ -2,6 +2,16 @@
 
 The production joint quality-and-speed goal remains unmet. Quality and training numbers below are verified measurements from the linked original receipts. Prospective gates and runtime estimates are labelled separately.
 
+## Current decision
+
+The completed two-seed full selection decision is **KILL**. On In-Shop's previously exposed TRAIN-selection panel (1734 queries, 1715 gallery images, 498 products), equal-seed candidate gains are +0.346021 percentage points packed R@1 and +2.300189 points mAP@R. The product paired 95% R@1 interval is [-0.084842, +0.828167] points, so the frozen positive-lower-bound gate fails. Whole-service training ratios are 1.039901 and 1.071714: slower than the controls. [Original terminal verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/verification.json).
+
+The library API is a research preview. Native public-request parity/lifecycle and matched B1/B32 latency remain unqualified. No sealed validation, new official confirmation or candidate serving-survivor launch is admitted by this result.
+
+The next prospective gate is one same-terminal-readout gallery-freshness diagnostic, after source checks and freeze. Its independent latency work adds fingerprint attribution to the existing observer. Both are source work, not new quality or speed measurements. [Diagnostic contract](evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/freshness-implementation-contract.json), [latency contract](evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/serving-observer-implementation-contract.json), [current primary-reference screen](evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/primary-reference-screen-20261008.md).
+
+## Historical progression — pending statements below are superseded
+
 In-Shop previously exposed TRAIN selection: seed179061, 1734 query images, 1715 gallery images, 498 products. This is not the official query/gallery protocol.
 
 | Model | Packed R@1 (%) | mAP@R (%) |
