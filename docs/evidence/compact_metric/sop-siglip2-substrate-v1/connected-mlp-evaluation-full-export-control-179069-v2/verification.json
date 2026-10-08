@@ -1,0 +1,32 @@
+{
+  "actual_complete_check_receipt_on_independently_authenticated_metadata_pass": true,
+  "complete_production_accept_unit_required_before_export_cuda": true,
+  "engineering_only": true,
+  "memory_events_zero": true,
+  "native_modules": [],
+  "next_gate": "ONE full paired selection score700 after all four full-stage exports are independently accepted; no held VAL without full GO.",
+  "original_normal_terminal_duration_rss_and_cgroup_predicates_checked": true,
+  "original_previous_auxiliary_full_authority_audit_timeout_preserved": true,
+  "pass": true,
+  "quality_read": false,
+  "schema": "connected-evaluator-export-parent-verification-v1",
+  "state_reuse_eligible": false,
+  "swap_bytes": 0,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "a51e6ffbaebb4ee2a2d3e68596d163ec",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/full-export-control-179069-v2-original.log",
+      "sha256": "fbad36d644038a765a9163045b2422122f4719acbcfd5d518e828b9f945f485a"
+    },
+    "native_peak_rss_kib": 4270568,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179069-v2/receipt.json",
+      "sha256": "5e4398925339693df8ad2a918d1cf7a057c8cea8a7ffd45aa07911e5573e708f"
+    },
+    "service_seconds": 1303.052,
+    "unit": "sfora-connected-mlp-evaluation-full-export-control-179069-v2"
+  },
+  "two_complete_independent_passes_tails_oracles_and_typed_wires_pass": true,
+  "whole_unit_peak_host_bytes": 5495660544
+}
