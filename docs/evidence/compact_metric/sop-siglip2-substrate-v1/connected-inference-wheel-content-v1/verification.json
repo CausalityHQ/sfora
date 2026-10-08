@@ -1,0 +1,34 @@
+{
+  "all_record_rows_verified": true,
+  "archive_members": 115,
+  "build_backend": "hatchling==1.32.3 project pin",
+  "build_command": "RAYON_NUM_THREADS=1 UV_CONCURRENT_BUILDS=1 timeout60 prlimitAS1GiB uv build --wheel",
+  "historical_training_scripts_in_wheel": false,
+  "installed_wheel_native_qualification": "UNRUN",
+  "native_model_or_cuda_execution": false,
+  "prior_attempts": [
+    {
+      "cause": "pinned Hatchling absent from cache",
+      "exit": 2,
+      "mode": "offline"
+    },
+    {
+      "cause": "Rayon thread pool WouldBlock under bounded build",
+      "exit": 134,
+      "mode": "default threads online"
+    }
+  ],
+  "project_inference_or_torch_imported": false,
+  "quality_or_speed_claim": false,
+  "schema": "connected-inference-wheel-content-verification-v1",
+  "serving_closure_bytes_match_source": {
+    "_connected_inference_authority.py": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+    "connected_compact_serving.py": "7c9713d3356c32f0c86feca788f53f299dc386b97964cec11016f88688c91932",
+    "connected_inference.py": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+    "packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4"
+  },
+  "source_commit": "8f6886464fa9e61647b12170e072c03adc0737b5",
+  "wheel": "/tmp/sfora-connected-wheel-8f68864-single-thread/sfora-0.3.0rc4-py3-none-any.whl",
+  "wheel_bytes": 839248,
+  "wheel_sha256": "a1ff1b26f4d1d696e016344e03099ae2618621624929de70395dba81e5671eb6"
+}
