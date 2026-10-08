@@ -1,0 +1,33 @@
+{
+  "base": "15eb6e0c6ff450d95e1d4c07b01bb360f8d42dd7",
+  "clean": true,
+  "commit": "c89794a19f2e4567d8b7d85fdbf0ce01be120fe4",
+  "correction": "Exact root Mask(function.__dict__) plus fake initializer RED reproduced. Factory now lexically captures original wrapper dictionary identity and builtin getattr; verify_delegate rejects dictionary replacement before reading actual initializer attribute, with missing attributes producing the same binding error. Mask/plain replacement dictionaries, fake/genuine values, missing attribute, and mask replacement during genuine check_unit reject at fresh/cached/call/finally/exit; all prior checks/inverses retained.",
+  "files": {
+    "scripts/evaluate_siglip2_connected_mlp.py": "9cf3ba0e005fcf1b9c1433359bae09a2540fb6143d6a5c83b8c2b1cfc60802a3",
+    "scripts/test_connected_mlp_evaluation.py": "2e869791c5667558a6c4d5d2459c4fba973a6705c08d5921a16ffac002ddef8d"
+  },
+  "logs": {
+    "/tmp/initializer-mask-final.log": "4eb3c967ccdf63281484b5e8c0ece075672d780d898048af443d65186fac50f1",
+    "/tmp/initializer-mask-final.metrics": "0e34cf86d9245585188811c037692d8b68b0fdcddd2eb9a05997430e1b3702cf",
+    "/tmp/initializer-mask-green.log": "9858088733da0afcd2cd6880c24342a39700e2b6dd5519ec470c8d838543448b",
+    "/tmp/initializer-mask-inverses.log": "6a8b54de9b29db3b0fe63e55382a5526c73bee21455f6abc85c2dbd0f020f47c",
+    "/tmp/initializer-mask-root-red.log": "6a88b825671392ab94837b60bb693c76e3ff58599b74abf9adeb17815be275de",
+    "/tmp/initializer-mask-test-red.log": "7a75b7ccd2469880580a9e576bc0edbe735e3fe4e0e6c16d4723b7defc6a70dc"
+  },
+  "merged": false,
+  "native_run": false,
+  "previous_narrower_receipts": {
+    "/tmp/initializer-delegate-final-receipt.json": "e29d38916ceb6b8b0edb9f7428cc44a052e32992dadde2644eff9f1928ec214a",
+    "/tmp/initializer-origin-final-receipt.json": "7f92e95d6787ea4c6b07a3e0c602f9c83f17d50410b0492776cb68bb9fb8a80e"
+  },
+  "pushed": false,
+  "qualification_eligible": false,
+  "verification": {
+    "command": "timeout 120s prlimit --as=1073741824 python3 -B scripts/test_connected_mlp_evaluation.py --source-only",
+    "elapsed_seconds": 36.66,
+    "exit_status": 0,
+    "peak_rss_kib": 159996,
+    "replacement_full_suite_runs": 1
+  }
+}
