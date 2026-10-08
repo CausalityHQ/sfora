@@ -1,0 +1,743 @@
+{
+  "schema": "connected-gradient-intervention-review-v1",
+  "group": {
+    "id": "62804283a66647b7",
+    "status": "completed",
+    "started_at": 1791461024,
+    "agent": "sfora/emafactorial",
+    "force_reason": "Genuinely new training-gradient intervention from terminal Fable80ded1f838d54298 after original paired candidate KILL, not duplicate serving/native review. Need independent research/engineering judgment before selecting prospective train arm; prior serving review concerns a different layer.",
+    "rolling_6h_count": 3,
+    "prompt_preview": "READ-ONLY consequential NEW intervention decision. Repo /home/rb/worktrees/sfora-positive-causality master1473901. Read committed docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/encoder-centroid-gradient-plan.json (terminal Fable proposal plus root corrections), docs/connected_mlp_decision_2026-10-08.md, accepted four connected-mlp-train-{control,candidate}-{179061,179069}-v1 original.log/receipts and train_siglip2_connected_mlp.py:update, train_siglip2_identity_diversity.py:loss_terms/ranking_gallery. Latest equal-seed In-Shop exposedTRAINselection1734Q/1715G/498product candidate+.346020761ppR1/+2.300188994ppAP, product95%R1[-.084841629,.828167287]pp=>KILL; no new quality arm launched. Fable proposes feature-detached readout for centroid regression ONLY, same connected readout for existing full-gallery SmoothAP, A/C still both losses, four encoder MLP members rank-only. Evaluate scientific causal plausibility, distinctness vs prior plans, objective/gradient parity, optimizer/clip/control fairness, CPU gradient falsifier feasibility/cost and minimal exact source+receipt qualification reach. Root has independently verified scope55cde4... control1008products/candidate2016 both disjoint all996 selection+VAL products; Fable overlap caveat resolved. Root rejects norm ratio as an86%vector contribution and exact .05 saturation cutoff. Accepted logs show per-view rank norms only, cannot sum into combined vector norm. Do not repeat those errors. Avoid second full gallery loss evaluation just to compute detached regression: propose least complete correct separation with original forward/target/denominator/gradient invariants. No loss weight/temperature/optimizer/lr/clip/bank/view/schema science gate weakening; prospective method identity must distinguish changed training. Same quality/cost/science gates; native price/cost unmeasured. Decide GO-to-source-only implementation vs KILL, exact cheapest fixed TRAIN-only falsifier and source scope/API/witnesses. No edits/imports/Torch/native/SSH/GPU/cloud/children/consultations/newheldqueries. This is not serving review: servingcompiler job is separately live unchanged. Cite actual code/receipt locations; do not assert SOTA, mathematical saturation or timings not measured.",
+    "prompt_sha256": "0b0ecdb31f63af1a9cbdf9fae6df68da0d9103a57caa94bcb6fd18f864b909fd",
+    "prompt_bytes": 2287,
+    "fingerprint": "687d6dd7bc9d366cda91fd64aae1bf42bfb6e9cd8d9a597c59a06201995e12e8",
+    "evidence": {
+      "git_commit": "1473901d793ddc42b2ce7f8ff37e505a3804d13b",
+      "git_branch": "master",
+      "git_dirty": true,
+      "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+      "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+      "worktree_evidence_truncated": false,
+      "active_goal": {
+        "id": "goal-1790540789-1790540789754989478-2322852",
+        "agent": "sfora/emafactorial",
+        "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+        "status": "queued",
+        "revision": 1,
+        "actor": "operator",
+        "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+        "created_at": 1790540789,
+        "updated_at": 1790540789
+      }
+    },
+    "reviewers": [
+      {
+        "role": "research_critic",
+        "id": "cb8cad8d4dc44b0d",
+        "provider": "claude",
+        "model": "claude-opus-5-5",
+        "fallbacks": [
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5"
+          },
+          {
+            "provider": "codex",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "effort": "",
+        "agent": "sfora/emafactorial",
+        "cwd": "/home/rb/worktrees/sfora-positive-causality",
+        "status": "completed",
+        "runner_started": true,
+        "started_at": 1791461024,
+        "timeout_seconds": 1200,
+        "deadline_at": 1791462224,
+        "budget_usd": 4,
+        "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential NEW intervention decision. Repo /home/rb/worktrees/sfora-positive-causality master1473901. Read committed docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/encoder-centroid-gradient-plan.json (terminal Fable proposal plus root corrections), docs/connected_mlp_decision_2026-10-08.md, accepted four connected-mlp-train-{control,candidate}-{179061,179069}-v1 original.log/receipts and train_siglip2_connected_mlp.py:update, train_siglip2_identity_diversity.py:loss_terms/ranking_gallery. Latest equal-seed In-Shop exposedTRAINselection1734Q/1715G/498product candidate+.346020761ppR1/+2.300188994ppAP, product95%R1[-.084841629,.828167287]pp=>KILL; no new quality arm launched. Fable proposes feature-detached readout for centroid regression ONLY, same connected readout for existing full-gallery SmoothAP, A/C still both losses, four encoder MLP members rank-only. Evaluate scientific causal plausibility, distinctness vs prior plans, objective/gradient parity, optimizer/clip/control fairness, CPU gradient falsifier feasibility/cost and minimal exact source+receipt qualification reach. Root has independently verified scope55cde4... control1008products/candidate2016 both disjoint all996 selection+VAL products; Fable overlap caveat resolved. Root rejects norm ratio as an86%vector contribution and exact .05 saturation cutoff. Accepted logs show per-view rank norms only, cannot sum into combined vector norm. Do not repeat those errors. Avoid second full gallery loss evaluation just to compute detached regression: propose least complete correct separation with original forward/target/denominator/gradient invariants. No loss weight/temperature/optimizer/lr/clip/bank/view/schema science gate weakening; prospective method identity must distinguish changed training. Same quality/cost/science gates; native price/cost unmeasured. Decide GO-to-source-only implementation vs KILL, exact cheapest fixed TRAIN-only falsifier and source scope/API/witnesses. No edits/imports/Torch/native/SSH/GPU/cloud/children/consultations/newheldqueries. This is not serving review: servingcompiler job is separately live unchanged. Cite actual code/receipt locations; do not assert SOTA, mathematical saturation or timings not measured.",
+        "prompt_sha256": "2d4639e2e722333015cb30fb6eeca2d13690cf9542656d155d1d8ebae96e930b",
+        "prompt_bytes": 2657,
+        "fingerprint": "630c47dbe1520db525308a3b34fd69b6af519b8352c7e54908c16ac178cd38b3",
+        "evidence": {
+          "git_commit": "1473901d793ddc42b2ce7f8ff37e505a3804d13b",
+          "git_branch": "master",
+          "git_dirty": true,
+          "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+          "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+          "worktree_evidence_truncated": false,
+          "active_goal": {
+            "id": "goal-1790540789-1790540789754989478-2322852",
+            "agent": "sfora/emafactorial",
+            "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+            "status": "queued",
+            "revision": 1,
+            "actor": "operator",
+            "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+            "created_at": 1790540789,
+            "updated_at": 1790540789
+          }
+        },
+        "previous_fingerprint": "49f64ced58d99dde977dce5d1a800bf859f79425ec52b2c6e6fbc522f2d355d3",
+        "reused": false,
+        "critique_id": "62804283a66647b7",
+        "critique_role": "research_critic",
+        "systemd_unit": "devbox-consult-cb8cad8d4dc44b0d.service",
+        "pid": 2212144,
+        "pgid": 2212144,
+        "attempt": 1,
+        "attempts": [
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5"
+          },
+          {
+            "provider": "codex",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "attempt_history": [
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5",
+            "budget_usd": 4,
+            "timeout_seconds": 1199,
+            "started_at": 1791461025
+          }
+        ],
+        "exit_code": 0,
+        "finished_at": 1791461521,
+        "event_cursor": 54,
+        "events": [
+          {
+            "seq": 31,
+            "at": 1791461496,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 32,
+            "at": 1791461497,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 33,
+            "at": 1791461498,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 34,
+            "at": 1791461499,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 35,
+            "at": 1791461500,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 36,
+            "at": 1791461502,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 37,
+            "at": 1791461503,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 38,
+            "at": 1791461504,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 39,
+            "at": 1791461505,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 40,
+            "at": 1791461506,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 41,
+            "at": 1791461507,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 42,
+            "at": 1791461508,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 43,
+            "at": 1791461509,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 44,
+            "at": 1791461510,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 45,
+            "at": 1791461511,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 46,
+            "at": 1791461512,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 47,
+            "at": 1791461513,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 48,
+            "at": 1791461514,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 49,
+            "at": 1791461515,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 50,
+            "at": 1791461516,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 51,
+            "at": 1791461517,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 52,
+            "at": 1791461518,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 53,
+            "at": 1791461519,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 54,
+            "at": 1791461520,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ],
+        "events_truncated": true,
+        "provider_events": {
+          "claude": [
+            {
+              "seq": 47,
+              "at": 1791461513,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 48,
+              "at": 1791461514,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 49,
+              "at": 1791461515,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 50,
+              "at": 1791461516,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 51,
+              "at": 1791461517,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 52,
+              "at": 1791461518,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 53,
+              "at": 1791461519,
+              "provider": "claude",
+              "kind": "partial",
+              "label": "Partial answer updated"
+            },
+            {
+              "seq": 54,
+              "at": 1791461520,
+              "provider": "claude",
+              "kind": "phase",
+              "label": "Consultation completed",
+              "detail": "exit 0"
+            }
+          ]
+        },
+        "partial_result": "# Verdict: KILL the encoder-centroid detach arm, including the source-only implementation\n\nCommitted receipts contradict the proposal's causal premise. I made no edits or imports, ran no Torch, native code or GPU work, and started no children or consultations. Everything below comes from committed logs and receipts at 1473901d.\n\n## 1. Committed receipts contradict the causal premise\n\n**The ranking channel was not suppressed.** I paired the four accepted TRAIN logs step by step. Both arms used identical batches; I asserted `batch` equality for all 128 steps. Candidate rank minus control rank per update:\n\n| Steps | Seed 061 | Seed 069 |\n|---|---|---|\n| 1–32 | −0.00111 (lower on 24/32 steps) | −0.00141 (28/32) |\n| 97–128 | −0.00458 (31/32) | −0.00546 (31/32) |\n\nFinal-8 rank values were 0.0579 control vs 0.0540 candidate for seed 061, and 0.0492 vs 0.0447 for seed 069.\n\n- Fable says the ranking trajectories are indistinguishable. That is false.\n- Its table reports \"0.067→0.054\" for both arms. That is the seed-061 candidate trajectory only.\n- Its fc2.weight \"rank-only 0.63\" matches no logged value. The per-view values are 0.2976 and 0.3888 for seed 061, and 0.3537 and 0.4478 for seed 069.\n\nSo the live encoder already reduced TRAIN ranking loss under the regression-heavy objective. The +0.346 pp R@1 was still not significant. The missing link is transfer from TRAIN ranking to held-out R@1, and the detach does not touch that.\n\n**The terms do not oppose each other at step 0.** The receipt `actual-objective-gradient-v2/receipt.json` is admitted at `train_siglip2_connected_mlp.py:275`. It stores separate `regression`, `ranking` and `total` gradients from `autograd.grad(mse)`, `autograd.grad(rank)` and `autograd.grad(mse+rank)` (`qualify_actual_objective_encoder_gradients.py:202-203`). Because total = regression + ranking, their cosine follows from the three logged norms (polarization identity). Scope: initializer state, the first 16 anchors of the seed-061 step-1 B64 (I confirmed the batch matches the log), on CUDA.\n\n| MLP tensor | Canonical cos(regression, ranking) | Augmented cos(regression, ranking) |\n|---|---:|---:|\n| fc1.weight | +0.076 | +0.368 |\n| fc2.weight | −0.002 | +0.433 |\n| fc1.bias / fc2.bias | −0.006 / −0.007 | +0.331 / +0.429 |\n\nThe two gradients are orthogonal in the canonical view and positively aligned in the augmented view. The only thing that holds is larger regression magnitude: on fc2.weight the norm ratio is 2.66 and 7.43 for this micro-batch. That makes the regression term a dilution, not a competitor. This covers one micro-batch of one seed at step 0, and it is derived, not logged.\n\n**A valid bound on regression size (not a share).** Combined ranking norm is at most the sum of the per-view norms (triangle inequality). So at step 1, ‖g_reg(fc2.weight)‖ ≥ 4.4955 − 0.6864 = 3.809 for seed 061, and ≥ 4.7661 − 0.8015 = 3.965 for seed 069. That is everything the logs support. I make no percentage claim.\n\n## 2. The proposal does not target the stated failure\n\n- **Wrong population.** The 44 core errors and 9 shared wins are on the 498 selection products. You verified these are disjoint from the FIT products, and training anchors are FIT bank rows. No training gradient can \"reach\" those errors; it can only transfer. Fable's falsifier looks at FIT anchors in B64, so it cannot test the claim it is meant to test.\n- **SmoothAP is still an AP objective.** `smooth_ap_terms` (`train_siglip2_identity_diversity.py:1225`) averages 1 − rp/rt over all positives. Re-ordering secondary positives on already-correct queries is exactly what SmoothAP rewards. Blaming that pattern on the regression alone is unsupported. A rank-only encoder is still an AP objective, but the decision doc requires the next intervention to address nearest-neighbour errors.\n- **It amplifies the documented freshness asymmetry.** `ranking_gallery` (`:1245`) puts stored canonical features through a detached readout. The encoder's ranking gradient is therefore query-side only: the updated encoder's queries against the frozen encoder's gallery rows. Export then re-encodes both sides with the updated encoder.\n  - Regression is the only encoder-path term with an absolute target (P comes from the frozen readout). Removing it leaves the encoder anchored only relative to frozen gallery rows.\n  - The effect is unmeasured, and the freshness diagnostic is stopped at control parity.\n\n## 3. Objective, optimizer and clip parity\n\n- **Not a single-variable change.** AdamW's first step is roughly sign(g) per element. With MLP lr 1e-5 (`bind_optimizer`, `:661`), detaching does not just remove the regression's share. It hands the entire per-element step budget on about 9.86M MLP parameters to the noisier ranking signal, which acts as an effective increase in ranking-direction learning rate.\n- **The global clip couples arms.** `clip_grad_norm_` at `:1035` clips A, C and the four MLP tensors jointly. Step-1 pre-clip norm was 8.78/9.14 for the candidates and 7.32/7.56 for the controls. With the detach, the candidate's pre-clip norm moves toward the control's, so the A/C clip coefficient also changes. That is a second consequence relative to the old candidate.\n  - I verified the clip binds on every step in all four arms: minimum pre-clip 3.74/3.77 for candidates, 3.94/3.91 for controls.\n- **Fable's own witness is not testable as stated.** \"Candidate-minus-control A/C gradients equal the connected-raw difference\" is not a defined check. At step 1, candidate and control A/C gradients are already equal (7.2808/0.7881 in both seed-061 logs).\n- **Fable's implementation is wasteful.** It calls `loss_terms` twice, adding a second 6,355-row gallery forward and backward on each of the 8 micro-batches per update, every update. You already rejected this.\n\n## 4. Gate risk\n\nOne query is 0.0577 pp. The current +0.346 pp is about +6 net wins per seed, and the interval width is 0.913 pp. If the width stays the same, passing needs only about +2 more net wins per seed (approximate). This panel has already been used for the KILL decision. A pass from a perturbation-sized change on the same panel would be weak evidence; only sealed validation could carry it. Spending a full four-arm chain on that is not justified.\n\n## 5. Cheapest fixed TRAIN-only falsifier (only a reopen condition)\n\nRun on the accepted candidate step-128 checkpoints for both seeds, plus the initializer, with zero training.\n\n1. Use the fixed step-1 B64 in both views; these are the anchors the CPU discarded update already uses.\n2. Split anchor-views into R@1-wrong and R@1-right under the training score. The training score compares the live query against the connected stale gallery, with the same row excluded.\n3. Call the unchanged `loss_terms` on each subset with the full `K`. The terms are sums, so the subsets add up exactly to the full loss.\n4. On fc1.weight and fc2.weight, take the regression and ranking gradients for each subset.\n\n**Reopen only if both of these hold in both seeds at step 128:**\n- at least one R@1-wrong anchor-view exists, and\n- cos(g_reg, g_rank) on that subset is below 0.\n\nOtherwise KILL stands. The rule is a parameter-free sign test, so it adds no new constant. Finding zero FIT errors in B64 would itself point to transfer rather than objective routing. Cost is comparable to the admitted probe (160.9 s whole on CUDA) or the CPU discarded update (66.6 s core, 431.4 s wall in CPU-v6), but it is unmeasured for this probe.\n\n## 6. Source scope if it is ever reopened (least correct separation)\n\nThe candidate branch of `update` calls `loss_terms` once, as today:\n- `raw` stays as is, so ranking and the gallery are computed once.\n- `reg = trainer.raw_features(context,state,features)`. This is the control's own admitted feature-detached readout (`:1006`), so no new readout code is needed.\n- Regression is then computed inline: `mse = (reg − P[target[index]]).square().sum() / (rows·e0)`, with `rows` from `loss_denominators(K)`.\n- Every micro-batch must satisfy `torch.equal(reg, raw)` and `torch.equal(mse, mse_from_loss_terms)`, then `loss = mse + rank`. Forward-bitwise readout parity is already admitted (`detached_forward_identical`, raw/mse/rank all bitwise in actual-gradient-v2).\n\nWitnesses:\n- **W1 (step 1):** `autograd.grad(mse, MLP, allow_unused=True)` returns all None.\n- **W2 (step 1):** these must equal the accepted old-candidate step-1 rows: mse, rank, A/C `gradient_norms`, `ranking_*_norm` and per-view ranking norms. Each MLP gradient norm must equal the norm of the summed ranking gradient, which needs a new logged field.\n- **W3:** fresh control mechanics rows 1–17 must reproduce the accepted control `after_sha256` values. Those hashes do not depend on identity, so this proves the control path is unchanged at no extra cost.\n\nMethod identity: rewrite the contract docstring \"no loss changes\" (`:22`) and give the candidate's training a distinct method identity (recipe key or schema). The evaluator pins `trainer.SCHEMA == 'siglip2-connected-mlp-v1'` (`evaluate_siglip2_connected_mlp.py:1139`), so a schema bump also needs an evaluator source change.\n\nQualification chain if reopened:\n1. Tests, then pinned py313 assurance.\n2. CPU600, which carries W1 and W2 for seed 061.\n3. Mechanics1200 ×4.\n4. TRAIN3000 ×4.\n5. Export1500 ×4.\n6. Score700.\n\nMeasured precedents for this chain are 2,188.7–2,345.7 s per TRAIN arm, 1,299–1,310 s per export and 557.5 s for the score. Native price and cost remain unmeasured.",
+        "partial_result_truncated": false,
+        "provider_partials": {
+          "claude": "# Verdict: KILL the encoder-centroid detach arm, including the source-only implementation\n\nCommitted receipts contradict the proposal's causal premise. I made no edits or imports, ran no Torch, native code or GPU work, and started no children or consultations. Everything below comes from committed logs and receipts at 1473901d.\n\n## 1. Committed receipts contradict the causal premise\n\n**The ranking channel was not suppressed.** I paired the four accepted TRAIN logs step by step. Both arms used identical batches; I asserted `batch` equality for all 128 steps. Candidate rank minus control rank per update:\n\n| Steps | Seed 061 | Seed 069 |\n|---|---|---|\n| 1–32 | −0.00111 (lower on 24/32 steps) | −0.00141 (28/32) |\n| 97–128 | −0.00458 (31/32) | −0.00546 (31/32) |\n\nFinal-8 rank values were 0.0579 control vs 0.0540 candidate for seed 061, and 0.0492 vs 0.0447 for seed 069.\n\n- Fable says the ranking trajectories are indistinguishable. That is false.\n- Its table reports \"0.067→0.054\" for both arms. That is the seed-061 candidate trajectory only.\n- Its fc2.weight \"rank-only 0.63\" matches no logged value. The per-view values are 0.2976 and 0.3888 for seed 061, and 0.3537 and 0.4478 for seed 069.\n\nSo the live encoder already reduced TRAIN ranking loss under the regression-heavy objective. The +0.346 pp R@1 was still not significant. The missing link is transfer from TRAIN ranking to held-out R@1, and the detach does not touch that.\n\n**The terms do not oppose each other at step 0.** The receipt `actual-objective-gradient-v2/receipt.json` is admitted at `train_siglip2_connected_mlp.py:275`. It stores separate `regression`, `ranking` and `total` gradients from `autograd.grad(mse)`, `autograd.grad(rank)` and `autograd.grad(mse+rank)` (`qualify_actual_objective_encoder_gradients.py:202-203`). Because total = regression + ranking, their cosine follows from the three logged norms (polarization identity). Scope: initializer state, the first 16 anchors of the seed-061 step-1 B64 (I confirmed the batch matches the log), on CUDA.\n\n| MLP tensor | Canonical cos(regression, ranking) | Augmented cos(regression, ranking) |\n|---|---:|---:|\n| fc1.weight | +0.076 | +0.368 |\n| fc2.weight | −0.002 | +0.433 |\n| fc1.bias / fc2.bias | −0.006 / −0.007 | +0.331 / +0.429 |\n\nThe two gradients are orthogonal in the canonical view and positively aligned in the augmented view. The only thing that holds is larger regression magnitude: on fc2.weight the norm ratio is 2.66 and 7.43 for this micro-batch. That makes the regression term a dilution, not a competitor. This covers one micro-batch of one seed at step 0, and it is derived, not logged.\n\n**A valid bound on regression size (not a share).** Combined ranking norm is at most the sum of the per-view norms (triangle inequality). So at step 1, ‖g_reg(fc2.weight)‖ ≥ 4.4955 − 0.6864 = 3.809 for seed 061, and ≥ 4.7661 − 0.8015 = 3.965 for seed 069. That is everything the logs support. I make no percentage claim.\n\n## 2. The proposal does not target the stated failure\n\n- **Wrong population.** The 44 core errors and 9 shared wins are on the 498 selection products. You verified these are disjoint from the FIT products, and training anchors are FIT bank rows. No training gradient can \"reach\" those errors; it can only transfer. Fable's falsifier looks at FIT anchors in B64, so it cannot test the claim it is meant to test.\n- **SmoothAP is still an AP objective.** `smooth_ap_terms` (`train_siglip2_identity_diversity.py:1225`) averages 1 − rp/rt over all positives. Re-ordering secondary positives on already-correct queries is exactly what SmoothAP rewards. Blaming that pattern on the regression alone is unsupported. A rank-only encoder is still an AP objective, but the decision doc requires the next intervention to address nearest-neighbour errors.\n- **It amplifies the documented freshness asymmetry.** `ranking_gallery` (`:1245`) puts stored canonical features through a detached readout. The encoder's ranking gradient is therefore query-side only: the updated encoder's queries against the frozen encoder's gallery rows. Export then re-encodes both sides with the updated encoder.\n  - Regression is the only encoder-path term with an absolute target (P comes from the frozen readout). Removing it leaves the encoder anchored only relative to frozen gallery rows.\n  - The effect is unmeasured, and the freshness diagnostic is stopped at control parity.\n\n## 3. Objective, optimizer and clip parity\n\n- **Not a single-variable change.** AdamW's first step is roughly sign(g) per element. With MLP lr 1e-5 (`bind_optimizer`, `:661`), detaching does not just remove the regression's share. It hands the entire per-element step budget on about 9.86M MLP parameters to the noisier ranking signal, which acts as an effective increase in ranking-direction learning rate.\n- **The global clip couples arms.** `clip_grad_norm_` at `:1035` clips A, C and the four MLP tensors jointly. Step-1 pre-clip norm was 8.78/9.14 for the candidates and 7.32/7.56 for the controls. With the detach, the candidate's pre-clip norm moves toward the control's, so the A/C clip coefficient also changes. That is a second consequence relative to the old candidate.\n  - I verified the clip binds on every step in all four arms: minimum pre-clip 3.74/3.77 for candidates, 3.94/3.91 for controls.\n- **Fable's own witness is not testable as stated.** \"Candidate-minus-control A/C gradients equal the connected-raw difference\" is not a defined check. At step 1, candidate and control A/C gradients are already equal (7.2808/0.7881 in both seed-061 logs).\n- **Fable's implementation is wasteful.** It calls `loss_terms` twice, adding a second 6,355-row gallery forward and backward on each of the 8 micro-batches per update, every update. You already rejected this.\n\n## 4. Gate risk\n\nOne query is 0.0577 pp. The current +0.346 pp is about +6 net wins per seed, and the interval width is 0.913 pp. If the width stays the same, passing needs only about +2 more net wins per seed (approximate). This panel has already been used for the KILL decision. A pass from a perturbation-sized change on the same panel would be weak evidence; only sealed validation could carry it. Spending a full four-arm chain on that is not justified.\n\n## 5. Cheapest fixed TRAIN-only falsifier (only a reopen condition)\n\nRun on the accepted candidate step-128 checkpoints for both seeds, plus the initializer, with zero training.\n\n1. Use the fixed step-1 B64 in both views; these are the anchors the CPU discarded update already uses.\n2. Split anchor-views into R@1-wrong and R@1-right under the training score. The training score compares the live query against the connected stale gallery, with the same row excluded.\n3. Call the unchanged `loss_terms` on each subset with the full `K`. The terms are sums, so the subsets add up exactly to the full loss.\n4. On fc1.weight and fc2.weight, take the regression and ranking gradients for each subset.\n\n**Reopen only if both of these hold in both seeds at step 128:**\n- at least one R@1-wrong anchor-view exists, and\n- cos(g_reg, g_rank) on that subset is below 0.\n\nOtherwise KILL stands. The rule is a parameter-free sign test, so it adds no new constant. Finding zero FIT errors in B64 would itself point to transfer rather than objective routing. Cost is comparable to the admitted probe (160.9 s whole on CUDA) or the CPU discarded update (66.6 s core, 431.4 s wall in CPU-v6), but it is unmeasured for this probe.\n\n## 6. Source scope if it is ever reopened (least correct separation)\n\nThe candidate branch of `update` calls `loss_terms` once, as today:\n- `raw` stays as is, so ranking and the gallery are computed once.\n- `reg = trainer.raw_features(context,state,features)`. This is the control's own admitted feature-detached readout (`:1006`), so no new readout code is needed.\n- Regression is then computed inline: `mse = (reg − P[target[index]]).square().sum() / (rows·e0)`, with `rows` from `loss_denominators(K)`.\n- Every micro-batch must satisfy `torch.equal(reg, raw)` and `torch.equal(mse, mse_from_loss_terms)`, then `loss = mse + rank`. Forward-bitwise readout parity is already admitted (`detached_forward_identical`, raw/mse/rank all bitwise in actual-gradient-v2).\n\nWitnesses:\n- **W1 (step 1):** `autograd.grad(mse, MLP, allow_unused=True)` returns all None.\n- **W2 (step 1):** these must equal the accepted old-candidate step-1 rows: mse, rank, A/C `gradient_norms`, `ranking_*_norm` and per-view ranking norms. Each MLP gradient norm must equal the norm of the summed ranking gradient, which needs a new logged field.\n- **W3:** fresh control mechanics rows 1–17 must reproduce the accepted control `after_sha256` values. Those hashes do not depend on identity, so this proves the control path is unchanged at no extra cost.\n\nMethod identity: rewrite the contract docstring \"no loss changes\" (`:22`) and give the candidate's training a distinct method identity (recipe key or schema). The evaluator pins `trainer.SCHEMA == 'siglip2-connected-mlp-v1'` (`evaluate_siglip2_connected_mlp.py:1139`), so a schema bump also needs an evaluator source change.\n\nQualification chain if reopened:\n1. Tests, then pinned py313 assurance.\n2. CPU600, which carries W1 and W2 for seed 061.\n3. Mechanics1200 ×4.\n4. TRAIN3000 ×4.\n5. Export1500 ×4.\n6. Score700.\n\nMeasured precedents for this chain are 2,188.7–2,345.7 s per TRAIN arm, 1,299–1,310 s per export and 557.5 s for the score. Native price and cost remain unmeasured."
+        },
+        "providers_used": [
+          "claude"
+        ],
+        "active_provider": "claude",
+        "phase": "Consultation completed",
+        "input_bytes": 2657,
+        "output_bytes": 9526,
+        "elapsed_seconds": 497,
+        "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)\ndevbox-ask: claude consult still running (8m 00s)",
+        "progress_truncated": false,
+        "result": "# Verdict: KILL the encoder-centroid detach arm, including the source-only implementation\n\nCommitted receipts contradict the proposal's causal premise. I made no edits or imports, ran no Torch, native code or GPU work, and started no children or consultations. Everything below comes from committed logs and receipts at 1473901d.\n\n## 1. Committed receipts contradict the causal premise\n\n**The ranking channel was not suppressed.** I paired the four accepted TRAIN logs step by step. Both arms used identical batches; I asserted `batch` equality for all 128 steps. Candidate rank minus control rank per update:\n\n| Steps | Seed 061 | Seed 069 |\n|---|---|---|\n| 1–32 | −0.00111 (lower on 24/32 steps) | −0.00141 (28/32) |\n| 97–128 | −0.00458 (31/32) | −0.00546 (31/32) |\n\nFinal-8 rank values were 0.0579 control vs 0.0540 candidate for seed 061, and 0.0492 vs 0.0447 for seed 069.\n\n- Fable says the ranking trajectories are indistinguishable. That is false.\n- Its table reports \"0.067→0.054\" for both arms. That is the seed-061 candidate trajectory only.\n- Its fc2.weight \"rank-only 0.63\" matches no logged value. The per-view values are 0.2976 and 0.3888 for seed 061, and 0.3537 and 0.4478 for seed 069.\n\nSo the live encoder already reduced TRAIN ranking loss under the regression-heavy objective. The +0.346 pp R@1 was still not significant. The missing link is transfer from TRAIN ranking to held-out R@1, and the detach does not touch that.\n\n**The terms do not oppose each other at step 0.** The receipt `actual-objective-gradient-v2/receipt.json` is admitted at `train_siglip2_connected_mlp.py:275`. It stores separate `regression`, `ranking` and `total` gradients from `autograd.grad(mse)`, `autograd.grad(rank)` and `autograd.grad(mse+rank)` (`qualify_actual_objective_encoder_gradients.py:202-203`). Because total = regression + ranking, their cosine follows from the three logged norms (polarization identity). Scope: initializer state, the first 16 anchors of the seed-061 step-1 B64 (I confirmed the batch matches the log), on CUDA.\n\n| MLP tensor | Canonical cos(regression, ranking) | Augmented cos(regression, ranking) |\n|---|---:|---:|\n| fc1.weight | +0.076 | +0.368 |\n| fc2.weight | −0.002 | +0.433 |\n| fc1.bias / fc2.bias | −0.006 / −0.007 | +0.331 / +0.429 |\n\nThe two gradients are orthogonal in the canonical view and positively aligned in the augmented view. The only thing that holds is larger regression magnitude: on fc2.weight the norm ratio is 2.66 and 7.43 for this micro-batch. That makes the regression term a dilution, not a competitor. This covers one micro-batch of one seed at step 0, and it is derived, not logged.\n\n**A valid bound on regression size (not a share).** Combined ranking norm is at most the sum of the per-view norms (triangle inequality). So at step 1, ‖g_reg(fc2.weight)‖ ≥ 4.4955 − 0.6864 = 3.809 for seed 061, and ≥ 4.7661 − 0.8015 = 3.965 for seed 069. That is everything the logs support. I make no percentage claim.\n\n## 2. The proposal does not target the stated failure\n\n- **Wrong population.** The 44 core errors and 9 shared wins are on the 498 selection products. You verified these are disjoint from the FIT products, and training anchors are FIT bank rows. No training gradient can \"reach\" those errors; it can only transfer. Fable's falsifier looks at FIT anchors in B64, so it cannot test the claim it is meant to test.\n- **SmoothAP is still an AP objective.** `smooth_ap_terms` (`train_siglip2_identity_diversity.py:1225`) averages 1 − rp/rt over all positives. Re-ordering secondary positives on already-correct queries is exactly what SmoothAP rewards. Blaming that pattern on the regression alone is unsupported. A rank-only encoder is still an AP objective, but the decision doc requires the next intervention to address nearest-neighbour errors.\n- **It amplifies the documented freshness asymmetry.** `ranking_gallery` (`:1245`) puts stored canonical features through a detached readout. The encoder's ranking gradient is therefore query-side only: the updated encoder's queries against the frozen encoder's gallery rows. Export then re-encodes both sides with the updated encoder.\n  - Regression is the only encoder-path term with an absolute target (P comes from the frozen readout). Removing it leaves the encoder anchored only relative to frozen gallery rows.\n  - The effect is unmeasured, and the freshness diagnostic is stopped at control parity.\n\n## 3. Objective, optimizer and clip parity\n\n- **Not a single-variable change.** AdamW's first step is roughly sign(g) per element. With MLP lr 1e-5 (`bind_optimizer`, `:661`), detaching does not just remove the regression's share. It hands the entire per-element step budget on about 9.86M MLP parameters to the noisier ranking signal, which acts as an effective increase in ranking-direction learning rate.\n- **The global clip couples arms.** `clip_grad_norm_` at `:1035` clips A, C and the four MLP tensors jointly. Step-1 pre-clip norm was 8.78/9.14 for the candidates and 7.32/7.56 for the controls. With the detach, the candidate's pre-clip norm moves toward the control's, so the A/C clip coefficient also changes. That is a second consequence relative to the old candidate.\n  - I verified the clip binds on every step in all four arms: minimum pre-clip 3.74/3.77 for candidates, 3.94/3.91 for controls.\n- **Fable's own witness is not testable as stated.** \"Candidate-minus-control A/C gradients equal the connected-raw difference\" is not a defined check. At step 1, candidate and control A/C gradients are already equal (7.2808/0.7881 in both seed-061 logs).\n- **Fable's implementation is wasteful.** It calls `loss_terms` twice, adding a second 6,355-row gallery forward and backward on each of the 8 micro-batches per update, every update. You already rejected this.\n\n## 4. Gate risk\n\nOne query is 0.0577 pp. The current +0.346 pp is about +6 net wins per seed, and the interval width is 0.913 pp. If the width stays the same, passing needs only about +2 more net wins per seed (approximate). This panel has already been used for the KILL decision. A pass from a perturbation-sized change on the same panel would be weak evidence; only sealed validation could carry it. Spending a full four-arm chain on that is not justified.\n\n## 5. Cheapest fixed TRAIN-only falsifier (only a reopen condition)\n\nRun on the accepted candidate step-128 checkpoints for both seeds, plus the initializer, with zero training.\n\n1. Use the fixed step-1 B64 in both views; these are the anchors the CPU discarded update already uses.\n2. Split anchor-views into R@1-wrong and R@1-right under the training score. The training score compares the live query against the connected stale gallery, with the same row excluded.\n3. Call the unchanged `loss_terms` on each subset with the full `K`. The terms are sums, so the subsets add up exactly to the full loss.\n4. On fc1.weight and fc2.weight, take the regression and ranking gradients for each subset.\n\n**Reopen only if both of these hold in both seeds at step 128:**\n- at least one R@1-wrong anchor-view exists, and\n- cos(g_reg, g_rank) on that subset is below 0.\n\nOtherwise KILL stands. The rule is a parameter-free sign test, so it adds no new constant. Finding zero FIT errors in B64 would itself point to transfer rather than objective routing. Cost is comparable to the admitted probe (160.9 s whole on CUDA) or the CPU discarded update (66.6 s core, 431.4 s wall in CPU-v6), but it is unmeasured for this probe.\n\n## 6. Source scope if it is ever reopened (least correct separation)\n\nThe candidate branch of `update` calls `loss_terms` once, as today:\n- `raw` stays as is, so ranking and the gallery are computed once.\n- `reg = trainer.raw_features(context,state,features)`. This is the control's own admitted feature-detached readout (`:1006`), so no new readout code is needed.\n- Regression is then computed inline: `mse = (reg − P[target[index]]).square().sum() / (rows·e0)`, with `rows` from `loss_denominators(K)`.\n- Every micro-batch must satisfy `torch.equal(reg, raw)` and `torch.equal(mse, mse_from_loss_terms)`, then `loss = mse + rank`. Forward-bitwise readout parity is already admitted (`detached_forward_identical`, raw/mse/rank all bitwise in actual-gradient-v2).\n\nWitnesses:\n- **W1 (step 1):** `autograd.grad(mse, MLP, allow_unused=True)` returns all None.\n- **W2 (step 1):** these must equal the accepted old-candidate step-1 rows: mse, rank, A/C `gradient_norms`, `ranking_*_norm` and per-view ranking norms. Each MLP gradient norm must equal the norm of the summed ranking gradient, which needs a new logged field.\n- **W3:** fresh control mechanics rows 1–17 must reproduce the accepted control `after_sha256` values. Those hashes do not depend on identity, so this proves the control path is unchanged at no extra cost.\n\nMethod identity: rewrite the contract docstring \"no loss changes\" (`:22`) and give the candidate's training a distinct method identity (recipe key or schema). The evaluator pins `trainer.SCHEMA == 'siglip2-connected-mlp-v1'` (`evaluate_siglip2_connected_mlp.py:1139`), so a schema bump also needs an evaluator source change.\n\nQualification chain if reopened:\n1. Tests, then pinned py313 assurance.\n2. CPU600, which carries W1 and W2 for seed 061.\n3. Mechanics1200 ×4.\n4. TRAIN3000 ×4.\n5. Export1500 ×4.\n6. Score700.\n\nMeasured precedents for this chain are 2,188.7–2,345.7 s per TRAIN arm, 1,299–1,310 s per export and 557.5 s for the score. Native price and cost remain unmeasured.",
+        "result_truncated": false
+      },
+      {
+        "role": "engineering_critic",
+        "id": "0c4095cd48be4436",
+        "provider": "codex",
+        "model": "gpt-6-astra",
+        "fallbacks": [
+          {
+            "provider": "codex",
+            "model": "gpt-6-astra"
+          },
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5"
+          },
+          {
+            "provider": "codex",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "effort": "",
+        "agent": "sfora/emafactorial",
+        "cwd": "/home/rb/worktrees/sfora-positive-causality",
+        "status": "completed",
+        "runner_started": true,
+        "started_at": 1791461025,
+        "timeout_seconds": 1200,
+        "deadline_at": 1791462225,
+        "budget_usd": null,
+        "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential NEW intervention decision. Repo /home/rb/worktrees/sfora-positive-causality master1473901. Read committed docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/encoder-centroid-gradient-plan.json (terminal Fable proposal plus root corrections), docs/connected_mlp_decision_2026-10-08.md, accepted four connected-mlp-train-{control,candidate}-{179061,179069}-v1 original.log/receipts and train_siglip2_connected_mlp.py:update, train_siglip2_identity_diversity.py:loss_terms/ranking_gallery. Latest equal-seed In-Shop exposedTRAINselection1734Q/1715G/498product candidate+.346020761ppR1/+2.300188994ppAP, product95%R1[-.084841629,.828167287]pp=>KILL; no new quality arm launched. Fable proposes feature-detached readout for centroid regression ONLY, same connected readout for existing full-gallery SmoothAP, A/C still both losses, four encoder MLP members rank-only. Evaluate scientific causal plausibility, distinctness vs prior plans, objective/gradient parity, optimizer/clip/control fairness, CPU gradient falsifier feasibility/cost and minimal exact source+receipt qualification reach. Root has independently verified scope55cde4... control1008products/candidate2016 both disjoint all996 selection+VAL products; Fable overlap caveat resolved. Root rejects norm ratio as an86%vector contribution and exact .05 saturation cutoff. Accepted logs show per-view rank norms only, cannot sum into combined vector norm. Do not repeat those errors. Avoid second full gallery loss evaluation just to compute detached regression: propose least complete correct separation with original forward/target/denominator/gradient invariants. No loss weight/temperature/optimizer/lr/clip/bank/view/schema science gate weakening; prospective method identity must distinguish changed training. Same quality/cost/science gates; native price/cost unmeasured. Decide GO-to-source-only implementation vs KILL, exact cheapest fixed TRAIN-only falsifier and source scope/API/witnesses. No edits/imports/Torch/native/SSH/GPU/cloud/children/consultations/newheldqueries. This is not serving review: servingcompiler job is separately live unchanged. Cite actual code/receipt locations; do not assert SOTA, mathematical saturation or timings not measured.",
+        "prompt_sha256": "f46a8cc5cb806a03f1aa768e4dbb6d184134ad42c492c9d1c5c9659e25a27a01",
+        "prompt_bytes": 2691,
+        "fingerprint": "f01bde83567a7cd5f6e1779fdf2ada0b2f92098256a12fe231fff12ffcc5db28",
+        "evidence": {
+          "git_commit": "1473901d793ddc42b2ce7f8ff37e505a3804d13b",
+          "git_branch": "master",
+          "git_dirty": true,
+          "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+          "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+          "worktree_evidence_truncated": false,
+          "active_goal": {
+            "id": "goal-1790540789-1790540789754989478-2322852",
+            "agent": "sfora/emafactorial",
+            "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+            "status": "queued",
+            "revision": 1,
+            "actor": "operator",
+            "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+            "created_at": 1790540789,
+            "updated_at": 1790540789
+          }
+        },
+        "previous_fingerprint": "630c47dbe1520db525308a3b34fd69b6af519b8352c7e54908c16ac178cd38b3",
+        "reused": false,
+        "critique_id": "62804283a66647b7",
+        "critique_role": "engineering_critic",
+        "systemd_unit": "devbox-consult-0c4095cd48be4436.service",
+        "pid": 2212422,
+        "pgid": 2212422,
+        "attempt": 1,
+        "attempts": [
+          {
+            "provider": "codex",
+            "model": "gpt-6-astra"
+          },
+          {
+            "provider": "claude",
+            "model": "claude-opus-5-5"
+          },
+          {
+            "provider": "codex",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "attempt_history": [
+          {
+            "provider": "codex",
+            "model": "gpt-6-astra",
+            "budget_usd": null,
+            "timeout_seconds": 1200,
+            "started_at": 1791461025
+          }
+        ],
+        "exit_code": 0,
+        "finished_at": 1791461704,
+        "event_cursor": 140,
+        "events": [
+          {
+            "seq": 117,
+            "at": 1791461482,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 118,
+            "at": 1791461482,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 119,
+            "at": 1791461482,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 120,
+            "at": 1791461484,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 121,
+            "at": 1791461491,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 122,
+            "at": 1791461493,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 123,
+            "at": 1791461504,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 124,
+            "at": 1791461504,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 125,
+            "at": 1791461504,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 126,
+            "at": 1791461504,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 127,
+            "at": 1791461504,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 128,
+            "at": 1791461506,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 129,
+            "at": 1791461506,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 130,
+            "at": 1791461507,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 131,
+            "at": 1791461514,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 132,
+            "at": 1791461519,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 133,
+            "at": 1791461519,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 134,
+            "at": 1791461519,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 135,
+            "at": 1791461523,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 136,
+            "at": 1791461523,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 137,
+            "at": 1791461579,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 138,
+            "at": 1791461580,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 139,
+            "at": 1791461703,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 140,
+            "at": 1791461703,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ],
+        "events_truncated": true,
+        "provider_events": {
+          "codex": [
+            {
+              "seq": 133,
+              "at": 1791461519,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command started"
+            },
+            {
+              "seq": 134,
+              "at": 1791461519,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command completed",
+              "detail": "exit 0"
+            },
+            {
+              "seq": 135,
+              "at": 1791461523,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command started"
+            },
+            {
+              "seq": 136,
+              "at": 1791461523,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command completed",
+              "detail": "exit 0"
+            },
+            {
+              "seq": 137,
+              "at": 1791461579,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command started"
+            },
+            {
+              "seq": 138,
+              "at": 1791461580,
+              "provider": "codex",
+              "kind": "tool",
+              "label": "Shell command completed",
+              "detail": "exit 0"
+            },
+            {
+              "seq": 139,
+              "at": 1791461703,
+              "provider": "codex",
+              "kind": "partial",
+              "label": "Answer available"
+            },
+            {
+              "seq": 140,
+              "at": 1791461703,
+              "provider": "codex",
+              "kind": "phase",
+              "label": "Consultation completed",
+              "detail": "exit 0"
+            }
+          ]
+        },
+        "partial_result": "**Verdict: GO to source-only implementation, with the corrections below.** The intervention preserves forward loss values at a fixed state while removing the direct centroid-regression gradient into the four encoder tensors. It is a distinct, plausible hypothesis—not evidence that another quality arm will pass. The accepted arm remains KILL.\n\nI verified the four original log hashes and four receipt hashes against their accepted verification records. The current connected trainer also exactly matches the accepted source-v6 snapshot.\n\n1. **Shared clipping prevents claiming “only encoder updates change.”**  \n   The update clips **all** A/C and encoder gradients together. Removing the encoder’s regression component changes that shared clipping factor, so A/C can receive different clipped gradients despite identical pre-clip gradients. Every accepted update clipped: the four runs’ minimum pre-clip norms were approximately 3.94, 3.74, 3.91 and 3.77. AdamW also retains weight decay and momentum; “rank-only encoder” describes its loss gradient, not its complete parameter update.\n\n   Preserve the optimizer, groups, rates and global clip exactly. State this coupling explicitly and measure the actual combined vector before clipping. Compare old/new A/C gradients **at identical state and inputs**, not between diverged training trajectories. [Update and clipping](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:969), [candidate061 log](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-candidate-179061-v1/original.log).\n\n2. **The proposed CPU saturation falsifier is neither decisive nor the cheapest qualification.**  \n   Zero per-anchor encoder gradients at initialization do not establish that those misses remain unreachable. Other anchors update shared parameters, and A/C changes both query and gallery descriptors. Conversely, a nonzero gradient establishes connectivity, not a useful nearest-neighbor update.\n\n   The existing CPU contract performs **one candidate061 B64/two-view discarded update**; seed069 receives initializer validation. It does not already execute both seeds’ per-anchor gradient decompositions. The accepted CPU run used 433.509 seconds of its 600-second allowance and peaked at 7,159,689,216 host bytes. Materializing all four-tensor FP32 gradients for 64 anchors × two views × two seeds would consume roughly 10.16 GB by itself. Streaming avoids that storage, but its reverse-pass cost remains unmeasured. Replace this proposal with the fixed routing falsifier below. [CPU contract](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1699), [original CPU receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v6/verification.json).\n\n3. **Keep the historical gallery loss intact; replace only the regression branch.**  \n   Fable’s two `loss_terms` calls construct the complete gallery/SmoothAP computation twice. The discarded rank result does not imply a second backward, but its forward computation and graph construction are unnecessary.\n\n   The smallest complete implementation is:\n\n   - Compute the existing connected `raw` and call authenticated `trainer.loss_terms(...)` once.\n   - Retain its `rank` and membership result.\n   - For candidate only, recompute the same readout from `features.detach()`, with the same live A/C.\n   - Replace `mse` using the original expression: coordinate sum against `P[target[anchors]]`, divided by **`128 * e0`**.\n   - Backpropagate replacement `mse + original rank`; release temporary tensors within each microbatch.\n\n   Detach **features**, not `raw` or the scalar MSE: those alternatives would remove A/C regression gradients. Preserve normalization before the readout, both views, full-B64 `K`, rank denominator `2*K`, self exclusion and singleton behavior. The gallery must retain its current A/C gradients. [Readout](/home/rb/worktrees/sfora-positive-causality/scripts/connected_residual_readout.py:15), [original loss and gallery](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1239).\n\n4. **New training needs an explicit method identity and an enforced gradient witness.**  \n   Today’s recipe says “unchanged original CONTROL complete-gallery SmoothAP and P[label].” That is insufficient to describe the changed backward rule. Update the recipe’s objective description and prospective execution hash. Existing payload/inference formats need no redesign merely to identify this method.\n\n   Keep the archived trainer and seven-file witness closure immutable. Add the new witness to the prospective CPU result and require its complete contents in `check_terminal`; a log line or unvalidated `pass: true` is insufficient. Reject old CPU receipts, mismatched routing identities, missing witness members and mixed old/new training endpoints. Existing method and paired-initialization checks already provide the binding mechanism. Both connected arms must continue using **CONTROL1008/6355**; the scope manifest’s separate candidate2016 population is not this experiment’s candidate scope. [Method identity](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:181), [terminal validation](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1596), [paired admission](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1025).\n\n5. **Fable’s abbreviated gate omits existing scientific requirements.**  \n   The actual full gate requires mean gains ≥0.002 and positive product lower bounds for **both R@1 and AP**, plus each-seed requirements and existing source/concat/selection floors. Preserve the original staged admission and scientific functions verbatim; do not implement the prose shorthand as a replacement predicate. Preserve both measured cost ratios ≤1.50 and all resource limits. [Full quality gate](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_genuine_views.py:343), [floors and decision](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_identity_diversity.py:917).\n\n6. **The causal narrative still overstates the evidence.**  \n   The proposal repeats “95% of AP gain,” although the committed correction gives **87.35%/84.83%** for queries correct under both arms. The frozen-source gallery also supplies no hard bound on encoder drift. It remains possible that removing centroid supervision worsens the mismatch between training against cached encoder features and evaluation with the updated encoder on both sides.\n\n   This intervention differs from pose-positive masks, gallery refresh and deeper unfreezing because it changes gradient routing while preserving the fixed-state forward objective. Its justification is that testable distinction—not established gradient conflict or a demonstrated cause of the previous KILL. [Corrected arithmetic](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/parent-arithmetic-check.json), [authenticated gallery audit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json).\n\nThe **cheapest fixed TRAIN-only falsifier** should reuse the existing candidate061 CPU discarded update: accepted initializer, first scheduled B64, canonical then augmented, micro16, original 6355-row gallery and full-batch `K`. No anchor search or held-query selection.\n\nRequire, before its optimizer step:\n\n- Exact forward correspondence of connected and detached-feature readouts and regression scalars; unchanged targets, denominators and membership.\n- Equal old/new regression gradients for A/C at that same state.\n- No regression gradient into any of the four encoder tensors.\n- The existing per-view rank-gradient checks, plus comparison of each encoder’s accumulated total gradient against its **actual summed rank vector**, using the established numerical comparison rules.\n- Preserved frozen444/head/statistics roles and bytes; unchanged optimizer ownership and clipping order.\n\nReuse the rank vectors already computed at step one. A/C regression comparisons need no second gallery loss or encoder forward. Keep forward/individual-gradient equality distinct from any existing tolerance used for accumulated floating-point comparisons.\n\nThe test must reject three concrete mutants: detaching regression `raw`, detaching the ranking query, and detaching the A/C gallery. Any failed invariant rejects the implementation. A passing witness proves routing and correspondence only; it cannot certify improved retrieval or diagnose saturation. New CPU runtime and memory remain unmeasured, and exceeding CPU600/8 GiB remains failure.\n\nThe initial source scope can stay within **`train_siglip2_connected_mlp.py`, its existing test file, and prospective contract/freeze evidence**. Keep public update/checkpoint/inference APIs intact. Extend the exact source-inverse tests without deleting historical checks; current string/AST checks alone do not prove gradient routing. [Existing tests](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_connected_mlp.py:364).\n\nBefore any later TRAIN launch, require new CPU qualification, both arms’ seed-specific uninterrupted17 versus independent8+9 mechanics, fresh TRAIN replay, and unchanged restore/portable-state checks. Old receipts remain prerequisites and historical evidence, not qualification for the changed method. The proposal’s training/export estimate omits this qualification work and is not a complete measured budget.\n\nNot checked or executed: tests, imports, native code, remote work, new queries or experiments; no files were edited.  \nRemaining risk: quality benefit, new qualification cost, serving latency and native price/cost are unmeasured.",
+        "partial_result_truncated": false,
+        "provider_partials": {
+          "codex": "**Verdict: GO to source-only implementation, with the corrections below.** The intervention preserves forward loss values at a fixed state while removing the direct centroid-regression gradient into the four encoder tensors. It is a distinct, plausible hypothesis—not evidence that another quality arm will pass. The accepted arm remains KILL.\n\nI verified the four original log hashes and four receipt hashes against their accepted verification records. The current connected trainer also exactly matches the accepted source-v6 snapshot.\n\n1. **Shared clipping prevents claiming “only encoder updates change.”**  \n   The update clips **all** A/C and encoder gradients together. Removing the encoder’s regression component changes that shared clipping factor, so A/C can receive different clipped gradients despite identical pre-clip gradients. Every accepted update clipped: the four runs’ minimum pre-clip norms were approximately 3.94, 3.74, 3.91 and 3.77. AdamW also retains weight decay and momentum; “rank-only encoder” describes its loss gradient, not its complete parameter update.\n\n   Preserve the optimizer, groups, rates and global clip exactly. State this coupling explicitly and measure the actual combined vector before clipping. Compare old/new A/C gradients **at identical state and inputs**, not between diverged training trajectories. [Update and clipping](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:969), [candidate061 log](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-candidate-179061-v1/original.log).\n\n2. **The proposed CPU saturation falsifier is neither decisive nor the cheapest qualification.**  \n   Zero per-anchor encoder gradients at initialization do not establish that those misses remain unreachable. Other anchors update shared parameters, and A/C changes both query and gallery descriptors. Conversely, a nonzero gradient establishes connectivity, not a useful nearest-neighbor update.\n\n   The existing CPU contract performs **one candidate061 B64/two-view discarded update**; seed069 receives initializer validation. It does not already execute both seeds’ per-anchor gradient decompositions. The accepted CPU run used 433.509 seconds of its 600-second allowance and peaked at 7,159,689,216 host bytes. Materializing all four-tensor FP32 gradients for 64 anchors × two views × two seeds would consume roughly 10.16 GB by itself. Streaming avoids that storage, but its reverse-pass cost remains unmeasured. Replace this proposal with the fixed routing falsifier below. [CPU contract](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1699), [original CPU receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v6/verification.json).\n\n3. **Keep the historical gallery loss intact; replace only the regression branch.**  \n   Fable’s two `loss_terms` calls construct the complete gallery/SmoothAP computation twice. The discarded rank result does not imply a second backward, but its forward computation and graph construction are unnecessary.\n\n   The smallest complete implementation is:\n\n   - Compute the existing connected `raw` and call authenticated `trainer.loss_terms(...)` once.\n   - Retain its `rank` and membership result.\n   - For candidate only, recompute the same readout from `features.detach()`, with the same live A/C.\n   - Replace `mse` using the original expression: coordinate sum against `P[target[anchors]]`, divided by **`128 * e0`**.\n   - Backpropagate replacement `mse + original rank`; release temporary tensors within each microbatch.\n\n   Detach **features**, not `raw` or the scalar MSE: those alternatives would remove A/C regression gradients. Preserve normalization before the readout, both views, full-B64 `K`, rank denominator `2*K`, self exclusion and singleton behavior. The gallery must retain its current A/C gradients. [Readout](/home/rb/worktrees/sfora-positive-causality/scripts/connected_residual_readout.py:15), [original loss and gallery](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1239).\n\n4. **New training needs an explicit method identity and an enforced gradient witness.**  \n   Today’s recipe says “unchanged original CONTROL complete-gallery SmoothAP and P[label].” That is insufficient to describe the changed backward rule. Update the recipe’s objective description and prospective execution hash. Existing payload/inference formats need no redesign merely to identify this method.\n\n   Keep the archived trainer and seven-file witness closure immutable. Add the new witness to the prospective CPU result and require its complete contents in `check_terminal`; a log line or unvalidated `pass: true` is insufficient. Reject old CPU receipts, mismatched routing identities, missing witness members and mixed old/new training endpoints. Existing method and paired-initialization checks already provide the binding mechanism. Both connected arms must continue using **CONTROL1008/6355**; the scope manifest’s separate candidate2016 population is not this experiment’s candidate scope. [Method identity](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:181), [terminal validation](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1596), [paired admission](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1025).\n\n5. **Fable’s abbreviated gate omits existing scientific requirements.**  \n   The actual full gate requires mean gains ≥0.002 and positive product lower bounds for **both R@1 and AP**, plus each-seed requirements and existing source/concat/selection floors. Preserve the original staged admission and scientific functions verbatim; do not implement the prose shorthand as a replacement predicate. Preserve both measured cost ratios ≤1.50 and all resource limits. [Full quality gate](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_genuine_views.py:343), [floors and decision](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_identity_diversity.py:917).\n\n6. **The causal narrative still overstates the evidence.**  \n   The proposal repeats “95% of AP gain,” although the committed correction gives **87.35%/84.83%** for queries correct under both arms. The frozen-source gallery also supplies no hard bound on encoder drift. It remains possible that removing centroid supervision worsens the mismatch between training against cached encoder features and evaluation with the updated encoder on both sides.\n\n   This intervention differs from pose-positive masks, gallery refresh and deeper unfreezing because it changes gradient routing while preserving the fixed-state forward objective. Its justification is that testable distinction—not established gradient conflict or a demonstrated cause of the previous KILL. [Corrected arithmetic](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/parent-arithmetic-check.json), [authenticated gallery audit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json).\n\nThe **cheapest fixed TRAIN-only falsifier** should reuse the existing candidate061 CPU discarded update: accepted initializer, first scheduled B64, canonical then augmented, micro16, original 6355-row gallery and full-batch `K`. No anchor search or held-query selection.\n\nRequire, before its optimizer step:\n\n- Exact forward correspondence of connected and detached-feature readouts and regression scalars; unchanged targets, denominators and membership.\n- Equal old/new regression gradients for A/C at that same state.\n- No regression gradient into any of the four encoder tensors.\n- The existing per-view rank-gradient checks, plus comparison of each encoder’s accumulated total gradient against its **actual summed rank vector**, using the established numerical comparison rules.\n- Preserved frozen444/head/statistics roles and bytes; unchanged optimizer ownership and clipping order.\n\nReuse the rank vectors already computed at step one. A/C regression comparisons need no second gallery loss or encoder forward. Keep forward/individual-gradient equality distinct from any existing tolerance used for accumulated floating-point comparisons.\n\nThe test must reject three concrete mutants: detaching regression `raw`, detaching the ranking query, and detaching the A/C gallery. Any failed invariant rejects the implementation. A passing witness proves routing and correspondence only; it cannot certify improved retrieval or diagnose saturation. New CPU runtime and memory remain unmeasured, and exceeding CPU600/8 GiB remains failure.\n\nThe initial source scope can stay within **`train_siglip2_connected_mlp.py`, its existing test file, and prospective contract/freeze evidence**. Keep public update/checkpoint/inference APIs intact. Extend the exact source-inverse tests without deleting historical checks; current string/AST checks alone do not prove gradient routing. [Existing tests](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_connected_mlp.py:364).\n\nBefore any later TRAIN launch, require new CPU qualification, both arms’ seed-specific uninterrupted17 versus independent8+9 mechanics, fresh TRAIN replay, and unchanged restore/portable-state checks. Old receipts remain prerequisites and historical evidence, not qualification for the changed method. The proposal’s training/export estimate omits this qualification work and is not a complete measured budget.\n\nNot checked or executed: tests, imports, native code, remote work, new queries or experiments; no files were edited.  \nRemaining risk: quality benefit, new qualification cost, serving latency and native price/cost are unmeasured."
+        },
+        "providers_used": [
+          "codex"
+        ],
+        "active_provider": "codex",
+        "phase": "Consultation completed",
+        "input_bytes": 2691,
+        "output_bytes": 10080,
+        "elapsed_seconds": 679,
+        "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)\ndevbox-ask: codex consult still running (8m 00s)\ndevbox-ask: codex consult still running (8m 30s)\ndevbox-ask: codex consult still running (9m 00s)\ndevbox-ask: codex consult still running (9m 30s)\ndevbox-ask: codex consult still running (10m 00s)\ndevbox-ask: codex consult still running (10m 30s)\ndevbox-ask: codex consult still running (11m 00s)",
+        "progress_truncated": false,
+        "result": "**Verdict: GO to source-only implementation, with the corrections below.** The intervention preserves forward loss values at a fixed state while removing the direct centroid-regression gradient into the four encoder tensors. It is a distinct, plausible hypothesis—not evidence that another quality arm will pass. The accepted arm remains KILL.\n\nI verified the four original log hashes and four receipt hashes against their accepted verification records. The current connected trainer also exactly matches the accepted source-v6 snapshot.\n\n1. **Shared clipping prevents claiming “only encoder updates change.”**  \n   The update clips **all** A/C and encoder gradients together. Removing the encoder’s regression component changes that shared clipping factor, so A/C can receive different clipped gradients despite identical pre-clip gradients. Every accepted update clipped: the four runs’ minimum pre-clip norms were approximately 3.94, 3.74, 3.91 and 3.77. AdamW also retains weight decay and momentum; “rank-only encoder” describes its loss gradient, not its complete parameter update.\n\n   Preserve the optimizer, groups, rates and global clip exactly. State this coupling explicitly and measure the actual combined vector before clipping. Compare old/new A/C gradients **at identical state and inputs**, not between diverged training trajectories. [Update and clipping](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:969), [candidate061 log](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-candidate-179061-v1/original.log).\n\n2. **The proposed CPU saturation falsifier is neither decisive nor the cheapest qualification.**  \n   Zero per-anchor encoder gradients at initialization do not establish that those misses remain unreachable. Other anchors update shared parameters, and A/C changes both query and gallery descriptors. Conversely, a nonzero gradient establishes connectivity, not a useful nearest-neighbor update.\n\n   The existing CPU contract performs **one candidate061 B64/two-view discarded update**; seed069 receives initializer validation. It does not already execute both seeds’ per-anchor gradient decompositions. The accepted CPU run used 433.509 seconds of its 600-second allowance and peaked at 7,159,689,216 host bytes. Materializing all four-tensor FP32 gradients for 64 anchors × two views × two seeds would consume roughly 10.16 GB by itself. Streaming avoids that storage, but its reverse-pass cost remains unmeasured. Replace this proposal with the fixed routing falsifier below. [CPU contract](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1699), [original CPU receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-cpu-v6/verification.json).\n\n3. **Keep the historical gallery loss intact; replace only the regression branch.**  \n   Fable’s two `loss_terms` calls construct the complete gallery/SmoothAP computation twice. The discarded rank result does not imply a second backward, but its forward computation and graph construction are unnecessary.\n\n   The smallest complete implementation is:\n\n   - Compute the existing connected `raw` and call authenticated `trainer.loss_terms(...)` once.\n   - Retain its `rank` and membership result.\n   - For candidate only, recompute the same readout from `features.detach()`, with the same live A/C.\n   - Replace `mse` using the original expression: coordinate sum against `P[target[anchors]]`, divided by **`128 * e0`**.\n   - Backpropagate replacement `mse + original rank`; release temporary tensors within each microbatch.\n\n   Detach **features**, not `raw` or the scalar MSE: those alternatives would remove A/C regression gradients. Preserve normalization before the readout, both views, full-B64 `K`, rank denominator `2*K`, self exclusion and singleton behavior. The gallery must retain its current A/C gradients. [Readout](/home/rb/worktrees/sfora-positive-causality/scripts/connected_residual_readout.py:15), [original loss and gallery](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_identity_diversity.py:1239).\n\n4. **New training needs an explicit method identity and an enforced gradient witness.**  \n   Today’s recipe says “unchanged original CONTROL complete-gallery SmoothAP and P[label].” That is insufficient to describe the changed backward rule. Update the recipe’s objective description and prospective execution hash. Existing payload/inference formats need no redesign merely to identify this method.\n\n   Keep the archived trainer and seven-file witness closure immutable. Add the new witness to the prospective CPU result and require its complete contents in `check_terminal`; a log line or unvalidated `pass: true` is insufficient. Reject old CPU receipts, mismatched routing identities, missing witness members and mixed old/new training endpoints. Existing method and paired-initialization checks already provide the binding mechanism. Both connected arms must continue using **CONTROL1008/6355**; the scope manifest’s separate candidate2016 population is not this experiment’s candidate scope. [Method identity](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:181), [terminal validation](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1596), [paired admission](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1025).\n\n5. **Fable’s abbreviated gate omits existing scientific requirements.**  \n   The actual full gate requires mean gains ≥0.002 and positive product lower bounds for **both R@1 and AP**, plus each-seed requirements and existing source/concat/selection floors. Preserve the original staged admission and scientific functions verbatim; do not implement the prose shorthand as a replacement predicate. Preserve both measured cost ratios ≤1.50 and all resource limits. [Full quality gate](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_genuine_views.py:343), [floors and decision](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_identity_diversity.py:917).\n\n6. **The causal narrative still overstates the evidence.**  \n   The proposal repeats “95% of AP gain,” although the committed correction gives **87.35%/84.83%** for queries correct under both arms. The frozen-source gallery also supplies no hard bound on encoder drift. It remains possible that removing centroid supervision worsens the mismatch between training against cached encoder features and evaluation with the updated encoder on both sides.\n\n   This intervention differs from pose-positive masks, gallery refresh and deeper unfreezing because it changes gradient routing while preserving the fixed-state forward objective. Its justification is that testable distinction—not established gradient conflict or a demonstrated cause of the previous KILL. [Corrected arithmetic](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/parent-arithmetic-check.json), [authenticated gallery audit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json).\n\nThe **cheapest fixed TRAIN-only falsifier** should reuse the existing candidate061 CPU discarded update: accepted initializer, first scheduled B64, canonical then augmented, micro16, original 6355-row gallery and full-batch `K`. No anchor search or held-query selection.\n\nRequire, before its optimizer step:\n\n- Exact forward correspondence of connected and detached-feature readouts and regression scalars; unchanged targets, denominators and membership.\n- Equal old/new regression gradients for A/C at that same state.\n- No regression gradient into any of the four encoder tensors.\n- The existing per-view rank-gradient checks, plus comparison of each encoder’s accumulated total gradient against its **actual summed rank vector**, using the established numerical comparison rules.\n- Preserved frozen444/head/statistics roles and bytes; unchanged optimizer ownership and clipping order.\n\nReuse the rank vectors already computed at step one. A/C regression comparisons need no second gallery loss or encoder forward. Keep forward/individual-gradient equality distinct from any existing tolerance used for accumulated floating-point comparisons.\n\nThe test must reject three concrete mutants: detaching regression `raw`, detaching the ranking query, and detaching the A/C gallery. Any failed invariant rejects the implementation. A passing witness proves routing and correspondence only; it cannot certify improved retrieval or diagnose saturation. New CPU runtime and memory remain unmeasured, and exceeding CPU600/8 GiB remains failure.\n\nThe initial source scope can stay within **`train_siglip2_connected_mlp.py`, its existing test file, and prospective contract/freeze evidence**. Keep public update/checkpoint/inference APIs intact. Extend the exact source-inverse tests without deleting historical checks; current string/AST checks alone do not prove gradient routing. [Existing tests](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_connected_mlp.py:364).\n\nBefore any later TRAIN launch, require new CPU qualification, both arms’ seed-specific uninterrupted17 versus independent8+9 mechanics, fresh TRAIN replay, and unchanged restore/portable-state checks. Old receipts remain prerequisites and historical evidence, not qualification for the changed method. The proposal’s training/export estimate omits this qualification work and is not a complete measured budget.\n\nNot checked or executed: tests, imports, native code, remote work, new queries or experiments; no files were edited.  \nRemaining risk: quality benefit, new qualification cost, serving latency and native price/cost are unmeasured.",
+        "result_truncated": false
+      }
+    ],
+    "reused": false,
+    "finished_at": 1791461714,
+    "elapsed_seconds": 680,
+    "input_bytes": 2287,
+    "output_bytes": 19606
+  },
+  "root_decision": {
+    "decision": "HOLD_NEW_TRAINING_ARM",
+    "reason": "Research critic rejects the causal premise; engineering critic permits source implementation but provides no expected quality benefit. Existing ranking loss already improved, regression magnitude alone does not demonstrate gradient conflict, and the selected Recall@1 gate remains KILL.",
+    "next": "Prioritize accepted serving measurements and a TRAIN-only causal gradient comparison before selecting another costly training arm.",
+    "invariants": [
+      "No new held-panel reads to choose this intervention",
+      "Global clipping/AdamW/source/resource/quality gates unchanged",
+      "No claimed SOTA or production speed gain"
+    ],
+    "verified_selection": {
+      "dataset": "In-Shop",
+      "split": "exposed official TRAIN-selection",
+      "queries": 1734,
+      "gallery": 1715,
+      "products": 498,
+      "mean_candidate_minus_control_recall_at_1_pp": 0.34602076124567477,
+      "mean_candidate_minus_control_ap_pp": 2.3001889937751705,
+      "product_recall_95_ci_pp": [
+        -0.08484162895927602,
+        0.8281672871966338
+      ],
+      "decision": "KILL"
+    }
+  }
+}

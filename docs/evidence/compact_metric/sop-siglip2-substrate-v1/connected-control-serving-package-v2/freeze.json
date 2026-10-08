@@ -111,10 +111,10 @@
     "src/sfora/vector_store.py": "9a1717ea03ae880ff9c98f370a9a87446528ac60af58c350f63500cf8f53baea"
   },
   "installed_editable_revision_unchanged": true,
-  "launch_pythonpath": "/home/riomus/runs/sfora-connected-control-serving-package-v1/src",
+  "launch_pythonpath": "/home/riomus/runs/sfora-connected-control-serving-package-v2/src",
   "native_qualified": false,
   "root": "/home/riomus/runs/sfora-connected-control-serving-package-v2",
   "schema": "connected-control-serving-package-freeze-v1",
-  "source_manifest_sha256": "991df4f379bc75975234ce5c8cfb6012510e57b7e1429adc21e6e0770a5bc6bb",
+  "source_manifest_sha256": "072e04815bfda31efe6656d20312d976118c4083825fc5e5a9b52af383294cf6",
   "stop_rule": "Exact tracked source snapshot; command must hash every member before/after. Native provenance evidence must bind this manifest and every member; unexpected dynamic maps reject. Native import only after full historical admission; no quality or production speed claim."
 }
