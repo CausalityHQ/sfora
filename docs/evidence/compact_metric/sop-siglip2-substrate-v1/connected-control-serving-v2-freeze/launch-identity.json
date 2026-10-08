@@ -1,0 +1,11 @@
+{
+  "actual_unit": "sfora-connected-control-serving-diagnostic-v1",
+  "command_sha256": "587245bfac113d3ba85da85d20ba94922bd967606e30def184a3bbdf9a55778b",
+  "invocation_id": "f01ae16a6f714d759fab5e11b8883a63",
+  "launcher_sha256": "d496a402f4f3ad136630d333af24a68e0d54b728aba9f327a1e80a9bcf8af31b",
+  "note": "Root launcher retained old unit label while new source/output/hash pins were updated. Original old invocation terminal immutable; this original new invocation retained without relaunch. No accepted receipt yet.",
+  "original_ssh_session": 96019,
+  "output": "/home/riomus/runs/sfora-connected-control-serving-diagnostic-v2",
+  "schema": "connected-control-serving-launch-identity-v1",
+  "source_root": "/home/riomus/runs/sfora-connected-control-serving-source-v2"
+}
