@@ -1,0 +1,88 @@
+{
+  "schema": "exact-torch-census-final-source-receipt-v3",
+  "supersedes": "final-receipt-369a223f.json for the C1 publication design only (that file and final-receipt-4536b3a3.json are left byte-for-byte unchanged as evidence for their own commits)",
+  "scope": "source-only; Torch/native/DGX UNRUN by this agent; Torch numerical parity NOT proven; census is descriptive only (no thresholds, no family/causal inference); candidate_status stays 'KILL unchanged'",
+  "worktree": "/home/rb/worktrees/sfora-connected-exact-torch-census-20261008",
+  "branch": "devbox/connected-exact-torch-census-20261008",
+  "commit": {
+    "final": "6e6af7dc1822f8751a58a4e9ae666a96e662c16e",
+    "parent": "369a223fe799bf0207756c515da137c66e3546fb",
+    "chain": ["6467e04d0daf854cf6ab932511672c87d78d033e", "4536b3a3ca2c654844b3a96a81d9a4f803c8142a", "369a223fe799bf0207756c515da137c66e3546fb", "6e6af7dc1822f8751a58a4e9ae666a96e662c16e"],
+    "stacked_not_amended": true,
+    "author": "Roman Bartusiak <riomus@gmail.com>",
+    "committer_time_utc": "2026-10-08T20:25:30Z",
+    "files_changed": ["scripts/census_connected_core_errors_torch.py", "scripts/test_connected_core_errors_torch.py"],
+    "diffstat_vs_369a223f": "2 files changed, 74 insertions(+), 27 deletions(-)",
+    "tree_clean": true,
+    "pushed": false
+  },
+  "code_sha256": {
+    "driver": "1415f826e7e56345872e51413e7e79f6751e668e23997fea4efdf03ff7f69ce7",
+    "test": "61cfd646892fe94f051210397a37cc99e86082c0777fe873de130787054e69a5",
+    "previous_369a223f": {"driver": "a4e99f55a7d12a827d75a9b140033ac69e61ddafa4a5afc629047d7bfe6b361a", "test": "6942eeaf69d7a0aa94a7e389d2ec9cbdc7a9f12736091922150bfc5f9a4def4f"},
+    "previous_4536b3a3": {"driver": "f50328e5c33fe32dd15ba653927400263868c053c5518e42d4b047e25ec74d6f", "test": "4f0ebc4d26d2dc860081e3f7a3c00e3ad3e1f521f4b61972023784f8aea8d7f1"},
+    "note": "driver/test roles carry no accepted pin; the authority must be re-issued with the current bytes. Root verifies current bytes before freeze."
+  },
+  "final_suite": {
+    "count": "exactly one full-file run for the staging repair; narrow class runs (PublishTests, then PublishTests+GatingTests+ScorerTests+ExitTests+OwnSourceTests = 27 OK) preceded it; no overlap",
+    "command_as_issued": "cd /home/rb/worktrees/sfora-connected-exact-torch-census-20261008/scripts && sha256sum census_connected_core_errors_torch.py test_connected_core_errors_torch.py > S/final_suite_3.pre.sha && (ulimit -v 1048576; start=$(date +%s.%N); CUDA_VISIBLE_DEVICES= timeout 120 /usr/bin/time -f 'maxrss_kib=%M' python3 -B -m unittest -v test_connected_core_errors_torch > S/final_suite_3.log 2>&1; echo \"exit=$? wall=$(echo \"$(date +%s.%N) - $start\" | bc)\" > S/final_suite_3.exit)   where S=/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad",
+    "caps": {"address_space_bytes": 1073741824, "timeout_seconds": 120, "cuda_visible_devices": "", "bytecode": "-B"},
+    "interpreter": "python3 = 3.14.4 on this x86_64 dev host (admitted native interpreter is 3.13.9 aarch64)",
+    "ran_on_bytes": "the uncommitted working-tree bytes; sha256sum -c final_suite_3.pre.sha = OK both before commit and against the committed files, and `git diff --quiet HEAD -- scripts` = clean, so committed bytes == suite bytes",
+    "original_log": {
+      "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad/final_suite_3.log",
+      "sha256": "05eb5266abfa6271876554e375fe826af2838dbf12e9b8f954f87911edb0c494",
+      "bytes": 8550,
+      "mtime_utc": "2026-10-08T20:25:22.897521374Z",
+      "contains": ["50 verbose '... ok' lines", "'Ran 50 tests in 6.283s'", "'OK'", "'maxrss_kib=100204' from /usr/bin/time"],
+      "contains_no": ["skipped", "FAIL", "ERROR"]
+    },
+    "exit_file": {
+      "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad/final_suite_3.exit",
+      "sha256": "80da7073644a3161fa4f5bda6126091c35c250263931e5b928ee45ac8bd01290",
+      "content": "exit=0 wall=6.519690353"
+    },
+    "pre_sha_file": {
+      "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad/final_suite_3.pre.sha",
+      "sha256": "8fc4bdc1f72a1bdac1381f4a21a6cc0ff76e76c6094a01c52424fb1295ed491f"
+    },
+    "result": {"tests_run": 50, "ok": 50, "failed": 0, "errors": 0, "skipped": 0,
+               "composition": "41 (4536b3a3 suite) + 7 (369a223f: 4 PublishTests, 2 GatingTests, 1 ExitTests) + 2 (staging repair: PublishTests 4 -> 6)",
+               "real_input_tests_ran": true},
+    "exit_status": 0,
+    "unittest_seconds": 6.283,
+    "wall_seconds_shell_measured": 6.519690353,
+    "process_peak_rss_kib": 100204,
+    "preserved_earlier_gate": "final_suite_2.log (48 PASS, 5.525s, exit 0, maxrss 96092) remains valid evidence for the intermediate 369a223f source only; it is not claimed for 6e6af7dc"
+  },
+  "C1_staged_publication": {
+    "problem_in_369a223f": "owner was captured after census.publish and outside the try: a failing lstat/read after the link left a pass-marked output, and a replacement captured after publish could be adopted as owner",
+    "fix": "publish_census(census, output, payload, guards, budget): the UNCHANGED original census.publish writes into a NEW private TemporaryDirectory(dir=output.parent); owned_output(staged) captures (dev, ino, size, mtime_ns)+sha256 of the regular staged file BEFORE promotion; budget.check(reserve=False) before promotion; os.link(staged, output, follow_symlinks=False) (exclusive); budget.check(reserve=False) immediately after. Any BaseException at or after the link removes the final output ONLY if owned_output(output) still equals the staged owner (same inode+bytes), otherwise the foreign file is left untouched, a note is added, and the error is re-raised. TemporaryDirectory removes staging on every path. No original helper/global edit.",
+    "tests": "REAL original publish in a tmp dir: success leaves exactly census.json and no staging; cap crossing BEFORE promotion publishes nothing and leaves no staging; crossing AFTER promotion removes the owned output and leaves no staging; staged-file failure before promotion (lstat fails / replaced by symlink / not a regular file) publishes nothing; foreign replacement after promotion (different bytes / same bytes new inode / symlink / edited in place) never removed and still raises with a 'foreign' note; foreign file appearing before promotion makes the exclusive link raise FileExistsError and is preserved; owned output vanished still raises; AST: run() uses publish_census, no `.publish(`, no bare `check(reserve=False)`",
+    "RED_measured": "before the staged design: before-promotion crossing, foreign-before-promotion and staged symlink/not-regular cases failed (output leaked or wrong error)",
+    "residuals": [
+      "TOCTOU between the ownership recheck and os.unlink (no unlink-by-inode in stdlib)",
+      "if TemporaryDirectory cleanup itself raises AFTER a successful promotion, the exception propagates with the promoted output still in place (nonzero exit; the root's outer normal-terminal + parent receipt requirement rejects it); not handled because no further source gate was authorized",
+      "the wall between the immediate post-link check and process exit is covered only by the root's outer unit cap"
+    ],
+    "unchanged": "result flags incl. terminal_exit_and_both_locks_require_parent_receipt=True; original census.publish/rehash/canonical bytes (census pin 0fdc1700...)"
+  },
+  "corrections_carried_from_369a223f": {
+    "C2_prebatch_budget_seam": "BATCH_STATEMENT `census_batch(start)` is loop.body[0] (before rows/matmul), exact inverse in adapt/unadapt, 5th entry of ADAPTER_DUMPS/check_declarations (forged/rebound rejected before exec), required compile_scorer batch hook, replay passes `lambda start: budget.check()` and checks again immediately before the original fn call after guard/compile/packed_input; capture's post-batch check retained; scorer arithmetic/order unchanged. Real native batch skip shown only by AST order + stub wiring.",
+    "C3_interpreter_predicate_at_exit": "exit_checks repeats the SAME check_interpreter(ctx.proof, extract) (uncached: sys.executable re-resolved, executable bytes re-read) when ctx.proof is set, before close_sources; tmp symlink fixture rejects byte change and launch-symlink retarget; no whitelist.",
+    "own_source": "serving.Source over the running driver (ctx.own; separate from the owned set; never removes __main__) at admit before `import torch`, guard(ctx) before every endpoint replay, and exit before close_sources; LIMITS exact builtin types on authority and live. Per the root's message its own preflight ran the actual 3.13.9 scorer AST, real Source and CPU unit predicates and PASSED; that attestation is the root's and was not independently verified here. This suite exercises the registered-module Source branch only."
+  },
+  "contract_final": {
+    "launch_schema": "connected-exact-torch-census-launch-v1",
+    "result_schema": "sfora-connected-core-error-census-torch-v1",
+    "unchanged": "launch keys, source-role basenames/pins, CPU_PROOF_SHA, CPU_EXECUTION_SHA, NATIVE_SOURCES_SHA, SCORER_AST, exact-typed LIMITS (900/120/8GiB/0/''), admission predicates, all uncached exit proofs, original census/scorer/serving modules",
+    "replay_counts": {"per_query_pairs": 6936, "formula": "1734 queries x 4 endpoints", "scored_pairs_geometry": "44 x 1715 x 4 = 301840 (descriptive geometry rows, not the replay count)", "note": "no '616' count exists in the driver or tests"},
+    "claims_discipline": "No claim about a fixed score function beyond the scorer's arithmetic/AST inverse; descriptive census only."
+  },
+  "evidence_limits": {
+    "torch_parity": "UNPROVEN: source-only suite; only the root's single native job can falsify exact Torch equality",
+    "warningregistry": "no actual evidence either way",
+    "dev_vs_admitted_python": "tests ran on 3.14.4; admitted native interpreter is 3.13.9",
+    "not_done_by_this_agent": ["no native/SSH/Torch/thirdparty execution", "no operator contact", "no child agents/reviews", "no push or merge"]
+  }
+}

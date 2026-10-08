@@ -1,0 +1,97 @@
+{
+  "both_locks_held": true,
+  "candidate_status": "KILL",
+  "inputs": {
+    "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/inputs.json",
+    "sha256": "dc273876d6e62528d1b852b85d4a1ee68e85d9666a54617a729e410e4bb263d6"
+  },
+  "locks": [
+    {
+      "fd": 8,
+      "path": "/home/riomus/runs/.sfora-siglip2-gpu.lock"
+    },
+    {
+      "fd": 9,
+      "path": "/home/riomus/.sfora-siglip2-gpu.lock"
+    }
+  ],
+  "native_sources": {
+    "path": "/home/riomus/runs/sfora-native256-source-cpu-v4/sources.json",
+    "sha256": "8cd70a9b706e0a8ff6dea3092310083ba3f7cd2fffd58cac5b8f6e3842a7ad3b"
+  },
+  "qualification_eligible": false,
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "exit_reserve_seconds": 120,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_process_seconds": 900
+  },
+  "schema": "connected-exact-torch-census-launch-v1",
+  "source_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "1e6981dda5fc44989dd59a81ec975687",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/source-cpu-original.log",
+      "sha256": "731abe64e6c0d0a1ba75a1cf7cb3abcfcc4d36770719c14539c821651b6f6328"
+    },
+    "native_peak_rss_kib": 4502620,
+    "proof": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/source-cpu-proof.json",
+      "sha256": "e8a1e02e27ed4e4726682c0a61e547d097912b98e3535ddb3da8c1bb4e144cbf"
+    },
+    "service_seconds": 43.803,
+    "unit": "sfora-native256-source-cpu-so400-v4"
+  },
+  "sources": {
+    "census": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/census_connected_core_errors.py",
+      "sha256": "0fdc170019de1137ac9d82b55868ec8c8f8b21867d2a71c8c31a29f9a5b333d2"
+    },
+    "command": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/command.sh",
+      "sha256": "9f81f05dbae02882e2f98b28b07be564eca766d0afaf291cc009fb53210f5b92"
+    },
+    "driver": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/census_connected_core_errors_torch.py",
+      "sha256": "ccbae2316db1637803982ebf7de14214b4f9239a740c5235b9c259d05cc62db8"
+    },
+    "extract": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/extract_siglip2_vision_source.py",
+      "sha256": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d"
+    },
+    "initializer": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/export_siglip2_substrate_fit.py",
+      "sha256": "163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8"
+    },
+    "original": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/train_siglip2_substrate_adaptation.py",
+      "sha256": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+    },
+    "quadratic_owner": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/train_siglip2_quadratic_readout.py",
+      "sha256": "17cf2dac93a45aae3ba929ad5c36e73f4c33576eae9bb5f9dec670c272a1731f"
+    },
+    "replay": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/evaluate_siglip2_prototype_residual.py",
+      "sha256": "e74b944dee26565029a4ec7e6ea2948d0f23e8564e5ee60ffd2f876453f529eb"
+    },
+    "scorer": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/compare_inshop_sop_warmstart_100.py",
+      "sha256": "8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250"
+    },
+    "serving": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/qualify_connected_serving_requests.py",
+      "sha256": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163"
+    },
+    "source_driver": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/qualify_siglip2_substrate_cpu.py",
+      "sha256": "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38"
+    },
+    "test": {
+      "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/test_connected_core_errors_torch.py",
+      "sha256": "5dff16f60da6529777f965ba70ea10d49d6f09a66d7785892d67a1c6fb89080d"
+    }
+  },
+  "state_reuse_eligible": false
+}

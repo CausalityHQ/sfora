@@ -1,0 +1,33 @@
+{
+  "native_status": "UNRUN at freeze",
+  "release": "GO for ONE descriptive native replay only",
+  "resolved": [
+    "prebatch budget check and pre-invocation check",
+    "uncached original interpreter exit predicate",
+    "private original publication; prior staged owner; full context cleanup/error ownership"
+  ],
+  "review_group": "90b9b4db1ee349ae",
+  "root_source_commit": "38936489",
+  "schema": "exact-torch-census-root-release-v1",
+  "scientific_scope": "No causal family decision, new quality/GO or held read. Original KILL unchanged.",
+  "source_exit": 0,
+  "source_rss_kib": 101352,
+  "source_tests": 51,
+  "source_wall_seconds": 13.537945743,
+  "stop_rule": "ONE original job. Any admission/numerical/full6936R1APreplay/native-source/resource/current-file/exit/normal-terminal failure closes this census; no tolerance, fallback or duplicate run. Scores descriptive only; no new quality, selection, official or training admission.",
+  "unchanged_functions": [
+    "admit_source_cpu",
+    "check_accepted_environment",
+    "make_audit",
+    "packed_input",
+    "make_capture",
+    "replay_exact",
+    "describe_scores",
+    "build_census",
+    "check_interpreter",
+    "read_authority",
+    "own_source",
+    "check_own"
+  ],
+  "worker_final_commit": "ab41d552465af08d1de5cad3bd443d36dfcb6129"
+}

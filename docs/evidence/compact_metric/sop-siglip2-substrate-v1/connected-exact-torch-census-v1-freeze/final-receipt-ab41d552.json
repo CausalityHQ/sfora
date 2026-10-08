@@ -1,0 +1,91 @@
+{
+  "schema": "exact-torch-census-final-source-receipt-v4",
+  "supersedes": "final-receipt-6e6af7dc.json for the C1 failure-path structure only (that file, final-receipt-369a223f.json and final-receipt-4536b3a3.json are left byte-for-byte unchanged as evidence for their own commits)",
+  "scope": "source-only; Torch/native/DGX UNRUN by this agent; Torch numerical parity NOT proven; census is descriptive only (no thresholds, no family/causal inference); candidate_status stays 'KILL unchanged'",
+  "worktree": "/home/rb/worktrees/sfora-connected-exact-torch-census-20261008",
+  "branch": "devbox/connected-exact-torch-census-20261008",
+  "commit": {
+    "final": "ab41d552465af08d1de5cad3bd443d36dfcb6129",
+    "parent": "6e6af7dc1822f8751a58a4e9ae666a96e662c16e",
+    "chain": ["6467e04d0daf854cf6ab932511672c87d78d033e", "4536b3a3ca2c654844b3a96a81d9a4f803c8142a", "369a223fe799bf0207756c515da137c66e3546fb", "6e6af7dc1822f8751a58a4e9ae666a96e662c16e", "ab41d552465af08d1de5cad3bd443d36dfcb6129"],
+    "stacked_not_amended": true,
+    "author": "Roman Bartusiak <riomus@gmail.com>",
+    "committer_time_utc": "2026-10-08T20:30:06Z",
+    "files_changed": ["scripts/census_connected_core_errors_torch.py", "scripts/test_connected_core_errors_torch.py"],
+    "diffstat_vs_6e6af7dc": "2 files changed, 56 insertions(+), 19 deletions(-)",
+    "tree_clean": true,
+    "pushed": false
+  },
+  "code_sha256": {
+    "driver": "ccbae2316db1637803982ebf7de14214b4f9239a740c5235b9c259d05cc62db8",
+    "test": "5dff16f60da6529777f965ba70ea10d49d6f09a66d7785892d67a1c6fb89080d",
+    "previous_6e6af7dc": {"driver": "1415f826e7e56345872e51413e7e79f6751e668e23997fea4efdf03ff7f69ce7", "test": "61cfd646892fe94f051210397a37cc99e86082c0777fe873de130787054e69a5"},
+    "previous_369a223f": {"driver": "a4e99f55a7d12a827d75a9b140033ac69e61ddafa4a5afc629047d7bfe6b361a", "test": "6942eeaf69d7a0aa94a7e389d2ec9cbdc7a9f12736091922150bfc5f9a4def4f"},
+    "previous_4536b3a3": {"driver": "f50328e5c33fe32dd15ba653927400263868c053c5518e42d4b047e25ec74d6f", "test": "4f0ebc4d26d2dc860081e3f7a3c00e3ad3e1f521f4b61972023784f8aea8d7f1"},
+    "note": "driver/test roles carry no accepted pin; the authority must be re-issued with the current bytes. Root verifies current bytes before freeze."
+  },
+  "final_suite": {
+    "count": "exactly one full-file run for this change; narrow class runs (PublishTests RED 2 failures, then PublishTests+GatingTests+ScorerTests+ExitTests+OwnSourceTests = 28 OK, PublishTests = 7 OK) preceded it; no overlap; not repeated without a code change",
+    "command_as_issued": "cd /home/rb/worktrees/sfora-connected-exact-torch-census-20261008/scripts && sha256sum census_connected_core_errors_torch.py test_connected_core_errors_torch.py > S/final_suite_4.pre.sha && (ulimit -v 1048576; start=$(date +%s.%N); CUDA_VISIBLE_DEVICES= timeout 120 /usr/bin/time -f 'maxrss_kib=%M' python3 -B -m unittest -v test_connected_core_errors_torch > S/final_suite_4.log 2>&1; echo \"exit=$? wall=$(echo \"$(date +%s.%N) - $start\" | bc)\" > S/final_suite_4.exit)   where S=/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad",
+    "caps": {"address_space_bytes": 1073741824, "timeout_seconds": 120, "cuda_visible_devices": "", "bytecode": "-B"},
+    "interpreter": "python3 = 3.14.4 on this x86_64 dev host (admitted native interpreter is 3.13.9 aarch64)",
+    "ran_on_bytes": "the uncommitted working-tree bytes; sha256sum -c final_suite_4.pre.sha = OK before commit and against the committed files, and `git diff --quiet HEAD -- scripts` = clean, so committed bytes == suite bytes",
+    "original_log": {
+      "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad/final_suite_4.log",
+      "sha256": "e1912b3fa70b4398fbfdc52b45e202bcd36abeeb8dcca4000a49126fac40b7ed",
+      "bytes": 8768,
+      "mtime_utc": "2026-10-08T20:29:57.148874694Z",
+      "contains": ["51 verbose '... ok' lines", "'Ran 51 tests in 13.336s'", "'OK'", "'maxrss_kib=101352' from /usr/bin/time"],
+      "contains_no": ["skipped", "FAIL", "ERROR"]
+    },
+    "exit_file": {
+      "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad/final_suite_4.exit",
+      "sha256": "99d4c356a51863dd6b93c9f4e2d61e76cdc2fca0664b9b596a1350e06ebfe36d",
+      "content": "exit=0 wall=13.537945743"
+    },
+    "pre_sha_file": {
+      "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad/final_suite_4.pre.sha",
+      "sha256": "5ffbbb51f1ee29c9e7f7abab1d5ae9685003166d08cd454b5cda390b462d981a"
+    },
+    "result": {"tests_run": 51, "ok": 51, "failed": 0, "errors": 0, "skipped": 0,
+               "composition": "41 (4536b3a3 suite) + 7 (369a223f) + 2 (6e6af7dc staging) + 1 (this change: staging-cleanup-failure test)",
+               "real_input_tests_ran": true},
+    "exit_status": 0,
+    "unittest_seconds": 13.336,
+    "wall_seconds_shell_measured": 13.537945743,
+    "process_peak_rss_kib": 101352,
+    "timing_note": "wall is about 2x the previous runs (6.5s/5.7s/4.4s) with no related code change in the slow tests; host-load variance was not investigated; all well inside the 120s cap",
+    "preserved_earlier_gates": "final_suite.log (41), final_suite_2.log (48), final_suite_3.log (50, source 6e6af7dc) remain valid evidence for their own commits only; they are not claimed for ab41d552"
+  },
+  "C1_failure_path_completed": {
+    "problem_in_6e6af7dc": "TemporaryDirectory.__exit__ (staging cleanup) could raise after a successful promotion, outside the inner try, leaving the promoted pass-marked output",
+    "fix": "publish_census: owner=None, promoted=False are set outside one outer try that covers the ENTIRE `with tempfile.TemporaryDirectory(dir=output.parent)`; inside: unchanged original census.publish into the private staged path, owned_output(staged) captured BEFORE promotion, budget.check(reserve=False), exclusive os.link(staged, output, follow_symlinks=False), promoted=True only after the link returned, budget.check(reserve=False) immediately after. The outer `except BaseException` removes the final output only if promoted AND owned_output(output) still equals the staged owner (else the foreign file is left untouched with a note); it always re-raises the same exception object (bare raise). No new API, no helper/original edit.",
+    "tests": "REAL TemporaryDirectory whose cleanup does the real removal then raises a sentinel OSError from __exit__: (a) clean promotion + cleanup failure -> the exact sentinel object surfaces, output removed, no staging, dir empty; (b) cap crossing after promotion + cleanup failure -> sentinel surfaces with __context__ = the cap ValueError, output removed; (c) foreign replacement + cleanup failure -> foreign preserved and noted; (d) cleanup failure after a pre-promotion cap crossing -> nothing published. Foreign-file-before-promotion now asserts FileExistsError, foreign preserved, and NO removal attempt/note (nothing was promoted). All earlier PublishTests cases still pass.",
+    "RED_measured": "on 6e6af7dc: the cleanup-failure test left census.json in place and the foreign-before-promotion case still attempted a removal (note present)",
+    "residuals": [
+      "TOCTOU between the ownership recheck and os.unlink (no unlink-by-inode in stdlib)",
+      "promoted is raised only after os.link returns, so an asynchronous signal between the syscall and that assignment, or an os.link that raises after creating the link, would not trigger removal (spec: promoted=True only after os.link returns)",
+      "when both a post-promotion failure and a cleanup failure occur, the surfaced exception is the cleanup error with the earlier failure only in __context__ (the output is still removed)",
+      "the wall between the immediate post-link check and process exit is covered only by the root's outer unit cap"
+    ],
+    "unchanged": "result flags incl. terminal_exit_and_both_locks_require_parent_receipt=True; original census.publish/rehash/canonical bytes (census pin 0fdc1700...)"
+  },
+  "corrections_carried": {
+    "C2_prebatch_budget_seam": "BATCH_STATEMENT `census_batch(start)` is loop.body[0] (before rows/matmul), exact inverse in adapt/unadapt, 5th entry of ADAPTER_DUMPS/check_declarations, required compile_scorer batch hook, replay passes `lambda start: budget.check()` and checks again immediately before the original fn call; capture's post-batch check retained; scorer arithmetic/order unchanged. Real native batch skip shown only by AST order + stub wiring.",
+    "C3_interpreter_predicate_at_exit": "exit_checks repeats the SAME check_interpreter(ctx.proof, extract) uncached when ctx.proof is set, before close_sources; tmp symlink fixture rejects byte change and launch-symlink retarget; no whitelist.",
+    "own_source": "serving.Source over the running driver at admit before `import torch`, guard(ctx) before every endpoint replay, and exit before close_sources; LIMITS exact builtin types. Per the root's message its own preflight ran the actual 3.13.9 scorer AST, real Source and CPU unit predicates and PASSED; that attestation is the root's and was not independently verified here. This suite exercises the registered-module Source branch only."
+  },
+  "contract_final": {
+    "launch_schema": "connected-exact-torch-census-launch-v1",
+    "result_schema": "sfora-connected-core-error-census-torch-v1",
+    "unchanged": "launch keys, source-role basenames/pins, CPU_PROOF_SHA, CPU_EXECUTION_SHA, NATIVE_SOURCES_SHA, SCORER_AST, exact-typed LIMITS (900/120/8GiB/0/''), admission predicates, all uncached exit proofs, original census/scorer/serving modules",
+    "replay_counts": {"per_query_pairs": 6936, "formula": "1734 queries x 4 endpoints", "scored_pairs_geometry": "44 x 1715 x 4 = 301840 (descriptive geometry rows, not the replay count)"},
+    "claims_discipline": "No claim about a fixed score function beyond the scorer's arithmetic/AST inverse; descriptive census only."
+  },
+  "evidence_limits": {
+    "torch_parity": "UNPROVEN: source-only suite; only the root's single native job can falsify exact Torch equality",
+    "warningregistry": "no actual evidence either way",
+    "dev_vs_admitted_python": "tests ran on 3.14.4; admitted native interpreter is 3.13.9; the cleanup-failure test relies on TemporaryDirectory.__exit__ calling self.cleanup(); verified only by running on 3.14.4 here, 3.13.9 not run",
+    "not_done_by_this_agent": ["no native/SSH/Torch/thirdparty execution", "no operator contact", "no child agents/reviews", "no push or merge"]
+  }
+}
