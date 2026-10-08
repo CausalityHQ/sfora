@@ -1,0 +1,12 @@
+{
+  "files": {
+    "library-provenance.json": "4662a7f0b3a15693a9ffbf7fe16702121352b06a4124cfd4655d2fcc49e4171b",
+    "native-authority.json": "fb41ba618d6c50aab8448661b691def567d17c0a4b838a1880c9773cc217d5f3"
+  },
+  "native_qualified": false,
+  "package_root": "/home/riomus/runs/sfora-connected-control-serving-package-v1",
+  "pythonpath": "/home/riomus/runs/sfora-connected-control-serving-package-v1/src",
+  "root": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v2",
+  "schema": "connected-control-native-metadata-freeze-v1",
+  "stop_rule": "Exact archived library and all source/provenance FILEs; sole supplemental mapped binary candidate.so. Unknown mappings reject, full original native/exact-four and all exit predicates retained. No quality/reuse/speed claim."
+}
