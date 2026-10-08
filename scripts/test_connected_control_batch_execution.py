@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Stdlib-only control batch observer seams; native qualification stays root-owned."""
 import ast
-from contextlib import contextmanager, nullcontext, ExitStack
+from contextlib import contextmanager, nullcontext, ExitStack, redirect_stderr
 import copy
 import hashlib
 import importlib.util
+import io
 import json
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -269,6 +271,113 @@ class ObserverTests(unittest.TestCase):
             fact['sha256']=hashlib.sha256(p.read_bytes()).hexdigest()
             with self.assertRaisesRegex(ValueError,'duplicate'):self.o.read_json(fact,{})
 
+    def test_bulk_advice_covers_consumed_bytes_and_tail_after_hashing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'bulk'; tail=b'tail\x00\xff'
+            raw=b'a'*1024**2+b'b'*1024**2+tail; path.write_bytes(raw)
+            fact={'path':str(path),'sha256':hashlib.sha256(raw).hexdigest()}; guards={}; calls=[]
+            digest=hashlib.sha256()
+            prefixes=[hashlib.sha256(b'a'*1048576).hexdigest(),
+                hashlib.sha256(b'a'*1048576+b'b'*1048576).hexdigest(),fact['sha256']]
+            advice=os.posix_fadvise
+            def advise(fd,offset,count,kind):
+                self.assertEqual(digest.hexdigest(),prefixes[len(calls)])
+                calls.append((offset,count,kind))
+                advice(fd,offset,count,kind)
+            with patch.object(self.o.hashlib,'sha256',return_value=digest),patch.object(self.o.os,'posix_fadvise',advise):
+                self.assertEqual(self.o.authenticated(fact,guards),path)
+            self.assertEqual(calls,[(0,1048576,os.POSIX_FADV_DONTNEED),
+                (1048576,1048576,os.POSIX_FADV_DONTNEED),(2097152,6,os.POSIX_FADV_DONTNEED)])
+            self.assertEqual(guards,{str(path):fact['sha256']})
+            with patch.object(self.o.os,'posix_fadvise',side_effect=OSError('advice failed')):
+                self.assertEqual(self.o.authenticated(fact,{},keep=True),raw)
+                denied={}
+                with self.assertRaisesRegex(OSError,'advice failed'):self.o.authenticated(fact,denied)
+                self.assertEqual(denied,{})
+
+    def test_bulk_mutation_during_advice_and_restored_mtime_reject(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'bulk'; raw=b'a'*1024**2+b'original tail'; path.write_bytes(raw)
+            fact={'path':str(path),'sha256':hashlib.sha256(raw).hexdigest()}; before=path.stat()
+            advice=os.posix_fadvise
+            def mutate(fd,offset,count,kind):
+                advice(fd,offset,count,kind)
+                if offset==0:
+                    with path.open('r+b') as stream:
+                        stream.seek(1024**2);stream.write(b'mutated! tail')
+                    os.utime(path,ns=(before.st_atime_ns,before.st_mtime_ns))
+            guards={}
+            with patch.object(self.o.os,'posix_fadvise',mutate):
+                with self.assertRaisesRegex(ValueError,'changed during authentication|SHA'):
+                    self.o.authenticated(fact,guards)
+            self.assertEqual(guards,{})
+            self.assertEqual(path.stat().st_mtime_ns,before.st_mtime_ns)
+            with self.assertRaisesRegex(ValueError,'SHA'):self.o.rehash({str(path):fact['sha256']})
+
+    def test_memory_snapshot_is_bounded_scalar_json_from_admitted_path(self):
+        self.assertTrue(callable(getattr(self.o,'memory_snapshot',None)),'memory snapshot missing')
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); values={'memory.current':'111','memory.peak':'222',
+                'memory.stat':'anon 11\nfile 22\nkernel 33\nfile_mapped 44\n',
+                'memory.events':'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n',
+                'memory.swap.current':'0','memory.swap.peak':'0'}
+            for name,value in values.items():(root/name).write_text(value)
+            stderr=io.StringIO()
+            with redirect_stderr(stderr):self.o.memory_snapshot(str(root),'after_admission')
+            expected={'diagnostic':'memory_snapshot','phase':'after_admission','path':str(root),
+                'memory.current':111,'memory.peak':222,'memory.stat.anon':11,'memory.stat.file':22,
+                'memory.stat.kernel':33,'memory.swap.current':0,'memory.swap.peak':0,
+                **{'memory.events.'+k:0 for k in ('low','high','max','oom','oom_kill','oom_group_kill')}}
+            self.assertEqual(json.loads(stderr.getvalue()),expected)
+            self.assertLess(len(stderr.getvalue()),2048)
+            self.assertTrue(all(type(v) in (str,int) for v in expected.values()))
+            for name,bad in [('memory.current','-1'),('memory.stat','anon 11\nfile 22\n'),
+                ('memory.events','low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nmax 1\n'),
+                ('memory.peak','0'*16385)]:
+                with self.subTest(name=name),redirect_stderr(io.StringIO()):
+                    (root/name).write_text(bad)
+                    with self.assertRaises((ValueError,KeyError)):self.o.memory_snapshot(str(root),'failure')
+                    (root/name).write_text(values[name])
+
+    def test_only_advice_and_diagnostic_seams_invert_complete_production_ast(self):
+        phases=('after_admission','before_load_inference','after_load_inference',
+                'before_observe','after_observe','after_release_inference')
+        summary="""print(json.dumps({'diagnostic': 'observation_summary', 'status': 'UNACCEPTED',
+            'pending_final_checks': True,
+            **{k: observation[k] for k in ('decision', 'b32', 'b6_repeat_exact',
+                'same_b6_cache_gather_exact', 'differences', 'capture_sha256',
+                'image_forwards', 'original_tail_cause_established',
+                'serving_correction_authorized')}},
+            sort_keys=True, allow_nan=False), file=sys.stderr, flush=True)"""
+        snippets=['admitted = False','admitted = True',
+            'os.posix_fadvise(stream.fileno(), stream.tell() - len(block), len(block), os.POSIX_FADV_DONTNEED)',
+            summary, *[f"memory_snapshot(before['path'], '{phase}')" for phase in phases],
+            *[f"actions.append(lambda: memory_snapshot(before['path'], '{side}_rehash_{owner}'))"
+              for owner in ('context','prospective') for side in ('before','after')]]
+        seams={ast.dump(ast.parse(s).body[0],include_attributes=False):0 for s in snippets}
+        counts={'helper':0,'conditions':0}
+        class Restore(ast.NodeTransformer):
+            def visit_FunctionDef(self,node):
+                if node.name=='memory_snapshot':
+                    counts['helper']+=1;return None
+                return self.generic_visit(node)
+            def visit_Expr(self,node):
+                key=ast.dump(node,include_attributes=False)
+                if key in seams:seams[key]+=1;return None
+                return self.generic_visit(node)
+            visit_Assign=visit_Expr
+            def visit_If(self,node):
+                diagnostic=ast.unparse(node.test)=='admitted'
+                node=self.generic_visit(node)
+                if diagnostic and not node.body and not node.orelse:
+                    counts['conditions']+=1;return None
+                return node
+        restored=Restore().visit(ast.parse(DRIVER.read_bytes()))
+        self.assertEqual(counts,{'helper':1,'conditions':4})
+        self.assertEqual(list(seams.values()),[1]*len(seams))
+        digest=hashlib.sha256(ast.dump(restored,include_attributes=False).encode()).hexdigest()
+        self.assertEqual(digest,'3416f669a3cee9bbf941334bcbc8d05ab65eae864d81d8ab1afe9c773892346b')
+
     def test_fixed_sequence_falsification_encoder_and_normalization_drift(self):
         for kwargs,decision in [({},'FIXED_WITNESS_FALSIFIED'),
             ({'drift':True},'FIXED_WITNESS_ENCODER_BATCH_DRIFT'),
@@ -377,7 +486,12 @@ class ObserverTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'exact original four'):self.o.exact_four(context,sources,bad)
 
     def test_run_disposes_before_full_exit_and_never_publishes_failed_exit(self):
-        for failure in (None,'observation','exit_rehash','final_cap','live_guard'):
+        phases=('after_admission','before_load_inference','after_load_inference',
+            'before_observe','after_observe','after_release_inference',
+            'before_rehash_context','after_rehash_context',
+            'before_rehash_prospective','after_rehash_prospective')
+        for failure in (None,'admission','observation','exit_rehash','final_cap','live_guard',
+                        'observation_with_sample',*[f'sample_{p}' for p in phases]):
             with self.subTest(failure=failure),tempfile.TemporaryDirectory() as tmp,ExitStack() as stack:
                 events=[]; guards_live={'mutated':False}; root=Path(tmp)
                 flags={'threads':8,'interop_threads':20,'cudnn_allow_tf32':True,'matmul_allow_tf32':False}
@@ -386,10 +500,20 @@ class ObserverTests(unittest.TestCase):
                     cuda=SimpleNamespace(is_initialized=lambda:False,get_rng_state_all=lambda:[Tensor([1])],
                                          device_count=lambda:1,max_memory_allocated=lambda:0))
                 endpoint={'seed':179061,'arm':'control','bundle':{'path':'/control/bundle.json','sha256':'bundle'}}
-                source=SimpleNamespace(numerical_flags=lambda:flags,cgroup_memory=lambda:{'path':'/unit.service'})
-                initializer=SimpleNamespace(admit_cgroup=lambda *a:events.append('cgroup'))
+                cgroup=root/'unit.service';cgroup.mkdir()
+                for name,value in {'memory.current':'111','memory.peak':'222',
+                    'memory.stat':'anon 11\nfile 22\nkernel 33\n',
+                    'memory.events':'low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n',
+                    'memory.swap.current':'0','memory.swap.peak':'0'}.items():
+                    (cgroup/name).write_text(value)
+                source=SimpleNamespace(numerical_flags=lambda:flags,cgroup_memory=lambda:{'path':str(cgroup)})
+                def admit_cgroup(*a):
+                    events.append('cgroup')
+                    if failure=='admission':raise ValueError('admission')
+                initializer=SimpleNamespace(admit_cgroup=admit_cgroup)
                 def release(state):events.append('release');state.clear()
-                connected=SimpleNamespace(load_inference=lambda *a:{'modules':{},'guards':{}},
+                def load_inference(*a):events.append('load');return {'modules':{},'guards':{}}
+                connected=SimpleNamespace(load_inference=load_inference,
                     release_inference=release,mapping_absent=lambda p:events.append('maps'))
                 def source_guard(*a,**k):
                     def check():
@@ -411,9 +535,13 @@ class ObserverTests(unittest.TestCase):
                 sources=SimpleNamespace(modules=modules,admit=admit,guard=lambda:None,close=close,load=load_packing,checks=[])
                 def observe(*a):
                     events.append('observation')
-                    if failure=='observation':raise ValueError(failure)
+                    if failure in ('observation','observation_with_sample'):raise ValueError('observation')
                     if failure=='live_guard':guards_live['mutated']=True
-                    return {'decision':'FIXED_WITNESS_FALSIFIED'}
+                    return {'decision':'FIXED_WITNESS_FALSIFIED','b32':{'cache_features_exact':True},
+                        'b6_repeat_exact':True,'same_b6_cache_gather_exact':True,
+                        'differences':{'pooled':{'exact':True,'different_bytes':0}},
+                        'capture_sha256':{'pooled':'a'*64},'image_forwards':44,
+                        'original_tail_cause_established':False,'serving_correction_authorized':False}
                 def rehash(value):
                     events.append('rehash')
                     if failure=='exit_rehash':raise ValueError(failure)
@@ -425,28 +553,60 @@ class ObserverTests(unittest.TestCase):
                 diagnostic=SimpleNamespace(prepare=lambda args:context,Sources=lambda c:sources,
                     terminal_admission=lambda *a:set(range(6)),origin_audit=lambda *a:lambda:{},
                     cleanup_error=self.d.cleanup_error,final_state=final,write_json=self.d.write_json)
+                memory_snapshot=self.o.memory_snapshot
+                def sample(path,phase):
+                    self.assertEqual(path,str(cgroup));events.append('snapshot:'+phase)
+                    broken=failure=='sample_'+phase or (failure=='observation_with_sample' and phase=='after_release_inference')
+                    if broken:(cgroup/'memory.current').write_text('-1')
+                    try:memory_snapshot(path,phase)
+                    finally:(cgroup/'memory.current').write_text('111')
                 patches={'prepare':lambda a:prospective,'load_source':lambda *a:diagnostic,
                     'bind_control':lambda *a:(events.append('prospective_bind') or endpoint,{}),
                     'authenticated':lambda *a,**k:b'', 'check_capture_ast':lambda *a:None,
                     'check_endpoint':lambda *a:None,'observe':observe,'exact_four':lambda *a:None,
-                    'rehash':rehash,'remove_source':lambda m:events.append('remove')}
+                    'rehash':rehash,'remove_source':lambda m:events.append('remove'),'memory_snapshot':sample}
                 for name,value in patches.items():stack.enter_context(patch.object(self.o,name,value))
                 stack.enter_context(patch.dict('os.environ',{'CUDA_VISIBLE_DEVICES':'0','CUBLAS_WORKSPACE_CONFIG':':4096:8',
                                                          'INVOCATION_ID':'a'*32}))
                 stack.enter_context(patch.dict(sys.modules,{}))
+                stderr=stack.enter_context(redirect_stderr(io.StringIO()))
                 args=SimpleNamespace(authority=root/'authority.json',authority_sha256='authority',output=root/'output')
                 if failure:
-                    with self.assertRaisesRegex(ValueError,failure):self.o.run(args)
+                    message='memory diagnostic' if failure.startswith('sample_') else 'observation' if failure=='observation_with_sample' else failure
+                    with self.assertRaisesRegex(ValueError,message) as raised:self.o.run(args)
+                    if failure=='observation_with_sample':
+                        self.assertTrue(any('memory diagnostic' in note for note in getattr(raised.exception,'__notes__',[])))
                     self.assertFalse((root/'output/receipt.json').exists())
                 else:
                     self.o.run(args)
                     self.assertTrue((root/'output/receipt.json').is_file())
                 self.assertLess(events.index('historical_admit'),events.index('prospective_bind'))
-                self.assertLess(events.index('packing'),events.index('observation'))
-                self.assertLess(events.index('release'),events.index('rehash'))
+                if 'observation' in events:self.assertLess(events.index('packing'),events.index('observation'))
+                if 'release' in events:self.assertLess(events.index('release'),events.index('rehash'))
+                self.assertEqual(events.count('rehash'),2)
                 self.assertLess(events.index('rehash'),events.index('sources_close'))
-                self.assertLess(events.index('sources_close'),events.index('final'))
+                if 'final' in events:self.assertLess(events.index('sources_close'),events.index('final'))
                 self.assertEqual(events[-1],'remove')
+                logs=[json.loads(line) for line in stderr.getvalue().splitlines()]
+                if failure=='admission':self.assertEqual(logs,[],'unadmitted cgroup was sampled')
+                summaries=[v for v in logs if v['diagnostic']=='observation_summary']
+                returned='observation' in events and failure not in ('observation','observation_with_sample')
+                self.assertEqual(len(summaries),int(returned))
+                if summaries:
+                    self.assertEqual(summaries[0]['status'],'UNACCEPTED')
+                    self.assertIs(summaries[0]['pending_final_checks'],True)
+                    self.assertEqual(summaries[0]['image_forwards'],44)
+                if failure is None:
+                    self.assertEqual([v['phase'] for v in logs if v['diagnostic']=='memory_snapshot'],list(phases))
+                    self.assertLess(events.index('snapshot:before_load_inference'),events.index('load'))
+                    self.assertLess(events.index('load'),events.index('snapshot:after_load_inference'))
+                    self.assertLess(events.index('snapshot:before_observe'),events.index('observation'))
+                    self.assertLess(events.index('observation'),events.index('snapshot:after_observe'))
+                    self.assertLess(events.index('release'),events.index('snapshot:after_release_inference'))
+                    rehashes=[i for i,event in enumerate(events) if event=='rehash']
+                    for i,owner in enumerate(('context','prospective')):
+                        self.assertLess(events.index('snapshot:before_rehash_'+owner),rehashes[i])
+                        self.assertLess(rehashes[i],events.index('snapshot:after_rehash_'+owner))
 
     def test_cli_and_no_native_imports(self):
         self.assertFalse({'torch','numpy','PIL','transformers','torchvision','sfora'}.intersection(sys.modules))

@@ -81,6 +81,7 @@ def authenticated(fact, guards, *, keep=False):
         else:
             while block := stream.read(1024**2):
                 digest.update(block)
+                os.posix_fadvise(stream.fileno(), stream.tell() - len(block), len(block), os.POSIX_FADV_DONTNEED)
         after = os.fstat(stream.fileno())
     require(before == after == path.stat(), 'FILE changed during authentication')
     require(digest.hexdigest() == fact['sha256'], 'FILE SHA differs: '+str(path))
@@ -412,6 +413,30 @@ def rehash(guards):
         authenticated({'path': path, 'sha256': digest}, {})
 
 
+def memory_snapshot(path, phase):
+    """Bounded scalar diagnostics from the already admitted cgroup; no cap decision."""
+    values = {}
+    for name, keys in (
+        ('memory.current', ()), ('memory.peak', ()),
+        ('memory.stat', ('anon', 'file', 'kernel')),
+        ('memory.events', ('low', 'high', 'max', 'oom', 'oom_kill', 'oom_group_kill')),
+        ('memory.swap.current', ()), ('memory.swap.peak', ())):
+        with (Path(path)/name).open('rb') as stream:
+            raw = stream.read(16*1024+1)
+        require(len(raw) <= 16*1024, 'memory diagnostic exceeds16KiB')
+        if keys:
+            pairs = [line.split() for line in raw.decode('ascii').splitlines()]
+            fields = dict(pairs)
+            require(len(fields) == len(pairs), 'duplicate memory diagnostic key')
+            for key in keys:
+                values[name+'.'+key] = int(fields[key])
+        else:
+            values[name] = int(raw)
+    require(all(v >= 0 for v in values.values()), 'nonnegative memory diagnostic required')
+    print(json.dumps({'diagnostic': 'memory_snapshot', 'phase': phase, 'path': str(path), **values},
+                     sort_keys=True, allow_nan=False), file=sys.stderr, flush=True)
+
+
 def elapsed_cap(started):
     require(time.perf_counter()-started < 700, 'whole700-second observer cap reached')
 
@@ -419,6 +444,7 @@ def elapsed_cap(started):
 def run(args):
     started = time.perf_counter()
     prospective = context = diagnostic = sources = state = audit = receipt = None
+    admitted = False
     error = None
     callbacks = []
     checks = []
@@ -457,6 +483,8 @@ def run(args):
         unit = Path(before['path']).name.removesuffix('.service')
         initializer = m['initializer']
         initializer.admit_cgroup(before, unit)
+        admitted = True
+        memory_snapshot(before['path'], 'after_admission')
         import torch
         require(not torch.cuda.is_initialized(), 'CUDA initialized before admission')
         flags = copy.deepcopy(context['exports'][KEY]['numerical_flags'])
@@ -488,7 +516,9 @@ def run(args):
             if state is not None:
                 check_endpoint(connected, state)
         boundary()
+        memory_snapshot(before['path'], 'before_load_inference')
         state = connected.load_inference(Path(endpoint['bundle']['path']).parent, endpoint['bundle']['sha256'], 'cuda')
+        memory_snapshot(before['path'], 'after_load_inference')
         for module in state['modules'].values():
             serving_checks.append(guard(module, state['guards'][module.__file__], context['guards'],
                 class_name='FlatAdmission' if Path(module.__file__).name == 'train_siglip2_substrate_adaptation.py' else None))
@@ -496,7 +526,16 @@ def run(args):
             require(context['guards'].setdefault(path, digest) == digest, 'serving guard conflict')
         boundary()
         audit()
+        memory_snapshot(before['path'], 'before_observe')
         observation = observe(diagnostic, context, sources, state, batch, boundary)
+        print(json.dumps({'diagnostic': 'observation_summary', 'status': 'UNACCEPTED',
+            'pending_final_checks': True,
+            **{k: observation[k] for k in ('decision', 'b32', 'b6_repeat_exact',
+                'same_b6_cache_gather_exact', 'differences', 'capture_sha256',
+                'image_forwards', 'original_tail_cause_established',
+                'serving_correction_authorized')}},
+            sort_keys=True, allow_nan=False), file=sys.stderr, flush=True)
+        memory_snapshot(before['path'], 'after_observe')
         boundary()
         exact_four(context, sources, audit())
         receipt = {'schema': 'connected-control-batch-execution-observation-v1', **observation,
@@ -522,6 +561,7 @@ def run(args):
                     serving_checks.clear()
                     sources.modules['connected'].release_inference(state)
                     state = None
+                    memory_snapshot(before['path'], 'after_release_inference')
                 diagnostic.cleanup_error(None, [*checks, *serving_checks, release])
         def exit_origins():
             for check in checks:
@@ -545,9 +585,17 @@ def run(args):
             if sources is not None and 'connected' in sources.modules:
                 actions.append(maps)
             if context is not None:
+                if admitted:
+                    actions.append(lambda: memory_snapshot(before['path'], 'before_rehash_context'))
                 actions.append(lambda: rehash(context['guards']))
+                if admitted:
+                    actions.append(lambda: memory_snapshot(before['path'], 'after_rehash_context'))
             if prospective is not None:
+                if admitted:
+                    actions.append(lambda: memory_snapshot(before['path'], 'before_rehash_prospective'))
                 actions.append(lambda: rehash(prospective['guards']))
+                if admitted:
+                    actions.append(lambda: memory_snapshot(before['path'], 'after_rehash_prospective'))
             actions.append(lambda: elapsed_cap(started))
             if sources is not None:
                 actions.append(sources.close)
