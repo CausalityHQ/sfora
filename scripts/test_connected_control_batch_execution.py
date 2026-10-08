@@ -30,9 +30,128 @@ def load(path, name):
     return module
 
 
+@contextmanager
+def workspace_contract_runtime(observer):
+    from types import ModuleType
+    tree = ast.parse(DRIVER.read_bytes())
+    helper = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'capture_workspace_owner')
+    count = 0
+    class BuiltinSeam(ast.NodeTransformer):
+        def visit_Call(self, node):
+            nonlocal count
+            if ast.unparse(node) == 'type(sys.getsizeof)':
+                count += 1
+                return ast.copy_location(ast.parse('type(clear)', mode='eval').body, node)
+            return self.generic_visit(node)
+    helper = BuiltinSeam().visit(helper)
+    assert count == 2  # Only builtin type predicates are replaced; FILE authentication stays genuine.
+    namespace = dict(vars(observer))
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[helper], type_ignores=[])), str(DRIVER), 'exec'), namespace)
+    with tempfile.TemporaryDirectory() as tmp:
+        events = []
+        memory = {'before':67108864, 'after':0, 'reserved_before':71303168,
+                  'reserved_after':71303168, 'cleared':False, 'clear_error':None, 'mutation':None}
+        torch = ModuleType('torch'); native = ModuleType('torch._C'); version = ModuleType('torch.version')
+        torch._C = native; torch.version = version
+        torch.__version__ = version.__version__ = '2.12.1+cu130'
+        version.git_version = '7269437d655783a26cba32aa88195b741ff496aa'
+        def clear():
+            events.append('clear')
+            memory['cleared'] = True
+            if memory['mutation'] is not None:memory['mutation']()
+            if memory['clear_error'] is not None:raise memory['clear_error']
+        clear.__name__ = '_cuda_clearCublasWorkspaces'; clear.__module__ = 'torch._C'; clear.__self__ = native
+        native._cuda_clearCublasWorkspaces = clear
+        torch.cuda = SimpleNamespace(is_initialized=lambda:True, synchronize=lambda:events.append('sync'),
+            memory_allocated=lambda:memory['after' if memory['cleared'] else 'before'],
+            memory_reserved=lambda:memory['reserved_after' if memory['cleared'] else 'reserved_before'],
+            max_memory_allocated=lambda:67108864)
+        version_raw = (EVIDENCE/'connected-cuda-workspace-source-audit-v1/installed-version.py').read_bytes()
+        facts = {}
+        for module, raw in ((torch,b'original torch'), (native,b'original native'), (version,version_raw)):
+            path = Path(tmp)/module.__name__; path.write_bytes(raw); module.__file__ = str(path)
+            facts[str(path)] = hashlib.sha256(raw).hexdigest()
+        context = {'guards':{}, 'source_cpu':{'origins':{'files':dict(facts)}},
+                   'warm':{'origins':{'files':dict(facts)}}}
+        with patch.dict(sys.modules, {'torch':torch, 'torch._C':native, 'torch.version':version}), \
+             patch.dict(os.environ, {'CUBLAS_WORKSPACE_CONFIG':':4096:8'}), redirect_stderr(stderr := io.StringIO()):
+            yield SimpleNamespace(capture=namespace['capture_workspace_owner'], torch=torch, native=native,
+                version=version, clear=clear, context=context, memory=memory, events=events, stderr=stderr)
+
+
+
+def workspace_contract_inverse(raw):
+    tree = ast.parse(raw)
+    helpers = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'capture_workspace_owner']
+    if len(helpers) != 1:
+        raise ValueError('workspace contract helper count differs')
+    helper = helpers[0]
+    signature = ast.parse('def f(torch, context, *, single_forward_witness=True): pass').body[0].args
+    validation = ast.parse("require(type(single_forward_witness) is bool, 'workspace disposal contract differs')").body[0]
+    if ast.dump(helper.args) != ast.dump(signature) or ast.dump(helper.body[1]) != ast.dump(validation):
+        raise ValueError('workspace contract signature/validation seam differs')
+    helper.args = ast.parse('def f(torch, context): pass').body[0].args
+    del helper.body[1]
+    seams = (
+        ("before['reserved_bytes'] >= before['allocated_bytes'] >= (33554432 if single_forward_witness else 0)",
+         "before['reserved_bytes'] >= before['allocated_bytes'] >= 33554432"),
+        ("before['allocated_bytes'] - after['allocated_bytes'] == 33554432 if single_forward_witness else after['allocated_bytes'] == 0",
+         "before['allocated_bytes'] - after['allocated_bytes'] == 33554432"))
+    counts = [0,0]
+    class Restore(ast.NodeTransformer):
+        def generic_visit(self, node):
+            for i,(current,original) in enumerate(seams):
+                expected = ast.parse(current,mode='eval').body
+                if ast.dump(node) == ast.dump(expected):
+                    counts[i] += 1
+                    return ast.copy_location(ast.parse(original,mode='eval').body,node)
+            return super().generic_visit(node)
+    Restore().visit(helper)
+    if counts != [1,1]:
+        raise ValueError('workspace contract scalar seam counts differ')
+    return tree
+
+
+def workspace_contract_test_inverse(raw):
+    tree = ast.parse(raw)
+    names = {'workspace_contract_inverse','workspace_contract_test_inverse','workspace_contract_runtime',
+        'test_workspace_contract_gradient_zero_and_default_exact_drop',
+        'test_workspace_contract_rejects_scalars_and_owner_mutations',
+        'test_workspace_contract_clear_error_keeps_one_attempt',
+        'test_workspace_contract_inverse_preserves_original_whole_ast_and_tests'}
+    removed,restored = [],[]
+    scalar_mutants = 0
+    class Restore(ast.NodeTransformer):
+        def visit_If(self, node):
+            nonlocal scalar_mutants
+            expected = ast.parse("""if before == b'33554432':
+    with self.assertRaisesRegex(ValueError,'scalar seam'):
+        workspace_origin_inverse(raw.replace(before,after,1))
+    continue
+""").body[0]
+            if ast.dump(node) == ast.dump(expected):
+                scalar_mutants += 1
+                return None
+            return self.generic_visit(node)
+        def visit_FunctionDef(self, node):
+            if node.name in names:
+                removed.append(node.name)
+                return None
+            if node.name in ('workspace_origin_inverse','workspace_origin_test_inverse'):
+                expected = 'workspace_contract_inverse(raw)' if node.name == 'workspace_origin_inverse' else 'workspace_contract_test_inverse(raw)'
+                if ast.unparse(node.body[0].value) != expected:
+                    raise ValueError('workspace contract test entry seam differs')
+                node.body[0].value = ast.parse('ast.parse(raw)',mode='eval').body
+                restored.append(node.name)
+            return self.generic_visit(node)
+    tree = Restore().visit(tree)
+    if sorted(removed) != sorted(names) or sorted(restored) != ['workspace_origin_inverse','workspace_origin_test_inverse'] or scalar_mutants != 1:
+        raise ValueError('workspace contract test seam counts differ')
+    return tree
+
 
 def workspace_origin_inverse(raw):
-    tree = ast.parse(raw)
+    tree = workspace_contract_inverse(raw)
     helpers = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'capture_workspace_owner']
     if len(helpers) != 1:
         raise ValueError('workspace origin helper count differs')
@@ -68,7 +187,7 @@ for module in (torch, native, version):
 
 
 def workspace_origin_test_inverse(raw):
-    tree = ast.parse(raw)
+    tree = workspace_contract_test_inverse(raw)
     names = {'workspace_origin_inverse', 'workspace_origin_test_inverse',
              'test_workspace_origin_promotion_authenticates_current_original_files',
              'test_workspace_origin_inverse_preserves_exact_base_contract'}
@@ -313,6 +432,105 @@ class ObserverTests(unittest.TestCase):
         cls.o = load(DRIVER, '_control_observer_test') if DRIVER.is_file() else None
         cls.d = load(HERE/'diagnose_connected_gallery_freshness.py', '_control_historical_test')
         cls.old = load(HERE/'test_connected_gallery_freshness.py', '_control_old_fixtures')
+
+    def test_workspace_contract_gradient_zero_and_default_exact_drop(self):
+        for mode, before, after, accepted in ((False,33554432,0,True), (False,67108864,0,True),
+                (False,0,0,True), (False,8,0,True), ('default',33554432,0,True),
+                ('default',67108864,0,False), ('default',0,0,False), (True,67108864,33554432,True)):
+            with self.subTest(mode=mode,before=before,after=after), workspace_contract_runtime(self.o) as f:
+                f.memory.update(before=before,after=after)
+                try:
+                    dispose = f.capture(f.torch,f.context) if mode == 'default' else f.capture(
+                        f.torch,f.context,single_forward_witness=mode)
+                except TypeError as failure:
+                    self.fail(str(failure))
+                if accepted:dispose()
+                else:
+                    with self.assertRaisesRegex(ValueError,'scalars'):dispose()
+                self.assertEqual(f.events.count('clear'), int(before >= 33554432 or mode is False))
+                with self.assertRaisesRegex(ValueError,'already attempted'):dispose()
+                if f.memory['cleared']:
+                    report = json.loads(f.stderr.getvalue())
+                    self.assertEqual(report['after']['allocated_bytes'],after)
+                    self.assertFalse(report['native_causality_established'])
+        for mode in (0,1,None,'False',[],object()):
+            with self.subTest(mode=mode), workspace_contract_runtime(self.o) as f:
+                with self.assertRaisesRegex(ValueError,'contract'):
+                    f.capture(f.torch,f.context,single_forward_witness=mode)
+                self.assertEqual(f.events,[])
+                self.assertEqual(f.context['guards'],{})
+        with workspace_contract_runtime(self.o) as f:
+            with self.assertRaises(TypeError):f.capture(f.torch,f.context,False)
+            self.assertEqual(f.events,[])
+
+    def test_workspace_contract_rejects_scalars_and_owner_mutations(self):
+        scalar_cases = [{'after':1}, {'reserved_after':71303169}, {'before':8,'reserved_before':7}]
+        scalar_cases += [{key:value} for key in ('before','after','reserved_before','reserved_after')
+                         for value in (-1,True,1.5,'0',None)]
+        for values in scalar_cases:
+            with self.subTest(values=values), workspace_contract_runtime(self.o) as f:
+                f.memory.update(values)
+                dispose = f.capture(f.torch,f.context,single_forward_witness=False)
+                with self.assertRaises(ValueError):dispose()
+                self.assertEqual(f.events.count('clear'), int(not ('before' in values or 'reserved_before' in values)))
+                with self.assertRaisesRegex(ValueError,'already attempted'):dispose()
+        for when in ('before','during'):
+            for mutant in ('callable','module','registry','version','source','hash','config','self','name','call_module','path'):
+                with self.subTest(when=when,mutant=mutant), workspace_contract_runtime(self.o) as f:
+                    dispose = f.capture(f.torch,f.context,single_forward_witness=False)
+                    def mutate():
+                        if mutant == 'callable':f.native._cuda_clearCublasWorkspaces = lambda:None
+                        if mutant == 'module':f.torch._C = SimpleNamespace()
+                        if mutant == 'registry':sys.modules['torch._C'] = SimpleNamespace()
+                        if mutant == 'version':f.version.git_version = 'wrong'
+                        if mutant == 'source':Path(f.native.__file__).write_bytes(b'changed native')
+                        if mutant == 'hash':f.context['guards'][f.native.__file__] = '0'*64
+                        if mutant == 'config':os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'
+                        if mutant == 'self':f.clear.__self__ = None
+                        if mutant == 'name':f.clear.__name__ = 'wrong'
+                        if mutant == 'call_module':f.clear.__module__ = 'wrong'
+                        if mutant == 'path':f.native.__file__ = f.version.__file__
+                    if when == 'before':mutate()
+                    else:f.memory['mutation'] = mutate
+                    with self.assertRaises(ValueError):dispose()
+                    self.assertEqual(f.events.count('clear'), int(when == 'during'))
+                    with self.assertRaisesRegex(ValueError,'already attempted'):dispose()
+
+    def test_workspace_contract_clear_error_keeps_one_attempt(self):
+        with workspace_contract_runtime(self.o) as f:
+            failure = ValueError('clear failed after release')
+            f.memory['clear_error'] = failure
+            dispose = f.capture(f.torch,f.context,single_forward_witness=False)
+            with self.assertRaises(ValueError) as caught:dispose()
+            self.assertIs(caught.exception,failure)
+            self.assertEqual(f.torch.cuda.memory_allocated(),0)
+            self.assertEqual(f.events,['sync','clear'])
+            with self.assertRaisesRegex(ValueError,'already attempted'):dispose()
+            self.assertEqual(f.events.count('clear'),1)
+
+    def test_workspace_contract_inverse_preserves_original_whole_ast_and_tests(self):
+        raw = DRIVER.read_bytes()
+        restored = workspace_contract_inverse(raw)
+        self.assertEqual(hashlib.sha256(ast.dump(restored,include_attributes=False).encode()).hexdigest(),
+                         'c9aed86c55f19b34f0e3f811a5f316af733bdcde23511ace3073aa16e7c5f86e')
+        tests = workspace_contract_test_inverse(Path(__file__).read_bytes())
+        self.assertEqual(hashlib.sha256(ast.dump(tests,include_attributes=False).encode()).hexdigest(),
+                         '9efd2dbae1457a25fe0dd12c9bac76405d9317dd920819d3331e2948f802925c')
+        for before,after in ((b'single_forward_witness=True',b'single_forward_witness=False'),
+                (b'type(single_forward_witness) is bool',b'isinstance(single_forward_witness, bool)'),
+                (b'33554432 if single_forward_witness else 0',b'33554431 if single_forward_witness else 0'),
+                (b"else after['allocated_bytes'] == 0",b"else after['allocated_bytes'] <= 1")):
+            self.assertEqual(raw.count(before),1)
+            with self.assertRaisesRegex(ValueError,'seam'):workspace_contract_inverse(raw.replace(before,after,1))
+        for before,after in ((b'        clear()',b'        clear(None)'),
+                (b'type(clear) is type(sys.getsizeof)',b'True'),
+                (b"after['reserved_bytes'] <= before['reserved_bytes']",b"after['reserved_bytes'] <= before['reserved_bytes'] + 1"),
+                (b'require(not used,',b'require(True,'),
+                (b'authenticated(fact, {})',b'authenticated(fact, context["guards"])'),
+                (b'failure = caught',b'failure = None')):
+            self.assertIn(before,raw)
+            changed = workspace_contract_inverse(raw.replace(before,after,1))
+            self.assertNotEqual(ast.dump(changed,include_attributes=False),ast.dump(restored,include_attributes=False))
 
     def test_implementation_and_original_math_correspondence(self):
         self.assertTrue(DRIVER.is_file(), 'control batch observer missing')
@@ -1091,6 +1309,10 @@ class ObserverTests(unittest.TestCase):
                               (b'        cuda_ownership_snapshot()', b'        cuda_ownership_snapshot(None)'),
                               (b'failure = caught', b'failure = None')):
             self.assertIn(before, raw)
+            if before == b'33554432':
+                with self.assertRaisesRegex(ValueError,'scalar seam'):
+                    workspace_origin_inverse(raw.replace(before,after,1))
+                continue
             changed = workspace_origin_inverse(raw.replace(before, after, 1))
             self.assertNotEqual(ast.dump(changed, include_attributes=False), ast.dump(restored, include_attributes=False))
 

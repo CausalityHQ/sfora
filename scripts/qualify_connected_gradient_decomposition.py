@@ -12,9 +12,10 @@ training is accepted source-v6 CODE; evaluator is the original authenticated
 bootstrap/terminal-reader CODE, never a quality-reader invocation. bootstrap is
 the original control061 TRAIN launch FILE. candidates are exactly061 then069,
 each {seed,launch:FILE,terminal:UNIT,checkpoint:FILE,terminal_state_sha256:SHA}.
-python and workspace_source are explicit FILEs. workspace_source exposes the
-unchanged capture_workspace_owner(torch,{guards,source_cpu,warm}) interface;
-both records retain their original genuine CPU/warm roles. No direct private
+python and workspace_source are explicit FILEs. workspace_source exposes capture_workspace_owner(torch,{guards,source_cpu,warm},
+single_forward_witness=False): zero allocation after one clear, without the
+batch default's exact32MiB witness. Both records retain their original genuine
+CPU/warm roles. No direct private
 CUDA cleanup, extra empty_cache, peak reset, helper adapter or global rebinding.
 The original release's existing allocator flush remains unchanged.
 
@@ -79,6 +80,99 @@ NATIVE = {'torch','numpy','PIL','transformers','safetensors','torchvision','sfor
 def require(value, message):
     if not value:
         raise ValueError(message)
+
+
+def memory_text(path):
+    with path.open('rb') as stream:
+        raw = stream.read(16385)
+    require(len(raw) <= 16384, 'memory observation file exceeds16KiB')
+    return raw.decode('ascii')
+
+
+def observe_memory(context, phase):
+    observation = context.setdefault('memory_observation',
+        {'attempts':0,'records':0,'failed':False,'path':None,'phases':{},'last_error':None,'cancellation':None})
+    if observation['attempts'] >= 128:
+        observation['failed'] = True
+        return
+    observation['attempts'] += 1
+    def remember_cancellation(failure):
+        if not isinstance(failure,Exception) and observation['cancellation'] is None:
+            value = failure.code if isinstance(failure,SystemExit) else str(failure)[:512]
+            if type(value) not in (int,str,type(None)):value = repr(value)[:512]
+            observation['cancellation'] = {'kind':type(failure).__name__,'value':value}
+    try:
+        require(observation['attempts'] < 128, 'memory observation record limit exceeded')
+        require(type(phase) is str and len(phase) <= 80, 'memory observation phase differs')
+        invocation = os.environ.get('INVOCATION_ID','')
+        require(re.fullmatch('[0-9a-f]{32}',invocation), 'memory observation invocation differs')
+        memberships = memory_text(Path('/proc/self/cgroup')).splitlines()
+        require(len(memberships) == 1 and memberships[0].startswith('0::/'), 'memory observation unified membership differs')
+        membership = memberships[0][3:]
+        require(len(membership) <= 1024 and '..' not in Path(membership).parts, 'memory observation membership path differs')
+        root = Path('/sys/fs/cgroup')/membership.lstrip('/')
+        require(root.resolve() == root and root.is_dir() and not root.is_symlink(), 'memory observation canonical cgroup differs')
+        require(observation['path'] in (None,str(root)), 'memory observation enclosing cgroup changed')
+        def scalar(value):
+            require(re.fullmatch('[0-9]{1,20}',value), 'memory observation nonnegative scalar required')
+            return int(value)
+        def counters(name):
+            values = {}
+            for line in memory_text(root/name).splitlines():
+                pair = line.split()
+                require(len(pair) == 2 and re.fullmatch('[a-z_]+',pair[0]) and pair[0] not in values,
+                        'memory observation counter inventory differs')
+                values[pair[0]] = scalar(pair[1])
+            return values
+        events,stat = counters('memory.events'),counters('memory.stat')
+        event_keys = ('low','high','max','oom','oom_kill','oom_group_kill')
+        stat_keys = ('anon','file','file_mapped','kernel','slab','slab_reclaimable','active_file','inactive_file',
+                     'pgscan_direct','pgsteal_direct','workingset_refault_file')
+        record = {'event':'GRADIENT_PHASE_MEMORY_V1','status':'UNACCEPTED','phase':phase,
+            'timestamp_ns':time.time_ns(),'invocation_id':invocation,'cgroup_path':str(root),
+            'memory_current':scalar(memory_text(root/'memory.current').strip()),
+            'memory_peak':scalar(memory_text(root/'memory.peak').strip()),
+            'memory_events':{name:events[name] for name in event_keys},
+            'memory_stat':{name:stat[name] for name in stat_keys}}
+        raw = json.dumps(record,sort_keys=True,allow_nan=False)
+        require(len(raw.encode('ascii')) <= 8192, 'memory observation output exceeds8KiB')
+        print(raw,file=sys.stderr,flush=True)
+        observation['path'] = str(root)
+        observation['records'] += 1
+        observation['phases'][phase] = observation['phases'].get(phase,0)+1
+    except BaseException as failure:
+        observation['failed'] = True
+        observation['last_error'] = repr(failure)[:512]
+        remember_cancellation(failure)
+        try:
+            print(json.dumps({'event':'GRADIENT_PHASE_MEMORY_V1','status':'FAIL_UNACCEPTED',
+                'phase':str(phase)[:80],'error':observation['last_error']},sort_keys=True,allow_nan=False),
+                file=sys.stderr,flush=True)
+        except BaseException as output_failure:
+            observation['last_error'] = repr(output_failure)[:512]
+            remember_cancellation(output_failure)
+
+
+def raise_memory_cancellation(context):
+    cancellation = context.get('memory_observation',{}).get('cancellation')
+    if cancellation is not None:
+        kind = {'KeyboardInterrupt':KeyboardInterrupt,'SystemExit':SystemExit,'GeneratorExit':GeneratorExit}.get(
+            cancellation['kind'],BaseException)
+        raise kind(cancellation['value'])
+
+
+def require_memory_observation(context, resources):
+    observation = context.get('memory_observation')
+    require(type(observation) is dict and not observation['failed'] and
+            0 < observation['attempts'] == observation['records'] < 128,
+            'complete bounded memory observation required: '+str(observation and observation['last_error']))
+    required = {'prepare:begin','prepare:end','final_cleanup:begin','final_cleanup:end','check_resources:before'}
+    required.update(f'state:{seed}:{step}:{phase}:{edge}' for seed in SEEDS for step in (0,128)
+                    for phase in ('build','measure','release') for edge in ('begin','end'))
+    required.update(f'exit:{phase}:{edge}' for phase in ('genuine','origin','union','closure') for edge in ('begin','end'))
+    require(required <= observation['phases'].keys() and
+            observation['path'] == resources['cgroup_before']['path'] == resources['cgroup_after']['path'],
+            'complete memory observation phases/enclosing cgroup required')
 
 
 def file_fact(fact):
@@ -475,12 +569,24 @@ def state_measurement(torch, context, connected, seed, step, record, guard):
     state,result,before,refs,error = None,None,None,[],None
     try:
         guard()
-        state = build_state(torch,context,connected,seed,step,record)
+        observe_memory(context,f'state:{seed}:{step}:build:begin')
+        raise_memory_cancellation(context)
+        try:
+            state = build_state(torch,context,connected,seed,step,record)
+        finally:
+            observe_memory(context,f'state:{seed}:{step}:build:end')
+        raise_memory_cancellation(context)
         refs = state_refs(context,state)
         connected.integrity(context,state,state['identity'])
         before = state_digest(context,connected,state)
         qualification = connected.select_initializer(context['original_cpu_record'],seed)
-        result = measure_state(torch,context,connected,state,qualification['scope_schedule'][0])
+        observe_memory(context,f'state:{seed}:{step}:measure:begin')
+        raise_memory_cancellation(context)
+        try:
+            result = measure_state(torch,context,connected,state,qualification['scope_schedule'][0])
+        finally:
+            observe_memory(context,f'state:{seed}:{step}:measure:end')
+        raise_memory_cancellation(context)
         result.update(seed=seed,step=step,complete_payload_sha256=before)
     except BaseException as failure:
         traceback.print_exception(failure,file=sys.stderr)
@@ -492,20 +598,25 @@ def state_measurement(torch, context, connected, seed, step, record, guard):
                 require(before is None or state_digest(context,connected,state) == before, 'complete model/state/RNG bytes changed')
         def release():
             nonlocal state
-            if state is not None:
-                try:
-                    connected.release(context,state)
-                finally:
-                    state = None
-                    context['initial'].clear()
-                    gc.collect()
+            observe_memory(context,f'state:{seed}:{step}:release:begin')
+            try:
+                if state is not None:
+                    try:
+                        connected.release(context,state)
+                    finally:
+                        state = None
+                        context['initial'].clear()
+                        gc.collect()
+            finally:
+                observe_memory(context,f'state:{seed}:{step}:release:end')
         finish_cleanup(error,[integrity,release,torch.cuda.synchronize,
             lambda:require(all(ref() is None for ref in refs), 'state/model/processor lifetime survived release'),
-            lambda:context['trainer'].require_no_training(context),guard])
+            lambda:context['trainer'].require_no_training(context),guard,lambda:raise_memory_cancellation(context)])
     return result
 
 
 def check_resources(torch, context):
+    observe_memory(context,'check_resources:before')
     cgroup = context['legacy']['source_driver'].cgroup_memory()
     context['old'].zero_events(cgroup)
     unit = Path(cgroup['path']).name.removesuffix('.service')
@@ -514,6 +625,7 @@ def check_resources(torch, context):
             resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024 <= POLICY['host_bytes'] and
             (not torch.cuda.is_initialized() or torch.cuda.max_memory_allocated() < POLICY['cuda_allocated_bytes_exclusive']),
             'whole proposed diagnostic resource envelope exceeded')
+    raise_memory_cancellation(context)
     return cgroup
 
 
@@ -523,7 +635,7 @@ def bind_workspace(evaluator, workspace, fact, context, torch):
     guard()
     roles = {'guards':context['guards'],'source_cpu':context['legacy']['selected']['source_cpu'],
              'warm':context['legacy']['warm_record']}
-    callback = workspace.capture_workspace_owner(torch,roles)
+    callback = workspace.capture_workspace_owner(torch,roles,single_forward_witness=False)
     require(type(callback) is FunctionType and callback.__globals__ is vars(workspace) and
             callback.__module__ == workspace.__name__ and callback.__name__ == 'dispose' and
             callback.__defaults__ is None and callback.__kwdefaults__ is None, 'original workspace callback binding differs')
@@ -573,7 +685,15 @@ def run(args):
     require(not sys.flags.optimize and os.environ.get('CUDA_VISIBLE_DEVICES') == '0' and
             os.environ.get('CUBLAS_WORKSPACE_CONFIG') == ':4096:8' and
             re.fullmatch('[0-9a-f]{32}',os.environ.get('INVOCATION_ID','')), 'original fresh CUDA0 enclosing UNIT required')
-    launch,code,connected,evaluator,workspace,context,records,guard = prepare(args,started)
+    memory_context = {}
+    observe_memory(memory_context,'prepare:begin')
+    try:
+        raise_memory_cancellation(memory_context)
+        launch,code,connected,evaluator,workspace,context,records,guard = prepare(args,started)
+    finally:
+        observe_memory(memory_context,'prepare:end')
+    raise_memory_cancellation(memory_context)
+    context['memory_observation'] = memory_context['memory_observation']
     source,trainer,legacy = context['legacy']['source_driver'],context['trainer'],context['legacy']
     packages = source.package_origins(legacy['prior'])
     require(packages == legacy['selected']['packages'], 'original package origins differ')
@@ -613,17 +733,36 @@ def run(args):
             torch.cuda.set_rng_state_all(rng[1])
         def exit_integrity():
             trainer.require_no_training(context)
-            trainer.exit_rehash(context)  # Complete genuine fresh uncached exit reader.
-            trainer.audit_origin_diagnostics(context,context['nearest'].native_source_api(context),
-                admission=legacy['original'].FlatAdmission(),require_exact=True)
-            for path,digest in tuple(context['guards'].items()):
-                file_bytes({'path':path,'sha256':digest},{})
-            require(read_json({'path':str(HERE/'execution.json'),'sha256':args.execution_sha256},{}) == code,
-                    'own exact2 uncached final closure differs')
-            guard()
+            observe_memory(context,'exit:genuine:begin')
+            try:
+                trainer.exit_rehash(context)  # Complete genuine fresh uncached exit reader.
+            finally:
+                observe_memory(context,'exit:genuine:end')
+            observe_memory(context,'exit:origin:begin')
+            try:
+                trainer.audit_origin_diagnostics(context,context['nearest'].native_source_api(context),
+                    admission=legacy['original'].FlatAdmission(),require_exact=True)
+            finally:
+                observe_memory(context,'exit:origin:end')
+            observe_memory(context,'exit:union:begin')
+            try:
+                for path,digest in tuple(context['guards'].items()):
+                    file_bytes({'path':path,'sha256':digest},{})
+            finally:
+                observe_memory(context,'exit:union:end')
+            observe_memory(context,'exit:closure:begin')
+            try:
+                require(read_json({'path':str(HERE/'execution.json'),'sha256':args.execution_sha256},{}) == code,
+                        'own exact2 uncached final closure differs')
+                guard()
+            finally:
+                observe_memory(context,'exit:closure:end')
+            raise_memory_cancellation(context)
+        observe_memory(context,'final_cleanup:begin')
         finish_cleanup(error,[restore_rng,
             lambda:final_resources(torch,context,before,rng,flags,dispose,resources),exit_integrity,
-            lambda:check_resources(torch,context)])
+            lambda:check_resources(torch,context),lambda:observe_memory(context,'final_cleanup:end'),
+            lambda:raise_memory_cancellation(context),lambda:require_memory_observation(context,resources)])
     require([(r['seed'],r['step']) for r in results] == [(s,k) for s in SEEDS for k in (0,128)] and
             all([v['view'] for v in r['views']] == list(VIEWS) for r in results), 'all four states/both views required')
     receipt = {'schema':'connected-gradient-decomposition-v1','pass':True,'engineering_only':True,
@@ -635,6 +774,7 @@ def run(args):
         'authority':{'path':str(args.authority),'sha256':args.authority_sha256},'launch':launch,'code':code,
         'execution_sha256':args.execution_sha256,'input_guards':dict(context['guards']),
         'resource_policy':POLICY,'numerical_flags':flags,'whole_seconds':time.perf_counter()-started,
+        'phase_memory_observation':context['memory_observation'],
         'process_peak_rss_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
         'exit_rehash_pass':True,'all_graphs_vectors_models_released':True,
         'workspace_ownership_limit':'original source-pinned admitted builtin binding; no C-function-pointer authentication',
@@ -648,6 +788,7 @@ def run(args):
         json.dump(receipt,stream,indent=2,sort_keys=True,allow_nan=False)
         stream.write('\n')
     check_resources(torch,context)
+    require_memory_observation(context,resources)
     print(json.dumps({'pass':True,'engineering_only':True,'whole_seconds':time.perf_counter()-started}),flush=True)
     return receipt
 

@@ -472,8 +472,9 @@ def cuda_ownership_snapshot():
         sort_keys=True, allow_nan=False), file=sys.stderr, flush=True)
 
 
-def capture_workspace_owner(torch, context):
+def capture_workspace_owner(torch, context, *, single_forward_witness=True):
     """Admitted runtime binding only, not cryptographic C function-pointer identity."""
+    require(type(single_forward_witness) is bool, 'workspace disposal contract differs')
     native = torch._C
     version = torch.version
     clear = native._cuda_clearCublasWorkspaces
@@ -521,7 +522,8 @@ def capture_workspace_owner(torch, context):
         torch.cuda.synchronize()
         before = {'allocated_bytes': torch.cuda.memory_allocated(), 'reserved_bytes': torch.cuda.memory_reserved()}
         require(all(type(v) is int and v >= 0 for v in before.values()) and
-                before['reserved_bytes'] >= before['allocated_bytes'] >= 33554432, 'workspace before scalars differ')
+                before['reserved_bytes'] >= before['allocated_bytes'] >= (
+                    33554432 if single_forward_witness else 0), 'workspace before scalars differ')
         clear()
         torch.cuda.synchronize()
         authenticate()
@@ -531,7 +533,8 @@ def capture_workspace_owner(torch, context):
             'ownership_limit': 'captured admitted builtin binding; C function pointer not authenticated'},
             sort_keys=True, allow_nan=False), file=sys.stderr, flush=True)
         require(all(type(v) is int and v >= 0 for v in after.values()) and
-                before['allocated_bytes'] - after['allocated_bytes'] == 33554432 and
+                (before['allocated_bytes'] - after['allocated_bytes'] == 33554432
+                 if single_forward_witness else after['allocated_bytes'] == 0) and
                 after['allocated_bytes'] <= after['reserved_bytes'] <= before['reserved_bytes'],
                 'workspace after scalars differ')
     return dispose
