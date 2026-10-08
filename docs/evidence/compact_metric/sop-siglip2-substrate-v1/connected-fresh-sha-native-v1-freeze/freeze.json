@@ -1,0 +1,20 @@
+{
+  "engineering_only": true,
+  "files": {
+    "command.sh": "fa74819ac3f282167b2106447d4352373c0408d790d33d31f3e0fc98c21ee8b7",
+    "launch.sh": "d53bb828f280dba6a2eddaa6b3d7df7f0d53cbc0bbe667409b87f779a5fdcb23",
+    "proposal.json": "3315d4c6118ae09399d3fc49ab1b77c0a93aeadedc7175947d5a77340d2bfd1e",
+    "qualify_connected_fresh_sha.py": "fb8209554887c8a5cfc8a269a30c8dad619ec1cf40373a7c348fb98186f794ea",
+    "test_connected_fresh_sha.py": "32017c4c1ad6283cc62c8165124463d6bb151f9f10f3adb3bdfe439c2c65bf37"
+  },
+  "policy": {
+    "body_seconds": 300,
+    "cuda_exclusive_bytes": 10000000000,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_seconds": 1500
+  },
+  "schema": "connected-fresh-sha-root-freeze-v1",
+  "source_commit": "94294a6c44bfd570c6709d6b94e178e658eff9e4",
+  "stop_rule": "One job; any parity, mutation, lifetime, original admission/exit, resource or terminal failure closes this arm; no production/quality/speed GO."
+}

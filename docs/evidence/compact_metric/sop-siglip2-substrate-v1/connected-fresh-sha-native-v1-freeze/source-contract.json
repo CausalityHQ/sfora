@@ -1,0 +1,215 @@
+{
+  "schema": "connected-fresh-sha-driver-contract-v1",
+  "revision": 2,
+  "revision_note": "rev2 = rev1 + root corrections: S3 re-proves the original no-native-import prefix (static module-load import proof in read_proposal + runtime require_no_native); B3/B4 sampler and thresholds REMOVED (guard cumulative peaks only); exact genuine helper messages pinned in body and validator; MLP byte flip (B6); finite peaks required. Final proposed closure ea73430a/d1e23c45/3d395a8f validated in scratch (read_proposal, Source.load/check, real original==real proposed digests on aliases/strided/empty/scalar/transposed fake trees, exact messages, retained-error lifecycle).",
+  "status": "PRE-CODE CONTRACT. Complete durable text; supersedes the truncated agent messages 1791485360425807508 / 1791485365286678669. No production file existed when this was generated.",
+  "worker": "sfora/connected-fresh-sha-native-20261008",
+  "branch": "devbox/connected-fresh-sha-native-20261008",
+  "base_commit": "ef8c132ae1c5e885387af7fc56a4b08eb29dc090",
+  "candidate_not_integrated": "10af75da65ab0117806490266b8a053da2d7feb1 (read-only; its SHAs are about to change, so NO proposed pin is hardcoded anywhere; all proposed FILE pins arrive in the parent PROPOSAL FILE)",
+  "owned_files": [
+    "scripts/qualify_connected_fresh_sha.py",
+    "scripts/test_connected_fresh_sha.py"
+  ],
+  "original_qualifier": {
+    "repo_path": "scripts/qualify_connected_control_serving.py",
+    "file_sha256": "2961c2b0129b762403273c1d550b44c0ba7e4e9ec231a3e39848a9ee57d68815",
+    "frozen_pin_matches": true,
+    "frozen_authority_json_sha256": "8d917eb2bc24db5b36dba74e1557da4b76aa1f8917f88adf10e462a3169fd4b3",
+    "run_function": {
+      "lines": [
+        337,
+        497
+      ],
+      "top_level_statements": 16,
+      "source_segment_sha256": "5b36cb1cdf50ac4eeee1f0ab824af956d20d4b3f16c7fbf6152d2ffc82700f63",
+      "source_segment_chars": 12470,
+      "ast_dump_sha256": "4e15fd3b8875cdac2464056cafedcecd52c3d8d2040be2e708f3d6055c2a3778",
+      "ast_dump_chars": 46045,
+      "ast_dump_python": "3.14.4",
+      "ast_dump_note": "ast.dump(run FunctionDef, no attributes). AST text is interpreter-version specific (DGX is 3.13.9, this host 3.14.x); the version-independent pin is source_segment_sha256. The driver NEVER compares against a constant: check_seams parses the SHA-authenticated original FILE and the driver FILE with the SAME interpreter at run time."
+    }
+  },
+  "frozen_policy_actual": {
+    "source": "connected-installed-control-serving-v2-freeze/{freeze.json,observation.json} resource_policy; unchanged, no cap increase",
+    "body_seconds": 300,
+    "whole_process_seconds": 1500,
+    "exit_reserve_seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "original_v2_measured": {
+      "whole_process_seconds": 732.7814621959988,
+      "body_seconds": 152.59914426298928,
+      "non_body_seconds": 580.1823,
+      "owner_admission_seconds": [
+        23.044181453005876,
+        23.233734497014666
+      ],
+      "owner_release_seconds": [
+        0.2098477580002509,
+        0.20186494098743424
+      ]
+    },
+    "envelope_conflict": "A whole-process 300s cap is impossible (non-body admission+uncached exit alone is 580s). It is NOT proposed. Only the BODY changes: body <= 300s from body entry (the original bounded() semantics), whole 1500 with the original headroom predicate time.perf_counter()-STARTED+300+exit_reserve < whole at admission. One owner (~23s load) plus hash work; estimated body ~60-120s."
+  },
+  "cli": {
+    "argv": [
+      "<driver path>",
+      "--authority",
+      "FILE.path",
+      "--authority-sha256",
+      "SHA",
+      "--proposal",
+      "FILE.path",
+      "--proposal-sha256",
+      "SHA",
+      "--output",
+      "NEWDIR"
+    ],
+    "launch": "python -B <root>/qualify_connected_fresh_sha.py ... under the root-owned unit/footers/locks (fd 8/9 inherited) exactly as the original launch.sh/command.sh; root freezes it; this worker writes no launch/freeze/footers.",
+    "authority": "the ORIGINAL v2 authority.json UNCHANGED (schema connected-control-serving-requests-authority-v2, 13 source roles, locks, evaluator, control_export, observation, native_runtime)",
+    "placement": "driver and test must sit in the authority root beside the 7 source-v2 files: the original role loop (run L348-352, unchanged) requires sources[role].path == Path(__file__).with_name(name)."
+  },
+  "proposal_file": {
+    "format": "strict JSON, exact keys, canonical absolute regular FILE {path,sha256}",
+    "keys": {
+      "schema": "connected-fresh-sha-proposal-v1",
+      "driver": "FILE this script",
+      "test": "FILE scripts/test_connected_fresh_sha.py",
+      "proposed": "{runtime, ledger, bridge}: FILEs for connected_inference.py / _connected_inference_authority.py / connected_compact_serving.py (parent final dynamic SHAs)",
+      "commit": "40-hex string, RECORDED ONLY; never a substitute for source authentication"
+    },
+    "read_proposal_checks_before_any_execution": [
+      "proposal FILE and every listed FILE canonical, regular, size/SHA-exact via requests.read_file",
+      "driver path == Path(__file__).absolute(); test path == sibling test_connected_fresh_sha.py",
+      "proposed paths distinct from every authority source path",
+      "closure consistency by raw bytes: ledger contains the literal RUNTIME_SHA256 = \"<proposed runtime sha>\"; bridge contains the literal \"<proposed ledger sha>\" (rejects a stale closure after the submit-failure fix)",
+      "proposed module-level fingerprint FunctionDef AST == the authority-pinned ORIGINAL runtime fingerprint AST (original fingerprint byte/AST unchanged)",
+      "check_seams(original qualifier bytes, driver bytes): the finite inverse proof below"
+    ]
+  },
+  "source_authentication": {
+    "no_heuristics": "NO worker co_names/name whitelist. The proposed helper is authenticated as exact dynamic source: SHA-exact FILE bytes -> requests.Source.load (UNCHANGED, lines 180-191: read_file then exec(compile(raw,path,exec,dont_inherit=True),vars(module)); never spec.loader.exec_module, never pyc) -> Source.__init__ proves every module function/class code == compile(raw) with __globals__ is vars(module).",
+    "whole_binding_snapshot": "Source.check() re-reads the FILE (SHA) and requires module namespace keys+object identity, deep-copied dict/list/tuple/set literals, class __dict__ identity, every function code/defaults/kwdefaults/__dict__/closure-cell contents, and __spec__ values unchanged. It runs in guard() (seam S5) and additionally immediately before and after EVERY proposed hash call in the body. The ORIGINAL private runtime namespace keeps its own genuine snapshot via index._check_current(), called at phase boundaries.",
+    "native_prefix": "Source.load of the proposed runtime runs before evaluator.authority (seam S3). Original prefix preserved twice: (1) read_proposal proves by AST that no import executed at module load (outside function bodies) reaches torch/numpy/PIL/sfora/transformers/torchvision/safetensors or is relative; (2) seam S3 appends require_no_native() (the original startup predicate over sys.modules) right after Source.load. The original startup check at the top of run() is unchanged.",
+    "globals_identity": "vars(proposed)['hashlib'] is hashlib and vars(proposed)['ThreadPoolExecutor'] is concurrent.futures.ThreadPoolExecutor and proposed.MLP == original.MLP are required before any digest is taken.",
+    "imported_siblings": "qualify_connected_serving_requests and qualify_connected_control_serving are normal imports (as the original does) and are authenticated by Source code/namespace equality against SHA-exact FILEs (requests: request_source, unchanged; control: control_source, seam S2). The driver itself is __main__ run as a script (no pyc).",
+    "poison_regression": "one tiny test: a stale-but-valid/poisoned __pycache__ pyc beside a module source; importlib loads the poison, Source.load executes the raw admitted bytes."
+  },
+  "reused_unchanged": [
+    "prepare_observation, admit_control, CONTROL/KEYS/SCHEMA/SOURCES from the pinned original qualifier (imported, never copied)",
+    "evaluator.authority/accept_unit/endpoint_scope/authenticate_payloads/image_rows/guard_helpers/native_start/resources/exit_rehash",
+    "native_ties, native_source.CombinedAuthority install/audit_origins/evidence/evaluator_exit",
+    "the genuine nested factory = bridge_source.module.ConnectedCompactIndex.from_bundle(...) exactly at the original position, after complete admission and endpoint scope",
+    "requests.owner (genuine index.close/release_inference weakref lifetime predicates), Locks, check_resources, Source",
+    "whole-process/exit predicates, publish, full uncached source exit, both locks, 8GiB/0swap/CUDA<10GB"
+  ],
+  "seams": [
+    {
+      "id": "S1",
+      "purpose": "CLI check -> read+authenticate proposal FILE (incl. seam inverse proof) and require new fixed argv",
+      "old": "require(sys.argv == cli(authority_fact,str(args.output),sources['control_driver']['path']), 'fixed canonical control CLI order required')\n",
+      "new": "proposal_fact = {'path':str(args.proposal),'sha256':args.proposal_sha256}\nproposal = read_proposal(proposal_fact,sources)\nrequire(sys.argv == fresh_cli(authority_fact,proposal_fact,str(args.output),proposal['driver']['path']), 'fixed canonical fresh-sha CLI order required')\n"
+    },
+    {
+      "id": "S2",
+      "purpose": "self_source binds the NEW driver pin; imported original qualifier gets its own Source",
+      "old": "self_source = requests.Source(sys.modules[__name__],sources['control_driver'])\n",
+      "new": "control_source = requests.Source(control,sources['control_driver'])\nself_source = requests.Source(sys.modules[__name__],proposal['driver'])\n"
+    },
+    {
+      "id": "S3",
+      "purpose": "after Locks: execute the admitted raw proposed runtime bytes through unchanged Source.load, then re-prove the original no-native-import prefix",
+      "old": "locks = requests.Locks(authority['locks'])\n",
+      "new": "locks = requests.Locks(authority['locks'])\nproposed_source = requests.Source.load(proposal['proposed']['runtime']); owned.append(proposed_source)\nrequire_no_native()\n"
+    },
+    {
+      "id": "S4",
+      "purpose": "frozen FILE list += proposal FILE, driver, test, 3 proposed FILEs (guard + full uncached exit rehash)",
+      "old": "frozen = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],\n    *sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],observation['control_export_receipt'],\n    observation['gallery']['file'],observation['native'],*observation['train_images']]\n",
+      "new": "frozen = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],\n    *sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],observation['control_export_receipt'],\n    observation['gallery']['file'],observation['native'],*observation['train_images'],\n    proposal_fact,*proposal_files(proposal)]\n"
+    },
+    {
+      "id": "S5",
+      "purpose": "guard() live-source tuple += control_source, proposed_source",
+      "old": "for source in (self_source,request_source,observer_source,native_source,evaluator_source,\n    bridge_source,wrapper_source,packed_source,packing_source): source.check()\n",
+      "new": "for source in (self_source,request_source,observer_source,native_source,evaluator_source,\n    bridge_source,wrapper_source,packed_source,packing_source,control_source,proposed_source): source.check()\n"
+    },
+    {
+      "id": "S6",
+      "purpose": "requests.request_body(...) -> falsify(...): the ONLY body replacement",
+      "old": "diagnostic = requests.request_body(factory,observer,read_images,torch.cuda.synchronize,\n    [Path(f['path']) for f in observation['train_images']],observation['sources'],guard)\n",
+      "new": "diagnostic = falsify(factory,guard,torch,proposed_source)\n"
+    },
+    {
+      "id": "S7",
+      "purpose": "record dict: new receipt schema; no 22-call evidence; adds proposal/proposed pins and speed_go False",
+      "old": "record = {'schema':'connected-control-serving-diagnostic-v1','status':'DISCARDED_DIAGNOSTIC','engineering_only':True,\n    'authority':authority_fact,'sources':sources,'control':CONTROL,'control_export':authority['control_export'],\n    'observation':authority['observation'],'native_runtime':authority['native_runtime'],'output':str(output),\n    'ties':ties,**diagnostic,'quality_read':False,'quality_eligible':False,'qualification_eligible':False,\n    'state_reuse_eligible':False,'optimization_eligible':False,'product_go':False,'resource_policy':policy,\n    'normal_terminal_required':True,'owned_cleanup_requires_terminal':True,\n    'invocation':{'argv':sys.argv,'python':str(Path(sys.executable).resolve()),'python_sha256':prior['python_sha256'],\n        'python_version':sys.version,'pid':os.getpid(),'invocation_id':os.environ['INVOCATION_ID'],\n        'optimize':sys.flags.optimize,'cuda_visible_devices':os.environ['CUDA_VISIBLE_DEVICES'],\n        'cublas_workspace_config':os.environ.get('CUBLAS_WORKSPACE_CONFIG')}}\n",
+      "new": "record = {'schema':RECEIPT_SCHEMA,'status':'DISCARDED_DIAGNOSTIC','engineering_only':True,\n    'authority':authority_fact,'proposal':proposal_fact,'proposed':proposal['proposed'],'proposal_commit':proposal['commit'],\n    'sources':sources,'control':CONTROL,'control_export':authority['control_export'],\n    'observation':authority['observation'],'native_runtime':authority['native_runtime'],'output':str(output),\n    'ties':ties,**diagnostic,'quality_read':False,'quality_eligible':False,'qualification_eligible':False,\n    'state_reuse_eligible':False,'optimization_eligible':False,'product_go':False,'speed_go':False,'resource_policy':policy,\n    'normal_terminal_required':True,'owned_cleanup_requires_terminal':True,\n    'invocation':{'argv':sys.argv,'python':str(Path(sys.executable).resolve()),'python_sha256':prior['python_sha256'],\n        'python_version':sys.version,'pid':os.getpid(),'invocation_id':os.environ['INVOCATION_ID'],\n        'optimize':sys.flags.optimize,'cuda_visible_devices':os.environ['CUDA_VISIBLE_DEVICES'],\n        'cublas_workspace_config':os.environ.get('CUBLAS_WORKSPACE_CONFIG')}}\n"
+    },
+    {
+      "id": "S8",
+      "purpose": "receipt validator: original 22-call validate_receipt cannot validate this schema",
+      "old": "validate_receipt(record,authority,authority_fact)\n",
+      "new": "validate_fresh_receipt(record,authority,authority_fact,proposal,proposal_fact)\n"
+    }
+  ],
+  "seam_inverse": {
+    "statement": "The driver's run() is the original run() lines 337-497 verbatim except the 8 statement sequences above.",
+    "algorithm": "check_seams(original_bytes, driver_bytes): parse both, take module-level FunctionDef run; for each seam require EXACTLY ONE consecutive-statement match (ast.dump equality, no line attributes) of seam.old in the original run and of seam.new in the driver run, in any statement list (body/orelse/finalbody/handlers); replace each match by Expr(Name(__SEAM_i__)); require ast.dump(original run) == ast.dump(driver run). Any other statement difference, a missing/duplicated seam, or a changed seam text raises.",
+    "runs": "inside read_proposal (before any native import or execution, on the SHA-authenticated bytes of both files) and in the source test with mutation of each seam and of a non-seam statement."
+  },
+  "body": {
+    "entry": "falsify(factory, guard, torch, proposed_source) replaces ONLY requests.request_body (seam S6). bounded() = guard() + time.perf_counter()-body_start < 300. ONE requests.owner (genuine from_bundle); guard() is never called while any tensor is mutated.",
+    "state_access": "index._module and index._endpoint (genuine owned runtime/state; read-only precedent observe_connected_serving.py:293-306); no new factory/state API, no global/helper rebinding. index._check_current() before and after the falsifier phase.",
+    "trees": "built exactly like encoder_facts: params = dict(model.named_parameters()) (448, 444 non-MLP using the ORIGINAL runtime MLP); frozen444 = {n:p for non-MLP}; full448 = model.state_dict(). Original = index._module.fingerprint (serial); proposed = proposed_source.module._fingerprint_cuda_dict.",
+    "steps": [
+      "B1 baseline: original and proposed digests of frozen444 and full448; all four == each other and == endpoint encoder_identity frozen_sha256 / endpoint vision_sha256 (real CUDA + NumPy). Precedes every mutation and every timing.",
+      "B2 edge leaves (synthetic CUDA tree, deterministic content, no RNG): empty (0,3), scalar 0-dim, original==proposed.",
+      "B3 near-limit dense transpose: arange (6144,4096).t() = exactly 100663296 bytes (== the 96MiB limit): original==proposed digest. NO /proc sampler and NO invented RSS threshold (CombinedAuthority only permits the maps read). Evidence = the UNCHANGED guard()/evaluator.resources cumulative whole-unit process_peak_rss_kib and peak_cuda_allocated_bytes (never reset) captured at the phase boundaries before/after; explicitly NOT attributable to the isolated transient peak; the unchanged 8GiB/CUDA<10GB caps remain the only limits.",
+      "B4 over-limit: 100663300-byte CUDA tensor -> the proposed helper must raise ValueError with the EXACT genuine message CUDA fingerprint snapshot exceeds byte budget (checked immediately after the catch and again in validate_fresh_receipt; any other ValueError, e.g. a Source/check failure, is rejected). Pre-copy order is established by the exactly authenticated helper source, not by an RSS measurement. Same whole-unit peaks recorded; original digest still computed.",
+      "B5 retained-error lifecycle: {a_cuda valid, b_cpu CPU tensor}; exception must be ValueError with the EXACT message CUDA fingerprint requires CUDA tensor leaves (so an unrelated Source/check error is never misreported as the lifetime witness); exception kept alive; worker threads back to baseline; weakrefs to every leaf dead; a following valid call gives the exact original digest.",
+      "B6 MLP byte flip (root review): smallest 1-D original.MLP leaf (fc2.bias on the real model), T.data.view(uint8)[0] ^= 1; leaf _version asserted unchanged; frozen444 original==proposed==baseline (MLP is excluded from frozen444); full448 original==proposed AND differs from baseline; restored immediately and again in finally.",
+      "B7 unchanged-version byte mutation: smallest frozen 1-D leaf T, three successive distinct .data uint8 flips; _version unchanged each time; every step original==proposed; frozen444 and full448 digests pairwise distinct from baseline and each other (kills any stale/cached tensor fact).",
+      "B8 aliases/strided/nonzero offset on a 2-D frozen leaf W: a_t = W.data.t() (non-contiguous), a_off = W.data.reshape(-1)[3:] (true view, storage_offset+3), a_str = W.data[1:, ::2]; geometry asserted natively (not assumed); alias-tree original==proposed; then DIRECT indexed mutation a_str[0,0] += 1.0 on the strided view (no reshape copy), W bytes asserted changed vs the saved clone, W._version unchanged, genuine trees and alias tree change, original==proposed.",
+      "B9 restore in finally (MLP leaf, T, W): recovered ORIGINAL and proposed digests == baseline == identity exactly, leaf byte equality and _version equality asserted.",
+      "B10 timings (engineering evidence only): unit = frozen444+full448; 3 pairs alternating original-first, proposed-first, original-first; bare calls timed between torch.cuda.synchronize; Source checks outside the clock; digests rechecked every repetition; per-pair ratio and median recorded. NOT product confidence, NOT p99, speed_go always False.",
+      "B11 teardown: every tensor/tree/alias reference dropped, thread count == baseline; owner then closes with the genuine release/weakref predicates."
+    ],
+    "forward_calls": 0,
+    "later_requirement": "full installed public B1/B32 parity and the original 10000 paired p99 criterion remain mandatory for any speed claim."
+  },
+  "receipt": {
+    "schema": "connected-fresh-sha-falsifier-diagnostic-v1",
+    "published_by": "unchanged context[helper].publish(output/receipt.json)",
+    "phases": "diagnostic.phases = {admission, falsifier, timings}; exit phase = the unchanged original fields whole_process_seconds, resources, combined_native, input_guards, full_uncached_exit_pass (exit/publication seconds = whole - admission - body).",
+    "flags_false": [
+      "quality_read",
+      "quality_eligible",
+      "qualification_eligible",
+      "state_reuse_eligible",
+      "optimization_eligible",
+      "product_go",
+      "speed_go"
+    ],
+    "failure": "any predicate failure raises; no receipt; no speed claim. validate_fresh_receipt(record, authority, authority_fact, proposal, proposal_fact) re-checks structure, hashes and arithmetic.",
+    "not_provided": "an accept_unit analog: unit/footer/cgroup/lock terminal acceptance remains root-owned."
+  },
+  "tests": {
+    "file": "scripts/test_connected_fresh_sha.py",
+    "imports": "stdlib only; fake torch/tensors with real hashlib; no Torch/NumPy/native/GPU/SSH",
+    "cover": [
+      "seam inverse passes on repo files; sha pin of original; each seam new-text change, duplicate, missing, and non-seam statement changes are rejected; driver and original qualifier survive unchanged requests.Source authentication",
+      "proposal exact keys, FILE SHA mismatch, stale closure (ledger/bridge literal), changed fingerprint AST, wrong driver/test path rejected",
+      "measure body with byte-faithful stdlib fake torch: pass; stale-version-cache, ignore-offset/stride, leaked-tensor, retained-locals, unjoined-worker, wrong over-limit message and wrong CPU-leaf message proposed mutants rejected; data-shares-version, slice-copies and broken-restore torch mutants rejected; mid-mutation failure restores every byte and version",
+      "validate_fresh_receipt acceptance and mutation rejections",
+      "one poisoned-pyc regression for Source.load"
+    ],
+    "gate": "narrow while iterating; ONE final serial source gate <=120s / AS 1GiB after narrow green; no overlapping suite."
+  },
+  "open_notes": [
+    "No guessed pins: proposed FILE shas, commit and root arrive only via the proposal FILE.",
+    "Native stage must run on the root slot; this worker runs none."
+  ]
+}

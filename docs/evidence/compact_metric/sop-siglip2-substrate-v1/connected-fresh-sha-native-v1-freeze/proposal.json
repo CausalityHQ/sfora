@@ -1,0 +1,26 @@
+{
+  "commit": "3f82a0a7007ac3932844d18ed9a20c3971248fbc",
+  "driver": {
+    "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/qualify_connected_fresh_sha.py",
+    "sha256": "fb8209554887c8a5cfc8a269a30c8dad619ec1cf40373a7c348fb98186f794ea"
+  },
+  "proposed": {
+    "bridge": {
+      "path": "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/connected_compact_serving.py",
+      "sha256": "3d395a8fd7779bdae9145a3195785fc428b74fb53a8c0e2e47237fd8b22ed3ce"
+    },
+    "ledger": {
+      "path": "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/_connected_inference_authority.py",
+      "sha256": "d1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b"
+    },
+    "runtime": {
+      "path": "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/connected_inference.py",
+      "sha256": "ea73430a5cc1a7f7ee769dbd37d27dc9379b03896bcab7e9ae3a7b771a42b9eb"
+    }
+  },
+  "schema": "connected-fresh-sha-proposal-v1",
+  "test": {
+    "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/test_connected_fresh_sha.py",
+    "sha256": "32017c4c1ad6283cc62c8165124463d6bb151f9f10f3adb3bdfe439c2c65bf37"
+  }
+}

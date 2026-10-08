@@ -1,0 +1,7 @@
+{
+  "source_gate": "14 PASS; original exit0; 8.51s wall; 37840KiB RSS; swaps0",
+  "inverse": "Exact eight seams restore original run AST; all other statements preserved",
+  "remote_staging": "Original SCP and SSH hash checks exit0; all six hashes match local",
+  "native": "UNRUN",
+  "engineering_only": true
+}
