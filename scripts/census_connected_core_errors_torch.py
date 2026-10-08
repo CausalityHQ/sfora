@@ -29,9 +29,9 @@ Engineering-only caps: 900s total, the last 120s reserved for the uncached exit
 (no metric work starts inside it), 8GiB cgroup, zero swap, CUDA hidden, both
 inherited lifetime locks. Root owns the single native job, log, exit status and
 terminal cgroup evidence. No retry, no fallback. The original publish writes into a private staging directory; the
-exclusive link promoting it is the commit point, bracketed by the final whole-process cap, and a failure after it
-removes only that staged inode+content (never a foreign replacement). The published terminal still needs the
-parent's exit/lock receipt.
+exclusive link promoting it is the commit point, bracketed by the final whole-process cap, and any failure after it
+(including the staging cleanup) removes only that staged inode+content (never a foreign replacement). The
+published terminal still needs the parent's exit/lock receipt.
 """
 if not __debug__:
     raise SystemExit('optimized mode forbidden; original assertions required')
@@ -646,23 +646,27 @@ def owned_output(output):
 def publish_census(census, output, payload, guards, budget):
     """Original publish into a private staging directory, then an exclusive-link promotion bracketed by the final cap.
 
-    The owner is captured from the staged file before promotion, so a failure afterwards removes the final output
-    only while it is still that very inode and content; a foreign replacement is never adopted or removed."""
-    with tempfile.TemporaryDirectory(dir=Path(output).parent) as staging:
-        staged = str(Path(staging) / Path(output).name)
-        census.publish(staged, payload, guards)
-        owner = owned_output(staged)
-        budget.check(reserve=False)
-        try:
-            os.link(staged, output, follow_symlinks=False)
+    The owner is captured from the staged file before promotion. Any failure after the link returned, including the
+    staging cleanup itself, removes the final output only while it is still that very inode and content; a foreign
+    replacement is never adopted or removed, and nothing is removed when nothing was promoted."""
+    owner, promoted = None, False
+    try:
+        with tempfile.TemporaryDirectory(dir=Path(output).parent) as staging:
+            staged = str(Path(staging) / Path(output).name)
+            census.publish(staged, payload, guards)
+            owner = owned_output(staged)
             budget.check(reserve=False)
-        except BaseException as error:
+            os.link(staged, output, follow_symlinks=False)
+            promoted = True
+            budget.check(reserve=False)
+    except BaseException as error:
+        if promoted:
             try:
                 require(owned_output(output) == owner, 'output is not the staged file; foreign file left in place')
                 os.unlink(output)
             except BaseException as failure:
                 error.add_note('output removal: ' + repr(failure))
-            raise
+        raise
 
 
 def finalize(args, ctx):

@@ -7,6 +7,7 @@ only the root's single native job can falsify that.
 """
 import ast
 import builtins
+import contextlib
 import copy
 import dis
 import hashlib
@@ -896,7 +897,7 @@ class PublishTests(Base):
     PAYLOAD = {'schema': 'x', 'full_uncached_exit_pass': True}
     RAW = (json.dumps(PAYLOAD, sort_keys=True, indent=2, allow_nan=False) + '\n').encode()
 
-    def attempt(self, before_link=None, after_link=None, cross_before=False, staged=None):
+    def attempt(self, before_link=None, after_link=None, cross_before=False, staged=None, cleanup_error=None):
         _, _, _, owned, modules = self.helpers()
         census = modules['census']
         self.m.close_sources(owned)
@@ -916,11 +917,18 @@ class PublishTests(Base):
                 return 0.
             after_link(directory, output)
             return 901.
+        real_cleanup = tempfile.TemporaryDirectory.cleanup
+
+        def failing_cleanup(staging):
+            real_cleanup(staging)
+            raise cleanup_error
         error = None
-        try:
-            self.m.publish_census(census, str(output), self.PAYLOAD, {}, self.m.Budget(started=0., clock=clock))
-        except Exception as failure:
-            error = failure
+        with patch.object(tempfile.TemporaryDirectory, 'cleanup', failing_cleanup) if cleanup_error is not None \
+                else contextlib.nullcontext():
+            try:
+                self.m.publish_census(census, str(output), self.PAYLOAD, {}, self.m.Budget(started=0., clock=clock))
+            except Exception as failure:
+                error = failure
         return directory, output, error
 
     def test_success_leaves_exactly_the_original_publication_and_no_staging(self):
@@ -987,11 +995,36 @@ class PublishTests(Base):
             self.assertIsInstance(error, FileExistsError)
             self.assertEqual(output.read_bytes(), b'foreign')
             self.assertEqual([p.name for p in directory.iterdir()], ['census.json'])
-            self.assertTrue(any('foreign' in note for note in error.__notes__), error.__notes__)
+            self.assertEqual(getattr(error, '__notes__', []), [], 'nothing was promoted, so nothing is removed')
         with self.subTest('owned output vanished'):
             directory, output, error = self.attempt(after_link=lambda d, o: o.unlink())
             self.assertIsInstance(error, ValueError)
             self.assertEqual(list(directory.iterdir()), [])
+
+    def test_staging_cleanup_failure_after_promotion_still_removes_only_the_owned_output(self):
+        clean = OSError('staging cleanup failed')
+        directory, output, error = self.attempt(cleanup_error=clean)
+        self.assertIs(error, clean)
+        self.assertEqual(list(directory.iterdir()), [])
+        crossed = OSError('cleanup after cap crossing')
+        directory, output, error = self.attempt(after_link=lambda d, o: None, cleanup_error=crossed)
+        self.assertIs(error, crossed)
+        self.assertIsInstance(error.__context__, ValueError)
+        self.assertEqual(list(directory.iterdir()), [])
+
+        def replace(directory, output):
+            foreign = directory / 'foreign.tmp'
+            foreign.write_bytes(b'foreign')
+            os.replace(foreign, output)
+        foreign_error = OSError('cleanup with foreign output')
+        directory, output, error = self.attempt(after_link=replace, cleanup_error=foreign_error)
+        self.assertIs(error, foreign_error)
+        self.assertEqual((output.read_bytes(), [p.name for p in directory.iterdir()]), (b'foreign', ['census.json']))
+        self.assertTrue(any('foreign' in note for note in error.__notes__), error.__notes__)
+        before = OSError('cleanup after a failure before promotion')
+        directory, output, error = self.attempt(cross_before=True, cleanup_error=before)
+        self.assertIs(error, before)
+        self.assertEqual(list(directory.iterdir()), [])
 
     def test_run_publishes_only_through_the_owned_output_guard(self):
         run = next(n for n in ast.parse(DRIVER.read_text()).body if getattr(n, 'name', None) == 'run')
