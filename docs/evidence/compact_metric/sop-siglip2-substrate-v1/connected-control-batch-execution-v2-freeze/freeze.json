@@ -1,0 +1,16 @@
+{
+  "files": {
+    "authority.json": "24e7312e91fea6ec04204bf0b4a83abcaa0423d1ced1613e2c3f2b25ce38989d",
+    "command.sh": "d91ed00cb21efff9027c831c59e389d3d5f5e0322bef4ed0c92cd3b87f09cc8b",
+    "execution.json": "4340657f54e8b73a73098af3a1002fc936a7169a736cfa7c13fed8544836ef17",
+    "launch.sh": "f3173af585e70f2fd0420308f878929df081d9bad7a116c35c3bbfdd5863cdc7",
+    "observe_connected_control_batch_execution.py": "d09d9c438d160154c9ebe77bffefb8883b89653ccdbd60b004363556e99dc127",
+    "test_connected_control_batch_execution.py": "b017d9c42963dddd75fc14a2fe747cb7b633f1bf7477f55e8e0587ebb36f9d03"
+  },
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-control-batch-execution-observation-v2",
+  "root": "/home/riomus/runs/sfora-connected-control-batch-execution-source-v2",
+  "schema": "connected-control-batch-execution-freeze-v1",
+  "source_commit": "d3d6f0bef2ce7553eae6815ab3984507b068f049",
+  "stop_rule": "One fixed B32/B6/B6; accepted B32/cache/pixels prerequisite, repeat exact; unchanged 700s/8GiB/noSwap/CUDA<10GB/both locks/full integrity; engineering observation only; all old FAIL and candidate KILL retained. Own bulk read consumed-page advice and bounded phase diagnostics only; root cause/effect unmeasured. Prior v1 resource FAIL immutable. Diagnostic summary remains UNACCEPTED until original normal terminal/full guards."
+}
