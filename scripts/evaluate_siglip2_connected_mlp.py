@@ -23,6 +23,7 @@ historical evaluator qualification substitutes for this evaluator's CPU gate.
 import argparse
 import copy
 from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor
 import gc
 import hashlib
 import importlib.util
@@ -295,6 +296,18 @@ def bound_file(guards, path, expected):
     require(digest.hexdigest() == expected, 'file SHA256 differs: '+str(path))
     require(guards.setdefault(str(path), expected) == expected, 'conflicting FILE authority')
     return path
+
+def batch_bound_files(guards, items):
+    """Fresh evaluator reads per occurrence; publish only after joined success."""
+    items = list(items)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(bound_file, {}, path, expected) for path, expected in items]
+        paths = [future.result() for future in futures]
+    staged = dict(guards)
+    for path, (_, expected) in zip(paths, items):
+        require(staged.setdefault(str(path), expected) == expected, 'conflicting FILE authority')
+    guards.update(staged)
+    return paths
 
 def read_json(value, guards):
     check_file(value)
@@ -639,8 +652,7 @@ def authority(args):
     final = terminal_reader(legacy['admission'],archived,native.CONCAT_TERMINAL,500,guards)
     for value in (archived['cgroup_before'],archived['cgroup_after'],final):
         helper.zero_events(value)
-    for p,h in archived['input_guards'].items():
-        bound_file(guards,p,h)
+    batch_bound_files(guards,archived['input_guards'].items())
     for name,h in archived['files'].items():
         bound_file(guards,Path(archived['output'])/name,h)
     merge_guards(guards,t['guards'])
@@ -1198,8 +1210,7 @@ def accept_unit(context,unit,phase,arm=None,seed=None,stage=None,panel=None):
         context['helper'].zero_events(value)
     require(unit['invocation_id'] not in legacy['invocations'], 'reused terminal invocation')
     legacy['invocations'].add(unit['invocation_id'])
-    for p,h in record['input_guards'].items():
-        bound_file(context['guards'],p,h)
+    batch_bound_files(context['guards'],record['input_guards'].items())
     for n,h in record['files'].items():
         bound_file(context['guards'],Path(record['output'])/n,h)
     require(all(record['input_guards'].get(p) == h for p,h in context['common_guards'].items()),

@@ -235,6 +235,7 @@ def repin_contract(e, trainer):
 def source_contract(e, trainer, reference):
     tree = ast.parse(DRIVER.read_text())
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    admitted_base = ast.parse(evaluator_admission_batch_inverse(DRIVER.read_bytes()))
     source = lambda name: ast.unparse(functions[name])
     actual = ast.parse((HERE / 'train_siglip2_connected_mlp.py').read_text())
     api = {n.name for n in actual.body if isinstance(n, ast.FunctionDef)}
@@ -270,7 +271,8 @@ def source_contract(e, trainer, reference):
                  'batch_sizes', 'resources', 'accept_unit'):
         prior = next(n for n in ast.parse((HERE / 'evaluate_siglip2_identity_diversity.py').read_text()).body
                      if isinstance(n, ast.FunctionDef) and n.name == name)
-        current = original_policy if name == 'policy' else functions[name]
+        current = original_policy if name == 'policy' else next(n for n in admitted_base.body
+            if isinstance(n,ast.FunctionDef) and n.name == name) if name == 'accept_unit' else functions[name]
         assert ast.dump(current, include_attributes=False) == ast.dump(prior, include_attributes=False), name
     assert source('run').index('authority(args)') < source('run').index('native_start(context)')
     admission = source('authority')
@@ -464,10 +466,221 @@ def current_bytes(e):
         rejects(lambda:e.bound_file({},path,digest), 'canonical')
 
 
+# BEGIN FRESH ADMISSION FALSIFIER
+
+def evaluator_admission_batch_inverse(raw):
+    """Undo only the added helper/import and the two named admission loops."""
+    start = raw.index(b'def batch_bound_files(guards, items):\n')
+    end = raw.index(b'def read_json(value, guards):\n',start)
+    assert hashlib.sha256(raw[start:end]).hexdigest() == \
+        '9634b13bb6ae039ae15cb155943f20fc3c50e1f4d56b852a9263ac815b135c9b', 'admission helper differs'
+    raw = raw[:start]+raw[end:]
+    edits = (
+        (b'from concurrent.futures import ThreadPoolExecutor\n',b''),
+        (b"    batch_bound_files(guards,archived['input_guards'].items())\n",
+         b"    for p,h in archived['input_guards'].items():\n        bound_file(guards,p,h)\n"),
+        (b"    batch_bound_files(context['guards'],record['input_guards'].items())\n",
+         b"    for p,h in record['input_guards'].items():\n        bound_file(context['guards'],p,h)\n"))
+    for new,old in edits:
+        assert raw.count(new) == 1, 'named admission edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == \
+        '919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69', 'admission inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == \
+        '65be54726dcc34df31c15bab3164f695fc5facd26d8587169687064622ccc3aa', 'admission inverse AST differs'
+    return raw
+
+
+def admission_batch_test_inverse(raw):
+    start = raw.index(b'# BEGIN FRESH ADMISSION FALSIFIER\n')
+    end = raw.index(b'# BEGIN ORIGINAL OWNER FALSIFIER\n',start)
+    raw = raw[:start]+raw[end:]
+    edits = (
+        (b'    raw = evaluator_admission_batch_inverse(raw)\n',b''),
+        (b'    raw = admission_batch_test_inverse(raw)\n',b''),
+        (b'    actual_admission_scan_falsifier()\n',b''),
+        (b'    admitted_base = ast.parse(evaluator_admission_batch_inverse(DRIVER.read_bytes()))\n',b''),
+        (b"        current = original_policy if name == 'policy' else next(n for n in admitted_base.body\n"
+         b"            if isinstance(n,ast.FunctionDef) and n.name == name) if name == 'accept_unit' else functions[name]\n",
+         b"        current = original_policy if name == 'policy' else functions[name]\n"),
+        (b"    restored_raw = evaluator_admission_batch_inverse(DRIVER.read_bytes())\n",b''),
+        (b'    for node in ast.parse(restored_raw).body:\n',b'    for node in ast.parse(DRIVER.read_bytes()).body:\n'),
+        (b'            assert ast.get_source_segment(restored_raw.decode(),node) == actual_sources[node.name]\n',
+         b'            assert ast.get_source_segment(DRIVER.read_text(),node) == actual_sources[node.name]\n'),
+        (b"    current_reader = api({'check_receipt','accept_unit','batch_bound_files'},read_json=read_fixture,bound_file=bound_fixture)\n",
+         b"    current_reader = api({'check_receipt','accept_unit'},read_json=read_fixture,bound_file=bound_fixture)\n"))
+    for new,old in edits:
+        assert raw.count(new) == 1, 'named admission test edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == \
+        'df1e233279e04bacd64b6bbd47361d43d350740fd496434e79de7b53b9f66ccb', 'admission test inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == \
+        '4c808537549df4a0cdd76a9785e1b234b4d90c1377b44db449ebfdc491b3d7e7', 'admission test inverse AST differs'
+    return raw
+
+
+def actual_admission_scan_falsifier():
+    """Catch serial scans, skipped occurrences and failed owner publication; real reads."""
+    import os
+    import threading
+    from collections import Counter
+    from contextlib import contextmanager
+    from unittest.mock import patch
+
+    frozen = EVIDENCE/'connected-mlp-evaluation-full-cpu-v1-freeze'/DRIVER.name
+    base = frozen.read_bytes()
+    assert hashlib.sha256(base).hexdigest() == '919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69'
+    original, candidate = ast.parse(base), ast.parse(DRIVER.read_bytes())
+    function = lambda tree, name: next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name == name)
+    helpers = [n for n in candidate.body if isinstance(n,(ast.Import,ast.ImportFrom)) or
+        isinstance(n,ast.FunctionDef) and n.name in ('require','sha','bound_file','batch_bound_files')]
+    namespace = {}
+    exec(compile(ast.Module(body=helpers,type_ignores=[]),str(DRIVER),'exec'),namespace)
+    real_bound, real_open = namespace['bound_file'], Path.open
+
+    def run(statement, items, owner, overlap=False):
+        lock, barrier = threading.Lock(), threading.Barrier(2,timeout=1.)
+        calls, reads, threads, edges = [], [], set(), ['before']
+        active = peak = 0
+        overlapped = False
+
+        def bound(guards, path, digest):
+            with lock:
+                calls.append((str(path),digest))
+                threads.add(threading.current_thread())
+            if threading.current_thread() is not threading.main_thread():
+                assert guards == {} and guards is not owner, 'worker shared owner guards'
+            return real_bound(guards,path,digest)
+
+        @contextmanager
+        def opened(path, *args, **kwargs):
+            nonlocal active, peak, overlapped
+            with real_open(path,*args,**kwargs) as stream:
+                assert args == ('rb',) and not kwargs
+                with lock:
+                    reads.append(str(path)); edges.append('read')
+                    active += 1; peak = max(peak,active)
+                    waits = overlap and len(reads) <= 2
+                try:
+                    if waits:
+                        try:
+                            barrier.wait(); overlapped = True
+                        except threading.BrokenBarrierError:
+                            pass  # Serial RED leaves the barrier after one bounded wait.
+                    yield stream
+                finally:
+                    with lock:
+                        active -= 1
+
+        code = compile(ast.Module(body=[statement],type_ignores=[]),str(DRIVER),'exec')
+        # Real JSON keys are unique; duplicates exercise the helper per occurrence.
+        inputs = SimpleNamespace(items=lambda:iter(items))
+        error = None
+        # Instrument only this extracted namespace, never a loaded evaluator/trainer.
+        with patch.dict(namespace,bound_file=bound), patch.object(Path,'open',opened):
+            try:
+                exec(code,{**namespace,'archived':{'input_guards':inputs},'guards':owner,
+                    'record':{'input_guards':inputs},'context':{'guards':owner}})
+                edges.append('after')
+            except (ValueError,OSError) as exc:
+                error = str(exc)
+        assert active == 0 and peak <= 4
+        assert all(t is threading.current_thread() or not t.is_alive() for t in threads), 'workers not joined'
+        assert edges == ['before'] + ['read']*len(reads) + ([] if error else ['after'])
+        return SimpleNamespace(error=error,calls=calls,reads=reads,overlapped=overlapped,peak=peak)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        files = [root/f'member{i}' for i in range(5)]
+        for i,path in enumerate(files):
+            path.write_bytes(b'member %d\n' % i)
+        items = [(str(p),hashlib.sha256(p.read_bytes()).hexdigest()) for p in files]
+        repeated = items + [items[0],items[2]]
+        initial = dict([items[3],items[0]])
+        for name, source in (('authority','archived'),('accept_unit','record')):
+            body = function(original,name).body
+            index = next(i for i,n in enumerate(body) if isinstance(n,ast.For) and
+                ast.unparse(n.iter) == source + "['input_guards'].items()")
+            serial, batched = body[index], function(candidate,name).body[index]
+            serial_owner, owner = dict(initial), dict(initial)
+            red = run(serial,repeated,serial_owner)
+            green = run(batched,repeated,owner,overlap=True)
+            assert red.error is green.error is None
+            assert red.calls == repeated and red.reads == [p for p,_ in repeated]
+            assert red.peak == 1 and not red.overlapped
+            assert green.overlapped and 2 <= green.peak <= 4, name + ' admission scan still serial'
+            assert Counter(green.calls) == Counter(repeated)
+            assert Counter(green.reads) == Counter(p for p,_ in repeated), 'fresh occurrence missing'
+            assert list(owner.items()) == list(serial_owner.items()) == list({**initial,**dict(items)}.items())
+            print('PASS actual ' + name + ' loop: old overlap1 / new overlap2..4, exact fresh occurrences')
+
+            def failure(entries, expected, guards=initial, overlap=False):
+                owner = dict(guards)
+                result = run(batched,entries,owner,overlap)
+                assert result.error and expected in result.error, (expected,result.error)
+                assert list(owner.items()) == list(guards.items()), 'failed scan published owner guards'
+                assert Counter(result.calls) == Counter(entries), 'failed scan did not join every occurrence'
+                return result
+
+            victim = files[0]
+            stamp, content = victim.stat(), victim.read_bytes()
+            victim.write_bytes(b'changed!\n')
+            os.utime(victim,ns=(stamp.st_atime_ns,stamp.st_mtime_ns))
+            assert (victim.stat().st_size,victim.stat().st_mtime_ns) == (stamp.st_size,stamp.st_mtime_ns)
+            mutated = failure(repeated,'SHA256 differs',overlap=True)
+            assert mutated.overlapped and Counter(mutated.reads) == Counter(p for p,_ in repeated)
+            victim.write_bytes(content)
+            link = root/'link'
+            link.symlink_to(files[0])
+            for path in (str(link),str(root),str(root/'missing'),str(root/'..'/root.name/files[0].name)):
+                failure([items[1],(path,items[0][1])],'canonical FILE/SHA')
+            link.unlink()
+            for malformed in (('relative',items[0][1]),(items[0][0],'A'*64),(items[0][0],None)):
+                failure([items[1],malformed],'canonical FILE/SHA')
+            failure([items[1],(items[0][0],'0'*64)],'SHA256 differs')
+            failure([items[0],(items[0][0],'0'*64)],'SHA256 differs')
+            conflict = {items[0][0]:'0'*64}
+            conflicted = failure(repeated,'conflicting FILE authority',conflict)
+            assert Counter(conflicted.reads) == Counter(p for p,_ in repeated)
+            with patch.object(os,'posix_fadvise',side_effect=OSError('injected read failure')):
+                failure(repeated,'injected read failure')
+            # Failed candidate bulk publication is atomic; original publishes its prefix.
+            faults = [items[0],(items[1][0],'0'*64)]
+            prefix = {}
+            assert 'SHA256 differs' in run(serial,faults,prefix).error
+            assert list(prefix.items()) == [items[0]]
+            failure(faults,'SHA256 differs',{})
+            # All fresh results precede ordered conflict merging: a later byte error
+            # wins over an earlier owner conflict, but both paths still reject.
+            assert 'conflicting FILE authority' in run(serial,faults,dict(conflict)).error
+            failure(faults,'SHA256 differs',conflict)
+    assert not any(n.split('.')[0] in {'torch','numpy','PIL','sfora','transformers'} for n in sys.modules)
+    nodes = [n for n in candidate.body if isinstance(n,ast.Assign) or
+        isinstance(n,ast.FunctionDef) and n.name == 'check_receipt']
+    exec(compile(ast.Module(body=nodes,type_ignores=[]),str(DRIVER),'exec'),namespace)
+    first_score = json.loads((EVIDENCE/'connected-mlp-evaluation-first-selection-score-v2/receipt.json').read_bytes())
+    code = {n:hashlib.sha256((HERE/n).read_bytes()).hexdigest() for n in namespace['FILES']}
+    # Exact historical quality remains owned by source-v5. New source/code cannot
+    # pass current check_receipt; this bounded candidate deliberately cannot fix it.
+    for execution, source_code in (('e'*64,first_score['source_code']),
+            (first_score['execution_sha256'],code)):
+        context = {'args':SimpleNamespace(execution_sha256=execution),'code':source_code,
+            'training_context':{'source':first_score['source']}}
+        rejects(lambda:namespace['check_receipt'](context,first_score,'score',stage='first',panel='selection'),
+            'complete source/resource evaluator receipt')
+    evaluator_admission_batch_inverse(DRIVER.read_bytes())
+    print('PASS actual admission scans: mutation/symlink/roles/conflict/duplicates/errors, atomic owner and joined failures')
+    print('PASS historical first-selection source/execution rejection retained; candidate full-stage requalification blocked')
+
+
+# END FRESH ADMISSION FALSIFIER
+
+
 # BEGIN ORIGINAL OWNER FALSIFIER
 
 def evaluator_original_owner_inverse(raw):
     """Remove only the finite owner composition and restore all current base bytes."""
+    raw = evaluator_admission_batch_inverse(raw)
     start = raw.index(b'# BEGIN ORIGINAL EXPORT OWNER\n')
     end = raw.index(b'def check_endpoint(endpoint):', start)
     assert hashlib.sha256(raw[start:end]).hexdigest() == '53cba7ca5e95ac84bcf09a38798df64c04976f6659a9a07b639cc55553fff38b', 'original owner definitions differ'
@@ -516,9 +729,10 @@ def original_owner_contract(e):
     cpu = records[launch['selected_cpu']['receipt']['path']]
     exported = records[launch['exports']['control-179061']['receipt']['path']]
     actual_sources = {n.name: ast.get_source_segment(source.read_text(), n) for n in original_tree.body if isinstance(n,ast.FunctionDef)}
-    for node in ast.parse(DRIVER.read_bytes()).body:
+    restored_raw = evaluator_admission_batch_inverse(DRIVER.read_bytes())
+    for node in ast.parse(restored_raw).body:
         if isinstance(node,ast.FunctionDef) and node.name in ('check_receipt','accept_unit'):
-            assert ast.get_source_segment(DRIVER.read_text(),node) == actual_sources[node.name]
+            assert ast.get_source_segment(restored_raw.decode(),node) == actual_sources[node.name]
 
     def api(names, **seams):
         namespace = {**vars(e), **seams}
@@ -595,7 +809,7 @@ def original_owner_contract(e):
     sys.modules[original.__name__] = original
     assert original.check_receipt.__globals__ is original.accept_unit.__globals__ is vars(original)
     guard_api = api({'guard_helpers'},bound_file=bound_fixture)
-    current_reader = api({'check_receipt','accept_unit'},read_json=read_fixture,bound_file=bound_fixture)
+    current_reader = api({'check_receipt','accept_unit','batch_bound_files'},read_json=read_fixture,bound_file=bound_fixture)
     production = api({'load_original_owner','original_owner_context','check_original_owner','admit_export'},
         read_json=read_fixture,closure=pinned_closure,load_authenticated=lambda *args:original,
         guard_helpers=guard_api.guard_helpers,accept_unit=current_reader.accept_unit)
@@ -822,6 +1036,7 @@ def original_owner_contract(e):
 
 def original_owner_test_inverse():
     raw = Path(__file__).read_bytes()
+    raw = admission_batch_test_inverse(raw)
     start = raw.index(b'# BEGIN ORIGINAL OWNER FALSIFIER\n')
     end = raw.index(b'\n\ndef main():\n',start)+2
     raw = raw[:start]+raw[end:]
@@ -839,6 +1054,7 @@ def main():
     parser.add_argument('--source-only', action='store_true', required=True)
     parser.add_argument('--narrow', action='store_true')
     args = parser.parse_args()
+    actual_admission_scan_falsifier()
     e = module('_connected_eval_source_test', DRIVER)
     trainer = module('_connected_eval_trainer_api', HERE/'train_siglip2_connected_mlp.py')
     original_owner_contract(e)
