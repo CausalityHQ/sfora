@@ -1,0 +1,57 @@
+{
+  "GPU_mechanics_qualified": false,
+  "actual_two_view_probe_gradients": [
+    {
+      "ranking_gradient_norms": {
+        "A": 1.0598633180570676,
+        "C": 0.12017680468932608,
+        "head.probe": 0.00011159057959295893
+      },
+      "total_gradient_norms": {
+        "A": 2.431402491194188,
+        "C": 0.2720132855027396,
+        "head.probe": 0.0007772581606050058
+      },
+      "view": "canonical"
+    },
+    {
+      "ranking_gradient_norms": {
+        "A": 1.346849363915261,
+        "C": 0.14564654121630774,
+        "head.probe": 5.673803891721963e-05
+      },
+      "total_gradient_norms": {
+        "A": 6.419005366507578,
+        "C": 0.6724156513320164,
+        "head.probe": 0.000759831213158649
+      },
+      "view": "augmented"
+    }
+  ],
+  "complete_roles_and_changed_bytes": true,
+  "core_seconds": 50.24740232498152,
+  "cost_quality_fit_state_reuse_qualified": false,
+  "cuda_hidden_peak_bytes": 0,
+  "decision": "PASS_ENGINEERING_ONLY_ADMITS_FRESH_BOTH_ARM_GPU_MECHANICS",
+  "full_uncached_exit_and_original_normal_terminal": true,
+  "host_peak_bytes": 6780432384,
+  "python_wall_seconds": 413.11352620998514,
+  "schema": "connected-probe-cpu-parent-verification-v1",
+  "strict_updated_reload_and_independent_bundle_parity": true,
+  "swap_and_events_zero": true,
+  "unit": {
+    "both_locks_held": true,
+    "invocation_id": "3878bdb9b5814e97917b601bc3165c6f",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-probe-train-source-v2/cpu-v2-original.log",
+      "sha256": "8419e674475be126ed3f73fea352810e1ec6e986b71fad6466dcfdd2996a7c46"
+    },
+    "native_peak_rss_kib": 6058996,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-probe-cpu-v2/receipt.json",
+      "sha256": "e5ca67fc169dea5dc5054ad37d522131cbfce0e7b93f026766ce4e3b1c70c8aa"
+    },
+    "service_seconds": 415.363,
+    "unit": "sfora-connected-probe-cpu-v2"
+  }
+}
