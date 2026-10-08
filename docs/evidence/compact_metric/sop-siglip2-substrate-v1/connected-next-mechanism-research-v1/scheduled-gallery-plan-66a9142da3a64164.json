@@ -1,0 +1,344 @@
+{
+  "id": "66a9142da3a64164",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791482567,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791483767,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded quality plan, repo /home/rb/worktrees/sfora-positive-causality master8651a2fd. No edits/imports/SSH/native/jobs/children/extra consultations. SAME goal BOTH SOP/InShop quality+speed. Read docs/connected_mlp_decision_2026-10-08.md full paired KILL and gallery-source-dataflow-audit.json under connected-mlp-evaluation-full-selection-score-v1; inspect scripts/train_siglip2_connected_mlp.py and admitted historical ranking_gallery/loss_terms source pins. Existing connected candidate: fourMLP+A/C, full6355 cached initial gallery, live updated query; A/C gradients connected both paths but encoder gallery is stale. TRAIN exposed1734Q/1715G/498 products: +.346ppR1 with productCI[-.0848,+.8282], +2.300ppAP; KILL. Existing 1008vs2016/6355 coverage already KILL and must not repeat. Existing freshness diagnostic v2 failed CONTROL byteparity from batch/TF32 confound; no drift/cause established. Old Fable22de broad quality research already done; don't duplicate its coverage/noise proposal. Concrete question: is there ONE smallest causally distinct symmetric current-encoder gallery intervention that keeps objective/sampling/scopes/math unchanged and compute budget<=1.50, rather than forwarding all6355 per update? Can current batch positives/negatives be refreshed exactly with gradient while unselected bank stays old, and what estimand/counterfactual fails to isolate this? Propose one cheapest TRAIN-only pre-training falsifier using existing firstB64/micro16 and paired current/frozen source, with exact shape/memory/forward cost constraints, no tolerance/TF32/cachecontrol changes, no heldquality. Give STOP if exact matchedcontrol impossible or estimated cost insufficient; distinguish estimates from measurements. Return source-supported algorithm/necessary delta and exact prospective test, or precise HOLD, not a menu. Root alone chooses/freezes/runs; no current training or repeat arm authorized.",
+  "prompt_sha256": "5dc7f59b8f8fd40a9c2194e39ae2d24dea9e08eae981f2f1264c2684f5bc2f29",
+  "prompt_bytes": 2216,
+  "fingerprint": "3af9059eb2777faad959b79cea68c8dab39a7ccc549a72f13a32cd6f8a78c007",
+  "evidence": {
+    "git_commit": "8651a2fd9bb8ca0b5ead719a2b62b4578ca322bf",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "d555c9fd2dabe7787bf45949bb8849f0bfec4d5f18be4c0b0c1d1add4ed2df6b",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "source": "fallback"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-66a9142da3a64164.service",
+  "pid": 3274087,
+  "pgid": 3274087,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "budget_usd": null,
+      "timeout_seconds": 1200,
+      "started_at": 1791482567
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791482887,
+  "event_cursor": 49,
+  "events": [
+    {
+      "seq": 26,
+      "at": 1791482666,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 27,
+      "at": 1791482667,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 28,
+      "at": 1791482667,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 29,
+      "at": 1791482668,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 30,
+      "at": 1791482670,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 31,
+      "at": 1791482670,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 32,
+      "at": 1791482714,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 33,
+      "at": 1791482714,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 34,
+      "at": 1791482719,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 35,
+      "at": 1791482727,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 36,
+      "at": 1791482729,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 37,
+      "at": 1791482734,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 38,
+      "at": 1791482735,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 39,
+      "at": 1791482745,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 40,
+      "at": 1791482745,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 41,
+      "at": 1791482758,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 42,
+      "at": 1791482760,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 43,
+      "at": 1791482787,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 44,
+      "at": 1791482787,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 45,
+      "at": 1791482820,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 46,
+      "at": 1791482822,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 47,
+      "at": 1791482832,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 48,
+      "at": 1791482887,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 49,
+      "at": 1791482887,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 42,
+        "at": 1791482760,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 43,
+        "at": 1791482787,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 44,
+        "at": 1791482787,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 45,
+        "at": 1791482820,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 46,
+        "at": 1791482822,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 47,
+        "at": 1791482832,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 48,
+        "at": 1791482887,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 49,
+        "at": 1791482887,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**HOLD a new training arm.** A batch-only refresh is mathematically possible, but the source does not support calling it a symmetric current-encoder positive/negative gallery intervention. Exact control parity and its ≤1.50 cost remain unqualified.\n\nThe decisive source facts are:\n\n- The admitted historical trainer is SHA256 `840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8`; I verified the local [frozen copy](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:1239). Each valid anchor compares all **6354 non-self gallery rows**. Refreshing every participating positive and negative therefore requires effectively the complete bank.\n- The unchanged [schedule](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:393) selects **64 distinct products**. Refreshing the scheduled B64 refreshes negatives for other anchors, but **zero positive rows**; self is excluded.\n- Gallery A/C gradients already exist. However, inherited `raw_features` detaches encoder features. Scattering live features into `state.views` alone would still disconnect gallery encoder gradients. The [connected helper](/home/rb/worktrees/sfora-positive-causality/scripts/connected_residual_readout.py:15) is necessary.\n\n**The smallest possible delta, if subsequently admitted:** reuse the four canonical micro16 encoder outputs for scheduled rows \\(B\\), forming\n\n\\[\nX_t[j]=\n\\begin{cases}\nf_{\\theta_t}(I_j),&j\\in B\\\\\nX_0[j],&j\\notin B .\n\\end{cases}\n\\]\n\nApply the connected readout to the **entire 6355×1152 feature matrix**, retaining the original normalization, gallery order, self exclusion, complete positive sets, SmoothAP temperature, teacher targets and denominators. Rebuild the gallery readout graph per loss micro; keep the selected encoder graphs connected until their gallery contributions from both views have accumulated. Release everything before the optimizer step. Do not persist refreshed rows into the initializer bank.\n\nThat computes the exact gradient of a **mixed fresh/stale objective**. It is not the gradient of the fully current-gallery objective. Sharing canonical query outputs avoids additional encoder forwards, but retains four canonical encoder graphs rather than the existing one-micro lifetime. Repeated backward traversal and retained activations have unmeasured cost.\n\nIts estimand would be **scheduled-negative refresh plus added gallery encoder gradients**, conditional on stale positive rows. Comparing it directly with the killed candidate cannot isolate freshness alone. Likewise, updated FP32/micro16 features versus the original FP16/B32 cache confounds encoder change with execution context. The previous freshness failures establish neither drift nor causation.\n\n**One prospective falsifier: exact first-B64 source bridge, before implementing that delta.**\n\n1. Use seed179061’s original first B64 and its unchanged four micro16 groups; authenticate the original initializer, image hashes, processor, flags and source closure. Forward the **frozen initial encoder** with the existing training path: FP32, autocast disabled, existing normalization and unchanged TF32 flags.\n2. Require **byte-exact equality** with the corresponding cached canonical features. Also compare raw, unit and packed outputs using the same A/C, frozen head, means and original arithmetic. **Any difference → STOP.** Do not change flags, batching, cache controls or tolerances to obtain a pass.\n3. Only if that bridge passes, forward those identical groups with the **already accepted step128 encoder**, holding all readout tensors and execution settings fixed. Compare frozen/current feature bytes and canonical-query positive-minus-best-negative margins against full, identically ordered galleries differing only at \\(B\\). **Identical substituted gallery bytes → STOP for this witness’s freshness premise.** A difference permits interpretation only as scheduled-negative source sensitivity; it supplies no training benefit or gallery-gradient qualification.\n\nBound this observation to **64 encoder image presentations before the parity gate, 128 maximum**, canonical TRAIN only, sequential model ownership, no update, no second seed and no selection/held/official quality read.\n\n| Required FP32 tensor | Shape | Bytes |\n|---|---:|---:|\n| Complete feature bank | 6355×1152 | 29,283,840 |\n| Selected features per source | 64×1152 | 294,912 |\n| Complete gallery descriptors | 6355×128 | 3,253,760 |\n| One score micro | 16×6355 | 406,720 |\n\nKeep host ≤8GiB, CUDA allocated <10GB, zero memory events/swap and genuine final cleanup. These tensor sizes are exact arithmetic; encoder activation peaks and runtime are **unmeasured**.\n\nThe existing candidate’s worst measured core ratio is **1.059007**, leaving approximately **41.6% additional core-time allowance relative to that candidate** before reaching 1.50. Adding 64 separate gallery forwards raises encoder presentations from128 to192—**a 1.50 presentation-count ratio, not a measured runtime ratio**, with no allowance implied for extra backward work. Neither that approach nor graph retention currently has sufficient cost evidence for admission.\n\nThe historical connected and coverage KILL decisions remain unchanged. No files were edited or execution launched. This plan establishes no SOP/In-Shop quality gain or matched serving-speed win.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**HOLD a new training arm.** A batch-only refresh is mathematically possible, but the source does not support calling it a symmetric current-encoder positive/negative gallery intervention. Exact control parity and its ≤1.50 cost remain unqualified.\n\nThe decisive source facts are:\n\n- The admitted historical trainer is SHA256 `840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8`; I verified the local [frozen copy](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:1239). Each valid anchor compares all **6354 non-self gallery rows**. Refreshing every participating positive and negative therefore requires effectively the complete bank.\n- The unchanged [schedule](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:393) selects **64 distinct products**. Refreshing the scheduled B64 refreshes negatives for other anchors, but **zero positive rows**; self is excluded.\n- Gallery A/C gradients already exist. However, inherited `raw_features` detaches encoder features. Scattering live features into `state.views` alone would still disconnect gallery encoder gradients. The [connected helper](/home/rb/worktrees/sfora-positive-causality/scripts/connected_residual_readout.py:15) is necessary.\n\n**The smallest possible delta, if subsequently admitted:** reuse the four canonical micro16 encoder outputs for scheduled rows \\(B\\), forming\n\n\\[\nX_t[j]=\n\\begin{cases}\nf_{\\theta_t}(I_j),&j\\in B\\\\\nX_0[j],&j\\notin B .\n\\end{cases}\n\\]\n\nApply the connected readout to the **entire 6355×1152 feature matrix**, retaining the original normalization, gallery order, self exclusion, complete positive sets, SmoothAP temperature, teacher targets and denominators. Rebuild the gallery readout graph per loss micro; keep the selected encoder graphs connected until their gallery contributions from both views have accumulated. Release everything before the optimizer step. Do not persist refreshed rows into the initializer bank.\n\nThat computes the exact gradient of a **mixed fresh/stale objective**. It is not the gradient of the fully current-gallery objective. Sharing canonical query outputs avoids additional encoder forwards, but retains four canonical encoder graphs rather than the existing one-micro lifetime. Repeated backward traversal and retained activations have unmeasured cost.\n\nIts estimand would be **scheduled-negative refresh plus added gallery encoder gradients**, conditional on stale positive rows. Comparing it directly with the killed candidate cannot isolate freshness alone. Likewise, updated FP32/micro16 features versus the original FP16/B32 cache confounds encoder change with execution context. The previous freshness failures establish neither drift nor causation.\n\n**One prospective falsifier: exact first-B64 source bridge, before implementing that delta.**\n\n1. Use seed179061’s original first B64 and its unchanged four micro16 groups; authenticate the original initializer, image hashes, processor, flags and source closure. Forward the **frozen initial encoder** with the existing training path: FP32, autocast disabled, existing normalization and unchanged TF32 flags.\n2. Require **byte-exact equality** with the corresponding cached canonical features. Also compare raw, unit and packed outputs using the same A/C, frozen head, means and original arithmetic. **Any difference → STOP.** Do not change flags, batching, cache controls or tolerances to obtain a pass.\n3. Only if that bridge passes, forward those identical groups with the **already accepted step128 encoder**, holding all readout tensors and execution settings fixed. Compare frozen/current feature bytes and canonical-query positive-minus-best-negative margins against full, identically ordered galleries differing only at \\(B\\). **Identical substituted gallery bytes → STOP for this witness’s freshness premise.** A difference permits interpretation only as scheduled-negative source sensitivity; it supplies no training benefit or gallery-gradient qualification.\n\nBound this observation to **64 encoder image presentations before the parity gate, 128 maximum**, canonical TRAIN only, sequential model ownership, no update, no second seed and no selection/held/official quality read.\n\n| Required FP32 tensor | Shape | Bytes |\n|---|---:|---:|\n| Complete feature bank | 6355×1152 | 29,283,840 |\n| Selected features per source | 64×1152 | 294,912 |\n| Complete gallery descriptors | 6355×128 | 3,253,760 |\n| One score micro | 16×6355 | 406,720 |\n\nKeep host ≤8GiB, CUDA allocated <10GB, zero memory events/swap and genuine final cleanup. These tensor sizes are exact arithmetic; encoder activation peaks and runtime are **unmeasured**.\n\nThe existing candidate’s worst measured core ratio is **1.059007**, leaving approximately **41.6% additional core-time allowance relative to that candidate** before reaching 1.50. Adding 64 separate gallery forwards raises encoder presentations from128 to192—**a 1.50 presentation-count ratio, not a measured runtime ratio**, with no allowance implied for extra backward work. Neither that approach nor graph retention currently has sufficient cost evidence for admission.\n\nThe historical connected and coverage KILL decisions remain unchanged. No files were edited or execution launched. This plan establishes no SOP/In-Shop quality gain or matched serving-speed win."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 2216,
+  "output_bytes": 5548,
+  "elapsed_seconds": 320,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)",
+  "progress_truncated": false,
+  "result": "**HOLD a new training arm.** A batch-only refresh is mathematically possible, but the source does not support calling it a symmetric current-encoder positive/negative gallery intervention. Exact control parity and its ≤1.50 cost remain unqualified.\n\nThe decisive source facts are:\n\n- The admitted historical trainer is SHA256 `840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8`; I verified the local [frozen copy](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:1239). Each valid anchor compares all **6354 non-self gallery rows**. Refreshing every participating positive and negative therefore requires effectively the complete bank.\n- The unchanged [schedule](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:393) selects **64 distinct products**. Refreshing the scheduled B64 refreshes negatives for other anchors, but **zero positive rows**; self is excluded.\n- Gallery A/C gradients already exist. However, inherited `raw_features` detaches encoder features. Scattering live features into `state.views` alone would still disconnect gallery encoder gradients. The [connected helper](/home/rb/worktrees/sfora-positive-causality/scripts/connected_residual_readout.py:15) is necessary.\n\n**The smallest possible delta, if subsequently admitted:** reuse the four canonical micro16 encoder outputs for scheduled rows \\(B\\), forming\n\n\\[\nX_t[j]=\n\\begin{cases}\nf_{\\theta_t}(I_j),&j\\in B\\\\\nX_0[j],&j\\notin B .\n\\end{cases}\n\\]\n\nApply the connected readout to the **entire 6355×1152 feature matrix**, retaining the original normalization, gallery order, self exclusion, complete positive sets, SmoothAP temperature, teacher targets and denominators. Rebuild the gallery readout graph per loss micro; keep the selected encoder graphs connected until their gallery contributions from both views have accumulated. Release everything before the optimizer step. Do not persist refreshed rows into the initializer bank.\n\nThat computes the exact gradient of a **mixed fresh/stale objective**. It is not the gradient of the fully current-gallery objective. Sharing canonical query outputs avoids additional encoder forwards, but retains four canonical encoder graphs rather than the existing one-micro lifetime. Repeated backward traversal and retained activations have unmeasured cost.\n\nIts estimand would be **scheduled-negative refresh plus added gallery encoder gradients**, conditional on stale positive rows. Comparing it directly with the killed candidate cannot isolate freshness alone. Likewise, updated FP32/micro16 features versus the original FP16/B32 cache confounds encoder change with execution context. The previous freshness failures establish neither drift nor causation.\n\n**One prospective falsifier: exact first-B64 source bridge, before implementing that delta.**\n\n1. Use seed179061’s original first B64 and its unchanged four micro16 groups; authenticate the original initializer, image hashes, processor, flags and source closure. Forward the **frozen initial encoder** with the existing training path: FP32, autocast disabled, existing normalization and unchanged TF32 flags.\n2. Require **byte-exact equality** with the corresponding cached canonical features. Also compare raw, unit and packed outputs using the same A/C, frozen head, means and original arithmetic. **Any difference → STOP.** Do not change flags, batching, cache controls or tolerances to obtain a pass.\n3. Only if that bridge passes, forward those identical groups with the **already accepted step128 encoder**, holding all readout tensors and execution settings fixed. Compare frozen/current feature bytes and canonical-query positive-minus-best-negative margins against full, identically ordered galleries differing only at \\(B\\). **Identical substituted gallery bytes → STOP for this witness’s freshness premise.** A difference permits interpretation only as scheduled-negative source sensitivity; it supplies no training benefit or gallery-gradient qualification.\n\nBound this observation to **64 encoder image presentations before the parity gate, 128 maximum**, canonical TRAIN only, sequential model ownership, no update, no second seed and no selection/held/official quality read.\n\n| Required FP32 tensor | Shape | Bytes |\n|---|---:|---:|\n| Complete feature bank | 6355×1152 | 29,283,840 |\n| Selected features per source | 64×1152 | 294,912 |\n| Complete gallery descriptors | 6355×128 | 3,253,760 |\n| One score micro | 16×6355 | 406,720 |\n\nKeep host ≤8GiB, CUDA allocated <10GB, zero memory events/swap and genuine final cleanup. These tensor sizes are exact arithmetic; encoder activation peaks and runtime are **unmeasured**.\n\nThe existing candidate’s worst measured core ratio is **1.059007**, leaving approximately **41.6% additional core-time allowance relative to that candidate** before reaching 1.50. Adding 64 separate gallery forwards raises encoder presentations from128 to192—**a 1.50 presentation-count ratio, not a measured runtime ratio**, with no allowance implied for extra backward work. Neither that approach nor graph retention currently has sufficient cost evidence for admission.\n\nThe historical connected and coverage KILL decisions remain unchanged. No files were edited or execution launched. This plan establishes no SOP/In-Shop quality gain or matched serving-speed win.",
+  "result_truncated": false
+}
