@@ -1,0 +1,11 @@
+# Candidate admission HOLD
+
+Candidate `57887f36463a739e60176f03147561f55713f996` is not integrated or frozen. Its final source-only suite passed in 18.732 seconds, but the completed engineering review `740b95fffb9f4558` reproduced two blocking authentication gaps. The independent Opus leg `f0cf115690c34996` of original group `2a6eea6189a7460a` remains running; this is an interim repair decision, not the aggregate release verdict.
+
+The endpoint reader does not authenticate the downstream `training_context['trainer'].check_steps` function used by the connected terminal validator. Astra reports that changing that function after capture permits an otherwise invalid `rank=100` terminal. Source inspection confirms that the connected validator calls this downstream function while the new dependency guards omit its source module.
+
+The source guard adopts the current namespace as its baseline. An added builtin shadow before capture, or a changed consumed builtin binding after capture, can preserve source and function bytecode while changing a predicate. Root independently reproduced the added-shadow case in the attached runnable stdlib-only `namespace-falsifier.py`. This proves a guard/predicate bypass, not acceptance of a complete forged disk receipt.
+
+Authorize one bounded source-only correction to the same evaluator/test pair: authenticate the transitive step validator and its consumed dependencies, reject unexpected builtin shadows before capture, and bind consumed builtin values before/after/exit. Preserve the current named derivative, fixed-four fresh readers, staged state semantics, exact first-CONTINUE owner, all existing predicate/AST inverses, scientific routing, frozen helpers, and CPU500/export1500/score700 policies. Add actual seam regressions for all reported cases; no generic framework or native launch. Collect any additional original Opus finding before final release.
+
+Original full CPU500 remains FAIL. The observed authority duration remains 563.699 seconds, with 58.3444% endpoint caller samples rather than measured bulk-loop time. Native speed and full quality remain unqualified. Only reviewed corrected exact bytes and a fresh passing full CPU500 can admit the four new exports and full paired score.
