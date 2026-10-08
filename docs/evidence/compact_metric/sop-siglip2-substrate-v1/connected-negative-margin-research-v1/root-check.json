@@ -1,0 +1,20 @@
+{
+  "temperature": 0.01,
+  "prospective_margin": 0.05,
+  "sigmoid_derivative_at_five_temperatures": 0.6648056670790033,
+  "derivative_fraction_of_peak": 0.026592226683160133,
+  "historical_smooth_ap_plan": "explicit no margin in docs/inshop_smooth_ap_plan_2026-10-04.md",
+  "status": "HOLD_PLAN_CORRECTIONS",
+  "rejected_claims": [
+    "five-temperature gradient is below one percent of peak (actual 2.659%)",
+    "small aggregate SmoothAP implies FIT saturation",
+    "held core-rate quantile proves TRAIN mechanism inactive",
+    "predicted cost ratio is measured",
+    "gallery hub cannot be changed by any FIT objective"
+  ],
+  "rejected_design": [
+    "held error-rate-derived rejection threshold",
+    "local Torch or unqualified 1GiB complete checkpoint load"
+  ],
+  "next": "dual critique choose corrected TRAIN-only falsifier and fixed margin rationale; retain scientific gates"
+}

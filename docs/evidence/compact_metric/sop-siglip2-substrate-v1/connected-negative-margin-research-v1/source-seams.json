@@ -1,0 +1,48 @@
+{
+  "schema": "top1-objective-source-seams-v1",
+  "commit": "888f81f3cae2a376fa1023cad6b814813fa1bbfe",
+  "source": {
+    "scripts/train_siglip2_identity_diversity.py": {
+      "sha256": "094d97259b5f417b334186305351f02d6b76983cf88dbf4021a22d0f70a235e9",
+      "functions": {
+        "loss_denominators": {
+          "line": 1176,
+          "source_sha256": "8c1410a4d397bea74627a253d4b0df57188a4dd0fafb6ed2507ed5016b220808"
+        },
+        "smooth_ap_terms": {
+          "line": 1225,
+          "source_sha256": "1a073afbc4ff567ba62dbf182759b685cbc645fa6ca336d7bebaeee8e0b3ca6d"
+        },
+        "ranking_gallery": {
+          "line": 1239,
+          "source_sha256": "25c0a22de6f8f72c7f2edf4360ac86d79a46bd2ca30de5de03d74879496a684b"
+        },
+        "loss_terms": {
+          "line": 1268,
+          "source_sha256": "cc23add5fb55cd9c5cecd5aac08642559f2ab8728e86cdac870f74b600bd1899"
+        }
+      }
+    },
+    "scripts/train_siglip2_connected_mlp.py": {
+      "sha256": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b",
+      "functions": {
+        "update": {
+          "line": 969,
+          "source_sha256": "c88febaab232b8b2537a220e4c304147e58c2945095bd126f208ebf549dfd303"
+        },
+        "check_steps": {
+          "line": 1570,
+          "source_sha256": "d8c5a9d470120952b1456330ba39c78beed36fe454c56121ebad81d493c04c33"
+        }
+      }
+    }
+  },
+  "observations": [
+    "Current rank term averages all positive SmoothAP errors per anchor.",
+    "Denominator is 2 times full valid B64 anchors, shared across views/micros.",
+    "Live encoder update calls authenticated trainer.loss_terms; changing objective requires new source identity and CPU/mechanics qualification.",
+    "Existing step receipt binds rank and MSE separately and records genuine first-update nonzero ranking gradients."
+  ],
+  "causality": "UNPROVEN; no intervention selected",
+  "research_job": "4cbee0751bfe4e0e"
+}
