@@ -1,0 +1,14 @@
+{
+  "host_peak_bytes": 133193728,
+  "invocation_id": "d09b0537a5604d81a2fb15d1f458a797",
+  "log_sha256": "c398705db34782ff423e008c966be36bf6e36b29fae5859b149e2e29ded75eee",
+  "pass": true,
+  "process_peak_rss_kib": 138928,
+  "qualification_eligible": false,
+  "repaired_narrow_then_full": true,
+  "service_seconds": 78.813,
+  "source_execution_sha256": "046fbeb6db0e162e905492b7ae10828bf018c1ffd35359ac9c9e723172bed33f",
+  "state_reuse_eligible": false,
+  "zero_events": true,
+  "zero_swap": true
+}
