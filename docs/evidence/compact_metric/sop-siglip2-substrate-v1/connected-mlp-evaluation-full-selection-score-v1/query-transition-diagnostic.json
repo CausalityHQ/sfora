@@ -1,0 +1,43 @@
+{
+  "causal_rank_margin_unmeasured": true,
+  "per_query_ordinal_correspondence": "original frozen score perquery order; same endpoints/panel",
+  "receipt_sha256": "01ae023cb89b828c029817582cdb48204ff8177e76047ccec0773e5d90aafbfa",
+  "schema": "connected-paired-query-transition-diagnostic-v1",
+  "scope": "previously exposed TRAIN-selection, no new held images",
+  "transitions": {
+    "179061": {
+      "ap_equal": 1233,
+      "ap_negative": 120,
+      "ap_positive": 381,
+      "mean_ap_delta": 0.02386012155188821,
+      "query_count": 1734,
+      "r1_transitions": {
+        "0->0": 45,
+        "0->1": 11,
+        "1->0": 5,
+        "1->1": 1673
+      }
+    },
+    "179069": {
+      "ap_equal": 1227,
+      "ap_negative": 126,
+      "ap_positive": 381,
+      "mean_ap_delta": 0.022143658323615204,
+      "query_count": 1734,
+      "r1_transitions": {
+        "0->0": 45,
+        "0->1": 12,
+        "1->0": 6,
+        "1->1": 1671
+      }
+    },
+    "joint_r1_delta_counts": {
+      "-1,-1": 5,
+      "0,-1": 1,
+      "0,0": 1714,
+      "0,1": 3,
+      "1,0": 2,
+      "1,1": 9
+    }
+  }
+}
