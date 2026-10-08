@@ -1,0 +1,20 @@
+{
+  "schema": "connected-probe-evaluator-source-review-decision-v1",
+  "evaluator_commit": "37f46b0c40d9843045e9ca8db3106cd0292b4a00",
+  "dual_id": "6e6932c9a8cc48bf",
+  "opus": "b0ea04aaaba744bd",
+  "astra": "edfbaea85f274b5e",
+  "decision": "GO_PROSPECTIVE_SOURCE_FREEZE_ONLY",
+  "blockers": [],
+  "root_reconciliation": [
+    "Both reviewers preserve strict probe TRAINING/CPU and historical MLP contamination rejection.",
+    "Astra executed actual archived receipt procedure-binding rejection; Opus routing-test limitation remains optional coverage, not native evidence.",
+    "No repeat full source suite: original 113.692s terminal pass belongs to unchanged exact bytes.",
+    "Scope CPU-PENDING document remains historical; new freeze must point to accepted CPU UNIT.",
+    "Reject deterministic AdamW coordinate drift inference and any new norm/displacement stop threshold.",
+    "Preserve original complete quality, cost, resource, native-four and uncached exit predicates."
+  ],
+  "native_qualified": false,
+  "scientific_or_speed_claim": false,
+  "next_gate": "Collect original control061 mechanics, then fresh candidate061 mechanics and paired TRAIN; evaluator native freeze/CPU/export/score thereafter."
+}
