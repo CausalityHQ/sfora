@@ -1,0 +1,28 @@
+{
+  "actual_original_trainer_origin": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/train_siglip2_identity_diversity.py",
+  "actual_original_trainer_source_v5_sha256": "840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8",
+  "connected_source_sha256": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b",
+  "current_copy_gallery_loss_AST_equal_actual_pinned_v5": true,
+  "function_ast_sha256": {
+    "connected_update": "5f3e94b8c1d5fe5fb68368265999e30a960ff19db63c38c229032f88b5148258",
+    "inherited_loss_terms": "d9cdceea0ac03e072e6a33f86053823a786e12a3cf180e645eebe002edcffc26",
+    "inherited_ranking_gallery": "80a6ab2cf778da8b8f6c78ccb183cd877085c4b62d1ac83655aa6f86ba69e3bd"
+  },
+  "gallery_state_reads": [
+    "state['arm']",
+    "state['device']",
+    "state['teachers']",
+    "state['views']"
+  ],
+  "inherited_trainer_source_sha256": "094d97259b5f417b334186305351f02d6b76983cf88dbf4021a22d0f70a235e9",
+  "limits": [
+    "This is a training feature freshness asymmetry, not detached A/C gallery gradients.",
+    "Actual contribution to KILL, drift magnitude and refresh cost remain unmeasured.",
+    "No intervention, threshold, sampled-image selection or native gate is authorized by this audit."
+  ],
+  "next_causal_question": "Whether same-image initial versus updated encoder gallery features differ enough to change nearest margins; training-only measurement required before choosing refresh.",
+  "production_changed": false,
+  "schema": "connected-gallery-source-dataflow-audit-v1",
+  "source_binding_path": "Connected authority requires witness.TRAIN_CODE and loads this exact historical module into context.trainer; current-file hash alone is not the admission authority.",
+  "source_proven": "Connected candidate query forwards current state.model; unchanged inherited loss calls ranking_gallery on state.views canonical, not current model. Connected update does not assign state.views. Fresh state loads original qualified initializer views. Gallery A/C remain connected/current. Serving independently forwards updated current encoder for both query/gallery."
+}
