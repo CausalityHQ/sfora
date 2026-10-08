@@ -1,0 +1,333 @@
+{
+  "id": "87b751cc860b431c",
+  "provider": "fable",
+  "model": "claude-fable-5-1",
+  "effort": "",
+  "fallbacks": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791481247,
+  "timeout_seconds": 1800,
+  "deadline_at": 1791483047,
+  "budget_usd": 6,
+  "prompt_preview": "NEW bounded first-principles research question, not duplicate of completed22de3899 quality mechanisms or6243f7f905b04af6 file-I/O audit. Read-only repo /home/rb/worktrees/sfora-positive-causality master0bbe97ca; no edits/project imports/SSH/native/GPU/jobs/children/extra consultations/operator contact. Goal production image-to-top-k library BOTH SOP/InShop quality+matchedspeed; qualitycandidateKILL remains, no newtraining authority. Existing src/sfora/connected_inference.py: inference_outputs->_check_runtime+7filefreshhashes+encoder_facts; encoder_facts hashes frozen444 then full448 state plus4updated tensors; fingerprint detaches,copiesCUDA tensors toCPU,andSHA256 eachtensor. Current per-call uncached .data rejection is REQUIRED, so version counters/cached tensor digests are unacceptable. docs/evidence/.../connected-installed-control-serving-v1 original testFAIL_BODY120 before secondowner after20calls,689.348s/host6.375GB/events0/swap0/133preposthashpass. Body300 source-only worker active to obtaincomplete22callprofile; do notduplicate/changeit. Measurement has NOT attributed full latency to tensorchecks yet. Archived trained control061 installedbundle exactfp32weights448, currentlyread-only in autograd but Python.data mutable; publicinference autocastFP16 math unchanged. Existing ctypes native CUDA/CuTile scorer useful and pinslibcuda/source.\nQuestion: Is a smallest production owner using CUDA DRIVER virtual memory mappings with READ-ONLY access for all authenticated serving weights/buffers a feasible stronger immutability proof on DGX Spark GB10/aarch64 CUDA13.4, allowing pointer/shape/stride/role/owner/access checks instead of rehashing1.7GB eachcall WITHOUT permitting .data mutation or changing any forward bytes/math/source/native admission? Physically protected storage vs hashing is the proposed new mechanism; evaluate, don't assume. Prefer inspect existing code+primary NVIDIA/PyTorch/DLPack docs (cite exact links, distinguish verified support from unknown). Analyze cuMemCreate/Map/SetAccess/GetAccess, exported Torch Tensor/DLPack storage lifetime, .data inplace write vs storage replacement, CPU-coherent access/aliasing, error/context poisoning, cuDNN legitimate reads/writes, pointer reuse/foreignowner attack, Python/nativeauthority threat boundary, release/exception cleanup, resources incl externalVMM memory+Torchpeak conservativebound <10GB and host8GiB/0swap. No hidden extra allocations or native-map grants. Reject any shortcut using mutable GPUbaseline/only_version/hashcache unless equivalent mutation rejection independentlyproved. Identify minimally one cheap disposable CUDA capability falsifier and one source-only ownership/mutation falsifier BEFORE any model/fullbenchmark, with exactstoprule; rootonlylaunchesafterreview. If readonlyVMM unsuitable, ONE smallest equivalent stronger alternative or preciseimpossibility; no10unboundedprobes, no gateweakening, no timingprojectionasmeasurement. New immutable-owner schema/measurement would be prospectively frozen; historicalfailuresstayFAIL; hardrelease requires Opus+Astra critique, exact installed public parity B1/B32 then10kpairedp99CI/product-qualitygates. Return source-supported feasibility/design and critical unknowns only. Do NOT claim SOTA or actual speed. This is an independent serving-layer idea; current decoder/model/scorer/outputpacked/topk/ties/RNG/numericalflags remain exact.",
+  "prompt_sha256": "a26288279e245d0e26f209fc0bd79e6c0209fecb74ec31f6e16f87d389bfe5f1",
+  "prompt_bytes": 3582,
+  "fingerprint": "9386e3bb962d867d697622406e415e8d9b0e06102c8f2cf76900d8d8648c2ddf",
+  "evidence": {
+    "git_commit": "0bbe97ca7a46f528327210614d4f0e2094f88fca",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "b5dfa0810207794ccb6d3d156b01e41ec199efb681ae1ac69b7fd65137dab4e6",
+  "reused": false,
+  "systemd_unit": "devbox-consult-87b751cc860b431c.service",
+  "pid": 2568744,
+  "pgid": 2568744,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1",
+      "budget_usd": 6,
+      "timeout_seconds": 1799,
+      "started_at": 1791481248
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791481837,
+  "event_cursor": 85,
+  "events": [
+    {
+      "seq": 62,
+      "at": 1791481813,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 63,
+      "at": 1791481814,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 64,
+      "at": 1791481815,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 65,
+      "at": 1791481816,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 66,
+      "at": 1791481817,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 67,
+      "at": 1791481818,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 68,
+      "at": 1791481819,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 69,
+      "at": 1791481820,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 70,
+      "at": 1791481821,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 71,
+      "at": 1791481822,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 72,
+      "at": 1791481823,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 73,
+      "at": 1791481824,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 74,
+      "at": 1791481825,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 75,
+      "at": 1791481826,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 76,
+      "at": 1791481827,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 77,
+      "at": 1791481828,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 78,
+      "at": 1791481829,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 79,
+      "at": 1791481831,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 80,
+      "at": 1791481832,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 81,
+      "at": 1791481833,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 82,
+      "at": 1791481834,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 83,
+      "at": 1791481835,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 84,
+      "at": 1791481836,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 85,
+      "at": 1791481836,
+      "provider": "fable",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "fable": [
+      {
+        "seq": 78,
+        "at": 1791481829,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 79,
+        "at": 1791481831,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 80,
+        "at": 1791481832,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 81,
+        "at": 1791481833,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 82,
+        "at": 1791481834,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 83,
+        "at": 1791481835,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 84,
+        "at": 1791481836,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 85,
+        "at": 1791481836,
+        "provider": "fable",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Verdict: conditionally feasible on paper, unverified on GB10, and not a stronger *threat model* than hashing.** A read-only CUDA VMM owner can replace the two per-call 1.7 GB fingerprints with O(448) metadata checks plus one driver query, but only inside the same trust boundary the hashing already assumes. Nothing in NVIDIA's primary docs confirms that `CU_MEM_ACCESS_FLAGS_PROT_READ` is honored on any device, let alone GB10, so the capability falsifier below must run before any design work.\n\n## What the sources establish\n\n- **VMM API shape is documented.** `cuMemCreate` makes an unmapped physical handle; `cuMemMap` places it in a `cuMemAddressReserve` range; mapping grants no access until `cuMemSetAccess`; teardown order is unmap, release, address-free ([driver VA group](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__VA.html), [Programming Guide VMM chapter](https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/virtual-memory-management.html)). The guide mandates querying `CU_DEVICE_ATTRIBUTE_VIRTUAL_MEMORY_MANAGEMENT_SUPPORTED` first.\n- **Read-only is declared, not demonstrated.** The enum lists `PROT_READ` as \"make the address range read accessible\" ([types page](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html)). Every NVIDIA example, including the [VMM blog](https://developer.nvidia.com/blog/introducing-low-level-gpu-virtual-memory-management/), uses only `PROT_READWRITE`. Whether `cuMemSetAccess` with `PROT_READ` returns success, whether copy engines honor it, and whether it can be flipped after mapping are all unverified. `cuMemSetAccess` \"exhibits synchronous behavior for most use cases\" but does not synchronize prior work.\n- **GB10 support is inferred only.** Driver on the box is 580.159.03 aarch64 with Torch 2.12.1+cu130. Third-party reports say PyTorch expandable segments work on GB10, which uses the same four VMM calls, but no source reports the attribute value.\n- **Torch `.data` assignment is a metadata swap, not a byte write.** `VariableHooks::set_data` does `shallow_copy_from` of all non-autograd TensorImpl fields onto the same Python object ([variable.cpp v2.12.1](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/torch/csrc/autograd/variable.cpp)). So substitution changes `data_ptr`, shape, stride, or dtype, and is caught by metadata equality without any hash. It never touches protected bytes.\n- **DLPack import wraps the pointer with no copy and ignores read-only.** `fromDLPackImpl` calls `at::from_blob` with a deleter that invokes the capsule's deleter when the storage dies, and never reads `flags` ([DLConvertor.cpp v2.12.1](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/aten/src/ATen/DLConvertor.cpp)). Torch's own docs warn that in-place ops on `from_dlpack` tensors write through ([torch 2.12 dlpack](https://docs.pytorch.org/docs/2.12/dlpack.html)). Protection therefore must come from the GPU page table, not from DLPack.\n- **A blocked write is a fail-stop, not a ValueError.** A store to a non-writable range \"would generate a device fault as if you accessed invalid memory\" (blog). That is sticky `CUDA_ERROR_ILLEGAL_ADDRESS`: the process must be relaunched. Rejection becomes process death at the write instead of a caught exception at the next call. The current gates already treat mutation as FAIL, so this is acceptable only if the log captures exit code and error string.\n\n## Smallest design that preserves current rejection\n\nLoad path (one-time, inside `load_inference`): query the VMM attribute and granularity via ctypes on the already-loaded `libcuda.so.1`; one `cuMemCreate(DEVICE)` sized to the 448-tensor packing at 512-byte offsets (the caching allocator's alignment, so cuBLAS heuristics see the same pointer alignment); copy each CPU tensor in with `cuMemcpyHtoD` under `PROT_READWRITE` straight from the existing `CheckpointPages` flow, so no transient `cudaMalloc` copy of the model exists; flip to `PROT_READ`; fingerprint once by DtoH readback against `vision_sha256` (the existing `fingerprint` already does `.cpu()`); build one DLPack capsule via `ctypes.pythonapi.PyCapsule_New` and `torch.from_dlpack`, then rebind each parameter with `torch.nn.Parameter(view, requires_grad=False)`, which shares storage. Keep `readout_sha256` and the `position_ids` buffer hashed per call unchanged. Per call, replace the two `encoder_facts` fingerprints with: object identity against recorded parameter objects, `data_ptr`, shape, stride, `storage_offset`, dtype, device, storage `data_ptr` and `nbytes` equal to the recorded VMM base, and `cuMemGetAccess` equal to `PROT_READ`. Release: after the existing weakref check proves the storages are dead, unmap, release, address-free in that order; the owner holds the CFUNCTYPE deleter alive until then. Pointer reuse is impossible while the owner holds the base tensor, because the range stays mapped. Memory bound is Torch peak plus the VMM range, rounded to granularity, reported separately because the caching allocator does not see it.\n\n## Threat boundary, stated plainly\n\nAny in-process code that can call `libcuda` can run `cuMemSetAccess(ptr, size, PROT_READWRITE)` on the same VA range with no handle. The hashing scheme is equally defeated by in-process native code that monkeypatches `require`. Both schemes protect against the public Torch API surface: `.data=`, `set_`, `copy_`, parameter replacement. PROT_READ is stronger inside that boundary because bytes cannot change at all, and strictly weaker outside it only in that a flip-write-flip leaves no trace, which hashing would catch at the next call. Say this in the frozen schema rather than claiming \"physical immutability.\"\n\n## Two falsifiers with exact stop rules\n\n1. **CUDA capability, disposable, no Torch, no model.** Separate process, ctypes on `libcuda.so.1`, one allocation of the minimum granularity: attribute query, `cuMemCreate`, reserve, map, `SetAccess RW`, `HtoD` pattern, `SetAccess READ`, `GetAccess`, `DtoH` compare, then `cuMemcpyHtoD` to the range, then a one-thread kernel store via a tiny cubin, each followed by `cuCtxSynchronize`. Record cgroup `memory.current` before and after `cuMemCreate`. STOP if the attribute is 0, `SetAccess READ` returns non-success, `GetAccess` is not 1, the DtoH bytes differ, or either write path returns `CUDA_SUCCESS` after synchronize. Pass requires both writes to return an error. Expected exit is a sticky-error death; that is the pass signal, so the harness must capture the return codes before the context dies.\n2. **Source-only ownership, CPU, Python 3.13.9 env, no GPU.** Build a two-parameter module whose tensors are `torch.frombuffer` views over a `PROT_READ` mmap, record the metadata predicate, then apply each public-API vector: `p.data = other`, `p.data = p.data.t()`, `p.set_(other)`, `module._parameters[name] = Parameter(other)`, `p.data = frombuffer(same mapping)`, `p.view(torch.int32)` rebinding, and `p.copy_(x)` in a subprocess. STOP if any vector changes the bytes the forward would read without tripping the predicate, or if the in-place subprocess exits 0. The same-mapping vector must pass with identical bytes, proving \"same pointer, same bytes\" is sound.\n\n## Critical unknowns\n\n- `PROT_READ` acceptance and copy-engine enforcement on GB10 with driver 580.159.03.\n- Whether `cuMemCreate` device memory on unified LPDDR5X is charged to the 8 GiB cgroup. The existing 6.375 GB host peak with the model resident suggests not, but it is unmeasured.\n- Whether a `cuMemSetAccess` flip after mapping is permitted at all; docs only show first-time grants.\n- cuBLASLt kernel selection on Blackwell with 512-byte-aligned DLPack views versus caching-allocator pointers. The B1/B32 parity gate exists for exactly this, but it runs only after review.\n- Fail-stop as rejection must be ruled acceptable by the frozen schema before measurement, because it changes the failure mode of every historical gate from exception to process death.\n\nIf falsifier 1 fails, the one equivalent alternative is a separate serving process that holds the weights and exposes only pixel-in, feature-out over a socket, so the Python authority never owns the bytes. That is a larger change and not recommended before the two cheap checks run.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "fable": "**Verdict: conditionally feasible on paper, unverified on GB10, and not a stronger *threat model* than hashing.** A read-only CUDA VMM owner can replace the two per-call 1.7 GB fingerprints with O(448) metadata checks plus one driver query, but only inside the same trust boundary the hashing already assumes. Nothing in NVIDIA's primary docs confirms that `CU_MEM_ACCESS_FLAGS_PROT_READ` is honored on any device, let alone GB10, so the capability falsifier below must run before any design work.\n\n## What the sources establish\n\n- **VMM API shape is documented.** `cuMemCreate` makes an unmapped physical handle; `cuMemMap` places it in a `cuMemAddressReserve` range; mapping grants no access until `cuMemSetAccess`; teardown order is unmap, release, address-free ([driver VA group](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__VA.html), [Programming Guide VMM chapter](https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/virtual-memory-management.html)). The guide mandates querying `CU_DEVICE_ATTRIBUTE_VIRTUAL_MEMORY_MANAGEMENT_SUPPORTED` first.\n- **Read-only is declared, not demonstrated.** The enum lists `PROT_READ` as \"make the address range read accessible\" ([types page](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html)). Every NVIDIA example, including the [VMM blog](https://developer.nvidia.com/blog/introducing-low-level-gpu-virtual-memory-management/), uses only `PROT_READWRITE`. Whether `cuMemSetAccess` with `PROT_READ` returns success, whether copy engines honor it, and whether it can be flipped after mapping are all unverified. `cuMemSetAccess` \"exhibits synchronous behavior for most use cases\" but does not synchronize prior work.\n- **GB10 support is inferred only.** Driver on the box is 580.159.03 aarch64 with Torch 2.12.1+cu130. Third-party reports say PyTorch expandable segments work on GB10, which uses the same four VMM calls, but no source reports the attribute value.\n- **Torch `.data` assignment is a metadata swap, not a byte write.** `VariableHooks::set_data` does `shallow_copy_from` of all non-autograd TensorImpl fields onto the same Python object ([variable.cpp v2.12.1](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/torch/csrc/autograd/variable.cpp)). So substitution changes `data_ptr`, shape, stride, or dtype, and is caught by metadata equality without any hash. It never touches protected bytes.\n- **DLPack import wraps the pointer with no copy and ignores read-only.** `fromDLPackImpl` calls `at::from_blob` with a deleter that invokes the capsule's deleter when the storage dies, and never reads `flags` ([DLConvertor.cpp v2.12.1](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/aten/src/ATen/DLConvertor.cpp)). Torch's own docs warn that in-place ops on `from_dlpack` tensors write through ([torch 2.12 dlpack](https://docs.pytorch.org/docs/2.12/dlpack.html)). Protection therefore must come from the GPU page table, not from DLPack.\n- **A blocked write is a fail-stop, not a ValueError.** A store to a non-writable range \"would generate a device fault as if you accessed invalid memory\" (blog). That is sticky `CUDA_ERROR_ILLEGAL_ADDRESS`: the process must be relaunched. Rejection becomes process death at the write instead of a caught exception at the next call. The current gates already treat mutation as FAIL, so this is acceptable only if the log captures exit code and error string.\n\n## Smallest design that preserves current rejection\n\nLoad path (one-time, inside `load_inference`): query the VMM attribute and granularity via ctypes on the already-loaded `libcuda.so.1`; one `cuMemCreate(DEVICE)` sized to the 448-tensor packing at 512-byte offsets (the caching allocator's alignment, so cuBLAS heuristics see the same pointer alignment); copy each CPU tensor in with `cuMemcpyHtoD` under `PROT_READWRITE` straight from the existing `CheckpointPages` flow, so no transient `cudaMalloc` copy of the model exists; flip to `PROT_READ`; fingerprint once by DtoH readback against `vision_sha256` (the existing `fingerprint` already does `.cpu()`); build one DLPack capsule via `ctypes.pythonapi.PyCapsule_New` and `torch.from_dlpack`, then rebind each parameter with `torch.nn.Parameter(view, requires_grad=False)`, which shares storage. Keep `readout_sha256` and the `position_ids` buffer hashed per call unchanged. Per call, replace the two `encoder_facts` fingerprints with: object identity against recorded parameter objects, `data_ptr`, shape, stride, `storage_offset`, dtype, device, storage `data_ptr` and `nbytes` equal to the recorded VMM base, and `cuMemGetAccess` equal to `PROT_READ`. Release: after the existing weakref check proves the storages are dead, unmap, release, address-free in that order; the owner holds the CFUNCTYPE deleter alive until then. Pointer reuse is impossible while the owner holds the base tensor, because the range stays mapped. Memory bound is Torch peak plus the VMM range, rounded to granularity, reported separately because the caching allocator does not see it.\n\n## Threat boundary, stated plainly\n\nAny in-process code that can call `libcuda` can run `cuMemSetAccess(ptr, size, PROT_READWRITE)` on the same VA range with no handle. The hashing scheme is equally defeated by in-process native code that monkeypatches `require`. Both schemes protect against the public Torch API surface: `.data=`, `set_`, `copy_`, parameter replacement. PROT_READ is stronger inside that boundary because bytes cannot change at all, and strictly weaker outside it only in that a flip-write-flip leaves no trace, which hashing would catch at the next call. Say this in the frozen schema rather than claiming \"physical immutability.\"\n\n## Two falsifiers with exact stop rules\n\n1. **CUDA capability, disposable, no Torch, no model.** Separate process, ctypes on `libcuda.so.1`, one allocation of the minimum granularity: attribute query, `cuMemCreate`, reserve, map, `SetAccess RW`, `HtoD` pattern, `SetAccess READ`, `GetAccess`, `DtoH` compare, then `cuMemcpyHtoD` to the range, then a one-thread kernel store via a tiny cubin, each followed by `cuCtxSynchronize`. Record cgroup `memory.current` before and after `cuMemCreate`. STOP if the attribute is 0, `SetAccess READ` returns non-success, `GetAccess` is not 1, the DtoH bytes differ, or either write path returns `CUDA_SUCCESS` after synchronize. Pass requires both writes to return an error. Expected exit is a sticky-error death; that is the pass signal, so the harness must capture the return codes before the context dies.\n2. **Source-only ownership, CPU, Python 3.13.9 env, no GPU.** Build a two-parameter module whose tensors are `torch.frombuffer` views over a `PROT_READ` mmap, record the metadata predicate, then apply each public-API vector: `p.data = other`, `p.data = p.data.t()`, `p.set_(other)`, `module._parameters[name] = Parameter(other)`, `p.data = frombuffer(same mapping)`, `p.view(torch.int32)` rebinding, and `p.copy_(x)` in a subprocess. STOP if any vector changes the bytes the forward would read without tripping the predicate, or if the in-place subprocess exits 0. The same-mapping vector must pass with identical bytes, proving \"same pointer, same bytes\" is sound.\n\n## Critical unknowns\n\n- `PROT_READ` acceptance and copy-engine enforcement on GB10 with driver 580.159.03.\n- Whether `cuMemCreate` device memory on unified LPDDR5X is charged to the 8 GiB cgroup. The existing 6.375 GB host peak with the model resident suggests not, but it is unmeasured.\n- Whether a `cuMemSetAccess` flip after mapping is permitted at all; docs only show first-time grants.\n- cuBLASLt kernel selection on Blackwell with 512-byte-aligned DLPack views versus caching-allocator pointers. The B1/B32 parity gate exists for exactly this, but it runs only after review.\n- Fail-stop as rejection must be ruled acceptable by the frozen schema before measurement, because it changes the failure mode of every historical gate from exception to process death.\n\nIf falsifier 1 fails, the one equivalent alternative is a separate serving process that holds the weights and exposes only pixel-in, feature-out over a socket, so the Python authority never owns the bytes. That is a larger change and not recommended before the two cheap checks run."
+  },
+  "providers_used": [
+    "fable"
+  ],
+  "active_provider": "fable",
+  "phase": "Consultation completed",
+  "input_bytes": 3582,
+  "output_bytes": 8251,
+  "elapsed_seconds": 590,
+  "progress": "devbox-ask: fable consult still running (0m 30s)\ndevbox-ask: fable consult still running (1m 00s)\ndevbox-ask: fable consult still running (1m 30s)\ndevbox-ask: fable consult still running (2m 00s)\ndevbox-ask: fable consult still running (2m 30s)\ndevbox-ask: fable consult still running (3m 00s)\ndevbox-ask: fable consult still running (3m 30s)\ndevbox-ask: fable consult still running (4m 00s)\ndevbox-ask: fable consult still running (4m 30s)\ndevbox-ask: fable consult still running (5m 00s)\ndevbox-ask: fable consult still running (5m 30s)\ndevbox-ask: fable consult still running (6m 00s)\ndevbox-ask: fable consult still running (6m 30s)\ndevbox-ask: fable consult still running (7m 00s)\ndevbox-ask: fable consult still running (7m 30s)\ndevbox-ask: fable consult still running (8m 00s)\ndevbox-ask: fable consult still running (8m 30s)\ndevbox-ask: fable consult still running (9m 00s)\ndevbox-ask: fable consult still running (9m 30s)",
+  "progress_truncated": false,
+  "result": "**Verdict: conditionally feasible on paper, unverified on GB10, and not a stronger *threat model* than hashing.** A read-only CUDA VMM owner can replace the two per-call 1.7 GB fingerprints with O(448) metadata checks plus one driver query, but only inside the same trust boundary the hashing already assumes. Nothing in NVIDIA's primary docs confirms that `CU_MEM_ACCESS_FLAGS_PROT_READ` is honored on any device, let alone GB10, so the capability falsifier below must run before any design work.\n\n## What the sources establish\n\n- **VMM API shape is documented.** `cuMemCreate` makes an unmapped physical handle; `cuMemMap` places it in a `cuMemAddressReserve` range; mapping grants no access until `cuMemSetAccess`; teardown order is unmap, release, address-free ([driver VA group](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__VA.html), [Programming Guide VMM chapter](https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/virtual-memory-management.html)). The guide mandates querying `CU_DEVICE_ATTRIBUTE_VIRTUAL_MEMORY_MANAGEMENT_SUPPORTED` first.\n- **Read-only is declared, not demonstrated.** The enum lists `PROT_READ` as \"make the address range read accessible\" ([types page](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html)). Every NVIDIA example, including the [VMM blog](https://developer.nvidia.com/blog/introducing-low-level-gpu-virtual-memory-management/), uses only `PROT_READWRITE`. Whether `cuMemSetAccess` with `PROT_READ` returns success, whether copy engines honor it, and whether it can be flipped after mapping are all unverified. `cuMemSetAccess` \"exhibits synchronous behavior for most use cases\" but does not synchronize prior work.\n- **GB10 support is inferred only.** Driver on the box is 580.159.03 aarch64 with Torch 2.12.1+cu130. Third-party reports say PyTorch expandable segments work on GB10, which uses the same four VMM calls, but no source reports the attribute value.\n- **Torch `.data` assignment is a metadata swap, not a byte write.** `VariableHooks::set_data` does `shallow_copy_from` of all non-autograd TensorImpl fields onto the same Python object ([variable.cpp v2.12.1](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/torch/csrc/autograd/variable.cpp)). So substitution changes `data_ptr`, shape, stride, or dtype, and is caught by metadata equality without any hash. It never touches protected bytes.\n- **DLPack import wraps the pointer with no copy and ignores read-only.** `fromDLPackImpl` calls `at::from_blob` with a deleter that invokes the capsule's deleter when the storage dies, and never reads `flags` ([DLConvertor.cpp v2.12.1](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/aten/src/ATen/DLConvertor.cpp)). Torch's own docs warn that in-place ops on `from_dlpack` tensors write through ([torch 2.12 dlpack](https://docs.pytorch.org/docs/2.12/dlpack.html)). Protection therefore must come from the GPU page table, not from DLPack.\n- **A blocked write is a fail-stop, not a ValueError.** A store to a non-writable range \"would generate a device fault as if you accessed invalid memory\" (blog). That is sticky `CUDA_ERROR_ILLEGAL_ADDRESS`: the process must be relaunched. Rejection becomes process death at the write instead of a caught exception at the next call. The current gates already treat mutation as FAIL, so this is acceptable only if the log captures exit code and error string.\n\n## Smallest design that preserves current rejection\n\nLoad path (one-time, inside `load_inference`): query the VMM attribute and granularity via ctypes on the already-loaded `libcuda.so.1`; one `cuMemCreate(DEVICE)` sized to the 448-tensor packing at 512-byte offsets (the caching allocator's alignment, so cuBLAS heuristics see the same pointer alignment); copy each CPU tensor in with `cuMemcpyHtoD` under `PROT_READWRITE` straight from the existing `CheckpointPages` flow, so no transient `cudaMalloc` copy of the model exists; flip to `PROT_READ`; fingerprint once by DtoH readback against `vision_sha256` (the existing `fingerprint` already does `.cpu()`); build one DLPack capsule via `ctypes.pythonapi.PyCapsule_New` and `torch.from_dlpack`, then rebind each parameter with `torch.nn.Parameter(view, requires_grad=False)`, which shares storage. Keep `readout_sha256` and the `position_ids` buffer hashed per call unchanged. Per call, replace the two `encoder_facts` fingerprints with: object identity against recorded parameter objects, `data_ptr`, shape, stride, `storage_offset`, dtype, device, storage `data_ptr` and `nbytes` equal to the recorded VMM base, and `cuMemGetAccess` equal to `PROT_READ`. Release: after the existing weakref check proves the storages are dead, unmap, release, address-free in that order; the owner holds the CFUNCTYPE deleter alive until then. Pointer reuse is impossible while the owner holds the base tensor, because the range stays mapped. Memory bound is Torch peak plus the VMM range, rounded to granularity, reported separately because the caching allocator does not see it.\n\n## Threat boundary, stated plainly\n\nAny in-process code that can call `libcuda` can run `cuMemSetAccess(ptr, size, PROT_READWRITE)` on the same VA range with no handle. The hashing scheme is equally defeated by in-process native code that monkeypatches `require`. Both schemes protect against the public Torch API surface: `.data=`, `set_`, `copy_`, parameter replacement. PROT_READ is stronger inside that boundary because bytes cannot change at all, and strictly weaker outside it only in that a flip-write-flip leaves no trace, which hashing would catch at the next call. Say this in the frozen schema rather than claiming \"physical immutability.\"\n\n## Two falsifiers with exact stop rules\n\n1. **CUDA capability, disposable, no Torch, no model.** Separate process, ctypes on `libcuda.so.1`, one allocation of the minimum granularity: attribute query, `cuMemCreate`, reserve, map, `SetAccess RW`, `HtoD` pattern, `SetAccess READ`, `GetAccess`, `DtoH` compare, then `cuMemcpyHtoD` to the range, then a one-thread kernel store via a tiny cubin, each followed by `cuCtxSynchronize`. Record cgroup `memory.current` before and after `cuMemCreate`. STOP if the attribute is 0, `SetAccess READ` returns non-success, `GetAccess` is not 1, the DtoH bytes differ, or either write path returns `CUDA_SUCCESS` after synchronize. Pass requires both writes to return an error. Expected exit is a sticky-error death; that is the pass signal, so the harness must capture the return codes before the context dies.\n2. **Source-only ownership, CPU, Python 3.13.9 env, no GPU.** Build a two-parameter module whose tensors are `torch.frombuffer` views over a `PROT_READ` mmap, record the metadata predicate, then apply each public-API vector: `p.data = other`, `p.data = p.data.t()`, `p.set_(other)`, `module._parameters[name] = Parameter(other)`, `p.data = frombuffer(same mapping)`, `p.view(torch.int32)` rebinding, and `p.copy_(x)` in a subprocess. STOP if any vector changes the bytes the forward would read without tripping the predicate, or if the in-place subprocess exits 0. The same-mapping vector must pass with identical bytes, proving \"same pointer, same bytes\" is sound.\n\n## Critical unknowns\n\n- `PROT_READ` acceptance and copy-engine enforcement on GB10 with driver 580.159.03.\n- Whether `cuMemCreate` device memory on unified LPDDR5X is charged to the 8 GiB cgroup. The existing 6.375 GB host peak with the model resident suggests not, but it is unmeasured.\n- Whether a `cuMemSetAccess` flip after mapping is permitted at all; docs only show first-time grants.\n- cuBLASLt kernel selection on Blackwell with 512-byte-aligned DLPack views versus caching-allocator pointers. The B1/B32 parity gate exists for exactly this, but it runs only after review.\n- Fail-stop as rejection must be ruled acceptable by the frozen schema before measurement, because it changes the failure mode of every historical gate from exception to process death.\n\nIf falsifier 1 fails, the one equivalent alternative is a separate serving process that holds the weights and exposes only pixel-in, feature-out over a socket, so the Python authority never owns the bytes. That is a larger change and not recommended before the two cheap checks run.",
+  "result_truncated": false
+}
