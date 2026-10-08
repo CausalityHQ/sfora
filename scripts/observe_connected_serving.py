@@ -268,7 +268,10 @@ class RequestObserver:
                 if event == 'call' and code is self.fingerprint_code:
                     require(frame.f_locals.get('frozen') is None, 'serializer hash cache is forbidden')
                     row['fingerprint'] = len(self.fingerprints)
-                    self.fingerprints.append({'sha256':None, 'occurrences':0, 'bytes':0})
+                    self.fingerprints.append({'sha256':None, 'occurrences':0, 'bytes':0,
+                        'caller_filename':frame.f_back.f_code.co_filename,
+                        'caller_function':frame.f_back.f_code.co_qualname,
+                        'caller_line':frame.f_back.f_lineno, 'host_seconds':None})
                 if event == 'call' and code is self.visit_code:
                     started = time.perf_counter_ns()
                     tensor_type = getattr(sys.modules.get('torch'), 'Tensor', None)
@@ -311,7 +314,8 @@ class RequestObserver:
                     self.inspection += time.perf_counter_ns() - started
                 if 'fingerprint' in row:
                     require(type(arg) is str and re.fullmatch('[0-9a-f]{64}', arg), 'fingerprint return/unwind incomplete')
-                    self.fingerprints[row['fingerprint']]['sha256'] = arg
+                    # Inclusive fingerprint time overlaps the existing host phase totals.
+                    self.fingerprints[row['fingerprint']].update(sha256=arg, host_seconds=elapsed / 1e9)
                 if event == 'return' and frame.f_code is self.output_code:
                     started = time.perf_counter_ns()
                     require(type(arg) is dict and arg.keys() == OUTPUT_KEYS and type(arg['wire']) is bytes,

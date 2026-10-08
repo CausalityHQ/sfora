@@ -7,6 +7,7 @@ import hashlib
 import importlib.abc
 import importlib.util
 import json
+import math
 from pathlib import Path
 import struct
 import sys
@@ -164,6 +165,49 @@ def serializer_check(d, original):
             assert sys.getprofile() is previous
         finally:
             sys.setprofile(None)
+
+
+def fingerprint_attribution_check(d, original):
+    # Wrong callers, cached bytes or retained caller frames must reject attribution.
+    sources = {'serializer':binding(Path(original.__file__))}
+    def first(value):
+        return original.fingerprint(value)
+    def second(value):
+        return original.fingerprint(value)
+    refs = []
+    def target():
+        tensor = Tensor(b'ab')
+        refs.append(weakref.ref(tensor))
+        tree = {'x':[tensor,tensor]}
+        pointer, version = tensor.data_ptr(), tensor._version
+        results = [first(tree), first(tree), second(tree)]
+        tensor.data[0] = ord('Z')
+        assert (tensor.data_ptr(), tensor._version) == (pointer, version)
+        return results + [second(tree)]
+    with modules({'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8')}):
+        tensor = Tensor(b'ab')
+        expected = original.fingerprint({'x':[tensor,tensor]})
+        tensor.data[0] = ord('Z')
+        changed = original.fingerprint({'x':[tensor,tensor]})
+        assert changed != expected
+        probe = d.RequestObserver(original.fingerprint, sources)
+        results = d.observe_call(probe, target)
+        report = probe.report()
+        assert report['complete'] and results == [expected,expected,expected,changed]
+        rows = report['fingerprints']
+        assert len(rows) == 4
+        for row, caller, digest in zip(rows, (first,first,second,second), results):
+            assert row.get('caller_filename') == caller.__code__.co_filename, 'caller filename missing/wrong'
+            assert row['caller_function'] == caller.__qualname__
+            assert row['caller_line'] == caller.__code__.co_firstlineno + 1
+            assert row['sha256'] == digest and row['occurrences'] == 2 and row['bytes'] == 4
+            assert type(row['host_seconds']) is float and math.isfinite(row['host_seconds']) and row['host_seconds'] >= 0
+        leaves = report['tensor_occurrences']
+        assert [row['fingerprint'] for row in leaves] == [0,0,1,1,2,2,3,3]
+        assert [row['sha256'] for row in leaves] == [hashlib.sha256(b'ab').hexdigest()] * 6 + [hashlib.sha256(b'Zb').hexdigest()] * 2
+        gc.collect()
+        assert refs[0]() is None, 'fingerprint attribution retained a caller frame/tensor'
+        assert sys.getprofile() is None and not probe.stack
 
 
 def stack_check(d, original):
@@ -657,6 +701,10 @@ def main():
         d = load(owned[0], path)
         original = load(owned[1], ROOT / 'scripts/train_siglip2_substrate_adaptation.py')
         bridge = load(owned[2], ROOT / 'src/sfora/connected_compact_serving.py')
+        if '--review-fingerprint' in sys.argv:
+            fingerprint_attribution_check(d, original)
+            print('PASS original fingerprint caller attribution, inclusive duration, fresh bytes and release')
+            return
         if '--review-predicate' in sys.argv:
             predicate_check(d, original)
             print('PASS item is explicit predicate-sync-plus-wait; CUDA time stays unmeasured')
@@ -705,6 +753,7 @@ def main():
             print('PASS exact profiler cancellation propagates with restoration/genuine cleanup')
             return
         serializer_check(d, original)
+        fingerprint_attribution_check(d, original)
         stack_check(d, original)
         c_metadata_check(d, original)
         predicate_check(d, original)
