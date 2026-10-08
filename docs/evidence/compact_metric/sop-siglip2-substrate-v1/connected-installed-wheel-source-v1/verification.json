@@ -1,0 +1,27 @@
+{
+  "decision": "PASS_ISOLATED_WHEEL_INSTALL_SOURCE_BYTES_ONLY",
+  "dependencies_installed": false,
+  "installer": {
+    "path": "/snap/astral-uv/1779/bin/uv",
+    "sha256": "f0b0e0f06371526b474450abef98e0d33c1cb06598e7d1b8a09dbe7e013840e7",
+    "version": "0.12.21"
+  },
+  "installer_limits": {
+    "address_space_bytes": 1073741824,
+    "seconds": 30
+  },
+  "installer_rss_kib": 36888,
+  "installer_seconds": 0.07,
+  "installer_swaps": 0,
+  "metadata_files": 8,
+  "native_qualified": false,
+  "original_session": 60799,
+  "original_terminal_exit": 0,
+  "package_sources_equal_wheel": 110,
+  "sha256": {
+    "install-command.sh": "d6b23133c7d8ba37ba8d13c0e1f4899ce14fb4ffc2155e61062031a3d7155771",
+    "installed-source-manifest.json": "9240a5cf340b7c34f7d36eac03e3b8ec78cdeff6397a78eb7d66c06cce93098c",
+    "original.log": "6cc75b6508370b16e75d5c6207337a2ea15ec4a34c1d67010380e9b62cb9a407"
+  },
+  "wheel_sha256": "a1ff1b26f4d1d696e016344e03099ae2618621624929de70395dba81e5671eb6"
+}
