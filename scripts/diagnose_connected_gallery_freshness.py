@@ -500,9 +500,9 @@ def check_endpoint_payload(disk,endpoint,manifest,facts,source,flags,modules):
             all(fingerprint(disk[k])==h for k,h in facts['members'].items()),'complete typed endpoint/member/current binding differs')
     require(disk['arm']==endpoint['arm']==ident['arm'] and ident['seed']==endpoint['seed'] and
             disk['source']==source==ident['source'] and disk['numerical_flags']==flags and
-            disk['scope']==ident['scope'] and disk['base_vision']==ident['base_vision'] and
+            modules['identity'].scope_identity(disk['scope'])==ident['scope']==manifest['scope'] and
+            disk['base_vision']==ident['base_vision'] and
             disk['encoder_identity']==ident['encoder_identity']==manifest['encoder_identity'] and
-            manifest['scope']==disk['scope'] and
             manifest['files']['vision.pt']==disk['base_vision']['checkpoint']['sha256'] and
             disk['vision_sha256']==facts['vision_sha256']==manifest['vision_sha256'] and
             disk['base_vision']['sha256']==facts['base_vision_sha256']==manifest['base_vision_sha256'] and

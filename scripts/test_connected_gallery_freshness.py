@@ -279,6 +279,11 @@ class FreshnessTests(unittest.TestCase):
             count_nonzero=lambda v:SimpleNamespace(item=lambda:int(any(v.raw))))
         try:
             sources.admit();m=sources.modules
+            scope_raw=(EVIDENCE/'identity-diversity-v1/scope.json').read_bytes()
+            self.assertEqual(hashlib.sha256(scope_raw).hexdigest(),m['identity'].SCOPE_SHA256)
+            scope_manifest=json.loads(scope_raw)
+            scope_fact={'path':'/home/riomus/runs/sfora-identity-diversity-metadata-v1/scope.json',
+                        'sha256':m['identity'].SCOPE_SHA256}
             disk={k:{} for k in m['connected'].INFERENCE_KEYS}
             provenance={'domain':'actual CPU-renormalized FP32 features','rows':6355,'view':'canonical',
                 'reduction':'torch FP32 mean(dim=0) canonical ordinal order','accepted_checkpoint':m['identity'].ACCEPTED['checkpoint'],
@@ -288,18 +293,21 @@ class FreshnessTests(unittest.TestCase):
                 numerical_flags={'threads':8},A=PayloadTensor((128,160)),C=PayloadTensor((128,1152)),
                 mu_train=PayloadTensor((1152,)),means={'linear':PayloadTensor((32,)),'concat':PayloadTensor((160,))},
                 mu_train_provenance=provenance,base_vision={'sha256':'b'*64,'checkpoint':{'sha256':'v'*64}},
-                processor={'config':{'kind':'original'}},vision_sha256='v'*64,encoder_identity={'inventory':{}},scope={'control':6355})
+                processor={'config':{'kind':'original'}},vision_sha256='v'*64,encoder_identity={'inventory':{}},
+                scope={'manifest':scope_fact,'arm':'control','payload':scope_manifest['control']})
             with patch.dict(sys.modules,{'torch':torch}):
                 fingerprint=m['original'].fingerprint
-                def binding(value):
+                def binding(value,seed=179061):
+                    compact=m['identity'].scope_identity(value['scope'])
                     value['fixed_sha256']=fingerprint({k:v for k,v in value.items() if k!='fixed_sha256'})
                     h=fingerprint(value);bundle={'path':'/fixture/bundle.json','sha256':'d'*64}
-                    endpoint={'arm':'control','seed':179061,'bundle':bundle,'inference_state_sha256':h,'terminal_state_sha256':'t'*64}
-                    manifest={'endpoint_state_sha256':h,'encoder_identity':value['encoder_identity'],'scope':value['scope'],
+                    endpoint={'arm':value['arm'],'seed':seed,'bundle':bundle,'inference_state_sha256':h,'terminal_state_sha256':'t'*64}
+                    manifest={'endpoint_state_sha256':h,'encoder_identity':value['encoder_identity'],'scope':copy.deepcopy(compact),
                               'files':{'vision.pt':'v'*64},'vision_sha256':'v'*64,'base_vision_sha256':'b'*64}
                     facts={'inference_state_sha256':h,'fixed_sha256':value['fixed_sha256'],'terminal_state_sha256':'t'*64,
                         'bundle':bundle,'members':{k:fingerprint(value[k]) for k in m['evaluator'].MEMBERS},
-                        'identity':{'arm':'control','seed':179061,**{k:value[k] for k in ('source','scope','base_vision','encoder_identity')}},
+                        'identity':{'arm':value['arm'],'seed':seed,'scope':compact,
+                                    **{k:value[k] for k in ('source','base_vision','encoder_identity')}},
                         'vision_sha256':'v'*64,'base_vision_sha256':'b'*64,'processor_config_sha256':fingerprint(value['processor']['config'])}
                     return endpoint,manifest,facts
                 endpoint,manifest,facts=binding(disk)
@@ -322,6 +330,51 @@ class FreshnessTests(unittest.TestCase):
                     with self.subTest(name=name):
                         changed=copy.deepcopy(disk);mutate(changed);e,b,f=binding(changed)
                         with self.assertRaisesRegex(ValueError,reason):check(changed,e,b,f)
+                cpu=json.loads((EVIDENCE/'connected-mlp-evaluation-full-cpu-v5/receipt.json').read_bytes())
+                for seed,arm in self.d.ORDER:
+                    value=copy.deepcopy(disk);value['arm']=arm
+                    e,b,f=binding(value,seed)
+                    with self.subTest(seed=seed,arm=arm):
+                        self.assertEqual(f['identity']['scope'],cpu['payload_facts'][f'{arm}-{seed}']['identity']['scope'])
+                        self.assertNotEqual(value['scope'],f['identity']['scope'])
+                        check(value,e,b,f)
+                    for name,mutate in (
+                        ('full payload',lambda v:v['scope']['payload']['rows'][0].__setitem__('original_fit_index',-1)),
+                        ('full manifest',lambda v:v['scope']['manifest'].__setitem__('path','/substituted/scope.json')),
+                        ('source',lambda v:v.__setitem__('source',{})),
+                        ('flags',lambda v:v.__setitem__('numerical_flags',{})),
+                        ('encoder',lambda v:v.__setitem__('encoder_identity',{}))):
+                        with self.subTest(seed=seed,arm=arm,mutation=name):
+                            changed=copy.deepcopy(value);mutate(changed)
+                            with self.assertRaisesRegex(ValueError,'typed endpoint'):check(changed,e,b,f)
+                    for name,mutate in (
+                        ('full arm',lambda v:v['scope'].__setitem__('arm','candidate')),
+                        ('manifest SHA',lambda v:v['scope']['manifest'].__setitem__('sha256','0'*64)),
+                        ('payload SHA',lambda v:v['scope']['payload'].__setitem__('scope_sha256','0'*64))):
+                        with self.subTest(seed=seed,arm=arm,mutation=name):
+                            changed=copy.deepcopy(value);mutate(changed)
+                            changed['fixed_sha256']=fingerprint({k:v for k,v in changed.items() if k!='fixed_sha256'})
+                            ee,bb,ff=copy.deepcopy((e,b,f));h=fingerprint(changed)
+                            ee['inference_state_sha256']=bb['endpoint_state_sha256']=ff['inference_state_sha256']=h
+                            ff['fixed_sha256']=changed['fixed_sha256']
+                            ff['members']={k:fingerprint(changed[k]) for k in m['evaluator'].MEMBERS}
+                            with self.assertRaisesRegex(ValueError,'scope substitution'):check(changed,ee,bb,ff)
+                    for owner in ('identity','manifest'):
+                        for field in ('arm','manifest_sha256','arm_sha256'):
+                            with self.subTest(seed=seed,arm=arm,owner=owner,field=field):
+                                bb,ff=copy.deepcopy((b,f))
+                                compact=ff['identity']['scope'] if owner=='identity' else bb['scope']
+                                compact[field]='substituted'
+                                with self.assertRaisesRegex(ValueError,'static provenance'):check(value,e,bb,ff)
+                    for owner,field in (('identity','source'),('identity','encoder_identity'),('manifest','encoder_identity')):
+                        with self.subTest(seed=seed,arm=arm,owner=owner,field=field):
+                            bb,ff=copy.deepcopy((b,f))
+                            (ff['identity'] if owner=='identity' else bb)[field]={}
+                            with self.assertRaisesRegex(ValueError,'static provenance'):check(value,e,bb,ff)
+                    with self.assertRaisesRegex(ValueError,'static provenance'):
+                        self.d.check_endpoint_payload(value,e,b,f,disk['source'],{},m)
+            with patch.object(m['identity'],'scope_identity',lambda scope:{}):
+                with self.assertRaises(ValueError):sources.guard()
             sources.guard()
         finally:sources.close()
 
