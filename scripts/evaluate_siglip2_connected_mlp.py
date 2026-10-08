@@ -78,6 +78,9 @@ MEMBERS = ('config','buffers','processor','head','A','means','C','mu_train','mu_
 
 
 # BEGIN ENDPOINT READER AUTHENTICATION
+# Capture the interpreter bindings at evaluator import, before helper admission.
+_SOURCE_BUILTINS = vars(__import__('builtins')).copy()
+
 FIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',
     'execution_sha256':'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a',
     'code':{'evaluate_siglip2_connected_mlp.py':'919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69',
@@ -93,6 +96,23 @@ FIRST_SELECTION_UNIT = {'both_locks_held':True,'invocation_id':'c47869c3b2d24e70
 
 def source_live_guard(module, digest, guards, names=None, class_name=None):
     """Independent lexical source/runtime binding, including genuine class methods."""
+    canonical = _SOURCE_BUILTINS.copy()
+    builtin_namespace = canonical['__import__']('builtins').__dict__
+    namespaces = [module.__dict__,canonical['globals']()]
+    error = canonical['ValueError']
+    def builtin_guard():
+        # No global/builtin calls: even all/any/type/ValueError may have changed.
+        for key,value in canonical.items():
+            if builtin_namespace.get(key) is not value:
+                raise error('authenticated builtin binding changed: '+key)
+            if key not in ('__name__','__doc__','__package__','__loader__','__spec__'):
+                for namespace in namespaces:
+                    if key in namespace:
+                        raise error('authenticated builtin shadow: '+key)
+    def require(condition, message):
+        if not condition:
+            raise error(message)
+    builtin_guard()
     import builtins
     from types import ModuleType
     require(type(module) is ModuleType and vars(module).get('__builtins__') is vars(builtins),
@@ -137,6 +157,7 @@ def source_live_guard(module, digest, guards, names=None, class_name=None):
                 require([ast.unparse(d) for d in node.decorator_list] == ['contextmanager'],
                     'unexpected authenticated function decorator')
                 wrapper,fn = fn,fn.__wrapped__
+                namespaces.append(wrapper.__globals__)
                 template = contextmanager(fn)
                 require(wrapper.__code__ is template.__code__ and wrapper.__globals__ is template.__globals__ and
                     wrapper.__builtins__ is vars(builtins),
@@ -157,6 +178,7 @@ def source_live_guard(module, digest, guards, names=None, class_name=None):
             functions.append((owner,node.name,fn,fn.__code__,copy.deepcopy(defaults),copy.deepcopy(kw),
                 qualified,wrapper,wrapper.__code__ if wrapper is not None else None))
     def guard():
+        builtin_guard()
         require(module.__name__ == name and sys.modules.get(name) is module and module.__spec__ is spec and
             spec.name == name and spec.loader is loader and Path(spec.origin) == Path(module.__file__) == path and
             vars(module).keys() == values.keys() and all(vars(module)[k] is v for k,v in values.items()) and
@@ -229,7 +251,9 @@ def load_endpoint_reader(context):
     # native-origin payload reads. Original native/exit guards still run unchanged.
     initializer = t['legacy']['selected']['genuine']['reference']
     terminal_guards = tuple(source_live_guard(m,t['guards'][m.__file__],t['guards'],names=names)
-        for m,names in ((t['fitter'],None),(t['old'],{'zero_events','require'}),
+        for m,names in ((t['trainer'],{'check_steps','check_ranking_bank','ranking_membership',
+                                      'ranking_bank','json_sha256','require'}),
+                       (t['fitter'],None),(t['old'],{'zero_events','require'}),
                        (initializer,{'admit_cgroup','require'})))
     node = next(n for n in ast.parse(Path(trainer.__file__).read_bytes()).body
         if isinstance(n,ast.FunctionDef) and n.name == 'admit_terminal')
@@ -267,6 +291,7 @@ def load_endpoint_reader(context):
     owned_globals = {k:globals()[k] for k in (*owned_names,'ThreadPoolExecutor','Path','hashlib','os','__name__','__file__','__builtins__')}
     dependencies = {key:t[key] for key in ('trainer','nearest','fitter','old','fit_context','legacy')}
     def guard(current):
+        source_guard()
         if (any(fn.__code__ is not c or fn.__defaults__ is not None or fn.__kwdefaults__ is not None or
                 fn.__builtins__ is not vars(builtins) or (fn.__module__,fn.__name__,fn.__qualname__) != (__name__,name,name)
                 for name,fn,c in zip(owned_names,owned,owned_codes)) or any(globals()[k] is not v for k,v in owned_globals.items())):
@@ -276,7 +301,7 @@ def load_endpoint_reader(context):
             original.FlatAdmission is Flat and t['legacy']['selected']['genuine']['reference'] is initializer and
             t['legacy']['admission'].init is initializer,
             'endpoint context/source binding changed')
-        source_guard(); flat_guard(); nearest_guard()
+        flat_guard(); nearest_guard()
         for check in terminal_guards:
             check()
         require(derivative.__code__ is code and derivative.__defaults__ is None and derivative.__kwdefaults__ is None and
@@ -311,13 +336,14 @@ def load_first_selection(context):
         for m,p,s,v,f,l in context['helper_snapshots'])
     used = False
     def guard(current):
+        live_guard()
         actual = current['helper_snapshots']
         require(FIRST_SELECTION_OWNER == fact and FIRST_SELECTION_UNIT == unit and current['first_evaluator'] is original and
             len(actual) == len(authenticated) and all(a[0] is b[0] and a[1] == b[1] and a[2] is b[2] and
                 a[3].keys() == b[3].keys() and all(a[3][k] is v for k,v in b[3].items()) and
                 tuple(a[4]) == b[4] and a[5] == b[5] for a,b in zip(actual,authenticated,strict=True)),
             'first-selection owner/snapshot binding changed')
-        live_guard(); guard_helpers(current)
+        guard_helpers(current)
         require(closure(fact['root'],fact['execution_sha256'],FILES,{}) == fact['code'],
             'first-selection fresh owner closure differs')
     def owner_context(current):

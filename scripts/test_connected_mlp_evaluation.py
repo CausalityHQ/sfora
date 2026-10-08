@@ -1053,9 +1053,178 @@ def original_owner_test_inverse():
 # END ORIGINAL OWNER FALSIFIER
 
 
+# BEGIN TRANSITIVE AUTHENTICATION FALSIFIER
+
+def transitive_auth_inverse(raw):
+    """Undo only this finite binding repair; retain every earlier inverse hash."""
+    edits = [
+        (b"\n# BEGIN ENDPOINT READER AUTHENTICATION\n# Capture the interpreter bindings at evaluator import, before helper admission.\n_SOURCE_BUILTINS = vars(__import__('builtins')).copy()\n\nFIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',\n    'execution_sha256':'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a',\n", b"\n# BEGIN ENDPOINT READER AUTHENTICATION\nFIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',\n    'execution_sha256':'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a',\n"),
+        (b'def source_live_guard(module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = _SOURCE_BUILTINS.copy()\n    builtin_namespace = canonical[\'__import__\'](\'builtins\').__dict__\n    namespaces = [module.__dict__,canonical[\'globals\']()]\n    error = canonical[\'ValueError\']\n    def builtin_guard():\n        # No global/builtin calls: even all/any/type/ValueError may have changed.\n        for key,value in canonical.items():\n            if builtin_namespace.get(key) is not value:\n                raise error(\'authenticated builtin binding changed: \'+key)\n            if key not in (\'__name__\',\'__doc__\',\'__package__\',\'__loader__\',\'__spec__\'):\n                for namespace in namespaces:\n                    if key in namespace:\n                        raise error(\'authenticated builtin shadow: \'+key)\n    def require(condition, message):\n        if not condition:\n            raise error(message)\n    builtin_guard()\n    import builtins\n    from types import ModuleType\n', b'def source_live_guard(module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    import builtins\n    from types import ModuleType\n'),
+        (b"                    'unexpected authenticated function decorator')\n                wrapper,fn = fn,fn.__wrapped__\n                namespaces.append(wrapper.__globals__)\n                template = contextmanager(fn)\n                require(wrapper.__code__ is template.__code__ and wrapper.__globals__ is template.__globals__ and\n", b"                    'unexpected authenticated function decorator')\n                wrapper,fn = fn,fn.__wrapped__\n                template = contextmanager(fn)\n                require(wrapper.__code__ is template.__code__ and wrapper.__globals__ is template.__globals__ and\n"),
+        (b'                qualified,wrapper,wrapper.__code__ if wrapper is not None else None))\n    def guard():\n        builtin_guard()\n        require(module.__name__ == name and sys.modules.get(name) is module and module.__spec__ is spec and\n            spec.name == name and spec.loader is loader and Path(spec.origin) == Path(module.__file__) == path and\n', b'                qualified,wrapper,wrapper.__code__ if wrapper is not None else None))\n    def guard():\n        require(module.__name__ == name and sys.modules.get(name) is module and module.__spec__ is spec and\n            spec.name == name and spec.loader is loader and Path(spec.origin) == Path(module.__file__) == path and\n'),
+        (b"    initializer = t['legacy']['selected']['genuine']['reference']\n    terminal_guards = tuple(source_live_guard(m,t['guards'][m.__file__],t['guards'],names=names)\n        for m,names in ((t['trainer'],{'check_steps','check_ranking_bank','ranking_membership',\n                                      'ranking_bank','json_sha256','require'}),\n                       (t['fitter'],None),(t['old'],{'zero_events','require'}),\n                       (initializer,{'admit_cgroup','require'})))\n    node = next(n for n in ast.parse(Path(trainer.__file__).read_bytes()).body\n", b"    initializer = t['legacy']['selected']['genuine']['reference']\n    terminal_guards = tuple(source_live_guard(m,t['guards'][m.__file__],t['guards'],names=names)\n        for m,names in ((t['fitter'],None),(t['old'],{'zero_events','require'}),\n                       (initializer,{'admit_cgroup','require'})))\n    node = next(n for n in ast.parse(Path(trainer.__file__).read_bytes()).body\n"),
+        (b"    dependencies = {key:t[key] for key in ('trainer','nearest','fitter','old','fit_context','legacy')}\n    def guard(current):\n        source_guard()\n        if (any(fn.__code__ is not c or fn.__defaults__ is not None or fn.__kwdefaults__ is not None or\n                fn.__builtins__ is not vars(builtins) or (fn.__module__,fn.__name__,fn.__qualname__) != (__name__,name,name)\n", b"    dependencies = {key:t[key] for key in ('trainer','nearest','fitter','old','fit_context','legacy')}\n    def guard(current):\n        if (any(fn.__code__ is not c or fn.__defaults__ is not None or fn.__kwdefaults__ is not None or\n                fn.__builtins__ is not vars(builtins) or (fn.__module__,fn.__name__,fn.__qualname__) != (__name__,name,name)\n"),
+        (b"            t['legacy']['admission'].init is initializer,\n            'endpoint context/source binding changed')\n        flat_guard(); nearest_guard()\n        for check in terminal_guards:\n            check()\n", b"            t['legacy']['admission'].init is initializer,\n            'endpoint context/source binding changed')\n        source_guard(); flat_guard(); nearest_guard()\n        for check in terminal_guards:\n            check()\n"),
+        (b"    used = False\n    def guard(current):\n        live_guard()\n        actual = current['helper_snapshots']\n        require(FIRST_SELECTION_OWNER == fact and FIRST_SELECTION_UNIT == unit and current['first_evaluator'] is original and\n", b"    used = False\n    def guard(current):\n        actual = current['helper_snapshots']\n        require(FIRST_SELECTION_OWNER == fact and FIRST_SELECTION_UNIT == unit and current['first_evaluator'] is original and\n"),
+        (b"                tuple(a[4]) == b[4] and a[5] == b[5] for a,b in zip(actual,authenticated,strict=True)),\n            'first-selection owner/snapshot binding changed')\n        guard_helpers(current)\n        require(closure(fact['root'],fact['execution_sha256'],FILES,{}) == fact['code'],\n            'first-selection fresh owner closure differs')\n", b"                tuple(a[4]) == b[4] and a[5] == b[5] for a,b in zip(actual,authenticated,strict=True)),\n            'first-selection owner/snapshot binding changed')\n        live_guard(); guard_helpers(current)\n        require(closure(fact['root'],fact['execution_sha256'],FILES,{}) == fact['code'],\n            'first-selection fresh owner closure differs')\n"),
+    ]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'transitive source inverse edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == '9cf68f903f297ff7c1ae79b27e82658a799037291db4d9b6dfa2ec08dfa2188b', 'transitive source inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == '0bba63a200792f67a205391af1ba7b00398c6ae10bf809816755765835a069a0', 'transitive source inverse AST differs'
+    return raw
+
+
+def transitive_auth_test_inverse(raw):
+    start = raw.index(b'# BEGIN TRANSITIVE AUTHENTICATION FALSIFIER\n')
+    end = raw.index(b'# BEGIN ENDPOINT AUTHENTICATION FALSIFIER\n',start)
+    raw = raw[:start]+raw[end:]
+    for added in (b'    raw = transitive_auth_test_inverse(raw)\n', b'    raw = transitive_auth_inverse(raw)\n', b'        transitive_steps_contract(e,trainer,training,context,admit,guard,unit,record)\n', b'    builtin_namespace_contract(e)\n', b'            builtin_endpoint_finally_contract(admit,unit)\n'):
+        assert raw.count(added) == 1, 'transitive test inverse edit differs'
+        raw = raw.replace(added,b'',1)
+    assert hashlib.sha256(raw).hexdigest() == '9c86b29dd2fb396f5c48ffd4539d15dbf5ad48645fcd937dbb5633b77a952297', 'transitive test inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == '100d2c1c6b01b628bb2a3739357f30da34a1b3294c343efa870bcdf321d820ed', 'transitive test inverse AST differs'
+    return raw
+
+
+def builtin_namespace_contract(e, case=None):
+    """Real UNIT/length predicates cannot acquire builtin shadows or changed builtins."""
+    import builtins
+    trainer=module('_transitive_builtin_trainer',HERE/'train_siglip2_connected_mlp.py')
+    digest=hashlib.sha256(Path(trainer.__file__).read_bytes()).hexdigest()
+    unit=copy.deepcopy(e.TRAINING_CPU);unit['service_seconds']=-1
+    rejects(lambda:trainer.check_unit(unit),'resources')
+    cases=('shadow_all','shadow_len','owned_all','builtin_all','builtin_len','builtin_any','builtin_type','builtin_ValueError')
+    for selected in cases if case is None else (case,):
+        if selected=='shadow_all':
+            trainer.all=lambda values:True
+            try:
+                trainer.check_unit(unit)  # Demonstrate the actual predicate bypass.
+                rejects(lambda:e.source_live_guard(trainer,digest,{}),'builtin')
+            finally:
+                del trainer.all
+        elif selected=='shadow_len':
+            with tempfile.TemporaryDirectory() as directory:
+                path=Path(directory)/'length.py';path.write_text('def valid(value):\n    return len(value) == 1\n')
+                genuine=module('_transitive_length',path)
+                assert genuine.valid([]) is False
+                genuine.len=lambda value:1
+                try:
+                    assert genuine.valid([]) is True
+                    rejects(lambda:e.source_live_guard(genuine,hashlib.sha256(path.read_bytes()).hexdigest(),{}),'builtin')
+                finally:
+                    del genuine.len
+        elif selected=='owned_all':
+            e.all=lambda values:True
+            try:
+                rejects(lambda:e.source_live_guard(trainer,digest,{}),'builtin')
+            finally:
+                del e.all
+        else:
+            guard=e.source_live_guard(trainer,digest,{})
+            guard()
+            key=selected.removeprefix('builtin_');old=vars(builtins)[key]
+            error_type=ValueError
+            try:
+                vars(builtins)[key]=lambda *args:True
+                failures=[]
+                for boundary in ('before','after'):
+                    try:
+                        guard()
+                    except error_type as error:
+                        assert 'builtin' in str(error), str(error)
+                    else:
+                        failures.append(boundary)
+                    if boundary=='before' and key=='all':
+                        trainer.check_unit(unit)
+                assert not failures, ('accepted changed builtin',key,failures)
+            finally:
+                vars(builtins)[key]=old
+            guard()
+        rejects(lambda:trainer.check_unit(unit),'resources')
+    print('PASS builtin namespace/control primitive rejection',case or 'all cases')
+
+
+def transitive_steps_contract(e, trainer, training, context, admit, guard, unit, record):
+    """Rank100 must not pass through changed downstream validator objects or code."""
+    t=context['training_context']
+    trainer.check_terminal(t,record,'cpu','control',179061)
+    bad=copy.deepcopy(record);bad['qualifications'][0]['steps'][0]['rank']=100
+    rejects(lambda:trainer.check_terminal(t,bad,'cpu','control',179061),'objective arithmetic')
+    actual=training.check_steps;saved=actual.__code__
+    try:
+        actual.__code__=(lambda *args:None).__code__
+        trainer.check_terminal(t,bad,'cpu','control',179061)
+        rejects(lambda:guard(context),'authenticated')
+        rejects(lambda:admit(unit,'cpu','control',179061),'authenticated')
+        rejects(lambda:e.exit_rehash(context,guard),'authenticated')
+        rejects(lambda:e.load_endpoint_reader(context),'authenticated')
+    finally:
+        actual.__code__=saved
+    try:
+        training.check_steps=lambda *args:None
+        trainer.check_terminal(t,bad,'cpu','control',179061)
+        rejects(lambda:guard(context),'authenticated')
+        rejects(lambda:admit(unit,'cpu','control',179061),'authenticated')
+        rejects(lambda:e.exit_rehash(context,guard),'authenticated')
+        rejects(lambda:e.load_endpoint_reader(context),'authenticated')
+    finally:
+        training.check_steps=actual
+    for name in ('check_ranking_bank','ranking_membership','ranking_bank','json_sha256','require'):
+        fn=getattr(training,name);saved=fn.__code__
+        try:
+            fn.__code__=(lambda *args:None).__code__
+            rejects(lambda:guard(context),'authenticated')
+            rejects(lambda:e.load_endpoint_reader(context),'authenticated')
+        finally:
+            fn.__code__=saved
+    guard(context)
+    rejects(lambda:trainer.check_terminal(t,bad,'cpu','control',179061),'objective arithmetic')
+    import builtins
+    error_type=ValueError
+    for key in ('all','any','type','ValueError'):
+        saved=vars(builtins)[key]
+        try:
+            vars(builtins)[key]=lambda *args:True
+            for check in (lambda:guard(context),lambda:admit(unit,'cpu','control',179061),
+                          lambda:e.exit_rehash(context,guard)):
+                try:
+                    check()
+                except error_type as error:
+                    assert 'builtin' in str(error), str(error)
+                else:
+                    raise AssertionError('endpoint accepted changed builtin: '+key)
+        finally:
+            vars(builtins)[key]=saved
+    print('PASS genuine transitive check_steps code/object capture/call/exit rejection')
+
+
+def builtin_endpoint_finally_contract(admit, unit):
+    """Mutate all inside genuine check_unit, after the admission guard has passed."""
+    import builtins
+    saved=builtins.all;visited=[]
+    class MutatingUnit(dict):
+        def keys(self):
+            visited.append(True)
+            builtins.all=lambda values:True
+            return super().keys()
+    bad=MutatingUnit(unit);bad['service_seconds']=-1
+    try:
+        rejects(lambda:admit(bad,'cpu','control',179061),'builtin binding')
+    finally:
+        builtins.all=saved
+    assert visited, 'actual check_unit boundary was not reached'
+    print('PASS actual UNIT mutation after preguard rejected by admission finally')
+
+
+# END TRANSITIVE AUTHENTICATION FALSIFIER
+
+
 # BEGIN ENDPOINT AUTHENTICATION FALSIFIER
 
 def endpoint_auth_test_inverse(raw):
+    raw = transitive_auth_test_inverse(raw)
     start = raw.index(b'# BEGIN ENDPOINT AUTHENTICATION FALSIFIER\n')
     end = raw.index(b'def main():\n',start)
     raw = raw[:start]+raw[end:]
@@ -1069,6 +1238,7 @@ def endpoint_auth_test_inverse(raw):
 
 def endpoint_auth_inverse(raw):
     """Exact inverse to the assigned base; every previous inverse remains active."""
+    raw = transitive_auth_inverse(raw)
     start = raw.index(b'# BEGIN ENDPOINT READER AUTHENTICATION\n')
     end = raw.index(b'# BEGIN ORIGINAL EXPORT OWNER\n',start)
     raw = raw[:start]+raw[end:]
@@ -1307,6 +1477,7 @@ def endpoint_derivative_contract(e):
         with patch.object(e,'batch_terminal_files',forged):
             rejects(lambda:e.load_endpoint_reader(context),'owned callback source')
         admit,guard=e.load_endpoint_reader(context)
+        transitive_steps_contract(e,trainer,training,context,admit,guard,unit,record)
         derivative=next(c.cell_contents for c in admit.__closure__ if callable(c.cell_contents) and
             getattr(c.cell_contents,'__name__',None)=='connected_endpoint_terminal')
         assert derivative.__code__.co_filename==str(DRIVER) and derivative.__globals__ is not vars(trainer)
@@ -1333,6 +1504,7 @@ def endpoint_derivative_contract(e):
             unit['log']=write(root/'original.log',original_log)
             guards.clear();guards.update(source_guards)
             assert admit(unit,'cpu','control',179061)==record
+            builtin_endpoint_finally_contract(admit,unit)
         # A source or callback mutation after loader capture is rejected at call and exit.
         saved=trainer.check_terminal.__code__;trainer.check_terminal.__code__=(lambda *args:None).__code__
         rejects(lambda:admit(unit,'cpu','control',179061),'authenticated')
@@ -1549,6 +1721,7 @@ def endpoint_authority_routing_contract(e):
 
 def endpoint_authentication_contract():
     e=module('_endpoint_complete_evaluator',DRIVER)
+    builtin_namespace_contract(e)
     endpoint_auth_inverse(DRIVER.read_bytes())
     endpoint_auth_test_inverse(Path(__file__).read_bytes())
     endpoint_reader_state_contract()
