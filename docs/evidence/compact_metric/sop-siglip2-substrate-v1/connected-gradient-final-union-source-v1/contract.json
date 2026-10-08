@@ -1,0 +1,30 @@
+{
+  "base": "8f2ef85bd7887a3a397b941e8a44e2eb9b96dd9d",
+  "scope": [
+    "scripts/qualify_connected_gradient_decomposition.py",
+    "scripts/test_connected_gradient_decomposition.py"
+  ],
+  "api": "file_bytes(fact, guards, *, keep=False, release_consumed_pages=False)",
+  "mode": "type(release_consumed_pages) is bool; True+truthy keep rejected; False leaves original flow intact",
+  "algorithm": "actual os.sysconf SC_PAGESIZE strict positive int; after digest.update(block), accumulate bytes read and floor completed pages; fadvise same fd at released offset for completed-released length with POSIX_FADV_DONTNEED; never partial tail; newly completed only; no exception suppression",
+  "callsite": "sole new True keyword in run.exit_integrity final context guards union; every other file_bytes call unchanged",
+  "inverse": "exact mode signature, validation/setup and post-hash scalar/advice block and unique union keyword removed; original full production AST pinned; new test helpers/bodies removed and three historical inverse entry/raw-input seams restored; all old SHA pins and mutation test predicates remain",
+  "tests": [
+    "real temporary file >=2MiB plus partial page, byte/SHA correctness, fd/dev/inode, fresh repeated read, 1MiB read requests, hash-before-advice",
+    "default and explicit False+keep True no sysconf/advice",
+    "empty/subpage/aligned tail, native-page sizes 4096/65536/8192/3MiB, deliberately unaligned short reads",
+    "mode type rejection (0/1/None/str/list/object), keyword-only rejection, release+keep rejection",
+    "sysconf exception/nonpositive/bool/float/string; read/update/hexdigest/advice/fstat/path-stat/guard/mutation fatal, fd closed",
+    "genuine finish_cleanup retains advice error primary and still runs original resource rejection and remaining cleanup",
+    "full original production and test AST inverse pins; mutation falsifiers preserve original predicates and reject altered advice seams"
+  ],
+  "checks": "narrow timeout15 RLIMIT_AS1073741824; one final timeout120 --source-only only after explicit parent slot; no thirdparty/native/GPU/SSH/consult/children/operator/cloud/merge/push",
+  "source_sha256": {
+    "scripts/qualify_connected_gradient_decomposition.py": "2bc273f3db332c0bf2b3b3e3b45722e581035c6509aef9d7c2dc5456494de63c",
+    "scripts/test_connected_gradient_decomposition.py": "3c9c67a7ba3d52b1a73f4aeb3aaebf8e53793c026ed4c2725cb44448cf666f9e"
+  },
+  "source_ast_sha256": {
+    "scripts/qualify_connected_gradient_decomposition.py": "fcd77b68ebe1375c471f22fbbb2d65f0a15dbdf3b2dcdcd3f91ec3a717082b07",
+    "scripts/test_connected_gradient_decomposition.py": "a25957750731ecf708fb410c58fbdb672d58b4dd096d8c1bd8c64a913f42d539"
+  }
+}

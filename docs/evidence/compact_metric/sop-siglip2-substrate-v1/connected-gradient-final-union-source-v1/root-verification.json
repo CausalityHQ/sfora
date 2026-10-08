@@ -1,0 +1,20 @@
+{
+  "exact_files": {
+    "scripts/qualify_connected_gradient_decomposition.py": "7822e1a0f522712c7459ae57ff3bf17858e900efacf2361055100c7b3c6180aa",
+    "scripts/test_connected_gradient_decomposition.py": "f6ae1f9259c073880e54a2316f272d55aff405c264020f66ae9240f7baaa91d8"
+  },
+  "full_suite": {
+    "exit": 0,
+    "log_sha256": "43c2865c384ca60a7a5656a161d2bb735866e8129d7a99c8dd1610fb0f8c0362",
+    "peak_rss_kib": 92484,
+    "swap": 0,
+    "tests": 31,
+    "wall_seconds": 3.77
+  },
+  "integrated_commit": "c78b5ed9ef53ecb0b6a966213db8c55472844c76",
+  "native_qualified": false,
+  "prior_native_v1_v2_v3": "FAIL preserved",
+  "schema": "root-gradient-final-union-source-review-v1",
+  "scope": "Only final-union consumed complete page advice after streamed hashing; default file reader unchanged; fatal advice errors; original predicates/cleanup preserved",
+  "worker_commit": "9143ca9d5000c0c40ccacd6954b40b5c4a78b1cc"
+}

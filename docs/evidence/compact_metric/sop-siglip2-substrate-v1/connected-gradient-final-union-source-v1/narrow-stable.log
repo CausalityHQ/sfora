@@ -1,0 +1,15 @@
+test_consumed_page_stream_hash_before_aligned_advice (__main__.DecompositionTests.test_consumed_page_stream_hash_before_aligned_advice) ... ok
+test_consumed_page_short_reads_native_sizes_and_tails (__main__.DecompositionTests.test_consumed_page_short_reads_native_sizes_and_tails) ... ok
+test_consumed_page_default_keep_and_strict_mode (__main__.DecompositionTests.test_consumed_page_default_keep_and_strict_mode) ... ok
+test_consumed_page_sysconf_and_io_failures_are_fatal (__main__.DecompositionTests.test_consumed_page_sysconf_and_io_failures_are_fatal) ... ok
+test_consumed_page_original_identity_hash_and_guard_checks (__main__.DecompositionTests.test_consumed_page_original_identity_hash_and_guard_checks) ... ok
+test_consumed_page_advice_failure_keeps_genuine_exit_cleanup (__main__.DecompositionTests.test_consumed_page_advice_failure_keeps_genuine_exit_cleanup) ... ok
+test_consumed_page_inverse_preserves_whole_original_source_and_tests (__main__.DecompositionTests.test_consumed_page_inverse_preserves_whole_original_source_and_tests) ... ok
+test_memory_observer_inverse_keeps_complete_original_predicates (__main__.DecompositionTests.test_memory_observer_inverse_keeps_complete_original_predicates) ... ok
+test_workspace_contract_inverse_preserves_whole_gradient_and_tests (__main__.DecompositionTests.test_workspace_contract_inverse_preserves_whole_gradient_and_tests) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 1.289s
+
+OK
+PASS stdlib selected checks; native UNRUN; scientific HOLD unchanged.

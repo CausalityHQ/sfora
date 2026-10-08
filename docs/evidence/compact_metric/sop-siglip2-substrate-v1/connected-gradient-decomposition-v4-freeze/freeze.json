@@ -1,0 +1,26 @@
+{
+  "files": {
+    "authority.json": "ec7ca24f77ec9decb3bdf110ea7c5904c85ff4de620d503ede3e59bebea13923",
+    "command.sh": "465baa329aa8ab422fa6a0647ab0ef13cd576e69427f91e30020d4981379804e",
+    "execution.json": "a9d9c3b67e6c67b5f7abb69c3af7c0105d8d14b7fb4b9b9e0dc53bc180de8517",
+    "launch.sh": "19746ceb6c7031188168505aee37427160cf59ae2781a4c33aafab519d6bf0e3",
+    "observe_connected_control_batch_execution.py": "6dc7c0e78447837a517fbec83d6bcc0228cd3824a6b09e441da4d9a1f3508fbf",
+    "qualify_connected_gradient_decomposition.py": "7822e1a0f522712c7459ae57ff3bf17858e900efacf2361055100c7b3c6180aa",
+    "test_connected_gradient_decomposition.py": "f6ae1f9259c073880e54a2316f272d55aff405c264020f66ae9240f7baaa91d8"
+  },
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-gradient-decomposition-v4",
+  "policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "extra_tensor_bytes": 536870912,
+    "gradient_sets_max": 8,
+    "host_bytes": 8589934592,
+    "seconds": 3000,
+    "swap_bytes": 0
+  },
+  "root": "/home/riomus/runs/sfora-connected-gradient-decomposition-source-v4",
+  "schema": "connected-gradient-decomposition-freeze-v1",
+  "source_commit": "c78b5ed9ef53ecb0b6a966213db8c55472844c76",
+  "stop_rule": "Prospective engineering-only final-union consumed-page advice qualification; original v1, v2 and v3 remain FAIL. Default admission/metadata hashing unchanged; only final-union streamed hash advises newly consumed complete native pages after hashing. All advice failures fatal. Reference training/evaluator execution manifests included in fresh outer SHA preflight and postflight; no file-stat predicate changes. No memory cap/event reset, skipped reads, hash cache or global eviction; only the frozen final-union consumed-page advice source change. Explicit gradient workspace selector preserves strict zero allocated after disposal. ONE original four-state TRAIN-only vector qualification:061init/128 then069init/128; first originalB64/micro16/bothviews/complete canonicalS6355, unchanged losses/K63/K64. No optimizer updates/new gallery/shadow/held quality. Exact numerical-only total=reg+rank, all actual6member/perlayer norms+dots+cos; stop first admission/math/role/lifetime/source/resource failure. Complete original payload/currentbytes/RNG/flags/native origins/strictallocated0/fulluncachedexit/normal terminal+bothlocks required. <=7sets290903232B (<8sets512MiB);3000s/8GiB/events0/swap0/CUDA<10GB. Cost UNMEASURED. CandidateKILL/HOLD_NEW_TRAINING_ARM preserved; no model/quality/speed/reuse/causal-intervention qualification.",
+  "unit": "sfora-connected-gradient-decomposition-v4"
+}
