@@ -1,0 +1,32 @@
+{
+  "actual_complete_check_receipt_on_independently_authenticated_metadata_pass": true,
+  "complete_production_accept_unit_required_before_export_cuda": true,
+  "engineering_only": true,
+  "memory_events_zero": true,
+  "native_modules": [],
+  "next_gate": "Four sequential fresh current-stage exports1500, then full same-four score700; historical first exports are ineligible for full stage; complete fresh ownCPU/source/normal terminal/full exit and original quality gates remain mandatory. Preserve original score500 FAIL.",
+  "original_normal_terminal_duration_rss_and_cgroup_predicates_checked": true,
+  "original_previous_auxiliary_full_authority_audit_timeout_preserved": true,
+  "pass": true,
+  "quality_read": false,
+  "schema": "connected-evaluator-cpu-parent-verification-v1",
+  "state_reuse_eligible": false,
+  "swap_bytes": 0,
+  "synthetic_bootstrap_and_complete_endpoint_payload_facts_pass": true,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "28c014bfd2724aa494cd2a1d59dc7560",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/full-cpu-v5-original.log",
+      "sha256": "8897da6b3ccfa160c94aa4872d1e7d25c82d31c66b011b0870c52dcf05c7c997"
+    },
+    "native_peak_rss_kib": 1463280,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v5/receipt.json",
+      "sha256": "1a732ebece8d775bffd142ff8abf32cfbc0da5ffb44c787cd0af22d8b3f7c189"
+    },
+    "service_seconds": 563.299,
+    "unit": "sfora-connected-mlp-evaluation-full-cpu-v5"
+  },
+  "whole_unit_peak_host_bytes": 2529730560
+}
