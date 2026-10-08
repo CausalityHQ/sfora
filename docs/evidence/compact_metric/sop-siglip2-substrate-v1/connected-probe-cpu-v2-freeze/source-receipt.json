@@ -1,0 +1,335 @@
+{
+  "commit": "7c3c2f49f8616157a3d84249f362b8057f931c8e",
+  "parent_commit": "4be6350f9b36ba17baaa0f57bec4735834556fdf",
+  "original_base": "0cb3e8f4643e620adae5e505022911303bd2fa14",
+  "clean": true,
+  "own2": [
+    "scripts/train_siglip2_connected_probe.py",
+    "scripts/test_siglip2_connected_probe.py"
+  ],
+  "files": {
+    "/home/rb/worktrees/sfora-connected-single-probe-trainer-20261008/scripts/train_siglip2_connected_probe.py": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e",
+    "/home/rb/worktrees/sfora-connected-single-probe-trainer-20261008/scripts/test_siglip2_connected_probe.py": "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120",
+    "/tmp/sfora-single-probe-contract.txt": "31b28aad7ce07e86a64bec52154902d5766c27ec6783a5fc229e2371be3d2456",
+    "/tmp/sfora-single-probe-contract.json": "fbb36737efb9fe3dc1f09d97c949ff27ce6e0833b4e2f5fc6800960f87269900",
+    "/tmp/sfora-single-probe-inverse-ledger.json": "5544e5b8350af4dbf6fd075e4f7598462bd144e46d991ff1885a9f3f9ce2da12",
+    "/tmp/sfora-single-probe-test-inverse-ledger.json": "8696baa5bf1a7b78100d55d54b0c8c21d88d9645e5ec9b983477e4bd778cb369",
+    "/tmp/sfora-single-probe-test-addition.txt": "5063bcf7a78ad5e8877d2a6fe95e20aa4a879c452e88d7ddcaec7d38d616d53d",
+    "/tmp/sfora-single-probe-replacement-final-gate.json": "2461edbbdc64c85365fc0e3a73fcab2a5b416ddc21313a6fbfc3a61016928abe",
+    "/tmp/sfora-single-probe-replacement-final-mlp.log": "055fa6badf78f535f223f1f79e6b0f17eb054a8b4b7233ffaf03e1b865339c7e",
+    "/tmp/sfora-single-probe-replacement-final-probe.log": "2b719a7751b678be2405aaaa1561c2acfffb37111ce9a51fd428a229202b96fe"
+  },
+  "verification": {
+    "results": [
+      {
+        "kind": "mlp",
+        "command": [
+          "/usr/bin/python3",
+          "-B",
+          "scripts/test_siglip2_connected_mlp.py",
+          "--source-only"
+        ],
+        "exit": 0,
+        "log": "/tmp/sfora-single-probe-replacement-final-mlp.log",
+        "sha256": "055fa6badf78f535f223f1f79e6b0f17eb054a8b4b7233ffaf03e1b865339c7e"
+      },
+      {
+        "kind": "probe",
+        "command": [
+          "/usr/bin/python3",
+          "-B",
+          "scripts/test_siglip2_connected_probe.py",
+          "--source-only"
+        ],
+        "exit": 0,
+        "log": "/tmp/sfora-single-probe-replacement-final-probe.log",
+        "sha256": "2b719a7751b678be2405aaaa1561c2acfffb37111ce9a51fd428a229202b96fe"
+      }
+    ],
+    "seconds": 23.629143966012634,
+    "address_space_bytes": 1073741824,
+    "original_and_probe_pass": true
+  },
+  "contract": "Source-only single-probe contract, base 0cb3e8f4643e620adae5e505022911303bd2fa14.\nOWN EXACT2: scripts/train_siglip2_connected_probe.py, scripts/test_siglip2_connected_probe.py.\nCLI: train_siglip2_connected_probe.py --execution-sha256 SHA --authority FILE --authority-sha256 SHA --phase cpu|mechanics|train --arm control|candidate --seed 179061|179069 --output NEWDIR. Same public API signatures as complete current MLP trainer.\nFILE: exact {path:canonical absolute regular file,sha256:actual SHA256}.\nUNIT: exact receipt:FILE,log:FILE,unit,invocation_id,service_seconds,native_peak_rss_kib,both_locks_held:true; unchanged original uncached log/exit/cgroup/lock admission.\nExecution own2, serving own2 + original SERVING_FILES + joint_relational_compaction.py. Historical witness same exact7; helpers/globals/math untouched.\nSchemas: siglip2-connected-probe-v1, siglip2-connected-probe-launch-v1, siglip2-connected-probe-inference-v1, siglip2-connected-probe-bundle-v1.\nLaunch retains exact original keys except actual_gradient becomes historical_mlp_actual_gradient. Its original four-MLP gradients/frozen444/UNIT/hash predicates are unchanged, explicitly historical only. Original CPU-v5 and both CONTROL6355/1008 seed initializers unchanged. New terminals require historical_mlp_prerequisite_only:true. No historical mechanics can pass new schema/source identity.\nCandidate A,C,head.probe[1,1,1152] (169088 scalars); control A,C (167936), frozen448. Candidate frozen447, complete448 identity. No architecture/forward/objective/source/schedule/rates/clipping/scaler/RNG changes.128 B64 micro16 two views same complete-gallery SmoothAP/P objective. Per-view first-update total gradients supplement original rank gradients; frozen447 actual gradients absent; all-active genuine bytes change.\nPayload same exact PAYLOAD_KEYS/IDENTITY_KEYS/STATIC_KEYS; encoder exact one absolute FP32 head.probe, encoder_identity initial_probe_sha256 singleton, frozen complement447, full updated448 digest; original source proof stays original. AdamW candidate group ordered [2], same defaults/moments/scaler/RNG/counter. Strict release-first independent checkpoint restore and portable owned bundle/inference APIs unchanged.\nGenuine class/live methods must match source SHA274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31 observed in CPU-v5: original model/head class and head.probe leaf, compiled original constructor/forward code. No claim native classes have executed locally.\nSame-numel mutant must choose a different registered leaf with unequal reshaped bytes, prove actual byte change, reject public forward then restore bytes.\nOwn CPU600 is one genuine candidate061 discarded actual two-view update plus strict changed-overlay portable reload and both seed initializers. Both fresh GPU mechanics1200 under new own2/schema use17 versus8+save/release/restore+9; TRAIN3000 only then replays first17. Unchanged8GiB/zero swap/CUDA<10GB/both locks/uncached exit; measured core+normal-exit service<=1.50. No synthetic gradient job or extra scientific threshold.\nTests copy complete existing source-only suite and invert exact finite ledger to original trainer bytes/AST before existing historical inverse checks. New standins execute actual source seams and genuine bound head forward with detached/source/role/name/shape/optimizer/alias/.data negatives. All original predicates retained. Test changes have own exact inverse ledger.\nRun narrow stdlib RED/GREEN then ONE final timeout120/RLIMIT_AS1GiB --source-only affected gate, serial. No third-party/native/Torch/images/checkpoint/SSH/GPU/cloud/job/consult/children/operator/merge/push. Root owns native freezes/quality/cost/integration. Source pass proves none of those.\nAssumptions: future installed source equals recorded CPU-v5 source; model448 and probe shape are prospective checks, not measurements. Native CPU/GPU may fail; no predicted duration/speed/quality.\nFinite production inverse ledger: /tmp/sfora-single-probe-inverse-ledger.json; ordered exact replacements with occurrence counts, reversed yields SHA79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b. Test inverse publication follows same rule before creating owned files.\nTest inverse: remove exact /tmp/sfora-single-probe-test-addition.txt before def main, then reverse counted /tmp/sfora-single-probe-test-inverse-ledger.json; recovers original SHA8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f045bc25. Original test file/helper hashes immutable.\nCorrection contract: head methods authenticate direct raw executable functions (no __wrapped__); Vision.forward authenticates EXACT merge_with_config_defaults wrapper -> capture_outputs wrapper with tie_last_hidden_states is False -> original decorated-base function. Code objects, original global namespaces, closure names/values and real func link equal __wrapped__ at each link, exact defaults; reject forged wraps outer/inner/global/closure/flags/bypass. Three full source SHA pins match original CPU-v5 input_guards; top factory functions match compiled genuine code/globals. auto_method_docstring returns same func; no third executable wrapper. Test source fixtures capture exact verified spans and original line offsets; no source imports or native runtime. These helpers replace inspect.unwrap admission, preserve all original predicates/inverse, introduce no caches or recipe/gate changes. Root owns PROBE exported-role API downstream evaluator migration (no speculative MLP alias). Initial4be6350f contract/ledgers/logs/receipt retained byte-exact in /tmp/sfora-single-probe-original4be6350f.\n",
+  "structured_contract": {
+    "base": "0cb3e8f4643e620adae5e505022911303bd2fa14",
+    "schemas": {
+      "SCHEMA": "siglip2-connected-probe-v1",
+      "AUTHORITY_SCHEMA": "siglip2-connected-probe-launch-v1",
+      "INFERENCE_SCHEMA": "siglip2-connected-probe-inference-v1",
+      "BUNDLE_SCHEMA": "siglip2-connected-probe-bundle-v1"
+    },
+    "exact_keys": {
+      "FILES": [
+        "test_siglip2_connected_probe.py",
+        "train_siglip2_connected_probe.py"
+      ],
+      "SERVING_FILES": [
+        "extract_siglip2_vision_source.py",
+        "prototype_residual_readout.py",
+        "quadratic_readout.py",
+        "qualify_siglip2_substrate_cpu.py",
+        "train_siglip2_cached_readout.py",
+        "train_siglip2_substrate_adaptation.py"
+      ],
+      "WITNESS_FILES": [
+        "connected_residual_readout.py",
+        "prototype_residual_readout.py",
+        "quadratic_readout.py",
+        "qualify_actual_objective_encoder_gradients.py",
+        "qualify_connected_encoder_gradients.py",
+        "test_actual_objective_encoder_gradients.py",
+        "train_siglip2_cached_readout.py"
+      ],
+      "LAUNCH_KEYS": [
+        "arm",
+        "both_locks_held",
+        "execution_sha256",
+        "fresh_control",
+        "historical_mlp_actual_gradient",
+        "original_cpu",
+        "phase",
+        "recipe",
+        "resource_policy",
+        "schema",
+        "seed",
+        "selected_cpu",
+        "selected_mechanics",
+        "witness"
+      ],
+      "STATIC_KEYS": [
+        "buffers",
+        "cache_provenance",
+        "classifier",
+        "common_statistics",
+        "config",
+        "head",
+        "masks",
+        "means",
+        "mu_train",
+        "mu_train_provenance",
+        "original_rows",
+        "partition",
+        "processor",
+        "provenance",
+        "schedule_provenance",
+        "schedules",
+        "scope",
+        "target",
+        "teachers",
+        "views"
+      ],
+      "PAYLOAD_KEYS": [
+        "A",
+        "C",
+        "base_vision",
+        "buffers",
+        "cache_provenance",
+        "classifier",
+        "common_statistics",
+        "config",
+        "counter",
+        "cpu_rng",
+        "cuda_rng",
+        "encoder",
+        "head",
+        "identity",
+        "masks",
+        "means",
+        "mu_train",
+        "mu_train_provenance",
+        "numerical_flags",
+        "optimizer",
+        "original_rows",
+        "partition",
+        "processor",
+        "provenance",
+        "scaler",
+        "schedule_provenance",
+        "schedules",
+        "schema",
+        "scope",
+        "source",
+        "target",
+        "teachers",
+        "views",
+        "vision_sha256"
+      ],
+      "IDENTITY_KEYS": [
+        "arm",
+        "base_vision",
+        "device",
+        "encoder_identity",
+        "initial_scaler",
+        "initializer",
+        "method",
+        "numerical_flags",
+        "optimizer_defaults",
+        "optimizer_groups",
+        "parameter_names",
+        "parameter_shapes",
+        "scope",
+        "seed",
+        "source",
+        "validator_identity"
+      ],
+      "INFERENCE_KEYS": [
+        "A",
+        "C",
+        "arm",
+        "base_vision",
+        "buffers",
+        "common_statistics",
+        "config",
+        "encoder",
+        "encoder_identity",
+        "fixed_sha256",
+        "head",
+        "means",
+        "mu_train",
+        "mu_train_provenance",
+        "numerical_flags",
+        "processor",
+        "schema",
+        "scope",
+        "source",
+        "vision_sha256"
+      ]
+    },
+    "recipe": {
+      "adamw": {
+        "lr": 0.0001,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "weight_decay": 0.05,
+        "amsgrad": false,
+        "maximize": false,
+        "foreach": false,
+        "capturable": false,
+        "differentiable": false,
+        "fused": false
+      },
+      "encoder_lr": 1e-05,
+      "batch": 64,
+      "microbatch": 16,
+      "updates": 128,
+      "seeds": [
+        179061,
+        179069
+      ],
+      "views": [
+        "canonical",
+        "augmented"
+      ],
+      "classes": {
+        "control": 1008,
+        "candidate": 1008
+      },
+      "rows": 6355,
+      "clip": 1.0,
+      "scaler": 128.0,
+      "training": "FP32 autocast disabled",
+      "serving": "CUDA FP16 autocast / CPU FP32",
+      "objective": "unchanged original CONTROL complete-gallery SmoothAP and P[label]",
+      "encoder_names": [
+        "head.probe"
+      ],
+      "encoder_shapes": [
+        [
+          1,
+          1,
+          1152
+        ]
+      ],
+      "cost_ratio": 1.5
+    },
+    "roles": {
+      "control": [
+        [
+          "A",
+          "C"
+        ],
+        [
+          [
+            128,
+            160
+          ],
+          [
+            128,
+            1152
+          ]
+        ],
+        167936
+      ],
+      "candidate": [
+        [
+          "A",
+          "C",
+          "head.probe"
+        ],
+        [
+          [
+            128,
+            160
+          ],
+          [
+            128,
+            1152
+          ],
+          [
+            1,
+            1,
+            1152
+          ]
+        ],
+        169088
+      ]
+    },
+    "resource_policies": {
+      "cpu": {
+        "seconds": 600,
+        "host_bytes": 8589934592,
+        "swap_bytes": 0,
+        "cuda_allocated_bytes_exclusive": 10000000000
+      },
+      "mechanics": {
+        "seconds": 1200,
+        "host_bytes": 8589934592,
+        "swap_bytes": 0,
+        "cuda_allocated_bytes_exclusive": 10000000000
+      },
+      "train": {
+        "seconds": 3000,
+        "host_bytes": 8589934592,
+        "swap_bytes": 0,
+        "cuda_allocated_bytes_exclusive": 10000000000
+      }
+    },
+    "historical_prerequisite_only": true,
+    "native_qualification": "UNRUN",
+    "files": {
+      "test_siglip2_connected_probe.py": "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120",
+      "train_siglip2_connected_probe.py": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+    },
+    "genuine_decorators": {
+      "generic.py": "252a17b73d020df90157e4033e2db51dcac8c11c9ffb799c33d5302a71c4964e",
+      "output_capturing.py": "65fa93bcfd2314d2a680c08c3699773f2ffea44340e85cd0e6392698b83b37bb",
+      "auto_docstring.py": "1c807048db9d45b45af9a4960802af5186bbe8f817059ac163abea49c187f660"
+    },
+    "executable_forward_chain": [
+      "merge_with_config_defaults.wrapper actual func closure",
+      "capture_outputs.wrapped_fn.wrapper actual func closure/tie_last_hidden_states:false",
+      "SiglipVisionModel.forward base exact code"
+    ],
+    "head_forward": "direct raw original function, no unwrap"
+  },
+  "original_preserved": "/tmp/sfora-single-probe-original4be6350f",
+  "native": "UNRUN/HOLD root",
+  "quality": "UNRUN",
+  "cost": "UNRUN",
+  "merged": false,
+  "pushed": false
+}

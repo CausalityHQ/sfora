@@ -1,0 +1,21 @@
+{
+  "authority_sha256": "1e03761683bda27f8eb78fbbb4a5a158abe9e47e527a38b60c6c2033ad2b1fcb",
+  "child_commit": "7c3c2f49f8616157a3d84249f362b8057f931c8e",
+  "execution_sha256": "d007a50139a839a5901a1dabbd1177def5665df89bfabe8f7f568d8dc94fff66",
+  "files": {
+    "authority-cpu-v2.json": "1e03761683bda27f8eb78fbbb4a5a158abe9e47e527a38b60c6c2033ad2b1fcb",
+    "cpu-v2-command.sh": "96a4268cb676e3dc01b173c84217e89e20183f15b2619ec5d78e793dc4e6075f",
+    "cpu-v2-controller.sh": "26bdfb1284775753ee966abc6ac10710986e2cacc9cd5ec6cab9289b1b8625b7",
+    "cpu-v2-launch.sh": "6529a226f6221f80332f523e0f7ca63c809363afa98074c7a143ba0b83616f96",
+    "execution.json": "d007a50139a839a5901a1dabbd1177def5665df89bfabe8f7f568d8dc94fff66",
+    "source-preflight.py": "8f633302dc1a203d8c362b76459927e512433a27d5682f4baa07f3d4bea24774",
+    "test_siglip2_connected_probe.py": "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120",
+    "train_siglip2_connected_probe.py": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+  },
+  "output": "/home/riomus/runs/sfora-connected-probe-cpu-v2",
+  "review_group": "935b36fbbf9e43d6",
+  "source_commit": "5aa258af",
+  "source_root": "/home/riomus/runs/sfora-connected-probe-train-source-v2",
+  "status": "FROZEN_ONE_PROSPECTIVE_CPU600",
+  "stop_rule": "ONE new CPU600; any failure closes attempt. Complete new-probe actual-gradient/update, strict updated overlay/portable parity, both initializers/lifetime/full uncached exit/original normal terminal, host8GiB/no swap/events/CUDAhidden/both locks required. No quality/speed or GPU admission without PASS; only then fresh both-arm mechanics1200. Original failures preserved."
+}

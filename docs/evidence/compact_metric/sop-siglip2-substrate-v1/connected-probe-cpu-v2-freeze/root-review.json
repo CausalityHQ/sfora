@@ -1,0 +1,14 @@
+{
+  "schema": "connected-probe-root-source-review-v1",
+  "decision": "GO_ONE_CPU600_SOURCE_ONLY",
+  "astra_forged_wrapper": "fixed by7c3c2f49 exact2wrappercode/globals/actualclosure/flags/base; rejection tests and actual guarded fullsource standins pass",
+  "opus_N1": "guarded full3 decorator sources read and hashes verified; actual2 executablewraps authenticated, auto_docstring returns original",
+  "rejected_inferences": [
+    "AdamW step/displacement bound",
+    "universal quality effect",
+    "serving latency or cost benefit",
+    "frozen gradients as numeric validation"
+  ],
+  "downstream": "new evaluator and serving schema closure still required before quality/serving",
+  "native_unrun": true
+}
