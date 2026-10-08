@@ -10,10 +10,7 @@
   },
   "inference_state_sha256": "fe792c7ffcb043922cfa7b23d10113293dbce14b805d6222a99e2e7d43a32e14",
   "launch": {
-    "path": {
-      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/authority-train-control-179069-v1.json",
-      "sha256": "4ea9c6dcc5c44d112068293b2cfab2464b4e42df583da387b6cf38ab0460d132"
-    },
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/authority-train-control-179069-v1.json",
     "sha256": "4ea9c6dcc5c44d112068293b2cfab2464b4e42df583da387b6cf38ab0460d132"
   },
   "seed": 179069,
