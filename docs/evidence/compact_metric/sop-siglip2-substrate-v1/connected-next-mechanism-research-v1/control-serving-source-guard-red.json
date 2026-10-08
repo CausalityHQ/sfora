@@ -1,0 +1,15 @@
+{
+  "authority": "source-only no native qualification; original requests and evaluator remain unchanged",
+  "cause": "deepcopy of identity-only builtin baseline objects does not equal unchanged original tuple",
+  "evaluator_sha256": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4",
+  "exception": "ValueError: authenticated live source changed",
+  "literal_mismatches": [
+    "_SOURCE_BUILTINS"
+  ],
+  "native_imports": [],
+  "pass": false,
+  "reproduction": "Source.load(actual evaluator FILE); compare captured literals; Source.check()",
+  "request_driver_sha256": "fb4636f299fbf48296fc059a6a896275cd49b7a06d06e9ab0e39f9400208d2ca",
+  "schema": "control-serving-source-guard-root-reproduction-v1",
+  "worker_correction_message": "immediate-1791452967669374921-2965865"
+}
