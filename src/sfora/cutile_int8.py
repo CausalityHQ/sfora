@@ -14,7 +14,7 @@ from numpy.ctypeslib import ndpointer
 from numpy.typing import NDArray
 
 if TYPE_CHECKING:
-    from sfora.joint_relational_compaction import PackedInt8Embeddings
+    from sfora.packed_int8 import PackedInt8Embeddings
 
 _DIMENSIONS = 128
 _TOP_K = 10
@@ -117,7 +117,7 @@ class CutilePackedInt8Gallery:
     ) -> CutilePackedInt8Gallery:
         """Open a gallery from Sfora's complete packed embedding value."""
 
-        from sfora.joint_relational_compaction import PackedInt8Embeddings
+        from sfora.packed_int8 import PackedInt8Embeddings
 
         if type(embeddings) is not PackedInt8Embeddings:
             raise ValueError("cuTile packed gallery authority differs")
@@ -193,7 +193,7 @@ class CutilePackedInt8Gallery:
     ) -> tuple[NDArray[np.int64], NDArray[np.float32]]:
         """Search with Sfora's complete packed embedding value."""
 
-        from sfora.joint_relational_compaction import PackedInt8Embeddings
+        from sfora.packed_int8 import PackedInt8Embeddings
 
         if type(embeddings) is not PackedInt8Embeddings:
             raise ValueError("cuTile packed query authority differs")

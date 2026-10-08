@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from sfora.joint_relational_compaction import PackedInt8Embeddings
+from sfora.packed_int8 import PackedInt8Embeddings
 
 _QUERY_BLOCK_ROWS = 64
 

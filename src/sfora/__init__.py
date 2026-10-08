@@ -334,14 +334,14 @@ _VECTOR_STORE_EXPORTS = frozenset(
     }
 )
 
+_PACKED_INT8_EXPORTS = frozenset({"PackedInt8Embeddings", "pack_int8_unit_embeddings"})
+
 _RELATIONAL_COMPACTION_EXPORTS = frozenset(
     {
-        "PackedInt8Embeddings",
         "RelationalLinearEncoder",
         "RelationalLinearTrainingConfig",
         "fit_relational_linear_compaction",
         "fit_relational_linear_encoder",
-        "pack_int8_unit_embeddings",
     }
 )
 
@@ -462,6 +462,11 @@ def __getattr__(name: str) -> object:
 
     if name in _PACKED_INT4_EXPORTS:
         module = import_module("sfora.packed_int4")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
+    if name in _PACKED_INT8_EXPORTS:
+        module = import_module("sfora.packed_int8")
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
