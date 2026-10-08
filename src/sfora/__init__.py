@@ -1,129 +1,260 @@
 """Core tools for group-based similarity learning experiments."""
 
 from importlib import import_module
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-from sfora.ablation import (
-    SyntheticAblationConfig,
-    SyntheticAblationResult,
-    SyntheticAblationTrial,
-    run_synthetic_ablation,
-    write_ablation_report,
-)
-from sfora.api import SforaProjector, fit_sfora_projection
-from sfora.compose import (
-    Head,
-    Identity,
-    Join,
-    L2Normalize,
-    Pca,
-    Pipeline,
-    Projection,
-    RetrievalReport,
-    compare,
-    evaluate,
-    grid,
-)
-from sfora.data import (
-    ImageExample,
-    TextExample,
-    TextGroupTriplet,
-    TextTriplet,
-    load_image_retrieval_examples,
-    load_imdb_examples,
-    mine_group_triplets,
-    mine_triplets,
-    select_balanced_examples,
-    select_labeled_image_examples,
-)
-from sfora.encoder_ablation import (
-    EncoderAblationConfig,
-    EncoderAblationResult,
-    EncoderAblationTrial,
-    run_encoder_ablation,
-    write_encoder_ablation_report,
-)
-from sfora.encoder_training import (
-    EncoderTrainingConfig,
-    EncoderTrainingMethodMetrics,
-    EncoderTrainingResult,
-    run_encoder_training,
-    run_encoder_training_on_split,
-    write_encoder_training_report,
-)
-from sfora.evaluation import (
-    EmbeddingSpaceDiagnostics,
-    ProbeScore,
-    RetrievalScore,
-    embedding_space_diagnostics_on_split,
-    linear_probe_score,
-    linear_probe_score_on_split,
-    retrieval_score_on_split,
-)
-from sfora.experiments import (
-    ExperimentResult,
-    MethodMetrics,
-    SyntheticExperimentConfig,
-    TrainableSyntheticExperimentConfig,
-    run_synthetic_experiment,
-    run_trainable_synthetic_experiment,
-    write_experiment_report,
-)
-from sfora.image_benchmark import (
-    ImageBenchmarkConfig,
-    ImageBenchmarkMethodMetrics,
-    ImageBenchmarkResult,
-    ImageObjective,
-    ImageRetrievalMetrics,
-    image_self_retrieval_score,
-    objective_display_name,
-    run_image_benchmark,
-    write_image_benchmark_report,
-)
-from sfora.losses import group_triplet_margin_loss, triplet_margin_loss
-from sfora.publication import (
-    HfPublishBundle,
-    HfPublishConfig,
-    HfPublishResult,
-    build_hf_publish_bundle,
-    publish_hf_bundle,
-)
-from sfora.remote import (
-    RemoteRunConfig,
-    RemoteRunPlan,
-    RemoteStep,
-    build_remote_run_plan,
-    write_remote_run_plan,
-)
-from sfora.report import (
-    ReportConfig,
-    build_html_report,
-    build_markdown_report,
-    build_site_data,
-    write_hf_model_card,
-    write_html_report,
-    write_markdown_report,
-    write_site_data,
-)
-from sfora.text_baselines import (
-    SentenceTransformerBaselineConfig,
-    SentenceTransformerModelSuiteConfig,
-    TextBaselineConfig,
-    TextBaselineResult,
-    TextMethodMetrics,
-    run_sentence_transformer_baseline,
-    run_sentence_transformer_model_suite,
-    run_text_baseline,
-    write_text_baseline_report,
-)
-from sfora.training import (
-    ProjectionHeadTrainingConfig,
-    ProjectionHeadTrainingResult,
-    ProjectionTrainingConfig,
-    ProjectionTrainingResult,
-    train_embedding_table,
-    train_projection_head,
-)
+if TYPE_CHECKING:
+    from sfora.ablation import (
+        SyntheticAblationConfig,
+        SyntheticAblationResult,
+        SyntheticAblationTrial,
+        run_synthetic_ablation,
+        write_ablation_report,
+    )
+    from sfora.api import SforaProjector, fit_sfora_projection
+    from sfora.compose import (
+        Head,
+        Identity,
+        Join,
+        L2Normalize,
+        Pca,
+        Pipeline,
+        Projection,
+        RetrievalReport,
+        compare,
+        evaluate,
+        grid,
+    )
+    from sfora.data import (
+        ImageExample,
+        TextExample,
+        TextGroupTriplet,
+        TextTriplet,
+        load_image_retrieval_examples,
+        load_imdb_examples,
+        mine_group_triplets,
+        mine_triplets,
+        select_balanced_examples,
+        select_labeled_image_examples,
+    )
+    from sfora.encoder_ablation import (
+        EncoderAblationConfig,
+        EncoderAblationResult,
+        EncoderAblationTrial,
+        run_encoder_ablation,
+        write_encoder_ablation_report,
+    )
+    from sfora.encoder_training import (
+        EncoderTrainingConfig,
+        EncoderTrainingMethodMetrics,
+        EncoderTrainingResult,
+        run_encoder_training,
+        run_encoder_training_on_split,
+        write_encoder_training_report,
+    )
+    from sfora.evaluation import (
+        EmbeddingSpaceDiagnostics,
+        ProbeScore,
+        RetrievalScore,
+        embedding_space_diagnostics_on_split,
+        linear_probe_score,
+        linear_probe_score_on_split,
+        retrieval_score_on_split,
+    )
+    from sfora.experiments import (
+        ExperimentResult,
+        MethodMetrics,
+        SyntheticExperimentConfig,
+        TrainableSyntheticExperimentConfig,
+        run_synthetic_experiment,
+        run_trainable_synthetic_experiment,
+        write_experiment_report,
+    )
+    from sfora.image_benchmark import (
+        ImageBenchmarkConfig,
+        ImageBenchmarkMethodMetrics,
+        ImageBenchmarkResult,
+        ImageObjective,
+        ImageRetrievalMetrics,
+        image_self_retrieval_score,
+        objective_display_name,
+        run_image_benchmark,
+        write_image_benchmark_report,
+    )
+    from sfora.losses import group_triplet_margin_loss, triplet_margin_loss
+    from sfora.publication import (
+        HfPublishBundle,
+        HfPublishConfig,
+        HfPublishResult,
+        build_hf_publish_bundle,
+        publish_hf_bundle,
+    )
+    from sfora.remote import (
+        RemoteRunConfig,
+        RemoteRunPlan,
+        RemoteStep,
+        build_remote_run_plan,
+        write_remote_run_plan,
+    )
+    from sfora.report import (
+        ReportConfig,
+        build_html_report,
+        build_markdown_report,
+        build_site_data,
+        write_hf_model_card,
+        write_html_report,
+        write_markdown_report,
+        write_site_data,
+    )
+    from sfora.text_baselines import (
+        SentenceTransformerBaselineConfig,
+        SentenceTransformerModelSuiteConfig,
+        TextBaselineConfig,
+        TextBaselineResult,
+        TextMethodMetrics,
+        run_sentence_transformer_baseline,
+        run_sentence_transformer_model_suite,
+        run_text_baseline,
+        write_text_baseline_report,
+    )
+    from sfora.training import (
+        ProjectionHeadTrainingConfig,
+        ProjectionHeadTrainingResult,
+        ProjectionTrainingConfig,
+        ProjectionTrainingResult,
+        train_embedding_table,
+        train_projection_head,
+    )
+
+_CORE_EXPORTS = {
+    "sfora.ablation": (
+        "SyntheticAblationConfig",
+        "SyntheticAblationResult",
+        "SyntheticAblationTrial",
+        "run_synthetic_ablation",
+        "write_ablation_report",
+    ),
+    "sfora.api": (
+        "SforaProjector",
+        "fit_sfora_projection",
+    ),
+    "sfora.compose": (
+        "Head",
+        "Identity",
+        "Join",
+        "L2Normalize",
+        "Pca",
+        "Pipeline",
+        "Projection",
+        "RetrievalReport",
+        "compare",
+        "evaluate",
+        "grid",
+    ),
+    "sfora.data": (
+        "ImageExample",
+        "TextExample",
+        "TextGroupTriplet",
+        "TextTriplet",
+        "load_image_retrieval_examples",
+        "load_imdb_examples",
+        "mine_group_triplets",
+        "mine_triplets",
+        "select_balanced_examples",
+        "select_labeled_image_examples",
+    ),
+    "sfora.encoder_ablation": (
+        "EncoderAblationConfig",
+        "EncoderAblationResult",
+        "EncoderAblationTrial",
+        "run_encoder_ablation",
+        "write_encoder_ablation_report",
+    ),
+    "sfora.encoder_training": (
+        "EncoderTrainingConfig",
+        "EncoderTrainingMethodMetrics",
+        "EncoderTrainingResult",
+        "run_encoder_training",
+        "run_encoder_training_on_split",
+        "write_encoder_training_report",
+    ),
+    "sfora.evaluation": (
+        "EmbeddingSpaceDiagnostics",
+        "ProbeScore",
+        "RetrievalScore",
+        "embedding_space_diagnostics_on_split",
+        "linear_probe_score",
+        "linear_probe_score_on_split",
+        "retrieval_score_on_split",
+    ),
+    "sfora.experiments": (
+        "ExperimentResult",
+        "MethodMetrics",
+        "SyntheticExperimentConfig",
+        "TrainableSyntheticExperimentConfig",
+        "run_synthetic_experiment",
+        "run_trainable_synthetic_experiment",
+        "write_experiment_report",
+    ),
+    "sfora.image_benchmark": (
+        "ImageBenchmarkConfig",
+        "ImageBenchmarkMethodMetrics",
+        "ImageBenchmarkResult",
+        "ImageObjective",
+        "ImageRetrievalMetrics",
+        "image_self_retrieval_score",
+        "objective_display_name",
+        "run_image_benchmark",
+        "write_image_benchmark_report",
+    ),
+    "sfora.losses": (
+        "group_triplet_margin_loss",
+        "triplet_margin_loss",
+    ),
+    "sfora.publication": (
+        "HfPublishBundle",
+        "HfPublishConfig",
+        "HfPublishResult",
+        "build_hf_publish_bundle",
+        "publish_hf_bundle",
+    ),
+    "sfora.remote": (
+        "RemoteRunConfig",
+        "RemoteRunPlan",
+        "RemoteStep",
+        "build_remote_run_plan",
+        "write_remote_run_plan",
+    ),
+    "sfora.report": (
+        "ReportConfig",
+        "build_html_report",
+        "build_markdown_report",
+        "build_site_data",
+        "write_hf_model_card",
+        "write_html_report",
+        "write_markdown_report",
+        "write_site_data",
+    ),
+    "sfora.text_baselines": (
+        "SentenceTransformerBaselineConfig",
+        "SentenceTransformerModelSuiteConfig",
+        "TextBaselineConfig",
+        "TextBaselineResult",
+        "TextMethodMetrics",
+        "run_sentence_transformer_baseline",
+        "run_sentence_transformer_model_suite",
+        "run_text_baseline",
+        "write_text_baseline_report",
+    ),
+    "sfora.training": (
+        "ProjectionHeadTrainingConfig",
+        "ProjectionHeadTrainingResult",
+        "ProjectionTrainingConfig",
+        "ProjectionTrainingResult",
+        "train_embedding_table",
+        "train_projection_head",
+    ),
+}
 
 _PACKED_INT4_EXPORTS = frozenset(
     {
@@ -322,6 +453,13 @@ _TEACHER_ANCHORED_SCHEDULE_IO_EXPORTS = frozenset(
 def __getattr__(name: str) -> object:
     """Load optional PyTorch compaction symbols only when explicitly requested."""
 
+    for module_name, names in _CORE_EXPORTS.items():
+        if name in names:
+            module = import_module(module_name)
+            value = cast(object, getattr(module, name))
+            globals()[name] = value
+            return value
+
     if name in _PACKED_INT4_EXPORTS:
         module = import_module("sfora.packed_int4")
         value = cast(object, getattr(module, name))
@@ -413,6 +551,10 @@ def __getattr__(name: str) -> object:
         globals()[name] = value
         return value
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))
 
 
 __all__ = [
