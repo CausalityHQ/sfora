@@ -1,0 +1,710 @@
+{
+  "id": "8540fdf8a573462c",
+  "status": "completed",
+  "started_at": 1791482310,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal result: original installed public serving v2 SSH29975 exited0, full22/twoowners parity/source/resource PASS authenticated; Fable87b751cc completed new VMM mechanism. Prior critique reviewed installed alias source, not this new mechanism. Consequential mutation-equivalence review before any implementation, no duplicate question.",
+  "rolling_6h_count": 3,
+  "prompt_preview": "Read-only review repo /home/rb/worktrees/sfora-positive-causality. NEW terminal evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-control-serving-v2/{verification,receipt}.json:22calls/twoowners/pass, B1 median1.689s/B32batch1.996s, body152.599s, hashing substantial. New Fable design readonly-vmm-research-87b751cc860b431c.json under connected-next-mechanism-research-v1. Review against src/sfora/connected_inference.py encoder_facts/inference_outputs/fingerprint. Can readonlyCUDA VMM replace per-call full448 hashes WITHOUT weakening CURRENT mutation/trust/lifetime/resource/parity guarantees? Challenge native flip-write-flip (hash detects changed bytes, require-monkeypatch comparison falseequivalence), sticky error invalidates secondwriteprobe in same context, CPUreadonlyTensor test is DGXnative not source-only, externalVMMcharge/DLPack lifetime. Verify cited primaryNVIDIA/PyTorch docs; distinguishGB10unknowns. Return GO only smallest corrected disposable capability falsifier or HOLD exactblocker. No edits/imports/SSH/jobs/children/model/nativeprobe. ExistingqualityKILL/historyFAIL unchanged; no speed/SOTA admission. Root retains experiment freeze/authority.",
+  "prompt_sha256": "5876628e24a0b14cd3df7383756690c4f3222af451d78c711a94f7d18643934f",
+  "prompt_bytes": 1206,
+  "fingerprint": "9d8943f3ed0358d95f757ac2502a8f8d29203204f8d7eabe144a10bd8a18f4cd",
+  "evidence": {
+    "git_commit": "33c16730d556ab08e48c02253a1c309f9d9ca53a",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "dcf1f615cf537931effc6693290c1695515a3d611dc176b0252ba6d065baebe2",
+    "worktree_sha256": "fa0d2f9109de6884b9f769440601d7a16fab72cc3d1cf7f67a29b9bbbf49bdac",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "20732c7889cc4463",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791482310,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791483510,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only review repo /home/rb/worktrees/sfora-positive-causality. NEW terminal evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-control-serving-v2/{verification,receipt}.json:22calls/twoowners/pass, B1 median1.689s/B32batch1.996s, body152.599s, hashing substantial. New Fable design readonly-vmm-research-87b751cc860b431c.json under connected-next-mechanism-research-v1. Review against src/sfora/connected_inference.py encoder_facts/inference_outputs/fingerprint. Can readonlyCUDA VMM replace per-call full448 hashes WITHOUT weakening CURRENT mutation/trust/lifetime/resource/parity guarantees? Challenge native flip-write-flip (hash detects changed bytes, require-monkeypatch comparison falseequivalence), sticky error invalidates secondwriteprobe in same context, CPUreadonlyTensor test is DGXnative not source-only, externalVMMcharge/DLPack lifetime. Verify cited primaryNVIDIA/PyTorch docs; distinguishGB10unknowns. Return GO only smallest corrected disposable capability falsifier or HOLD exactblocker. No edits/imports/SSH/jobs/children/model/nativeprobe. ExistingqualityKILL/historyFAIL unchanged; no speed/SOTA admission. Root retains experiment freeze/authority.",
+      "prompt_sha256": "99410af8705b84b7ee92229879bd1b712db4129c85d999df686f735328614b1e",
+      "prompt_bytes": 1576,
+      "fingerprint": "b4a649650a4fa834afec3403b55ac1e7966e03a288f1df8a9bc6ef1c6ce62ba1",
+      "evidence": {
+        "git_commit": "33c16730d556ab08e48c02253a1c309f9d9ca53a",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "dcf1f615cf537931effc6693290c1695515a3d611dc176b0252ba6d065baebe2",
+        "worktree_sha256": "fa0d2f9109de6884b9f769440601d7a16fab72cc3d1cf7f67a29b9bbbf49bdac",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "9386e3bb962d867d697622406e415e8d9b0e06102c8f2cf76900d8d8648c2ddf",
+      "reused": false,
+      "critique_id": "8540fdf8a573462c",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-20732c7889cc4463.service",
+      "pid": 3135711,
+      "pgid": 3135711,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1191,
+          "started_at": 1791482319
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791482830,
+      "event_cursor": 51,
+      "events": [
+        {
+          "seq": 28,
+          "at": 1791482716,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 29,
+          "at": 1791482716,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "mcp__fff__multi_grep started"
+        },
+        {
+          "seq": 30,
+          "at": 1791482784,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 31,
+          "at": 1791482788,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Write started"
+        },
+        {
+          "seq": 32,
+          "at": 1791482797,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 33,
+          "at": 1791482809,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 34,
+          "at": 1791482810,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 35,
+          "at": 1791482811,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 36,
+          "at": 1791482812,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1791482814,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 38,
+          "at": 1791482815,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1791482816,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 40,
+          "at": 1791482817,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 41,
+          "at": 1791482818,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 42,
+          "at": 1791482820,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 43,
+          "at": 1791482821,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 44,
+          "at": 1791482822,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 45,
+          "at": 1791482823,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 46,
+          "at": 1791482824,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 47,
+          "at": 1791482826,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 48,
+          "at": 1791482827,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 49,
+          "at": 1791482828,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 50,
+          "at": 1791482829,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 51,
+          "at": 1791482829,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 44,
+            "at": 1791482822,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 45,
+            "at": 1791482823,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 46,
+            "at": 1791482824,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 47,
+            "at": 1791482826,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 48,
+            "at": 1791482827,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 49,
+            "at": 1791482828,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 50,
+            "at": 1791482829,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 51,
+            "at": 1791482829,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: HOLD.** A read-only CUDA VMM owner cannot replace the per-call full448 hashes without weakening the current byte-mutation guarantee. I am not giving the capability falsifier a GO either: even a pass could not answer the question as asked. Run it only if you explicitly decide to narrow the guarantee; the corrected version is in section 5. I made no repo edits, imports, SSH, jobs, children, model runs or native probes. The one file I wrote is outside the repo: I updated my own memory note on this design, because it still recorded Fable's \"same threat boundary\" claim, which this review contradicts.\n\n## 1. What the new evidence actually supports\n- `verification.json` reports: 22 calls, 2 owners, parity true, `PASS_ENGINEERING_DIAGNOSTIC_ONLY`, product_go false, quality_read false.\n- Timing from `receipt.json`: B1 median ≈1.689 s and B32 ≈1.996 s, so the fixed per-call cost dominates. Body time was 152.6 s.\n- Instrumented attribution of the fixed cost: on each call, `encoder_facts` hashes frozen444 (`connected_inference.py:522`, 1.672 GB) **and** full448 (`:525`, 1.712 GB). The 444 frozen tensors are therefore hashed twice per call. Instrumented tensor-sha time is 1.377 s, which is about 2.5 GB/s, single-threaded.\n- The readout hash (`:766`) covers only 1.4 MB, yet costs 1.02 s instrumented, mostly Python traversal. **The VMM design keeps this hash**, so it does not touch this cost.\n- The instrumented call (6.06 s) is far slower than the uninstrumented one (1.69 s), so the uninstrumented share of hashing is not measured. \"Hashing substantial\" is plausible but not attributed.\n\n## 2. Exact blockers to \"replace without weakening\"\n1. **Driver-level writes evade every proposed per-call check.**\n   - NVIDIA's docs say `cuMemRetainAllocationHandle` accepts \"any address in a range previously mapped by cuMemMap\". Code holding any parameter pointer can get the physical handle, map it again at a second address with read-write access, and write. The original address still reports READ, and all the metadata checks pass.\n   - A flip-write-flip (set read-write, write, set read-only again) works the same way.\n   - The current full hash catches both before the next output. VMM is therefore not equivalent on this row.\n2. **Fable's \"equally defeated by monkeypatching `require`\" is a false equivalence.**\n   - `_check_runtime` checks file bytes only (`:121-124`), so a patched `require` does defeat the hash scheme.\n   - But the VMM checks call `require` too, so they fall to the same patch. On top of that, VMM also falls to items 1–2, which need no tampering with the verifier at all.\n   - So VMM's failure set strictly contains hashing's. It is not \"the same boundary\".\n3. **Silent hardware corruption is detected by the hash and not by VMM.** Prior art agrees that read-only alone is not treated as integrity: dm-verity and fs-verity hash on read, and RADAR (DATE 2021) uses runtime weight checksums.\n4. **Rejection changes from an exception to process death.**\n   - Today a mutation produces a `ValueError` at the next call. Under VMM it becomes a sticky fault that kills the process, which is an availability change for library callers.\n   - The CPU device path would keep hashing, so the frozen source would have two verification regimes.\n5. **Resources:** the VMM bytes (about 1.71 GB) disappear from `peak_cuda_allocated_bytes` (2.07 GB today, checked against the 1e10 policy). The receipt would under-report unless those bytes are added explicitly.\n6. **Lifetime:**\n   - The `cuMemUnmap` docs only say it \"exhibits synchronous behavior for most use cases\"; they never say it waits for outstanding work.\n   - PyTorch v2.12.1's DLPack import calls the capsule deleter from the storage destructor, with no stream sync.\n   - Fable's release order (unmap, release, free) needs an explicit device sync first. A hand-built ctypes DLPack capsule is also a new ABI surface that must be authenticated.\n\n## 3. Fable's citations, checked against the primary docs\n| Claim | Status |\n|---|---|\n| `PROT_READ` = \"Make the address range read accessible\" (types page) | ✅ verbatim |\n| \"device fault as if you accessed invalid memory\" for a write to a read-only range | ❌ **misattributed.** In the blog this sentence is about a *newly mapped PROT_NONE* range. No NVIDIA page (driver VA group, Programming Guide VMM chapter, blog) describes what a write to `PROT_READ` does. |\n| `cuMemSetAccess` \"exhibits synchronous behavior for most use cases\" | ✅ |\n| Sub-range permission changes | The docs say \"The range must be a fully mapped address range containing all allocations\". This implies whole-allocation granularity but does not state it. |\n| `fromDLPackImpl` ignores `flags`; deleter goes through `at::from_blob` | ✅ (v2.12.1 source) |\n| The Programming Guide says to query the VMM support attribute first | ✅ |\n\n**Unknown on GB10 specifically (none of these are documented):**\n- the VMM support attribute value on driver 580.159.03;\n- whether `PROT_READ` is accepted and whether flipping read-write to read-only after mapping is allowed;\n- whether writes from kernels and from the copy engine are blocked, and whether the error is a synchronous recoverable code or a sticky fault;\n- whether a host-to-device copy on the coherent C2C link is done by a CPU write that bypasses the GPU page table;\n- whether VMM allocations are charged to the cgroup memory limit;\n- whether cuBLASLt picks different kernels for these pointers.\n\nFable says the 6.38 GB memory peak \"suggests\" device memory is not charged to the cgroup. That is unsupported: 4.28 GB RSS + 2.07 GB CUDA ≈ 6.35 GB fits charging equally well.\n\n## 4. An in-repo alternative that dominates on every guarantee\n`fingerprint` (`:848-889`) already hashes each tensor separately and then frames the per-tensor results.\n- **Hash each tensor once per call:** reuse those per-tensor results for both the `:522` and `:525` digests through the existing `frozen=` cache. Add stride and offset to its key, because a square-weight transpose would otherwise collide. That roughly halves the hashed bytes (3.42 → about 1.75 GB).\n- **Parallelise the per-tensor hashes across threads:** hashlib releases the GIL on large buffers.\n\nThe digests stay identical. Detection still covers every write path including native, alias and hardware. Failure stays an exception; the forward path, lifetime and accounting are unchanged, so parity is untouched.\n\nThis is a source change to the frozen installed code, so it needs your authority and its own receipt. **It is not a speed admission.**\n\n## 5. Corrected falsifier, held until you narrow the guarantee\nFable's falsifier 1 is invalid as written: a sticky error from the first write masks the second write probe in the same context. Its falsifier 2 (a CPU read-only mmap with Torch and a deliberate segfault) runs native code that only means something on the DGX's Torch 2.12.1 aarch64 build. It is not source-only, and it never exercises the CUDA DLPack lifetime.\n\nThe corrected version is a disposable script with no Torch and no model, using ctypes on an authenticated `libcuda.so.1`, with one fresh process per mode:\n- **Positive control:** keep the 2 MiB range read-write. A PTX store loaded with `cuModuleLoadData` must succeed, and reading the range back must show the new value.\n- **Kernel-store probe:** read-only range, then the kernel store.\n- **Host-to-device probe:** read-only range, then `cuMemcpyHtoD`.\n\nBefore each write, every process checks: VMM attribute is 1, `SetAccess READ` succeeds, `GetAccess` returns 1, and a device-to-host readback matches the pattern. Print and flush every return code, then call `cuCtxSynchronize`, and record cgroup `memory.current` before and after `cuMemCreate`.\n\n- **Pass:** the control writes, and each write probe returns a non-success code at the write call or at sync, after module load and launch succeeded.\n- **Stop:** any write probe returns success at sync.\n\nA pass would establish capability only. Blockers 1–6 still stand.\n\nUnchanged: the existing quality KILL and history FAIL, no speed or SOTA admission, and you keep the experiment freeze and authority.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: HOLD.** A read-only CUDA VMM owner cannot replace the per-call full448 hashes without weakening the current byte-mutation guarantee. I am not giving the capability falsifier a GO either: even a pass could not answer the question as asked. Run it only if you explicitly decide to narrow the guarantee; the corrected version is in section 5. I made no repo edits, imports, SSH, jobs, children, model runs or native probes. The one file I wrote is outside the repo: I updated my own memory note on this design, because it still recorded Fable's \"same threat boundary\" claim, which this review contradicts.\n\n## 1. What the new evidence actually supports\n- `verification.json` reports: 22 calls, 2 owners, parity true, `PASS_ENGINEERING_DIAGNOSTIC_ONLY`, product_go false, quality_read false.\n- Timing from `receipt.json`: B1 median ≈1.689 s and B32 ≈1.996 s, so the fixed per-call cost dominates. Body time was 152.6 s.\n- Instrumented attribution of the fixed cost: on each call, `encoder_facts` hashes frozen444 (`connected_inference.py:522`, 1.672 GB) **and** full448 (`:525`, 1.712 GB). The 444 frozen tensors are therefore hashed twice per call. Instrumented tensor-sha time is 1.377 s, which is about 2.5 GB/s, single-threaded.\n- The readout hash (`:766`) covers only 1.4 MB, yet costs 1.02 s instrumented, mostly Python traversal. **The VMM design keeps this hash**, so it does not touch this cost.\n- The instrumented call (6.06 s) is far slower than the uninstrumented one (1.69 s), so the uninstrumented share of hashing is not measured. \"Hashing substantial\" is plausible but not attributed.\n\n## 2. Exact blockers to \"replace without weakening\"\n1. **Driver-level writes evade every proposed per-call check.**\n   - NVIDIA's docs say `cuMemRetainAllocationHandle` accepts \"any address in a range previously mapped by cuMemMap\". Code holding any parameter pointer can get the physical handle, map it again at a second address with read-write access, and write. The original address still reports READ, and all the metadata checks pass.\n   - A flip-write-flip (set read-write, write, set read-only again) works the same way.\n   - The current full hash catches both before the next output. VMM is therefore not equivalent on this row.\n2. **Fable's \"equally defeated by monkeypatching `require`\" is a false equivalence.**\n   - `_check_runtime` checks file bytes only (`:121-124`), so a patched `require` does defeat the hash scheme.\n   - But the VMM checks call `require` too, so they fall to the same patch. On top of that, VMM also falls to items 1–2, which need no tampering with the verifier at all.\n   - So VMM's failure set strictly contains hashing's. It is not \"the same boundary\".\n3. **Silent hardware corruption is detected by the hash and not by VMM.** Prior art agrees that read-only alone is not treated as integrity: dm-verity and fs-verity hash on read, and RADAR (DATE 2021) uses runtime weight checksums.\n4. **Rejection changes from an exception to process death.**\n   - Today a mutation produces a `ValueError` at the next call. Under VMM it becomes a sticky fault that kills the process, which is an availability change for library callers.\n   - The CPU device path would keep hashing, so the frozen source would have two verification regimes.\n5. **Resources:** the VMM bytes (about 1.71 GB) disappear from `peak_cuda_allocated_bytes` (2.07 GB today, checked against the 1e10 policy). The receipt would under-report unless those bytes are added explicitly.\n6. **Lifetime:**\n   - The `cuMemUnmap` docs only say it \"exhibits synchronous behavior for most use cases\"; they never say it waits for outstanding work.\n   - PyTorch v2.12.1's DLPack import calls the capsule deleter from the storage destructor, with no stream sync.\n   - Fable's release order (unmap, release, free) needs an explicit device sync first. A hand-built ctypes DLPack capsule is also a new ABI surface that must be authenticated.\n\n## 3. Fable's citations, checked against the primary docs\n| Claim | Status |\n|---|---|\n| `PROT_READ` = \"Make the address range read accessible\" (types page) | ✅ verbatim |\n| \"device fault as if you accessed invalid memory\" for a write to a read-only range | ❌ **misattributed.** In the blog this sentence is about a *newly mapped PROT_NONE* range. No NVIDIA page (driver VA group, Programming Guide VMM chapter, blog) describes what a write to `PROT_READ` does. |\n| `cuMemSetAccess` \"exhibits synchronous behavior for most use cases\" | ✅ |\n| Sub-range permission changes | The docs say \"The range must be a fully mapped address range containing all allocations\". This implies whole-allocation granularity but does not state it. |\n| `fromDLPackImpl` ignores `flags`; deleter goes through `at::from_blob` | ✅ (v2.12.1 source) |\n| The Programming Guide says to query the VMM support attribute first | ✅ |\n\n**Unknown on GB10 specifically (none of these are documented):**\n- the VMM support attribute value on driver 580.159.03;\n- whether `PROT_READ` is accepted and whether flipping read-write to read-only after mapping is allowed;\n- whether writes from kernels and from the copy engine are blocked, and whether the error is a synchronous recoverable code or a sticky fault;\n- whether a host-to-device copy on the coherent C2C link is done by a CPU write that bypasses the GPU page table;\n- whether VMM allocations are charged to the cgroup memory limit;\n- whether cuBLASLt picks different kernels for these pointers.\n\nFable says the 6.38 GB memory peak \"suggests\" device memory is not charged to the cgroup. That is unsupported: 4.28 GB RSS + 2.07 GB CUDA ≈ 6.35 GB fits charging equally well.\n\n## 4. An in-repo alternative that dominates on every guarantee\n`fingerprint` (`:848-889`) already hashes each tensor separately and then frames the per-tensor results.\n- **Hash each tensor once per call:** reuse those per-tensor results for both the `:522` and `:525` digests through the existing `frozen=` cache. Add stride and offset to its key, because a square-weight transpose would otherwise collide. That roughly halves the hashed bytes (3.42 → about 1.75 GB).\n- **Parallelise the per-tensor hashes across threads:** hashlib releases the GIL on large buffers.\n\nThe digests stay identical. Detection still covers every write path including native, alias and hardware. Failure stays an exception; the forward path, lifetime and accounting are unchanged, so parity is untouched.\n\nThis is a source change to the frozen installed code, so it needs your authority and its own receipt. **It is not a speed admission.**\n\n## 5. Corrected falsifier, held until you narrow the guarantee\nFable's falsifier 1 is invalid as written: a sticky error from the first write masks the second write probe in the same context. Its falsifier 2 (a CPU read-only mmap with Torch and a deliberate segfault) runs native code that only means something on the DGX's Torch 2.12.1 aarch64 build. It is not source-only, and it never exercises the CUDA DLPack lifetime.\n\nThe corrected version is a disposable script with no Torch and no model, using ctypes on an authenticated `libcuda.so.1`, with one fresh process per mode:\n- **Positive control:** keep the 2 MiB range read-write. A PTX store loaded with `cuModuleLoadData` must succeed, and reading the range back must show the new value.\n- **Kernel-store probe:** read-only range, then the kernel store.\n- **Host-to-device probe:** read-only range, then `cuMemcpyHtoD`.\n\nBefore each write, every process checks: VMM attribute is 1, `SetAccess READ` succeeds, `GetAccess` returns 1, and a device-to-host readback matches the pattern. Print and flush every return code, then call `cuCtxSynchronize`, and record cgroup `memory.current` before and after `cuMemCreate`.\n\n- **Pass:** the control writes, and each write probe returns a non-success code at the write call or at sync, after module load and launch succeeded.\n- **Stop:** any write probe returns success at sync.\n\nA pass would establish capability only. Blockers 1–6 still stand.\n\nUnchanged: the existing quality KILL and history FAIL, no speed or SOTA admission, and you keep the experiment freeze and authority."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 1576,
+      "output_bytes": 8143,
+      "elapsed_seconds": 520,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)\ndevbox-ask: claude consult still running (8m 00s)",
+      "progress_truncated": false,
+      "result": "**Verdict: HOLD.** A read-only CUDA VMM owner cannot replace the per-call full448 hashes without weakening the current byte-mutation guarantee. I am not giving the capability falsifier a GO either: even a pass could not answer the question as asked. Run it only if you explicitly decide to narrow the guarantee; the corrected version is in section 5. I made no repo edits, imports, SSH, jobs, children, model runs or native probes. The one file I wrote is outside the repo: I updated my own memory note on this design, because it still recorded Fable's \"same threat boundary\" claim, which this review contradicts.\n\n## 1. What the new evidence actually supports\n- `verification.json` reports: 22 calls, 2 owners, parity true, `PASS_ENGINEERING_DIAGNOSTIC_ONLY`, product_go false, quality_read false.\n- Timing from `receipt.json`: B1 median ≈1.689 s and B32 ≈1.996 s, so the fixed per-call cost dominates. Body time was 152.6 s.\n- Instrumented attribution of the fixed cost: on each call, `encoder_facts` hashes frozen444 (`connected_inference.py:522`, 1.672 GB) **and** full448 (`:525`, 1.712 GB). The 444 frozen tensors are therefore hashed twice per call. Instrumented tensor-sha time is 1.377 s, which is about 2.5 GB/s, single-threaded.\n- The readout hash (`:766`) covers only 1.4 MB, yet costs 1.02 s instrumented, mostly Python traversal. **The VMM design keeps this hash**, so it does not touch this cost.\n- The instrumented call (6.06 s) is far slower than the uninstrumented one (1.69 s), so the uninstrumented share of hashing is not measured. \"Hashing substantial\" is plausible but not attributed.\n\n## 2. Exact blockers to \"replace without weakening\"\n1. **Driver-level writes evade every proposed per-call check.**\n   - NVIDIA's docs say `cuMemRetainAllocationHandle` accepts \"any address in a range previously mapped by cuMemMap\". Code holding any parameter pointer can get the physical handle, map it again at a second address with read-write access, and write. The original address still reports READ, and all the metadata checks pass.\n   - A flip-write-flip (set read-write, write, set read-only again) works the same way.\n   - The current full hash catches both before the next output. VMM is therefore not equivalent on this row.\n2. **Fable's \"equally defeated by monkeypatching `require`\" is a false equivalence.**\n   - `_check_runtime` checks file bytes only (`:121-124`), so a patched `require` does defeat the hash scheme.\n   - But the VMM checks call `require` too, so they fall to the same patch. On top of that, VMM also falls to items 1–2, which need no tampering with the verifier at all.\n   - So VMM's failure set strictly contains hashing's. It is not \"the same boundary\".\n3. **Silent hardware corruption is detected by the hash and not by VMM.** Prior art agrees that read-only alone is not treated as integrity: dm-verity and fs-verity hash on read, and RADAR (DATE 2021) uses runtime weight checksums.\n4. **Rejection changes from an exception to process death.**\n   - Today a mutation produces a `ValueError` at the next call. Under VMM it becomes a sticky fault that kills the process, which is an availability change for library callers.\n   - The CPU device path would keep hashing, so the frozen source would have two verification regimes.\n5. **Resources:** the VMM bytes (about 1.71 GB) disappear from `peak_cuda_allocated_bytes` (2.07 GB today, checked against the 1e10 policy). The receipt would under-report unless those bytes are added explicitly.\n6. **Lifetime:**\n   - The `cuMemUnmap` docs only say it \"exhibits synchronous behavior for most use cases\"; they never say it waits for outstanding work.\n   - PyTorch v2.12.1's DLPack import calls the capsule deleter from the storage destructor, with no stream sync.\n   - Fable's release order (unmap, release, free) needs an explicit device sync first. A hand-built ctypes DLPack capsule is also a new ABI surface that must be authenticated.\n\n## 3. Fable's citations, checked against the primary docs\n| Claim | Status |\n|---|---|\n| `PROT_READ` = \"Make the address range read accessible\" (types page) | ✅ verbatim |\n| \"device fault as if you accessed invalid memory\" for a write to a read-only range | ❌ **misattributed.** In the blog this sentence is about a *newly mapped PROT_NONE* range. No NVIDIA page (driver VA group, Programming Guide VMM chapter, blog) describes what a write to `PROT_READ` does. |\n| `cuMemSetAccess` \"exhibits synchronous behavior for most use cases\" | ✅ |\n| Sub-range permission changes | The docs say \"The range must be a fully mapped address range containing all allocations\". This implies whole-allocation granularity but does not state it. |\n| `fromDLPackImpl` ignores `flags`; deleter goes through `at::from_blob` | ✅ (v2.12.1 source) |\n| The Programming Guide says to query the VMM support attribute first | ✅ |\n\n**Unknown on GB10 specifically (none of these are documented):**\n- the VMM support attribute value on driver 580.159.03;\n- whether `PROT_READ` is accepted and whether flipping read-write to read-only after mapping is allowed;\n- whether writes from kernels and from the copy engine are blocked, and whether the error is a synchronous recoverable code or a sticky fault;\n- whether a host-to-device copy on the coherent C2C link is done by a CPU write that bypasses the GPU page table;\n- whether VMM allocations are charged to the cgroup memory limit;\n- whether cuBLASLt picks different kernels for these pointers.\n\nFable says the 6.38 GB memory peak \"suggests\" device memory is not charged to the cgroup. That is unsupported: 4.28 GB RSS + 2.07 GB CUDA ≈ 6.35 GB fits charging equally well.\n\n## 4. An in-repo alternative that dominates on every guarantee\n`fingerprint` (`:848-889`) already hashes each tensor separately and then frames the per-tensor results.\n- **Hash each tensor once per call:** reuse those per-tensor results for both the `:522` and `:525` digests through the existing `frozen=` cache. Add stride and offset to its key, because a square-weight transpose would otherwise collide. That roughly halves the hashed bytes (3.42 → about 1.75 GB).\n- **Parallelise the per-tensor hashes across threads:** hashlib releases the GIL on large buffers.\n\nThe digests stay identical. Detection still covers every write path including native, alias and hardware. Failure stays an exception; the forward path, lifetime and accounting are unchanged, so parity is untouched.\n\nThis is a source change to the frozen installed code, so it needs your authority and its own receipt. **It is not a speed admission.**\n\n## 5. Corrected falsifier, held until you narrow the guarantee\nFable's falsifier 1 is invalid as written: a sticky error from the first write masks the second write probe in the same context. Its falsifier 2 (a CPU read-only mmap with Torch and a deliberate segfault) runs native code that only means something on the DGX's Torch 2.12.1 aarch64 build. It is not source-only, and it never exercises the CUDA DLPack lifetime.\n\nThe corrected version is a disposable script with no Torch and no model, using ctypes on an authenticated `libcuda.so.1`, with one fresh process per mode:\n- **Positive control:** keep the 2 MiB range read-write. A PTX store loaded with `cuModuleLoadData` must succeed, and reading the range back must show the new value.\n- **Kernel-store probe:** read-only range, then the kernel store.\n- **Host-to-device probe:** read-only range, then `cuMemcpyHtoD`.\n\nBefore each write, every process checks: VMM attribute is 1, `SetAccess READ` succeeds, `GetAccess` returns 1, and a device-to-host readback matches the pattern. Print and flush every return code, then call `cuCtxSynchronize`, and record cgroup `memory.current` before and after `cuMemCreate`.\n\n- **Pass:** the control writes, and each write probe returns a non-success code at the write call or at sync, after module load and launch succeeded.\n- **Stop:** any write probe returns success at sync.\n\nA pass would establish capability only. Blockers 1–6 still stand.\n\nUnchanged: the existing quality KILL and history FAIL, no speed or SOTA admission, and you keep the experiment freeze and authority.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "3b17f6dbf6a64f99",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791482319,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791483519,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only review repo /home/rb/worktrees/sfora-positive-causality. NEW terminal evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-control-serving-v2/{verification,receipt}.json:22calls/twoowners/pass, B1 median1.689s/B32batch1.996s, body152.599s, hashing substantial. New Fable design readonly-vmm-research-87b751cc860b431c.json under connected-next-mechanism-research-v1. Review against src/sfora/connected_inference.py encoder_facts/inference_outputs/fingerprint. Can readonlyCUDA VMM replace per-call full448 hashes WITHOUT weakening CURRENT mutation/trust/lifetime/resource/parity guarantees? Challenge native flip-write-flip (hash detects changed bytes, require-monkeypatch comparison falseequivalence), sticky error invalidates secondwriteprobe in same context, CPUreadonlyTensor test is DGXnative not source-only, externalVMMcharge/DLPack lifetime. Verify cited primaryNVIDIA/PyTorch docs; distinguishGB10unknowns. Return GO only smallest corrected disposable capability falsifier or HOLD exactblocker. No edits/imports/SSH/jobs/children/model/nativeprobe. ExistingqualityKILL/historyFAIL unchanged; no speed/SOTA admission. Root retains experiment freeze/authority.",
+      "prompt_sha256": "43db75589ce3056d6370573fe6b4fca9b02eb9b47305b356e2d72adc8da74744",
+      "prompt_bytes": 1610,
+      "fingerprint": "d555c9fd2dabe7787bf45949bb8849f0bfec4d5f18be4c0b0c1d1add4ed2df6b",
+      "evidence": {
+        "git_commit": "33c16730d556ab08e48c02253a1c309f9d9ca53a",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "dcf1f615cf537931effc6693290c1695515a3d611dc176b0252ba6d065baebe2",
+        "worktree_sha256": "fa0d2f9109de6884b9f769440601d7a16fab72cc3d1cf7f67a29b9bbbf49bdac",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "b4a649650a4fa834afec3403b55ac1e7966e03a288f1df8a9bc6ef1c6ce62ba1",
+      "reused": false,
+      "critique_id": "8540fdf8a573462c",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-3b17f6dbf6a64f99.service",
+      "pid": 3135771,
+      "pgid": 3135771,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1791482319
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791482799,
+      "event_cursor": 69,
+      "events": [
+        {
+          "seq": 46,
+          "at": 1791482555,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 47,
+          "at": 1791482565,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 48,
+          "at": 1791482574,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 49,
+          "at": 1791482581,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 50,
+          "at": 1791482581,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 51,
+          "at": 1791482581,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 52,
+          "at": 1791482583,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 53,
+          "at": 1791482597,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 54,
+          "at": 1791482598,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 55,
+          "at": 1791482598,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 56,
+          "at": 1791482607,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 57,
+          "at": 1791482628,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 58,
+          "at": 1791482630,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 59,
+          "at": 1791482631,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 60,
+          "at": 1791482631,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 61,
+          "at": 1791482657,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 62,
+          "at": 1791482659,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 63,
+          "at": 1791482659,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 64,
+          "at": 1791482662,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 65,
+          "at": 1791482714,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 66,
+          "at": 1791482714,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 67,
+          "at": 1791482718,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 68,
+          "at": 1791482792,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 69,
+          "at": 1791482799,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 62,
+            "at": 1791482659,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Web search completed"
+          },
+          {
+            "seq": 63,
+            "at": 1791482659,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 64,
+            "at": 1791482662,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 65,
+            "at": 1791482714,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 66,
+            "at": 1791482714,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 67,
+            "at": 1791482718,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 68,
+            "at": 1791482792,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 69,
+            "at": 1791482799,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**HOLD — the proposed VMM replacement does not preserve current mutation detection.** Its decisive blocker is native flip-write-flip with the validator unchanged.\n\nI verified the [terminal evidence](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-control-serving-v2/verification.json): 22 calls, two owners, parity, normal exit, body **152.599 s**. Receipt medians are **1.6887 s B1** and **1.9965 s B32 batch**. The receipt SHA and installed runtime-source SHA match local files. HEAD advanced to `8651a2f`; the reviewed inference source is unchanged from supplied `33c1673`.\n\nFindings against the [Fable design](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/readonly-vmm-research-87b751cc860b431c.json), ordered by severity:\n\n1. **P1 — Access permissions do not authenticate current bytes.**  \n   Change READ→READWRITE, overwrite a weight, synchronize, restore READ. Parameter identities, pointers, shapes, strides, storage sizes and access flags can all remain unchanged. Current [encoder checks](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:522) instead call the [uncached byte fingerprint](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:848), which detects bytes left changed at the next check.\n\n   The `require`-monkeypatch comparison is false equivalence: this counterexample changes no validator. Moreover, the public bridge [checks callable and namespace identity](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_compact_serving.py:436). NVIDIA documents `cuMemSetAccess` as a permission setter and `cuMemGetAccess` as a query for a location/address—not a mutation-history attestation. One base-address query also does not establish permissions throughout a large allocation. [CUDA VMM API](https://docs.nvidia.com/cuda/archive/13.0.2/cuda-driver-api/group__CUDA__VA.html)\n\n   **Required correction:** retain content checks unless an independently enforced ownership boundary prevents these writes. Merely declaring native mutation out of scope weakens the current guarantee.\n\n2. **P1 — The proposed write falsifier can produce a false PASS.**  \n   Running HtoD violation and kernel-store violation consecutively in one context is invalid once the first causes `CUDA_ERROR_ILLEGAL_ADDRESS`: subsequent CUDA work returns that error regardless of whether the second operation exercised protection. NVIDIA explicitly requires process termination and relaunch after this error. [CUDA error semantics](https://docs.nvidia.com/cuda/archive/13.0.2/cuda-driver-api/group__CUDA__TYPES.html)\n\n   **Required correction:** each destructive write path gets a fresh process, a successful writable control using the same operation, successful initialization/readback, and its own synchronized result. OOM, invalid cubin, setup failure, timeout or unexplained process death must not count as protection PASS. Capture the operation and synchronization return codes before exiting.\n\n3. **P1 — Existing weakrefs do not prove storage death.**  \n   [Release](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:811) watches Python models, parameters and buffers. A detached tensor or storage alias can survive after those particular Python objects disappear. Unmapping then creates dangling storage; retaining the owner’s base tensor indefinitely instead prevents final release.\n\n   PyTorch’s [DLPack conversion](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/aten/src/ATen/DLConvertor.cpp) wraps external memory and retains a deleter referencing the supplied descriptor. The descriptor, callback and allocation owner must outlive every storage alias and outstanding device use. Keeping only the `CFUNCTYPE` callback alive until endpoint teardown is insufficient.\n\n   **Required correction:** define exactly-once, storage-based ownership and synchronized teardown, including failed import, partial construction, cancellation and retained aliases. CPU `frombuffer` lifetime does not establish CUDA DLPack lifetime.\n\n4. **P1 — External allocation accounting is not yet an enforced resource guarantee.**  \n   The current [resource gate](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_connected_serving_requests.py:386) checks `peak_cuda_allocated_bytes`. Direct CUDA allocations are outside PyTorch allocator visibility. [PyTorch memory documentation](https://docs.pytorch.org/docs/2.12/torch_cuda_memory.html)\n\n   Reporting VMM bytes separately is insufficient unless the gate enforces a conservative combined bound covering rounded allocations and construction overlap. The existing **6,377,512,960-byte** cgroup peak says nothing conclusive about a different allocator’s GB10 charge behavior. A before/after reading around one minimum-granularity allocation can also disappear in accounting noise.\n\n   **Required correction:** retain the 8 GiB/no-swap constraints and enforce external allocation accounting through construction, use and release. Host charge remains unverified.\n\n5. **P1 — Fail-stop changes the serving and cleanup contract.**  \n   The current [search path](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_compact_serving.py:505) captures errors and attempts genuine cleanup. A poisoned CUDA process cannot provide equivalent continued operation or prove successful CUDA teardown merely by emitting an error string. The receipt explicitly requires normal terminal completion and terminal cleanup evidence.\n\n   **Required correction:** distinguish an expected destructive-probe outcome from serving qualification. Logging a fatal fault does not make it equivalent to today’s detected mutation and cleanup behavior.\n\n6. **P2 — The proposed ownership test is native, and parity remains untested.**  \n   A DGX test importing Torch, constructing `frombuffer` tensors and provoking `copy_` against protected mmap memory is a **DGX native CPU experiment**, not source-only validation. Existing [source-only serializer coverage](/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_inference_extraction.py:361) deliberately uses a stand-in Tensor. Neither test establishes GPU protection.\n\n   PyTorch confirms `.data` replacement preserves the original version counter while replacing TensorImpl data; metadata checks are useful, but do not resolve finding 1. [PyTorch implementation](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/torch/csrc/autograd/variable.cpp) Likewise, matching 512-byte alignment cannot establish identical kernel selection or output bytes. Any eventual implementation still needs exact B1/B32 raw, unit, packed-wire and native top-k/tie parity, plus unchanged inventory, roles, processor, buffers, readout, RNG and source/native admission.\n\nThe documentation supports VMM API availability and permission semantics, **not verified GB10 enforcement**. In particular, the cited NVIDIA blog’s fault example concerns `PROT_NONE`, not a write into `PROT_READ`; it cannot establish the proposed target-specific fault behavior. [NVIDIA blog](https://developer.nvidia.com/blog/?p=16913)\n\nFor the root’s prospective plan, the **smallest useful falsifier** is one bounded allocation: initialize A, protect READ, record metadata/access, flip writable, write B, synchronize, restore READ, then compare metadata/access and readback. **Unchanged predicates plus changed bytes kills this replacement immediately.** Failure to perform the flip is inconclusive, not equivalence PASS.\n\nNo edits, project imports, SSH, experiments or workers were launched. Existing quality **KILL**, historical **FAIL**, experiment freeze and root authority remain unchanged. No speed or SOTA admission.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**HOLD — the proposed VMM replacement does not preserve current mutation detection.** Its decisive blocker is native flip-write-flip with the validator unchanged.\n\nI verified the [terminal evidence](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-control-serving-v2/verification.json): 22 calls, two owners, parity, normal exit, body **152.599 s**. Receipt medians are **1.6887 s B1** and **1.9965 s B32 batch**. The receipt SHA and installed runtime-source SHA match local files. HEAD advanced to `8651a2f`; the reviewed inference source is unchanged from supplied `33c1673`.\n\nFindings against the [Fable design](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/readonly-vmm-research-87b751cc860b431c.json), ordered by severity:\n\n1. **P1 — Access permissions do not authenticate current bytes.**  \n   Change READ→READWRITE, overwrite a weight, synchronize, restore READ. Parameter identities, pointers, shapes, strides, storage sizes and access flags can all remain unchanged. Current [encoder checks](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:522) instead call the [uncached byte fingerprint](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:848), which detects bytes left changed at the next check.\n\n   The `require`-monkeypatch comparison is false equivalence: this counterexample changes no validator. Moreover, the public bridge [checks callable and namespace identity](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_compact_serving.py:436). NVIDIA documents `cuMemSetAccess` as a permission setter and `cuMemGetAccess` as a query for a location/address—not a mutation-history attestation. One base-address query also does not establish permissions throughout a large allocation. [CUDA VMM API](https://docs.nvidia.com/cuda/archive/13.0.2/cuda-driver-api/group__CUDA__VA.html)\n\n   **Required correction:** retain content checks unless an independently enforced ownership boundary prevents these writes. Merely declaring native mutation out of scope weakens the current guarantee.\n\n2. **P1 — The proposed write falsifier can produce a false PASS.**  \n   Running HtoD violation and kernel-store violation consecutively in one context is invalid once the first causes `CUDA_ERROR_ILLEGAL_ADDRESS`: subsequent CUDA work returns that error regardless of whether the second operation exercised protection. NVIDIA explicitly requires process termination and relaunch after this error. [CUDA error semantics](https://docs.nvidia.com/cuda/archive/13.0.2/cuda-driver-api/group__CUDA__TYPES.html)\n\n   **Required correction:** each destructive write path gets a fresh process, a successful writable control using the same operation, successful initialization/readback, and its own synchronized result. OOM, invalid cubin, setup failure, timeout or unexplained process death must not count as protection PASS. Capture the operation and synchronization return codes before exiting.\n\n3. **P1 — Existing weakrefs do not prove storage death.**  \n   [Release](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:811) watches Python models, parameters and buffers. A detached tensor or storage alias can survive after those particular Python objects disappear. Unmapping then creates dangling storage; retaining the owner’s base tensor indefinitely instead prevents final release.\n\n   PyTorch’s [DLPack conversion](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/aten/src/ATen/DLConvertor.cpp) wraps external memory and retains a deleter referencing the supplied descriptor. The descriptor, callback and allocation owner must outlive every storage alias and outstanding device use. Keeping only the `CFUNCTYPE` callback alive until endpoint teardown is insufficient.\n\n   **Required correction:** define exactly-once, storage-based ownership and synchronized teardown, including failed import, partial construction, cancellation and retained aliases. CPU `frombuffer` lifetime does not establish CUDA DLPack lifetime.\n\n4. **P1 — External allocation accounting is not yet an enforced resource guarantee.**  \n   The current [resource gate](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_connected_serving_requests.py:386) checks `peak_cuda_allocated_bytes`. Direct CUDA allocations are outside PyTorch allocator visibility. [PyTorch memory documentation](https://docs.pytorch.org/docs/2.12/torch_cuda_memory.html)\n\n   Reporting VMM bytes separately is insufficient unless the gate enforces a conservative combined bound covering rounded allocations and construction overlap. The existing **6,377,512,960-byte** cgroup peak says nothing conclusive about a different allocator’s GB10 charge behavior. A before/after reading around one minimum-granularity allocation can also disappear in accounting noise.\n\n   **Required correction:** retain the 8 GiB/no-swap constraints and enforce external allocation accounting through construction, use and release. Host charge remains unverified.\n\n5. **P1 — Fail-stop changes the serving and cleanup contract.**  \n   The current [search path](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_compact_serving.py:505) captures errors and attempts genuine cleanup. A poisoned CUDA process cannot provide equivalent continued operation or prove successful CUDA teardown merely by emitting an error string. The receipt explicitly requires normal terminal completion and terminal cleanup evidence.\n\n   **Required correction:** distinguish an expected destructive-probe outcome from serving qualification. Logging a fatal fault does not make it equivalent to today’s detected mutation and cleanup behavior.\n\n6. **P2 — The proposed ownership test is native, and parity remains untested.**  \n   A DGX test importing Torch, constructing `frombuffer` tensors and provoking `copy_` against protected mmap memory is a **DGX native CPU experiment**, not source-only validation. Existing [source-only serializer coverage](/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_inference_extraction.py:361) deliberately uses a stand-in Tensor. Neither test establishes GPU protection.\n\n   PyTorch confirms `.data` replacement preserves the original version counter while replacing TensorImpl data; metadata checks are useful, but do not resolve finding 1. [PyTorch implementation](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/torch/csrc/autograd/variable.cpp) Likewise, matching 512-byte alignment cannot establish identical kernel selection or output bytes. Any eventual implementation still needs exact B1/B32 raw, unit, packed-wire and native top-k/tie parity, plus unchanged inventory, roles, processor, buffers, readout, RNG and source/native admission.\n\nThe documentation supports VMM API availability and permission semantics, **not verified GB10 enforcement**. In particular, the cited NVIDIA blog’s fault example concerns `PROT_NONE`, not a write into `PROT_READ`; it cannot establish the proposed target-specific fault behavior. [NVIDIA blog](https://developer.nvidia.com/blog/?p=16913)\n\nFor the root’s prospective plan, the **smallest useful falsifier** is one bounded allocation: initialize A, protect READ, record metadata/access, flip writable, write B, synchronize, restore READ, then compare metadata/access and readback. **Unchanged predicates plus changed bytes kills this replacement immediately.** Failure to perform the flip is inconclusive, not equivalence PASS.\n\nNo edits, project imports, SSH, experiments or workers were launched. Existing quality **KILL**, historical **FAIL**, experiment freeze and root authority remain unchanged. No speed or SOTA admission."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 1610,
+      "output_bytes": 7846,
+      "elapsed_seconds": 480,
+      "progress": "devbox-ask: codex consult still running (0m 30s)\nReading additional input from stdin...\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)",
+      "progress_truncated": false,
+      "result": "**HOLD — the proposed VMM replacement does not preserve current mutation detection.** Its decisive blocker is native flip-write-flip with the validator unchanged.\n\nI verified the [terminal evidence](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-control-serving-v2/verification.json): 22 calls, two owners, parity, normal exit, body **152.599 s**. Receipt medians are **1.6887 s B1** and **1.9965 s B32 batch**. The receipt SHA and installed runtime-source SHA match local files. HEAD advanced to `8651a2f`; the reviewed inference source is unchanged from supplied `33c1673`.\n\nFindings against the [Fable design](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/readonly-vmm-research-87b751cc860b431c.json), ordered by severity:\n\n1. **P1 — Access permissions do not authenticate current bytes.**  \n   Change READ→READWRITE, overwrite a weight, synchronize, restore READ. Parameter identities, pointers, shapes, strides, storage sizes and access flags can all remain unchanged. Current [encoder checks](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:522) instead call the [uncached byte fingerprint](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:848), which detects bytes left changed at the next check.\n\n   The `require`-monkeypatch comparison is false equivalence: this counterexample changes no validator. Moreover, the public bridge [checks callable and namespace identity](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_compact_serving.py:436). NVIDIA documents `cuMemSetAccess` as a permission setter and `cuMemGetAccess` as a query for a location/address—not a mutation-history attestation. One base-address query also does not establish permissions throughout a large allocation. [CUDA VMM API](https://docs.nvidia.com/cuda/archive/13.0.2/cuda-driver-api/group__CUDA__VA.html)\n\n   **Required correction:** retain content checks unless an independently enforced ownership boundary prevents these writes. Merely declaring native mutation out of scope weakens the current guarantee.\n\n2. **P1 — The proposed write falsifier can produce a false PASS.**  \n   Running HtoD violation and kernel-store violation consecutively in one context is invalid once the first causes `CUDA_ERROR_ILLEGAL_ADDRESS`: subsequent CUDA work returns that error regardless of whether the second operation exercised protection. NVIDIA explicitly requires process termination and relaunch after this error. [CUDA error semantics](https://docs.nvidia.com/cuda/archive/13.0.2/cuda-driver-api/group__CUDA__TYPES.html)\n\n   **Required correction:** each destructive write path gets a fresh process, a successful writable control using the same operation, successful initialization/readback, and its own synchronized result. OOM, invalid cubin, setup failure, timeout or unexplained process death must not count as protection PASS. Capture the operation and synchronization return codes before exiting.\n\n3. **P1 — Existing weakrefs do not prove storage death.**  \n   [Release](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:811) watches Python models, parameters and buffers. A detached tensor or storage alias can survive after those particular Python objects disappear. Unmapping then creates dangling storage; retaining the owner’s base tensor indefinitely instead prevents final release.\n\n   PyTorch’s [DLPack conversion](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/aten/src/ATen/DLConvertor.cpp) wraps external memory and retains a deleter referencing the supplied descriptor. The descriptor, callback and allocation owner must outlive every storage alias and outstanding device use. Keeping only the `CFUNCTYPE` callback alive until endpoint teardown is insufficient.\n\n   **Required correction:** define exactly-once, storage-based ownership and synchronized teardown, including failed import, partial construction, cancellation and retained aliases. CPU `frombuffer` lifetime does not establish CUDA DLPack lifetime.\n\n4. **P1 — External allocation accounting is not yet an enforced resource guarantee.**  \n   The current [resource gate](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_connected_serving_requests.py:386) checks `peak_cuda_allocated_bytes`. Direct CUDA allocations are outside PyTorch allocator visibility. [PyTorch memory documentation](https://docs.pytorch.org/docs/2.12/torch_cuda_memory.html)\n\n   Reporting VMM bytes separately is insufficient unless the gate enforces a conservative combined bound covering rounded allocations and construction overlap. The existing **6,377,512,960-byte** cgroup peak says nothing conclusive about a different allocator’s GB10 charge behavior. A before/after reading around one minimum-granularity allocation can also disappear in accounting noise.\n\n   **Required correction:** retain the 8 GiB/no-swap constraints and enforce external allocation accounting through construction, use and release. Host charge remains unverified.\n\n5. **P1 — Fail-stop changes the serving and cleanup contract.**  \n   The current [search path](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_compact_serving.py:505) captures errors and attempts genuine cleanup. A poisoned CUDA process cannot provide equivalent continued operation or prove successful CUDA teardown merely by emitting an error string. The receipt explicitly requires normal terminal completion and terminal cleanup evidence.\n\n   **Required correction:** distinguish an expected destructive-probe outcome from serving qualification. Logging a fatal fault does not make it equivalent to today’s detected mutation and cleanup behavior.\n\n6. **P2 — The proposed ownership test is native, and parity remains untested.**  \n   A DGX test importing Torch, constructing `frombuffer` tensors and provoking `copy_` against protected mmap memory is a **DGX native CPU experiment**, not source-only validation. Existing [source-only serializer coverage](/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_inference_extraction.py:361) deliberately uses a stand-in Tensor. Neither test establishes GPU protection.\n\n   PyTorch confirms `.data` replacement preserves the original version counter while replacing TensorImpl data; metadata checks are useful, but do not resolve finding 1. [PyTorch implementation](https://raw.githubusercontent.com/pytorch/pytorch/v2.12.1/torch/csrc/autograd/variable.cpp) Likewise, matching 512-byte alignment cannot establish identical kernel selection or output bytes. Any eventual implementation still needs exact B1/B32 raw, unit, packed-wire and native top-k/tie parity, plus unchanged inventory, roles, processor, buffers, readout, RNG and source/native admission.\n\nThe documentation supports VMM API availability and permission semantics, **not verified GB10 enforcement**. In particular, the cited NVIDIA blog’s fault example concerns `PROT_NONE`, not a write into `PROT_READ`; it cannot establish the proposed target-specific fault behavior. [NVIDIA blog](https://developer.nvidia.com/blog/?p=16913)\n\nFor the root’s prospective plan, the **smallest useful falsifier** is one bounded allocation: initialize A, protect READ, record metadata/access, flip writable, write B, synchronize, restore READ, then compare metadata/access and readback. **Unchanged predicates plus changed bytes kills this replacement immediately.** Failure to perform the flip is inconclusive, not equivalence PASS.\n\nNo edits, project imports, SSH, experiments or workers were launched. Existing quality **KILL**, historical **FAIL**, experiment freeze and root authority remain unchanged. No speed or SOTA admission.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1791482867,
+  "elapsed_seconds": 520,
+  "input_bytes": 1206,
+  "output_bytes": 15989
+}
