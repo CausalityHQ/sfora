@@ -1,0 +1,23 @@
+{
+  "address_space_bytes": 1073741824,
+  "command": {
+    "bytes": 400,
+    "path": "/tmp/sfora-connected-archived-precision-run-v1/command.sh",
+    "sha256": "044370dfc42fd06f3b405b3856477f131444591b91c3e3f76a55451bb7bf1dfb"
+  },
+  "launch": {
+    "bytes": 2702,
+    "path": "/tmp/sfora-connected-archived-precision-run-v1/launch.json",
+    "sha256": "65dbf9e33ee339478c8a74245b1180577f431ff58749f2afec6f3b98a1d5df7e"
+  },
+  "python": {
+    "bytes": 7477160,
+    "path": "/usr/bin/python3",
+    "sha256": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41"
+  },
+  "quality_eligible": false,
+  "schema": "archived-precision-execution-freeze-v1",
+  "seconds": 120,
+  "state_reuse_eligible": false,
+  "stop_rule": "Any admission/replay/numeric/publication failure or timeout closes this arm; no retry, no quality admission."
+}

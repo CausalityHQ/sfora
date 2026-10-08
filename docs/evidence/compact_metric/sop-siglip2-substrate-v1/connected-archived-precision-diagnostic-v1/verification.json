@@ -1,0 +1,28 @@
+{
+  "certified_endpoints": [
+    "candidate-179061",
+    "candidate-179069"
+  ],
+  "certified_query": 1335,
+  "certified_separation": 2,
+  "endpoint_queries": 176,
+  "exit_status": 0,
+  "files": {
+    "command.sh": "044370dfc42fd06f3b405b3856477f131444591b91c3e3f76a55451bb7bf1dfb",
+    "diagnostic.json": "ae15d2f44c642b332a3a53e5fe92b7059342d3e02f07d6fa92bfda096a6e5c3a",
+    "freeze.json": "183b596e29360091924d3278b7138fe5255a44db6868a7866d1baed2e182da2f",
+    "launch.json": "65dbf9e33ee339478c8a74245b1180577f431ff58749f2afec6f3b98a1d5df7e",
+    "original.log": "57e9820e579d7692dd3ddd3ac7d2af545e3ad7a122744d0b39518eb1b69ee0ef",
+    "resources.log": "a38594c24fe3d85080a8937453d36ab3dd2dc9420c119070ce015eb6dfc6cbce"
+  },
+  "indeterminate": 174,
+  "interpretation": "Archived FP32 unit vectors separate one previously packed-missed query in both candidate seeds under the stated hypothetical non-TF32 error bound. No original Torch/AP replay or new quality admission.",
+  "max_rss_kib": 144280,
+  "original_ap_census": "FAIL",
+  "original_candidate": "KILL",
+  "original_session": 79719,
+  "quality_qualified": false,
+  "queries": 44,
+  "schema": "archived-precision-root-verification-v1",
+  "wall_before_publication": 10.006144610000774
+}

@@ -1,0 +1,60 @@
+{
+  "census_driver": {
+    "bytes": 20375,
+    "path": "/tmp/sfora-connected-core-census-run-v1/census_connected_core_errors.py",
+    "sha256": "0fdc170019de1137ac9d82b55868ec8c8f8b21867d2a71c8c31a29f9a5b333d2"
+  },
+  "census_inputs": {
+    "bytes": 2851,
+    "path": "/tmp/sfora-connected-core-census-inputs-v1/fetch-receipt.json",
+    "sha256": "ba98da59fa68676beaea3e20f9f6911e85af3c89163bfe2161c430671ab7af5c"
+  },
+  "output": "/tmp/sfora-connected-archived-precision-run-v1/diagnostic.json",
+  "schema": "sfora-connected-archived-precision-launch-v1",
+  "sources": {
+    "diagnose_connected_archived_precision.py": {
+      "bytes": 15840,
+      "path": "/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_archived_precision.py",
+      "sha256": "cc616a2bf701b9ada83dbe407a49731c66d38d0cc751e99146ecf1ad48f38e80"
+    },
+    "test_connected_archived_precision.py": {
+      "bytes": 22841,
+      "path": "/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_archived_precision.py",
+      "sha256": "7993eb2cb79c458f2bd7c0cc90f949586393810bb627f41d7b008f4b7fefd234"
+    }
+  },
+  "units": [
+    {
+      "arm": "control",
+      "bytes": 1766016,
+      "path": "/tmp/sfora-connected-archived-precision-unit-inputs-v1/control-179061.unit.npy",
+      "seed": 179061,
+      "sha256": "d72036deccb573fa6d9c8d945c4149598c4c80ebea5e0fe9879d8edc10fa3716",
+      "source_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/control-179061.unit.npy"
+    },
+    {
+      "arm": "candidate",
+      "bytes": 1766016,
+      "path": "/tmp/sfora-connected-archived-precision-unit-inputs-v1/candidate-179061.unit.npy",
+      "seed": 179061,
+      "sha256": "ba784878bafbe54ebb48c3697ed92114a4897e9c8ee6ad57bb6569b16e4fdc4d",
+      "source_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-candidate-179061-v2/candidate-179061.unit.npy"
+    },
+    {
+      "arm": "control",
+      "bytes": 1766016,
+      "path": "/tmp/sfora-connected-archived-precision-unit-inputs-v1/control-179069.unit.npy",
+      "seed": 179069,
+      "sha256": "718ecee33a7bbf092f4ac621dcaef5c2de0566a56e6fb447f63ecbc1f4bcfa9a",
+      "source_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179069-v2/control-179069.unit.npy"
+    },
+    {
+      "arm": "candidate",
+      "bytes": 1766016,
+      "path": "/tmp/sfora-connected-archived-precision-unit-inputs-v1/candidate-179069.unit.npy",
+      "seed": 179069,
+      "sha256": "bd79e523c0740c998a6502854682dc7d15aaa1f0dd14703e9702de763c61412b",
+      "source_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-candidate-179069-v2/candidate-179069.unit.npy"
+    }
+  ]
+}
