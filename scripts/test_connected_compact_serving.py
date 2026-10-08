@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Source-only wrapper checks; no native/model/quality/latency qualification."""
 
+import __future__
 import ast
 import hashlib
 import importlib.abc
@@ -10,7 +11,7 @@ import sys
 import tempfile
 import threading
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
+from types import CodeType, FunctionType, ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 ACTUAL_SOURCE = (
@@ -245,6 +246,217 @@ def registry_regressions(bridge, load, events, Image, result, opened, no_owned_r
     no_owned_registry()
 
 
+def compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registry):
+    # Removing dont_inherit must reproduce the genuine serializer identity failure.
+    bridge_bytes = Path(bridge.__file__).read_bytes()
+    inverse = bridge_bytes.replace(b", dont_inherit=True", b"", 1)
+    assert sha(inverse) == "99da5bd76dd8d49c0ed0c69bf3517d4ee4a976bdb9978addfcffba04f62fefc4"
+    assert sha(ast.dump(ast.parse(inverse), include_attributes=False).encode()) == (
+        "02cfe02bb65cbfd0f6aec976083cd993331d28f0cd58342e074ff93a2abe975e"
+    )
+    trainer_path = bundle / "train_siglip2_connected_mlp.py"
+    serializer_path = bundle / "train_siglip2_substrate_adaptation.py"
+    trainer_bytes = (ROOT / "scripts" / trainer_path.name).read_bytes()
+    serializer_bytes = (ROOT / "scripts" / serializer_path.name).read_bytes()
+    assert sha(trainer_bytes) == "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
+    serializer_sha = "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+    assert sha(serializer_bytes) == serializer_sha
+    spec = importlib.util.spec_from_file_location(
+        "connected_compile_observer", ROOT / "scripts/observe_connected_serving.py"
+    )
+    observer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(observer)
+    saved = {
+        path: path.read_bytes() for path in (trainer_path, serializer_path, bundle / "bundle.json")
+    }
+    captured = []
+    annotation_flag = __future__.annotations.compiler_flag
+
+    class CompileProbe(bridge.ConnectedCompactIndex):
+        def __init__(self):
+            super().__init__()
+            captured.append(self)
+
+    class ProbeComplete(Exception):
+        pass
+
+    def reject(call, message):
+        try:
+            call()
+        except ValueError as error:
+            assert str(error) == message, str(error)
+        else:
+            raise AssertionError("accepted " + message)
+
+    def probe(wire, *, count, dimensions):
+        assert wire == b"G" * 1300 and count == 10 and dimensions == 128
+        index = captured[-1]
+        trainer = index._module
+        expected_trainer = compile(
+            trainer_path.read_bytes(), str(trainer_path), "exec", dont_inherit=True
+        )
+        expected_loader = next(
+            code for code in expected_trainer.co_consts
+            if isinstance(code, CodeType) and code.co_name == "load_authenticated"
+        )
+        loader = trainer.load_authenticated
+        name = trainer.__name__ + "_serializer"
+        guards = {}
+        serializer = loader(name, serializer_path, serializer_sha, guards)
+        try:
+            expected = next(
+                code for code in compile(
+                    serializer_bytes, str(serializer_path), "exec", dont_inherit=True
+                ).co_consts
+                if isinstance(code, CodeType) and code.co_name == "fingerprint"
+            )
+            fingerprint = serializer.fingerprint
+            assert sys.modules[name] is serializer and vars(serializer) is fingerprint.__globals__
+            assert serializer.fingerprint is fingerprint
+            assert serializer.__file__ == str(serializer_path)
+            explicit_future = bool(expected_loader.co_flags & annotation_flag)
+            print("compile identity:", json.dumps({
+                "actual_flags": fingerprint.__code__.co_flags,
+                "expected_flags": expected.co_flags,
+                "code_equal": fingerprint.__code__ == expected,
+                "explicit_future": explicit_future,
+                "registry_globals_attribute_file_identity": True,
+            }), flush=True)
+            if explicit_future:
+                assert fingerprint.__code__.co_flags & annotation_flag
+                reject(
+                    lambda: observer.RequestObserver(fingerprint, sources),
+                    "original serializer code/module identity differs",
+                )
+            else:
+                assert fingerprint.__code__ == expected, "genuine serializer code identity differs"
+                assert loader.__code__ == expected_loader, "bridge inherited caller compiler flags"
+                assert fingerprint.__defaults__ == (None, None)
+                index._endpoint = {"modules": {serializer_path.name: serializer}}
+                try:
+                    admitted = observer.RequestObserver.from_index(index, sources)
+                    assert admitted.fingerprint_code is fingerprint.__code__
+                    reject(
+                        lambda: loader(name, serializer_path, serializer_sha, guards),
+                        "fresh helper namespace required",
+                    )
+                    assert sys.modules[name] is serializer
+                    changed_defaults = serializer_bytes.replace(
+                        b"def fingerprint(value, frozen=None, consumed=None):",
+                        b"def fingerprint(value, frozen={}, consumed=None):",
+                    )
+                    assert changed_defaults != serializer_bytes
+                    serializer_path.write_bytes(changed_defaults)
+                    try:
+                        reject(
+                            lambda: loader(name + "_tampered", serializer_path, serializer_sha, {}),
+                            "current FILE bytes differ: " + str(serializer_path),
+                        )
+                        assert name + "_tampered" not in sys.modules
+                    finally:
+                        serializer_path.write_bytes(serializer_bytes)
+                    original_code = fingerprint.__code__
+                    fingerprint.__code__ = original_code.replace(
+                        co_flags=original_code.co_flags | annotation_flag
+                    )
+                    try:
+                        reject(
+                            lambda: observer.RequestObserver.from_index(index, sources),
+                            "original serializer code/module identity differs",
+                        )
+                    finally:
+                        fingerprint.__code__ = original_code
+                    serializer.fingerprint = FunctionType(original_code, dict(vars(serializer)))
+                    try:
+                        reject(
+                            lambda: observer.RequestObserver.from_index(index, sources),
+                            "original serializer code/module identity differs",
+                        )
+                    finally:
+                        serializer.fingerprint = fingerprint
+                    foreign = ModuleType(name)
+                    sys.modules[name] = foreign
+                    try:
+                        reject(
+                            lambda: observer.RequestObserver.from_index(index, sources),
+                            "original serializer code/module identity differs",
+                        )
+                        assert sys.modules[name] is foreign
+                    finally:
+                        sys.modules[name] = serializer
+                    serializer.__file__ = str(bundle / "foreign.py")
+                    try:
+                        reject(
+                            lambda: observer.RequestObserver.from_index(index, sources),
+                            "admitted bundle source FILE paths required",
+                        )
+                    finally:
+                        serializer.__file__ = str(serializer_path)
+                    loader_code = loader.__code__
+                    loader.__code__ = loader_code.replace(
+                        co_flags=loader_code.co_flags | annotation_flag
+                    )
+                    try:
+                        reject(index._check_current, "connected public callable changed")
+                    finally:
+                        loader.__code__ = loader_code
+                    # Report preexisting live-default coverage separately; do not add a guard.
+                    for label, fn, changed in (
+                        ("trainer", loader, ("bad-digest", {})),
+                        ("serializer", fingerprint, ({}, None)),
+                    ):
+                        defaults = fn.__defaults__
+                        fn.__defaults__ = changed
+                        try:
+                            try:
+                                observer.RequestObserver.from_index(index, sources)
+                            except ValueError:
+                                rejected = True
+                            else:
+                                rejected = False
+                            print("live defaults:", label, "rejected:", rejected, flush=True)
+                        finally:
+                            fn.__defaults__ = defaults
+                    admitted = observer.RequestObserver.from_index(index, sources)
+                    assert admitted.fingerprint_code == expected
+                finally:
+                    index._endpoint = None
+            print(
+                "PASS: real bridge/trainer/serializer compile identity; explicit future:",
+                explicit_future,
+            )
+            assert loader.__code__ == expected_loader
+        finally:
+            assert sys.modules.pop(name) is serializer
+        raise ProbeComplete()
+
+    try:
+        serializer_path.write_bytes(serializer_bytes)
+        # A source directive remains effective; only caller flags are excluded.
+        for raw in (trainer_bytes, b"from __future__ import annotations\n" + trainer_bytes):
+            trainer_path.write_bytes(raw)
+            current = manifest | {"code": manifest["code"] | {
+                trainer_path.name: sha(raw), serializer_path.name: serializer_sha,
+            }}
+            (bundle / "bundle.json").write_text(json.dumps(current))
+            sources = {"trainer": {"path": str(trainer_path), "sha256": sha(raw)},
+                       "serializer": {"path": str(serializer_path), "sha256": serializer_sha}}
+            with patch.object(Packed, "from_bytes", side_effect=probe):
+                try:
+                    CompileProbe.from_bundle(**(args | {
+                        "expected_bundle_sha256": sha((bundle / "bundle.json").read_bytes()),
+                    }))
+                except ProbeComplete:
+                    pass
+                else:
+                    raise AssertionError("compile probe did not stop before native inference")
+            assert captured[-1]._closed and not captured[-1]._owned
+            no_owned_registry()
+    finally:
+        for path, raw in saved.items():
+            path.write_bytes(raw)
+
+
 def main():
     assert not any(n in sys.modules for n in ("torch", "numpy", "PIL", "sfora"))
     spec = importlib.util.spec_from_file_location(
@@ -378,6 +590,10 @@ def main():
                     registry_regressions if "--registry-only" in sys.argv else teardown_regressions
                 )
                 check(bridge, load, events, Image, result, opened, no_owned_registry)
+                return
+
+            compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registry)
+            if "--compile-only" in sys.argv:
                 return
 
             # Missing/wrong admission must prevent any copied source execution.

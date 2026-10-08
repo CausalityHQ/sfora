@@ -171,7 +171,7 @@ class ConnectedCompactIndex:
                 _require(name not in sys.modules, "fresh connected loader namespace required")
                 self._owned[name] = self._module
                 sys.modules[name] = self._module
-                exec(compile(source, str(trainer_path), "exec"), vars(self._module))
+                exec(compile(source, str(trainer_path), "exec", dont_inherit=True), vars(self._module))
             for api in (
                 "load_inference",
                 "load_authenticated",
