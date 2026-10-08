@@ -21,6 +21,7 @@ Parent must freeze actual TRAINING descriptor before native execution. No
 historical evaluator qualification substitutes for this evaluator's CPU gate.
 """
 import argparse
+import ast
 import copy
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
@@ -74,6 +75,293 @@ READINESS = ('training_units','matched_costs','cpu_qualification','source_replay
     'updated_state','wire_readbacks','bundle_portability')
 MEMBERS = ('config','buffers','processor','head','A','means','C','mu_train','mu_train_provenance',
     'scope','common_statistics','base_vision','encoder','encoder_identity','arm')
+
+
+# BEGIN ENDPOINT READER AUTHENTICATION
+FIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',
+    'execution_sha256':'a4ca55fadf9d0dd5a87d4c4163c374e88a5f21abc8a4553588434c5e8273bf6a',
+    'code':{'evaluate_siglip2_connected_mlp.py':'919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69',
+            'test_connected_mlp_evaluation.py':'df1e233279e04bacd64b6bbd47361d43d350740fd496434e79de7b53b9f66ccb'}}
+FIRST_SELECTION_UNIT = {'both_locks_held':True,'invocation_id':'c47869c3b2d24e70a2213545e371265e',
+    'log':{'path':FIRST_SELECTION_OWNER['root']+'/first-selection-score-v2-original.log',
+        'sha256':'1db5215b0f7700b56283d76266edd9cba7b1e7a234f4af0e2da2e293548812f3'},
+    'native_peak_rss_kib':1090416,
+    'receipt':{'path':'/home/riomus/runs/sfora-connected-mlp-evaluation-first-selection-score-v2/receipt.json',
+        'sha256':'bc80bef471cd05c7ab842258a9b86f3e8813f5dabc5235e2202399f5c607028d'},
+    'service_seconds':617.915,'unit':'sfora-connected-mlp-evaluation-first-selection-score-v2'}
+
+
+def source_live_guard(module, digest, guards, names=None, class_name=None):
+    """Independent lexical source/runtime binding, including genuine class methods."""
+    import builtins
+    from types import ModuleType
+    require(type(module) is ModuleType and vars(module).get('__builtins__') is vars(builtins),
+        'authenticated module/builtins required')
+    path = Path(module.__file__); spec = module.__spec__
+    require(spec is not None and spec.loader is not None and spec.name == module.__name__ and
+        Path(spec.origin) == path and sys.modules.get(module.__name__) is module,
+        'authenticated module registry/origin differs')
+    raw = bound_file(guards,path,digest).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == digest, 'authenticated source changed before compilation')
+    tree = ast.parse(raw,filename=str(path)); compiled = compile(raw,str(path),'exec',dont_inherit=True)
+    values = dict(vars(module)); literals = {k:copy.deepcopy(v) for k,v in values.items()
+        if k != '__builtins__' and isinstance(v,(dict,list,tuple,set,frozenset))}
+    loader,name = spec.loader,module.__name__; functions = []; classes = []
+    scopes = [(module,tree.body,compiled)]
+    if class_name is not None:
+        node = next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name == class_name)
+        cls = getattr(module,class_name)
+        require(type(cls) is type and cls.__module__ == name and cls.__qualname__ == class_name and
+            cls.__bases__ == (object,), 'genuine reader class differs')
+        # Compile the definition alone in a minimal namespace to include the
+        # interpreter's own class metadata (including Python 3.13 attributes).
+        template_namespace = {'__name__':name}
+        exec(compile(ast.Module(body=[node],type_ignores=[]),str(path),'exec',dont_inherit=True),template_namespace)
+        template_class = template_namespace[class_name]
+        require(vars(cls).keys() == vars(template_class).keys() and cls.__doc__ == template_class.__doc__ and
+            all(type(vars(cls)[k]) is type(v) for k,v in vars(template_class).items()) and
+            all(getattr(cls,k,None) == getattr(template_class,k,None)
+                for k in ('__firstlineno__','__static_attributes__')), 'genuine reader class inventory differs')
+        for key,value in vars(template_class).items():
+            if isinstance(value,property):
+                require(vars(cls)[key].fset is None and vars(cls)[key].fdel is None,
+                    'genuine reader property descriptor differs')
+        classes.append((cls,dict(vars(cls)),cls.__module__,cls.__qualname__,cls.__bases__))
+        scopes.append((cls,node.body,next(c for c in compiled.co_consts if getattr(c,'co_name',None) == class_name)))
+    for owner,nodes,code in scopes:
+        for node in nodes:
+            if not isinstance(node,ast.FunctionDef) or (owner is module and names is not None and node.name not in names):
+                continue
+            fn = getattr(owner,node.name); wrapper = None
+            if owner is module and node.decorator_list:
+                require([ast.unparse(d) for d in node.decorator_list] == ['contextmanager'],
+                    'unexpected authenticated function decorator')
+                wrapper,fn = fn,fn.__wrapped__
+                template = contextmanager(fn)
+                require(wrapper.__code__ is template.__code__ and wrapper.__globals__ is template.__globals__ and
+                    wrapper.__builtins__ is vars(builtins),
+                    'authenticated contextmanager wrapper differs')
+            if isinstance(fn,property):
+                fn = fn.fget
+            expected = next(c for c in code.co_consts if getattr(c,'co_name',None) == node.name)
+            evaluate = lambda n: eval(compile(ast.Expression(n),str(path),'eval'),{'__builtins__':{}},vars(module))
+            defaults = tuple(evaluate(n) for n in node.args.defaults) or None
+            kw = {a.arg:evaluate(n) for a,n in zip(node.args.kwonlyargs,node.args.kw_defaults) if n is not None} or None
+            qualified = node.name if owner is module else class_name+'.'+node.name
+            require(type(fn) is FunctionType and fn.__globals__ is vars(module) and fn.__code__ == expected and
+                fn.__code__.co_filename == str(path) and fn.__module__ == name and fn.__closure__ is None and
+                fn.__builtins__ is vars(builtins) and
+                fn.__name__ == node.name and fn.__qualname__ == qualified and
+                fn.__defaults__ == defaults and fn.__kwdefaults__ == kw,
+                'authenticated source function/defaults differ: '+node.name)
+            functions.append((owner,node.name,fn,fn.__code__,copy.deepcopy(defaults),copy.deepcopy(kw),
+                qualified,wrapper,wrapper.__code__ if wrapper is not None else None))
+    def guard():
+        require(module.__name__ == name and sys.modules.get(name) is module and module.__spec__ is spec and
+            spec.name == name and spec.loader is loader and Path(spec.origin) == Path(module.__file__) == path and
+            vars(module).keys() == values.keys() and all(vars(module)[k] is v for k,v in values.items()) and
+            all(vars(module)[k] == v for k,v in literals.items()), 'authenticated module/global binding changed')
+        for cls,members,owner_name,qualified,bases in classes:
+            require(vars(cls).keys() == members.keys() and all(vars(cls)[k] is v for k,v in members.items()),
+                'authenticated reader class binding changed')
+            require((cls.__module__,cls.__qualname__,cls.__bases__) == (owner_name,qualified,bases),
+                'authenticated reader class metadata changed')
+        for owner,key,fn,code,defaults,kw,qualified,wrapper,wrapper_code in functions:
+            actual = getattr(owner,key)
+            if wrapper is not None:
+                require(actual is wrapper and wrapper.__code__ is wrapper_code and wrapper.__wrapped__ is fn and
+                    wrapper.__globals__ is contextmanager(fn).__globals__ and
+                    wrapper.__builtins__ is vars(builtins) and
+                    (wrapper.__module__,wrapper.__name__,wrapper.__qualname__) == (name,key,qualified) and
+                    wrapper.__defaults__ is None and wrapper.__kwdefaults__ is None and
+                    len(wrapper.__closure__) == 1 and wrapper.__closure__[0].cell_contents is fn,
+                    'authenticated function wrapper changed')
+                actual = wrapper.__wrapped__
+            if isinstance(actual,property):
+                actual = actual.fget
+            require(actual is fn and fn.__code__ is code and fn.__globals__ is vars(module) and
+                fn.__builtins__ is vars(builtins) and
+                (fn.__module__,fn.__name__,fn.__qualname__) == (name,key,qualified) and
+                fn.__defaults__ == defaults and fn.__kwdefaults__ == kw,
+                'authenticated live function/defaults changed: '+key)
+        bound_file({},path,digest)
+    guard()
+    return guard
+
+
+def batch_terminal_files(Flat, reader, guards, items):
+    """Fresh private original reader per occurrence; join, then publish in order.
+
+    Deliberately stronger than verified-set skips: reread even cached JSON paths.
+    Failure leaves all owner state unchanged; existing json_bytes is never touched.
+    """
+    require(type(reader) is Flat, 'genuine terminal reader required')
+    require(vars(reader).keys() <= {'entries','verified','json_bytes','init'} and
+        type(reader.entries) is dict and type(reader.verified) is set and type(reader.json_bytes) is dict,
+        'genuine terminal reader instance state required')
+    def one(item):
+        fresh = Flat()
+        path = fresh.bound_file({},*item)
+        return str(path),fresh.entries[str(path)]
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(one,item) for item in items]
+        results = [future.result() for future in futures]
+    entries,verified,staged = dict(reader.entries),set(reader.verified),dict(guards)
+    for path,fact in results:
+        require(entries.setdefault(path,fact) == fact, 'conflicting file SHA256/size authority')
+        require(staged.setdefault(path,fact[0]) == fact[0], 'conflicting stage file authority')
+        verified.add(path)
+    reader.entries.update(entries); reader.verified.update(verified); guards.update(staged)
+
+
+def load_endpoint_reader(context):
+    """Own only the frozen v6 terminal input loop; retain every genuine callback."""
+    import builtins
+    trainer,t = context['trainer'],context['training_context']
+    original = t['legacy']['original']; Flat = original.FlatAdmission
+    source_guard = source_live_guard(trainer,TRAINING['code']['train_siglip2_connected_mlp.py'],context['guards'])
+    flat_guard = source_live_guard(original,'a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543',
+        t['guards'],class_name='FlatAdmission')
+    nearest = t['nearest']
+    nearest_guard = source_live_guard(nearest,t['guards'][nearest.__file__],t['guards'],
+        names={'read_json','file_fact','bound_file','strict_json','require'})
+    # Authenticate the terminal callback's genuine source modules, without replaying
+    # native-origin payload reads. Original native/exit guards still run unchanged.
+    initializer = t['legacy']['selected']['genuine']['reference']
+    terminal_guards = tuple(source_live_guard(m,t['guards'][m.__file__],t['guards'],names=names)
+        for m,names in ((t['fitter'],None),(t['old'],{'zero_events','require'}),
+                       (initializer,{'admit_cgroup','require'})))
+    node = next(n for n in ast.parse(Path(trainer.__file__).read_bytes()).body
+        if isinstance(n,ast.FunctionDef) and n.name == 'admit_terminal')
+    dump = lambda n: ast.dump(n,include_attributes=False)
+    require(hashlib.sha256(dump(node).encode()).hexdigest() ==
+        '1761ee02b913176ebc7f249f509801ac0ed527f1ddc480755bd0bef521f61f8b', 'frozen terminal AST differs')
+    old = copy.deepcopy(node)
+    loop = ast.parse("for path,digest in record['input_guards'].items():\n    reader.bound_file(guards,path,digest)").body[0]
+    indices = [i for i,n in enumerate(node.body) if dump(n) == dump(loop)]
+    require(len(indices) == 1, 'exact terminal input loop required')
+    index = indices[0]
+    node.body[index:index+1] = ast.parse("_batch_terminal_files(_Flat,reader,guards,record['input_guards'].items())").body
+    node.name = 'connected_endpoint_terminal'
+    restored = copy.deepcopy(node); restored.name = old.name; restored.body[index] = old.body[index]
+    require(dump(restored) == dump(old), 'terminal derivative changed predicates')
+    callbacks = {name:getattr(trainer,name) for name in
+        ('check_unit','fresh_terminal_reader','check_terminal','require','cli','policy','read_json')}
+    namespace = {'__name__':__name__,'Path':Path,**callbacks,'_batch_terminal_files':batch_terminal_files,'_Flat':Flat}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),__file__,'exec'),namespace)
+    derivative = namespace['connected_endpoint_terminal']; code = derivative.__code__; bindings = dict(namespace)
+    owned_names = ('batch_terminal_files','require','bound_file')
+    owned = (batch_terminal_files,require,bound_file)
+    evaluator_path = Path(__file__)
+    raw = bound_file({},evaluator_path,context['code']['evaluate_siglip2_connected_mlp.py']).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == context['code']['evaluate_siglip2_connected_mlp.py'],
+        'endpoint evaluator source changed before compilation')
+    compiled = compile(raw,__file__,'exec',dont_inherit=True)
+    for name,fn in zip(owned_names,owned):
+        require(type(fn) is FunctionType and fn.__globals__ is globals() and fn.__builtins__ is vars(builtins) and
+            (fn.__module__,fn.__name__,fn.__qualname__) == (__name__,name,name) and fn.__closure__ is None and
+            fn.__code__ == next(c for c in compiled.co_consts if getattr(c,'co_name',None) == name) and
+            fn.__defaults__ is None and fn.__kwdefaults__ is None,
+            'endpoint owned callback source differs')
+    owned_codes = tuple(fn.__code__ for fn in owned)
+    owned_globals = {k:globals()[k] for k in (*owned_names,'ThreadPoolExecutor','Path','hashlib','os','__name__','__file__','__builtins__')}
+    dependencies = {key:t[key] for key in ('trainer','nearest','fitter','old','fit_context','legacy')}
+    def guard(current):
+        if (any(fn.__code__ is not c or fn.__defaults__ is not None or fn.__kwdefaults__ is not None or
+                fn.__builtins__ is not vars(builtins) or (fn.__module__,fn.__name__,fn.__qualname__) != (__name__,name,name)
+                for name,fn,c in zip(owned_names,owned,owned_codes)) or any(globals()[k] is not v for k,v in owned_globals.items())):
+            raise ValueError('endpoint owned callback/global changed')
+        require(current['trainer'] is trainer and current['training_context'] is t and
+            all(t[k] is v for k,v in dependencies.items()) and t['legacy']['original'] is original and
+            original.FlatAdmission is Flat and t['legacy']['selected']['genuine']['reference'] is initializer and
+            t['legacy']['admission'].init is initializer,
+            'endpoint context/source binding changed')
+        source_guard(); flat_guard(); nearest_guard()
+        for check in terminal_guards:
+            check()
+        require(derivative.__code__ is code and derivative.__defaults__ is None and derivative.__kwdefaults__ is None and
+            derivative.__name__ == derivative.__qualname__ == 'connected_endpoint_terminal' and
+            derivative.__module__ == __name__ and derivative.__code__.co_filename == __file__ and
+            derivative.__builtins__ is vars(builtins) and
+            derivative.__globals__ is namespace and namespace.keys() == bindings.keys() and
+            all(namespace[k] is v for k,v in bindings.items()), 'endpoint derivative binding changed')
+    def admit(unit,phase,arm,seed):
+        guard(context)
+        try:
+            return derivative(t,unit,phase,arm,seed)
+        finally:
+            guard(context)
+    guard(context)
+    return admit,guard
+
+
+def load_first_selection(context):
+    """Only the exact source-v5 first CONTINUE prerequisite, once per invocation."""
+    fact,unit = copy.deepcopy(FIRST_SELECTION_OWNER),copy.deepcopy(FIRST_SELECTION_UNIT)
+    require(context['launch']['stage'] == 'full' and context['launch']['first_selection'] == unit,
+        'exact original first-selection prerequisite required')
+    require(closure(fact['root'],fact['execution_sha256'],FILES,context['guards']) == fact['code'],
+        'first-selection owner exact2 differs')
+    original = load_authenticated('_connected_first_owner_v5',Path(fact['root'])/'evaluate_siglip2_connected_mlp.py',
+        fact['code']['evaluate_siglip2_connected_mlp.py'],context['guards'])
+    live_guard = source_live_guard(original,fact['code']['evaluate_siglip2_connected_mlp.py'],context['guards'])
+    context['first_evaluator'] = original
+    guard_helpers(context)
+    authenticated = tuple((m,p,s,dict(v),tuple((fn,c,copy.deepcopy(d),copy.deepcopy(kw)) for fn,c,d,kw in f),copy.deepcopy(l))
+        for m,p,s,v,f,l in context['helper_snapshots'])
+    used = False
+    def guard(current):
+        actual = current['helper_snapshots']
+        require(FIRST_SELECTION_OWNER == fact and FIRST_SELECTION_UNIT == unit and current['first_evaluator'] is original and
+            len(actual) == len(authenticated) and all(a[0] is b[0] and a[1] == b[1] and a[2] is b[2] and
+                a[3].keys() == b[3].keys() and all(a[3][k] is v for k,v in b[3].items()) and
+                tuple(a[4]) == b[4] and a[5] == b[5] for a,b in zip(actual,authenticated,strict=True)),
+            'first-selection owner/snapshot binding changed')
+        live_guard(); guard_helpers(current)
+        require(closure(fact['root'],fact['execution_sha256'],FILES,{}) == fact['code'],
+            'first-selection fresh owner closure differs')
+    def owner_context(current):
+        common = current['common_guards']
+        remove = {str(current['root']/'execution.json'):current['args'].execution_sha256,
+            **{str(current['root']/n):h for n,h in current['code'].items()}}
+        insert = {str(Path(fact['root'])/'execution.json'):fact['execution_sha256'],
+            **{str(Path(fact['root'])/n):h for n,h in fact['code'].items()}}
+        require(current['code'].keys() == FILES and len(remove) == len(insert) == 3 and
+            remove.keys().isdisjoint(insert) and common.keys().isdisjoint(insert) and
+            all(common.get(p) == h for p,h in remove.items()), 'first-selection exact three closure swap required')
+        return {**current,'root':Path(fact['root']),
+            'args':SimpleNamespace(**{**vars(current['args']),'execution_sha256':fact['execution_sha256']}),
+            'code':fact['code'],'common_guards':{**{p:h for p,h in common.items() if p not in remove},**insert}}
+    def admit(current, selected, phase, *, stage, panel):
+        nonlocal used
+        guard(current)
+        require(not used and current is context and current['launch']['stage'] == 'full' and
+            current['launch']['first_selection'] == selected == unit and
+            (phase,stage,panel) == ('score','first','selection'), 'first-selection once-only prerequisite role required')
+        used = True
+        owner = owner_context(current)
+        try:
+            record = original.accept_unit(owner,selected,'score',stage='first',panel='selection')
+            expected = owner_context(current); specific = {'root','args','code','common_guards'}
+            require(owner.keys() == current.keys() and all(owner[k] is current[k] for k in owner.keys()-specific) and
+                all(owner[k] == expected[k] for k in specific-{'args'}) and vars(owner['args']) == vars(expected['args']),
+                'first-selection shared owner context changed')
+            require(record['decision'] == 'CONTINUE' and record['launch']['endpoints'] == current['launch']['endpoints'][:2],
+                'first061 KILL prohibits069 and VAL')
+            return record
+        finally:
+            guard(current)
+    guard(context)
+    return admit,guard
+
+
+def admission_exit_guard(*guards):
+    def guard(context):
+        for check in guards:
+            if check is not None:
+                check(context)
+    return guard
+# END ENDPOINT READER AUTHENTICATION
 
 
 # BEGIN ORIGINAL EXPORT OWNER
@@ -473,6 +761,8 @@ def guard_helpers(context):
     modules = [context[key] for key in ('trainer','evaluator_reference','nearest_evaluator','math','reference','helper','baseline')]
     if 'original_evaluator' in context:
         modules.append(context['original_evaluator'])
+    if 'first_evaluator' in context:
+        modules.append(context['first_evaluator'])
     if not snapshots:
         for module in modules:
             values = dict(vars(module))
@@ -510,7 +800,7 @@ def check_paired_initialization(trainer, control, candidate):
         'same-seed complete CPU/paired mechanics admission differs')
 
 
-def admit_training_unit(context, unit, phase, arm, seed):
+def admit_training_unit(context, unit, phase, arm, seed, endpoint_reader):
     """Deduplicate only exact already-admitted UNITs, preserving original readers."""
     t,trainer = context['training_context'],context['trainer']
     key = f'{phase}:{seed}:{arm}'
@@ -518,12 +808,12 @@ def admit_training_unit(context, unit, phase, arm, seed):
     if key in known:
         require(known[key] == unit, 'same phase/seed/arm changed original UNIT')
         return t['connected_terminals'][key]
-    record = trainer.admit_terminal(t,unit,phase,arm,seed)
+    record = endpoint_reader(unit,phase,arm,seed)
     known[key] = unit
     return record
 
 
-def admit_endpoints(context, endpoints):
+def admit_endpoints(context, endpoints, endpoint_reader):
     trainer,t,launch = context['trainer'],context['training_context'],context['launch']
     by_pair = {(e['seed'],e['arm']):e for e in launch['endpoints']}
     for endpoint in endpoints:
@@ -538,9 +828,9 @@ def admit_endpoints(context, endpoints):
             require(el['fresh_control'] == by_pair[seed,'control']['terminal'],
                 'candidate fresh_control must be the paired same-seed control UNIT')
         for a in ARMS:
-            record = admit_training_unit(context,el['selected_mechanics'][a],'mechanics',a,seed)
+            record = admit_training_unit(context,el['selected_mechanics'][a],'mechanics',a,seed,endpoint_reader)
             require(record['launch']['selected_cpu'] == el['selected_cpu'], 'mechanics changes selected CPU')
-        record = admit_training_unit(context,endpoint['terminal'],'train',arm,seed)
+        record = admit_training_unit(context,endpoint['terminal'],'train',arm,seed,endpoint_reader)
         require(record['launch'] == el and record['result']['identity'] ==
             t['connected_terminals'][f'mechanics:{seed}:{arm}']['result']['identity'] and
             [trainer.diagnostic(r) for r in record['result']['steps'][:17]] ==
@@ -591,6 +881,8 @@ def authority(args):
     original_active = (args.phase == 'score' and launch['stage'] == 'first' and launch['panel'] == 'selection' and
         launch['first_selection'] is None and launch['selection_go'] is None and launch['exports'] == ORIGINAL_EXPORT_UNITS)
     roots = [root]+([Path(ORIGINAL_EXPORT_OWNER['root'])] if original_active else [])+[Path(launch[k]['root']) for k in keys]
+    if launch['stage'] == 'full':
+        roots.append(Path(FIRST_SELECTION_OWNER['root']))
     require(args.output.is_absolute() and args.output.parent.resolve() == args.output.parent and
         not args.output.exists() and not args.output.is_symlink() and
         all(not a.is_relative_to(b) and not b.is_relative_to(a) for i,a in enumerate(roots) for b in roots[i+1:]) and
@@ -630,7 +922,8 @@ def authority(args):
     context = {'args':args,'root':root,'guards':guards,'code':code,'launch':launch,'trainer':trainer,
         'evaluator_reference':e,'training_context':t,'nearest_evaluator':native,'math':math_helper,'reference':reference,
         'records':{},'manifests':{},'training_units':units,'accepted_units':[],'common_guards':common_guards}
-    admit_endpoints(context,launch['endpoints'][:2])
+    endpoint_reader,endpoint_guard = load_endpoint_reader(context)
+    admit_endpoints(context,launch['endpoints'][:2],endpoint_reader)
     archived = read_json(native.CONCAT_TERMINAL['receipt'],guards)
     require(archived['invocation']['invocation_id'] == native.CONCAT_TERMINAL['invocation_id'] and
         archived['schema'] == reference.SCHEMA and archived['phase'] == 'score' and archived['pass'] is True and
@@ -670,14 +963,15 @@ def authority(args):
         helper=helper,baseline=baseline)
     context['preparation_costs'] = preparation_costs(context)
     original_guard = load_original_owner(context) if original_active else None
+    first_reader,first_guard = load_first_selection(context) if launch['stage'] == 'full' else (None,None)
     guard_helpers(context)
     if launch['stage'] == 'full':
-        first_receipt = accept_unit(context,launch['first_selection'],'score',stage='first',panel='selection')
+        first_receipt = first_reader(context,launch['first_selection'],'score',stage='first',panel='selection')
         require(first_receipt['decision'] == 'CONTINUE' and
             first_receipt['launch']['endpoints'] == launch['endpoints'][:2],
             'first061 KILL prohibits069 and VAL')
         context['first_receipt'] = first_receipt
-        admit_endpoints(context,launch['endpoints'][2:])
+        admit_endpoints(context,launch['endpoints'][2:],endpoint_reader)
     if launch['panel'] == 'validation':
         selection = accept_unit(context,launch['selection_go'],'score',stage='full',panel='selection')
         require(selection['decision'] == 'GO' and selection['selection_go_admits_validation_only'] is True and
@@ -688,6 +982,7 @@ def authority(args):
     if args.phase == 'score':
         owner = original_owner_context(context,original_guard) if original_active else None
         context['export_records'] = {label(e):admit_export(context,owner,e,original_guard) for e in launch['endpoints']}
+    original_guard = admission_exit_guard(endpoint_guard,first_guard,original_guard)
     return context,original_guard
 
 

@@ -233,7 +233,7 @@ def repin_contract(e, trainer):
 
 
 def source_contract(e, trainer, reference):
-    tree = ast.parse(DRIVER.read_text())
+    tree = ast.parse(endpoint_auth_inverse(DRIVER.read_bytes()))
     functions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
     admitted_base = ast.parse(evaluator_admission_batch_inverse(DRIVER.read_bytes()))
     source = lambda name: ast.unparse(functions[name])
@@ -470,6 +470,7 @@ def current_bytes(e):
 
 def evaluator_admission_batch_inverse(raw):
     """Undo only the added helper/import and the two named admission loops."""
+    raw = endpoint_auth_inverse(raw)
     start = raw.index(b'def batch_bound_files(guards, items):\n')
     end = raw.index(b'def read_json(value, guards):\n',start)
     assert hashlib.sha256(raw[start:end]).hexdigest() == \
@@ -492,6 +493,7 @@ def evaluator_admission_batch_inverse(raw):
 
 
 def admission_batch_test_inverse(raw):
+    raw = endpoint_auth_test_inverse(raw)
     start = raw.index(b'# BEGIN FRESH ADMISSION FALSIFIER\n')
     end = raw.index(b'# BEGIN ORIGINAL OWNER FALSIFIER\n',start)
     raw = raw[:start]+raw[end:]
@@ -601,7 +603,9 @@ def actual_admission_scan_falsifier():
             body = function(original,name).body
             index = next(i for i,n in enumerate(body) if isinstance(n,ast.For) and
                 ast.unparse(n.iter) == source + "['input_guards'].items()")
-            serial, batched = body[index], function(candidate,name).body[index]
+            serial = body[index]
+            batched = next(n for n in function(candidate,name).body if isinstance(n,ast.Expr) and
+                isinstance(n.value,ast.Call) and isinstance(n.value.func,ast.Name) and n.value.func.id == 'batch_bound_files')
             serial_owner, owner = dict(initial), dict(initial)
             red = run(serial,repeated,serial_owner)
             green = run(batched,repeated,owner,overlap=True)
@@ -931,7 +935,7 @@ def original_owner_contract(e):
     assert context['accepted_units'] == [fresh_unit,old_selected]+[launch['exports'][e.label(ep)] for ep in launch['endpoints']]
     # Execute the real activation predicate and current admission tail. Inactive
     # phases have no original root/module/closure work; full/VAL use current gates.
-    authority = next(n for n in ast.parse(DRIVER.read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name == 'authority')
+    authority = next(n for n in ast.parse(endpoint_auth_inverse(DRIVER.read_bytes())).body if isinstance(n,ast.FunctionDef) and n.name == 'authority')
     activation = next(n for n in authority.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id == 'original_active')
     roots_node = next(n for n in authority.body if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id == 'roots')
     def active(value, phase='score'):
@@ -1049,11 +1053,523 @@ def original_owner_test_inverse():
 # END ORIGINAL OWNER FALSIFIER
 
 
+# BEGIN ENDPOINT AUTHENTICATION FALSIFIER
+
+def endpoint_auth_test_inverse(raw):
+    start = raw.index(b'# BEGIN ENDPOINT AUTHENTICATION FALSIFIER\n')
+    end = raw.index(b'def main():\n',start)
+    raw = raw[:start]+raw[end:]
+    edits = [(b'    """Undo only the added helper/import and the two named admission loops."""\n    raw = endpoint_auth_inverse(raw)\n', b'    """Undo only the added helper/import and the two named admission loops."""\n'), (b'def admission_batch_test_inverse(raw):\n    raw = endpoint_auth_test_inverse(raw)\n', b'def admission_batch_test_inverse(raw):\n'), (b'    tree = ast.parse(endpoint_auth_inverse(DRIVER.read_bytes()))\n    functions =', b'    tree = ast.parse(DRIVER.read_text())\n    functions ='), (b"    authority = next(n for n in ast.parse(endpoint_auth_inverse(DRIVER.read_bytes())).body if isinstance(n,ast.FunctionDef) and n.name == 'authority')\n", b"    authority = next(n for n in ast.parse(DRIVER.read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name == 'authority')\n"), (b'    endpoint_authentication_contract()\n    actual_admission_scan_falsifier()\n    e =', b'    actual_admission_scan_falsifier()\n    e ='), (b"            serial = body[index]\n            batched = next(n for n in function(candidate,name).body if isinstance(n,ast.Expr) and\n                isinstance(n.value,ast.Call) and isinstance(n.value.func,ast.Name) and n.value.func.id == 'batch_bound_files')\n", b'            serial, batched = body[index], function(candidate,name).body[index]\n')]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'endpoint test integration edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == '3aa5aa8be23c569e9e7f161edfb6c7daf0b293839bb156fcaf6ff876e2292529', 'endpoint original test bytes differ'
+    return raw
+
+
+def endpoint_auth_inverse(raw):
+    """Exact inverse to the assigned base; every previous inverse remains active."""
+    start = raw.index(b'# BEGIN ENDPOINT READER AUTHENTICATION\n')
+    end = raw.index(b'# BEGIN ORIGINAL EXPORT OWNER\n',start)
+    raw = raw[:start]+raw[end:]
+    edits = [(b'import ast\n', b''), (b"    if 'original_evaluator' in context:\n        modules.append(context['original_evaluator'])\n    if 'first_evaluator' in context:\n        modules.append(context['first_evaluator'])\n", b"    if 'original_evaluator' in context:\n        modules.append(context['original_evaluator'])\n"), (b'def admit_training_unit(context, unit, phase, arm, seed, endpoint_reader):', b'def admit_training_unit(context, unit, phase, arm, seed):'), (b'    record = endpoint_reader(unit,phase,arm,seed)', b'    record = trainer.admit_terminal(t,unit,phase,arm,seed)'), (b'def admit_endpoints(context, endpoints, endpoint_reader):', b'def admit_endpoints(context, endpoints):'), (b"admit_training_unit(context,el['selected_mechanics'][a],'mechanics',a,seed,endpoint_reader)", b"admit_training_unit(context,el['selected_mechanics'][a],'mechanics',a,seed)"), (b"admit_training_unit(context,endpoint['terminal'],'train',arm,seed,endpoint_reader)", b"admit_training_unit(context,endpoint['terminal'],'train',arm,seed)"), (b"    if launch['stage'] == 'full':\n        roots.append(Path(FIRST_SELECTION_OWNER['root']))\n    require(args.output.is_absolute() and args.output.parent.resolve() == args.output.parent and\n", b'    require(args.output.is_absolute() and args.output.parent.resolve() == args.output.parent and\n'), (b"    endpoint_reader,endpoint_guard = load_endpoint_reader(context)\n    admit_endpoints(context,launch['endpoints'][:2],endpoint_reader)", b"    admit_endpoints(context,launch['endpoints'][:2])"), (b"    original_guard = load_original_owner(context) if original_active else None\n    first_reader,first_guard = load_first_selection(context) if launch['stage'] == 'full' else (None,None)\n    guard_helpers(context)\n    if launch['stage'] == 'full':\n        first_receipt = first_reader(context,launch['first_selection'],'score',stage='first',panel='selection')", b"    original_guard = load_original_owner(context) if original_active else None\n    guard_helpers(context)\n    if launch['stage'] == 'full':\n        first_receipt = accept_unit(context,launch['first_selection'],'score',stage='first',panel='selection')"), (b"        admit_endpoints(context,launch['endpoints'][2:],endpoint_reader)", b"        admit_endpoints(context,launch['endpoints'][2:])"), (b'    original_guard = admission_exit_guard(endpoint_guard,first_guard,original_guard)\n    return context,original_guard\n', b'    return context,original_guard\n')]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'endpoint integration edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == 'bb966f62b6ff609a6a3c3247ad5e625d6a0526824f8c5242ef1ce1b2d0bf54cf', 'endpoint production inverse differs'
+    return raw
+
+
+def endpoint_reader_state_contract():
+    """The staged path must retain actual FlatAdmission state and reject cached mutations."""
+    e = module('_endpoint_state_evaluator', DRIVER)
+    assert hasattr(e, 'batch_terminal_files'), 'missing genuine reader-state staging'
+    flat_module = module('_endpoint_flat_source', HERE/'train_siglip2_substrate_adaptation.py')
+    Flat = flat_module.FlatAdmission
+    with tempfile.TemporaryDirectory() as directory:
+        p = Path(directory)/'a.json'; p.write_bytes(b'{"x":1}')
+        q = Path(directory)/'b'; q.write_bytes(b'hello')
+        items = [(str(p),hashlib.sha256(p.read_bytes()).hexdigest()),
+                 (str(q),hashlib.sha256(q.read_bytes()).hexdigest())]
+        serial,parallel = Flat(),Flat(); sg,pg = {},{}
+        for reader,guards in ((serial,sg),(parallel,pg)):
+            assert reader.read_json(p,items[0][1],guards) == {'x':1}
+        repeated = items+[items[1]]
+        for path,digest in repeated: serial.bound_file(sg,path,digest)
+        e.batch_terminal_files(Flat,parallel,pg,repeated)
+        assert (serial.entries,serial.verified,serial.json_bytes,sg) == (parallel.entries,parallel.verified,parallel.json_bytes,pg)
+        saved = copy.deepcopy((parallel.entries,parallel.verified,parallel.json_bytes,pg))
+        import os
+        times=q.stat(); q.write_bytes(b'jello'); os.utime(q,ns=(times.st_atime_ns,times.st_mtime_ns))
+        rejects(lambda:e.batch_terminal_files(Flat,parallel,pg,repeated),'SHA256')
+        assert saved == (parallel.entries,parallel.verified,parallel.json_bytes,pg)
+        q.write_bytes(b'hello'); parallel.entries[str(q)] = (items[1][1],999)
+        saved = copy.deepcopy((parallel.entries,parallel.verified,parallel.json_bytes,pg))
+        rejects(lambda:e.batch_terminal_files(Flat,parallel,pg,repeated),'SHA256/size')
+        assert saved == (parallel.entries,parallel.verified,parallel.json_bytes,pg)
+    assert hasattr(e, 'load_endpoint_reader'), 'missing authenticated endpoint reader'
+    assert hasattr(e, 'load_first_selection'), 'missing original first-CONTINUE owner'
+
+
+def authenticated_source_contract(e):
+    """Reject live forgeries both before capture and after an independent capture."""
+    from types import FunctionType
+    from functools import wraps
+    from unittest.mock import patch
+    targets = [('trainer','train_siglip2_connected_mlp.py',None),
+        ('flat','train_siglip2_substrate_adaptation.py','FlatAdmission'),
+        ('fitter','fit_siglip2_prototype_residual.py',None),
+        ('first',str(EVIDENCE/'connected-mlp-evaluation-full-cpu-v1-freeze'/DRIVER.name),None)]
+    with tempfile.TemporaryDirectory() as directory:
+        for key,filename,cls in targets:
+            source = Path(filename) if Path(filename).is_absolute() else HERE/filename
+            path = Path(directory)/Path(filename).name; raw = source.read_bytes(); path.write_bytes(raw)
+            m = module('_endpoint_auth_'+key,path); digest = hashlib.sha256(raw).hexdigest()
+            guard = e.source_live_guard(m,digest,{},class_name=cls)
+            f = m.FlatAdmission.bound_file if cls else m.require
+            guard()
+            for attribute,value in (('__module__','forged'),('__name__','forged'),('__qualname__','forged'),
+                                    ('__defaults__',('forged',)),('__kwdefaults__',{'forged':True}),('__code__',(lambda:None).__code__)):
+                old = getattr(f,attribute)
+                setattr(f,attribute,value)
+                rejects(guard,'authenticated')
+                rejects(lambda:e.source_live_guard(m,digest,{},class_name=cls),'authenticated')
+                setattr(f,attribute,old)
+            saved = sys.modules[m.__name__]
+            sys.modules[m.__name__] = SimpleNamespace(**vars(m)); rejects(guard,'binding changed')
+            sys.modules[m.__name__] = saved
+            with patch.object(m.__spec__,'origin','/forged'):
+                rejects(guard,'binding changed')
+            with patch.object(m.__spec__,'loader',object()):
+                rejects(guard,'binding changed')
+            with patch.object(m,'require',lambda *args:None):
+                rejects(guard,'binding changed')
+            literal = next((v for k,v in vars(m).items() if k != '__builtins__' and isinstance(v,dict) and v),None)
+            if literal is not None:
+                literal['forged'] = True; rejects(guard,'binding changed'); del literal['forged']
+            path.write_bytes(raw+b'\n'); rejects(guard,'SHA256'); path.write_bytes(raw)
+            if cls:
+                Flat = m.FlatAdmission
+                Flat.__qualname__ = 'forged'
+                rejects(guard,'class'); Flat.__qualname__ = 'FlatAdmission'
+                with patch.object(Flat,'bound_file',lambda *args:Path('/forged')):
+                    rejects(guard,'class')
+                with patch.object(Flat,'__new__',staticmethod(lambda cls:object.__new__(cls)),create=True):
+                    rejects(lambda:e.source_live_guard(m,digest,{},class_name=cls),'class inventory')
+                with patch.object(Flat,'__getattribute__',lambda self,key:object.__getattribute__(self,key),create=True):
+                    rejects(lambda:e.source_live_guard(m,digest,{},class_name=cls),'class inventory')
+                with patch.object(Flat,'SCHEMA',property(Flat.SCHEMA.fget,lambda self,value:None)):
+                    rejects(lambda:e.source_live_guard(m,digest,{},class_name=cls),'property descriptor')
+                with patch.object(Flat,'register',staticmethod(Flat.register)):
+                    rejects(lambda:e.source_live_guard(m,digest,{},class_name=cls),'class inventory')
+                with patch.object(m,'FlatAdmission',type('FlatAdmission',(Flat,),{})):
+                    rejects(guard,'binding changed')
+                # A new function carrying copied globals is not the source function.
+                copied = FunctionType(f.__code__,dict(vars(m)),f.__name__,f.__defaults__)
+                with patch.object(Flat,'bound_file',copied):
+                    rejects(lambda:e.source_live_guard(m,digest,{},class_name=cls),'source function')
+            if key == 'trainer':
+                genuine = m.timed
+                def forged_factory(fn):
+                    @wraps(fn)
+                    def counterfeit(*args,**kwargs):
+                        return fn(*args,**kwargs)
+                    return counterfeit
+                forged = forged_factory(genuine.__wrapped__)
+                assert forged.__closure__[0].cell_contents is genuine.__wrapped__
+                with patch.object(m,'timed',forged):
+                    rejects(lambda:e.source_live_guard(m,digest,{}),'contextmanager wrapper')
+                genuine.__wrapped__.__qualname__ = 'forged'
+                rejects(guard,'authenticated'); genuine.__wrapped__.__qualname__ = 'timed'
+            # Same code/globals/defaults and metadata, foreign captured builtins.
+            import builtins
+            actual = m.require; prior_builtins = vars(m)['__builtins__']
+            vars(m)['__builtins__'] = {**vars(builtins),'bool':lambda value:True}
+            clone = FunctionType(actual.__code__,vars(m),actual.__name__,actual.__defaults__)
+            clone.__module__ = actual.__module__; clone.__qualname__ = actual.__qualname__
+            vars(m)['__builtins__'] = prior_builtins
+            with patch.object(m,'require',clone):
+                rejects(lambda:e.source_live_guard(m,digest,{},class_name=cls),'source function')
+            guard()
+
+
+def endpoint_join_contract(e):
+    """No dedup/cache, maximum four readers, ordered merge and joined failure."""
+    from collections import Counter
+    import threading
+    import time
+    from unittest.mock import patch
+    m = module('_endpoint_join_flat',HERE/'train_siglip2_substrate_adaptation.py'); Flat = m.FlatAdmission
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory); files = [root/str(i) for i in range(6)]
+        for i,p in enumerate(files): p.write_bytes(str(i).encode())
+        items = [(str(p),hashlib.sha256(p.read_bytes()).hexdigest()) for p in files]
+        visits=[]; readers=[]; active=[0,0]; lock=threading.Lock(); real=m.bound_file; method=Flat.bound_file
+        def observe(self,guards,*args):
+            with lock: readers.append(self)
+            return method(self,guards,*args)
+        def disk(guards,path,digest):
+            with lock:
+                visits.append(str(path)); active[0]+=1; active[1]=max(active)
+            try:
+                time.sleep(.01 if str(path)==items[0][0] else .001)
+                return real(guards,path,digest)
+            finally:
+                with lock: active[0]-=1
+        reader=Flat(); guards={}; repeated=items+[items[0]]
+        with patch.object(Flat,'bound_file',observe),patch.object(m,'bound_file',disk):
+            e.batch_terminal_files(Flat,reader,guards,repeated)
+        assert Counter(visits)==Counter(p for p,h in repeated) and len({id(r) for r in readers})==len(repeated)
+        assert all(type(r) is Flat and r is not reader for r in readers) and 1<active[1]<=4 and active[0]==0
+        assert list(guards)==[p for p,h in items] and reader.json_bytes=={}
+        def failure(changed,text):
+            saved=copy.deepcopy((reader.entries,reader.verified,reader.json_bytes,guards)); visits.clear();readers.clear()
+            with patch.object(m,'bound_file',disk),patch.object(Flat,'bound_file',observe):
+                rejects(lambda:e.batch_terminal_files(Flat,reader,guards,changed),text)
+            assert len(readers)==len(changed)
+            assert active[0]==0 and saved==(reader.entries,reader.verified,reader.json_bytes,guards)
+        guards[items[0][0]]='f'*64; failure(items,'stage file'); guards[items[0][0]]=items[0][1]
+        reader.entries[items[0][0]]=('f'*64,1); failure(items,'SHA256/size'); reader.entries[items[0][0]]=(items[0][1],1)
+        files[0].write_bytes(b'x'); failure(items,'SHA256'); files[0].write_bytes(b'0')
+        link=root/'link'; link.symlink_to(files[0]); failure([(str(link),items[0][1])]+items,'canonical')
+        failure([(items[0][0],'bad')]+items,'SHA256')
+        failure([(str(root/'missing'),'f'*64)]+items,'canonical')
+        failure([('relative','f'*64)]+items,'canonical')
+        failure([(items[0][0],'f'*64)]+items,'SHA256')
+        failure([(items[0][0],'f'*64),(str(root/'missing'),'f'*64)]+items,'SHA256')
+        e.batch_terminal_files(Flat,reader,guards,[(items[0][0],items[0][1],1)])
+        failure([(items[0][0],items[0][1],2)],'size')
+        reader.bound_file=lambda *args:None
+        rejects(lambda:e.batch_terminal_files(Flat,reader,guards,items),'instance state')
+        del reader.bound_file
+        class Substitute(Flat): pass
+        rejects(lambda:e.batch_terminal_files(Flat,Substitute(),{},items),'genuine')
+
+
+def endpoint_derivative_contract(e):
+    """Real frozen callbacks/class/terminal log and actual CPU metadata; tiny I/O inventory."""
+    from unittest.mock import patch
+    import os
+    names=('train_siglip2_connected_mlp','train_siglip2_substrate_adaptation','fit_siglip2_prototype_residual',
+        'export_siglip2_substrate_fit','train_siglip2_nearest_ranking','train_siglip2_quadratic_readout','train_siglip2_identity_diversity')
+    modules={n:module('_endpoint_deployed_'+n,HERE/(n+'.py')) for n in names}
+    trainer,flat,fitter,init,nearest,old,training=modules.values()
+    accepted=json.loads((EVIDENCE/'connected-mlp-cpu-v6/receipt.json').read_bytes())
+    initializer=json.loads((EVIDENCE/'identity-diversity-v1/cpu-v5/receipt.json').read_bytes())
+    source_guards={m.__file__:hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() for m in modules.values()}
+    with tempfile.TemporaryDirectory() as directory:
+        root=Path(directory)
+        def write(path,value):
+            path.write_bytes(value if isinstance(value,bytes) else json.dumps(value).encode())
+            return {'path':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+        launch=copy.deepcopy(accepted['launch']); auth=write(root/'authority.json',launch)
+        code=accepted['code']
+        for name,digest in code.items():
+            raw=(HERE/name).read_bytes(); assert hashlib.sha256(raw).hexdigest()==digest; (root/name).write_bytes(raw)
+        execution=write(root/'execution.json',code)
+        # The actual frozen execution JSON is canonical producer bytes.
+        frozen=(EVIDENCE/'connected-mlp-cpu-v6-freeze/execution.json').read_bytes()
+        execution=write(root/'execution.json',frozen)
+        assert execution['sha256']==accepted['execution_sha256']
+        aliases={}
+        for name,digest in launch['witness']['files'].items():
+            path=HERE/name; assert hashlib.sha256(path.read_bytes()).hexdigest()==digest
+            aliases[str(Path(launch['witness']['root'])/name)]=path
+        real_open,real_stat,real_resolve,real_is_file=Path.open,Path.stat,Path.resolve,Path.is_file
+        def open_file(p,*a,**kw): return real_open(aliases.get(str(p),p),*a,**kw)
+        def stat_file(p,*a,**kw): return real_stat(aliases.get(str(p),p),*a,**kw)
+        def is_file(p,*a,**kw): return real_is_file(aliases.get(str(p),p),*a,**kw)
+        def resolve_file(p,*a,**kw): return p if str(p) in aliases else real_resolve(p,*a,**kw)
+        reader=flat.FlatAdmission();reader.init=init
+        legacy={'original':flat,'admission':reader,'selected':{'genuine':{'reference':init}},'invocations':set()}
+        guards=dict(source_guards)
+        t={'trainer':training,'guards':guards,'legacy':legacy,'nearest':nearest,'fitter':fitter,'old':old,
+            'fit_context':{'legacy':legacy,'guards':guards},'connected_root':root,
+            'connected_args':SimpleNamespace(execution_sha256=execution['sha256']),
+            'connected_code':code,'connected_launch':launch,'original_cpu_record':initializer,'source':accepted['source']}
+        context={'trainer':trainer,'training_context':t,'guards':dict(source_guards),
+            'code':{n:hashlib.sha256((HERE/n).read_bytes()).hexdigest() for n in e.FILES}}
+        record=copy.deepcopy(accepted);record.update(authority=auth,authority_sha256=auth['sha256'])
+        record['invocation']['argv']=trainer.cli(root,auth['path'],auth['sha256'],execution['sha256'],'cpu','control',179061,root)
+        record['input_guards']={execution['path']:execution['sha256'],**{str(root/n):h for n,h in code.items()},
+            **{str(Path(launch['witness']['root'])/n):h for n,h in launch['witness']['files'].items()}}
+        fact=write(root/'receipt.json',record)
+        unit=copy.deepcopy(e.TRAINING_CPU); unit['receipt']=fact
+        unit['log']=write(root/'original.log',(EVIDENCE/'connected-mlp-cpu-v6/original.log').read_bytes())
+        # The evaluator-owned batching callback must also have genuine builtins.
+        import builtins
+        from types import FunctionType
+        batch=e.batch_terminal_files; global_builtins=vars(e)['__builtins__']
+        vars(e)['__builtins__']={**vars(builtins),'bool':lambda value:True}
+        forged=FunctionType(batch.__code__,vars(e),batch.__name__,batch.__defaults__)
+        forged.__module__=batch.__module__;forged.__qualname__=batch.__qualname__
+        vars(e)['__builtins__']=global_builtins
+        with patch.object(e,'batch_terminal_files',forged):
+            rejects(lambda:e.load_endpoint_reader(context),'owned callback source')
+        admit,guard=e.load_endpoint_reader(context)
+        derivative=next(c.cell_contents for c in admit.__closure__ if callable(c.cell_contents) and
+            getattr(c.cell_contents,'__name__',None)=='connected_endpoint_terminal')
+        assert derivative.__code__.co_filename==str(DRIVER) and derivative.__globals__ is not vars(trainer)
+        assert '__file__' not in derivative.__globals__
+        for name in ('check_unit','fresh_terminal_reader','check_terminal','require','cli','policy','read_json'):
+            assert derivative.__globals__[name] is getattr(trainer,name)
+        with patch.object(Path,'open',open_file),patch.object(Path,'stat',stat_file),patch.object(Path,'resolve',resolve_file),patch.object(Path,'is_file',is_file):
+            assert admit(unit,'cpu','control',179061)==record
+            assert t['connected_terminals']['cpu:179061:control']==record
+            assert legacy['invocations']=={unit['invocation_id']}
+            rejects(lambda:admit(unit,'cpu','control',179061),'reused terminal')
+            # Preserve original genuine terminal/CLI/cgroup/source predicates.
+            original_log=(root/'original.log').read_bytes()
+            for mutate,text in ((lambda r:r['invocation']['argv'].append('--forged'),'authority/CLI'),
+                (lambda r:r['input_guards'].pop(str(root/'execution.json')),'source guards'),
+                (lambda r:r['cgroup_before']['values'].__setitem__('memory.swap.current','1'),'whole-cgroup caps')):
+                bad=copy.deepcopy(record);mutate(bad);unit['receipt']=write(root/'receipt.json',bad);legacy['invocations'].clear()
+                guards.clear();guards.update(source_guards)
+                rejects(lambda:admit(unit,'cpu','control',179061),text)
+            unit['receipt']=write(root/'receipt.json',record);legacy['invocations'].clear()
+            guards.clear();guards.update(source_guards)
+            unit['log']=write(root/'original.log',original_log.replace(b'code=exited/status=0',b'code=killed/status=TERM'))
+            rejects(lambda:admit(unit,'cpu','control',179061),'normal-exit')
+            unit['log']=write(root/'original.log',original_log)
+            guards.clear();guards.update(source_guards)
+            assert admit(unit,'cpu','control',179061)==record
+        # A source or callback mutation after loader capture is rejected at call and exit.
+        saved=trainer.check_terminal.__code__;trainer.check_terminal.__code__=(lambda *args:None).__code__
+        rejects(lambda:admit(unit,'cpu','control',179061),'authenticated')
+        rejects(lambda:e.exit_rehash(context,guard),'authenticated');trainer.check_terminal.__code__=saved
+        old_class=flat.FlatAdmission
+        flat.FlatAdmission=type('FlatAdmission',(old_class,),{})
+        rejects(lambda:guard(context),'binding changed');flat.FlatAdmission=old_class
+        saved=e.batch_terminal_files.__code__;e.batch_terminal_files.__code__=(lambda *args:None).__code__
+        rejects(lambda:guard(context),'owned callback');e.batch_terminal_files.__code__=saved
+        with patch.dict(derivative.__globals__,{'policy':lambda phase:{'seconds':99999}}):
+            rejects(lambda:guard(context),'derivative binding')
+        guard(context)
+
+
+def first_selection_owner_contract(e):
+    """Genuine v5 accept/check/decision predicates; external remote I/O isolated explicitly."""
+    from unittest.mock import patch
+    freeze=EVIDENCE/'connected-mlp-evaluation-full-cpu-v1-freeze'
+    original_raw=(freeze/DRIVER.name).read_bytes()
+    unit=json.loads((EVIDENCE/'connected-mlp-evaluation-first-selection-score-v2/unit.json').read_bytes())
+    accepted=json.loads((EVIDENCE/'connected-mlp-evaluation-first-selection-score-v2/receipt.json').read_bytes())
+    assert unit==e.FIRST_SELECTION_UNIT
+    assert e.FIRST_SELECTION_OWNER=={'root':str(Path(unit['log']['path']).parent),
+        'execution_sha256':hashlib.sha256((freeze/'execution.json').read_bytes()).hexdigest(),
+        'code':json.loads((freeze/'execution.json').read_bytes())}
+    for name,digest in e.FIRST_SELECTION_OWNER['code'].items():
+        assert hashlib.sha256((freeze/name).read_bytes()).hexdigest()==digest
+    for key,local in (('receipt','receipt.json'),('log','original.log')):
+        assert hashlib.sha256((EVIDENCE/'connected-mlp-evaluation-first-selection-score-v2'/local).read_bytes()).hexdigest()==unit[key]['sha256']
+    modules={key:module('_first_prerequisite_'+key,HERE/filename) for key,filename in (
+        ('trainer','train_siglip2_connected_mlp.py'),('evaluator_reference','evaluate_siglip2_identity_diversity.py'),
+        ('nearest_evaluator','evaluate_siglip2_nearest_ranking.py'),('math','evaluate_siglip2_genuine_views.py'),
+        ('reference','evaluate_siglip2_prototype_residual.py'),('helper','export_siglip2_substrate_adaptation.py'),
+        ('baseline','evaluate_siglip2_quadratic_readout.py'))}
+    known=dict(accepted['input_guards']);known.update({unit[k]['path']:unit[k]['sha256'] for k in ('receipt','log')})
+    known[accepted['authority']['path']]=accepted['authority']['sha256']
+    records={unit['receipt']['path']:accepted,accepted['authority']['path']:accepted['launch']}
+    owner_path=Path(e.FIRST_SELECTION_OWNER['root'])/DRIVER.name
+    real_bound=e.bound_file; real_closure=e.closure
+    def bound_fixture(guards,path,digest):
+        if Path(path)==owner_path:
+            real_bound({},freeze/DRIVER.name,digest)
+        elif str(path) in known:
+            e.require(known[str(path)]==digest,'external FILE fixture digest differs')
+        else:
+            real_bound({},path,digest)
+        e.merge_guards(guards,{str(path):digest});return Path(path)
+    def read_fixture(fact,guards):
+        bound_fixture(guards,fact['path'],fact['sha256'])
+        return copy.deepcopy(records[fact['path']])
+    def closure_fixture(root,digest,names,guards):
+        assert (root,digest,names)==(e.FIRST_SELECTION_OWNER['root'],e.FIRST_SELECTION_OWNER['execution_sha256'],e.FILES)
+        result=real_closure(freeze,digest,names,{})
+        e.merge_guards(guards,{str(Path(root)/'execution.json'):digest,**{str(Path(root)/n):h for n,h in result.items()}})
+        return result
+    def load_fixture(name,path,digest,guards):
+        assert name=='_connected_first_owner_v5' and path==owner_path and digest==e.FIRST_SELECTION_OWNER['code'][DRIVER.name]
+        spec=importlib.util.spec_from_file_location(name,path);original=importlib.util.module_from_spec(spec)
+        sys.modules[name]=original
+        # Only absent remote file reads are seams. The accept/check/science bodies
+        # are compiled verbatim and retain their original module globals/filename.
+        original.__dict__.update(read_json=read_fixture,bound_file=bound_fixture)
+        nodes=[n for n in ast.parse(original_raw).body if not isinstance(n,ast.FunctionDef) or n.name not in {'read_json','bound_file'}]
+        exec(compile(ast.Module(body=nodes,type_ignores=[]),str(path),'exec'),vars(original))
+        e.merge_guards(guards,{str(path):digest})
+        return original
+    actual_source_guard=e.source_live_guard
+    def source_fixture(original,digest,guards):
+        # Test real loader/authentication separately above; for this dispatch test,
+        # authenticate all original code except the two explicitly absent I/O seams.
+        names={n.name for n in ast.parse(original_raw).body if isinstance(n,ast.FunctionDef)}-{'read_json','bound_file'}
+        return actual_source_guard(original,digest,guards,names=names)
+    def context():
+        full=json.loads((freeze/'authority-full-cpu-v1.json').read_bytes())
+        full['execution_sha256']='e'*64
+        root=Path('/fixture/current-source')
+        code={n:hashlib.sha256((HERE/n).read_bytes()).hexdigest() for n in e.FILES}
+        guards={m.__file__:hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() for m in modules.values()}
+        legacy={'admission':object(),'invocations':set(),'selected':{'packages':accepted['origins']['packages'],
+            'source_cpu':{'invocation':accepted['invocation'],'numerical_flags':accepted['numerical_flags']}}}
+        c={**modules,'root':root,'args':SimpleNamespace(execution_sha256='e'*64,phase='cpu',arm=None,seed=None,
+            authority=Path('/fixture/full-authority'),authority_sha256='a'*64,output=Path('/fixture/output')),
+            'code':code,'launch':full,'guards':guards,'common_guards':{str(root/'execution.json'):'e'*64,
+                **{str(root/n):h for n,h in code.items()}},'accepted_units':[],
+            'training_context':{'source':accepted['source'],'legacy':legacy,
+                'nearest':SimpleNamespace(native_source_api=lambda t:SimpleNamespace(audit_origins=lambda *a,**kw:None))},
+            'preparation_costs':accepted['preparation_costs'],'costs':copy.deepcopy(accepted['cost']),
+            'score_context':{'source_record':{'quality':{'179061':{'control':accepted['source_quality']}}}},
+            'concat_record':{'quality':{'concat':accepted['concat_quality']}}}
+        # The real terminal reader runs against the accepted original log/cgroups;
+        # map only its log path to the committed local bytes.
+        flat=module('_first_terminal_flat',HERE/'train_siglip2_substrate_adaptation.py')
+        fitter=module('_first_terminal_fitter',HERE/'fit_siglip2_prototype_residual.py')
+        init=module('_first_terminal_init',HERE/'export_siglip2_substrate_fit.py')
+        admission=flat.FlatAdmission();admission.init=init
+        terminal_context={'legacy':{'original':flat,'admission':admission},
+            'guards':{flat.__file__:fitter.TERMINAL_SOURCE_SHA}}
+        actual_terminal=fitter.original_terminal_reader(terminal_context)
+        def terminal(unused,record,selected,seconds,ledger):
+            local=EVIDENCE/'connected-mlp-evaluation-first-selection-score-v2/original.log'
+            final=actual_terminal(admission,record,{**selected,'log':{**selected['log'],'path':str(local)}},seconds,ledger)
+            e.merge_guards(ledger,{selected['log']['path']:selected['log']['sha256']})
+            return final
+        c['terminal_reader']=terminal
+        return c
+    # Source Path.read_bytes for authentication is also a remote source I/O seam;
+    # it returns the actual pinned original source bytes, never a rewritten module.
+    actual_read=Path.read_bytes
+    def read_path(p):return original_raw if p==owner_path else actual_read(p)
+    with patch.object(e,'bound_file',bound_fixture),patch.object(e,'closure',closure_fixture),\
+            patch.object(e,'load_authenticated',load_fixture),patch.object(e,'source_live_guard',source_fixture),\
+            patch.object(Path,'read_bytes',read_path):
+        c=context();admit,guard=e.load_first_selection(c)
+        assert c['first_evaluator'].accept_unit.__globals__ is vars(c['first_evaluator'])
+        before=dict(c['common_guards']);shared=c['launch'];calls=[];original=c['first_evaluator']
+        # Observe the real owner's identity through the terminal boundary.
+        real_terminal=c['terminal_reader']
+        def terminal(*args):
+            import inspect
+            owner=inspect.currentframe().f_back.f_locals['context']
+            assert owner.keys()==c.keys() and owner['launch'] is shared
+            specific={'root','args','code','common_guards'}
+            assert all(owner[k] is c[k] for k in owner.keys()-specific)
+            assert vars(owner['args'])=={**vars(c['args']),'execution_sha256':e.FIRST_SELECTION_OWNER['execution_sha256']}
+            calls.append(owner);return real_terminal(*args)
+        c['terminal_reader']=terminal
+        assert admit(c,unit,'score',stage='first',panel='selection')==accepted
+        assert len(calls)==1 and c['common_guards']==before and c['launch'] is shared
+        assert c['accepted_units']==[unit] and unit['invocation_id'] in c['training_context']['legacy']['invocations']
+        assert len(calls[0]['common_guards'])==len(before)
+        assert all(c['guards'][str(Path(e.FIRST_SELECTION_OWNER['root'])/n)]==h for n,h in e.FIRST_SELECTION_OWNER['code'].items())
+        rejects(lambda:admit(c,unit,'score',stage='first',panel='selection'),'once-only')
+        # Module and context snapshots forged together cannot move the lexical anchor.
+        forged=SimpleNamespace(**vars(original));snapshots=list(c['helper_snapshots'])
+        snapshot=list(snapshots[-1]);snapshot[0]=forged;snapshots[-1]=tuple(snapshot)
+        bad={**c,'first_evaluator':forged,'helper_snapshots':snapshots}
+        rejects(lambda:guard(bad),'owner/snapshot')
+        rejects(lambda:e.exit_rehash(bad,guard),'owner/snapshot')
+        for phase,stage,panel in (('cpu','first','selection'),('export','first','selection'),
+                ('score','full','selection'),('score','full','validation'),('score','first','validation')):
+            fresh=context();call,_=e.load_first_selection(fresh)
+            rejects(lambda:call(fresh,unit,phase,stage=stage,panel=panel),'role')
+            assert not fresh['accepted_units'] and not fresh['training_context']['legacy']['invocations']
+        for key in unit:
+            fresh=context();changed=copy.deepcopy(unit);changed[key]=False
+            fresh['launch']['first_selection']=changed
+            rejects(lambda:e.load_first_selection(fresh),'exact original')
+        fresh=context();fresh['launch']['stage']='first'
+        rejects(lambda:e.load_first_selection(fresh),'exact original')
+        for mutate,text in ((lambda c:c['common_guards'].pop(str(c['root']/'execution.json')),'three closure'),
+            (lambda c:c['common_guards'].__setitem__(str(Path(e.FIRST_SELECTION_OWNER['root'])/'execution.json'),'f'*64),'three closure'),
+            (lambda c:c['common_guards'].__setitem__('/extra/shared','f'*64),'source guards'),
+            (lambda c:c['costs']['179061'].__setitem__('pass',False),'endpoint/cost'),
+            (lambda c:c['launch']['endpoints'].reverse(),'endpoint/cost')):
+            fresh=context();call,_=e.load_first_selection(fresh);mutate(fresh)
+            rejects(lambda:call(fresh,unit,'score',stage='first',panel='selection'),text)
+            assert fresh['accepted_units']==[]
+        # Genuine decision validation rejects a forged KILL even at pinned UNIT identity.
+        fresh=context();call,_=e.load_first_selection(fresh)
+        records[unit['receipt']['path']]={**accepted,'decision':'KILL'}
+        rejects(lambda:call(fresh,unit,'score',stage='first',panel='selection'),'scoring gate')
+        records[unit['receipt']['path']]=accepted
+        assert not fresh['accepted_units']
+        # Mutations during real admission are checked in finally, before return.
+        fresh=context();call,_=e.load_first_selection(fresh);prior=fresh['terminal_reader'];module_owner=fresh['first_evaluator']
+        def mutate_callback(*args):
+            result=prior(*args);module_owner.check_receipt.__qualname__='forged';return result
+        fresh['terminal_reader']=mutate_callback
+        rejects(lambda:call(fresh,unit,'score',stage='first',panel='selection'),'live function')
+        module_owner.check_receipt.__qualname__='check_receipt'
+    sys.modules.pop('_connected_first_owner_v5',None)
+
+
+def endpoint_authority_routing_contract(e):
+    """Exercise the actual current authority tail: first gate, 069, current CPU/GO/exports."""
+    tree=ast.parse(DRIVER.read_bytes());authority=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='authority')
+    start=next(i for i,n in enumerate(authority.body) if isinstance(n,ast.Assign) and
+        isinstance(n.targets[0],ast.Name) and n.targets[0].id=='original_guard')
+    node=ast.parse('def tail(context, launch, args, endpoint_reader, endpoint_guard):\n    pass').body[0]
+    node.body=ast.parse("guards=context['guards']; original_active=False").body+copy.deepcopy(authority.body[start:])
+    visits=[];decision=['CONTINUE'];endpoint_reader=object()
+    def load_first(c):
+        visits.append('load-first')
+        def read(current,unit,phase,*,stage,panel):
+            assert current is c and unit==e.FIRST_SELECTION_UNIT and (phase,stage,panel)==('score','first','selection')
+            visits.append('first');return {'decision':decision[0],'launch':{'endpoints':c['launch']['endpoints'][:2]}}
+        return read,lambda current:visits.append('first-exit')
+    def remaining(c,endpoints,reader):
+        assert reader is endpoint_reader and visits==['load-first','first'] and [ep['seed'] for ep in endpoints]==[179069,179069]
+        visits.append('069')
+    def current(c,unit,phase,arm=None,seed=None,stage=None,panel=None):
+        assert unit!=e.FIRST_SELECTION_UNIT
+        visits.append(phase)
+        return {'decision':'GO','selection_go_admits_validation_only':True,'launch':{'endpoints':c['launch']['endpoints']}}
+    ns={**vars(e),'load_first_selection':load_first,'guard_helpers':lambda c:None,'admit_endpoints':remaining,'accept_unit':current}
+    export=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='admit_export')
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node,export],type_ignores=[])),str(DRIVER),'exec'),ns)
+    frozen=json.loads((EVIDENCE/'connected-mlp-evaluation-full-cpu-v1-freeze/authority-full-cpu-v1.json').read_bytes())
+    for phase in ('cpu','export','score'):
+        for panel in ('selection','validation'):
+            launch=copy.deepcopy(frozen);launch['panel']=panel
+            launch['selected_cpu']={'current':'cpu'};launch['selection_go']={'current':'GO'}
+            launch['exports']={e.label(ep):{'current':e.label(ep)} for ep in launch['endpoints']}
+            c={'launch':launch,'guards':{},'args':SimpleNamespace(phase=phase)};visits.clear()
+            result,guard=ns['tail'](c,launch,c['args'],endpoint_reader,lambda current:visits.append('endpoint-exit'))
+            assert result is c and visits[:3]==['load-first','first','069']
+            assert visits.count('cpu')==(phase!='cpu') and visits.count('export')==(4 if phase=='score' else 0)
+            assert visits.count('score')==(panel=='validation')
+            guard(c);assert visits[-2:]==['endpoint-exit','first-exit']
+    decision[0]='KILL';visits.clear()
+    rejects(lambda:ns['tail'](c,launch,c['args'],endpoint_reader,None),'KILL prohibits')
+    assert visits==['load-first','first']
+
+
+def endpoint_authentication_contract():
+    e=module('_endpoint_complete_evaluator',DRIVER)
+    endpoint_auth_inverse(DRIVER.read_bytes())
+    endpoint_auth_test_inverse(Path(__file__).read_bytes())
+    endpoint_reader_state_contract()
+    authenticated_source_contract(e)
+    endpoint_join_contract(e)
+    endpoint_derivative_contract(e)
+    first_selection_owner_contract(e)
+    endpoint_authority_routing_contract(e)
+    assert not any(n.split('.')[0] in {'torch','numpy','PIL','sfora','transformers'} for n in sys.modules)
+    print('PASS endpoint genuine source/class/callback/state/join/derivative and once-only first-CONTINUE owner')
+
+
+# END ENDPOINT AUTHENTICATION FALSIFIER
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source-only', action='store_true', required=True)
     parser.add_argument('--narrow', action='store_true')
     args = parser.parse_args()
+    endpoint_authentication_contract()
     actual_admission_scan_falsifier()
     e = module('_connected_eval_source_test', DRIVER)
     trainer = module('_connected_eval_trainer_api', HERE/'train_siglip2_connected_mlp.py')
