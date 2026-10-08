@@ -1,0 +1,41 @@
+{
+  "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+  "calculated_workspace_bytes": 33554432,
+  "inference": "The exact reported Torch source allocates configured workspace through CUDACachingAllocator and retains it in static workspace maps; size exactly matches remaining allocation. This is strong source-supported workspace hypothesis, not runtime causal proof. Partial GC scan excludes nothing outside scanned objects. No clear operation or native execution occurred.",
+  "installed_files": [
+    {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/version.py",
+      "sha256": "c846964f2d105f1f367cdc92dea045debcdcc09557b5da60591e8079f1b2c828",
+      "size": 317
+    },
+    {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/cuda/memory.py",
+      "sha256": "e6da277701a58d2b7c6a50ffe5680abb4a35f9b8f610c60a04a270f2758746e4",
+      "size": 52420
+    },
+    {
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/_C/__init__.pyi",
+      "sha256": "97832ade81dad2cb1da00b0d7c34dd308de8e92a1525e7767fbf9e55e517c33b",
+      "size": 419415
+    }
+  ],
+  "observed_remaining_allocated_bytes": 33554432,
+  "primary_sources": [
+    {
+      "filename": "upstream-CublasHandlePool.cpp",
+      "sha256": "624d9605d7bd70eebe8893e97a12aca6ab92a42d9d283733a677cdf65bcd54d3",
+      "size": 16938,
+      "url": "https://raw.githubusercontent.com/pytorch/pytorch/7269437d655783a26cba32aa88195b741ff496aa/aten/src/ATen/cuda/CublasHandlePool.cpp"
+    },
+    {
+      "filename": "upstream-Module.cpp",
+      "sha256": "b9a0998e77acb05ad3c4ccd537142904c10821c5b61331510d863b7d4a804748",
+      "size": 77026,
+      "url": "https://raw.githubusercontent.com/pytorch/pytorch/7269437d655783a26cba32aa88195b741ff496aa/torch/csrc/cuda/Module.cpp"
+    }
+  ],
+  "private_api": "_cuda_clearCublasWorkspaces exposed in installed pyi; upstream CUDA Module binds clearCublasWorkspaces, which clears maps. Needs original process ownership/callable authentication and an admitted before/after causal gate, not weakening final allocated0.",
+  "schema": "connected-cuda-workspace-source-audit-v1",
+  "source_binding_limit": "version.py and cuda/memory.py equal original CPU6 guards; installed _C pyi not present in that guard set, admitted here as read-only metadata SHA. Upstream commit matches declared git_version, not a reproducible local native rebuild proof.",
+  "torch_git_version": "7269437d655783a26cba32aa88195b741ff496aa"
+}
