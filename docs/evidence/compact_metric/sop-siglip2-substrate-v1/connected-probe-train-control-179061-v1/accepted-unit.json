@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "ddd016848b364f90933d5ed9e9f3b72d",
+  "log": {
+    "path": "/home/riomus/runs/sfora-connected-probe-train-source-v2/train-control-179061-v1-original.log",
+    "sha256": "a331e6c69bdc679ef469267bd28f685ae770c6d6509efd8eb3713510fc610467"
+  },
+  "native_peak_rss_kib": 5054152,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/receipt.json",
+    "sha256": "9390fc680d862243c6a2661f0fd57a3c4b8181d2d280f407856ed66a308e01ec"
+  },
+  "service_seconds": 2169.42,
+  "unit": "sfora-connected-probe-train-control-179061-v1"
+}
