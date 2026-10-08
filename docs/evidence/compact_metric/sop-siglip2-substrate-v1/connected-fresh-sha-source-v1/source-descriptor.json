@@ -1,0 +1,22 @@
+{
+  "commit": "3f82a0a7007ac3932844d18ed9a20c3971248fbc",
+  "files": {
+    "_connected_inference_authority.py": {
+      "bytes": 136879,
+      "path": "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/_connected_inference_authority.py",
+      "sha256": "d1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b"
+    },
+    "connected_compact_serving.py": {
+      "bytes": 26215,
+      "path": "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/connected_compact_serving.py",
+      "sha256": "3d395a8fd7779bdae9145a3195785fc428b74fb53a8c0e2e47237fd8b22ed3ce"
+    },
+    "connected_inference.py": {
+      "bytes": 52273,
+      "path": "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/connected_inference.py",
+      "sha256": "ea73430a5cc1a7f7ee769dbd37d27dc9379b03896bcab7e9ae3a7b771a42b9eb"
+    }
+  },
+  "native_qualified": false,
+  "schema": "connected-fresh-sha-proposal-source-v1"
+}

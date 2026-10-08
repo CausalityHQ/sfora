@@ -1,0 +1,17 @@
+{
+  "copy_exit": 0,
+  "copy_original_session": 98863,
+  "installed_runtime_changed": false,
+  "mkdir_exit": 0,
+  "mkdir_original_session": 49060,
+  "native_execution": false,
+  "remote_sha256": {
+    "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/_connected_inference_authority.py": "d1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b",
+    "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/connected_compact_serving.py": "3d395a8fd7779bdae9145a3195785fc428b74fb53a8c0e2e47237fd8b22ed3ce",
+    "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/connected_inference.py": "ea73430a5cc1a7f7ee769dbd37d27dc9379b03896bcab7e9ae3a7b771a42b9eb",
+    "/home/riomus/runs/sfora-connected-fresh-sha-proposal-source-v1/source-descriptor.json": "bdbd4ef445c4ae30a4274939d7add3d47ce37860a03a4ef62f338d0c76dcd767"
+  },
+  "schema": "connected-fresh-sha-source-stage-receipt-v1",
+  "sha_exit": 0,
+  "sha_original_session": 89263
+}
