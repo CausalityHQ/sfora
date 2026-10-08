@@ -1,0 +1,345 @@
+{
+  "id": "fce3a7af9d6145e1",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791470466,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791471666,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded host-residency audit, SAME Sfora goal; independent of live cleanup audit a27ef156 (do NOT duplicate CUDAworkspace question). Repo /home/rb/worktrees/sfora-positive-causality masterb024916. Inspect exact scripts/qualify_connected_gradient_decomposition.py and original committed docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gradient-decomposition-v1/{original.log,terminal.json}. Original SSH92791 TERMINALexit1,579.993s; workspace64MiB→0 rejected32MiB predicate separately; hostpeak8GiB/memory.events.max17588/oom0/swap0. Four independent reload phaseends through411s; finalworkspace452s; original exit hashes480–522s; no accepted gradientreceipt. Goal resolve hostpressure without caps/zero-event/science changes. Trace ownership/whole-file reads/fresh full SHA/checkpoint mmap/advice/exit union and current guards. Determine source-supported likely residency paths but do NOT attribute onset without measurements. Propose ONE smallest bounded source-only streaming fresh-hash correction if exact transient read allocation demonstrated, or phase memory.stat observer if causal uncertainty remains. Keep every original fresh read/current SHA/predicate/full uncached exit, no cache/readskip/native origin/math/gradient/state changes, no tensor eviction hacks, no resource increases. Name exact callers/files and falsifying stdlib tests, output concise ownership ledger+proposedcontract. Do not edit, execute native/thirdparty/Torch/SSH/jobs/researchproviders/children. Package specialist independent; original terminal immutable, no relaunch authorized.",
+  "prompt_sha256": "ceaa5c51b452d73c0e84e707a182f97bc1aa53dba052698b82ea1a61ab5643f6",
+  "prompt_bytes": 1883,
+  "fingerprint": "2382a632b3b57a268b8fe36f16803a07abae2dd10c8a6a02f297cbf30727c701",
+  "evidence": {
+    "git_commit": "b024916bde3ead7d1876f4ce3684a53c83a6a758",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "fbc253646be017bd55b6b8e93a92180e83d24f7dc10fe9b1edf101891abeea8c",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "source": "fallback"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-fce3a7af9d6145e1.service",
+  "pid": 86449,
+  "pgid": 86449,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "budget_usd": null,
+      "timeout_seconds": 1200,
+      "started_at": 1791470466
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791470796,
+  "event_cursor": 107,
+  "events": [
+    {
+      "seq": 84,
+      "at": 1791470638,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 85,
+      "at": 1791470638,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 86,
+      "at": 1791470638,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 87,
+      "at": 1791470666,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 88,
+      "at": 1791470671,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 89,
+      "at": 1791470671,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 90,
+      "at": 1791470671,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 91,
+      "at": 1791470672,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 92,
+      "at": 1791470672,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 93,
+      "at": 1791470673,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 94,
+      "at": 1791470679,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 95,
+      "at": 1791470679,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 96,
+      "at": 1791470680,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 97,
+      "at": 1791470680,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 98,
+      "at": 1791470680,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 99,
+      "at": 1791470680,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 100,
+      "at": 1791470709,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 101,
+      "at": 1791470709,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 102,
+      "at": 1791470709,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 103,
+      "at": 1791470709,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 104,
+      "at": 1791470709,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 105,
+      "at": 1791470709,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 106,
+      "at": 1791470794,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 107,
+      "at": 1791470795,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 100,
+        "at": 1791470709,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 101,
+        "at": 1791470709,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 102,
+        "at": 1791470709,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 103,
+        "at": 1791470709,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 104,
+        "at": 1791470709,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 105,
+        "at": 1791470709,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 106,
+        "at": 1791470794,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 107,
+        "at": 1791470795,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Recommend one phase-memory observer, not a hash rewrite.** No large whole-file SHA allocation was demonstrated in the audited paths. The qualifier already hashes in 1 MiB blocks; inherited large-file readers also stream. The qualifier’s final union lacks consumed-range advice, making file-cache residency a plausible pressure path—not an established cause or onset.\n\nThe committed log’s SHA matches `terminal.json`; qualifier, training and evaluator sources match their frozen hashes. SSH92791 remains **FAIL_UNACCEPTED**, exit 1, 579.993 seconds, with no accepted gradient receipt. Peak reached 8 GiB; `max=17588`, OOM and swap remained zero. At stop, file residency was 6,132,768,768 bytes versus 5,443,584 anonymous bytes. That post-exit snapshot cannot reconstruct the peak.\n\n| Ownership path | Source-supported residency and existing guard |\n|---|---|\n| Qualifier `file_bytes` → `prepare`, closures, final guard union | Hash-only reads use 1 MiB blocks; retained source/JSON reads cap at 64 MiB. Before/open-FD/after stat equality, current SHA and conflicting-authority checks remain. Hash-only reads provide no file-cache advice. |\n| Bootstrap/modules/guard closures | `sys.modules`, context and authenticated namespace snapshots retain modules, metadata and historical records. Source compilation uses whole source-file reads; this does not demonstrate a large checkpoint-sized allocation. |\n| `build_state` → connected `load_initializer`, `construct_encoder`, `restore` | Fresh CPU construction and independent tensor copies coexist temporarily with checkpoint mappings. `mmap=True`, typed fingerprints, `CheckpointPages.consume/copy`, VMA validation, consumed-page `madvise`/`fadvise`, and `mapping_absent` constrain ownership. Advice is not a residency guarantee. |\n| Measurement → release | State owns model, optimizer, caches and static tensors; temporary graphs and gradient vectors have explicit weak-reference checks. Processor cache clearing, state release and `context['initial'].clear()` end those lifetimes. Kernel file cache can remain afterward. |\n| `exit_integrity` → genuine exit reader → qualifier union | Fresh exit admission, native-origin audits, inherited union and qualifier union read current bytes. The latter streams every guarded file without advice. Existing exit-local admission bookkeeping must remain unchanged. |\n\nThe exact planning scope is [qualifier](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_connected_gradient_decomposition.py) and [its stdlib tests](/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_gradient_decomposition.py).\n\n1. Add one bounded, diagnostic-only observer of the current enclosing cgroup: timestamp, invocation/path, `memory.current`, `memory.peak`, `memory.events`, and selected `memory.stat` fields covering anon, file, mapped file, kernel/slab, active/inactive file, direct reclaim and file refaults.\n2. Call it around `run.prepare`; each `state_measurement` build/measurement/release; final cleanup; and each `exit_integrity` segment—genuine rehash, origin audit, qualifier union, closure/guard. Also sample immediately **before** `check_resources` invokes the rejecting cgroup API.\n3. Bound diagnostic reads/output. Report observer failures explicitly without suppressing original failures or preventing remaining cleanup callbacks.\n\n**Contract:** retain every fresh read, current SHA, canonical-file check, helper binding, predicate and complete uncached exit. Change no cache, native origin, checkpoint/state, tensor eviction, gradient/math, resource cap or scientific gate. Leave pinned helpers and original terminal evidence immutable; any later prospective freeze belongs to the parent.\n\n**Bounded falsifiers:** add stdlib-only tests using temporary cgroup fixtures and stubbed callbacks. Verify anon/file values remain distinct; nonzero `max` is recorded before the unchanged guard rejects; cleanup continues after injected failure; observer failure preserves the original exception. Retain existing uncached-mutation, ownership and complete-source-contract tests. Narrow checks: 15 seconds/1 GiB; final source-only gate: 120 seconds/1 GiB.\n\nFor any separately authorized future measurement, pressure already present before the qualifier union falsifies an **union-only onset** hypothesis. Predominantly anonymous growth would challenge a file-cache-dominant explanation. Boundary samples can still miss short transients.\n\nSkipped edits, Torch/native execution, SSH, relaunches, consultations and children. Risk: this observer diagnoses pressure; it does not yet resolve it or confer gradient acceptance.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Recommend one phase-memory observer, not a hash rewrite.** No large whole-file SHA allocation was demonstrated in the audited paths. The qualifier already hashes in 1 MiB blocks; inherited large-file readers also stream. The qualifier’s final union lacks consumed-range advice, making file-cache residency a plausible pressure path—not an established cause or onset.\n\nThe committed log’s SHA matches `terminal.json`; qualifier, training and evaluator sources match their frozen hashes. SSH92791 remains **FAIL_UNACCEPTED**, exit 1, 579.993 seconds, with no accepted gradient receipt. Peak reached 8 GiB; `max=17588`, OOM and swap remained zero. At stop, file residency was 6,132,768,768 bytes versus 5,443,584 anonymous bytes. That post-exit snapshot cannot reconstruct the peak.\n\n| Ownership path | Source-supported residency and existing guard |\n|---|---|\n| Qualifier `file_bytes` → `prepare`, closures, final guard union | Hash-only reads use 1 MiB blocks; retained source/JSON reads cap at 64 MiB. Before/open-FD/after stat equality, current SHA and conflicting-authority checks remain. Hash-only reads provide no file-cache advice. |\n| Bootstrap/modules/guard closures | `sys.modules`, context and authenticated namespace snapshots retain modules, metadata and historical records. Source compilation uses whole source-file reads; this does not demonstrate a large checkpoint-sized allocation. |\n| `build_state` → connected `load_initializer`, `construct_encoder`, `restore` | Fresh CPU construction and independent tensor copies coexist temporarily with checkpoint mappings. `mmap=True`, typed fingerprints, `CheckpointPages.consume/copy`, VMA validation, consumed-page `madvise`/`fadvise`, and `mapping_absent` constrain ownership. Advice is not a residency guarantee. |\n| Measurement → release | State owns model, optimizer, caches and static tensors; temporary graphs and gradient vectors have explicit weak-reference checks. Processor cache clearing, state release and `context['initial'].clear()` end those lifetimes. Kernel file cache can remain afterward. |\n| `exit_integrity` → genuine exit reader → qualifier union | Fresh exit admission, native-origin audits, inherited union and qualifier union read current bytes. The latter streams every guarded file without advice. Existing exit-local admission bookkeeping must remain unchanged. |\n\nThe exact planning scope is [qualifier](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_connected_gradient_decomposition.py) and [its stdlib tests](/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_gradient_decomposition.py).\n\n1. Add one bounded, diagnostic-only observer of the current enclosing cgroup: timestamp, invocation/path, `memory.current`, `memory.peak`, `memory.events`, and selected `memory.stat` fields covering anon, file, mapped file, kernel/slab, active/inactive file, direct reclaim and file refaults.\n2. Call it around `run.prepare`; each `state_measurement` build/measurement/release; final cleanup; and each `exit_integrity` segment—genuine rehash, origin audit, qualifier union, closure/guard. Also sample immediately **before** `check_resources` invokes the rejecting cgroup API.\n3. Bound diagnostic reads/output. Report observer failures explicitly without suppressing original failures or preventing remaining cleanup callbacks.\n\n**Contract:** retain every fresh read, current SHA, canonical-file check, helper binding, predicate and complete uncached exit. Change no cache, native origin, checkpoint/state, tensor eviction, gradient/math, resource cap or scientific gate. Leave pinned helpers and original terminal evidence immutable; any later prospective freeze belongs to the parent.\n\n**Bounded falsifiers:** add stdlib-only tests using temporary cgroup fixtures and stubbed callbacks. Verify anon/file values remain distinct; nonzero `max` is recorded before the unchanged guard rejects; cleanup continues after injected failure; observer failure preserves the original exception. Retain existing uncached-mutation, ownership and complete-source-contract tests. Narrow checks: 15 seconds/1 GiB; final source-only gate: 120 seconds/1 GiB.\n\nFor any separately authorized future measurement, pressure already present before the qualifier union falsifies an **union-only onset** hypothesis. Predominantly anonymous growth would challenge a file-cache-dominant explanation. Boundary samples can still miss short transients.\n\nSkipped edits, Torch/native execution, SSH, relaunches, consultations and children. Risk: this observer diagnoses pressure; it does not yet resolve it or confer gradient acceptance."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 1883,
+  "output_bytes": 4634,
+  "elapsed_seconds": 330,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)",
+  "progress_truncated": false,
+  "result": "**Recommend one phase-memory observer, not a hash rewrite.** No large whole-file SHA allocation was demonstrated in the audited paths. The qualifier already hashes in 1 MiB blocks; inherited large-file readers also stream. The qualifier’s final union lacks consumed-range advice, making file-cache residency a plausible pressure path—not an established cause or onset.\n\nThe committed log’s SHA matches `terminal.json`; qualifier, training and evaluator sources match their frozen hashes. SSH92791 remains **FAIL_UNACCEPTED**, exit 1, 579.993 seconds, with no accepted gradient receipt. Peak reached 8 GiB; `max=17588`, OOM and swap remained zero. At stop, file residency was 6,132,768,768 bytes versus 5,443,584 anonymous bytes. That post-exit snapshot cannot reconstruct the peak.\n\n| Ownership path | Source-supported residency and existing guard |\n|---|---|\n| Qualifier `file_bytes` → `prepare`, closures, final guard union | Hash-only reads use 1 MiB blocks; retained source/JSON reads cap at 64 MiB. Before/open-FD/after stat equality, current SHA and conflicting-authority checks remain. Hash-only reads provide no file-cache advice. |\n| Bootstrap/modules/guard closures | `sys.modules`, context and authenticated namespace snapshots retain modules, metadata and historical records. Source compilation uses whole source-file reads; this does not demonstrate a large checkpoint-sized allocation. |\n| `build_state` → connected `load_initializer`, `construct_encoder`, `restore` | Fresh CPU construction and independent tensor copies coexist temporarily with checkpoint mappings. `mmap=True`, typed fingerprints, `CheckpointPages.consume/copy`, VMA validation, consumed-page `madvise`/`fadvise`, and `mapping_absent` constrain ownership. Advice is not a residency guarantee. |\n| Measurement → release | State owns model, optimizer, caches and static tensors; temporary graphs and gradient vectors have explicit weak-reference checks. Processor cache clearing, state release and `context['initial'].clear()` end those lifetimes. Kernel file cache can remain afterward. |\n| `exit_integrity` → genuine exit reader → qualifier union | Fresh exit admission, native-origin audits, inherited union and qualifier union read current bytes. The latter streams every guarded file without advice. Existing exit-local admission bookkeeping must remain unchanged. |\n\nThe exact planning scope is [qualifier](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_connected_gradient_decomposition.py) and [its stdlib tests](/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_gradient_decomposition.py).\n\n1. Add one bounded, diagnostic-only observer of the current enclosing cgroup: timestamp, invocation/path, `memory.current`, `memory.peak`, `memory.events`, and selected `memory.stat` fields covering anon, file, mapped file, kernel/slab, active/inactive file, direct reclaim and file refaults.\n2. Call it around `run.prepare`; each `state_measurement` build/measurement/release; final cleanup; and each `exit_integrity` segment—genuine rehash, origin audit, qualifier union, closure/guard. Also sample immediately **before** `check_resources` invokes the rejecting cgroup API.\n3. Bound diagnostic reads/output. Report observer failures explicitly without suppressing original failures or preventing remaining cleanup callbacks.\n\n**Contract:** retain every fresh read, current SHA, canonical-file check, helper binding, predicate and complete uncached exit. Change no cache, native origin, checkpoint/state, tensor eviction, gradient/math, resource cap or scientific gate. Leave pinned helpers and original terminal evidence immutable; any later prospective freeze belongs to the parent.\n\n**Bounded falsifiers:** add stdlib-only tests using temporary cgroup fixtures and stubbed callbacks. Verify anon/file values remain distinct; nonzero `max` is recorded before the unchanged guard rejects; cleanup continues after injected failure; observer failure preserves the original exception. Retain existing uncached-mutation, ownership and complete-source-contract tests. Narrow checks: 15 seconds/1 GiB; final source-only gate: 120 seconds/1 GiB.\n\nFor any separately authorized future measurement, pressure already present before the qualifier union falsifies an **union-only onset** hypothesis. Predominantly anonymous growth would challenge a file-cache-dominant explanation. Boundary samples can still miss short transients.\n\nSkipped edits, Torch/native execution, SSH, relaunches, consultations and children. Risk: this observer diagnoses pressure; it does not yet resolve it or confer gradient acceptance.",
+  "result_truncated": false
+}
