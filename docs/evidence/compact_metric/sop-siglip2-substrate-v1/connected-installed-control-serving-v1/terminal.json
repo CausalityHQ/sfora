@@ -1,0 +1,58 @@
+{
+  "accepted_latency": false,
+  "accepted_serving_receipt": false,
+  "all_133_preflight_and_postflight": true,
+  "completed_first_owner_requests_inferred_from_exact_trace_and_schedule": 20,
+  "decision": "FAIL_BODY120",
+  "events_zero": true,
+  "failure": "unchanged body120 deadline at second independent owner pre-factory guard",
+  "final_cgroup": {
+    "command_exit_status": 1,
+    "invocation_id": "3b6c15018a904e9cb5f11272bd54fd2d",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-installed-control-serving-diagnostic-v1.service",
+    "values": {
+      "memory.current": "761856000",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "6375174144",
+      "memory.stat": "anon 5943296\nfile 750559232\nkernel 2940928\nkernel_stack 32768\npagetables 208896\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5771264\ninactive_file 173060096\nactive_file 577499136\nunevictable 0\nslab_reclaimable 2629704\nslab_unreclaimable 77304\nslab 2707008\nworkingset_refault_anon 0\nworkingset_refault_file 64\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 1136699\npgmajfault 12256\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1008\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "freeze_and_command_checks_ok": true,
+  "host_peak_bytes": 6375174144,
+  "invocation_id": "3b6c15018a904e9cb5f11272bd54fd2d",
+  "original_log_sha256": "b3adfd60f6d452ea797b4bd5490979d1baab3e0467d8e672d4ff14e9ec4941e7",
+  "original_ssh_session": 38345,
+  "outer_exit": 1,
+  "peak_rss_kib": 4278784,
+  "process_wall_seconds": 689.32,
+  "product_go": false,
+  "qualification_eligible": false,
+  "required_total_requests": 22,
+  "schema": "sfora-installed-control-serving-terminal-v1",
+  "service_seconds": 689.348,
+  "source_checks_ok_lines": 268,
+  "state_reuse_eligible": false,
+  "stop_cgroup": {
+    "exit_code": "exited",
+    "exit_status": "1",
+    "invocation_id": "3b6c15018a904e9cb5f11272bd54fd2d",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-installed-control-serving-diagnostic-v1.service",
+    "service_result": "exit-code",
+    "values": {
+      "memory.current": "761245696",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "6375174144",
+      "memory.stat": "anon 5439488\nfile 750559232\nkernel 2764800\nkernel_stack 0\npagetables 102400\nsec_pagetables 0\npercpu 1056\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5320704\ninactive_file 173060096\nactive_file 577499136\nunevictable 0\nslab_reclaimable 2625832\nslab_unreclaimable 46296\nslab 2672128\nworkingset_refault_anon 0\nworkingset_refault_file 64\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 1138196\npgmajfault 12256\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1008\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "swap_peak_bytes": 0,
+  "verification_note": "Initial verifier expected267 OK lines; actual268 includes BOTH outer freeze and command checks. Exact Counter against both133 command blocks and two outer checks passes; original log untouched."
+}
