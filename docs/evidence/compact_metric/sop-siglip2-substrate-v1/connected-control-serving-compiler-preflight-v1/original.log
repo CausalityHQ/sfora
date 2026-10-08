@@ -1,0 +1,7 @@
+tileiras: NVIDIA (R) Cuda Tile IR optimizing assembler
+Copyright (c) 2005-2026 NVIDIA Corporation
+Built on Tue_Sep__1_09:45:49_PDT_2026
+Cuda compilation tools, release 13.4, V13.4.92
+Build local.local.38855100_
+ba3429f704e3e28f0316e18688416ff96aa0e1221e0ca1037b5db7068c249e72  /home/riomus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cutile-compiler-0.1.1/src/cuda_tile_runtime_utils.rs
+CUTILE_TILEIRAS_PATH

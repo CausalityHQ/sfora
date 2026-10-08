@@ -1,0 +1,20 @@
+{
+  "compiler": {
+    "path": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras",
+    "sha256": "df2e9ef3804cab682f605a5c9e50045a24404ba22c3be0903454e1a60fcd78ae"
+  },
+  "compiler_env": "CUTILE_TILEIRAS_PATH",
+  "engineering_only": true,
+  "limits": "read-only existing executable/version/source; no rebuild/install/native-search qualification",
+  "log_sha256": "7269ff4b752117b8b2b68c114953a01686eb859eeac7e61e6214fbde5290e978",
+  "original_ssh_session": 82170,
+  "prior_serving_failure": "FAIL unchanged; unknown combined origin not yet identified",
+  "qualification_eligible": false,
+  "schema": "connected-control-runtime-compiler-preflight-v1",
+  "source": {
+    "path": "/home/riomus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cutile-compiler-0.1.1/src/cuda_tile_runtime_utils.rs",
+    "sha256": "ba3429f704e3e28f0316e18688416ff96aa0e1221e0ca1037b5db7068c249e72"
+  },
+  "terminal_exit": 0,
+  "version": "Cuda compilation tools, release 13.4, V13.4.92"
+}

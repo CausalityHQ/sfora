@@ -1,0 +1,77 @@
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v2/command.sh: OK
+Running as unit: sfora-connected-control-batch-execution-observation-v2.service; invocation ID: 530980aef96548169b8704dcec842ceb
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v2/observe_connected_control_batch_execution.py: OK
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v2/test_connected_control_batch_execution.py: OK
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v2/execution.json: OK
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v2/authority.json: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/diagnose_connected_gallery_freshness.py: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/execution.json: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/authority.json: OK
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+{"diagnostic": "memory_snapshot", "memory.current": 414633984, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 426614784, "memory.stat.anon": 144818176, "memory.stat.file": 267554816, "memory.stat.kernel": 1519616, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "after_admission"}
+{"diagnostic": "memory_snapshot", "memory.current": 733954048, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 734257152, "memory.stat.anon": 419254272, "memory.stat.file": 308965376, "memory.stat.kernel": 4001792, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "before_load_inference"}
+{"diagnostic": "memory_snapshot", "memory.current": 3036131328, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 3134529536, "memory.stat.anon": 2424967168, "memory.stat.file": 579772416, "memory.stat.kernel": 16990208, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "after_load_inference"}
+{"diagnostic": "memory_snapshot", "memory.current": 2989096960, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 3134529536, "memory.stat.anon": 2445881344, "memory.stat.file": 511795200, "memory.stat.kernel": 16904192, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "before_observe"}
+{"b32": {"cache_features_exact": true, "cache_readout_exact": true, "outputs_sha256": "642889c3603159120a30e4d118955e9d9264b8bbd939a6b49a81d8ef428d63da", "pixels_sha256": "f054e6c1ad5d27f242442629438c1caa5a6d17ca5a8139c45a08dcd3aa533696", "rgb_sha256": "8d9e65f3f8210d84a0ec475f7576ef6ea898981aabb2c335dfb3012b669b7b25"}, "b6_repeat_exact": true, "capture_sha256": {"codes": "895f66e882bb6cff51ec7c5f74c4dbd10434b5a8f58c61188789debc4c661269", "features": "60dc20d013450cc21c3e7b5e7497a8bd6d329b3ee94155a29874e9276511cad3", "inverse_norms": "4f82590b6b96feb04ebd052df0f2bd5f31bd854d91c5028fabaf0d4d10dac196", "pooled": "16bd08779aa803e7bfcd87df7362d80b854b35a9d83c47946969fa4a39f9d8b1", "raw": "ce9d96dcf35ca4c6dc765f9292672734c62cf17c42902dd1dd4475a31edd4d86", "unit": "47dc19d3ae901434c1fb715c01e729a1e6eb2b38b8be3d0ca1b80ee60889d044", "wire": "2f8e40b7ec6a2feaf0881dbc817f06cec9211c5229721dfbacac2ca5ba0dd773"}, "decision": "FIXED_WITNESS_ENCODER_BATCH_DRIFT", "diagnostic": "observation_summary", "differences": {"codes": {"different_bytes": 13, "exact": false}, "features": {"different_bytes": 16770, "exact": false}, "inverse_norms": {"different_bytes": 5, "exact": false}, "pooled": {"different_bytes": 6161, "exact": false}, "raw": {"different_bytes": 1896, "exact": false}, "unit": {"different_bytes": 1918, "exact": false}, "wire": {"different_bytes": 18, "exact": false}}, "image_forwards": 44, "original_tail_cause_established": false, "pending_final_checks": true, "same_b6_cache_gather_exact": true, "serving_correction_authorized": false, "status": "UNACCEPTED"}
+{"diagnostic": "memory_snapshot", "memory.current": 4018061312, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 4063178752, "memory.stat.anon": 3275976704, "memory.stat.file": 707710976, "memory.stat.kernel": 20660224, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "after_observe"}
+{"diagnostic": "memory_snapshot", "memory.current": 3986038784, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 4063178752, "memory.stat.anon": 3279450112, "memory.stat.file": 678199296, "memory.stat.kernel": 15867904, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "after_release_inference"}
+{"diagnostic": "memory_snapshot", "memory.current": 3985965056, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 4063178752, "memory.stat.anon": 3279450112, "memory.stat.file": 678170624, "memory.stat.kernel": 15872000, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "before_rehash_context"}
+{"diagnostic": "memory_snapshot", "memory.current": 3776065536, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 4063178752, "memory.stat.anon": 3279450112, "memory.stat.file": 468918272, "memory.stat.kernel": 15257600, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "after_rehash_context"}
+{"diagnostic": "memory_snapshot", "memory.current": 3776065536, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 4063178752, "memory.stat.anon": 3279450112, "memory.stat.file": 468918272, "memory.stat.kernel": 15257600, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "before_rehash_prospective"}
+{"diagnostic": "memory_snapshot", "memory.current": 3776131072, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 4063178752, "memory.stat.anon": 3279450112, "memory.stat.file": 468918272, "memory.stat.kernel": 15257600, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "phase": "after_rehash_prospective"}
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-connected-control-batch-execution-source-v2/observe_connected_control_batch_execution.py", line 629, in <module>
+    module.run(args)
+    ~~~~~~~~~~^^^^^^
+  File "/home/riomus/runs/sfora-connected-control-batch-execution-source-v2/observe_connected_control_batch_execution.py", line 604, in run
+    diagnostic.cleanup_error(error, actions)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/diagnose_connected_gallery_freshness.py", line 281, in cleanup_error
+    raise failures[0]
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/diagnose_connected_gallery_freshness.py", line 274, in cleanup_error
+    try:callback()
+        ~~~~~~~~^^
+  File "/home/riomus/runs/sfora-connected-control-batch-execution-source-v2/observe_connected_control_batch_execution.py", line 503, in final_resources
+    diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/diagnose_connected_gallery_freshness.py", line 785, in final_state
+    require(torch.cuda.memory_allocated()==0,'final CUDA tensor cleanup differs')
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/diagnose_connected_gallery_freshness.py", line 75, in require
+    if not condition: raise ValueError(message)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: final CUDA tensor cleanup differs
+FINAL_CGROUP {"command_exit_status": 1, "invocation_id": "530980aef96548169b8704dcec842ceb", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "values": {"memory.current": "558358528", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "4063178752", "memory.stat": "anon 5984256\nfile 549113856\nkernel 1892352\nkernel_stack 65536\npagetables 339968\nsec_pagetables 0\npercpu 2112\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5885952\ninactive_file 198516736\nactive_file 350597120\nunevictable 0\nslab_reclaimable 1353880\nslab_unreclaimable 111312\nslab 1465192\nworkingset_refault_anon 0\nworkingset_refault_file 47108\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 1683649\npgmajfault 6961\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 907\nthp_collapse_alloc 1\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Command exited with non-zero status 1
+	Command being timed: "/bin/bash /home/riomus/runs/sfora-connected-control-batch-execution-source-v2/command.sh"
+	User time (seconds): 123.92
+	System time (seconds): 6.52
+	Percent of CPU this job got: 84%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:34.13
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3739048
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 6962
+	Minor (reclaiming a frame) page faults: 614458
+	Voluntary context switches: 157370
+	Involuntary context switches: 1649
+	Swaps: 0
+	File system inputs: 59239544
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+STOP_CGROUP {"exit_code": "exited", "exit_status": "1", "invocation_id": "530980aef96548169b8704dcec842ceb", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service", "service_result": "exit-code", "values": {"memory.current": "557920256", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "4063178752", "memory.stat": "anon 5435392\nfile 549113856\nkernel 1503232\nkernel_stack 0\npagetables 102400\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5394432\ninactive_file 198516736\nactive_file 350597120\nunevictable 0\nslab_reclaimable 1347032\nslab_unreclaimable 27560\nslab 1374592\nworkingset_refault_anon 0\nworkingset_refault_file 47108\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 1685167\npgmajfault 6961\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 907\nthp_collapse_alloc 1\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 2min 34.173s
+CPU time consumed: 2min 10.477s
+Memory peak: 3.7G
+Memory swap peak: 0B

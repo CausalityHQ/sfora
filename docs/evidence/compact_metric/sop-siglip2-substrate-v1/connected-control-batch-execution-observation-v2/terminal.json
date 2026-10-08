@@ -1,0 +1,53 @@
+{
+  "both_locks_held": true,
+  "candidate_status": "KILL unchanged",
+  "decision": "FAIL_CUDA_CLEANUP_UNACCEPTED",
+  "failure": "final CUDA tensor cleanup differs",
+  "final_cgroup": {
+    "command_exit_status": 1,
+    "invocation_id": "530980aef96548169b8704dcec842ceb",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service",
+    "values": {
+      "memory.current": "558358528",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "4063178752",
+      "memory.stat": "anon 5984256\nfile 549113856\nkernel 1892352\nkernel_stack 65536\npagetables 339968\nsec_pagetables 0\npercpu 2112\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5885952\ninactive_file 198516736\nactive_file 350597120\nunevictable 0\nslab_reclaimable 1353880\nslab_unreclaimable 111312\nslab 1465192\nworkingset_refault_anon 0\nworkingset_refault_file 47108\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 1683649\npgmajfault 6961\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 907\nthp_collapse_alloc 1\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "host_peak_bytes": 4063178752,
+  "invocation_id": "530980aef96548169b8704dcec842ceb",
+  "limits": "700s/8GiB/max0/noSwap/CUDA<10GB/full integrity unchanged; v1 FAIL immutable",
+  "log_sha256": "9fa7ce1a0257be1597ab0d40a570232266e8ae0b0ae4c8c54e6bcd249d13772c",
+  "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "native_peak_rss_kib": 3739048,
+  "observation_accepted": false,
+  "original_ssh_session": 38323,
+  "precleanup_diagnostic": "UNACCEPTED scalar summary reports fixed-witness encoder batch drift; no serving correction authorized",
+  "quality_read": false,
+  "schema": "connected-control-batch-execution-terminal-v1",
+  "service_seconds": 154.173,
+  "stop_cgroup": {
+    "exit_code": "exited",
+    "exit_status": "1",
+    "invocation_id": "530980aef96548169b8704dcec842ceb",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-batch-execution-observation-v2.service",
+    "service_result": "exit-code",
+    "values": {
+      "memory.current": "557920256",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "4063178752",
+      "memory.stat": "anon 5435392\nfile 549113856\nkernel 1503232\nkernel_stack 0\npagetables 102400\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5394432\ninactive_file 198516736\nactive_file 350597120\nunevictable 0\nslab_reclaimable 1347032\nslab_unreclaimable 27560\nslab 1374592\nworkingset_refault_anon 0\nworkingset_refault_file 47108\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 1685167\npgmajfault 6961\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 907\nthp_collapse_alloc 1\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "swap_peak_bytes": 0,
+  "terminal_exit": 1,
+  "unit": "sfora-connected-control-batch-execution-observation-v2"
+}
