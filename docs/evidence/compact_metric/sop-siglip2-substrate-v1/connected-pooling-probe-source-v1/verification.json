@@ -1,0 +1,41 @@
+{
+  "schema": "pooling-probe-original-source-verification-v1",
+  "remote_path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py",
+  "source_sha256": "274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31",
+  "bytes": 36056,
+  "original_proof": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/identity-diversity-v1/cpu-v5/receipt.json",
+  "original_proof_sha256": "d2239da896465ee004ebb95c9316713d634fa457c91c708c6c410769a8c17b03",
+  "original_input_guard_matches": true,
+  "original_scp_session": 49592,
+  "terminal_exit": 0,
+  "methods": {
+    "SiglipVisionModel.__init__": {
+      "line": 564,
+      "source_sha256": "88fb79c28de40bfbeed08d677f991f8a1028b90a729a4a0132d3bbfa4f8b09f9"
+    },
+    "SiglipVisionModel.forward": {
+      "line": 580,
+      "source_sha256": "6326d6220686c92aee564ea0e83ff5645a6a0c052b03ba190f51b924368cf1bc"
+    },
+    "SiglipMultiheadAttentionPoolingHead.__init__": {
+      "line": 629,
+      "source_sha256": "4ea9d3c86e6961ba7f595b36d08d86ece1596b81320d7f320808647e972b4aeb"
+    },
+    "SiglipMultiheadAttentionPoolingHead.forward": {
+      "line": 637,
+      "source_sha256": "c3ae4120da290ec836e4a3e08e85e3e3af313c370471f3ec654543dd72037b7a"
+    }
+  },
+  "source_observations": [
+    "Native SiglipVisionModel creates SiglipMultiheadAttentionPoolingHead when use_head.",
+    "Head probe is a registered Parameter of shape(1,1,config.hidden_size).",
+    "Forward repeats this same probe per batch as attention query; patch hidden states are key/value; native residual/layernorm/MLP returns token0.",
+    "No extra query/layer needed for adapting this existing probe."
+  ],
+  "native_qualification": "UNRUN; no executing class/role/shape/gradient/parity/speed gain claimed",
+  "prior": {
+    "Large_whole_pool_head": "quality KILL on different Large substrate; not same probe-only variant",
+    "four_query_port": "closed; not selected"
+  },
+  "planning_job": "b342246a0bf64c2b"
+}
