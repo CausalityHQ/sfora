@@ -137,6 +137,53 @@ class ControlTests(unittest.TestCase):
         for name in ('qualify_connected_control_serving.py','connected_control_native_authority.py'):
             self.assertTrue((HERE/name).is_file(), 'missing separate control source: ' + name)
 
+    def test_real_evaluator_source_identity_baseline_and_mutants(self):
+        request = load('_control_actual_evaluator_requests',HERE/'qualify_connected_serving_requests.py')
+        native = load('_control_actual_evaluator_native',HERE/'connected_control_native_authority.py')
+        file = fact(HERE/'evaluate_siglip2_connected_mlp.py')
+        plain = request.Source.load(file)
+        try:
+            self.assertEqual([n for n,v in plain.literals.items() if vars(plain.module)[n] != v],['_SOURCE_BUILTINS'])
+            with self.assertRaisesRegex(ValueError,'live source changed'): plain.check()
+        finally: sys.modules.pop(plain.module.__name__,None)
+        self.assertTrue(callable(getattr(native,'load_evaluator_source',None)), 'owned exact evaluator checker missing')
+        source = native.load_evaluator_source(file,request)
+        module = source.module; baseline = module._SOURCE_BUILTINS
+        members = dict(vars(module)); original_request_check = request.Source.check
+        try:
+            source.check()
+            with patch.object(module,'_SOURCE_BUILTINS',tuple(list(baseline))),self.assertRaisesRegex(ValueError,'baseline'):
+                source.check()
+            import builtins
+            with patch.object(builtins,'help',lambda *a:None),self.assertRaisesRegex(ValueError,'builtin'):
+                source.check()
+            with patch.object(builtins,'all',lambda *a:True),self.assertRaisesRegex(ValueError,'builtin'):
+                source.check()
+            with patch.dict(vars(builtins),{'__control_fixture_extra__':object()}),self.assertRaisesRegex(ValueError,'builtin'):
+                source.check()
+            with patch.dict(module.FIRST_SELECTION_OWNER,{'execution_sha256':'0'*64}),self.assertRaisesRegex(ValueError,'live source'):
+                source.check()
+            initializer = module.source_live_guard.initializer
+            code = initializer.__code__
+            try:
+                initializer.__code__ = bypass_code(initializer)
+                with self.assertRaisesRegex(ValueError,'function/closure'): source.check()
+            finally: initializer.__code__ = code
+            with patch.object(initializer,'__defaults__',(None,)),self.assertRaisesRegex(ValueError,'function/closure'):
+                source.check()
+            cell = initializer.__closure__[0]; value = cell.cell_contents
+            try:
+                cell.cell_contents = object()
+                with self.assertRaisesRegex(ValueError,'source|function/closure'): source.check()
+            finally: cell.cell_contents = value
+            with patch.object(module.__spec__,'origin',str(HERE/'not-the-evaluator.py')),self.assertRaisesRegex(ValueError,'live source'):
+                source.check()
+            source.check()
+            self.assertEqual(vars(module).keys(),members.keys())
+            self.assertTrue(all(vars(module)[n] is value for n,value in members.items()))
+            self.assertIs(request.Source.check,original_request_check)
+        finally: sys.modules.pop(module.__name__,None)
+
     def test_control_observation_role_and_resource_mutants(self):
         driver = load('_control_role_driver',HERE/'qualify_connected_control_serving.py')
         observer = load('_control_role_observer',HERE/'observe_connected_serving.py')
@@ -434,6 +481,8 @@ class ControlTests(unittest.TestCase):
                 genuine['selected']['original_rows'] = []
                 with patch.object(source.module,'guard_helpers',lambda *a:None), \
                         self.assertRaisesRegex(ValueError,'source changed'): exit()
+                with patch.object(source,'check',lambda:None), \
+                        self.assertRaisesRegex(ValueError,'evaluator checker binding'): exit()
                 with patch.object(f.source,'imported_origins',lambda *a:{}), \
                         self.assertRaisesRegex(ValueError,'binding changed|dependency changed'): exit()
                 with patch.dict(f.context['control_native_owned'],{'authenticate':lambda:None}), \

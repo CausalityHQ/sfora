@@ -14,14 +14,17 @@ the full inventory and mapped identities, then projects H for the historical
 predicates. install derives only private audit/quadratic/fitter/evaluator exits;
 each substitution has an exact AST inverse. Original owned API remains owned.
 No hash cache, library-unmapping assumption, scientific gate or native launch.
+load_evaluator_source retains original Source guards and authenticates only the
+evaluator builtin baseline by identity, plus its nested source guard functions.
 """
 import ast
+import builtins
 import copy
 import os
 from pathlib import Path
 import stat
 import sys
-from types import FunctionType, SimpleNamespace
+from types import CodeType, FunctionType, SimpleNamespace
 
 ARCHIVE_SHA = 'c2d6ff677c5c533f576774d8268c536483d27ff21e93c3efa8cf2319cacc7740'
 BINARY_SHA = '3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526'
@@ -30,6 +33,75 @@ BINARY_SHA = '3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526'
 def require(value, message):
     if not value:
         raise ValueError(message)
+
+
+def load_evaluator_source(fact, request):
+    """Keep Source guards; authenticate the evaluator's identity-only baseline exactly."""
+    source = request.Source.load(fact)
+    module = source.module
+    try:
+        raw = request.read_file(fact)
+        assignment = next(n for n in ast.parse(raw).body if isinstance(n,ast.Assign) and
+            any(isinstance(t,ast.Name) and t.id == '_SOURCE_BUILTINS' for t in n.targets))
+        expected_assignment = ast.parse("_SOURCE_BUILTINS = tuple(vars(__import__('builtins')).items())").body[0]
+        require(Path(fact['path']).name == 'evaluate_siglip2_connected_mlp.py' and
+            ast.dump(assignment) == ast.dump(expected_assignment), 'exact evaluator builtin baseline required')
+        baseline = module._SOURCE_BUILTINS
+        builtin_module,error = builtins,ValueError
+        namespace = vars(builtin_module)
+        pairs = tuple(namespace.items())
+        builtin_keys = namespace.keys() | set()
+        require(type(baseline) is tuple and len(baseline) == len(pairs) and
+            all(k is key and v is value for (k,v),(key,value) in zip(baseline,pairs,strict=True)),
+            'evaluator builtin baseline differs')
+        # Only this tuple contains identity-only objects whose deepcopy cannot compare equal.
+        del source.literals['_SOURCE_BUILTINS']
+        codes = {}
+        def visit(code):
+            codes[code.co_qualname] = code
+            for value in code.co_consts:
+                if isinstance(value,CodeType): visit(value)
+        visit(compile(raw,fact['path'],'exec',dont_inherit=True))
+        functions,seen = [],set()
+        def capture(fn):
+            if not isinstance(fn,FunctionType) or fn.__module__ != module.__name__ or id(fn) in seen: return
+            seen.add(id(fn))
+            if getattr(fn,'__wrapped__',fn) is not fn:
+                # Source already authenticates the exact stdlib contextmanager wrapper.
+                require(any(member is fn for member,*_ in source.functions), 'evaluator wrapper unowned')
+                capture(fn.__wrapped__)
+                return
+            require(fn.__globals__ is vars(module) and fn.__code__ == codes.get(fn.__qualname__),
+                'evaluator function/closure source differs')
+            cells = tuple(c.cell_contents for c in fn.__closure__ or ())
+            values = dict(vars(fn))
+            functions.append((fn,fn.__code__,fn.__defaults__,copy.deepcopy(fn.__kwdefaults__),
+                fn.__globals__,fn.__builtins__,fn.__closure__,cells,values,
+                (fn.__module__,fn.__name__,fn.__qualname__)))
+            for value in (*cells,*values.values()): capture(value)
+        for value in vars(module).values(): capture(value)
+        def check():
+            # Authenticate without calling any possibly replaced builtin.
+            if module._SOURCE_BUILTINS is not baseline:
+                raise error('evaluator builtin baseline identity changed')
+            if builtin_module.__dict__ is not namespace or namespace.keys() != builtin_keys:
+                raise error('evaluator builtin namespace changed')
+            for key,value in pairs:
+                if namespace[key] is not value:
+                    raise error('evaluator builtin member binding changed')
+            source.check()
+            for fn,code,defaults,kw,globals_,builtin_,closure,cells,values,metadata in functions:
+                require(fn.__code__ is code and fn.__defaults__ is defaults and fn.__kwdefaults__ == kw and
+                    fn.__globals__ is globals_ and fn.__builtins__ is builtin_ and fn.__closure__ is closure and
+                    all(c.cell_contents is value for c,value in zip(closure or (),cells,strict=True)) and
+                    vars(fn).keys() == values.keys() and all(vars(fn)[k] is v for k,v in values.items()) and
+                    (fn.__module__,fn.__name__,fn.__qualname__) == metadata,
+                    'evaluator function/closure binding changed')
+        check()
+        return SimpleNamespace(module=module,fact=source.fact,check=check)
+    except BaseException:
+        if sys.modules.get(module.__name__) is module: del sys.modules[module.__name__]
+        raise
 
 
 class CombinedAuthority:
@@ -200,6 +272,8 @@ class CombinedAuthority:
         observer_source = request.Source(self.observer,{'path':self.observer.__file__,
             'sha256':evaluation_context['guards'][self.observer.__file__]})
         source_check,source_check_code = request.Source.check,request.Source.check.__code__
+        evaluator_check = evaluator_source.check
+        evaluator_checker = getattr(evaluator_check,'__func__',evaluator_check)
         bindings = {n:v for n,v in vars(self).items() if n not in {'admitted','inventory'}}
         owned = None
         functions,namespaces,inverses = [],[],{}
@@ -276,6 +350,12 @@ class CombinedAuthority:
                 'combined native ownership changed')
             require(request.Source.check is source_check and source_check.__code__ is source_check_code,
                 'combined source checker dependency changed')
+            require(evaluator_source.check == evaluator_check, 'combined evaluator checker binding changed')
+            for fn,code,defaults,kw,values,cells in functions:
+                require(fn.__code__ is code and fn.__defaults__ == defaults and fn.__kwdefaults__ == kw and
+                    fn.__globals__ is values and len(fn.__closure__ or ()) == len(cells) and
+                    all(c.cell_contents is v for c,v in zip(fn.__closure__ or (),cells,strict=True)),
+                    'combined private function changed')
             for source in (own_source,request_source,observer_source,nearest_source,evaluator_source): source.check()
             require(context['native_source_owned'] is original_owned and
                 original_owned['api'] is original and original_owned['authenticate'] is original_authentication and
@@ -287,11 +367,6 @@ class CombinedAuthority:
             for values,snapshot in namespaces:
                 require(values.keys() == snapshot.keys() and all(values[k] is v for k,v in snapshot.items()),
                     'combined private namespace binding changed')
-            for fn,code,defaults,kw,values,cells in functions:
-                require(fn.__code__ is code and fn.__defaults__ == defaults and fn.__kwdefaults__ == kw and
-                    fn.__globals__ is values and len(fn.__closure__ or ()) == len(cells) and
-                    all(c.cell_contents is v for c,v in zip(fn.__closure__ or (),cells,strict=True)),
-                    'combined private function changed')
             require(vars(api).keys() == exported.keys() and all(vars(api)[k] is v for k,v in exported.items()),
                 'combined exported API changed')
         authentication_code = authenticate.__code__
@@ -308,6 +383,7 @@ class CombinedAuthority:
         context['control_native_owned'] = owned
         functions.extend((fn,fn.__code__,copy.deepcopy(fn.__defaults__),copy.deepcopy(fn.__kwdefaults__),fn.__globals__,
             tuple(c.cell_contents for c in fn.__closure__ or ())) for fn in
-            (audit,quadratic,fitter,evaluator,*wrappers.values(),dispatch,evidence,evaluator_exit,authenticate,checked_authenticate))
+            (audit,quadratic,fitter,evaluator,*wrappers.values(),dispatch,evidence,evaluator_exit,authenticate,
+             checked_authenticate,evaluator_checker))
         authenticate()
         return api

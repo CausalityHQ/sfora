@@ -181,8 +181,9 @@ def accept_unit(context, unit, authority_fact):
             require(record['input_guards'].get(file['path']) == file['sha256'], 'terminal omits frozen control FILE guards')
         require(record['resource_policy'] == observation['resource_policy'], 'frozen observation resource policy differs')
         fact = authority['evaluator']
-        evaluator_source = requests.Source.load({'path':str(Path(fact['root'])/'evaluate_siglip2_connected_mlp.py'),
-            'sha256':fact['code']['evaluate_siglip2_connected_mlp.py']}); owned.append(evaluator_source)
+        evaluator_source = native_source.module.load_evaluator_source(
+            {'path':str(Path(fact['root'])/'evaluate_siglip2_connected_mlp.py'),
+             'sha256':fact['code']['evaluate_siglip2_connected_mlp.py']},requests); owned.append(evaluator_source)
         evaluator = evaluator_source.module
         evaluator.check_code(fact,evaluator.FILES)
         require(evaluator.closure(fact['root'],fact['execution_sha256'],evaluator.FILES,{}) == fact['code'] and
@@ -254,8 +255,9 @@ def run(args):
         runtime = requests.strict_json(observer.file_bytes(authority['native_runtime'],keep=True))
         require(runtime['library'] == observation['native'], 'same frozen control native FILE required')
         fact = authority['evaluator']
-        evaluator_source = requests.Source.load({'path':str(Path(fact['root'])/'evaluate_siglip2_connected_mlp.py'),
-            'sha256':fact['code']['evaluate_siglip2_connected_mlp.py']}); owned.append(evaluator_source)
+        evaluator_source = native_source.module.load_evaluator_source(
+            {'path':str(Path(fact['root'])/'evaluate_siglip2_connected_mlp.py'),
+             'sha256':fact['code']['evaluate_siglip2_connected_mlp.py']},requests); owned.append(evaluator_source)
         evaluator = evaluator_source.module
         evaluator.check_code(fact,evaluator.FILES)
         require(evaluator.closure(fact['root'],fact['execution_sha256'],evaluator.FILES,{}) == fact['code'],
