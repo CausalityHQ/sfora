@@ -1,0 +1,10 @@
+{
+  "original_v2": "FAIL preserved",
+  "actual_training_execution_digest": "a3d4e1e4ea76084a4036a1c7626b00353401adc3833838375974509aed2f2e8c",
+  "actual_evaluator_execution_digest": "3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029",
+  "correction": "Include both authenticated reference execution manifests in existing outer fresh SHA pre/postflight inventory",
+  "driver_source_change": false,
+  "stat_predicate_change": false,
+  "cause": "Original metadata tuple mismatch not captured; access-time hypothesis unproven",
+  "next_job": "ONE prospective same-gradient diagnostic, no duplicate/reuse/quality claim"
+}
