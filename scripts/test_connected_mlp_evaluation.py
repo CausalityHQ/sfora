@@ -1053,10 +1053,48 @@ def original_owner_test_inverse():
 # END ORIGINAL OWNER FALSIFIER
 
 
+# BEGIN INITIALIZER DICT FALSIFIER
+
+def initializer_dict_inverse(raw):
+    """Restore exact held 15eb6e0 bytes; keep all earlier inverse assertions."""
+    edits = [
+        (b"    binding_error = ValueError\n    wrapper_dict,get_attribute = source_live_guard.__dict__,getattr\n    def verify_delegate():\n        if (source_live_guard.__dict__ is not wrapper_dict or\n                get_attribute(source_live_guard,'initializer',None) is not delegate or\n                delegate.__code__ is not delegate_code or delegate.__globals__ is not delegate_globals or\n", b"    binding_error = ValueError\n    def verify_delegate():\n        if (source_live_guard.__dict__.get('initializer') is not delegate or\n                delegate.__code__ is not delegate_code or delegate.__globals__ is not delegate_globals or\n"),
+    ]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'initializer dictionary inverse edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == '04fb4f774b61a28bc7314da051eb106344da4d3ca2a04719d9c1bdfbaf7ca527', 'initializer dictionary inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == '57bc2d7ddf61b91e14fca77467bc61a5f262c64a7b6f0f988ebcff3fe37bb63c', 'initializer dictionary inverse AST differs'
+    return raw
+
+
+def initializer_dict_test_inverse(raw):
+    """Restore exact held 15eb6e0 bytes; keep all earlier inverse assertions."""
+    start = raw.index(b'# BEGIN INITIALIZER DICT FALSIFIER\n')
+    end = raw.index(b'# BEGIN INITIALIZER DELEGATE FALSIFIER\n',start)
+    raw = raw[:start]+raw[end:]
+    edits = [
+        (b'    """Restore exact held 6841013 bytes before all unchanged historical inverses."""\n    raw = initializer_dict_inverse(raw)\n    edits = [\n', b'    """Restore exact held 6841013 bytes before all unchanged historical inverses."""\n    edits = [\n'),
+        (b'    """Restore exact held 6841013 bytes before all unchanged historical inverses."""\n    raw = initializer_dict_test_inverse(raw)\n    start = raw.index(b\'# BEGIN INITIALIZER DELEGATE FALSIFIER\\n\')\n', b'    """Restore exact held 6841013 bytes before all unchanged historical inverses."""\n    start = raw.index(b\'# BEGIN INITIALIZER DELEGATE FALSIFIER\\n\')\n'),
+        (b"            for call in checks:rejects(call,'initializer delegate')\n        wrapper_dict=e.source_live_guard.__dict__\n        class Mask(dict):\n            def get(self,key,default=None):\n                return delegate if key=='initializer' else super().get(key,default)\n        for namespace in (Mask(wrapper_dict),dict(wrapper_dict)):\n            e.source_live_guard.__dict__=namespace\n            try:\n                e.source_live_guard.initializer=lambda context:lambda:None\n                rejected()\n                e.source_live_guard.initializer=delegate\n                rejected()  # Even a replacement dictionary with the genuine value is foreign.\n            finally:e.source_live_guard.__dict__=wrapper_dict\n        del e.source_live_guard.initializer\n        try:rejected()  # A missing attribute must raise the same clear binding error.\n        finally:e.source_live_guard.initializer=delegate\n        with patch.object(e.source_live_guard,'initializer',lambda context:lambda:None):rejected()\n", b"            for call in checks:rejects(call,'initializer delegate')\n        with patch.object(e.source_live_guard,'initializer',lambda context:lambda:None):rejected()\n"),
+        (b"                    return super().keys()\n            class MaskingUnit(MutatingUnit):\n                def keys(self):\n                    e.source_live_guard.__dict__=Mask(wrapper_dict)\n                    return super().keys()\n            for unit_type in (MutatingUnit,MaskingUnit):\n                visited.clear()\n                try:rejects(lambda:admit(unit_type(unit),'cpu','control',179061),'initializer delegate')\n                finally:\n                    e.source_live_guard.__dict__=wrapper_dict;e.source_live_guard.initializer=delegate\n                assert visited\n        fresh()();live()\n", b"                    return super().keys()\n            try:rejects(lambda:admit(MutatingUnit(unit),'cpu','control',179061),'initializer delegate')\n            finally:e.source_live_guard.initializer=delegate\n            assert visited\n        fresh()();live()\n"),
+    ]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'initializer dictionary inverse edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == 'f15d98ddbbe8a585ee0185b79c47a6dd9a3bd434c775889fc0831d20a1b242e0', 'initializer dictionary inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == 'a05d61453bdf7fde7b73b88b7aaf18885e32e6b1e93e00d43d209298971e1144', 'initializer dictionary inverse AST differs'
+    return raw
+
+
+# END INITIALIZER DICT FALSIFIER
+
+
 # BEGIN INITIALIZER DELEGATE FALSIFIER
 
 def initializer_delegate_inverse(raw):
     """Restore exact held 6841013 bytes before all unchanged historical inverses."""
+    raw = initializer_dict_inverse(raw)
     edits = [
         (b"    error,code = ValueError,function.__code__\n    def source_live_guard(module, digest, guards, names=None, class_name=None):\n        if verify_delegate.__code__ is not binding_code:\n            raise error('authenticated initializer delegate checker changed')\n        verify_delegate()\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error('authenticated builtin baseline/source binding changed')\n        return function(canonical,module,digest,guards,names,class_name,None,verify_delegate)\n    def initializer_live_guard(context):\n        if initializer_check.__code__ is not initializer_check_code:\n            raise error('authenticated initializer delegate checker changed')\n        initializer_check()\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error('authenticated builtin baseline/source binding changed')\n", b"    error,code = ValueError,function.__code__\n    def source_live_guard(module, digest, guards, names=None, class_name=None):\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error('authenticated builtin baseline/source binding changed')\n        return function(canonical,module,digest,guards,names,class_name,None)\n    def initializer_live_guard(context):\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error('authenticated builtin baseline/source binding changed')\n"),
         (b"        return function(canonical,t['legacy']['selected']['genuine']['reference'],\n            '163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8',\n            t['guards'],{'admit_cgroup','require'},None,context,initializer_check)\n    # Independent cells: changing the delegate's closure cannot move its checker\n    # or the import-time expectations shared by fresh and already returned guards.\n    delegate = initializer_live_guard\n    delegate_code,delegate_globals,delegate_builtins = delegate.__code__,delegate.__globals__,delegate.__builtins__\n    delegate_metadata = (delegate.__module__,delegate.__name__,delegate.__qualname__)\n    delegate_closure = delegate.__closure__\n    binding_error = ValueError\n    def verify_delegate():\n        if (source_live_guard.__dict__.get('initializer') is not delegate or\n                delegate.__code__ is not delegate_code or delegate.__globals__ is not delegate_globals or\n                delegate.__builtins__ is not delegate_builtins or delegate.__defaults__ is not None or\n                delegate.__kwdefaults__ is not None or delegate.__closure__ is not delegate_closure or\n                (delegate.__module__,delegate.__name__,delegate.__qualname__) != delegate_metadata):\n            raise binding_error('authenticated initializer delegate binding changed')\n        for cell,value in delegate_cells:\n            if cell.cell_contents is not value:\n                raise binding_error('authenticated initializer delegate closure changed')\n    initializer_check = verify_delegate\n    binding_code = initializer_check_code = verify_delegate.__code__\n    delegate_cells = tuple((cell,cell.cell_contents) for cell in delegate_closure)\n    source_live_guard.initializer = initializer_live_guard\n    return source_live_guard\n", b"        return function(canonical,t['legacy']['selected']['genuine']['reference'],\n            '163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8',\n            t['guards'],{'admit_cgroup','require'},None,context)\n    source_live_guard.initializer = initializer_live_guard\n    return source_live_guard\n"),
@@ -1073,6 +1111,7 @@ def initializer_delegate_inverse(raw):
 
 def initializer_delegate_test_inverse(raw):
     """Restore exact held 6841013 bytes before all unchanged historical inverses."""
+    raw = initializer_dict_test_inverse(raw)
     start = raw.index(b'# BEGIN INITIALIZER DELEGATE FALSIFIER\n')
     end = raw.index(b'# BEGIN INITIALIZER ORIGIN FALSIFIER\n',start)
     raw = raw[:start]+raw[end:]
@@ -1107,6 +1146,21 @@ def initializer_delegate_contract(e,context=None,admit=None,endpoint_guard=None,
                 lambda:admit(unit,'cpu','control',179061),lambda:e.exit_rehash(context,endpoint_guard)))
         def rejected():
             for call in checks:rejects(call,'initializer delegate')
+        wrapper_dict=e.source_live_guard.__dict__
+        class Mask(dict):
+            def get(self,key,default=None):
+                return delegate if key=='initializer' else super().get(key,default)
+        for namespace in (Mask(wrapper_dict),dict(wrapper_dict)):
+            e.source_live_guard.__dict__=namespace
+            try:
+                e.source_live_guard.initializer=lambda context:lambda:None
+                rejected()
+                e.source_live_guard.initializer=delegate
+                rejected()  # Even a replacement dictionary with the genuine value is foreign.
+            finally:e.source_live_guard.__dict__=wrapper_dict
+        del e.source_live_guard.initializer
+        try:rejected()  # A missing attribute must raise the same clear binding error.
+        finally:e.source_live_guard.initializer=delegate
         with patch.object(e.source_live_guard,'initializer',lambda context:lambda:None):rejected()
         # Same bytecode with a foreign globals dictionary is still a replacement.
         clone=FunctionType(delegate.__code__,dict(delegate.__globals__),delegate.__name__,delegate.__defaults__,delegate.__closure__)
@@ -1138,9 +1192,16 @@ def initializer_delegate_contract(e,context=None,admit=None,endpoint_guard=None,
                 def keys(self):
                     visited.append(True);e.source_live_guard.initializer=lambda context:lambda:None
                     return super().keys()
-            try:rejects(lambda:admit(MutatingUnit(unit),'cpu','control',179061),'initializer delegate')
-            finally:e.source_live_guard.initializer=delegate
-            assert visited
+            class MaskingUnit(MutatingUnit):
+                def keys(self):
+                    e.source_live_guard.__dict__=Mask(wrapper_dict)
+                    return super().keys()
+            for unit_type in (MutatingUnit,MaskingUnit):
+                visited.clear()
+                try:rejects(lambda:admit(unit_type(unit),'cpu','control',179061),'initializer delegate')
+                finally:
+                    e.source_live_guard.__dict__=wrapper_dict;e.source_live_guard.initializer=delegate
+                assert visited
         fresh()();live()
     print('PASS initializer delegate import/fresh/cached/call/finally/exit identity and metadata binding')
 

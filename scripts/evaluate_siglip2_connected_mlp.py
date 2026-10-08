@@ -122,8 +122,10 @@ def _capture_source_builtins(function):
     delegate_metadata = (delegate.__module__,delegate.__name__,delegate.__qualname__)
     delegate_closure = delegate.__closure__
     binding_error = ValueError
+    wrapper_dict,get_attribute = source_live_guard.__dict__,getattr
     def verify_delegate():
-        if (source_live_guard.__dict__.get('initializer') is not delegate or
+        if (source_live_guard.__dict__ is not wrapper_dict or
+                get_attribute(source_live_guard,'initializer',None) is not delegate or
                 delegate.__code__ is not delegate_code or delegate.__globals__ is not delegate_globals or
                 delegate.__builtins__ is not delegate_builtins or delegate.__defaults__ is not None or
                 delegate.__kwdefaults__ is not None or delegate.__closure__ is not delegate_closure or
