@@ -1,0 +1,103 @@
+{
+  "build_evidence": {
+    "binaries.json": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/binaries.json",
+      "sha256": "938fba1ab612f9295e624178ea67ba45dbd7c701a5c8d0ca9740147e7f2d542a"
+    },
+    "cpu-time.txt": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/cpu-time.txt",
+      "sha256": "b1215cafa20053901c49556802292e2f6a7a594bbeeff5ad33d40856c24f53c3"
+    },
+    "cpu.log": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/cpu.log",
+      "sha256": "df300ef40b09f5b89fc2100b3f513c5c71cd2e1706e293b856159bfc22ab7034"
+    },
+    "cpu.py": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/cpu.py",
+      "sha256": "9e6bf43c2a078276c143ca76275dbe1e396ac3dd4370b8de3518b49d1b4e5afd"
+    },
+    "gpu-time.txt": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/gpu-time.txt",
+      "sha256": "59ea84e5d943422567a094495f0605a912e4e5aa2097e8ea3ec9c0da1efe7d73"
+    },
+    "gpu.log": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/gpu.log",
+      "sha256": "1e528fa42786f112cefab7904814af49fabfed3787d0dd20257d250db91c4c36"
+    },
+    "gpu.py": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/gpu.py",
+      "sha256": "c564d7daf9acf38d17b5ba3355b240c15967e778c72f78d6e82f283af2dd1cf0"
+    },
+    "parse_cutile_jit_timing.py": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/parse_cutile_jit_timing.py",
+      "sha256": "fdfbd189a96c74188114bbc67d88280ab85f4bbfd41a2ae2722136c6c8df6eaf"
+    },
+    "probe_cutile_runtime_bounds.py": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/probe_cutile_runtime_bounds.py",
+      "sha256": "f4753cce296c57bca9c4b7fa39515678fe4d84e39d1ba07cca5dd748411894ca"
+    },
+    "probe_cutile_threads.py": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/probe_cutile_threads.py",
+      "sha256": "2d8e8a0add3e52658969db08f50a3ed3f9f71ce27ee51510ef3582c391c94256"
+    },
+    "source-manifest.json": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/source-manifest.json",
+      "sha256": "3b0088d4d06146c9fe698dbabb4a45cce85a9ba7c0b176df2136034df97b8472"
+    },
+    "summary.json": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/summary.json",
+      "sha256": "008ffc1cc00eb3669c6b3d591ab5f309ed60acea8324d4add0f26f3cd3e88a05"
+    },
+    "terminal.txt": {
+      "path": "/home/riomus/runs/sfora-connected-control-serving-build-authority-v1/terminal.txt",
+      "sha256": "ad1e0ddf14c0adfb3d299ea7cc2cb9b12b9f273a7b3b813b896774893173c5a0"
+    },
+    "threads.json": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/threads.json",
+      "sha256": "ead403335cc4ff81fb92e3bf6c821fdc341fe61cbeecab92d4bb65a97e3e6528"
+    },
+    "threads.log": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/threads.log",
+      "sha256": "a9a32a83de68676f3b6dbf509344b7027bd99f9a08e24c253c6a4958fdb2860c"
+    }
+  },
+  "build_receipt": {
+    "path": "/home/riomus/runs/sfora-connected-control-serving-build-authority-v1/receipt.json",
+    "sha256": "c2d6ff677c5c533f576774d8268c536483d27ff21e93c3efa8cf2319cacc7740"
+  },
+  "library": {
+    "path": "/home/riomus/runs/sfora-cutile-threads-v1/candidate.so",
+    "sha256": "3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526"
+  },
+  "runtime_compiler": {
+    "path": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras",
+    "sha256": "df2e9ef3804cab682f605a5c9e50045a24404ba22c3be0903454e1a60fcd78ae"
+  },
+  "schema": "connected-control-native-authority-v2",
+  "source_manifest": {
+    "path": "/home/riomus/runs/sfora-cutile-threads-v1/source-manifest.json",
+    "sha256": "3b0088d4d06146c9fe698dbabb4a45cce85a9ba7c0b176df2136034df97b8472"
+  },
+  "supplemental": [
+    {
+      "file": {
+        "path": "/home/riomus/runs/sfora-cutile-threads-v1/candidate.so",
+        "sha256": "3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526"
+      },
+      "provenance": {
+        "path": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/library-provenance.json",
+        "sha256": "00417230f15f3ca6e16b79e7344d1abce16ec409631b4ed93e71ed65672b673e"
+      }
+    },
+    {
+      "file": {
+        "path": "/usr/lib/aarch64-linux-gnu/libnvidia-gpucomp.so.580.159.03",
+        "sha256": "f9e19c3c4805ee72b3a9a04bbce65a8645b7501147584322b5c3663de22b1745"
+      },
+      "provenance": {
+        "path": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/driver-provenance.json",
+        "sha256": "f621527181bbefd4912b5cda02da22677c631ce71c6f3321692a7fded32951fe"
+      }
+    }
+  ]
+}
