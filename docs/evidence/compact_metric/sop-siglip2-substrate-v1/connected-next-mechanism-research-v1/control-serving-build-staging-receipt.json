@@ -1,0 +1,16 @@
+{
+  "descriptor_sha256": "c79cfa9f1b7d51a473e4bf551a7d1f7533ed0ab0ed63e1090be36ddf23a858dc",
+  "native_loaded": false,
+  "original_paths_modified": false,
+  "original_sha_verification_exit_status": 0,
+  "original_sha_verification_session": 69710,
+  "original_upload_exit_status": 0,
+  "original_upload_session": 11903,
+  "qualified": false,
+  "reason": "original remote receipt.json and terminal.txt absent; stage identical committed original metadata in separate new root",
+  "receipt_sha256": "c2d6ff677c5c533f576774d8268c536483d27ff21e93c3efa8cf2319cacc7740",
+  "remaining": "Final serving source review, full combined native inventory/provenance and fresh qualified original diagnostic terminal remain unproven.",
+  "schema": "control-serving-build-metadata-staging-v1",
+  "source_root": "/home/riomus/runs/sfora-connected-control-serving-build-authority-v1",
+  "terminal_sha256": "ad1e0ddf14c0adfb3d299ea7cc2cb9b12b9f273a7b3b813b896774893173c5a0"
+}
