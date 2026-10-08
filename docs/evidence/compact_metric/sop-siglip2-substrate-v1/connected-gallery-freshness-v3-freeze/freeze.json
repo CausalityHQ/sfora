@@ -1,0 +1,17 @@
+{
+  "commit": "75389579dd13bf4a7c57a9719e45c55aa90d500d",
+  "files": {
+    "authority.json": "179275e426dd7b2c2f0ab0c8d7323b55fbdf5c11bbb12d1f96056d53c0b2941d",
+    "command.sh": "60cf0db1095b1ec26c7efe83e5ab5b52e0b0a0187bcd7024b0044b998edb13ed",
+    "diagnose_connected_gallery_freshness.py": "3b756bf94da91f1e66b03db1e25c96a21105ff784cac4833e40e70122de6a434",
+    "execution.json": "6ef0482ddd758a6a5fb76cc9911c57c164fa3cec33ec71db9ad3baa8245d7cf4",
+    "launch.sh": "9fdd23036bb335a304fdca74af74cefca6609b78402c68b12fc540611ed115a5",
+    "score-verification.json": "abcb080eecc205417f520e9d5b414f99fbdc2fb9ea6ac4793f47a573f87151be",
+    "test_connected_gallery_freshness.py": "087d858d59194d4b15b1c1d0e724ca21a54dce953ad91d78a8f3de14bb8e99bb"
+  },
+  "hypothesis": "A differing non-tail row falsifies tail-only explanation; no mismatch or tail-only cannot prove cause.",
+  "output": "/home/riomus/runs/sfora-connected-gallery-freshness-diagnostic-v3",
+  "schema": "connected-gallery-freshness-freeze-v3",
+  "source_root": "/home/riomus/runs/sfora-connected-gallery-freshness-source-v3",
+  "stop_rule": "ONE prospective observation of first control cache/live mismatch. Original v1/v2 FAIL immutable; candidate KILL. Unchanged control equality stops before counterfactuals on mismatch. Row-tail confinement is not causation. No qualification, reuse, quality or speed claim; unchanged 700s/8GiB/zero swap/CUDA<10GB/both locks."
+}
