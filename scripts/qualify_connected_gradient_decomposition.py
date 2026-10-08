@@ -184,11 +184,17 @@ def file_fact(fact):
     return path
 
 
-def file_bytes(fact, guards, *, keep=False):
+def file_bytes(fact, guards, *, keep=False, release_consumed_pages=False):
+    require(type(release_consumed_pages) is bool, 'consumed-page release boolean required')
+    require(not (release_consumed_pages and keep), 'consumed-page release requires streaming')
     path = file_fact(fact)
     require(path.resolve() == path and path.is_file() and not path.is_symlink(), 'canonical regular FILE required')
     before,digest,raw = path.stat(),hashlib.sha256(),None
     with path.open('rb') as stream:
+        if release_consumed_pages:
+            page_size = os.sysconf('SC_PAGESIZE')
+            require(type(page_size) is int and page_size > 0, 'native page size differs')
+            fd,consumed,released = stream.fileno(),0,0
         if keep:
             raw = stream.read(64*1024**2+1)
             require(len(raw) <= 64*1024**2, 'source/metadata FILE exceeds64MiB')
@@ -196,6 +202,12 @@ def file_bytes(fact, guards, *, keep=False):
         else:
             while block := stream.read(1024**2):
                 digest.update(block)
+                if release_consumed_pages:
+                    consumed += len(block)
+                    completed = consumed//page_size*page_size
+                    if completed > released:
+                        os.posix_fadvise(fd,released,completed-released,os.POSIX_FADV_DONTNEED)
+                        released = completed
         after = os.fstat(stream.fileno())
     require(before == after == path.stat() and digest.hexdigest() == fact['sha256'], 'current FILE bytes differ')
     require(guards.setdefault(str(path),fact['sha256']) == fact['sha256'], 'conflicting FILE authority')
@@ -747,7 +759,7 @@ def run(args):
             observe_memory(context,'exit:union:begin')
             try:
                 for path,digest in tuple(context['guards'].items()):
-                    file_bytes({'path':path,'sha256':digest},{})
+                    file_bytes({'path':path,'sha256':digest},{},release_consumed_pages=True)
             finally:
                 observe_memory(context,'exit:union:end')
             observe_memory(context,'exit:closure:begin')

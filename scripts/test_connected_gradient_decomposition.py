@@ -25,8 +25,108 @@ HERE = Path(__file__).resolve().parent
 DRIVER = HERE / 'qualify_connected_gradient_decomposition.py'
 
 
-def memory_observer_inverse(raw):
+def consumed_page_inverse(raw):
+    if b'release_consumed_pages' not in raw:return raw
+    seams = (
+        (b'*, keep=False, release_consumed_pages=False', b'*, keep=False'),
+        (b"    require(type(release_consumed_pages) is bool, 'consumed-page release boolean required')\n"
+         b"    require(not (release_consumed_pages and keep), 'consumed-page release requires streaming')\n", b''),
+        (b"        if release_consumed_pages:\n"
+         b"            page_size = os.sysconf('SC_PAGESIZE')\n"
+         b"            require(type(page_size) is int and page_size > 0, 'native page size differs')\n"
+         b"            fd,consumed,released = stream.fileno(),0,0\n", b''),
+        (b"                if release_consumed_pages:\n"
+         b"                    consumed += len(block)\n"
+         b"                    completed = consumed//page_size*page_size\n"
+         b"                    if completed > released:\n"
+         b"                        os.posix_fadvise(fd,released,completed-released,os.POSIX_FADV_DONTNEED)\n"
+         b"                        released = completed\n", b''),
+        (b"file_bytes({'path':path,'sha256':digest},{},release_consumed_pages=True)",
+         b"file_bytes({'path':path,'sha256':digest},{})"))
+    for current,original in seams:
+        if raw.count(current) != 1:
+            raise ValueError('consumed-page exact source seam differs')
+        raw = raw.replace(current,original,1)
+    return raw
+
+
+def consumed_page_test_inverse(raw):
     tree = ast.parse(raw)
+    names = {'consumed_page_inverse','consumed_page_test_inverse','consumed_page_fixture',
+        'test_consumed_page_stream_hash_before_aligned_advice',
+        'test_consumed_page_short_reads_native_sizes_and_tails',
+        'test_consumed_page_default_keep_and_strict_mode',
+        'test_consumed_page_sysconf_and_io_failures_are_fatal',
+        'test_consumed_page_original_identity_hash_and_guard_checks',
+        'test_consumed_page_advice_failure_keeps_genuine_exit_cleanup',
+        'test_consumed_page_inverse_preserves_whole_original_source_and_tests'}
+    removed,entries = [],[]
+    class Restore(ast.NodeTransformer):
+        def visit_FunctionDef(self, node):
+            if node.name in names:
+                removed.append(node.name)
+                return None
+            expected = {'memory_observer_inverse': 'ast.parse(consumed_page_inverse(raw))',
+                'memory_observer_test_inverse': 'consumed_page_test_inverse(raw)',
+                'test_memory_observer_inverse_keeps_complete_original_predicates':
+                    'consumed_page_inverse(DRIVER.read_bytes())'}
+            if node.name in expected:
+                if ast.unparse(node.body[0].value) != expected[node.name]:
+                    raise ValueError('consumed-page inverse entry seam differs')
+                original = 'DRIVER.read_bytes()' if node.name.startswith('test_') else 'ast.parse(raw)'
+                node.body[0].value = ast.parse(original,mode='eval').body
+                entries.append(node.name)
+            return self.generic_visit(node)
+    tree = Restore().visit(tree)
+    if sorted(removed) != sorted(names) or sorted(entries) != sorted((
+            'memory_observer_inverse','memory_observer_test_inverse',
+            'test_memory_observer_inverse_keeps_complete_original_predicates')):
+        raise ValueError('consumed-page inverse exact test seams differ')
+    return tree
+
+
+def consumed_page_fixture(d, path, data, short_read=None):
+    path.write_bytes(data)
+    trace = SimpleNamespace(events=[],streams=[],read_bytes=0,hashed_bytes=0,error=None)
+    opener,sha256 = Path.open,hashlib.sha256
+    trace.fact = {'path':str(path),'sha256':sha256(data).hexdigest()}
+    class Reader:
+        def __init__(self, stream):self.stream = stream
+        def __enter__(self):return self
+        def __exit__(self, *args):self.stream.close()
+        def fileno(self):return self.stream.fileno()
+        def read(self, size):
+            if trace.error == 'read':raise OSError('read failed')
+            if trace.error == 'next_read' and trace.read_bytes:raise OSError('next_read failed')
+            block = self.stream.read(min(size,short_read) if short_read else size)
+            trace.read_bytes += len(block)
+            trace.events.append(('read',size,len(block)))
+            return block
+    def open_file(owner, mode):
+        stream = opener(owner,mode)
+        if mode != 'rb':return stream
+        trace.streams.append(stream)
+        trace.fd = stream.fileno()
+        return Reader(stream)
+    class Digest:
+        def __init__(self):self.digest = sha256()
+        def update(self, block):
+            if trace.error == 'update':raise OSError('hash update failed')
+            self.digest.update(block)
+            trace.hashed_bytes += len(block)
+            trace.events.append(('hash',len(block)))
+        def hexdigest(self):
+            if trace.error == 'hexdigest':raise OSError('hash hexdigest failed')
+            return self.digest.hexdigest()
+    def advice(fd, offset, length, mode):
+        trace.events.append(('advice',fd,offset,length,mode,trace.hashed_bytes,trace.read_bytes))
+        if trace.error == 'advice':raise OSError('advice failed')
+    trace.open,trace.sha256,trace.advice = open_file,Digest,advice
+    return trace
+
+
+def memory_observer_inverse(raw):
+    tree = ast.parse(consumed_page_inverse(raw))
     pins = {'memory_text':'384b371934a232fa16e548a1354cae7d31a2518f54b0499286d2b45f6f75cb1d',
         'observe_memory':'d4eec123d5016a46741e1f22479a1798cd76543b5ddb86da08dc11f9044765ae',
         'raise_memory_cancellation':'1b7916f540b5e2c81e73e74c50ac76640e543d2db807337765d20553fa1ec7dc',
@@ -114,7 +214,7 @@ def memory_observer_inverse(raw):
 
 
 def memory_observer_test_inverse(raw):
-    tree = ast.parse(raw)
+    tree = consumed_page_test_inverse(raw)
     names = {'memory_observer_inverse','memory_observer_test_inverse','memory_fixture',
         'test_memory_observer_records_pressure_before_original_guard_rejects',
         'test_memory_observer_bounds_and_failures_keep_original_cleanup',
@@ -418,6 +518,195 @@ class DecompositionTests(unittest.TestCase):
         spec.loader.exec_module(module)
         return module
 
+    def test_consumed_page_stream_hash_before_aligned_advice(self):
+        d = self.driver();page = d.os.sysconf('SC_PAGESIZE')
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'stream.bin';data = b'abc123'*(2*1024**2//6+1)+b'tail'
+            fact = {'path':str(path),'sha256':hashlib.sha256(data).hexdigest()}
+            for _ in range(2):
+                trace = consumed_page_fixture(d,path,data);guards = {}
+                with patch.object(Path,'open',trace.open),patch.object(d.hashlib,'sha256',trace.sha256),\
+                     patch.object(d.os,'posix_fadvise',trace.advice):
+                    self.assertEqual(d.file_bytes(fact,guards,release_consumed_pages=True),path)
+                self.assertEqual(guards,{str(path):fact['sha256']})
+                self.assertEqual(trace.read_bytes,len(data));self.assertEqual(trace.hashed_bytes,len(data))
+                self.assertTrue(all(stream.closed for stream in trace.streams))
+                released = 0
+                for index,event in enumerate(trace.events):
+                    if event[0] == 'read':self.assertEqual(event[1],1024**2)
+                    if event[0] != 'advice':continue
+                    _,fd,offset,length,mode,hashed,read = event
+                    self.assertEqual(trace.events[index-1][0],'hash')
+                    self.assertEqual((offset,length,mode),(released,read//page*page-released,d.os.POSIX_FADV_DONTNEED))
+                    self.assertEqual(hashed,read);self.assertGreater(length,0)
+                    self.assertEqual(offset%page,0);self.assertEqual(length%page,0)
+                    self.assertEqual(fd,trace.fd)
+                    released += length
+                self.assertEqual(released,len(data)//page*page)
+            path.write_bytes(b'z'*len(data))
+            with patch.object(d.os,'posix_fadvise',trace.advice),self.assertRaisesRegex(ValueError,'bytes'):
+                d.file_bytes(fact,{},release_consumed_pages=True)
+
+    def test_consumed_page_short_reads_native_sizes_and_tails(self):
+        d = self.driver()
+        cases = ((4096,0,None,()),(4096,4095,None,()),(4096,4096,None,((0,4096),)),
+                 (4096,3*4096+19,3001,((0,4096),(4096,4096),(8192,4096))),
+                 (65536,2*65536+7,17001,((0,65536),(65536,65536))),
+                 (8192,8192+1,4097,((0,8192),)),
+                 (3*1024**2,3*1024**2+1,None,((0,3*1024**2),)))
+        with tempfile.TemporaryDirectory() as tmp:
+            for page,size,short,want in cases:
+                with self.subTest(page=page,size=size,short=short):
+                    path = Path(tmp)/'edge.bin';trace = consumed_page_fixture(d,path,b'x'*size,short)
+                    def advice(fd,offset,length,mode):
+                        self.assertEqual(d.os.fstat(fd).st_ino,path.stat().st_ino)
+                        self.assertEqual(d.os.fstat(fd).st_dev,path.stat().st_dev)
+                        trace.advice(fd,offset,length,mode)
+                    with patch.object(Path,'open',trace.open),patch.object(d.hashlib,'sha256',trace.sha256),\
+                         patch.object(d.os,'sysconf',return_value=page) as sysconf,patch.object(d.os,'posix_fadvise',advice):
+                        self.assertEqual(d.file_bytes(trace.fact,{},release_consumed_pages=True),path)
+                    sysconf.assert_called_once_with('SC_PAGESIZE')
+                    self.assertEqual(tuple((e[2],e[3]) for e in trace.events if e[0]=='advice'),want)
+                    self.assertEqual(trace.hashed_bytes,size);self.assertEqual(trace.read_bytes,size)
+                    self.assertTrue(all(stream.closed for stream in trace.streams))
+
+    def test_consumed_page_default_keep_and_strict_mode(self):
+        d = self.driver()
+        self.assertEqual(d.file_bytes.__kwdefaults__,{'keep':False,'release_consumed_pages':False})
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'record.json';path.write_bytes(b'{"a":1}')
+            fact = {'path':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+            with patch.object(d.os,'posix_fadvise',side_effect=AssertionError('unexpected advice')),\
+                 patch.object(d.os,'sysconf',side_effect=AssertionError('unexpected sysconf')):
+                self.assertEqual(d.file_bytes(fact,{}),path)
+                self.assertEqual(d.file_bytes(fact,{},release_consumed_pages=False),path)
+                self.assertEqual(d.file_bytes(fact,{},keep=True),b'{"a":1}')
+                self.assertEqual(d.read_json(fact,{}),{'a':1})
+                for mode in (0,1,None,'yes',[],object()):
+                    with self.subTest(mode=mode),self.assertRaisesRegex(ValueError,'boolean'):
+                        d.file_bytes(fact,{},release_consumed_pages=mode)
+                with self.assertRaisesRegex(ValueError,'streaming'):
+                    d.file_bytes(fact,{},keep=True,release_consumed_pages=True)
+                with self.assertRaises(TypeError):d.file_bytes(fact,{},False,True)
+
+    def test_consumed_page_sysconf_and_io_failures_are_fatal(self):
+        d = self.driver()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'fail.bin'
+            for page in (0,-1,True,4096.,'4096',None,OSError('sysconf failed')):
+                with self.subTest(page=page):
+                    trace = consumed_page_fixture(d,path,b'x'*8192)
+                    options = {'side_effect':page} if isinstance(page,OSError) else {'return_value':page}
+                    with patch.object(Path,'open',trace.open),patch.object(d.os,'sysconf',**options),\
+                         patch.object(d.os,'posix_fadvise',trace.advice):
+                        with self.assertRaises(OSError if isinstance(page,OSError) else ValueError):
+                            d.file_bytes(trace.fact,{},release_consumed_pages=True)
+                    self.assertEqual(trace.events,[]);self.assertTrue(trace.streams[0].closed)
+            for error in ('read','next_read','sha256','update','hexdigest','advice','fstat','stat'):
+                with self.subTest(error=error):
+                    trace = consumed_page_fixture(d,path,b'x'*8192);trace.error = error;guards = {}
+                    stat = Path.stat
+                    def path_stat(owner, *args, **kwargs):
+                        if owner == path and error == 'stat' and trace.streams and trace.streams[0].closed:
+                            raise OSError('stat failed')
+                        return stat(owner,*args,**kwargs)
+                    with patch.object(Path,'open',trace.open),patch.object(Path,'stat',path_stat),\
+                         patch.object(d.hashlib,'sha256',side_effect=OSError('sha256 failed') if error=='sha256' else trace.sha256),\
+                         patch.object(d.os,'posix_fadvise',trace.advice),\
+                         (patch.object(d.os,'fstat',side_effect=OSError('fstat failed')) if error=='fstat' else nullcontext()):
+                        with self.assertRaisesRegex(OSError,error):d.file_bytes(trace.fact,guards,release_consumed_pages=True)
+                    self.assertEqual(guards,{});self.assertTrue(all(s.closed for s in trace.streams))
+                    if error == 'next_read':self.assertTrue(any(e[0]=='advice' for e in trace.events))
+                    if error in ('read','sha256','update'):self.assertFalse(any(e[0]=='advice' for e in trace.events))
+
+    def test_consumed_page_original_identity_hash_and_guard_checks(self):
+        d = self.driver()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'current.bin'
+            for mutation in ('hash','guard','rewrite','replace','fstat'):
+                with self.subTest(mutation=mutation):
+                    trace = consumed_page_fixture(d,path,b'x'*8192)
+                    fact = dict(trace.fact);guards = {}
+                    if mutation == 'hash':fact['sha256'] = '0'*64
+                    if mutation == 'guard':guards[str(path)] = '0'*64
+                    original_stat = path.stat()
+                    def advice(fd,offset,length,mode):
+                        trace.advice(fd,offset,length,mode)
+                        if mutation == 'rewrite':
+                            path.write_bytes(b'y'*8192)
+                            d.os.utime(path,ns=(original_stat.st_atime_ns,original_stat.st_mtime_ns+1_000_000_000))
+                        if mutation == 'replace':path.unlink();path.write_bytes(b'x'*8192)
+                    changed = list(original_stat);changed[1] += 1
+                    with patch.object(Path,'open',trace.open),patch.object(d.os,'posix_fadvise',advice),\
+                         (patch.object(d.os,'fstat',return_value=d.os.stat_result(changed)) if mutation=='fstat' else nullcontext()):
+                        with self.assertRaisesRegex(ValueError,'authority' if mutation=='guard' else 'bytes'):
+                            d.file_bytes(fact,guards,release_consumed_pages=True)
+                    self.assertTrue(trace.streams[0].closed)
+                    if mutation != 'guard':self.assertEqual(guards,{})
+            class BrokenGuard(dict):
+                def setdefault(self, *args):raise OSError('guard failed')
+            with patch.object(d.os,'posix_fadvise',trace.advice),self.assertRaisesRegex(OSError,'guard'):
+                d.file_bytes(trace.fact,BrokenGuard(),release_consumed_pages=True)
+            for bad in (path.parent/'absent',path.parent/'link'):
+                if bad.name == 'link':bad.symlink_to(path)
+                with self.assertRaisesRegex(ValueError,'regular'):
+                    d.file_bytes({'path':str(bad),'sha256':trace.fact['sha256']},{},release_consumed_pages=True)
+
+    def test_consumed_page_advice_failure_keeps_genuine_exit_cleanup(self):
+        d = self.driver();events = []
+        tree = ast.parse(DRIVER.read_bytes())
+        exit_node = next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='exit_integrity')
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'union.bin';trace = consumed_page_fixture(d,path,b'x'*8192);trace.error = 'advice'
+            def reject():events.append('resource');raise ValueError('cgroup memory failure event')
+            trainer = SimpleNamespace(require_no_training=lambda c:events.append('no_training'),
+                exit_rehash=lambda c:events.append('genuine'),audit_origin_diagnostics=lambda *a,**k:events.append('origin'))
+            legacy = {'original':SimpleNamespace(FlatAdmission=object),'source_driver':SimpleNamespace(cgroup_memory=reject)}
+            context = {'guards':{str(path):trace.fact['sha256']},'legacy':legacy,
+                'nearest':SimpleNamespace(native_source_api=lambda c:None)}
+            def observe(c,phase):events.append(phase)
+            namespace = {**d.__dict__,'trainer':trainer,'legacy':legacy,'context':context,'observe_memory':observe,
+                'args':SimpleNamespace(execution_sha256='0'*64),'code':{},'read_json':lambda *a:{},
+                'guard':lambda:events.append('closure_guard')}
+            exec(compile(ast.Module(body=[exit_node],type_ignores=[]),str(DRIVER),'exec'),namespace)
+            for primary in (None,RuntimeError('original measurement failure')):
+                events.clear()
+                with patch.object(Path,'open',trace.open),patch.object(d.os,'posix_fadvise',trace.advice),\
+                     patch.object(d,'observe_memory',observe),redirect_stderr(io.StringIO()):
+                    with self.assertRaises(OSError if primary is None else RuntimeError) as caught:
+                        d.finish_cleanup(primary,[namespace['exit_integrity'],lambda:d.check_resources(SimpleNamespace(),context),
+                            lambda:events.append('remaining_cleanup')])
+                self.assertEqual(events,['no_training','exit:genuine:begin','genuine','exit:genuine:end',
+                    'exit:origin:begin','origin','exit:origin:end','exit:union:begin','exit:union:end',
+                    'check_resources:before','resource','remaining_cleanup'])
+                self.assertTrue(any('cgroup memory failure event' in n for n in caught.exception.__notes__))
+                if primary is not None:
+                    self.assertIs(caught.exception,primary)
+                    self.assertTrue(any('advice failed' in n for n in primary.__notes__))
+                self.assertTrue(all(s.closed for s in trace.streams))
+
+    def test_consumed_page_inverse_preserves_whole_original_source_and_tests(self):
+        raw = DRIVER.read_bytes();original = consumed_page_inverse(raw)
+        self.assertEqual(hashlib.sha256(ast.dump(ast.parse(original),include_attributes=False).encode()).hexdigest(),
+                         'fcd77b68ebe1375c471f22fbbb2d65f0a15dbdf3b2dcdcd3f91ec3a717082b07')
+        tests = consumed_page_test_inverse(Path(__file__).read_bytes())
+        self.assertEqual(hashlib.sha256(ast.dump(tests,include_attributes=False).encode()).hexdigest(),
+                         'a25957750731ecf708fb410c58fbdb672d58b4dd096d8c1bd8c64a913f42d539')
+        for before,after in ((b'completed = consumed//page_size*page_size',b'completed = consumed'),
+                (b'POSIX_FADV_DONTNEED',b'POSIX_FADV_NORMAL'),
+                (b'release_consumed_pages=True',b'release_consumed_pages=False'),
+                (b"os.sysconf('SC_PAGESIZE')",b"os.sysconf('SC_PHYS_PAGES')")):
+            with self.assertRaisesRegex(ValueError,'seam'):consumed_page_inverse(raw.replace(before,after,1))
+        for before,after in ((b'digest.update(block)',b'digest.update(b"x")'),
+                (b'before == after == path.stat()',b'True'),
+                (b"digest.hexdigest() == fact['sha256']",b'True'),
+                (b"guards.setdefault(str(path),fact['sha256']) == fact['sha256']",b'True'),
+                (b'trainer.exit_rehash(context)',b'trainer.require_no_training(context)'),
+                (b'require_exact=True',b'require_exact=False'),(b'zero_events(cgroup)',b'zero_events({})')):
+            restored = consumed_page_inverse(raw.replace(before,after,1))
+            self.assertNotEqual(ast.dump(ast.parse(restored),include_attributes=False),
+                                ast.dump(ast.parse(original),include_attributes=False))
+
     def test_memory_observer_records_pressure_before_original_guard_rejects(self):
         d = self.driver();events=[]
         with tempfile.TemporaryDirectory() as tmp:
@@ -582,7 +871,7 @@ class DecompositionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'memory observation'):d.require_memory_observation({},resources)
 
     def test_memory_observer_inverse_keeps_complete_original_predicates(self):
-        raw = DRIVER.read_bytes()
+        raw = consumed_page_inverse(DRIVER.read_bytes())
         restored = gradient_workspace_inverse(raw)
         self.assertEqual(hashlib.sha256(ast.dump(restored,include_attributes=False).encode()).hexdigest(),
                          '5b0f91d6422804cf7ae39e31d5111dbae268d5556e203febc71444f744b59c81')
