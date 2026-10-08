@@ -1,31 +1,31 @@
 {
-  "delta": "One-line genuine bridge compile dont_inherit=True; package-v3 exact107 closure, original own7/compiler/native S/math/22calls/caps unchanged.",
+  "delta": "Prospective profiler retained-structure accounting only. Exact package-v3/native-authority-v5/images/gallery/compiler/math/22calls/body120/whole1500/exit300/8GiB/zero events+swap/CUDA<10GB/both locks preserved. Total calls diagnostic; finite retained depth/keys/occurrences/fingerprints/encoded-byte bounds. No CUDA timing event or latency subtraction. Full request/oracles/parity/cleanup/source uncached exit and original terminal required; one engineering-only arm; prior failures remain FAIL, candidate KILL/no production speed claim.",
   "files": {
-    "authority.json": "9b4a2334eafec59b958cceaff122185cb621261c8b28ba48599cf0e8a6a76c5a",
-    "command.sh": "23442fd088f0d6ad0bd00fe4b42f826d41ca82216b845d6de0fdb820431df08e",
+    "authority.json": "6177e3aec6e630414c17a8708d75cd436a0189eeda06cba50c0e585374512ecc",
+    "command.sh": "65c226cc6f8f0b4aab53d75b06bb9a8d0f7569e678581c777cc6786461a0f76b",
     "connected_control_native_authority.py": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442",
-    "launch.sh": "4914fc15e917250eaf636b051bc6e936e93a901d756714dfbe71591363171df3",
-    "observation.json": "cbfdfc5a4fd924ae9eb5e2af9ace94c816d00de018dba93d474253e055aa9960",
-    "observe_connected_serving.py": "22ea23ff185e8566ad35f89d222ea54c44b292dce2b3221e662310239e44bc0f",
-    "qualify_connected_control_serving.py": "e00eb9ed26bdd30e4d328204b3a90e57fe72ec14a6fc249ddb092307a96066bb",
-    "qualify_connected_serving_requests.py": "fb4636f299fbf48296fc059a6a896275cd49b7a06d06e9ab0e39f9400208d2ca",
-    "test_connected_control_serving.py": "0e663459d78def9f15a59b31e426e0c5f848c90e310172f8cd46617dc08a80a2",
-    "test_connected_serving_requests.py": "38d92f05594fc61d9d6afae1859bca1c99080454daa5cb8876f347f821e0d1f2",
-    "test_observe_connected_serving.py": "c660a217d154a14d1ab5c8e20a28519999366e17d339efe4919470aa90f1b41a"
+    "launch.sh": "6a6b1bcd9338cb73d200a3202f2a5f3b911247ad32aa16ab06474da727c0e708",
+    "observation.json": "da8243a5df9f2464a2509020e620a01556787fea4da091d4affa85963ec8831a",
+    "observe_connected_serving.py": "33c36ce143949e1f66b7967dc19280a392a5378f11e832d4360cf6e3ff203349",
+    "qualify_connected_control_serving.py": "303ed274915e0c8d55cf0b901e96a71ee6c01629c64420713a4ef2bb42872329",
+    "qualify_connected_serving_requests.py": "109b1d8daefb1174f3596831fb871cd9abef76bfc925d6e0aaa8c51fb70a57d1",
+    "test_connected_control_serving.py": "df70d24fbf5469c99bda04cce9ea06c24dca97f9a1d79c1aa408a2584150a986",
+    "test_connected_serving_requests.py": "a0b1a468db155b71b4463ab1f3a97a96280fead204741242989a565b9aaf768a",
+    "test_observe_connected_serving.py": "ff51c534772518f7de265fa758850980c9f1622f3d9655a071330c4b43e41621"
   },
   "native_qualified": false,
   "native_runtime": {
     "path": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json",
     "sha256": "cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1"
   },
-  "output": "/home/riomus/runs/sfora-connected-control-serving-diagnostic-v4",
+  "output": "/home/riomus/runs/sfora-connected-control-serving-diagnostic-v5",
   "pythonpath": "/home/riomus/runs/sfora-connected-control-serving-package-v3/src",
-  "root": "/home/riomus/runs/sfora-connected-control-serving-source-v4",
+  "root": "/home/riomus/runs/sfora-connected-control-serving-source-v5",
   "runtime_compiler": {
     "path": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras",
     "sha256": "df2e9ef3804cab682f605a5c9e50045a24404ba22c3be0903454e1a60fcd78ae"
   },
   "schema": "connected-control-serving-freeze-v1",
-  "source_commit": "15091c60b6a788eeecd283c1eb9b5ba0bdb7e240",
+  "source_commit": "7fd3b937b41e3974d009853bcaa80e40195990ba",
   "stop_rule": "ONE control-only 22 public calls; per-size oracle+native top10/ties exact; body120/whole1500/exitreserve300/8GiB/max0/swap0/CUDA<10GB/both inherited locks/full current hashes+native H union S. Original quality KILL remains; all failures remain FAIL; no quality/production speed/optimization/reuse claim."
 }
