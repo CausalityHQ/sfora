@@ -1,0 +1,42 @@
+{
+  "limits": {
+    "seconds": 120,
+    "address_space_bytes": 1073741824
+  },
+  "suites": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_observe_connected_serving.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 5.96978233801201,
+      "log": "/tmp/sfora-installed-serving-body300-20261008/test_observe_connected_serving.py.log",
+      "sha256": "a401391639cf3e880cc9df5e149e5e73a6444f15e9d38e457e72724731fd26f0"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_serving_requests.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 4.653072203975171,
+      "log": "/tmp/sfora-installed-serving-body300-20261008/test_connected_serving_requests.py.log",
+      "sha256": "1611d65dfe6b46eb9c85c48b7f8168876e9b23dd9a0567cdaad1341187c00cd1"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_control_serving.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 46.5067387589952,
+      "log": "/tmp/sfora-installed-serving-body300-20261008/test_connected_control_serving.py.log",
+      "sha256": "4e9cfe1ba1dea93c71e87c587f1ea4d963c568e40ff28783a539525ca3ee003c"
+    }
+  ],
+  "elapsed_seconds": 57.13016838009935
+}

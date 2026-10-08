@@ -1,0 +1,162 @@
+test_body300_actual_deadline_boundaries (test_connected_serving_requests.DriverTests.test_body300_actual_deadline_boundaries) ... 
+  test_body300_actual_deadline_boundaries (test_connected_serving_requests.DriverTests.test_body300_actual_deadline_boundaries) (elapsed=299.0) ... ERROR
+  test_body300_actual_deadline_boundaries (test_connected_serving_requests.DriverTests.test_body300_actual_deadline_boundaries) (elapsed=300.0) ... FAIL
+  test_body300_actual_deadline_boundaries (test_connected_serving_requests.DriverTests.test_body300_actual_deadline_boundaries) (elapsed=301.0) ... FAIL
+test_body300_finite_inverse_restores_complete_original_bytes_and_asts (test_connected_control_serving.ControlTests.test_body300_finite_inverse_restores_complete_original_bytes_and_asts) ... ERROR
+test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) ... 
+  test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_serving_requests.py', elapsed=900.0) ... FAIL
+  test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_serving_requests.py', elapsed=901.0) ... FAIL
+  test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_control_serving.py', elapsed=900.0) ... FAIL
+  test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_control_serving.py', elapsed=901.0) ... FAIL
+  test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_control_serving.py', elapsed=900.0) ... FAIL
+  test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_control_serving.py', elapsed=901.0) ... FAIL
+test_body300_receipt_boundaries (test_connected_control_serving.ControlTests.test_body300_receipt_boundaries) ... 
+  test_body300_receipt_boundaries (test_connected_control_serving.ControlTests.test_body300_receipt_boundaries) (elapsed=299.0) ... ERROR
+  test_body300_receipt_boundaries (test_connected_control_serving.ControlTests.test_body300_receipt_boundaries) (elapsed=300.0) ... ERROR
+
+======================================================================
+ERROR: test_body300_actual_deadline_boundaries (test_connected_serving_requests.DriverTests.test_body300_actual_deadline_boundaries) (elapsed=299.0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_serving_requests.py", line 667, in test_body300_actual_deadline_boundaries
+    if elapsed == 299.: namespace['bounded']()
+                        ~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/qualify_connected_serving_requests.py", line 309, in bounded
+    require(time.perf_counter()-started < 120, 'diagnostic body120 cap exceeded')
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/qualify_connected_serving_requests.py", line 55, in require
+    raise ValueError(message)
+ValueError: diagnostic body120 cap exceeded
+
+======================================================================
+ERROR: test_body300_finite_inverse_restores_complete_original_bytes_and_asts (test_connected_control_serving.ControlTests.test_body300_finite_inverse_restores_complete_original_bytes_and_asts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1366, in test_body300_finite_inverse_restores_complete_original_bytes_and_asts
+    restored = reverse_body300(raw,name)
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1026, in reverse_body300
+    if raw.count(after) != count: raise ValueError('exact body300 delta differs')
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: exact body300 delta differs
+
+======================================================================
+ERROR: test_body300_receipt_boundaries (test_connected_control_serving.ControlTests.test_body300_receipt_boundaries) (elapsed=299.0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1403, in test_body300_receipt_boundaries
+    if elapsed <= 300.: driver.validate_receipt(value,authority,authority_fact)
+                        ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/qualify_connected_control_serving.py", line 152, in validate_receipt
+    require([(r['batch'],r['kind']) for r in record['calls']] == expected and
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        0 < seconds(record['body_seconds']) <= 120 and record['ties']['ascending_ordinal_score_bits_exact'] is True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'unchanged22 public calls/oracle/tie body required')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/qualify_connected_control_serving.py", line 54, in require
+    raise ValueError(message)
+ValueError: unchanged22 public calls/oracle/tie body required
+
+======================================================================
+ERROR: test_body300_receipt_boundaries (test_connected_control_serving.ControlTests.test_body300_receipt_boundaries) (elapsed=300.0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1403, in test_body300_receipt_boundaries
+    if elapsed <= 300.: driver.validate_receipt(value,authority,authority_fact)
+                        ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/qualify_connected_control_serving.py", line 152, in validate_receipt
+    require([(r['batch'],r['kind']) for r in record['calls']] == expected and
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        0 < seconds(record['body_seconds']) <= 120 and record['ties']['ascending_ordinal_score_bits_exact'] is True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'unchanged22 public calls/oracle/tie body required')
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/qualify_connected_control_serving.py", line 54, in require
+    raise ValueError(message)
+ValueError: unchanged22 public calls/oracle/tie body required
+
+======================================================================
+FAIL: test_body300_actual_deadline_boundaries (test_connected_serving_requests.DriverTests.test_body300_actual_deadline_boundaries) (elapsed=300.0)
+----------------------------------------------------------------------
+ValueError: diagnostic body120 cap exceeded
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_serving_requests.py", line 669, in test_body300_actual_deadline_boundaries
+    with self.assertRaisesRegex(ValueError,'body300'): namespace['bounded']()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "body300" does not match "diagnostic body120 cap exceeded"
+
+======================================================================
+FAIL: test_body300_actual_deadline_boundaries (test_connected_serving_requests.DriverTests.test_body300_actual_deadline_boundaries) (elapsed=301.0)
+----------------------------------------------------------------------
+ValueError: diagnostic body120 cap exceeded
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_serving_requests.py", line 669, in test_body300_actual_deadline_boundaries
+    with self.assertRaisesRegex(ValueError,'body300'): namespace['bounded']()
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "body300" does not match "diagnostic body120 cap exceeded"
+
+======================================================================
+FAIL: test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_serving_requests.py', elapsed=900.0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1394, in test_body300_actual_admission_and_headroom_boundaries
+    with self.assertRaisesRegex(ValueError,'headroom'): exec(code,namespace)
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_serving_requests.py', elapsed=901.0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1394, in test_body300_actual_admission_and_headroom_boundaries
+    with self.assertRaisesRegex(ValueError,'headroom'): exec(code,namespace)
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_control_serving.py', elapsed=900.0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1394, in test_body300_actual_admission_and_headroom_boundaries
+    with self.assertRaisesRegex(ValueError,'headroom'): exec(code,namespace)
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_control_serving.py', elapsed=901.0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1394, in test_body300_actual_admission_and_headroom_boundaries
+    with self.assertRaisesRegex(ValueError,'headroom'): exec(code,namespace)
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_control_serving.py', elapsed=900.0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1394, in test_body300_actual_admission_and_headroom_boundaries
+    with self.assertRaisesRegex(ValueError,'headroom'): exec(code,namespace)
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) (source='qualify_connected_control_serving.py', elapsed=901.0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_connected_control_serving.py", line 1394, in test_body300_actual_admission_and_headroom_boundaries
+    with self.assertRaisesRegex(ValueError,'headroom'): exec(code,namespace)
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.377s
+
+FAILED (failures=8, errors=4)
+elapsed_seconds 0.3774422110291198

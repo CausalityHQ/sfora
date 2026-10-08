@@ -1,0 +1,197 @@
+{
+  "base": "c20dc4a3c929a193a5ee164126dbf977e6a70ee9",
+  "scope": [
+    "scripts/observe_connected_serving.py",
+    "scripts/test_observe_connected_serving.py",
+    "scripts/qualify_connected_serving_requests.py",
+    "scripts/test_connected_serving_requests.py",
+    "scripts/qualify_connected_control_serving.py",
+    "scripts/test_connected_control_serving.py"
+  ],
+  "historical_digest_constants_unchanged": [
+    "PRODUCTION_DELTAS",
+    "RESOURCE_DELTAS",
+    "MIGRATION_DELTAS",
+    "ALIAS_DELTAS"
+  ],
+  "production": {
+    "scripts/observe_connected_serving.py": {
+      "baseline_sha256": "1c3d9f47d17ab6e711caf59317fc56f376744c47be3296123d8eb4d1e57ef6bb",
+      "current_sha256": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de",
+      "baseline_ast_sha256": "456f022d936814530a71f30131fd8439de91613cd9cc8cceca236d5c49e335e8",
+      "current_ast_sha256": "105942d3488c49d9e41ac8b39ee3ad9215f1740df979736c3a0c90e64c8587d1",
+      "restored_sha256": "1c3d9f47d17ab6e711caf59317fc56f376744c47be3296123d8eb4d1e57ef6bb",
+      "restored_ast_sha256": "456f022d936814530a71f30131fd8439de91613cd9cc8cceca236d5c49e335e8",
+      "exact_original_bytes": true
+    },
+    "scripts/qualify_connected_serving_requests.py": {
+      "baseline_sha256": "cd87559f81b14ce3ba8b1d5742b2410d8ee3df581400c4ac387176b1e376e7c8",
+      "current_sha256": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163",
+      "baseline_ast_sha256": "6e2fee4a5d4e9596a96fe3c642a35fb4a01945e2930d5c1eec0f4e2227b44caf",
+      "current_ast_sha256": "4fcaac8dc9c19e103ca48363308a30c701dbb034612729f4938b6fad60e9e589",
+      "restored_sha256": "cd87559f81b14ce3ba8b1d5742b2410d8ee3df581400c4ac387176b1e376e7c8",
+      "restored_ast_sha256": "6e2fee4a5d4e9596a96fe3c642a35fb4a01945e2930d5c1eec0f4e2227b44caf",
+      "exact_original_bytes": true
+    },
+    "scripts/qualify_connected_control_serving.py": {
+      "baseline_sha256": "4c610106bd596baf411db928e510d02dd9a331861cd27830452d3753ac423c00",
+      "current_sha256": "2961c2b0129b762403273c1d550b44c0ba7e4e9ec231a3e39848a9ee57d68815",
+      "baseline_ast_sha256": "c1726c68cdfdc608359805d984445bbe9afc8e17822a9de4a314bc01b8475eb1",
+      "current_ast_sha256": "f321fa6e083719aba8f5446fe5c5622a23115acbb2b51af13c6b4c1b5f905ebd",
+      "restored_sha256": "4c610106bd596baf411db928e510d02dd9a331861cd27830452d3753ac423c00",
+      "restored_ast_sha256": "c1726c68cdfdc608359805d984445bbe9afc8e17822a9de4a314bc01b8475eb1",
+      "exact_original_bytes": true
+    }
+  },
+  "tests": {
+    "scripts/test_observe_connected_serving.py": {
+      "baseline_sha256": "c8714da0852c994bc450358905667d2f77d0ca7c6788b301d8437c0e6254a105",
+      "current_sha256": "2f7c7158c6f1aa3445ae249bb95af4b129be72a1d150b4d474f14d35cd300492",
+      "baseline_ast_sha256": "90ebdf03e6f46d1bc4d7e151d8515ce1bdcce70b4a47f4d1dbfb59ae51823a31",
+      "current_ast_sha256": "786b686541392cc7aa094b33cbaa9637c0d526c0e0c7fde8d64ee105bb775a26",
+      "historical_test_names_preserved": 0,
+      "new_test_names": []
+    },
+    "scripts/test_connected_serving_requests.py": {
+      "baseline_sha256": "18751d50acec35f78c21ae3976fd6eeb369f28b96c1fa4d40e804cfd1d8142ff",
+      "current_sha256": "ad35a7177ddc3be7cc29db3b73c204b16f1afff98ff41c7357f1919da259a57b",
+      "baseline_ast_sha256": "c60c3a132597c4c159542cd38d8a751d9c912b565bf4f481da42919aeb2318f9",
+      "current_ast_sha256": "ccda23a8775b8a46b647851f67bbe48b5e3ab77e7ed56ede72afb41b427a9b00",
+      "historical_test_names_preserved": 26,
+      "new_test_names": [
+        "test_body300_actual_deadline_boundaries",
+        "test_body300_second_owner_prefactory_and_admitted_finally_release",
+        "test_body300_stops_after_first_over_budget_call_and_releases_owner"
+      ]
+    },
+    "scripts/test_connected_control_serving.py": {
+      "baseline_sha256": "377e2b1fe6567acefdbf7e2b85ea38ea6c9ec96d1b5fcb5693e00b107c3327bc",
+      "current_sha256": "c04c619268a1c1e06d8404ffbd4382b784c7cfdd4b1fd8788805b0b0a02e905a",
+      "baseline_ast_sha256": "877b66fa6767752185c5931e153fb833baf91cbf31caf31c184a16d7f4a4440e",
+      "current_ast_sha256": "bf1504680f9e13be4a31520ac0bb93608af9789edca4d8b6403707212cc0e4a7",
+      "historical_test_names_preserved": 22,
+      "new_test_names": [
+        "test_body300_actual_admission_and_headroom_boundaries",
+        "test_body300_finite_inverse_restores_complete_original_bytes_and_asts",
+        "test_body300_observation_policy_and_terminal_caps",
+        "test_body300_receipt_boundaries"
+      ]
+    }
+  },
+  "verification": {
+    "red.log": {
+      "path": "/tmp/sfora-installed-serving-body300-20261008/red.log",
+      "sha256": "bca107e5ea76c657a67843dab4844e445c0e3ee02c19f8df9c99b1bedb64323a",
+      "exit_code": 1,
+      "limits": {
+        "seconds": 15,
+        "address_space_bytes": 1073741824
+      }
+    },
+    "observer-red.log": {
+      "path": "/tmp/sfora-installed-serving-body300-20261008/observer-red.log",
+      "sha256": "70d0b60ec25efa5c0fdbea1bb5881fb73615ce7c33721244a65eeb4ee0aa29dd",
+      "exit_code": 1,
+      "limits": {
+        "seconds": 15,
+        "address_space_bytes": 1073741824
+      }
+    },
+    "green.log": {
+      "path": "/tmp/sfora-installed-serving-body300-20261008/green.log",
+      "sha256": "8396d2eefbd1093047cf6225451a1e74fdb998657e38a843be5a9969d1d8c8d2",
+      "exit_code": 0,
+      "limits": {
+        "seconds": 15,
+        "address_space_bytes": 1073741824
+      }
+    },
+    "observer-green.log": {
+      "path": "/tmp/sfora-installed-serving-body300-20261008/observer-green.log",
+      "sha256": "bcad63a8dfb72bd4b6072a59514a95100e21cdbf9a6eaac4f0343aa675f7133d",
+      "exit_code": 0,
+      "limits": {
+        "seconds": 15,
+        "address_space_bytes": 1073741824
+      }
+    },
+    "second-owner-green.log": {
+      "path": "/tmp/sfora-installed-serving-body300-20261008/second-owner-green.log",
+      "sha256": "40e0e62e8d3180b8d4b04cb116dad54b0ebd78161eb2dc62a1d32b7534756269",
+      "exit_code": 0,
+      "limits": {
+        "seconds": 15,
+        "address_space_bytes": 1073741824
+      }
+    },
+    "final.py": {
+      "path": "/tmp/sfora-installed-serving-body300-20261008/final.py",
+      "sha256": "b553be3c9588d71a53c90f9d37232b1e1222149d67675eec215e6f8342f606e1"
+    },
+    "final-receipt.json": {
+      "path": "/tmp/sfora-installed-serving-body300-20261008/final-receipt.json",
+      "sha256": "acece08bd4ae9d89be330bb445d05cba82ef47399ea3df4c03219794c2bf3e6a"
+    },
+    "final-resources.log": {
+      "path": "/tmp/sfora-installed-serving-body300-20261008/final-resources.log",
+      "sha256": "86c56880f79a4ea1b0077d4369cf1104b9b0522075d1762d7c915ecb5b188417"
+    }
+  },
+  "state": "complete; clean OWN6 committed, not merged or pushed",
+  "second_owner_boundary_phases": [
+    "prefactory",
+    "admission",
+    "after_first_observation"
+  ],
+  "final_slot_release": "immediate-1791480872264004610-2965865",
+  "final_command": "rtk proxy /usr/bin/time -v -o /tmp/sfora-installed-serving-body300-20261008/final-resources.log timeout 120s python3 -B /tmp/sfora-installed-serving-body300-20261008/final.py",
+  "final": {
+    "limits": {
+      "seconds": 120,
+      "address_space_bytes": 1073741824
+    },
+    "suites": [
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-B",
+          "scripts/test_observe_connected_serving.py"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 5.96978233801201,
+        "log": "/tmp/sfora-installed-serving-body300-20261008/test_observe_connected_serving.py.log",
+        "sha256": "a401391639cf3e880cc9df5e149e5e73a6444f15e9d38e457e72724731fd26f0"
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-B",
+          "scripts/test_connected_serving_requests.py"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 4.653072203975171,
+        "log": "/tmp/sfora-installed-serving-body300-20261008/test_connected_serving_requests.py.log",
+        "sha256": "1611d65dfe6b46eb9c85c48b7f8168876e9b23dd9a0567cdaad1341187c00cd1"
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-B",
+          "scripts/test_connected_control_serving.py"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 46.5067387589952,
+        "log": "/tmp/sfora-installed-serving-body300-20261008/test_connected_control_serving.py.log",
+        "sha256": "4e9cfe1ba1dea93c71e87c587f1ea4d963c568e40ff28783a539525ca3ee003c"
+      }
+    ],
+    "elapsed_seconds": 57.13016838009935,
+    "outer_exit_code": 0,
+    "outer_wall_seconds": 57.2,
+    "maximum_rss_kib": 140788,
+    "swaps": 0,
+    "full_runs": 1
+  },
+  "commit": "2d43f950e5fdad87d1e84b1d9e4b8dc963c9f1e8",
+  "author": "Roman Bartusiak <riomus@gmail.com>"
+}

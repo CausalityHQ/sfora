@@ -1,0 +1,9 @@
+.......{"origins": [{"actual_sha256": "82e0179ccaf981220eaf4d6d536942421f90d1dd5cd2e4f5983b5fe4389cc57d", "expected_sha256": null, "path": "/tmp/tmpfk6_p2_u/bulk-0"}], "schema": "connected-control-native-origin-rejection-v1", "total_count": 1}
+{"origins": [{"actual_sha256": "b291e924b5630df527863354cce6782fb5b12855f7ef8b746262edaeef8eabd7", "expected_sha256": null, "path": "/tmp/tmpfk6_p2_u/tileiras"}], "schema": "connected-control-native-origin-rejection-v1", "total_count": 1}
+{"origins": [{"actual_sha256": "82e0179ccaf981220eaf4d6d536942421f90d1dd5cd2e4f5983b5fe4389cc57d", "expected_sha256": null, "path": "/tmp/tmpfk6_p2_u/bulk-0"}], "schema": "connected-control-native-origin-rejection-v1", "total_count": 1}
+........{"origins": [{"actual_sha256": "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc", "expected_sha256": null, "path": "/tmp/tmpba7dktab/unknown.so"}], "schema": "connected-control-native-origin-rejection-v1", "total_count": 1}
+...........
+----------------------------------------------------------------------
+Ran 26 tests in 46.359s
+
+OK

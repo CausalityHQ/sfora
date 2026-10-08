@@ -1,0 +1,80 @@
+{
+  "both_locks_held_required": true,
+  "files": {
+    "authority.json": "8d917eb2bc24db5b36dba74e1557da4b76aa1f8917f88adf10e462a3169fd4b3",
+    "command.sh": "97b9dea7bed947a3b23b615d8fbdd14830e9ae30a23efdafab1c89e1fabac3ca",
+    "connected_control_native_authority.py": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442",
+    "launch.sh": "e7a0c0e67c6fa40d7594bbd110fe55f92e4ced41cda6035ce8af39ce71827da2",
+    "observation.json": "bc27d4ed272c9a8fa9d33ffb3938e99b5fe9a625dc66256829d0cfb2037f22e2",
+    "observe_connected_serving.py": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de",
+    "qualify_connected_control_serving.py": "2961c2b0129b762403273c1d550b44c0ba7e4e9ec231a3e39848a9ee57d68815",
+    "qualify_connected_serving_requests.py": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163",
+    "test_connected_control_serving.py": "c04c619268a1c1e06d8404ffbd4382b784c7cfdd4b1fd8788805b0b0a02e905a",
+    "test_connected_serving_requests.py": "ad35a7177ddc3be7cc29db3b73c204b16f1afff98ff41c7357f1919da259a57b",
+    "test_observe_connected_serving.py": "2f7c7158c6f1aa3445ae249bb95af4b129be72a1d150b4d474f14d35cd300492"
+  },
+  "guard_files": 133,
+  "installed_package": {
+    "manifest": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-wheel-v1/installed-source-manifest.json",
+      "sha256": "9240a5cf340b7c34f7d36eac03e3b8ec78cdeff6397a78eb7d66c06cce93098c"
+    },
+    "site_packages": "/home/riomus/runs/sfora-connected-installed-control-serving-wheel-v1/site-packages",
+    "wheel_sha256": "a1ff1b26f4d1d696e016344e03099ae2618621624929de70395dba81e5671eb6"
+  },
+  "launched": false,
+  "native_runtime": {
+    "path": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json",
+    "sha256": "cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1"
+  },
+  "output": "/home/riomus/runs/sfora-connected-installed-control-serving-diagnostic-v2",
+  "prior_failure": "Serving-v5 and installed control-serving-v1 FAIL_BODY120 remain FAIL",
+  "qualification_eligible": false,
+  "resource_policy": {
+    "body_seconds": 300,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "exit_reserve_seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_process_seconds": 1500
+  },
+  "review_group": "b6808379c31f41e1",
+  "review_resolution": "Original finite alias/module release review retained; root exact3 whole byte+AST inverse confirms ONLY11 prospective body120->300 substitutions. Original3 source suites PASS57.20s/AS1GiB/RSS140788KiB/zeroSwap. Package/native binary/22 calls/all other predicates unchanged.",
+  "root": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2",
+  "schema": "sfora-installed-control-serving-freeze-v1",
+  "source_commit": "c4e5df0cd60a3de86840c8650c63397c3bb301cf",
+  "source_files": {
+    "connected_control_native_authority.py": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/connected_control_native_authority.py",
+      "sha256": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442"
+    },
+    "observe_connected_serving.py": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/observe_connected_serving.py",
+      "sha256": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de"
+    },
+    "qualify_connected_control_serving.py": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/qualify_connected_control_serving.py",
+      "sha256": "2961c2b0129b762403273c1d550b44c0ba7e4e9ec231a3e39848a9ee57d68815"
+    },
+    "qualify_connected_serving_requests.py": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/qualify_connected_serving_requests.py",
+      "sha256": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163"
+    },
+    "test_connected_control_serving.py": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/test_connected_control_serving.py",
+      "sha256": "c04c619268a1c1e06d8404ffbd4382b784c7cfdd4b1fd8788805b0b0a02e905a"
+    },
+    "test_connected_serving_requests.py": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/test_connected_serving_requests.py",
+      "sha256": "ad35a7177ddc3be7cc29db3b73c204b16f1afff98ff41c7357f1919da259a57b"
+    },
+    "test_observe_connected_serving.py": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/test_observe_connected_serving.py",
+      "sha256": "2f7c7158c6f1aa3445ae249bb95af4b129be72a1d150b4d474f14d35cd300492"
+    }
+  },
+  "source_worker_commit": "2d43f950e5fdad87d1e84b1d9e4b8dc963c9f1e8",
+  "state_reuse_eligible": false,
+  "stop_rule": "ONE prospective engineering-only original job. Any parity/source/ownership/lifetime/body300/whole1500/8GiB/noSwap/CUDA<10GB/full exit/terminal failure closes arm; no automatic cap escalation, duplicate, quality/product/reuse admission.",
+  "unit": "sfora-connected-installed-control-serving-diagnostic-v2"
+}

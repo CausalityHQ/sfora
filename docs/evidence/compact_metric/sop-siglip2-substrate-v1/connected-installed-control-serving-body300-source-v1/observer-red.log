@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "/home/rb/worktrees/sfora-installed-serving-body300-20261008/scripts/test_observe_connected_serving.py", line 790, in preparation_check
+    assert d.LIMITS == {'body_seconds':300,'host_bytes':8589934592,'swap_bytes':0,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'cuda_allocated_bytes_exclusive':10000000000}
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

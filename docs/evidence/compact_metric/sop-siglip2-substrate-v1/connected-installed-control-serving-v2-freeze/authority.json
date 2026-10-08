@@ -1,0 +1,106 @@
+{
+  "control": {
+    "arm": "control",
+    "seed": 179061
+  },
+  "control_export": {
+    "both_locks_held": true,
+    "invocation_id": "2ffefca891564bc2a74267d3511c0401",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/full-export-control-179061-v2-original.log",
+      "sha256": "76b5372a19482b7924949fdc6fdb36813449fd5a3f89df80074bf16df2063cca"
+    },
+    "native_peak_rss_kib": 4269932,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/receipt.json",
+      "sha256": "db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407"
+    },
+    "service_seconds": 1307.947,
+    "unit": "sfora-connected-mlp-evaluation-full-export-control-179061-v2"
+  },
+  "evaluation_authority": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/authority-full-export-control-179061-v2.json",
+    "sha256": "0875aec90fe11c1523b66584bbec8164be5dc886d3da81131a4c220a1f624c8b"
+  },
+  "evaluator": {
+    "code": {
+      "evaluate_siglip2_connected_mlp.py": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4",
+      "test_connected_mlp_evaluation.py": "48b47ea04f0cdf5f1980583d2a219c8d6803d0215293628956bc3b408139b89b"
+    },
+    "execution_sha256": "3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029",
+    "root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9"
+  },
+  "locks": [
+    {
+      "fd": 8,
+      "path": "/home/riomus/runs/.sfora-siglip2-gpu.lock"
+    },
+    {
+      "fd": 9,
+      "path": "/home/riomus/.sfora-siglip2-gpu.lock"
+    }
+  ],
+  "native_runtime": {
+    "path": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json",
+    "sha256": "cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1"
+  },
+  "observation": {
+    "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/observation.json",
+    "sha256": "bc27d4ed272c9a8fa9d33ffb3938e99b5fe9a625dc66256829d0cfb2037f22e2"
+  },
+  "schema": "connected-control-serving-requests-authority-v2",
+  "sources": {
+    "bridge": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-wheel-v1/site-packages/sfora/connected_compact_serving.py",
+      "sha256": "7c9713d3356c32f0c86feca788f53f299dc386b97964cec11016f88688c91932"
+    },
+    "control_driver": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/qualify_connected_control_serving.py",
+      "sha256": "2961c2b0129b762403273c1d550b44c0ba7e4e9ec231a3e39848a9ee57d68815"
+    },
+    "control_native": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/connected_control_native_authority.py",
+      "sha256": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442"
+    },
+    "control_test": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/test_connected_control_serving.py",
+      "sha256": "c04c619268a1c1e06d8404ffbd4382b784c7cfdd4b1fd8788805b0b0a02e905a"
+    },
+    "ledger": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-wheel-v1/site-packages/sfora/_connected_inference_authority.py",
+      "sha256": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e"
+    },
+    "native_wrapper": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-wheel-v1/site-packages/sfora/cutile_int8.py",
+      "sha256": "173eb393ed82d01281557b2f76edb1d50ffcc29faf85b9f9deb07d0df3c90d87"
+    },
+    "observer": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/observe_connected_serving.py",
+      "sha256": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de"
+    },
+    "observer_test": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/test_observe_connected_serving.py",
+      "sha256": "2f7c7158c6f1aa3445ae249bb95af4b129be72a1d150b4d474f14d35cd300492"
+    },
+    "packed": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-wheel-v1/site-packages/sfora/packed_int8.py",
+      "sha256": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4"
+    },
+    "packing": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-wheel-v1/site-packages/sfora/joint_relational_compaction.py",
+      "sha256": "0c0320787ee8d9e3a61bfd265859ec8785874b9727c686d6bd290fd4af19679d"
+    },
+    "request_driver": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/qualify_connected_serving_requests.py",
+      "sha256": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163"
+    },
+    "request_test": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-source-v2/test_connected_serving_requests.py",
+      "sha256": "ad35a7177ddc3be7cc29db3b73c204b16f1afff98ff41c7357f1919da259a57b"
+    },
+    "runtime": {
+      "path": "/home/riomus/runs/sfora-connected-installed-control-serving-wheel-v1/site-packages/sfora/connected_inference.py",
+      "sha256": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512"
+    }
+  }
+}

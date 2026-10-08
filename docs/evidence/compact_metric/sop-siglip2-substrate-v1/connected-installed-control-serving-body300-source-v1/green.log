@@ -1,0 +1,18 @@
+test_body300_actual_deadline_boundaries (test_connected_serving_requests.DriverTests.test_body300_actual_deadline_boundaries) ... ok
+test_body300_second_owner_prefactory_and_admitted_finally_release (test_connected_serving_requests.DriverTests.test_body300_second_owner_prefactory_and_admitted_finally_release) ... ok
+test_body120_stops_after_first_over_budget_call_and_releases_owner (test_connected_serving_requests.DriverTests.test_body120_stops_after_first_over_budget_call_and_releases_owner) ... ok
+test_body300_stops_after_first_over_budget_call_and_releases_owner (test_connected_serving_requests.DriverTests.test_body300_stops_after_first_over_budget_call_and_releases_owner) ... ok
+test_body300_finite_inverse_restores_complete_original_bytes_and_asts (test_connected_control_serving.ControlTests.test_body300_finite_inverse_restores_complete_original_bytes_and_asts) ... ok
+test_body300_actual_admission_and_headroom_boundaries (test_connected_control_serving.ControlTests.test_body300_actual_admission_and_headroom_boundaries) ... ok
+test_body300_receipt_boundaries (test_connected_control_serving.ControlTests.test_body300_receipt_boundaries) ... ok
+test_body300_observation_policy_and_terminal_caps (test_connected_control_serving.ControlTests.test_body300_observation_policy_and_terminal_caps) ... ok
+test_alias_delta_reverses_complete_a4cd_driver_asts_and_rejects_mutants (test_connected_control_serving.ControlTests.test_alias_delta_reverses_complete_a4cd_driver_asts_and_rejects_mutants) ... ok
+test_migration_reverses_complete_three_production_asts_and_rejects_mutants (test_connected_control_serving.ControlTests.test_migration_reverses_complete_three_production_asts_and_rejects_mutants) ... ok
+test_exact_production_delta_and_whole_ast_inverse (test_connected_control_serving.ControlTests.test_exact_production_delta_and_whole_ast_inverse) ... ok
+test_resource_only_delta_reverses_entire_three_production_asts (test_connected_control_serving.ControlTests.test_resource_only_delta_reverses_entire_three_production_asts) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 1.678s
+
+OK
+elapsed_seconds 1.6779586219927296

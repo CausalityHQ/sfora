@@ -1,0 +1,13 @@
+{
+  "integrated_commit": "c4e5df0cd60a3de86840c8650c63397c3bb301cf",
+  "native": "UNRUN",
+  "original_suite_logs_and_exits_verified": true,
+  "prior_failure": "installed v1 FAIL_BODY120 unchanged",
+  "root_exact_production_byte_and_ast_inverse": true,
+  "rss_kib": 140788,
+  "scope": "exact6, only11 prospective body120->300 production substitutions",
+  "seconds": 57.2,
+  "source_suites_repeated": false,
+  "swaps": 0,
+  "worker_commit": "2d43f950e5fdad87d1e84b1d9e4b8dc963c9f1e8"
+}
