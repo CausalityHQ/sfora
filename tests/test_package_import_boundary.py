@@ -210,10 +210,30 @@ class PackageImportBoundaryTests(unittest.TestCase):
             self.assertEqual(guard.denied, [])
 
     def test_all_bytes_and_original_ast_survive_inverse(self):
-        tree = ast.parse(SOURCE)
+        source = SOURCE
+        packed_group = '_PACKED_INT8_EXPORTS = frozenset({"PackedInt8Embeddings", "pack_int8_unit_embeddings"})\n\n'
+        packed_branch = '\n'.join([
+            '    if name in _PACKED_INT8_EXPORTS:',
+            '        module = import_module("sfora.packed_int8")',
+            '        value = cast(object, getattr(module, name))',
+            '        globals()[name] = value',
+            '        return value', ''])
+        relational = '\n'.join([
+            '_RELATIONAL_COMPACTION_EXPORTS = frozenset(', '    {',
+            '        "RelationalLinearEncoder",', '        "RelationalLinearTrainingConfig",',
+            '        "fit_relational_linear_compaction",', '        "fit_relational_linear_encoder",',
+            '    }', ')'])
+        original_relational = relational.replace('    {\n', '    {\n        "PackedInt8Embeddings",\n').replace(
+            '        "fit_relational_linear_encoder",\n',
+            '        "fit_relational_linear_encoder",\n        "pack_int8_unit_embeddings",\n')
+        for current, original in ((packed_group, ''), (packed_branch, ''),
+                                  (relational, original_relational)):
+            self.assertEqual(source.count(current), 1)
+            source = source.replace(current, original)
+        tree = ast.parse(source)
         all_node = next(node for node in tree.body if isinstance(node, ast.Assign)
                         and node.targets[0].id == "__all__")
-        all_bytes = ast.get_source_segment(SOURCE, all_node).encode()
+        all_bytes = ast.get_source_segment(source, all_node).encode()
         self.assertEqual(hashlib.sha256(all_bytes).hexdigest(),
                          "6c87e434ff75524550af48ccf1883fd5a9ea0b3bfee9d12680a6f1b11523aee4")
         original_nodes = []
@@ -232,7 +252,7 @@ class PackageImportBoundaryTests(unittest.TestCase):
                 continue
             if isinstance(node, ast.FunctionDef) and node.name == "__getattr__":
                 node.body = [part for part in node.body if not isinstance(part, ast.For)]
-                old_bytes = "\n".join(ast.get_source_segment(SOURCE, part) for part in node.body)
+                old_bytes = "\n".join(ast.get_source_segment(source, part) for part in node.body)
                 self.assertEqual(hashlib.sha256(old_bytes.encode()).hexdigest(),
                                  "df0ca8121b36735c1764512b2014bc89f8990227b54ae4cb596dfc60fc2b6b69")
             original_nodes.append(node)

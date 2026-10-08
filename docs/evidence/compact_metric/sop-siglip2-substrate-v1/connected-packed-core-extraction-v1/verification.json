@@ -1,0 +1,27 @@
+{
+  "integrated_commit": "c6eb09e3",
+  "limits": [
+    "No genuine Torch numerical packing/wire or native ABI qualification",
+    "Old live __defaults__ guard gap remains separately reported, unchanged",
+    "Frozen packages-v1/v2/v3 and original serving failures unchanged"
+  ],
+  "new_code_sha256": {
+    "scripts/test_packed_int8_core_extraction.py": "ed0c227fa4b1c7310fb5c61a6e1ab58e98a55b9cc91058224bc35dd4f50b4cf9",
+    "src/sfora/__init__.py": "3c80a7bec9ecdb6f09a52c89b17ef3534f7b61d17e4c93fe4166cda15cdb19db",
+    "src/sfora/cutile_int8.py": "173eb393ed82d01281557b2f76edb1d50ffcc29faf85b9f9deb07d0df3c90d87",
+    "src/sfora/joint_relational_compaction.py": "0c0320787ee8d9e3a61bfd265859ec8785874b9727c686d6bd290fd4af19679d",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+    "src/sfora/packed_int8_search.py": "456ec12aa3688117ccb23a84a1d34f1220869e39728e179363832c511453c836",
+    "tests/test_package_import_boundary.py": "c8bc865461f3b8e4e1364013aef45e0121ee99f6c62f66e4e47cf3d9fc87a7c2"
+  },
+  "root_checks": {
+    "bridge_script": "PASS actual trainer/serializer code identities and both explicit future modes",
+    "combined_affected_unittest": "32PASS/3.152028255s/AS1GiB/120s/native_modules[]",
+    "observer_script": "PASS genuine public/profiler fresh-byte/parity/release source falsifier",
+    "package_import_boundary": "7PASS/0.293s"
+  },
+  "root_repair": "tests/test_package_import_boundary.py exact three routing inversions; original historical digests/assertions retained",
+  "scope": "Canonical packed-only module; moved complete source bytes and exact shared class/functions; historical qualnames/module/pickle identity retained; serving imports no historical training module",
+  "worker_commit": "d484553e9c6d044fd2e2f39a9aba2b28a06fe427",
+  "worker_full_gate": "exit1/6.659s, only outside-owned historical __getattr__ inverse test"
+}
