@@ -1,0 +1,36 @@
+{
+  "schema": "connected-probe-evaluator-scope-v1",
+  "training": {
+    "root": "/home/riomus/runs/sfora-connected-probe-train-source-v2",
+    "execution_sha256": "d007a50139a839a5901a1dabbd1177def5665df89bfabe8f7f568d8dc94fff66",
+    "code": {
+      "test_siglip2_connected_probe.py": "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120",
+      "train_siglip2_connected_probe.py": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+    }
+  },
+  "training_cpu": "PENDING original active3878bdb9b5814e97917b601bc3165c6f COMPLETE PASS; no guessed UNIT/hash or historical acceptance",
+  "own2": [
+    "scripts/evaluate_siglip2_connected_probe.py",
+    "scripts/test_connected_probe_evaluation.py"
+  ],
+  "baseline": {
+    "evaluator": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4",
+    "test": "48b47ea04f0cdf5f1980583d2a219c8d6803d0215293628956bc3b408139b89b"
+  },
+  "scope": [
+    "new own2/evaluator and launch schemas",
+    "actual corrected trainer own2/schema/filenames binding",
+    "current trainer PROBE role replaces evaluator trainer.MLP",
+    "strict literal actual TRAINING and TRAINING_CPU equality, parent supplies new CPU UNIT only after complete pass",
+    "preserve historical original owner/first-selection owner bindings and activate only original permitted modes",
+    "complete current public load/bundle/forward/typedstate/release/replay/source/native exactfour and scientific policies unchanged"
+  ],
+  "stop": [
+    "native entirely root owned",
+    "no quality or scoring until actual current trainer CPU and BOTH fresh mechanics and paired TRAIN qualify",
+    "held data and earlier failures unchanged",
+    "preserve whole-baseline finite byte/AST inverse, historical hashes and original test behavior",
+    "no broad fallback/schema whitelist or dynamic unpinned oldCPU"
+  ],
+  "source_tests": "ONE serial120s RLIMIT_AS1GiB after parent finalCPU pin release; before that narrow stdlib checks only; no imports Torch/thirdparty/native/SSH/jobs/consult/children"
+}
