@@ -1,0 +1,9 @@
+{
+  "actual_unit": "sfora-connected-control-batch-execution-observation-v2",
+  "invocation_id": "bdf9b1265f17459084034fc0f4b498e5",
+  "output": "/home/riomus/runs/sfora-connected-control-batch-execution-observation-v3",
+  "reason": "Root path substitutions updated new source/output but retained standalone systemd unit v2 label. This is the only original v3-source run; never relabel prior v2 failure or duplicate this run. Frozen original launch preserved.",
+  "schema": "connected-control-batch-actual-launch-identity-v1",
+  "source_root": "/home/riomus/runs/sfora-connected-control-batch-execution-source-v3",
+  "ssh_session": 14882
+}
