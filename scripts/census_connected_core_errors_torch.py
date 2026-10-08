@@ -28,9 +28,10 @@ import-time dumps before any adaptation (a forged batch/capture statement is rej
 Engineering-only caps: 900s total, the last 120s reserved for the uncached exit
 (no metric work starts inside it), 8GiB cgroup, zero swap, CUDA hidden, both
 inherited lifetime locks. Root owns the single native job, log, exit status and
-terminal cgroup evidence. No retry, no fallback. The original publish's atomic link is the commit point; a failure
-after it (the final whole-process cap) removes only the file this invocation linked (stat identity + content
-hash), never a foreign replacement, and the published terminal still needs the parent's exit/lock receipt.
+terminal cgroup evidence. No retry, no fallback. The original publish writes into a private staging directory; the
+exclusive link promoting it is the commit point, bracketed by the final whole-process cap, and a failure after it
+removes only that staged inode+content (never a foreign replacement). The published terminal still needs the
+parent's exit/lock receipt.
 """
 if not __debug__:
     raise SystemExit('optimized mode forbidden; original assertions required')
@@ -51,6 +52,7 @@ import resource
 import stat
 import struct
 import sys
+import tempfile
 import time
 from types import SimpleNamespace
 
@@ -636,24 +638,31 @@ def exit_checks(ctx):
 def owned_output(output):
     """Stat identity and content hash of the regular file at output (a symlink or other file is never ours)."""
     info = os.lstat(output)
-    require(stat.S_ISREG(info.st_mode), 'published output is not a regular file; foreign file left in place')
+    require(stat.S_ISREG(info.st_mode), 'output is not a regular file; foreign file left in place')
     return ((info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns),
             hashlib.sha256(Path(output).read_bytes()).hexdigest())
 
 
 def publish_census(census, output, payload, guards, budget):
-    """Original publish, then the final whole-process cap; a failure removes only the file this call linked."""
-    census.publish(output, payload, guards)
-    owner = owned_output(output)
-    try:
+    """Original publish into a private staging directory, then an exclusive-link promotion bracketed by the final cap.
+
+    The owner is captured from the staged file before promotion, so a failure afterwards removes the final output
+    only while it is still that very inode and content; a foreign replacement is never adopted or removed."""
+    with tempfile.TemporaryDirectory(dir=Path(output).parent) as staging:
+        staged = str(Path(staging) / Path(output).name)
+        census.publish(staged, payload, guards)
+        owner = owned_output(staged)
         budget.check(reserve=False)
-    except BaseException as error:
         try:
-            require(owned_output(output) == owner, 'published output was replaced; foreign file left in place')
-            os.unlink(output)
-        except BaseException as failure:
-            error.add_note('output removal: ' + repr(failure))
-        raise
+            os.link(staged, output, follow_symlinks=False)
+            budget.check(reserve=False)
+        except BaseException as error:
+            try:
+                require(owned_output(output) == owner, 'output is not the staged file; foreign file left in place')
+                os.unlink(output)
+            except BaseException as failure:
+                error.add_note('output removal: ' + repr(failure))
+            raise
 
 
 def finalize(args, ctx):

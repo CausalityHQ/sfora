@@ -892,40 +892,70 @@ class ExitTests(Base):
 
 
 class PublishTests(Base):
-    """Original publish, then the final cap: a failed terminal removes only the file this call linked."""
+    """Stage with the original publish, promote by exclusive link under the cap; only our staged inode is removed."""
     PAYLOAD = {'schema': 'x', 'full_uncached_exit_pass': True}
     RAW = (json.dumps(PAYLOAD, sort_keys=True, indent=2, allow_nan=False) + '\n').encode()
 
-    def attempt(self, after_link=None):
+    def attempt(self, before_link=None, after_link=None, cross_before=False, staged=None):
         _, _, _, owned, modules = self.helpers()
         census = modules['census']
         self.m.close_sources(owned)
+        if staged is not None:
+            real = census
+            census = SimpleNamespace(
+                publish=lambda out, payload, guards: (real.publish(out, payload, guards), staged(out)))
         directory = self.tmp()
         output = directory / 'census.json'
 
         def clock():
-            if after_link is None or not os.path.lexists(output):
+            if not os.path.lexists(output):
+                if before_link is not None:
+                    before_link(directory, output)
+                return 901. if cross_before else 0.
+            if after_link is None:
                 return 0.
             after_link(directory, output)
             return 901.
         error = None
         try:
             self.m.publish_census(census, str(output), self.PAYLOAD, {}, self.m.Budget(started=0., clock=clock))
-        except ValueError as failure:
+        except Exception as failure:
             error = failure
         return directory, output, error
 
-    def test_success_leaves_exactly_the_original_publication(self):
+    def test_success_leaves_exactly_the_original_publication_and_no_staging(self):
         directory, output, error = self.attempt()
         self.assertIsNone(error)
         self.assertEqual((output.read_bytes(), [p.name for p in directory.iterdir()]), (self.RAW, ['census.json']))
 
-    def test_cap_crossing_after_the_link_removes_the_owned_output_and_leaves_no_temporary(self):
-        directory, output, error = self.attempt(lambda d, o: None)
+    def test_cap_crossing_before_promotion_publishes_nothing(self):
+        directory, output, error = self.attempt(cross_before=True)
         self.assertIsInstance(error, ValueError)
         self.assertEqual(list(directory.iterdir()), [])
 
-    def test_foreign_or_changed_output_is_never_removed(self):
+    def test_cap_crossing_after_promotion_removes_the_owned_output_and_leaves_no_staging(self):
+        directory, output, error = self.attempt(after_link=lambda d, o: None)
+        self.assertIsInstance(error, ValueError)
+        self.assertEqual(list(directory.iterdir()), [])
+
+    def test_staged_file_failure_before_promotion_publishes_nothing(self):
+        def missing(out):
+            os.unlink(out)
+
+        def symlink(out):
+            os.unlink(out)
+            os.symlink('/nonexistent-target', out)
+
+        def directory_instead(out):
+            os.unlink(out)
+            os.mkdir(out)
+        for name, staged in {'lstat fails': missing, 'symlink': symlink, 'not regular': directory_instead}.items():
+            with self.subTest(name):
+                directory, output, error = self.attempt(staged=staged)
+                self.assertIsInstance(error, (OSError, ValueError))
+                self.assertEqual(list(directory.iterdir()), [])
+
+    def test_foreign_output_before_or_after_promotion_is_never_removed(self):
         def replace(data):
             def act(directory, output):
                 foreign = directory / 'foreign.tmp'
@@ -946,14 +976,22 @@ class PublishTests(Base):
                  'symlink': (symlink, self.RAW), 'edited in place': (edit, self.RAW + b'x')}
         for name, (act, content) in cases.items():
             with self.subTest(name):
-                directory, output, error = self.attempt(act)
+                directory, output, error = self.attempt(after_link=act)
                 self.assertIsInstance(error, ValueError)
                 self.assertEqual(output.read_bytes(), content)
-                self.assertTrue(os.path.lexists(output))
                 self.assertTrue(any('foreign' in note for note in error.__notes__), error.__notes__)
-        directory, output, error = self.attempt(lambda d, o: o.unlink())
-        self.assertIsInstance(error, ValueError)
-        self.assertEqual(list(directory.iterdir()), [])
+                self.assertEqual(sorted(p.name for p in directory.iterdir()),
+                                 sorted(['census.json'] + (['target'] if name == 'symlink' else [])))
+        with self.subTest('foreign file appears before promotion'):
+            directory, output, error = self.attempt(before_link=lambda d, o: o.write_bytes(b'foreign'))
+            self.assertIsInstance(error, FileExistsError)
+            self.assertEqual(output.read_bytes(), b'foreign')
+            self.assertEqual([p.name for p in directory.iterdir()], ['census.json'])
+            self.assertTrue(any('foreign' in note for note in error.__notes__), error.__notes__)
+        with self.subTest('owned output vanished'):
+            directory, output, error = self.attempt(after_link=lambda d, o: o.unlink())
+            self.assertIsInstance(error, ValueError)
+            self.assertEqual(list(directory.iterdir()), [])
 
     def test_run_publishes_only_through_the_owned_output_guard(self):
         run = next(n for n in ast.parse(DRIVER.read_text()).body if getattr(n, 'name', None) == 'run')
