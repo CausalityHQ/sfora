@@ -1,0 +1,18 @@
+{
+  "address_space_bytes": 1073741824,
+  "exit_status": 0,
+  "future_gate": "ONE original four-state TRAIN-only vector qualification:061init/128 then069init/128; first originalB64/micro16/bothviews/complete canonicalS6355, unchanged losses/K63/K64. No optimizer updates/new gallery/shadow/held quality. Exact numerical-only total=reg+rank, all actual6member/perlayer norms+dots+cos; stop first admission/math/role/lifetime/source/resource failure. Complete original payload/currentbytes/RNG/flags/native origins/strictallocated0/fulluncachedexit/normal terminal+bothlocks required. <=7sets290903232B (<8sets512MiB);3000s/8GiB/events0/swap0/CUDA<10GB. Cost UNMEASURED. CandidateKILL/HOLD_NEW_TRAINING_ARM preserved; no model/quality/speed/reuse/causal-intervention qualification.",
+  "integrated_commit": "f449e7a5",
+  "root_review": "exact six-member vector dataflow, unchanged original helpers/fullgallery/denominators, complete payload/RNG/flags and cleanup/uncached exit; native arithmetic and resources unqualified",
+  "rss_kib": 87376,
+  "seconds": 2.32,
+  "source_sha256": {
+    "qualify_connected_gradient_decomposition.py": "66bcc2918230e097aa492a476310c97a5e7b2fd4a90c4fbee582b29867ebf461",
+    "test_connected_gradient_decomposition.py": "f9334f72e38b477478de313f9ade5893a76266db60c422e377f9c7044ba237e8"
+  },
+  "status": "SOURCE_ONLY_PASS_NATIVE_UNRUN",
+  "swaps": 0,
+  "tests": 14,
+  "timeout_seconds": 120,
+  "worker_commit": "037f704d731cc342e6de174f4588aa543f03c921"
+}

@@ -1,0 +1,25 @@
+{
+  "files": {
+    "authority.json": "b4dc742f99ff95151a412919a84af1a9999d96397d582ab3a9dc0fbf5b094c2d",
+    "command.sh": "2f87014f27911e46cdf18fe25bd7c6ff55ad3e305d8c43b2b1b6aa313be030fd",
+    "execution.json": "d5d698fbbe16ac78e665947097778c89f88152e6c1c6f845800b4ac93a425258",
+    "launch.sh": "97e408ca916acb96e25e4ff66bd964d5b7062755a0f0ead325184e0daa0962e5",
+    "qualify_connected_gradient_decomposition.py": "66bcc2918230e097aa492a476310c97a5e7b2fd4a90c4fbee582b29867ebf461",
+    "test_connected_gradient_decomposition.py": "f9334f72e38b477478de313f9ade5893a76266db60c422e377f9c7044ba237e8"
+  },
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-gradient-decomposition-v1",
+  "policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "extra_tensor_bytes": 536870912,
+    "gradient_sets_max": 8,
+    "host_bytes": 8589934592,
+    "seconds": 3000,
+    "swap_bytes": 0
+  },
+  "root": "/home/riomus/runs/sfora-connected-gradient-decomposition-source-v1",
+  "schema": "connected-gradient-decomposition-freeze-v1",
+  "source_commit": "f449e7a5cd36effb88f25e9d3fb819075a73b9e9",
+  "stop_rule": "ONE original four-state TRAIN-only vector qualification:061init/128 then069init/128; first originalB64/micro16/bothviews/complete canonicalS6355, unchanged losses/K63/K64. No optimizer updates/new gallery/shadow/held quality. Exact numerical-only total=reg+rank, all actual6member/perlayer norms+dots+cos; stop first admission/math/role/lifetime/source/resource failure. Complete original payload/currentbytes/RNG/flags/native origins/strictallocated0/fulluncachedexit/normal terminal+bothlocks required. <=7sets290903232B (<8sets512MiB);3000s/8GiB/events0/swap0/CUDA<10GB. Cost UNMEASURED. CandidateKILL/HOLD_NEW_TRAINING_ARM preserved; no model/quality/speed/reuse/causal-intervention qualification.",
+  "unit": "sfora-connected-gradient-decomposition-v1"
+}

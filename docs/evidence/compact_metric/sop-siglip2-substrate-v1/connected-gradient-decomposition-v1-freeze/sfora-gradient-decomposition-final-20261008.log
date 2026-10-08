@@ -1,0 +1,20 @@
+test_accumulation_missing_and_nonfinite (__main__.DecompositionTests.test_accumulation_missing_and_nonfinite) ... ok
+test_actual_joint_view_loop_and_scalar_norm (__main__.DecompositionTests.test_actual_joint_view_loop_and_scalar_norm) ... ok
+test_bound_workspace_source_rejects_function_replacement (__main__.DecompositionTests.test_bound_workspace_source_rejects_function_replacement) ... ok
+test_cleanup_keeps_original_failure_and_runs_all (__main__.DecompositionTests.test_cleanup_keeps_original_failure_and_runs_all) ... ok
+test_final_allocated_zero_and_cleanup_error (__main__.DecompositionTests.test_final_allocated_zero_and_cleanup_error) ... ok
+test_full_gallery_ties_self_singleton_and_mutants (__main__.DecompositionTests.test_full_gallery_ties_self_singleton_and_mutants) ... ok
+test_launch_exact_roles_and_omissions (__main__.DecompositionTests.test_launch_exact_roles_and_omissions) ... ok
+test_original_schedule_and_full_denominators (__main__.DecompositionTests.test_original_schedule_and_full_denominators) ... ok
+test_parallel_opposed_orthogonal (__main__.DecompositionTests.test_parallel_opposed_orthogonal) ... ok
+test_real_loss_and_micro_full_scale (__main__.DecompositionTests.test_real_loss_and_micro_full_scale) ... ok
+test_source_contract_and_complete_math_correspondence (__main__.DecompositionTests.test_source_contract_and_complete_math_correspondence) ... ok
+test_source_exists (__main__.DecompositionTests.test_source_exists) ... ok
+test_state_ownership_success_rejection_and_alias (__main__.DecompositionTests.test_state_ownership_success_rejection_and_alias) ... ok
+test_strict_file_unit_and_uncached_reads (__main__.DecompositionTests.test_strict_file_unit_and_uncached_reads) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 2.222s
+
+OK
+PASS stdlib Stage1 exact source/authority, actual extracted loss and gradient accumulation, full-B64 scaling, complete gallery/self/ties/singletons, detachment/omission mutants, sequential ownership and final zero-allocation seams. Native UNRUN; scientific HOLD unchanged.
