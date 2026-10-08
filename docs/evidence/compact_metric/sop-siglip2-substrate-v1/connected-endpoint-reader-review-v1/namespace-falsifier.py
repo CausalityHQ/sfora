@@ -1,5 +1,6 @@
 """Stdlib-only reproduction against the immutable rejected candidate, no native work."""
 import hashlib
+import builtins
 import importlib.util
 import json
 from pathlib import Path
@@ -27,13 +28,25 @@ with tempfile.TemporaryDirectory(prefix='sfora-namespace-falsifier-') as directo
     (path / 'candidate.py').write_bytes(raw)
     candidate = load('_root_endpoint_guard_probe', path / 'candidate.py')
     source = path / 'genuine.py'
-    source.write_text('def valid(value):\n    return len(value) == 1\n')
+    source.write_text('def valid(value):\n    return len(value) == 1\n\ndef valid_all(value):\n    return all(value)\n')
     module = load('_root_genuine_probe', source)
     assert module.valid([]) is False
     module.len = lambda value: 1
     guard = candidate.source_live_guard(module, hashlib.sha256(source.read_bytes()).hexdigest(), {})
     guard()
     assert module.valid([]) is True
+    assert module.valid_all([False]) is False
+    original_all = builtins.all
+    try:
+        builtins.all = lambda value: True
+        guard()
+        altered_builtin_accepted = module.valid_all([False])
+        guard()
+    finally:
+        builtins.all = original_all
+    assert altered_builtin_accepted is True
+    assert module.valid_all([False]) is False
     assert not {'torch', 'numpy', 'transformers', 'PIL'} & sys.modules.keys()
     print(json.dumps({'candidate': COMMIT, 'unexpected_global_accepted': True,
-                     'invalid_value_accepted': True, 'native_qualification': False}))
+                     'invalid_value_accepted': True, 'canonical_builtin_mutation_accepted': True,
+                     'builtin_restored': True, 'native_qualification': False}))
