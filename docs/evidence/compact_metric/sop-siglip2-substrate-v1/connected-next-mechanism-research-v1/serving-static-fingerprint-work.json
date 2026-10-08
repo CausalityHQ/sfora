@@ -1,0 +1,13 @@
+{
+  "schema": "connected-serving-static-fingerprint-work-v1",
+  "evidence_receipt_sha256": "db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407",
+  "dtype": "FP32",
+  "parameter_members": 448,
+  "full_parameter_bytes": 1711552256,
+  "frozen444_bytes": 1671864768,
+  "four_member_bytes": 39687488,
+  "encoder_facts_parameter_occurrence_bytes": 3423104512,
+  "timing_measured": false,
+  "source": "scripts/train_siglip2_connected_mlp.py:679 encoder_facts; called before pixels in inference_outputs",
+  "interpretation": "One encoder_facts call fingerprints frozen444, full448, then each four member. This counts repeated parameter bytes traversed, not unique resident bytes, disk reads, elapsed cost or PCIe transfer measurements. Buffer/readout fingerprints and bridge/module file checks are additional uncounted work. No removal of current-byte validation is authorized."
+}
