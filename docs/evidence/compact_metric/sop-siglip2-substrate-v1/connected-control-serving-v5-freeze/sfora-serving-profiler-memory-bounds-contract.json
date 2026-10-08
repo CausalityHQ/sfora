@@ -1,0 +1,123 @@
+{
+  "base": "d0ef56b6674f214a2b9212d49da41a322a8aeaa5",
+  "owned": [
+    "scripts/observe_connected_serving.py",
+    "scripts/qualify_connected_serving_requests.py",
+    "scripts/qualify_connected_control_serving.py",
+    "scripts/test_observe_connected_serving.py",
+    "scripts/test_connected_serving_requests.py",
+    "scripts/test_connected_control_serving.py"
+  ],
+  "scope": "resource accounting only; balanced stack, phase, fresh genuine serializer, public22 calls, timing, cleanup, CUDA None unchanged",
+  "delta": [
+    "diagnostic total calls; retained depth/key/occurrence/fingerprint/encoded-byte bounds before growth",
+    "bounded typed output before copy/hex; first failure code/counters in original exceptions",
+    "exact instrumentation_policy/resource_usage/first_failure strict report fields",
+    "stdlib boundary and >2m real observer old-policy inverse"
+  ],
+  "production_ast": {
+    "scripts/observe_connected_serving.py": {
+      "sha256": "aadab40502c22a73c53e0acc4c8d2be3ef0553f9a2e3b51d75cbfbb740ae9675",
+      "definitions": {
+        "require": "3b218d97634fd91fd6595535193a2eb525911ab34ffd45793deaba58332ca99e",
+        "canonical": "5c3a8c86125bd05ddb7d2b5e42012e130737259893f111cc424efa061ee7ece6",
+        "file_bytes": "21f2780451fdbec9db2c7fc3a8ed60faad525df6abd73c85dfdc920fd7c1ce69",
+        "file_fact": "589fa44776951cebffe27218ddcfd1242842bb5b524675f45d3cd85cdc08ffd9",
+        "pairs": "da70ac3625cab291f82590007b8fed62dddf138529f01d2fc721cb1d7a6b6116",
+        "prepare": "9203e2cf9c8dd361b6099307cc861e35f0eb2f818f40c2a55cb6aeeec481a96a",
+        "tensor_snapshot": "88fd8cd07420655e02828c43d40c78bc986ca77f4f1529638cb1a80964e6fd55",
+        "native_snapshot": "4cfdccddc88a4a6c9736fac51aae22c7d2616cbd87646314745ce0b6945df915",
+        "RequestObserver": "dbcd931b84c9d349665ef92cf97fb53d072228f297d41fe91c7b91e92f93f184",
+        "observe_call": "63d9ef6f6e34e993593a0ef5363b7f539e3cb89d062bd0c72a1cdffba8aae6ab",
+        "measure_request": "5a887247eb3474b0d3a1ee4f48957439d4a0d0d97b10f4ca76889fdf39e30455",
+        "main": "5f2a753f3c186130066b0db224e377dbf55d934efb5125d52a16871aedaa3140"
+      }
+    },
+    "scripts/qualify_connected_serving_requests.py": {
+      "sha256": "83cfa1c3c4ff415f6292adc8762a46e12da84499f4b3d31662a240a108d7200b",
+      "definitions": {
+        "require": "3b218d97634fd91fd6595535193a2eb525911ab34ffd45793deaba58332ca99e",
+        "read_file": "0099a86e1f5b8396603016fadb75b7960abde1626d5d940d076ce6959fecafe1",
+        "strict_json": "a6ae0f3f63409a866a6f4d3d9e5b4a189bca1114516ec9bea7616f31be5b6ec6",
+        "read_go": "dc579ee2312797bb1f785117aef25fdd37580659a02d43702b4745d9cbfa8288",
+        "Source": "26e6258f8b4ac1582f2786934996124c732c4756b87e89db0a22d4e5e94f89f5",
+        "raise_failures": "003a5e4f64abcd6c536260c0e037b88896cc4d466fb56f44f1c627c4e368a96b",
+        "owner": "65351a8dada9df55b08be5aa541c77751334898fb7eb84f5aff0dd22a9827e83",
+        "witness": "5d4a058b1186d8d37bf3edceb8e6f3849ead3287cf73a54b4a438ff6143fc15a",
+        "request_body": "1389cda122c69dc2d1e8a050a58ed6b77c34e502c31809cd7d9f285d4163fa84",
+        "Locks": "842d6847e1d6fc31532783074ef74195f3089c13bb88bfaec367186ad7b5f5bd",
+        "check_resources": "97e2918ed2659de606b79528f56e2fcef49e73cc48505cd8b5a42522f59676f9",
+        "native_ties": "483463f5ac22924c604c6449ecf7657e742b5ad9ff4479c609b6a52665542a20",
+        "decode_images": "585c43dc38c8ba4c9d851f23f2bd4cea19f311ab43e90d20d317cf1f6b97aec2",
+        "run": "aef5cac9cd281670abfa6bc6f3f8ac4406d502510ac10e5f18b30aa08b4288bc",
+        "main": "1d2af6fe49c3aa5a041ca674d5d465d1368d3576d5444cfe227a460b94ce29b6"
+      }
+    },
+    "scripts/qualify_connected_control_serving.py": {
+      "sha256": "b9f6879aa0503d4e1b19c7cc91088e63361191d2228f43bbae9184eafebd5ed6",
+      "definitions": {
+        "require": "2407e108a9bab0667a8b0fc9e12a4ef08a70d8fbae9d87b3cfe5ea649dd9ba19",
+        "prepare_observation": "3c6bf7f7bc8cd3174488404d8e158e6638210ac3ea54257d4efd64f436933c15",
+        "admit_control": "d691ac7cd5ba8511b7e057183adf58199d1514beb483ca33cb6934fed8f4b88c",
+        "cli": "45c72d8f60faee80906bb35757e1bd6ffefc239fc79c2d42c7e6e27dfcda6ba1",
+        "validate_receipt": "0daa5187debe0759ccb8e431f45edad427cd48cdf8b6b356a2d7d8de0cf96cf0",
+        "accept_unit": "df0166aee1cdb7f0cb68f5d66e695e2da3b4e0a00e4e13ae9533415ae8c39c96",
+        "run": "1fa9e03a5daa9f6276265ea694564ebf38148539ce8ef1ddd926da0f253b1c89",
+        "main": "1d2af6fe49c3aa5a041ca674d5d465d1368d3576d5444cfe227a460b94ce29b6"
+      }
+    }
+  },
+  "source_hashes": {
+    "scripts/observe_connected_serving.py": "33c36ce143949e1f66b7967dc19280a392a5378f11e832d4360cf6e3ff203349",
+    "scripts/qualify_connected_serving_requests.py": "109b1d8daefb1174f3596831fb871cd9abef76bfc925d6e0aaa8c51fb70a57d1",
+    "scripts/qualify_connected_control_serving.py": "303ed274915e0c8d55cf0b901e96a71ee6c01629c64420713a4ef2bb42872329",
+    "scripts/test_observe_connected_serving.py": "ff51c534772518f7de265fa758850980c9f1622f3d9655a071330c4b43e41621",
+    "scripts/test_connected_serving_requests.py": "a0b1a468db155b71b4463ab1f3a97a96280fead204741242989a565b9aaf768a",
+    "scripts/test_connected_control_serving.py": "df70d24fbf5469c99bda04cce9ea06c24dca97f9a1d79c1aa408a2584150a986"
+  },
+  "final_production_ast": {
+    "scripts/observe_connected_serving.py": "c88fba2ee44f1c5a16e4e6b35948c34cc22c5de88a1f442226b4587b39d66671",
+    "scripts/qualify_connected_serving_requests.py": "f16eb2ab7e89c2e16dbf9168017f6f46700640de578111e0102a72369bf4ee2c",
+    "scripts/qualify_connected_control_serving.py": "717b6804191aa80355432448d8ae49edcf769e5249a9f501ebcac87463f6d101"
+  },
+  "receipts": {
+    "sfora-serving-profiler-call-volume.log": {
+      "path": "/tmp/sfora-serving-profiler-call-volume.log",
+      "sha256": "4758d0e7b68890d09beebc0ed2b40fa0c515375047bd0d2be52cc2c147578369"
+    },
+    "sfora-serving-profiler-final-suite.log": {
+      "path": "/tmp/sfora-serving-profiler-final-suite.log",
+      "sha256": "d6ef332f0e267618a8cbee6f9f31ed552099e933ebf542035f0c6d5e28cd3bf3"
+    }
+  },
+  "verification": {
+    "full_affected": "PASS; all three direct main entries; requests23/control19; 58.19s;141244KiB;exit0;outer120s/AS1GiB",
+    "call_volume": "PASS;2000031new/2000001old-policy-reject;12keys;1fingerprint;exact digest;17.71s;36928KiB;exit0;outer30s/AS256MiB",
+    "call_volume_scope": "before final failure-format and source-pin reservation refinements; final main gate rechecks diagnostic counter and all retained boundaries",
+    "inverse": "PASS exact complete three production ASTs to rootbase and preserved compiler inverse",
+    "narrow": "PASS retained boundaries/typed pre-copy/strict fields/failure-through-cleanup-cancellation under15s/AS1GiB",
+    "native": "UNRUN; parent owns freeze/launch"
+  },
+  "root_native_rules": {
+    "public_calls": 22,
+    "body_seconds": 120,
+    "whole_process_seconds": 1500,
+    "exit_reserve_seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "both_locks": true,
+    "full_uncached_exit": true,
+    "parity": "exact raw/unit/codes/inverse_norms/wire/top10 ID+score bits and separate duplicate e1 ties",
+    "cuda_seconds": null,
+    "native_subdivisions": "UNMEASURED",
+    "historical": "KILL/serving-v4 FAIL575.735s/49972 untouched"
+  },
+  "status": "verified clean OWN6 source-only commit; no merge/push; root freeze/native pending",
+  "commit": "332c261934aaa8fa5b2e91b982371826d6b78abf",
+  "parent": "d0ef56b6674f214a2b9212d49da41a322a8aeaa5",
+  "git_identity": [
+    "Roman Bartusiak <riomus@gmail.com>",
+    "Roman Bartusiak <riomus@gmail.com>"
+  ]
+}

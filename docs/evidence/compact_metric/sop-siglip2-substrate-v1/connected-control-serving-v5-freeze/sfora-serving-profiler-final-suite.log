@@ -1,0 +1,23 @@
+RUN test_observe_connected_serving.py
+PASS source-only genuine public/profiler, fresh-byte, parity and release falsifier
+TERMINAL test_observe_connected_serving.py exit=0 elapsed=5.741156034055166
+RUN test_connected_serving_requests.py
+.......................
+----------------------------------------------------------------------
+Ran 23 tests in 3.033s
+
+OK
+TERMINAL test_connected_serving_requests.py exit=0 elapsed=3.1383703110041097
+RUN test_connected_control_serving.py
+.{"origins": [{"actual_sha256": "82e0179ccaf981220eaf4d6d536942421f90d1dd5cd2e4f5983b5fe4389cc57d", "expected_sha256": null, "path": "/tmp/tmpwbgxnjet/bulk-0"}], "schema": "connected-control-native-origin-rejection-v1", "total_count": 1}
+{"origins": [{"actual_sha256": "b291e924b5630df527863354cce6782fb5b12855f7ef8b746262edaeef8eabd7", "expected_sha256": null, "path": "/tmp/tmpwbgxnjet/tileiras"}], "schema": "connected-control-native-origin-rejection-v1", "total_count": 1}
+{"origins": [{"actual_sha256": "82e0179ccaf981220eaf4d6d536942421f90d1dd5cd2e4f5983b5fe4389cc57d", "expected_sha256": null, "path": "/tmp/tmpwbgxnjet/bulk-0"}], "schema": "connected-control-native-origin-rejection-v1", "total_count": 1}
+........{"origins": [{"actual_sha256": "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc", "expected_sha256": null, "path": "/tmp/tmpy_h_g8m1/unknown.so"}], "schema": "connected-control-native-origin-rejection-v1", "total_count": 1}
+..........
+----------------------------------------------------------------------
+Ran 19 tests in 49.024s
+
+OK
+TERMINAL test_connected_control_serving.py exit=0 elapsed=49.29399672104046
+PASS all three source-only affected suites
+suite_elapsed=58.19 suite_maxrss_kib=141244 suite_exit=0

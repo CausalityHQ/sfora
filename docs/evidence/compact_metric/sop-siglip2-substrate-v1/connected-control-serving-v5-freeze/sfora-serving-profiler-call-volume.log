@@ -1,0 +1,2 @@
+{"status": "PASS", "new_calls": 2000031, "old_calls": 2000001, "keys": 12, "fingerprints": 1, "digest": "ef151777aa2b7f1f3de7185dd74f24f7b2eb35b3f09d6268a1b564658b907f5d"}
+elapsed=17.71 maxrss_kib=36928 exit=0
