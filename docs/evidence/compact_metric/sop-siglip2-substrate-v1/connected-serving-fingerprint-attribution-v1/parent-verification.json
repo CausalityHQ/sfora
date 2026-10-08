@@ -1,0 +1,12 @@
+{
+  "schema": "connected-fingerprint-attribution-parent-verification-v1",
+  "worker_commit": "4c3bb50b31a9952d41f8e09003161602a6a636fa",
+  "worker_receipt_sha256": "268081f4104693df8cae5693e0ba93c527adba8b4720cddfa318a03654bd0dee",
+  "exact_two_file_parent_commit_and_source_hashes": true,
+  "original_artifact_hashes_and_terminal_exits": true,
+  "production_diff_reviewed": "Only scalar caller provenance and validated-return inclusive host duration; original checks unchanged",
+  "tests_repeated": false,
+  "reason": "Relevant base bytes unchanged; inspected original final suite and additive actual-serializer falsifier",
+  "native": "UNRUN",
+  "candidate_status": "KILL unchanged"
+}

@@ -1,0 +1,120 @@
+{
+  "commit": "4c3bb50b31a9952d41f8e09003161602a6a636fa",
+  "base": "e73279fdede714b9973bda32014fdcc058d2b9f2",
+  "branch": "devbox/connected-fingerprint-attribution-20261008",
+  "clean": true,
+  "identity": "Roman Bartusiak <riomus@gmail.com>",
+  "exact2": [
+    "scripts/observe_connected_serving.py",
+    "scripts/test_observe_connected_serving.py"
+  ],
+  "source_hashes": {
+    "scripts/observe_connected_serving.py": {
+      "base_sha256": "9db77a32edf5164dc9ca29f6a567d4cd4e5d28d80ce3563cb24f7236eb0b5719",
+      "sha256": "22ea23ff185e8566ad35f89d222ea54c44b292dce2b3221e662310239e44bc0f"
+    },
+    "scripts/test_observe_connected_serving.py": {
+      "base_sha256": "71d6d4415d57cf4187f82d8c970cd7e136d72a7130bb38fad40bdf96782a1dcd",
+      "sha256": "c660a217d154a14d1ab5c8e20a28519999366e17d339efe4919470aa90f1b41a"
+    }
+  },
+  "artifact_hashes": {
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-O.log": "2adbc0589d836fc37d6176321465a7171bbb9dbf8a1fc33071420d1102b71728",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-O.log.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-OO.log": "2adbc0589d836fc37d6176321465a7171bbb9dbf8a1fc33071420d1102b71728",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-OO.log.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-checks.json": "f9acb54c7d4e4aa410cb86cbd0e9fd672430375c6cd4386c67c1ebccbf8fac13",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-contract.json": "0597b5ae92744313f67d4268ffb3231270307da8ce75041250231f766280b388",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-green.log": "f10b0d9876e97e504801465f368f832fcc601bf3343c53f2f9794a6fa2408168",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-green.log.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-help.log": "616cb80f1931f63e0670741e80042ddc8bdc44cd7d71abe313e5d60764ea8e52",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-help.log.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-red.log": "d6e2ed8f2bf8c13f8e2956ea7f507722079af221c530094cda5c7b31477e5aa8",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-red.log.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-suite-test_connected_serving_requests.log": "81ce45079cabf3391017247846765b30da6515961dc115f0e3e85f835aa362a8",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-suite-test_connected_serving_requests.log.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-suite-test_observe_connected_serving.log": "a401391639cf3e880cc9df5e149e5e73a6444f15e9d38e457e72724731fd26f0",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-suite-test_observe_connected_serving.log.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "/tmp/sfora-connected-fingerprint-attribution-20261008-suite.json": "644038fd9de4d51ea6b75fd7b794e7ac43867c022aeae43956bbb85f19411b87"
+  },
+  "suite": {
+    "results": [
+      {
+        "script": "scripts/test_observe_connected_serving.py",
+        "exit_code": 0,
+        "log": "/tmp/sfora-connected-fingerprint-attribution-20261008-suite-test_observe_connected_serving.log"
+      },
+      {
+        "script": "scripts/test_connected_serving_requests.py",
+        "exit_code": 0,
+        "log": "/tmp/sfora-connected-fingerprint-attribution-20261008-suite-test_connected_serving_requests.log"
+      }
+    ],
+    "elapsed_seconds": 5.099289826001041,
+    "timeout_seconds": 120,
+    "rlimit_as_bytes": 1073741824
+  },
+  "checks": {
+    "syntax_optimize_levels": [
+      0,
+      1,
+      2
+    ],
+    "checks": [
+      {
+        "label": "help",
+        "command": [
+          "python3",
+          "-B",
+          "scripts/observe_connected_serving.py",
+          "--help"
+        ],
+        "exit_code": 0,
+        "expected_exit_code": 0,
+        "log": "/tmp/sfora-connected-fingerprint-attribution-20261008-help.log"
+      },
+      {
+        "label": "O",
+        "command": [
+          "python3",
+          "-B",
+          "-O",
+          "scripts/observe_connected_serving.py",
+          "--authority",
+          "/tmp/unread-authority",
+          "--authority-sha256",
+          "0000000000000000000000000000000000000000000000000000000000000000",
+          "--output",
+          "/tmp/unwritten-observer-output"
+        ],
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "log": "/tmp/sfora-connected-fingerprint-attribution-20261008-O.log"
+      },
+      {
+        "label": "OO",
+        "command": [
+          "python3",
+          "-B",
+          "-OO",
+          "scripts/observe_connected_serving.py",
+          "--authority",
+          "/tmp/unread-authority",
+          "--authority-sha256",
+          "0000000000000000000000000000000000000000000000000000000000000000",
+          "--output",
+          "/tmp/unwritten-observer-output"
+        ],
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "log": "/tmp/sfora-connected-fingerprint-attribution-20261008-OO.log"
+      }
+    ],
+    "original_api_test_body_ast_preserved": true
+  },
+  "red_exit": 1,
+  "green_exit": 0,
+  "candidate_status": "KILL",
+  "native": "UNRUN; parent only",
+  "skipped": "No Torch/thirdparty/native imports (stdlib fake fixtures only), consultations, children, operator contact, master merge or push. No latency/quality claim."
+}
