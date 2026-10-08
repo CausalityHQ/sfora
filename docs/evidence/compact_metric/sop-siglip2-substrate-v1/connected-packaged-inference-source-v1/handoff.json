@@ -1,0 +1,33 @@
+{
+  "commit": "aa062bef1992379d433d2aefcf8166ba73a9c85a",
+  "base": "f161b112f9384190eb554c5e56ac7b00ff2d7665",
+  "clean": true,
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "final_receipt": "/tmp/sfora-connected-inference-replacement-final-1791471391796845896/receipt.json",
+  "original_receipt": "/tmp/sfora-connected-inference-final-1791470773199212135/receipt.json",
+  "preserved_original_logs": {
+    "/tmp/sfora-connected-inference-final-1791470773199212135/original.log": "22ff5646dd9ad8794e9a15468fa717627cce5771495c1603757a4868ebdfe00d",
+    "/tmp/sfora-connected-inference-final-1791470773199212135/typed-snapshot-red.log": "1f8891dfda87e4dbea88d133131f75837d77c4756ff4e8dd4a24e137f4415699",
+    "/tmp/sfora-connected-inference-final-1791470773199212135/typed-snapshot-green.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/sfora-connected-inference-final-1791470773199212135/typed-snapshot-expanded-green.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/sfora-connected-inference-final-1791470773199212135/frozenset-red.log": "036218605ac3505b6710fe261954de4bde92a42f2f7fd42f00c7723c2d6464e6",
+    "/tmp/sfora-connected-inference-final-1791470773199212135/frozenset-green.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "authority_and_correspondence_ledger": "src/sfora/_connected_inference_authority.py",
+  "independent_ledger_check": "scripts/test_connected_inference_extraction.py",
+  "runtime_contract": "src/sfora/connected_inference.py:_bind_runtime(historical_code,runtime_guards); load_inference(directory,bundle_sha256,device); inference_outputs(endpoint,images); release_inference(endpoint)",
+  "source_sha256": {
+    "src/sfora/connected_inference.py": "cace364f75e362eb0a3b30221683ca951fe89c97365ab06940c31e5fc8fb58e2",
+    "src/sfora/_connected_inference_authority.py": "6e1027127d827f031db6673cac668a8da943f0395f652319d28dce5d8afc536b",
+    "src/sfora/connected_compact_serving.py": "fdbb7abbd7795b1b6090062963efa276e458b4be15813a1ab246ba7655055493",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+    "scripts/test_connected_compact_serving.py": "caf54bf85fb7a9715d0f8db47da1f59d722522cada72be4de9dc225ab19082fa",
+    "scripts/test_connected_inference_extraction.py": "cb7e0e00d4bbca04b31db9f558e1604ed0a08fe1c96b44ec72a9a96ebd606941"
+  },
+  "limitations": [
+    "Source-only acceptance. No native/Torch/thirdparty, SSH/GPU/images/cloud or installed-wheel qualification was performed.",
+    "No quality or production timing claim. Full historical evidence authentication and fresh full-current-byte fingerprint predicates remain; additional bridge preflight bundle hashing has unmeasured startup cost.",
+    "Observer/request fixtures and admission must migrate to installed runtime namespace/fingerprint. observe_connected_serving.py RequestObserver.from_index still references historical trainer module and serializer source. Those files and frozen diagnostic preparations were not changed.",
+    "No merge/push/master integration; root owns integration and fresh installed-wheel qualification."
+  ]
+}

@@ -1,0 +1,2213 @@
+[
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 955,
+      "row": 5
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/_connected_inference_authority.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 5
+    },
+    "message": "Line too long (954 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 5,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 15247,
+      "row": 7
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/_connected_inference_authority.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 7
+    },
+    "message": "Line too long (15246 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 7,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 1661,
+      "row": 9
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/_connected_inference_authority.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 9
+    },
+    "message": "Line too long (1660 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 9,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 27694,
+      "row": 11
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/_connected_inference_authority.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 11
+    },
+    "message": "Line too long (27693 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 11,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "I001",
+    "end_location": {
+      "column": 44,
+      "row": 24
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from __future__ import annotations\n\nimport ast\nimport copy\nimport hashlib\nimport importlib.util\nimport json\nimport re\nimport sys\nimport threading\nimport uuid\nfrom collections.abc import Iterable\nfrom contextlib import suppress\nfrom importlib.machinery import ModuleSpec\nfrom pathlib import Path\nfrom types import CodeType, FunctionType, ModuleType\nfrom typing import TYPE_CHECKING, Any, cast\n\n",
+          "end_location": {
+            "column": 1,
+            "row": 26
+          },
+          "location": {
+            "column": 1,
+            "row": 8
+          }
+        }
+      ],
+      "message": "Organize imports"
+    },
+    "location": {
+      "column": 1,
+      "row": 8
+    },
+    "message": "Import block is un-sorted or un-formatted",
+    "name": "unsorted-imports",
+    "noqa_row": 8,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unsorted-imports"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 131,
+      "row": 70
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 70
+    },
+    "message": "Line too long (130 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 70,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 117,
+      "row": 74
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 74
+    },
+    "message": "Line too long (116 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 74,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 105,
+      "row": 134
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 134
+    },
+    "message": "Line too long (104 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 134,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 106,
+      "row": 135
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 135
+    },
+    "message": "Line too long (105 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 135,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 106,
+      "row": 202
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 202
+    },
+    "message": "Line too long (105 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 202,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 104,
+      "row": 230
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 230
+    },
+    "message": "Line too long (103 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 230,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 108,
+      "row": 233
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 233
+    },
+    "message": "Line too long (107 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 233,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 126,
+      "row": 256
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 256
+    },
+    "message": "Line too long (125 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 256,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "SIM102",
+    "end_location": {
+      "column": 47,
+      "row": 301
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "            if type(module) is ModuleType and module not in self._shared:\n                self._owned[module.__name__] = module",
+          "end_location": {
+            "column": 58,
+            "row": 302
+          },
+          "location": {
+            "column": 1,
+            "row": 300
+          }
+        }
+      ],
+      "message": "Combine `if` statements using `and`"
+    },
+    "location": {
+      "column": 13,
+      "row": 300
+    },
+    "message": "Use a single `if` statement instead of nested `if` statements",
+    "name": "collapsible-if",
+    "noqa_row": 300,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 111,
+      "row": 331
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 331
+    },
+    "message": "Line too long (110 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 331,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 116,
+      "row": 343
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 343
+    },
+    "message": "Line too long (115 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 343,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 107,
+      "row": 344
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 344
+    },
+    "message": "Line too long (106 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 344,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 104,
+      "row": 395
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 395
+    },
+    "message": "Line too long (103 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 395,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 105,
+      "row": 413
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 413
+    },
+    "message": "Line too long (104 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 413,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 104,
+      "row": 414
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_compact_serving.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 414
+    },
+    "message": "Line too long (103 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 414,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "I001",
+    "end_location": {
+      "column": 41,
+      "row": 19
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "import copy\nimport gc\nimport hashlib\nimport inspect\nimport json\nimport math\nimport os\nimport re\nimport sys\nimport weakref\nfrom concurrent.futures import ThreadPoolExecutor\nfrom functools import lru_cache\nfrom pathlib import Path\nfrom types import CodeType, FunctionType\n\n",
+          "end_location": {
+            "column": 1,
+            "row": 23
+          },
+          "location": {
+            "column": 1,
+            "row": 6
+          }
+        }
+      ],
+      "message": "Organize imports"
+    },
+    "location": {
+      "column": 1,
+      "row": 6
+    },
+    "message": "Import block is un-sorted or un-formatted",
+    "name": "unsorted-imports",
+    "noqa_row": 6,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unsorted-imports"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 112,
+      "row": 40
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 40
+    },
+    "message": "Line too long (111 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 40,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 117,
+      "row": 71
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 71
+    },
+    "message": "Line too long (116 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 71,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 110,
+      "row": 91
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 91
+    },
+    "message": "Line too long (109 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 91,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 104,
+      "row": 94
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 94
+    },
+    "message": "Line too long (103 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 94,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 103,
+      "row": 124
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 124
+    },
+    "message": "Line too long (102 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 124,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 119,
+      "row": 142
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 142
+    },
+    "message": "Line too long (118 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 142,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "B905",
+    "end_location": {
+      "column": 49,
+      "row": 169
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": ", strict=False",
+          "end_location": {
+            "column": 48,
+            "row": 169
+          },
+          "location": {
+            "column": 48,
+            "row": 169
+          }
+        }
+      ],
+      "message": "Add explicit value for parameter `strict=`"
+    },
+    "location": {
+      "column": 32,
+      "row": 169
+    },
+    "message": "`zip()` without an explicit `strict=` parameter",
+    "name": "zip-without-explicit-strict",
+    "noqa_row": 169,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 126,
+      "row": 180
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 180
+    },
+    "message": "Line too long (125 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 180,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 121,
+      "row": 228
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 228
+    },
+    "message": "Line too long (120 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 228,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 102,
+      "row": 229
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 229
+    },
+    "message": "Line too long (101 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 229,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 104,
+      "row": 233
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 233
+    },
+    "message": "Line too long (103 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 233,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 106,
+      "row": 240
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 240
+    },
+    "message": "Line too long (105 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 240,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 109,
+      "row": 242
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 242
+    },
+    "message": "Line too long (108 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 242,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 107,
+      "row": 246
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 246
+    },
+    "message": "Line too long (106 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 246,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 122,
+      "row": 247
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 247
+    },
+    "message": "Line too long (121 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 247,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 116,
+      "row": 248
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 248
+    },
+    "message": "Line too long (115 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 248,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 104,
+      "row": 259
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 259
+    },
+    "message": "Line too long (103 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 259,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 128,
+      "row": 260
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 260
+    },
+    "message": "Line too long (127 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 260,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 108,
+      "row": 262
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 262
+    },
+    "message": "Line too long (107 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 262,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 107,
+      "row": 263
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 263
+    },
+    "message": "Line too long (106 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 263,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 123,
+      "row": 271
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 271
+    },
+    "message": "Line too long (122 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 271,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 118,
+      "row": 288
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 288
+    },
+    "message": "Line too long (117 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 288,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 104,
+      "row": 292
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 292
+    },
+    "message": "Line too long (103 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 292,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 105,
+      "row": 294
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 294
+    },
+    "message": "Line too long (104 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 294,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 119,
+      "row": 298
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 298
+    },
+    "message": "Line too long (118 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 298,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 108,
+      "row": 303
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 303
+    },
+    "message": "Line too long (107 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 303,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 117,
+      "row": 304
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 304
+    },
+    "message": "Line too long (116 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 304,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 111,
+      "row": 326
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 326
+    },
+    "message": "Line too long (110 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 326,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 104,
+      "row": 327
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 327
+    },
+    "message": "Line too long (103 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 327,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 128,
+      "row": 329
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 329
+    },
+    "message": "Line too long (127 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 329,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 128,
+      "row": 333
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 333
+    },
+    "message": "Line too long (127 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 333,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 126,
+      "row": 334
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 334
+    },
+    "message": "Line too long (125 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 334,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 113,
+      "row": 338
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 338
+    },
+    "message": "Line too long (112 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 338,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 128,
+      "row": 342
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 342
+    },
+    "message": "Line too long (127 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 342,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 126,
+      "row": 343
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 343
+    },
+    "message": "Line too long (125 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 343,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 132,
+      "row": 353
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 353
+    },
+    "message": "Line too long (131 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 353,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 114,
+      "row": 355
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 355
+    },
+    "message": "Line too long (113 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 355,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 121,
+      "row": 356
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 356
+    },
+    "message": "Line too long (120 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 356,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 102,
+      "row": 357
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 357
+    },
+    "message": "Line too long (101 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 357,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 114,
+      "row": 359
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 359
+    },
+    "message": "Line too long (113 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 359,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 131,
+      "row": 360
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 360
+    },
+    "message": "Line too long (130 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 360,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 114,
+      "row": 364
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 364
+    },
+    "message": "Line too long (113 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 364,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 133,
+      "row": 368
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 368
+    },
+    "message": "Line too long (132 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 368,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 106,
+      "row": 369
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 369
+    },
+    "message": "Line too long (105 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 369,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 131,
+      "row": 372
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 372
+    },
+    "message": "Line too long (130 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 372,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 111,
+      "row": 381
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 381
+    },
+    "message": "Line too long (110 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 381,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 113,
+      "row": 408
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 408
+    },
+    "message": "Line too long (112 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 408,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 110,
+      "row": 410
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 410
+    },
+    "message": "Line too long (109 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 410,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 132,
+      "row": 412
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 412
+    },
+    "message": "Line too long (131 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 412,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 117,
+      "row": 414
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 414
+    },
+    "message": "Line too long (116 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 414,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 112,
+      "row": 420
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 420
+    },
+    "message": "Line too long (111 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 420,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 112,
+      "row": 422
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 422
+    },
+    "message": "Line too long (111 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 422,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 109,
+      "row": 427
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 427
+    },
+    "message": "Line too long (108 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 427,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 123,
+      "row": 431
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 431
+    },
+    "message": "Line too long (122 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 431,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 108,
+      "row": 432
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 432
+    },
+    "message": "Line too long (107 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 432,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 105,
+      "row": 446
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 446
+    },
+    "message": "Line too long (104 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 446,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 111,
+      "row": 461
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 461
+    },
+    "message": "Line too long (110 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 461,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 112,
+      "row": 464
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 464
+    },
+    "message": "Line too long (111 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 464,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 107,
+      "row": 466
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 466
+    },
+    "message": "Line too long (106 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 466,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 125,
+      "row": 467
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 467
+    },
+    "message": "Line too long (124 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 467,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 117,
+      "row": 468
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 468
+    },
+    "message": "Line too long (116 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 468,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 119,
+      "row": 469
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 469
+    },
+    "message": "Line too long (118 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 469,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 127,
+      "row": 474
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 474
+    },
+    "message": "Line too long (126 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 474,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 123,
+      "row": 481
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 481
+    },
+    "message": "Line too long (122 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 481,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 131,
+      "row": 487
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 487
+    },
+    "message": "Line too long (130 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 487,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 142,
+      "row": 489
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 489
+    },
+    "message": "Line too long (141 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 489,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 109,
+      "row": 494
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 494
+    },
+    "message": "Line too long (108 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 494,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 136,
+      "row": 498
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 498
+    },
+    "message": "Line too long (135 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 498,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 109,
+      "row": 505
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 505
+    },
+    "message": "Line too long (108 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 505,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 105,
+      "row": 524
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 524
+    },
+    "message": "Line too long (104 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 524,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 27,
+      "row": 529
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 26,
+      "row": 529
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 529,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 28,
+      "row": 531
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 27,
+      "row": 531
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 531,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 40,
+      "row": 533
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 39,
+      "row": 533
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 533,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 40,
+      "row": 537
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 39,
+      "row": 537
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 537,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 106,
+      "row": 558
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 558
+    },
+    "message": "Line too long (105 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 558,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 114,
+      "row": 605
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 605
+    },
+    "message": "Line too long (113 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 605,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 112,
+      "row": 619
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 619
+    },
+    "message": "Line too long (111 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 619,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 106,
+      "row": 620
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 620
+    },
+    "message": "Line too long (105 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 620,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 114,
+      "row": 621
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 621
+    },
+    "message": "Line too long (113 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 621,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 110,
+      "row": 628
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 628
+    },
+    "message": "Line too long (109 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 628,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 102,
+      "row": 646
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 646
+    },
+    "message": "Line too long (101 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 646,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 105,
+      "row": 657
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 657
+    },
+    "message": "Line too long (104 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 657,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 109,
+      "row": 670
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 670
+    },
+    "message": "Line too long (108 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 670,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 121,
+      "row": 680
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 680
+    },
+    "message": "Line too long (120 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 680,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 102,
+      "row": 695
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 695
+    },
+    "message": "Line too long (101 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 695,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 118,
+      "row": 727
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 727
+    },
+    "message": "Line too long (117 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 727,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 102,
+      "row": 733
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 733
+    },
+    "message": "Line too long (101 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 733,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 102,
+      "row": 802
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 802
+    },
+    "message": "Line too long (101 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 802,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 107,
+      "row": 807
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 807
+    },
+    "message": "Line too long (106 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 807,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 113,
+      "row": 817
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 817
+    },
+    "message": "Line too long (112 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 817,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 102,
+      "row": 833
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 833
+    },
+    "message": "Line too long (101 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 833,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  },
+  {
+    "cell": null,
+    "code": "E501",
+    "end_location": {
+      "column": 119,
+      "row": 836
+    },
+    "filename": "/home/rb/worktrees/sfora-package-connected-inference-20261008/src/sfora/connected_inference.py",
+    "fix": null,
+    "location": {
+      "column": 101,
+      "row": 836
+    },
+    "message": "Line too long (118 > 100)",
+    "name": "line-too-long",
+    "noqa_row": 836,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/line-too-long"
+  }
+]

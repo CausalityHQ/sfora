@@ -1,0 +1,2 @@
+PASS: connected bridge source-only admission, exact wire, failure cleanup, registry ownership, lifecycle lock
+connected inference source-only checks passed

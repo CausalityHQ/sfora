@@ -1,0 +1,45 @@
+{
+  "schema": "sfora-connected-inference-source-suite-v1",
+  "started_utc": "2026-10-08T14:56:31.796893+00:00",
+  "finished_utc": "2026-10-08T14:56:36.434464+00:00",
+  "repo": "/home/rb/worktrees/sfora-package-connected-inference-20261008",
+  "base": "f161b112f9384190eb554c5e56ac7b00ff2d7665",
+  "source_sha256": {
+    "src/sfora/connected_inference.py": "cace364f75e362eb0a3b30221683ca951fe89c97365ab06940c31e5fc8fb58e2",
+    "src/sfora/_connected_inference_authority.py": "6e1027127d827f031db6673cac668a8da943f0395f652319d28dce5d8afc536b",
+    "src/sfora/connected_compact_serving.py": "fdbb7abbd7795b1b6090062963efa276e458b4be15813a1ab246ba7655055493",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+    "scripts/test_connected_compact_serving.py": "caf54bf85fb7a9715d0f8db47da1f59d722522cada72be4de9dc225ab19082fa",
+    "scripts/test_connected_inference_extraction.py": "cb7e0e00d4bbca04b31db9f558e1604ed0a08fe1c96b44ec72a9a96ebd606941"
+  },
+  "source_sha256_after": {
+    "src/sfora/connected_inference.py": "cace364f75e362eb0a3b30221683ca951fe89c97365ab06940c31e5fc8fb58e2",
+    "src/sfora/_connected_inference_authority.py": "6e1027127d827f031db6673cac668a8da943f0395f652319d28dce5d8afc536b",
+    "src/sfora/connected_compact_serving.py": "fdbb7abbd7795b1b6090062963efa276e458b4be15813a1ab246ba7655055493",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+    "scripts/test_connected_compact_serving.py": "caf54bf85fb7a9715d0f8db47da1f59d722522cada72be4de9dc225ab19082fa",
+    "scripts/test_connected_inference_extraction.py": "cb7e0e00d4bbca04b31db9f558e1604ed0a08fe1c96b44ec72a9a96ebd606941"
+  },
+  "timeout_seconds": 120,
+  "address_space_bytes": 1073741824,
+  "tests": [
+    {
+      "script": "scripts/test_connected_compact_serving.py",
+      "exit_code": 0,
+      "wall_seconds": 2.730920818983577
+    },
+    {
+      "script": "scripts/test_connected_inference_extraction.py",
+      "exit_code": 0,
+      "wall_seconds": 1.9057618179358542
+    }
+  ],
+  "wall_seconds": 4.637236515060067,
+  "child_peak_rss_kib": 46040,
+  "child_user_seconds": 2.396611,
+  "child_system_seconds": 0.359356,
+  "reported_swaps": 0,
+  "native_qualification": "NOT_EXECUTED",
+  "exit_code": 0,
+  "original_log": "/tmp/sfora-connected-inference-replacement-final-1791471391796845896/original.log"
+}

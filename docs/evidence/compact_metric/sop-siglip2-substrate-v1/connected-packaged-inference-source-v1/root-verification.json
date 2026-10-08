@@ -1,0 +1,42 @@
+{
+  "status": "SOURCE_TESTED_RESEARCH_PREVIEW_NATIVE_UNQUALIFIED",
+  "worker_commit": "aa062bef1992379d433d2aefcf8166ba73a9c85a",
+  "integrated_commit": "567ffe92",
+  "root_verification": [
+    "exact OWN5 committed blobs match original suite before/after",
+    "Roman author/committer/no trailers",
+    "38 original fullsource and original/extracted byte+AST bindings",
+    "15 exact substitution diffs",
+    "4 packed original and extracted byte+AST bindings",
+    "typed numeric/bool/key/container/set/frozenset mutation correction"
+  ],
+  "source_suite_seconds": 4.637236515060067,
+  "source_suite_peak_rss_kib": 46040,
+  "source_suite_swaps": 0,
+  "ruff_version": "0.15.20 from uv.lock/offline uvx",
+  "ruff_exit": 1,
+  "ruff_findings": 113,
+  "ruff_codes": {
+    "E501": 105,
+    "E702": 4,
+    "I001": 2,
+    "SIM102": 1,
+    "B905": 1
+  },
+  "native": false,
+  "installed_wheel": false,
+  "mypy": "UNRUN",
+  "quality_or_speed_claim": false,
+  "next_gates": [
+    "finish static package assurance",
+    "migrate observer/request fixtures to independently authenticate installed serializer/runtime",
+    "fresh installed native full byte/wire/lifecycle assurance",
+    "matched public-request measurement"
+  ],
+  "files": {
+    "original.log": "83f3345cac17c47662c8bda4c01b5d198dc812603988d5002228016ae2cd85a7",
+    "handoff.json": "fdd9b6ebb05fe2255c9c9967b18f041ddd72bd71de6f5c6323d24dc97c16c8d4",
+    "receipt.json": "dc64297f37cbeb3560dce29b88d44990371fbe07790a8519fa556f4948cd1d93",
+    "ruff-review.json": "924e5f23c777daaa91b4f394fefbbd9a8e9a8639fa3a1681b96c4cbb27df49af"
+  }
+}
