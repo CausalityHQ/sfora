@@ -1053,10 +1053,225 @@ def original_owner_test_inverse():
 # END ORIGINAL OWNER FALSIFIER
 
 
+# BEGIN INITIALIZER ORIGIN FALSIFIER
+
+def initializer_origin_inverse(raw):
+    """Restore exact b9bc24f7 bytes; no normalization or historical hash changes."""
+    edits = [
+        (b'        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error(\'authenticated builtin baseline/source binding changed\')\n        return function(canonical,module,digest,guards,names,class_name,None)\n    def initializer_live_guard(context):\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error(\'authenticated builtin baseline/source binding changed\')\n        t = context[\'training_context\']\n        return function(canonical,t[\'legacy\'][\'selected\'][\'genuine\'][\'reference\'],\n            \'163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8\',\n            t[\'guards\'],{\'admit_cgroup\',\'require\'},None,context)\n    source_live_guard.initializer = initializer_live_guard\n    return source_live_guard\n\n\n@_capture_source_builtins\ndef source_live_guard(baseline, module, digest, guards, names, class_name, initializer_owner):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = {key:value for key,value in baseline}\n', b'        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error(\'authenticated builtin baseline/source binding changed\')\n        return function(canonical,module,digest,guards,names,class_name)\n    return source_live_guard\n\n\n@_capture_source_builtins\ndef source_live_guard(baseline, module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = {key:value for key,value in baseline}\n'),
+        (b"        'authenticated module/builtins required')\n    path = Path(module.__file__); spec = module.__spec__\n    if initializer_owner is None:\n        def registry_guard():\n            return sys.modules.get(module.__name__) is module\n    else:\n        # The original exporter never registers this one module. Its actual\n        # holder objects, captured independently of mutable snapshots, own it.\n        from importlib.machinery import SourceFileLoader\n        t = initializer_owner['training_context']; legacy = t['legacy']\n        selected = legacy['selected']; genuine = selected['genuine']; admission = legacy['admission']\n        fit_context = t['fit_context']; original = legacy['original']; Flat = original.FlatAdmission\n        require(module.__name__ == '_genuine_fit_reference' and\n            path == Path('/home/riomus/runs/sfora-native256-fit-export-source-v1/export_siglip2_substrate_fit.py') and\n            spec is not None and type(spec.loader) is SourceFileLoader and module.__loader__ is spec.loader and\n            spec.loader.name == module.__name__ and spec.loader.path == str(path) and\n            type(admission) is Flat, 'authenticated initializer original source/loader differs')\n        loader_name,loader_path = spec.loader.name,spec.loader.path\n        def registry_guard():\n            require(initializer_owner['training_context'] is t and t['legacy'] is legacy and\n                t['fit_context'] is fit_context and fit_context['legacy'] is legacy and\n                legacy['selected'] is selected and selected['genuine'] is genuine and\n                genuine['reference'] is module and legacy['admission'] is admission and admission.init is module and\n                legacy['original'] is original and original.FlatAdmission is Flat and type(admission) is Flat,\n                'authenticated initializer owner binding changed')\n            require(t['guards'] is guards and guards.get(str(path)) == digest,\n                'authenticated initializer source digest changed')\n            require(module.__loader__ is spec.loader and vars(spec.loader) == {'name':loader_name,'path':loader_path},\n                'authenticated initializer loader changed')\n            return module.__name__ not in sys.modules and all(value is not module for value in sys.modules.values())\n    require(spec is not None and spec.loader is not None and spec.name == module.__name__ and\n        Path(spec.origin) == path and registry_guard(),\n        'authenticated module registry/origin differs')\n    raw = bound_file(guards,path,digest).read_bytes()\n    require(hashlib.sha256(raw).hexdigest() == digest, 'authenticated source changed before compilation')\n    tree = ast.parse(raw,filename=str(path)); compiled = compile(raw,str(path),'exec',dont_inherit=True)\n    if initializer_owner is not None:\n        # This pinned initializer has only stdlib imports and constant assignments.\n        expected_globals = {}\n        nodes = [n for n in tree.body if isinstance(n,(ast.Import,ast.ImportFrom,ast.Assign))]\n        exec(compile(ast.Module(body=nodes,type_ignores=[]),str(path),'exec',dont_inherit=True),expected_globals)\n        expected_names = set(expected_globals) | {n.name for n in tree.body if isinstance(n,ast.FunctionDef)} | {\n            '__name__','__doc__','__package__','__loader__','__spec__','__file__','__cached__'}\n        require(vars(module).keys() == expected_names and all(type(vars(module)[k]) is type(v) and\n            vars(module)[k] == v for k,v in expected_globals.items()), 'authenticated initializer source globals differ')\n    values = dict(vars(module)); literals = {k:copy.deepcopy(v) for k,v in values.items()\n        if k != '__builtins__' and isinstance(v,(dict,list,tuple,set,frozenset))}\n", b"        'authenticated module/builtins required')\n    path = Path(module.__file__); spec = module.__spec__\n    require(spec is not None and spec.loader is not None and spec.name == module.__name__ and\n        Path(spec.origin) == path and sys.modules.get(module.__name__) is module,\n        'authenticated module registry/origin differs')\n    raw = bound_file(guards,path,digest).read_bytes()\n    require(hashlib.sha256(raw).hexdigest() == digest, 'authenticated source changed before compilation')\n    tree = ast.parse(raw,filename=str(path)); compiled = compile(raw,str(path),'exec',dont_inherit=True)\n    values = dict(vars(module)); literals = {k:copy.deepcopy(v) for k,v in values.items()\n        if k != '__builtins__' and isinstance(v,(dict,list,tuple,set,frozenset))}\n"),
+        (b'    def guard():\n        builtin_guard()\n        require(module.__name__ == name and registry_guard() and module.__spec__ is spec and\n            spec.name == name and spec.loader is loader and Path(spec.origin) == Path(module.__file__) == path and\n            vars(module).keys() == values.keys() and all(vars(module)[k] is v for k,v in values.items()) and\n', b'    def guard():\n        builtin_guard()\n        require(module.__name__ == name and sys.modules.get(name) is module and module.__spec__ is spec and\n            spec.name == name and spec.loader is loader and Path(spec.origin) == Path(module.__file__) == path and\n            vars(module).keys() == values.keys() and all(vars(module)[k] is v for k,v in values.items()) and\n'),
+        (b"        for m,names in ((t['trainer'],{'check_steps','check_ranking_bank','ranking_membership',\n                                      'ranking_bank','json_sha256','require'}),\n                       (t['fitter'],None),(t['old'],{'zero_events','require'}))) + (source_live_guard.initializer(context),)\n    node = next(n for n in ast.parse(Path(trainer.__file__).read_bytes()).body\n        if isinstance(n,ast.FunctionDef) and n.name == 'admit_terminal')\n", b"        for m,names in ((t['trainer'],{'check_steps','check_ranking_bank','ranking_membership',\n                                      'ranking_bank','json_sha256','require'}),\n                       (t['fitter'],None),(t['old'],{'zero_events','require'}),\n                       (initializer,{'admit_cgroup','require'})))\n    node = next(n for n in ast.parse(Path(trainer.__file__).read_bytes()).body\n        if isinstance(n,ast.FunctionDef) and n.name == 'admit_terminal')\n"),
+    ]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'initializer origin inverse edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == '2390c60fe5e87e82ab122c5c0101476b378792541bc454470c37d6c7f0410d40', 'initializer origin inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == 'c40c939619cff5ddf2a7666ee975592b2fc8caf6f71d9f28af0e3993a9c81aa4', 'initializer origin inverse AST differs'
+    return raw
+
+
+def initializer_origin_test_inverse(raw):
+    """Restore exact b9bc24f7 bytes; no normalization or historical hash changes."""
+    start = raw.index(b'# BEGIN INITIALIZER ORIGIN FALSIFIER\n')
+    end = raw.index(b'# BEGIN BUILTIN BASELINE FALSIFIER\n',start)
+    raw = raw[:start]+raw[end:]
+    edits = [
+        (b'def builtin_baseline_inverse(raw):\n    """Restore the held repair exactly before applying its unchanged inverses."""\n    raw = initializer_origin_inverse(raw)\n    edits = [\n        (b"# BEGIN ENDPOINT READER AUTHENTICATION\\n# Capture the interpreter bindings at evaluator import, before helper admission.\\n_SOURCE_BUILTINS = tuple(vars(__import__(\'builtins\')).items())\\n\\nFIRST_SELECTION_OWNER = {\'root\':\'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5\',\\n", b"# BEGIN ENDPOINT READER AUTHENTICATION\\n# Capture the interpreter bindings at evaluator import, before helper admission.\\n_SOURCE_BUILTINS = vars(__import__(\'builtins\')).copy()\\n\\nFIRST_SELECTION_OWNER = {\'root\':\'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5\',\\n"),\n', b'def builtin_baseline_inverse(raw):\n    """Restore the held repair exactly before applying its unchanged inverses."""\n    edits = [\n        (b"# BEGIN ENDPOINT READER AUTHENTICATION\\n# Capture the interpreter bindings at evaluator import, before helper admission.\\n_SOURCE_BUILTINS = tuple(vars(__import__(\'builtins\')).items())\\n\\nFIRST_SELECTION_OWNER = {\'root\':\'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5\',\\n", b"# BEGIN ENDPOINT READER AUTHENTICATION\\n# Capture the interpreter bindings at evaluator import, before helper admission.\\n_SOURCE_BUILTINS = vars(__import__(\'builtins\')).copy()\\n\\nFIRST_SELECTION_OWNER = {\'root\':\'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5\',\\n"),\n'),
+        (b"\ndef builtin_baseline_test_inverse(raw):\n    raw = initializer_origin_test_inverse(raw)\n    start = raw.index(b'# BEGIN BUILTIN BASELINE FALSIFIER\\n')\n    end = raw.index(b'# BEGIN TRANSITIVE AUTHENTICATION FALSIFIER\\n',start)\n", b"\ndef builtin_baseline_test_inverse(raw):\n    start = raw.index(b'# BEGIN BUILTIN BASELINE FALSIFIER\\n')\n    end = raw.index(b'# BEGIN TRANSITIVE AUTHENTICATION FALSIFIER\\n',start)\n"),
+        (b'\n\n@original_initializer_files()\ndef endpoint_derivative_contract(e):\n    """Real frozen callbacks/class/terminal log and actual CPU metadata; tiny I/O inventory."""\n', b'\n\ndef endpoint_derivative_contract(e):\n    """Real frozen callbacks/class/terminal log and actual CPU metadata; tiny I/O inventory."""\n'),
+        (b"    modules={n:module('_endpoint_deployed_'+n,HERE/(n+'.py')) for n in names}\n    trainer,flat,fitter,init,nearest,old,training=modules.values()\n    legacy=original_initializer(flat);init=legacy['admission'].init\n    modules['export_siglip2_substrate_fit']=init\n    accepted=json.loads((EVIDENCE/'connected-mlp-cpu-v6/receipt.json').read_bytes())\n    initializer=json.loads((EVIDENCE/'identity-diversity-v1/cpu-v5/receipt.json').read_bytes())\n", b"    modules={n:module('_endpoint_deployed_'+n,HERE/(n+'.py')) for n in names}\n    trainer,flat,fitter,init,nearest,old,training=modules.values()\n    accepted=json.loads((EVIDENCE/'connected-mlp-cpu-v6/receipt.json').read_bytes())\n    initializer=json.loads((EVIDENCE/'identity-diversity-v1/cpu-v5/receipt.json').read_bytes())\n"),
+        (b"        def is_file(p,*a,**kw): return real_is_file(aliases.get(str(p),p),*a,**kw)\n        def resolve_file(p,*a,**kw): return p if str(p) in aliases else real_resolve(p,*a,**kw)\n        reader=legacy['admission']\n        guards=dict(source_guards)\n        t={'trainer':training,'guards':guards,'legacy':legacy,'nearest':nearest,'fitter':fitter,'old':old,\n", b"        def is_file(p,*a,**kw): return real_is_file(aliases.get(str(p),p),*a,**kw)\n        def resolve_file(p,*a,**kw): return p if str(p) in aliases else real_resolve(p,*a,**kw)\n        reader=flat.FlatAdmission();reader.init=init\n        legacy={'original':flat,'admission':reader,'selected':{'genuine':{'reference':init}},'invocations':set()}\n        guards=dict(source_guards)\n        t={'trainer':training,'guards':guards,'legacy':legacy,'nearest':nearest,'fitter':fitter,'old':old,\n"),
+        (b"            assert admit(unit,'cpu','control',179061)==record\n            builtin_endpoint_finally_contract(admit,unit)\n            initializer_endpoint_finally_contract(admit,unit,legacy)\n        # A source or callback mutation after loader capture is rejected at call and exit.\n        saved=trainer.check_terminal.__code__;trainer.check_terminal.__code__=(lambda *args:None).__code__\n", b"            assert admit(unit,'cpu','control',179061)==record\n            builtin_endpoint_finally_contract(admit,unit)\n        # A source or callback mutation after loader capture is rejected at call and exit.\n        saved=trainer.check_terminal.__code__;trainer.check_terminal.__code__=(lambda *args:None).__code__\n"),
+        (b"def endpoint_authentication_contract():\n    e=module('_endpoint_complete_evaluator',DRIVER)\n    initializer_constructor_contract(e)\n    builtin_baseline_contract(e)\n    builtin_namespace_contract(e)\n", b"def endpoint_authentication_contract():\n    e=module('_endpoint_complete_evaluator',DRIVER)\n    builtin_baseline_contract(e)\n    builtin_namespace_contract(e)\n"),
+    ]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'initializer origin inverse edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == '28d0297cebd6a7bab395a44bc60a4aa1bcaacb9160a8093044a54fa270b104d9', 'initializer origin inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == 'acf40797489143b179c5742377c73737996d4c27b5fe1e4f647725a2e0fdb009', 'initializer origin inverse AST differs'
+    return raw
+
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def original_initializer_files():
+    """Map only absent remote FILE reads; preserve loader, code and module globals."""
+    from importlib.machinery import SourceFileLoader
+    from unittest.mock import patch
+    path=Path('/home/riomus/runs/sfora-native256-fit-export-source-v1/export_siglip2_substrate_fit.py')
+    with tempfile.TemporaryDirectory() as directory:
+        local=Path(directory)/path.name;local.write_bytes((HERE/path.name).read_bytes())
+        methods={key:getattr(Path,key) for key in ('open','stat','resolve','is_file')}
+        get_data=SourceFileLoader.get_data
+        def data(loader,name):
+            if name==str(path):return local.read_bytes()
+            if loader.path==str(path):raise FileNotFoundError(name)  # No remote bytecode cache.
+            return get_data(loader,name)
+        def open_file(p,*a,**kw):return methods['open'](local if p==path else p,*a,**kw)
+        def stat_file(p,*a,**kw):return methods['stat'](local if p==path else p,*a,**kw)
+        def resolve_file(p,*a,**kw):return p if p==path else methods['resolve'](p,*a,**kw)
+        def is_file(p,*a,**kw):return methods['is_file'](local if p==path else p,*a,**kw)
+        with patch.object(SourceFileLoader,'get_data',data),patch.object(Path,'open',open_file),\
+                patch.object(Path,'stat',stat_file),patch.object(Path,'resolve',resolve_file),\
+                patch.object(Path,'is_file',is_file):
+            yield local
+
+
+def original_initializer(flat):
+    """Execute the original exporter constructor/return and quadratic holder binding."""
+    exporter=module('_initializer_exporter',HERE/'export_siglip2_genuine_views.py')
+    tree=ast.parse(Path(exporter.__file__).read_bytes())
+    authority=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='authority')
+    start=next(i for i,n in enumerate(authority.body) if isinstance(n,ast.Assign) and ast.unparse(n.targets[0])=='spec')
+    # Consecutive original spec/module/exec/origin check, and original context return.
+    constructor=copy.deepcopy(authority);constructor.name='constructor';constructor.decorator_list=[]
+    constructor.body=copy.deepcopy(authority.body[start:start+4]+[authority.body[-1]])
+    ns={**vars(exporter),'ref_root':exporter.ORIGINAL_REF_ROOT,'root':HERE,'code':{},'launch':{},
+        'guards':{},'ref_code':{},'prior':{},'selected':{}}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[constructor],type_ignores=[])),exporter.__file__,'exec'),ns)
+    genuine=ns['constructor'](SimpleNamespace())
+    assert '_genuine_fit_reference' not in sys.modules
+    quadratic=module('_initializer_quadratic',HERE/'train_siglip2_quadratic_readout.py')
+    authority=next(n for n in ast.parse(Path(quadratic.__file__).read_bytes()).body
+        if isinstance(n,ast.FunctionDef) and n.name=='authority')
+    start=next(i for i,n in enumerate(authority.body) if isinstance(n,ast.Assign) and ast.unparse(n.targets[0])=='admission')
+    ns={'selected':{'original':flat,'genuine':genuine}}
+    exec(compile(ast.Module(body=authority.body[start:start+2],type_ignores=[]),quadratic.__file__,'exec'),ns)
+    return {'original':flat,'selected':ns['selected'],'admission':ns['admission'],'invocations':set()}
+
+
+def initializer_constructor_contract(e):
+    """All four actual constructors: three registered modules, one owned unregistered initializer."""
+    trainer=module('_origin_connected',HERE/'train_siglip2_connected_mlp.py')
+    nearest=module('_origin_nearest',HERE/'train_siglip2_nearest_ranking.py')
+    flat=module('_origin_flat',HERE/'train_siglip2_substrate_adaptation.py')
+    guards={}
+    def load(loader,name,filename):
+        sys.modules.pop(name,None)
+        path=HERE/filename
+        return loader.load_authenticated(name,path,hashlib.sha256(path.read_bytes()).hexdigest(),guards)
+    training=load(trainer,'_connected_original_trainer','train_siglip2_identity_diversity.py')
+    fitter=load(nearest,'_compact_fitter','fit_siglip2_prototype_residual.py')
+    old=load(fitter,'_prototype_original','train_siglip2_quadratic_readout.py')
+    with original_initializer_files() as local:
+        legacy=original_initializer(flat);init=legacy['admission'].init
+        assert init is legacy['selected']['genuine']['reference']
+        for m in (training,fitter,old):
+            assert sys.modules[m.__name__] is m
+            e.source_live_guard(m,guards[m.__file__],guards)()
+        guards.update({m.__file__:hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest()
+            for m in (trainer,nearest,flat,init)})
+        rejects(lambda:e.source_live_guard(init,guards[init.__file__],guards,names={'admit_cgroup','require'}),
+            'authenticated module registry/origin differs')
+        t={'trainer':training,'fitter':fitter,'old':old,'nearest':nearest,'legacy':legacy,
+            'fit_context':{'legacy':legacy},'guards':guards}
+        context={'trainer':trainer,'training_context':t,'guards':dict(guards),
+            'code':{n:hashlib.sha256((HERE/n).read_bytes()).hexdigest() for n in e.FILES}}
+        admit,guard=e.load_endpoint_reader(context)
+        guard(context)
+        from unittest.mock import patch
+        from types import ModuleType
+        import builtins
+        def reject_boundaries(text='authenticated',fresh=True):
+            for call in (lambda:guard(context),lambda:admit({},'cpu','control',179061),
+                         lambda:e.exit_rehash(context,guard)):
+                rejects(call,text)
+            if fresh:rejects(lambda:e.load_endpoint_reader(context),text)
+        # Other unregistered helpers and any foreign/None/self registry entry reject.
+        for m in (training,fitter,old):
+            saved=sys.modules.pop(m.__name__)
+            try:reject_boundaries()
+            finally:sys.modules[m.__name__]=saved
+        for key,value in ((init.__name__,object()),(init.__name__,None),(init.__name__,init),('_foreign_initializer_alias',init)):
+            assert key not in sys.modules
+            sys.modules[key]=value
+            try:reject_boundaries()
+            finally:del sys.modules[key]
+        spec=init.__spec__;loader=spec.loader
+        for obj,key,value in ((init,'__name__','foreign'),(init,'__file__',str(local)),
+                (init,'__spec__',None),(init,'__spec__',copy.copy(spec)),(init,'__loader__',object()),
+                (spec,'name','foreign'),(spec,'origin',str(local)),(spec,'loader',None),
+                (loader,'name','foreign'),(loader,'path',str(local))):
+            with patch.object(obj,key,value):
+                reject_boundaries(fresh=not(obj is init and key=='__spec__' and value is not None))
+        for fn in (init.require,init.admit_cgroup):
+            for key,value in (('__code__',(lambda *args:None).__code__),('__defaults__',(True,)),
+                              ('__kwdefaults__',{'forged':True}),('__module__','foreign')):
+                saved=getattr(fn,key);setattr(fn,key,value)
+                try:reject_boundaries()
+                finally:setattr(fn,key,saved)
+        with patch.object(init,'require',lambda *args:None):reject_boundaries()
+        with patch.dict(vars(init),{'all':lambda values:True}):reject_boundaries('builtin')
+        with patch.dict(vars(init),{'Path':lambda p:p}):reject_boundaries()
+        with patch.dict(init.STARTUP_POLICY,{'host_bytes':16*1024**3}):reject_boundaries()
+        with patch.dict(vars(init),{'extra_global':True}):reject_boundaries()
+        saved_all=builtins.all;error_type=ValueError;baseline=e._SOURCE_BUILTINS
+        try:
+            builtins.all=lambda values:True
+            e._SOURCE_BUILTINS=tuple({**dict(baseline),'all':builtins.all}.items())
+            for call in (lambda:guard(context),lambda:admit({},'cpu','control',179061),
+                         lambda:e.exit_rehash(context,guard),lambda:e.load_endpoint_reader(context)):
+                try:call()
+                except error_type as error:assert 'builtin' in str(error)
+                else:raise AssertionError('initializer accepted poisoned builtin/baseline')
+        finally:
+            builtins.all=saved_all;e._SOURCE_BUILTINS=baseline
+        # Mutable holder/snapshot pairs cannot replace independently captured identities.
+        genuine=legacy['selected']['genuine'];admission=legacy['admission']
+        forged=ModuleType(init.__name__);vars(forged).update(vars(init))
+        with patch.dict(genuine,{'reference':forged}),patch.object(admission,'init',forged),\
+                patch.dict(context,{'helper_snapshots':[(forged,dict(vars(forged)))]}):
+            reject_boundaries('binding changed',fresh=False)
+            rejects(lambda:e.load_endpoint_reader(context),'authenticated')
+        replacement=flat.FlatAdmission();replacement.init=init
+        for holder,key,value in ((legacy,'admission',replacement),(legacy,'selected',dict(legacy['selected'])),
+                (legacy['selected'],'genuine',dict(genuine)),(t,'legacy',dict(legacy)),
+                (t,'fit_context',dict(t['fit_context'])),(context,'training_context',dict(t))):
+            with patch.dict(holder,{key:value}),patch.dict(context,{'helper_snapshots':[value]}):
+                reject_boundaries('binding changed',fresh=False)
+        # Cached guards reread bytes even when the caller replaces its mutable digest.
+        raw=local.read_bytes();digest=guards[init.__file__]
+        with patch.dict(guards,{init.__file__:'0'*64}):
+            reject_boundaries('source digest')
+        local.write_bytes(raw+b'\n# changed original source\n')
+        try:
+            reject_boundaries('SHA256')
+            with patch.dict(guards,{init.__file__:hashlib.sha256(local.read_bytes()).hexdigest()}):
+                reject_boundaries('source digest')
+        finally:local.write_bytes(raw)
+        assert guards[init.__file__]==digest
+        guard(context)
+        assert init.__name__ not in sys.modules
+        assert not any(n.split('.')[0] in {'torch','numpy','PIL','sfora','transformers'} for n in sys.modules)
+    print('PASS original all-four constructors; finite initializer initial/cached/call/exit tamper rejection')
+
+
+def initializer_endpoint_finally_contract(admit,unit,legacy):
+    """Replace the actual holder during genuine check_unit; the exit guard must catch it."""
+    original=legacy['admission'];replacement=legacy['original'].FlatAdmission();replacement.init=original.init
+    visited=[]
+    class MutatingUnit(dict):
+        def keys(self):
+            visited.append(True);legacy['admission']=replacement
+            return super().keys()
+    try:
+        rejects(lambda:admit(MutatingUnit(unit),'cpu','control',179061),'initializer owner binding')
+    finally:legacy['admission']=original
+    assert visited
+    print('PASS actual initializer holder replacement after preguard rejected by admission finally')
+
+
+# END INITIALIZER ORIGIN FALSIFIER
+
+
 # BEGIN BUILTIN BASELINE FALSIFIER
 
 def builtin_baseline_inverse(raw):
     """Restore the held repair exactly before applying its unchanged inverses."""
+    raw = initializer_origin_inverse(raw)
     edits = [
         (b"# BEGIN ENDPOINT READER AUTHENTICATION\n# Capture the interpreter bindings at evaluator import, before helper admission.\n_SOURCE_BUILTINS = tuple(vars(__import__('builtins')).items())\n\nFIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',\n", b"# BEGIN ENDPOINT READER AUTHENTICATION\n# Capture the interpreter bindings at evaluator import, before helper admission.\n_SOURCE_BUILTINS = vars(__import__('builtins')).copy()\n\nFIRST_SELECTION_OWNER = {'root':'/home/riomus/runs/sfora-connected-mlp-evaluation-source-v5',\n"),
         (b'\n\ndef _capture_source_builtins(function):\n    """Keep the import-time baseline out of the mutable helper-admission globals."""\n    canonical = _SOURCE_BUILTINS\n    error,code = ValueError,function.__code__\n    def source_live_guard(module, digest, guards, names=None, class_name=None):\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error(\'authenticated builtin baseline/source binding changed\')\n        return function(canonical,module,digest,guards,names,class_name)\n    return source_live_guard\n\n\n@_capture_source_builtins\ndef source_live_guard(baseline, module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = {key:value for key,value in baseline}\n    builtin_namespace = canonical[\'__import__\'](\'builtins\').__dict__\n    namespaces = [module.__dict__,canonical[\'globals\']()]\n', b'\n\ndef source_live_guard(module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = _SOURCE_BUILTINS.copy()\n    builtin_namespace = canonical[\'__import__\'](\'builtins\').__dict__\n    namespaces = [module.__dict__,canonical[\'globals\']()]\n'),
@@ -1071,6 +1286,7 @@ def builtin_baseline_inverse(raw):
 
 
 def builtin_baseline_test_inverse(raw):
+    raw = initializer_origin_test_inverse(raw)
     start = raw.index(b'# BEGIN BUILTIN BASELINE FALSIFIER\n')
     end = raw.index(b'# BEGIN TRANSITIVE AUTHENTICATION FALSIFIER\n',start)
     raw = raw[:start]+raw[end:]
@@ -1502,6 +1718,7 @@ def endpoint_join_contract(e):
         rejects(lambda:e.batch_terminal_files(Flat,Substitute(),{},items),'genuine')
 
 
+@original_initializer_files()
 def endpoint_derivative_contract(e):
     """Real frozen callbacks/class/terminal log and actual CPU metadata; tiny I/O inventory."""
     from unittest.mock import patch
@@ -1510,6 +1727,8 @@ def endpoint_derivative_contract(e):
         'export_siglip2_substrate_fit','train_siglip2_nearest_ranking','train_siglip2_quadratic_readout','train_siglip2_identity_diversity')
     modules={n:module('_endpoint_deployed_'+n,HERE/(n+'.py')) for n in names}
     trainer,flat,fitter,init,nearest,old,training=modules.values()
+    legacy=original_initializer(flat);init=legacy['admission'].init
+    modules['export_siglip2_substrate_fit']=init
     accepted=json.loads((EVIDENCE/'connected-mlp-cpu-v6/receipt.json').read_bytes())
     initializer=json.loads((EVIDENCE/'identity-diversity-v1/cpu-v5/receipt.json').read_bytes())
     source_guards={m.__file__:hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() for m in modules.values()}
@@ -1536,8 +1755,7 @@ def endpoint_derivative_contract(e):
         def stat_file(p,*a,**kw): return real_stat(aliases.get(str(p),p),*a,**kw)
         def is_file(p,*a,**kw): return real_is_file(aliases.get(str(p),p),*a,**kw)
         def resolve_file(p,*a,**kw): return p if str(p) in aliases else real_resolve(p,*a,**kw)
-        reader=flat.FlatAdmission();reader.init=init
-        legacy={'original':flat,'admission':reader,'selected':{'genuine':{'reference':init}},'invocations':set()}
+        reader=legacy['admission']
         guards=dict(source_guards)
         t={'trainer':training,'guards':guards,'legacy':legacy,'nearest':nearest,'fitter':fitter,'old':old,
             'fit_context':{'legacy':legacy,'guards':guards},'connected_root':root,
@@ -1591,6 +1809,7 @@ def endpoint_derivative_contract(e):
             guards.clear();guards.update(source_guards)
             assert admit(unit,'cpu','control',179061)==record
             builtin_endpoint_finally_contract(admit,unit)
+            initializer_endpoint_finally_contract(admit,unit,legacy)
         # A source or callback mutation after loader capture is rejected at call and exit.
         saved=trainer.check_terminal.__code__;trainer.check_terminal.__code__=(lambda *args:None).__code__
         rejects(lambda:admit(unit,'cpu','control',179061),'authenticated')
@@ -1807,6 +2026,7 @@ def endpoint_authority_routing_contract(e):
 
 def endpoint_authentication_contract():
     e=module('_endpoint_complete_evaluator',DRIVER)
+    initializer_constructor_contract(e)
     builtin_baseline_contract(e)
     builtin_namespace_contract(e)
     endpoint_auth_inverse(DRIVER.read_bytes())

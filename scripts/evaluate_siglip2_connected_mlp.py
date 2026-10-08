@@ -101,12 +101,20 @@ def _capture_source_builtins(function):
     def source_live_guard(module, digest, guards, names=None, class_name=None):
         if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:
             raise error('authenticated builtin baseline/source binding changed')
-        return function(canonical,module,digest,guards,names,class_name)
+        return function(canonical,module,digest,guards,names,class_name,None)
+    def initializer_live_guard(context):
+        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:
+            raise error('authenticated builtin baseline/source binding changed')
+        t = context['training_context']
+        return function(canonical,t['legacy']['selected']['genuine']['reference'],
+            '163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8',
+            t['guards'],{'admit_cgroup','require'},None,context)
+    source_live_guard.initializer = initializer_live_guard
     return source_live_guard
 
 
 @_capture_source_builtins
-def source_live_guard(baseline, module, digest, guards, names=None, class_name=None):
+def source_live_guard(baseline, module, digest, guards, names, class_name, initializer_owner):
     """Independent lexical source/runtime binding, including genuine class methods."""
     canonical = {key:value for key,value in baseline}
     builtin_namespace = canonical['__import__']('builtins').__dict__
@@ -132,12 +140,49 @@ def source_live_guard(baseline, module, digest, guards, names=None, class_name=N
     require(type(module) is ModuleType and vars(module).get('__builtins__') is vars(builtins),
         'authenticated module/builtins required')
     path = Path(module.__file__); spec = module.__spec__
+    if initializer_owner is None:
+        def registry_guard():
+            return sys.modules.get(module.__name__) is module
+    else:
+        # The original exporter never registers this one module. Its actual
+        # holder objects, captured independently of mutable snapshots, own it.
+        from importlib.machinery import SourceFileLoader
+        t = initializer_owner['training_context']; legacy = t['legacy']
+        selected = legacy['selected']; genuine = selected['genuine']; admission = legacy['admission']
+        fit_context = t['fit_context']; original = legacy['original']; Flat = original.FlatAdmission
+        require(module.__name__ == '_genuine_fit_reference' and
+            path == Path('/home/riomus/runs/sfora-native256-fit-export-source-v1/export_siglip2_substrate_fit.py') and
+            spec is not None and type(spec.loader) is SourceFileLoader and module.__loader__ is spec.loader and
+            spec.loader.name == module.__name__ and spec.loader.path == str(path) and
+            type(admission) is Flat, 'authenticated initializer original source/loader differs')
+        loader_name,loader_path = spec.loader.name,spec.loader.path
+        def registry_guard():
+            require(initializer_owner['training_context'] is t and t['legacy'] is legacy and
+                t['fit_context'] is fit_context and fit_context['legacy'] is legacy and
+                legacy['selected'] is selected and selected['genuine'] is genuine and
+                genuine['reference'] is module and legacy['admission'] is admission and admission.init is module and
+                legacy['original'] is original and original.FlatAdmission is Flat and type(admission) is Flat,
+                'authenticated initializer owner binding changed')
+            require(t['guards'] is guards and guards.get(str(path)) == digest,
+                'authenticated initializer source digest changed')
+            require(module.__loader__ is spec.loader and vars(spec.loader) == {'name':loader_name,'path':loader_path},
+                'authenticated initializer loader changed')
+            return module.__name__ not in sys.modules and all(value is not module for value in sys.modules.values())
     require(spec is not None and spec.loader is not None and spec.name == module.__name__ and
-        Path(spec.origin) == path and sys.modules.get(module.__name__) is module,
+        Path(spec.origin) == path and registry_guard(),
         'authenticated module registry/origin differs')
     raw = bound_file(guards,path,digest).read_bytes()
     require(hashlib.sha256(raw).hexdigest() == digest, 'authenticated source changed before compilation')
     tree = ast.parse(raw,filename=str(path)); compiled = compile(raw,str(path),'exec',dont_inherit=True)
+    if initializer_owner is not None:
+        # This pinned initializer has only stdlib imports and constant assignments.
+        expected_globals = {}
+        nodes = [n for n in tree.body if isinstance(n,(ast.Import,ast.ImportFrom,ast.Assign))]
+        exec(compile(ast.Module(body=nodes,type_ignores=[]),str(path),'exec',dont_inherit=True),expected_globals)
+        expected_names = set(expected_globals) | {n.name for n in tree.body if isinstance(n,ast.FunctionDef)} | {
+            '__name__','__doc__','__package__','__loader__','__spec__','__file__','__cached__'}
+        require(vars(module).keys() == expected_names and all(type(vars(module)[k]) is type(v) and
+            vars(module)[k] == v for k,v in expected_globals.items()), 'authenticated initializer source globals differ')
     values = dict(vars(module)); literals = {k:copy.deepcopy(v) for k,v in values.items()
         if k != '__builtins__' and isinstance(v,(dict,list,tuple,set,frozenset))}
     loader,name = spec.loader,module.__name__; functions = []; classes = []
@@ -193,7 +238,7 @@ def source_live_guard(baseline, module, digest, guards, names=None, class_name=N
                 qualified,wrapper,wrapper.__code__ if wrapper is not None else None))
     def guard():
         builtin_guard()
-        require(module.__name__ == name and sys.modules.get(name) is module and module.__spec__ is spec and
+        require(module.__name__ == name and registry_guard() and module.__spec__ is spec and
             spec.name == name and spec.loader is loader and Path(spec.origin) == Path(module.__file__) == path and
             vars(module).keys() == values.keys() and all(vars(module)[k] is v for k,v in values.items()) and
             all(vars(module)[k] == v for k,v in literals.items()), 'authenticated module/global binding changed')
@@ -267,8 +312,7 @@ def load_endpoint_reader(context):
     terminal_guards = tuple(source_live_guard(m,t['guards'][m.__file__],t['guards'],names=names)
         for m,names in ((t['trainer'],{'check_steps','check_ranking_bank','ranking_membership',
                                       'ranking_bank','json_sha256','require'}),
-                       (t['fitter'],None),(t['old'],{'zero_events','require'}),
-                       (initializer,{'admit_cgroup','require'})))
+                       (t['fitter'],None),(t['old'],{'zero_events','require'}))) + (source_live_guard.initializer(context),)
     node = next(n for n in ast.parse(Path(trainer.__file__).read_bytes()).body
         if isinstance(n,ast.FunctionDef) and n.name == 'admit_terminal')
     dump = lambda n: ast.dump(n,include_attributes=False)
