@@ -31,7 +31,7 @@ Second-seed control mechanics passed in 925.653 s: all17 versus independent8+9, 
 
 Fresh control069 TRAIN128 passed normally in 2188.712 s (training core 1693.385571 s), with host peak 6,110,826,496 B, CUDA peak 2,021,260,288 B and zero swap/events. All128 updates, exact first17 admitted mechanics, strict public reload and complete source exit were verified. This is engineering qualification, with no new quality read.
 
-Fresh candidate069 TRAIN128 passed normally in 2345.673 s (core 1793.307852 s), with host peak 6,103,474,176 B, CUDA peak 2,349,298,688 B, zero swap/events and complete first17 mechanics replay, strict updated bundle reload and uncached exit. Relative to fresh control069, core ratio is 1.059007 and whole-service ratio 1.071714; both pass ≤1.50, while training is slower. No new quality values were read.
+Fresh candidate069 TRAIN128 passed normally in 2345.673 s (core 1793.307852 s), with host peak 6,103,474,176 B, CUDA peak 2,349,298,688 B, zero swap/events and complete first17 mechanics replay, strict updated bundle reload and uncached exit. Relative to fresh control069, core ratio is 1.059007 and whole-service ratio 1.071714; both pass ≤1.50, while training is slower. No new quality values were read. Derived from every actual canonical/augmented microbatch membership (16,384 query-view presentations), control069 throughput is 9.675292 presentations/core-s and 7.485681 presentations/service-s; candidate069 is 9.136189 and 6.984776 respectively. These include the same core/whole cost definitions as seed061 and exclude extra oracle images from the numerator; they are not pure encoder throughput.
 
 Next, in order: qualify the full evaluator CPU500 with ordered endpoints control061, candidate061, candidate069, control069 and the accepted first061 CONTINUE; run four fresh current-stage exports; apply the frozen same-four two-seed quality and product-LCB decision. Failure stops the affected arm. Full selection GO alone permits sealed VAL. No checkpoint state reuse, automatic cap rescue or official quality claim.
 
@@ -48,3 +48,5 @@ Evidence:
 - [Serving research decision](evidence/compact_metric/sop-siglip2-substrate-v1/connected-serving-critical-path-plan-v1/parent-decision.json).
 
 - [Candidate069 TRAIN verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-candidate-179069-v1/verification.json) and [full-stage CPU prospective freeze](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-cpu-v1-freeze/full-cpu-v1-freeze.json).
+
+- [Second-seed receipt-derived throughput accounting](evidence/compact_metric/sop-siglip2-substrate-v1/connected-training-throughput-accounting-seed179069-v1.json).

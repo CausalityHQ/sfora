@@ -1,0 +1,33 @@
+{
+  "arms": {
+    "candidate": {
+      "core_query_views_per_second": 9.136189296972582,
+      "receipt_sha256": "955cd7389a8d9f55b600225b8ce6b576b222b927627cd4f2410786e5ea804c20",
+      "rows_per_update": 64,
+      "total_query_view_presentations": 16384,
+      "training_core_seconds": 1793.3078516038513,
+      "updates": 128,
+      "views_per_row": 2,
+      "whole_query_views_per_second": 6.984775797820072,
+      "whole_service_seconds": 2345.673
+    },
+    "control": {
+      "core_query_views_per_second": 9.67529207893213,
+      "receipt_sha256": "22f1d1bf1c26d68368a2ade98de5a18b1b9fc14e9e44ea7959583bca12fd884a",
+      "rows_per_update": 64,
+      "total_query_view_presentations": 16384,
+      "training_core_seconds": 1693.3855708269548,
+      "updates": 128,
+      "views_per_row": 2,
+      "whole_query_views_per_second": 7.485681076359064,
+      "whole_service_seconds": 2188.712
+    }
+  },
+  "dataset": "In-Shop CONTROL TRAIN6355 /1008 products",
+  "extra_oracle_or_reload_images_in_numerator": false,
+  "parent_accounting_correction": "Initial verifier incorrectly required per-view gradient witnesses at every step; these are bounded first-update diagnostics. Corrected numerator verification uses the complete actual per-view microbatch membership at every step; no receipt or native output changed.",
+  "schema": "connected-training-throughput-accounting-v1",
+  "seed": 179069,
+  "status": "derived from verified original receipt counts and measured timing; not a new native benchmark",
+  "units": "query-view presentations/s"
+}
