@@ -1,0 +1,72 @@
+{
+  "authority_elapsed_seconds": 409.48839494799904,
+  "cpu_seconds": 314.962,
+  "files": {
+    "diagnostic.jsonl": "ac99e2a486dec50043b93ee04081b73a4480698b4389e6bbf6a39f86d04156e4",
+    "original.log": "eeac100fcdb5cc37d06e23805b18e414d9495dd8bb9f3c04ecba4ae8a2cbd31a",
+    "terminal-status.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  "full_cpu_qualified": false,
+  "guard_count": 20457,
+  "invocation_count": 20,
+  "invocation_id": "4b935d2c7b204e63ae1155768f985e77",
+  "memory_events_zero": true,
+  "native_roots_imported": [],
+  "observation_reduction_percent": 27.356941206934067,
+  "original_exec": 92650,
+  "peak_host_bytes": 662966272,
+  "prior_observation_seconds": 563.6992738900008,
+  "process_peak_rss_kib": 435156,
+  "qualification_eligible": false,
+  "sample_attribution_limit": "Caller samples are not exact phase durations or bulk-loop timings. Different authenticated source versions; this is engineering admission timing, not product latency or qualification.",
+  "sample_callers": [
+    {
+      "function": "authority",
+      "line": 1032,
+      "sample_share": 0.4512568976088289,
+      "samples": 736
+    },
+    {
+      "function": "authority",
+      "line": 1090,
+      "sample_share": 0.2550582464745555,
+      "samples": 416
+    },
+    {
+      "function": "authority",
+      "line": 1042,
+      "sample_share": 0.1882280809319436,
+      "samples": 307
+    },
+    {
+      "function": "authority",
+      "line": 1085,
+      "sample_share": 0.08890251379521766,
+      "samples": 145
+    },
+    {
+      "function": "authority",
+      "line": 1064,
+      "sample_share": 0.014714898835070508,
+      "samples": 24
+    },
+    {
+      "function": "authority",
+      "line": 1074,
+      "sample_share": 0.001226241569589209,
+      "samples": 2
+    },
+    {
+      "function": "authority",
+      "line": 1041,
+      "sample_share": 0.0006131207847946045,
+      "samples": 1
+    }
+  ],
+  "sample_count": 1631,
+  "schema": "connected-authority-observation-result-v1",
+  "service_seconds": 410.152,
+  "state_reuse_eligible": false,
+  "status": "OBSERVATION_NORMAL_EXIT",
+  "swap_bytes": 0
+}
