@@ -1,0 +1,14 @@
+{
+  "all_four_actual_exports_independently_verified": true,
+  "bash_syntax_pass": true,
+  "exact_source_execution": "3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029",
+  "freeze_file_hashes_pass": true,
+  "no_native_started_before_freeze": true,
+  "policy_seconds": 700,
+  "schema": "connected-full-score-freeze-parent-review-v1",
+  "source_only_freezer_errors_preserved": [
+    "source_code is flat map, not root descriptor",
+    "draft Path name corrected to pathlib.Path"
+  ],
+  "stop_rule": "ONE full paired-seed selection score700; original source+concat perquery exact replay, all four complete current-stage actual wires and readback before candidate metrics; unchanged paired costs, mean R1/AP deltas, product bootstrap5000/floors, normal0/8GiB/noSwap/bothlocks/full uncached exit mandatory. KILL stops arm; only full GO admits sealed validation. No official read, partial reuse or runtime extension."
+}
