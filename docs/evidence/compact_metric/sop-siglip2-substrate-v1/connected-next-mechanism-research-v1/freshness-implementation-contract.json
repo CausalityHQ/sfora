@@ -1,0 +1,25 @@
+{
+  "schema": "connected-gallery-freshness-source-contract-v1",
+  "question": "Does applying the same terminal readout to original versus updated encoder descriptors change the observed selection geometry?",
+  "source_only_implementation_authorized": true,
+  "native_launch_authorized_by_this_record": false,
+  "candidate_status": "KILL unchanged",
+  "planner": "c723652a20fe4457 completed exit0",
+  "review_group": "99c221b6e4404eca both original critics completed exit0",
+  "parent_repair": "Reject CPU readout for stale descriptors: use the same CUDA FP32 readout and normalization as the accepted fresh-export path. Scoring remains the original CPU scorer. No encoder construction, image access, optimizer, training, VAL or official read.",
+  "inputs": "Accepted full score+fullCPU+four full export receipts; four exact bundle manifests+endpoint.pt; original partition/FIT/cache/control scope; exact pinned constructor/readout/packing/scorer/runtime/native authority files only. No blanket inherited input-guard traversal.",
+  "admission": [
+    "Authenticate complete score/export/bundle/CPU member bindings and typed endpoint state; current KILL is admitted only as a diagnostic input, never GO.",
+    "Reproduce all four accepted per-query R1 and AP arrays exactly and exact raw/unit/packed file mappings before new readouts.",
+    "Control terminal readouts on original cached features must match accepted control raw/unit bits and codes/inverses/wire and per-query R1/AP; report differences and stop on mismatch.",
+    "Process original B32 roles including tails6/19; repeat independent readout reloads exactly; original require predicates and numerical flags remain.",
+    "Bind exact original runtime/native authority; no new executable/native grants. Reuse pinned source validation, with scope concretely documented before code is frozen."
+  ],
+  "readout": "Per candidate seed, S=terminal candidate readout over original cache and F=accepted current candidate descriptors. Evaluate SS/SF/FS/FF by exact original panel order and unchanged CPU packed scorer; FF must replay originals.",
+  "outputs": "Descriptive full per-query arrays, seed-separated differences and interaction, instrument differences, runtime/resource/cleanup/integrity receipt. No thresholds, automatic compression/pose/gallery training action, survivor or causal-null claim.",
+  "limits": {"whole_seconds": 700, "host_bytes": 8589934592, "swap_bytes": 0, "cuda_allocated_bytes_exclusive": 10000000000, "both_locks": true, "one_original_job": true},
+  "source_files": ["scripts/diagnose_connected_gallery_freshness.py", "scripts/test_connected_gallery_freshness.py"],
+  "falsifiers": "Real extracted original seams with stdlib standins; interleaved roles, unequal inverse norms, signed ties, R1-preserving AP change, wrong wire/endian/row/member/omittedC/wrongmu; deny image/model opens; validate independent reload, RNG, cleanup, cap and uncached allowlist exit; preserve original source modules/globals.",
+  "stop": "Any metadata/byte/tap/arithmetic/resource/lifetime failure stops the diagnostic. Original failure stays failure. Passing only yields descriptive evidence for a separately reviewed next mechanism.",
+  "remaining_confound": "FIT export batch composition and original versus selection preprocessing must pass complete control tap checks. Passing controls does not prove all possible candidate arithmetic equivalence; same-device source order removes the known CPU/CUDA confound."
+}

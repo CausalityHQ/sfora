@@ -1,0 +1,347 @@
+{
+  "id": "c723652a20fe4457",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791446372,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791447572,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nBounded READ-ONLY source feasibility contract, not another scientific critique. Repo /home/rb/worktrees/sfora-positive-causality master0d4e5ef (resolve full). Read docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/{dual-critique-parent-screen.json,dual-critique.json} and connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json. Candidate scientifically KILL, no reopening/VAL/official/training. Question: smallest authenticated CPU-only 2x2 same-candidate-readout counterfactual using original cached pooled features vs accepted fresh wires, no encoder/images/CUDA. Trace actual cache_rows in evaluate_siglip2_quadratic_readout.py, cpu_calibration/check_inference_members/authenticate_payloads/endpoint_scope in evaluate_siglip2_connected_mlp.py, fullfeature_raw_features, exact endpoint.pt head/A/C/means/mu, pinned packed_quality/scoring_math, original source-v5 trainer840c5d82 rather than newer copy. Produce precise inputs/API/read boundary/admission/cleanup/scorer/tap-falsifier contract ONLY. Stronger tap validation than control R1 alone: full per-query AP + numeric/wire checks and CPU-vs-CUDA arithmetic confounds explicit. Determine whether complete original cache tap is available for selection; no invented cache offsets/hashes. Selection panel3449 rows/1734queries/1715gallery/498 held active products; scope6355 not panel order. Check active scope vs partition product disjointness source-only. Outcomes descriptive, no null=causalproof and no automatic training permission. Contrast smallest saved-wire-only quantization check if freshness seam cannot pass. No files edited, no imports/Torch/native/images/SSH/GPU/cloud/jobs/children/consults/fulltests, no cap changes or performance projections. Root owns any implementation/freeze/native. Return one concrete minimal contract with unresolved blockers; source-only arithmetic/AST allowed.",
+  "prompt_sha256": "5db4879419e87a3aadfee9d6376cb3cedde537a0c73dfe55b35622e279b82e1e",
+  "prompt_bytes": 2215,
+  "fingerprint": "1d9fa066aa23e2df4504ea585cf261ce266972858b494dca6e3494effcecf2f3",
+  "evidence": {
+    "git_commit": "0d4e5efbd494519def3664d649a5522778d3067c",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "9276c9653c54c6c847bf972540fbfe6aa7e1c2f533f98f3518ce3633493d0461",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "066b1c4c-76ba-4c2e-b672-35312f102b83"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-c723652a20fe4457.service",
+  "pid": 1902483,
+  "pgid": 1902483,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "budget_usd": null,
+      "timeout_seconds": 1200,
+      "started_at": 1791446372
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791446977,
+  "event_cursor": 130,
+  "events": [
+    {
+      "seq": 107,
+      "at": 1791446706,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 108,
+      "at": 1791446707,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 109,
+      "at": 1791446707,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 110,
+      "at": 1791446743,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 111,
+      "at": 1791446743,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 112,
+      "at": 1791446743,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 113,
+      "at": 1791446744,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 114,
+      "at": 1791446745,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 1"
+    },
+    {
+      "seq": 115,
+      "at": 1791446745,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 116,
+      "at": 1791446761,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 117,
+      "at": 1791446761,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 118,
+      "at": 1791446761,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 119,
+      "at": 1791446762,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 120,
+      "at": 1791446764,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 121,
+      "at": 1791446766,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 122,
+      "at": 1791446825,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 123,
+      "at": 1791446825,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 124,
+      "at": 1791446825,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 125,
+      "at": 1791446825,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 126,
+      "at": 1791446850,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 127,
+      "at": 1791446853,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 128,
+      "at": 1791446853,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 129,
+      "at": 1791446976,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 130,
+      "at": 1791446977,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 123,
+        "at": 1791446825,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 124,
+        "at": 1791446825,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 125,
+        "at": 1791446825,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 126,
+        "at": 1791446850,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 127,
+        "at": 1791446853,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 128,
+        "at": 1791446853,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 129,
+        "at": 1791446976,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 130,
+        "at": 1791446977,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**The complete cached selection tap is source-defined and authenticated, but its numerical equivalence to the fresh-wire path remains unverified.** The smallest contract is one selection-only, same-candidate-readout 2×2 per existing seed, admitted only after full replay and control-tap checks. Candidate **KILL remains unchanged**.\n\nReviewed `master` at `0d4e5efbd494519def3664d649a5522778d3067c`. The [parent screen](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/dual-critique-parent-screen.json) governs this contract; the reviewers’ causal claims and automatic training action map are excluded.\n\n1. **Inputs and availability**\n\n   Use the accepted [full score receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/receipt.json), SHA256 `01ae023cb89b828c029817582cdb48204ff8177e76047ccec0773e5d90aafbfa`, as the descriptor ledger:\n\n   - Full CPU receipt from `launch.selected_cpu`: SHA256 `1a732ebece8d775bffd142ff8abf32cfbc0da5ffb44c787cd0af22d8b3f7c189`.\n   - Four full-export receipts from `launch.exports`; their exact `output` and three `files` entries supply fresh raw/unit/packed inputs.\n   - Four endpoint bundle descriptors from `launch.endpoints`; each authenticated `bundle.json` supplies the actual `endpoint.pt` file hash. Do not substitute terminal checkpoints or initializer readouts.\n   - Partition `/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json`, SHA256 `702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c`.\n   - Its `original_fit`: `/home/riomus/runs/sfora-native256-source-cpu-v4/fit.json`, SHA256 `d32fa6f099a5432d25916594a8439d826ff979e18abd3bb6fde150aff36e0251`.\n   - Its `original_cache`: `/home/riomus/runs/sfora-native256-fit-export-so400-v1/fit.npy`, SHA256 `c418df0354408c8b33dca07f21e7b3cbf9d5089f7f278b93003a614f21085716`.\n\n   [`cache_rows(context, rows)`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_quadratic_readout.py:1065) authenticates that complete cache, opens it with `allow_pickle=False, mmap_mode='r'`, requires float32 `[13283,1152]`, and copies `cache[rows]`. It imposes no validation-only restriction. All 3,449 selection indices lie within this cache.\n\n   Thus **selection coverage exists in the authenticated source contract**. The cache bytes and endpoint payloads are absent from this checkout and were not inspected. The 6,355-row canonical training cache cannot replace the complete FIT cache. These are normalized pooled features, not unnormalized pooler outputs.\n\n2. **Mapping and active-scope admission**\n\n   Exclusively use `partition.panels.selection`:\n\n   ```\n   features[p] = original_cache[panel.original_rows[p]]\n   labels[p]   = fit.class_names[fit.targets[panel.original_rows[p]]]\n   result[i]   = query at panel.query[i]\n   ```\n\n   Require 3,449 panel rows, 1,734 queries, 1,715 gallery rows and 498 products; query/gallery indices must uniquely cover the panel. Match every export’s recorded `panel_ordinal`, `original_row`, label and role order against this mapping. Authenticate image metadata without opening image paths.\n\n   Source-only checks established that both connected arms use the original **control** scope: 6,355 rows and 1,008 products. Its product intersection with selection is **empty**. Its `rows[*].original_fit_index` sequence exactly equals `partition.panels.train.original_rows`, also disjoint from selection.\n\n   Scope `original_rows` are **official TRAIN ordinals**; partition rows are **FIT ordinals**. Comparing those integer arrays directly is invalid. Active-update disjointness does not establish untouched selection history for inherited components.\n\n3. **Readout API and read boundary**\n\n   Bind the actual source-v5 trainer, SHA256 `840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8`. The local [frozen copy](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:882) matches; current `scripts/train_siglip2_identity_diversity.py` has a different file hash.\n\n   For each endpoint, authenticate `endpoint.pt` with CPU, weights-only loading; preserve exact schema/key validation, typed state identity, `fixed_sha256`, source/numerical metadata and member bindings to accepted full-CPU `payload_facts`. Those facts already bind inference members to the complete terminal checkpoint. Whole-file authentication necessarily covers the endpoint container, including its encoder-overlay entries; construct no encoder and use none of those entries for computation.\n\n   Copy only the readout members:\n\n   - Original control-factory `head`, with its exact parameters and buffers.\n   - `A`: float32 `[128,160]`, wrapped as the leaf `Parameter` required by the helper.\n   - `C`: float32 `[128,1152]`, finite and nonzero.\n   - `means`: exact `linear[32]` and `concat[160]`.\n   - `mu_train[1152]`, its provenance, scope and common-statistics identities.\n\n   Call:\n\n   ```\n   fullfeature_raw_features(\n       features, head, A, means, C, mu_train,\n       disk[\"arm\"], pinned_quadratic, pinned_prototype_readout\n   )\n   ```\n\n   The frozen operation is:\n\n   ```\n   h0 + linear(concat(z, h0) - means[\"concat\"], A)\n      + linear(features.float() - mu_train, C)\n   ```\n\n   Preserve its internal normalization, addition order and FP32 arithmetic. Pass direct cache rows; do not add the training path’s extra CPU normalization, refit statistics, omit `C`, or substitute common initial weights.\n\n   [`cpu_calibration`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1287) supplies the readout-only construction pattern. It checks synthetic CPU parity, not cache-to-CUDA equivalence. `check_inference_members` alone checks only keys/schema.\n\n   Do not call `endpoint_scope`, `authenticate_payloads`, `admit_bundle`, evaluator authority/main, `image_rows`, or global exit-rehash wholesale: they expand into initializer, terminal, vision, image or package admission. Use a narrow authenticated function closure and explicit file allowlist. No recursive replay of inherited `input_guards`.\n\n4. **Scorer and mandatory admission**\n\n   Preserve `scoring_math`’s pinned `packed_quality` definition: source SHA256 `8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250`, AST SHA256 `717489188a008ceba1b930d9e7dff32b90cd5347302835538eb171fe23f4b33e`.\n\n   It scores **unit arrays**, repacking them first. Require exact correspondence to stored wires: each row contains 128 signed code bytes followed by little-endian FP16 inverse norm; total **448,370 bytes**, without an artifact header.\n\n   Independently decode and verify:\n\n   ```\n   score = float32(float32(integer_dot * query_inverse) * gallery_inverse)\n   ```\n\n   Preserve gallery order and stable descending ties. AP is **AP@R**, with each query’s positive inventory defining R; full-gallery AP is a different metric.\n\n   Before releasing counterfactual results:\n\n   - Replay **all four** accepted 1,734-element R1 **and AP** arrays exactly.\n   - Verify saved raw/unit/code/inverse facts, layouts, finite/nonzero values, unit norms and exact repacked bytes.\n   - Apply each control endpoint’s **complete terminal readout**, including its updated A/C, to cached selection features in the original role batches: B32, query tail 6, gallery tail 19.\n   - Require complete control R1/AP equality plus raw/unit numeric comparison and exact code/inverse/wire parity. For the smallest fail-closed contract, require raw/unit bit equality too; report maximum differences on failure rather than introducing a tolerance afterward.\n   - Independently reload readouts and repeat outputs exactly; reject omitted-C and wrong-mu mutants.\n\n   **Any admission failure stops the freshness readout.** Matching control R1 alone cannot admit it.\n\n5. **The only counterfactual**\n\n   Per seed `179061` and `179069`, define:\n\n   - **S:** that candidate’s terminal readout applied to original cached selection features.\n   - **F:** that same candidate endpoint’s accepted fresh descriptors.\n\n   | Cell | Query descriptors | Gallery descriptors |\n   |---|---|---|\n   | SS | S | S |\n   | SF | S | F |\n   | FS | F | S |\n   | FF | F | F |\n\n   Assemble rows using the original panel indices; pack row-wise and run the unchanged scorer. FF must reproduce the accepted candidate arrays exactly.\n\n   Retain full per-query R1/AP arrays and descriptive query/gallery effects and interaction, separately per seed. No outcome changes KILL or authorizes training, validation, official evaluation or production admission.\n\n6. **Bounded falsifier and cleanup**\n\n   One small synthetic CPU check should contain interleaved role indices, signed codes, unequal inverse norms, a cross-label tie and two positives per query. It must:\n\n   - Reproduce identical-source composition and independent packed R1/AP.\n   - Reject changed wire bytes, wrong endian decoding, swapped mapping, wrong endpoint members and malformed/object NPY inputs.\n   - Include an **R1-preserving AP mutation**: positive rank 2 becomes rank 3 while rank 1 remains negative; with R=2, AP changes `.25 → 0`.\n   - Reject omitted-C/wrong-mu mutations and attempted image/model access.\n\n   Process one endpoint at a time. Copy required readout tensors, release mmap-backed payloads before advancing, unregister temporary namespaces, preserve RNG/flags and rehash only allowlisted inputs at exit. Release tensors, cache mappings and file handles on success or failure.\n\n   Any prospective root-owned run retains the existing **700-second, 8-GiB, zero-swap, CUDA-hidden** ceiling, locks and normal-terminal evidence. This plan changes no cap and makes no runtime projection.\n\nThe unresolved blocker is **candidate-specific CPU-versus-CUDA arithmetic**. Fresh exports used CUDA FP16 encoder execution followed by CUDA FP32 readout/normalization; S would use cached features and CPU FP32 readout. No saved fresh `[3449,1152]` tap permits same-feature candidate CPU replay. Even complete control parity cannot establish parity for different candidate A/C weights. Passing measurements therefore remain descriptive; null results do not prove freshness noncausal or gains solely due to head co-adaptation.\n\nIf the tap fails, the smaller fallback consumes only authenticated saved raw/unit/packed wires and metadata: replay full R1/AP, verify packed arithmetic, then compare float and packed rankings, reporting recoveries and harms. It measures quantization effects; it cannot attribute freshness or establish a packing defect.\n\nNo files edited; no imports, native execution, tests, remote access or jobs run. Remaining risk: artifact availability and numerical admission are unverified; implementation, freeze and execution remain with the root.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**The complete cached selection tap is source-defined and authenticated, but its numerical equivalence to the fresh-wire path remains unverified.** The smallest contract is one selection-only, same-candidate-readout 2×2 per existing seed, admitted only after full replay and control-tap checks. Candidate **KILL remains unchanged**.\n\nReviewed `master` at `0d4e5efbd494519def3664d649a5522778d3067c`. The [parent screen](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/dual-critique-parent-screen.json) governs this contract; the reviewers’ causal claims and automatic training action map are excluded.\n\n1. **Inputs and availability**\n\n   Use the accepted [full score receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/receipt.json), SHA256 `01ae023cb89b828c029817582cdb48204ff8177e76047ccec0773e5d90aafbfa`, as the descriptor ledger:\n\n   - Full CPU receipt from `launch.selected_cpu`: SHA256 `1a732ebece8d775bffd142ff8abf32cfbc0da5ffb44c787cd0af22d8b3f7c189`.\n   - Four full-export receipts from `launch.exports`; their exact `output` and three `files` entries supply fresh raw/unit/packed inputs.\n   - Four endpoint bundle descriptors from `launch.endpoints`; each authenticated `bundle.json` supplies the actual `endpoint.pt` file hash. Do not substitute terminal checkpoints or initializer readouts.\n   - Partition `/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json`, SHA256 `702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c`.\n   - Its `original_fit`: `/home/riomus/runs/sfora-native256-source-cpu-v4/fit.json`, SHA256 `d32fa6f099a5432d25916594a8439d826ff979e18abd3bb6fde150aff36e0251`.\n   - Its `original_cache`: `/home/riomus/runs/sfora-native256-fit-export-so400-v1/fit.npy`, SHA256 `c418df0354408c8b33dca07f21e7b3cbf9d5089f7f278b93003a614f21085716`.\n\n   [`cache_rows(context, rows)`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_quadratic_readout.py:1065) authenticates that complete cache, opens it with `allow_pickle=False, mmap_mode='r'`, requires float32 `[13283,1152]`, and copies `cache[rows]`. It imposes no validation-only restriction. All 3,449 selection indices lie within this cache.\n\n   Thus **selection coverage exists in the authenticated source contract**. The cache bytes and endpoint payloads are absent from this checkout and were not inspected. The 6,355-row canonical training cache cannot replace the complete FIT cache. These are normalized pooled features, not unnormalized pooler outputs.\n\n2. **Mapping and active-scope admission**\n\n   Exclusively use `partition.panels.selection`:\n\n   ```\n   features[p] = original_cache[panel.original_rows[p]]\n   labels[p]   = fit.class_names[fit.targets[panel.original_rows[p]]]\n   result[i]   = query at panel.query[i]\n   ```\n\n   Require 3,449 panel rows, 1,734 queries, 1,715 gallery rows and 498 products; query/gallery indices must uniquely cover the panel. Match every export’s recorded `panel_ordinal`, `original_row`, label and role order against this mapping. Authenticate image metadata without opening image paths.\n\n   Source-only checks established that both connected arms use the original **control** scope: 6,355 rows and 1,008 products. Its product intersection with selection is **empty**. Its `rows[*].original_fit_index` sequence exactly equals `partition.panels.train.original_rows`, also disjoint from selection.\n\n   Scope `original_rows` are **official TRAIN ordinals**; partition rows are **FIT ordinals**. Comparing those integer arrays directly is invalid. Active-update disjointness does not establish untouched selection history for inherited components.\n\n3. **Readout API and read boundary**\n\n   Bind the actual source-v5 trainer, SHA256 `840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8`. The local [frozen copy](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:882) matches; current `scripts/train_siglip2_identity_diversity.py` has a different file hash.\n\n   For each endpoint, authenticate `endpoint.pt` with CPU, weights-only loading; preserve exact schema/key validation, typed state identity, `fixed_sha256`, source/numerical metadata and member bindings to accepted full-CPU `payload_facts`. Those facts already bind inference members to the complete terminal checkpoint. Whole-file authentication necessarily covers the endpoint container, including its encoder-overlay entries; construct no encoder and use none of those entries for computation.\n\n   Copy only the readout members:\n\n   - Original control-factory `head`, with its exact parameters and buffers.\n   - `A`: float32 `[128,160]`, wrapped as the leaf `Parameter` required by the helper.\n   - `C`: float32 `[128,1152]`, finite and nonzero.\n   - `means`: exact `linear[32]` and `concat[160]`.\n   - `mu_train[1152]`, its provenance, scope and common-statistics identities.\n\n   Call:\n\n   ```\n   fullfeature_raw_features(\n       features, head, A, means, C, mu_train,\n       disk[\"arm\"], pinned_quadratic, pinned_prototype_readout\n   )\n   ```\n\n   The frozen operation is:\n\n   ```\n   h0 + linear(concat(z, h0) - means[\"concat\"], A)\n      + linear(features.float() - mu_train, C)\n   ```\n\n   Preserve its internal normalization, addition order and FP32 arithmetic. Pass direct cache rows; do not add the training path’s extra CPU normalization, refit statistics, omit `C`, or substitute common initial weights.\n\n   [`cpu_calibration`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1287) supplies the readout-only construction pattern. It checks synthetic CPU parity, not cache-to-CUDA equivalence. `check_inference_members` alone checks only keys/schema.\n\n   Do not call `endpoint_scope`, `authenticate_payloads`, `admit_bundle`, evaluator authority/main, `image_rows`, or global exit-rehash wholesale: they expand into initializer, terminal, vision, image or package admission. Use a narrow authenticated function closure and explicit file allowlist. No recursive replay of inherited `input_guards`.\n\n4. **Scorer and mandatory admission**\n\n   Preserve `scoring_math`’s pinned `packed_quality` definition: source SHA256 `8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250`, AST SHA256 `717489188a008ceba1b930d9e7dff32b90cd5347302835538eb171fe23f4b33e`.\n\n   It scores **unit arrays**, repacking them first. Require exact correspondence to stored wires: each row contains 128 signed code bytes followed by little-endian FP16 inverse norm; total **448,370 bytes**, without an artifact header.\n\n   Independently decode and verify:\n\n   ```\n   score = float32(float32(integer_dot * query_inverse) * gallery_inverse)\n   ```\n\n   Preserve gallery order and stable descending ties. AP is **AP@R**, with each query’s positive inventory defining R; full-gallery AP is a different metric.\n\n   Before releasing counterfactual results:\n\n   - Replay **all four** accepted 1,734-element R1 **and AP** arrays exactly.\n   - Verify saved raw/unit/code/inverse facts, layouts, finite/nonzero values, unit norms and exact repacked bytes.\n   - Apply each control endpoint’s **complete terminal readout**, including its updated A/C, to cached selection features in the original role batches: B32, query tail 6, gallery tail 19.\n   - Require complete control R1/AP equality plus raw/unit numeric comparison and exact code/inverse/wire parity. For the smallest fail-closed contract, require raw/unit bit equality too; report maximum differences on failure rather than introducing a tolerance afterward.\n   - Independently reload readouts and repeat outputs exactly; reject omitted-C and wrong-mu mutants.\n\n   **Any admission failure stops the freshness readout.** Matching control R1 alone cannot admit it.\n\n5. **The only counterfactual**\n\n   Per seed `179061` and `179069`, define:\n\n   - **S:** that candidate’s terminal readout applied to original cached selection features.\n   - **F:** that same candidate endpoint’s accepted fresh descriptors.\n\n   | Cell | Query descriptors | Gallery descriptors |\n   |---|---|---|\n   | SS | S | S |\n   | SF | S | F |\n   | FS | F | S |\n   | FF | F | F |\n\n   Assemble rows using the original panel indices; pack row-wise and run the unchanged scorer. FF must reproduce the accepted candidate arrays exactly.\n\n   Retain full per-query R1/AP arrays and descriptive query/gallery effects and interaction, separately per seed. No outcome changes KILL or authorizes training, validation, official evaluation or production admission.\n\n6. **Bounded falsifier and cleanup**\n\n   One small synthetic CPU check should contain interleaved role indices, signed codes, unequal inverse norms, a cross-label tie and two positives per query. It must:\n\n   - Reproduce identical-source composition and independent packed R1/AP.\n   - Reject changed wire bytes, wrong endian decoding, swapped mapping, wrong endpoint members and malformed/object NPY inputs.\n   - Include an **R1-preserving AP mutation**: positive rank 2 becomes rank 3 while rank 1 remains negative; with R=2, AP changes `.25 → 0`.\n   - Reject omitted-C/wrong-mu mutations and attempted image/model access.\n\n   Process one endpoint at a time. Copy required readout tensors, release mmap-backed payloads before advancing, unregister temporary namespaces, preserve RNG/flags and rehash only allowlisted inputs at exit. Release tensors, cache mappings and file handles on success or failure.\n\n   Any prospective root-owned run retains the existing **700-second, 8-GiB, zero-swap, CUDA-hidden** ceiling, locks and normal-terminal evidence. This plan changes no cap and makes no runtime projection.\n\nThe unresolved blocker is **candidate-specific CPU-versus-CUDA arithmetic**. Fresh exports used CUDA FP16 encoder execution followed by CUDA FP32 readout/normalization; S would use cached features and CPU FP32 readout. No saved fresh `[3449,1152]` tap permits same-feature candidate CPU replay. Even complete control parity cannot establish parity for different candidate A/C weights. Passing measurements therefore remain descriptive; null results do not prove freshness noncausal or gains solely due to head co-adaptation.\n\nIf the tap fails, the smaller fallback consumes only authenticated saved raw/unit/packed wires and metadata: replay full R1/AP, verify packed arithmetic, then compare float and packed rankings, reporting recoveries and harms. It measures quantization effects; it cannot attribute freshness or establish a packing defect.\n\nNo files edited; no imports, native execution, tests, remote access or jobs run. Remaining risk: artifact availability and numerical admission are unverified; implementation, freeze and execution remain with the root."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 2215,
+  "output_bytes": 10934,
+  "elapsed_seconds": 605,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)\ndevbox-ask: codex consult still running (8m 00s)\ndevbox-ask: codex consult still running (8m 30s)\ndevbox-ask: codex consult still running (9m 00s)\ndevbox-ask: codex consult still running (9m 30s)\ndevbox-ask: codex consult still running (10m 00s)",
+  "progress_truncated": false,
+  "result": "**The complete cached selection tap is source-defined and authenticated, but its numerical equivalence to the fresh-wire path remains unverified.** The smallest contract is one selection-only, same-candidate-readout 2×2 per existing seed, admitted only after full replay and control-tap checks. Candidate **KILL remains unchanged**.\n\nReviewed `master` at `0d4e5efbd494519def3664d649a5522778d3067c`. The [parent screen](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/dual-critique-parent-screen.json) governs this contract; the reviewers’ causal claims and automatic training action map are excluded.\n\n1. **Inputs and availability**\n\n   Use the accepted [full score receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/receipt.json), SHA256 `01ae023cb89b828c029817582cdb48204ff8177e76047ccec0773e5d90aafbfa`, as the descriptor ledger:\n\n   - Full CPU receipt from `launch.selected_cpu`: SHA256 `1a732ebece8d775bffd142ff8abf32cfbc0da5ffb44c787cd0af22d8b3f7c189`.\n   - Four full-export receipts from `launch.exports`; their exact `output` and three `files` entries supply fresh raw/unit/packed inputs.\n   - Four endpoint bundle descriptors from `launch.endpoints`; each authenticated `bundle.json` supplies the actual `endpoint.pt` file hash. Do not substitute terminal checkpoints or initializer readouts.\n   - Partition `/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json`, SHA256 `702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c`.\n   - Its `original_fit`: `/home/riomus/runs/sfora-native256-source-cpu-v4/fit.json`, SHA256 `d32fa6f099a5432d25916594a8439d826ff979e18abd3bb6fde150aff36e0251`.\n   - Its `original_cache`: `/home/riomus/runs/sfora-native256-fit-export-so400-v1/fit.npy`, SHA256 `c418df0354408c8b33dca07f21e7b3cbf9d5089f7f278b93003a614f21085716`.\n\n   [`cache_rows(context, rows)`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_quadratic_readout.py:1065) authenticates that complete cache, opens it with `allow_pickle=False, mmap_mode='r'`, requires float32 `[13283,1152]`, and copies `cache[rows]`. It imposes no validation-only restriction. All 3,449 selection indices lie within this cache.\n\n   Thus **selection coverage exists in the authenticated source contract**. The cache bytes and endpoint payloads are absent from this checkout and were not inspected. The 6,355-row canonical training cache cannot replace the complete FIT cache. These are normalized pooled features, not unnormalized pooler outputs.\n\n2. **Mapping and active-scope admission**\n\n   Exclusively use `partition.panels.selection`:\n\n   ```\n   features[p] = original_cache[panel.original_rows[p]]\n   labels[p]   = fit.class_names[fit.targets[panel.original_rows[p]]]\n   result[i]   = query at panel.query[i]\n   ```\n\n   Require 3,449 panel rows, 1,734 queries, 1,715 gallery rows and 498 products; query/gallery indices must uniquely cover the panel. Match every export’s recorded `panel_ordinal`, `original_row`, label and role order against this mapping. Authenticate image metadata without opening image paths.\n\n   Source-only checks established that both connected arms use the original **control** scope: 6,355 rows and 1,008 products. Its product intersection with selection is **empty**. Its `rows[*].original_fit_index` sequence exactly equals `partition.panels.train.original_rows`, also disjoint from selection.\n\n   Scope `original_rows` are **official TRAIN ordinals**; partition rows are **FIT ordinals**. Comparing those integer arrays directly is invalid. Active-update disjointness does not establish untouched selection history for inherited components.\n\n3. **Readout API and read boundary**\n\n   Bind the actual source-v5 trainer, SHA256 `840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8`. The local [frozen copy](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py:882) matches; current `scripts/train_siglip2_identity_diversity.py` has a different file hash.\n\n   For each endpoint, authenticate `endpoint.pt` with CPU, weights-only loading; preserve exact schema/key validation, typed state identity, `fixed_sha256`, source/numerical metadata and member bindings to accepted full-CPU `payload_facts`. Those facts already bind inference members to the complete terminal checkpoint. Whole-file authentication necessarily covers the endpoint container, including its encoder-overlay entries; construct no encoder and use none of those entries for computation.\n\n   Copy only the readout members:\n\n   - Original control-factory `head`, with its exact parameters and buffers.\n   - `A`: float32 `[128,160]`, wrapped as the leaf `Parameter` required by the helper.\n   - `C`: float32 `[128,1152]`, finite and nonzero.\n   - `means`: exact `linear[32]` and `concat[160]`.\n   - `mu_train[1152]`, its provenance, scope and common-statistics identities.\n\n   Call:\n\n   ```\n   fullfeature_raw_features(\n       features, head, A, means, C, mu_train,\n       disk[\"arm\"], pinned_quadratic, pinned_prototype_readout\n   )\n   ```\n\n   The frozen operation is:\n\n   ```\n   h0 + linear(concat(z, h0) - means[\"concat\"], A)\n      + linear(features.float() - mu_train, C)\n   ```\n\n   Preserve its internal normalization, addition order and FP32 arithmetic. Pass direct cache rows; do not add the training path’s extra CPU normalization, refit statistics, omit `C`, or substitute common initial weights.\n\n   [`cpu_calibration`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1287) supplies the readout-only construction pattern. It checks synthetic CPU parity, not cache-to-CUDA equivalence. `check_inference_members` alone checks only keys/schema.\n\n   Do not call `endpoint_scope`, `authenticate_payloads`, `admit_bundle`, evaluator authority/main, `image_rows`, or global exit-rehash wholesale: they expand into initializer, terminal, vision, image or package admission. Use a narrow authenticated function closure and explicit file allowlist. No recursive replay of inherited `input_guards`.\n\n4. **Scorer and mandatory admission**\n\n   Preserve `scoring_math`’s pinned `packed_quality` definition: source SHA256 `8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250`, AST SHA256 `717489188a008ceba1b930d9e7dff32b90cd5347302835538eb171fe23f4b33e`.\n\n   It scores **unit arrays**, repacking them first. Require exact correspondence to stored wires: each row contains 128 signed code bytes followed by little-endian FP16 inverse norm; total **448,370 bytes**, without an artifact header.\n\n   Independently decode and verify:\n\n   ```\n   score = float32(float32(integer_dot * query_inverse) * gallery_inverse)\n   ```\n\n   Preserve gallery order and stable descending ties. AP is **AP@R**, with each query’s positive inventory defining R; full-gallery AP is a different metric.\n\n   Before releasing counterfactual results:\n\n   - Replay **all four** accepted 1,734-element R1 **and AP** arrays exactly.\n   - Verify saved raw/unit/code/inverse facts, layouts, finite/nonzero values, unit norms and exact repacked bytes.\n   - Apply each control endpoint’s **complete terminal readout**, including its updated A/C, to cached selection features in the original role batches: B32, query tail 6, gallery tail 19.\n   - Require complete control R1/AP equality plus raw/unit numeric comparison and exact code/inverse/wire parity. For the smallest fail-closed contract, require raw/unit bit equality too; report maximum differences on failure rather than introducing a tolerance afterward.\n   - Independently reload readouts and repeat outputs exactly; reject omitted-C and wrong-mu mutants.\n\n   **Any admission failure stops the freshness readout.** Matching control R1 alone cannot admit it.\n\n5. **The only counterfactual**\n\n   Per seed `179061` and `179069`, define:\n\n   - **S:** that candidate’s terminal readout applied to original cached selection features.\n   - **F:** that same candidate endpoint’s accepted fresh descriptors.\n\n   | Cell | Query descriptors | Gallery descriptors |\n   |---|---|---|\n   | SS | S | S |\n   | SF | S | F |\n   | FS | F | S |\n   | FF | F | F |\n\n   Assemble rows using the original panel indices; pack row-wise and run the unchanged scorer. FF must reproduce the accepted candidate arrays exactly.\n\n   Retain full per-query R1/AP arrays and descriptive query/gallery effects and interaction, separately per seed. No outcome changes KILL or authorizes training, validation, official evaluation or production admission.\n\n6. **Bounded falsifier and cleanup**\n\n   One small synthetic CPU check should contain interleaved role indices, signed codes, unequal inverse norms, a cross-label tie and two positives per query. It must:\n\n   - Reproduce identical-source composition and independent packed R1/AP.\n   - Reject changed wire bytes, wrong endian decoding, swapped mapping, wrong endpoint members and malformed/object NPY inputs.\n   - Include an **R1-preserving AP mutation**: positive rank 2 becomes rank 3 while rank 1 remains negative; with R=2, AP changes `.25 → 0`.\n   - Reject omitted-C/wrong-mu mutations and attempted image/model access.\n\n   Process one endpoint at a time. Copy required readout tensors, release mmap-backed payloads before advancing, unregister temporary namespaces, preserve RNG/flags and rehash only allowlisted inputs at exit. Release tensors, cache mappings and file handles on success or failure.\n\n   Any prospective root-owned run retains the existing **700-second, 8-GiB, zero-swap, CUDA-hidden** ceiling, locks and normal-terminal evidence. This plan changes no cap and makes no runtime projection.\n\nThe unresolved blocker is **candidate-specific CPU-versus-CUDA arithmetic**. Fresh exports used CUDA FP16 encoder execution followed by CUDA FP32 readout/normalization; S would use cached features and CPU FP32 readout. No saved fresh `[3449,1152]` tap permits same-feature candidate CPU replay. Even complete control parity cannot establish parity for different candidate A/C weights. Passing measurements therefore remain descriptive; null results do not prove freshness noncausal or gains solely due to head co-adaptation.\n\nIf the tap fails, the smaller fallback consumes only authenticated saved raw/unit/packed wires and metadata: replay full R1/AP, verify packed arithmetic, then compare float and packed rankings, reporting recoveries and harms. It measures quantization effects; it cannot attribute freshness or establish a packing defect.\n\nNo files edited; no imports, native execution, tests, remote access or jobs run. Remaining risk: artifact availability and numerical admission are unverified; implementation, freeze and execution remain with the root.",
+  "result_truncated": false
+}
