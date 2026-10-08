@@ -1,0 +1,36 @@
+{
+  "audited_sections": [
+    "3.1",
+    "Table1",
+    "3.2"
+  ],
+  "comparison_decision": "Audited SEE rows do not exceed dated UNICOM SOP91.2/In-Shop96.7 reference. No matched compact128 packed serving latency or end-to-end training measurement. Does not establish exhaustive SOTA, validate exposed Sfora TRAIN-selection comparisons, or change frozen scientific gates. Feature-space proxy augmentation is a research lead only; not adopted.",
+  "metric": "Recall@1 percent; no mAP@R reported in audited table",
+  "new_native_job": false,
+  "new_sfora_quality_read": false,
+  "paper": "SEE: Spherical Embedding Expansion for Improving Deep Metric Learning (Extended Abstract)",
+  "publication": "IJCAI 2025, Sister Conferences Best Papers Track; extended abstract of PAKDD 2024",
+  "reported_rows": [
+    {
+      "CUB_200_2011": 85.8,
+      "Cars_196": 88.8,
+      "DeepFashion_In_Shop": 93.2,
+      "Stanford_Online_Products": 86.3,
+      "backbone": "ViT-S",
+      "dimensions": 384,
+      "method": "SEE"
+    },
+    {
+      "CUB_200_2011": 84.1,
+      "Cars_196": 86.8,
+      "DeepFashion_In_Shop": 92.8,
+      "Stanford_Online_Products": 85.9,
+      "backbone": "ViT-S",
+      "dimensions": 128,
+      "method": "SEE"
+    }
+  ],
+  "schema": "sfora-primary-reference-screen-v1",
+  "source": "https://www.ijcai.org/proceedings/2025/1214.pdf",
+  "split": "Paper conventional DML benchmarks; exact query/gallery manifests and implementation not independently reproduced"
+}
