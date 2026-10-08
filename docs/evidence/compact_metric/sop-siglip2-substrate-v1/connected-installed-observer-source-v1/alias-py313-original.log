@@ -1,0 +1,39 @@
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/command.sh: OK
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/freeze.json: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/control.py: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/joint_relational_compaction.py: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/packed_int8.py: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/request.py: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/runner.py: OK
+{"AS_bytes": 1073741824, "both_driver_startup_and_guard_order": true, "deadline_seconds": 15, "facts": {"control": {"path": "/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/control.py", "sha256": "4c610106bd596baf411db928e510d02dd9a331861cd27830452d3753ac423c00"}, "joint": {"path": "/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/joint_relational_compaction.py", "sha256": "0c0320787ee8d9e3a61bfd265859ec8785874b9727c686d6bd290fd4af19679d"}, "packed": {"path": "/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/packed_int8.py", "sha256": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4"}, "request": {"path": "/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/request.py", "sha256": "cd87559f81b14ce3ba8b1d5742b2410d8ee3df581400c4ac387176b1e376e7c8"}}, "native_execution": false, "python": "3.13.9 (main, Oct 14 2025, 21:26:54) [Clang 20.1.4 ]", "rejections": 46, "status": "PASS"}
+	Command being timed: "/usr/bin/timeout 15 /usr/bin/prlimit --as=1073741824 /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13 -I -S -B /home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/runner.py /home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/request.py /home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/control.py /home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/packed_int8.py /home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/joint_relational_compaction.py"
+	User time (seconds): 0.09
+	System time (seconds): 0.01
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.11
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 31800
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 6069
+	Voluntary context switches: 3
+	Involuntary context switches: 4
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/freeze.json: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/control.py: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/joint_relational_compaction.py: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/packed_int8.py: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/request.py: OK
+/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1/runner.py: OK
+messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

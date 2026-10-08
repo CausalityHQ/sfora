@@ -1,0 +1,72 @@
+{
+  "authorization": "immediate-1791478570628294592-2965865",
+  "base": "a4cd794ce74dfa44791262620d8cc41722fda828",
+  "started_at": "2026-10-08T16:56:26.286337+00:00",
+  "address_space_bytes": 1073741824,
+  "total_timeout_seconds": 120,
+  "before_sha256": {
+    "scripts/qualify_connected_serving_requests.py": "cd87559f81b14ce3ba8b1d5742b2410d8ee3df581400c4ac387176b1e376e7c8",
+    "scripts/qualify_connected_control_serving.py": "4c610106bd596baf411db928e510d02dd9a331861cd27830452d3753ac423c00",
+    "scripts/test_connected_serving_requests.py": "18751d50acec35f78c21ae3976fd6eeb369f28b96c1fa4d40e804cfd1d8142ff",
+    "scripts/test_connected_control_serving.py": "377e2b1fe6567acefdbf7e2b85ea38ea6c9ec96d1b5fcb5693e00b107c3327bc",
+    "scripts/observe_connected_serving.py": "1c3d9f47d17ab6e711caf59317fc56f376744c47be3296123d8eb4d1e57ef6bb",
+    "scripts/test_observe_connected_serving.py": "c8714da0852c994bc450358905667d2f77d0ca7c6788b301d8437c0e6254a105",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+    "src/sfora/joint_relational_compaction.py": "0c0320787ee8d9e3a61bfd265859ec8785874b9727c686d6bd290fd4af19679d"
+  },
+  "results": [
+    {
+      "argv": [
+        "/usr/bin/time",
+        "-v",
+        "-o",
+        "/tmp/sfora-installed-packing-alias-owner-20261008/test_connected_serving_requests-final-original.time",
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_serving_requests.py"
+      ],
+      "exit_code": 0,
+      "seconds": 3.7736397340195253,
+      "stdout_stderr": "/tmp/sfora-installed-packing-alias-owner-20261008/test_connected_serving_requests-final-original.log",
+      "time_log": "/tmp/sfora-installed-packing-alias-owner-20261008/test_connected_serving_requests-final-original.time",
+      "maximum_rss_kib": 61976
+    },
+    {
+      "argv": [
+        "/usr/bin/time",
+        "-v",
+        "-o",
+        "/tmp/sfora-installed-packing-alias-owner-20261008/test_connected_control_serving-final-original.time",
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_control_serving.py"
+      ],
+      "exit_code": 0,
+      "seconds": 45.631161077995785,
+      "stdout_stderr": "/tmp/sfora-installed-packing-alias-owner-20261008/test_connected_control_serving-final-original.log",
+      "time_log": "/tmp/sfora-installed-packing-alias-owner-20261008/test_connected_control_serving-final-original.time",
+      "maximum_rss_kib": 140604
+    }
+  ],
+  "original_receipt": "/tmp/sfora-installed-serving-observer-20261008/verified-final-delivery.json",
+  "native_execution": false,
+  "deployed_python_313": "root-owned separate regression",
+  "limitations": [
+    "Engineering stdlib/source falsifiers only; installed native qualification UNRUN.",
+    "Serving-v5 prior FAIL remains; resource caps/protocol/oracles unchanged."
+  ],
+  "after_sha256": {
+    "scripts/qualify_connected_serving_requests.py": "cd87559f81b14ce3ba8b1d5742b2410d8ee3df581400c4ac387176b1e376e7c8",
+    "scripts/qualify_connected_control_serving.py": "4c610106bd596baf411db928e510d02dd9a331861cd27830452d3753ac423c00",
+    "scripts/test_connected_serving_requests.py": "18751d50acec35f78c21ae3976fd6eeb369f28b96c1fa4d40e804cfd1d8142ff",
+    "scripts/test_connected_control_serving.py": "377e2b1fe6567acefdbf7e2b85ea38ea6c9ec96d1b5fcb5693e00b107c3327bc",
+    "scripts/observe_connected_serving.py": "1c3d9f47d17ab6e711caf59317fc56f376744c47be3296123d8eb4d1e57ef6bb",
+    "scripts/test_observe_connected_serving.py": "c8714da0852c994bc450358905667d2f77d0ca7c6788b301d8437c0e6254a105",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+    "src/sfora/joint_relational_compaction.py": "0c0320787ee8d9e3a61bfd265859ec8785874b9727c686d6bd290fd4af19679d"
+  },
+  "source_bytes_unchanged": true,
+  "elapsed_seconds": 49.405963749974035,
+  "finished_at": "2026-10-08T16:57:15.692301+00:00",
+  "pass": true
+}

@@ -1,0 +1,25 @@
+{
+  "alias_integrated": "4445f69a",
+  "alias_worker": "024c32d6dfd55b2921216991ac0af754e1d66771",
+  "decision": "PASS_SOURCE_ONLY_INSTALLED_OBSERVER_AND_FINITE_ALIAS_CORRECTION",
+  "files": {
+    "alias-final.json": "36631fde20832e0e24ae555d8d075e23fb37bc14e81c97e1570bc08f85954b43",
+    "alias-py313-command.sh": "1d8e235a27f876da696123804755c9b56bbd92a6377f4a6891f64cea4603cdd4",
+    "alias-py313-freeze.json": "e1b1056e573360aeba3135e29e395696cac8966c1d4c584b197185c520ae5f2f",
+    "alias-py313-original.log": "f7c9d1d5f388929c263a875da14bb6626e7dd492e82fc5fdd2a5abcaff1e4349",
+    "alias-py313-runner.py": "312536f149c5e4e8411c4725697b5438d78f304339ae25432145f62928b8993c",
+    "migration-final.json": "011420f80e7ee96e429b34aa4c5641a04605d1d287b0849929514c0ba517b45a"
+  },
+  "migration_integrated": "431a83f9",
+  "migration_worker": "a4cd794ce74dfa44791262620d8cc41722fda828",
+  "native_qualified": false,
+  "prior_serving_v5": "FAIL unchanged",
+  "py313_original_exit": 0,
+  "py313_rejections": 46,
+  "py313_rss_kib": 31800,
+  "py313_seconds": 0.11,
+  "py313_swap": 0,
+  "resolution": "explicit packed_source ownership plus retained joint/packed/current code checks; original startup RED and mutations; root inspected OWN4",
+  "review": "b6808379c31f41e1",
+  "review_blocker": "finite historical packing alias rejected by original Source"
+}

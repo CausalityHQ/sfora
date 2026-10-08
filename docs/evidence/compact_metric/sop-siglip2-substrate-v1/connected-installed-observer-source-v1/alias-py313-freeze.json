@@ -1,0 +1,37 @@
+{
+  "AS_bytes": 1073741824,
+  "CUDA_VISIBLE_DEVICES": "",
+  "files": {
+    "control.py": {
+      "bytes": 38158,
+      "sha256": "4c610106bd596baf411db928e510d02dd9a331861cd27830452d3753ac423c00",
+      "source": "/home/rb/worktrees/sfora-installed-packing-alias-owner-20261008/scripts/qualify_connected_control_serving.py"
+    },
+    "joint_relational_compaction.py": {
+      "bytes": 12488,
+      "sha256": "0c0320787ee8d9e3a61bfd265859ec8785874b9727c686d6bd290fd4af19679d",
+      "source": "/home/rb/worktrees/sfora-positive-causality/src/sfora/joint_relational_compaction.py"
+    },
+    "packed_int8.py": {
+      "bytes": 8383,
+      "sha256": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+      "source": "/home/rb/worktrees/sfora-positive-causality/src/sfora/packed_int8.py"
+    },
+    "request.py": {
+      "bytes": 37699,
+      "sha256": "cd87559f81b14ce3ba8b1d5742b2410d8ee3df581400c4ac387176b1e376e7c8",
+      "source": "/home/rb/worktrees/sfora-installed-packing-alias-owner-20261008/scripts/qualify_connected_serving_requests.py"
+    },
+    "runner.py": {
+      "bytes": 6211,
+      "sha256": "312536f149c5e4e8411c4725697b5438d78f304339ae25432145f62928b8993c",
+      "source": "/tmp/sfora-installed-packing-alias-owner-20261008/deployed-python-alias-regression.py"
+    }
+  },
+  "native_execution": false,
+  "python_sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b",
+  "remote_root": "/home/riomus/runs/sfora-installed-packing-alias-py313-source-v1",
+  "schema": "installed-packing-alias-py313-freeze-v1",
+  "scientific_eligibility": false,
+  "seconds": 15
+}

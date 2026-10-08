@@ -1,0 +1,101 @@
+{
+  "authorization": "immediate-1791477143478088224-2965865",
+  "base": "39be5a437e597343efc213a1bbdf6498042fbd75",
+  "started_at": "2026-10-08T16:33:51.353462+00:00",
+  "address_space_bytes": 1073741824,
+  "total_timeout_seconds": 120,
+  "before_sha256": {
+    "scripts/observe_connected_serving.py": "1c3d9f47d17ab6e711caf59317fc56f376744c47be3296123d8eb4d1e57ef6bb",
+    "scripts/test_observe_connected_serving.py": "c8714da0852c994bc450358905667d2f77d0ca7c6788b301d8437c0e6254a105",
+    "scripts/qualify_connected_serving_requests.py": "72327cc97cf32b5a3c9ed12dbbbc46124686fd5c47a00d1b30bf917876f9c8ae",
+    "scripts/test_connected_serving_requests.py": "464050b54638d8be92e8f27c5de2e03d5ed6a6734a05d1fdc7726a527f7e4bc7",
+    "scripts/qualify_connected_control_serving.py": "6aab69b6b9321226151c3c1b33386682ef07bc6d8b99d3084e569bdb77df4c05",
+    "scripts/test_connected_control_serving.py": "0d8bd3d4a69f38c0a0e43960994509bdaeb5019b385739ca3069509195579684"
+  },
+  "results": [
+    {
+      "argv": [
+        "/usr/bin/time",
+        "-v",
+        "-o",
+        "/tmp/sfora-installed-serving-observer-20261008/test_observe_connected_serving-final-third-original.time",
+        "python3",
+        "-B",
+        "scripts/test_observe_connected_serving.py"
+      ],
+      "exit_code": 0,
+      "seconds": 5.951130673987791,
+      "stdout_stderr": "/tmp/sfora-installed-serving-observer-20261008/test_observe_connected_serving-final-third-original.log",
+      "time_log": "/tmp/sfora-installed-serving-observer-20261008/test_observe_connected_serving-final-third-original.time",
+      "maximum_rss_kib": 43560
+    },
+    {
+      "argv": [
+        "/usr/bin/time",
+        "-v",
+        "-o",
+        "/tmp/sfora-installed-serving-observer-20261008/test_connected_serving_requests-final-third-original.time",
+        "python3",
+        "-B",
+        "scripts/test_connected_serving_requests.py"
+      ],
+      "exit_code": 0,
+      "seconds": 3.7750548580661416,
+      "stdout_stderr": "/tmp/sfora-installed-serving-observer-20261008/test_connected_serving_requests-final-third-original.log",
+      "time_log": "/tmp/sfora-installed-serving-observer-20261008/test_connected_serving_requests-final-third-original.time",
+      "maximum_rss_kib": 61504
+    },
+    {
+      "argv": [
+        "/usr/bin/time",
+        "-v",
+        "-o",
+        "/tmp/sfora-installed-serving-observer-20261008/test_connected_control_serving-final-third-original.time",
+        "python3",
+        "-B",
+        "scripts/test_connected_control_serving.py"
+      ],
+      "exit_code": 0,
+      "seconds": 45.31797784601804,
+      "stdout_stderr": "/tmp/sfora-installed-serving-observer-20261008/test_connected_control_serving-final-third-original.log",
+      "time_log": "/tmp/sfora-installed-serving-observer-20261008/test_connected_control_serving-final-third-original.time",
+      "maximum_rss_kib": 138904
+    }
+  ],
+  "elapsed_seconds": 55.04552866204176,
+  "after_sha256": {
+    "scripts/observe_connected_serving.py": "1c3d9f47d17ab6e711caf59317fc56f376744c47be3296123d8eb4d1e57ef6bb",
+    "scripts/test_observe_connected_serving.py": "c8714da0852c994bc450358905667d2f77d0ca7c6788b301d8437c0e6254a105",
+    "scripts/qualify_connected_serving_requests.py": "72327cc97cf32b5a3c9ed12dbbbc46124686fd5c47a00d1b30bf917876f9c8ae",
+    "scripts/test_connected_serving_requests.py": "464050b54638d8be92e8f27c5de2e03d5ed6a6734a05d1fdc7726a527f7e4bc7",
+    "scripts/qualify_connected_control_serving.py": "6aab69b6b9321226151c3c1b33386682ef07bc6d8b99d3084e569bdb77df4c05",
+    "scripts/test_connected_control_serving.py": "0d8bd3d4a69f38c0a0e43960994509bdaeb5019b385739ca3069509195579684"
+  },
+  "source_bytes_unchanged": true,
+  "finished_at": "2026-10-08T16:34:46.400057+00:00",
+  "immutable_package_sha256": {
+    "src/sfora/connected_compact_serving.py": "7c9713d3356c32f0c86feca788f53f299dc386b97964cec11016f88688c91932",
+    "src/sfora/connected_inference.py": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+    "src/sfora/_connected_inference_authority.py": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4"
+  },
+  "limitations": [
+    "Engineering stdlib/source falsifiers only; no installed-wheel/native CUDA parity, origin/lifecycle, latency or scientific qualification.",
+    "Request fixtures use synthetic native/image/packing boundaries; actual unmodified packed module Source authenticated separately using inert import standins.",
+    "Serving-v5 remains FAIL684.881s/body120; fresh reads consume unchanged caps.",
+    "Root owns frozen paths/pins, protocol, integration and push."
+  ],
+  "commit": "a4cd794ce74dfa44791262620d8cc41722fda828",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "clean_worktree": true,
+  "commit_files": [
+    "scripts/observe_connected_serving.py",
+    "scripts/qualify_connected_control_serving.py",
+    "scripts/qualify_connected_serving_requests.py",
+    "scripts/test_connected_control_serving.py",
+    "scripts/test_connected_serving_requests.py",
+    "scripts/test_observe_connected_serving.py"
+  ],
+  "merged": false,
+  "pushed": false
+}
