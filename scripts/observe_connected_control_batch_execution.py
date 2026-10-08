@@ -441,6 +441,37 @@ def elapsed_cap(started):
     require(time.perf_counter()-started < 700, 'whole700-second observer cap reached')
 
 
+def cuda_ownership_snapshot():
+    """Partial Python tensor metadata only; native allocator owners may be invisible."""
+    torch = sys.modules.get('torch')
+    if torch is None or not torch.cuda.is_initialized():
+        return
+    allocated = torch.cuda.memory_allocated()
+    objects = gc.get_objects() if allocated else []
+    samples = []
+    seen = scanned = 0
+    for value in objects:
+        if scanned == 100000:
+            break
+        scanned += 1
+        if not issubclass(type(value), torch.Tensor) or value.device.type != 'cuda':
+            continue
+        seen += 1
+        if len(samples) < 16:
+            samples.append({'type': (type(value).__module__+'.'+type(value).__qualname__)[:128],
+                'shape': list(value.shape[:8]), 'rank': len(value.shape),
+                'dtype': str(value.dtype)[:128], 'device': str(value.device)[:128],
+                'owner_types': sorted({type(owner).__name__[:128] for owner in gc.get_referrers(value)[:8]
+                                       if owner is not objects})})
+    print(json.dumps({'diagnostic': 'cuda_ownership_snapshot', 'status': 'UNACCEPTED',
+        'phase': 'before_final_state', 'allocated_bytes': allocated,
+        'reserved_bytes': torch.cuda.memory_reserved(), 'peak_allocated_bytes': torch.cuda.max_memory_allocated(),
+        'python_gc_only': True, 'gc_objects': len(objects), 'gc_objects_scanned': scanned,
+        'gc_scan_complete': bool(allocated) and scanned == len(objects),
+        'cuda_tensors_seen': seen, 'tensor_samples': samples},
+        sort_keys=True, allow_nan=False), file=sys.stderr, flush=True)
+
+
 def run(args):
     started = time.perf_counter()
     prospective = context = diagnostic = sources = state = audit = receipt = None
@@ -500,7 +531,10 @@ def run(args):
         sources.checks.append(guard(packing, context['launch']['sources']['packing']['sha256'], context['guards']))
         budget = SimpleNamespace(check=lambda: elapsed_cap(started))
         def final_resources():
-            diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)
+            try:
+                cuda_ownership_snapshot()
+            finally:
+                diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)
         callbacks.append(final_resources)
         connected = m['connected']
         def boundary():

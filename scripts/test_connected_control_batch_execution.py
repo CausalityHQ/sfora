@@ -30,6 +30,31 @@ def load(path, name):
     return module
 
 
+def cuda_diagnostic_inverse(raw):
+    tree = ast.parse(raw)
+    expected = ast.parse("""try:
+    cuda_ownership_snapshot()
+finally:
+    diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)
+""").body[0]
+    counts = {'helper': 0, 'callback': 0}
+    class Restore(ast.NodeTransformer):
+        def visit_FunctionDef(self, node):
+            if node.name == 'cuda_ownership_snapshot' and node.col_offset == 0:
+                counts['helper'] += 1
+                return None
+            if node.name == 'final_resources':
+                if len(node.body) != 1 or ast.dump(node.body[0], include_attributes=False) != ast.dump(expected, include_attributes=False):
+                    raise ValueError('exact diagnostic/final-state seam differs')
+                counts['callback'] += 1
+                node.body = node.body[0].finalbody
+            return self.generic_visit(node)
+    restored = Restore().visit(tree)
+    if counts != {'helper': 1, 'callback': 1}:
+        raise ValueError('exact diagnostic inverse counts differ')
+    return restored
+
+
 class Tensor:
     """Ordered rows, distinct bytes; implements only native boundary operations."""
     def __init__(self, rows, width=1152, dtype='f32'):
@@ -372,7 +397,7 @@ class ObserverTests(unittest.TestCase):
                 if diagnostic and not node.body and not node.orelse:
                     counts['conditions']+=1;return None
                 return node
-        restored=Restore().visit(ast.parse(DRIVER.read_bytes()))
+        restored=Restore().visit(cuda_diagnostic_inverse(DRIVER.read_bytes()))
         self.assertEqual(counts,{'helper':1,'conditions':4})
         self.assertEqual(list(seams.values()),[1]*len(seams))
         digest=hashlib.sha256(ast.dump(restored,include_attributes=False).encode()).hexdigest()
@@ -607,6 +632,118 @@ class ObserverTests(unittest.TestCase):
                     for i,owner in enumerate(('context','prospective')):
                         self.assertLess(events.index('snapshot:before_rehash_'+owner),rehashes[i])
                         self.assertLess(rehashes[i],events.index('snapshot:after_rehash_'+owner))
+
+    def test_cuda_ownership_diagnostic_is_bounded_and_metadata_only(self):
+        self.assertTrue(callable(getattr(self.o, 'cuda_ownership_snapshot', None)), 'CUDA ownership diagnostic missing')
+        node = next(n for n in ast.parse(DRIVER.read_bytes()).body if isinstance(n, ast.FunctionDef) and n.name == 'cuda_ownership_snapshot')
+        namespace = dict(vars(self.o))
+        exec(compile(ast.Module(body=[node], type_ignores=[]), str(DRIVER), 'exec'), namespace)
+        snapshot = namespace['cuda_ownership_snapshot']
+        class Device:
+            type = 'cuda'
+            def __str__(self): return 'cuda:0'
+        class TensorMetadata:
+            shape = tuple(range(12))
+            dtype = 'torch.float32'
+            device = Device()
+            def __repr__(self): raise AssertionError('tensor repr/data forbidden')
+            def cpu(self): raise AssertionError('tensor copying forbidden')
+        cpu = TensorMetadata(); cpu.device = SimpleNamespace(type='cpu')
+        cuda = SimpleNamespace(is_initialized=lambda:True, memory_allocated=lambda:64,
+                               memory_reserved=lambda:128, max_memory_allocated=lambda:256)
+        torch = SimpleNamespace(Tensor=TensorMetadata, cuda=cuda)
+        objects = [object(), cpu, *[TensorMetadata() for _ in range(20)]]
+        owners = [objects, {}, ()]
+        with patch.dict(sys.modules, {'torch':torch}), patch.object(self.o.gc, 'get_objects', return_value=objects), \
+             patch.object(self.o.gc, 'get_referrers', return_value=owners), \
+             patch.object(self.o.gc, 'collect', side_effect=AssertionError('diagnostic collection forbidden')):
+            stderr = io.StringIO()
+            with redirect_stderr(stderr): snapshot()
+            record = json.loads(stderr.getvalue())
+            self.assertEqual({k:record[k] for k in ('diagnostic','status','phase','allocated_bytes','reserved_bytes',
+                'peak_allocated_bytes','gc_objects','gc_objects_scanned','gc_scan_complete','cuda_tensors_seen')},
+                {'diagnostic':'cuda_ownership_snapshot','status':'UNACCEPTED','phase':'before_final_state',
+                 'allocated_bytes':64,'reserved_bytes':128,'peak_allocated_bytes':256,
+                 'gc_objects':22,'gc_objects_scanned':22,'gc_scan_complete':True,'cuda_tensors_seen':20})
+            self.assertIs(record['python_gc_only'], True)
+            self.assertEqual(len(record['tensor_samples']), 16)
+            for sample in record['tensor_samples']:
+                self.assertEqual(sample['shape'], [0,1,2,3,4,5,6,7])
+                self.assertEqual(sample['rank'], 12)
+                self.assertEqual(sample['device'], 'cuda:0')
+                self.assertEqual(sample['dtype'], 'torch.float32')
+                self.assertEqual(sample['owner_types'], ['dict','tuple'])
+                self.assertEqual(sample['type'], (TensorMetadata.__module__+'.'+TensorMetadata.__qualname__)[:128])
+                self.assertEqual(len(sample['type']), 128)
+            self.assertLess(len(stderr.getvalue()), 16384)
+            objects[:] = [None]*100000 + [TensorMetadata()]
+            with redirect_stderr(stderr := io.StringIO()): snapshot()
+            record = json.loads(stderr.getvalue())
+            self.assertEqual(record['gc_objects_scanned'], 100000)
+            self.assertFalse(record['gc_scan_complete'])
+            self.assertEqual(record['cuda_tensors_seen'], 0)
+            cuda.memory_allocated = lambda:0
+            with patch.object(self.o.gc, 'get_objects', side_effect=AssertionError('zero allocation survey forbidden')), \
+                 redirect_stderr(stderr := io.StringIO()): snapshot()
+            self.assertEqual(json.loads(stderr.getvalue())['allocated_bytes'], 0)
+            cuda.is_initialized = lambda:False
+            with redirect_stderr(stderr := io.StringIO()): snapshot()
+            self.assertEqual(stderr.getvalue(), '')
+
+    def test_final_resources_keeps_genuine_cuda_rejection(self):
+        tree = ast.parse(DRIVER.read_bytes())
+        run = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'run')
+        node = next(n for n in ast.walk(run) if isinstance(n, ast.FunctionDef) and n.name == 'final_resources')
+        for broken in (False, True):
+            with self.subTest(diagnostic_failure=broken):
+                events = []
+                cuda = SimpleNamespace(is_initialized=lambda:True, synchronize=lambda:events.append('synchronize'),
+                    max_memory_allocated=lambda:64, memory_allocated=lambda:32, memory_reserved=lambda:128)
+                namespace = {**vars(self.o), 'diagnostic':self.d,
+                    'budget':SimpleNamespace(check=lambda:events.append('budget')),
+                    'source':SimpleNamespace(cgroup_memory=lambda:{'path':'/test.service'}),
+                    'initializer':SimpleNamespace(admit_cgroup=lambda *a:events.append('cgroup')),
+                    'before':{'path':'/test.service'}, 'rng':None, 'flags':None, 'receipt':{}}
+                exec(compile(ast.Module(body=[node], type_ignores=[]), str(DRIVER), 'exec'), namespace)
+                with patch.dict(sys.modules, {'torch':SimpleNamespace(cuda=cuda, Tensor=Tensor)}), \
+                     patch.object(self.o.gc, 'get_objects', side_effect=RuntimeError('ownership diagnostic failed') if broken else None, return_value=[]), \
+                     redirect_stderr(stderr := io.StringIO()):
+                    with self.assertRaisesRegex(ValueError, '^final CUDA tensor cleanup differs$'):
+                        self.d.cleanup_error(None, [namespace['final_resources'], lambda:events.append('dispose')])
+                self.assertEqual(events, ['budget','synchronize','cgroup','dispose'])
+                self.assertEqual(namespace['receipt'], {}, 'rejected final state published resources')
+                if broken:
+                    self.assertEqual(stderr.getvalue(), '')
+                else:
+                    record = json.loads(stderr.getvalue())
+                    self.assertEqual(record['allocated_bytes'], 32)
+                    self.assertEqual(record['cuda_tensors_seen'], 0)
+                    self.assertEqual(record['status'], 'UNACCEPTED')
+
+    def test_cuda_diagnostic_inverse_and_original_test_ast(self):
+        raw = DRIVER.read_bytes()
+        restored = cuda_diagnostic_inverse(raw)
+        self.assertEqual(hashlib.sha256(ast.dump(restored, include_attributes=False).encode()).hexdigest(),
+                         '792579d3c4dbc0ef0a092bba347d9febdf3583ce8e8fbd47a208c477abb92568')
+        for mutant in (raw.replace(b'time.perf_counter()-started < 700', b'time.perf_counter()-started < 701', 1),
+                       raw.replace(b'F.normalize(pooled.float(),dim=1)', b'F.normalize(pooled,dim=1)', 1)):
+            changed = cuda_diagnostic_inverse(mutant)
+            self.assertNotEqual(ast.dump(changed, include_attributes=False), ast.dump(restored, include_attributes=False))
+        with self.assertRaisesRegex(ValueError, 'seam'):
+            cuda_diagnostic_inverse(raw.replace(b'diagnostic.final_state(budget, source, initializer, before, rng, flags, receipt)', b'diagnostic.final_state(budget, source, initializer, before, rng, flags, None)', 1))
+        tests = ast.parse(Path(__file__).read_bytes())
+        tests.body = [n for n in tests.body if not (isinstance(n, ast.FunctionDef) and n.name == 'cuda_diagnostic_inverse')]
+        suite = next(n for n in tests.body if isinstance(n, ast.ClassDef) and n.name == 'ObserverTests')
+        names = {'test_cuda_ownership_diagnostic_is_bounded_and_metadata_only',
+                 'test_final_resources_keeps_genuine_cuda_rejection', 'test_cuda_diagnostic_inverse_and_original_test_ast'}
+        self.assertEqual(sum(isinstance(n, ast.FunctionDef) and n.name in names for n in suite.body), 3)
+        suite.body = [n for n in suite.body if not (isinstance(n, ast.FunctionDef) and n.name in names)]
+        method = next(n for n in suite.body if isinstance(n, ast.FunctionDef) and n.name == 'test_only_advice_and_diagnostic_seams_invert_complete_production_ast')
+        assignment = next(n for n in method.body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'restored' for t in n.targets))
+        self.assertEqual(ast.unparse(assignment.value), 'Restore().visit(cuda_diagnostic_inverse(DRIVER.read_bytes()))')
+        assignment.value = ast.parse('Restore().visit(ast.parse(DRIVER.read_bytes()))', mode='eval').body
+        self.assertEqual(hashlib.sha256(ast.dump(tests, include_attributes=False).encode()).hexdigest(),
+                         '58edb1f4a7ea766905901a2144e571ea583ce3f45fe707734118154ff57e3555')
 
     def test_cli_and_no_native_imports(self):
         self.assertFalse({'torch','numpy','PIL','transformers','torchvision','sfora'}.intersection(sys.modules))
