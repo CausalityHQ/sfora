@@ -1,0 +1,60 @@
+{
+  "base": "bdf30b3c0d6d7397c50d9061c5af028b8a258832",
+  "git_identity": {
+    "name": "Roman Bartusiak",
+    "email": "riomus@gmail.com"
+  },
+  "files": {
+    "src/sfora/connected_inference.py": {
+      "bytes": 52363,
+      "sha256": "4a47118ddc3e870a8daad0078dc2659b72e836a8f5c205c7cdc292880b91c4c8"
+    },
+    "src/sfora/_connected_inference_authority.py": {
+      "bytes": 136879,
+      "sha256": "e14b125071083dbdb0a2254701597c232ef40cafb2bbb2defad1e4ab0fe62160"
+    },
+    "src/sfora/connected_compact_serving.py": {
+      "bytes": 26215,
+      "sha256": "16fe930a47a221c1ab17bdbc2889c22889b10e870a9aa98a2eacb4457f53a560"
+    },
+    "scripts/test_connected_inference_extraction.py": {
+      "bytes": 45360,
+      "sha256": "043207729a6cc4b2e43fe6a9ce4e10169d58c409443c35fec6e8da320c0e310b"
+    },
+    "scripts/test_connected_compact_serving.py": {
+      "bytes": 39355,
+      "sha256": "57be4f524f587bb199d60666c76225b23f6cfccf557d289b506b8d0322093499"
+    }
+  },
+  "narrow_checks": {
+    "fresh_sha_framing_mutation_overlap_budget_joined_failures_weakrefs": 0,
+    "ordered_dict_failure_context_tensor_weakrefs": 0,
+    "historical_inverse_ledger_unchanged_AST_routing": 0,
+    "bridge_helper_authentication": 0,
+    "git_diff_check": 0
+  },
+  "final_serial_gate": {
+    "command": "rtk proxy /usr/bin/time -v -o /tmp/sfora-connected-fresh-sha-pipeline-20261008-final-source.time timeout 120s bash -c 'ulimit -v 1048576; python3 scripts/test_connected_inference_extraction.py && python3 scripts/test_connected_compact_serving.py' > /tmp/sfora-connected-fresh-sha-pipeline-20261008-final-source.log 2>&1",
+    "tool_session_id": 64899,
+    "exit_status": 0,
+    "wall_seconds": 4.21,
+    "max_rss_kib": 115800,
+    "swaps": 0,
+    "address_space_limit_bytes": 1073741824,
+    "outer_timeout_seconds": 120,
+    "log": "/tmp/sfora-connected-fresh-sha-pipeline-20261008-final-source.log",
+    "resource_report": "/tmp/sfora-connected-fresh-sha-pipeline-20261008-final-source.time",
+    "parent_grant": "immediate-1791484252275980894-3122928"
+  },
+  "native_admission": false,
+  "performance_claim": false,
+  "commit": "10af75da65ab0117806490266b8a053da2d7feb1",
+  "commit_parent": "bdf30b3c0d6d7397c50d9061c5af028b8a258832",
+  "clean_worktree": true,
+  "owned_files_verified": true,
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "committer": "Roman Bartusiak <riomus@gmail.com>",
+  "commit_message": "feat: add bounded fresh encoder SHA pipeline",
+  "merged": false,
+  "pushed": false
+}

@@ -1,0 +1,17 @@
+{
+  "base": "10af75da65ab0117806490266b8a053da2d7feb1",
+  "commit": "bb1d3af0de45d1c0edb0397eb052ba7128da68b5",
+  "files_changed": 4,
+  "bridge_test_untouched": true,
+  "pins": {
+    "runtime_sha256": "ea73430a5cc1a7f7ee769dbd37d27dc9379b03896bcab7e9ae3a7b771a42b9eb",
+    "authority_sha256": "d1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b",
+    "fingerprint_cuda_dict_byte_sha256": "b27af928b1c3384d80889b9fe6d1798cee23f55a34ff61411cbab5ae32274dba",
+    "fingerprint_cuda_dict_ast_sha256": "2d79f0a0d9a3a45e2f9a46049c6e098dec728f1e17262ce5d6350a19a76686ca",
+    "historical_inverse_runtime_sha256": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512"
+  },
+  "red": "unmodified runtime: queued task hashed a released view (both injections); no-clear mutant caught by live-error weakref assertion",
+  "final_serial_gate": {"timeout_s": 120, "address_space_bytes": 1073741824, "exit": 0, "wall_s": 3.40, "max_rss_kib": 115964, "swaps": 0, "log": "/tmp/claude-1001/-home-rb-worktrees-sfora-connected-fresh-sha-submit-lifetime-20261008/2a8d4aac-e50b-4d99-a2c0-b99d88606449/scratchpad/gate2.log", "note": "an earlier identical run (7.71s, exit 0) preceded the live-error test strengthening; the gate was repeated once on final bytes"},
+  "contract": "/tmp/sfora-connected-fresh-sha-submit-lifetime-20261008-contract.md",
+  "native_admission": false, "performance_claim": false, "merged": false, "pushed": false
+}
