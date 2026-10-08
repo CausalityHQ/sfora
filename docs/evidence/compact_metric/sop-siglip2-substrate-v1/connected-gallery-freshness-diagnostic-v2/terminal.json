@@ -1,0 +1,41 @@
+{
+  "candidate_status": "KILL",
+  "counterfactual_cells_completed": 0,
+  "decision": "FAIL_CONTROL_TAP_PARITY",
+  "exit_status": 1,
+  "invocation_id": "12c4f2b66c96485c9e17d8960ce0e974",
+  "memory_events_max": 0,
+  "memory_peak_bytes": 4446916608,
+  "oom": 0,
+  "original_log_sha256": "a38cdee01c203ceb9d230592c6b5ba76ab62b4bac4fe729dc04e853a3d026c9b",
+  "original_v1_failure_preserved": true,
+  "pass": false,
+  "rss_kib": 1274020,
+  "service_seconds": 20.638,
+  "ssh_session": 50833,
+  "swap_bytes": 0,
+  "tap": {
+    "codes": {
+      "different_bytes": 9,
+      "exact": false
+    },
+    "inverse_norms": {
+      "different_bytes": 1,
+      "exact": false
+    },
+    "raw": {
+      "different_bytes": 1902,
+      "exact": false,
+      "max_absolute_difference": 0.0002937689423561096
+    },
+    "unit": {
+      "different_bytes": 1896,
+      "exact": false,
+      "max_absolute_difference": 0.0006829574704170227
+    },
+    "wire": {
+      "different_bytes": 10,
+      "exact": false
+    }
+  }
+}

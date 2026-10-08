@@ -1,0 +1,1 @@
+{"codes": {"different_bytes": 9, "exact": false}, "inverse_norms": {"different_bytes": 1, "exact": false}, "raw": {"different_bytes": 1902, "exact": false, "max_absolute_difference": 0.0002937689423561096}, "unit": {"different_bytes": 1896, "exact": false, "max_absolute_difference": 0.0006829574704170227}, "wire": {"different_bytes": 10, "exact": false}}
