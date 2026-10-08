@@ -1,0 +1,41 @@
+{
+  "schema": "connected-cache-tap-parent-source-audit-v1",
+  "scope_sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726",
+  "partition_sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c",
+  "original_cache": {
+    "path": "/home/riomus/runs/sfora-native256-fit-export-so400-v1/fit.npy",
+    "sha256": "c418df0354408c8b33dca07f21e7b3cbf9d5089f7f278b93003a614f21085716",
+    "shape": [13283, 1152],
+    "dtype": "float32",
+    "tap": "normalized pooled encoder features, not raw pooled features"
+  },
+  "actual_connected_training_scope": {
+    "arm": "control",
+    "rows": 6355,
+    "products": 1008,
+    "selection_product_overlap": 0,
+    "validation_product_overlap": 0,
+    "source_predicate": "select_initializer and check_payload require control scope for both connected arms"
+  },
+  "other_frozen_candidate_scope": {
+    "rows": 6355,
+    "products": 2016,
+    "selection_product_overlap": 0,
+    "validation_product_overlap": 0,
+    "used_by_connected_arm": false
+  },
+  "original_exporter": {
+    "path": "/home/riomus/runs/sfora-native256-fit-export-source-v1/export_siglip2_substrate_fit.py",
+    "sha256": "163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8",
+    "authenticated_against": "accepted full-selection score input_guards and current identical source bytes",
+    "arithmetic": "B32 plus tail; FP32 model; CUDA FP16 autocast; pooler_output.float(); CUDA F.normalize(dim=1); CPU NumPy float32"
+  },
+  "counterfactual_readout": "Use the same candidate terminal head/A/C/means/mu on these normalized input features; do not normalize a second time or substitute training-scope ordinal order.",
+  "unresolved": [
+    "Actual CPU readout versus accepted CUDA readout numerical and packed tap agreement has not been measured.",
+    "Original FIT export batches differ from selection-export batches; encoder batch rounding is a possible confound.",
+    "Source-supported training asymmetry does not establish its causal contribution to rank-1 failure."
+  ],
+  "remote_idle_observation": "Original SSH session 10699 exited 0; nvidia-smi reported 0 percent utilization and no matching training/evaluation/qualification process except the inspection shell. This is an instantaneous observation, not a utilization profile.",
+  "native_diagnostic_launched": false
+}
