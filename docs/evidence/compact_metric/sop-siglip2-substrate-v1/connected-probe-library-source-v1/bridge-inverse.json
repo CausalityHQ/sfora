@@ -1,0 +1,42 @@
+[
+  [
+    "def _literal_state(",
+    "def _installed_probe_authority() -> tuple[Path, str]:\n    return (\n        Path(__file__).absolute().parent / \"_connected_probe_inference_authority.py\",\n        \"0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab\",\n    )\n\n\ndef _literal_state(",
+    1
+  ],
+  [
+    "    @classmethod\n    def from_bundle(\n        cls,\n        *,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        \"\"\"Load explicit caller-pinned bytes; device, dimensions and k are fixed.\"\"\"\n",
+    "    @classmethod\n    def from_bundle(\n        cls,\n        *,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        \"\"\"Load an explicit MLP bundle; device, dimensions and k are fixed.\"\"\"\n        return cls._from_bundle(\n            _probe=False,\n            bundle_dir=bundle_dir,\n            expected_bundle_sha256=expected_bundle_sha256,\n            gallery_path=gallery_path,\n            expected_gallery_sha256=expected_gallery_sha256,\n            gallery_count=gallery_count,\n            native_library_path=native_library_path,\n            expected_native_library_sha256=expected_native_library_sha256,\n        )\n\n    @classmethod\n    def from_probe_bundle(\n        cls,\n        *,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        \"\"\"Load an explicit probe bundle; installed/native parity remains unqualified.\"\"\"\n        return cls._from_bundle(\n            _probe=True,\n            bundle_dir=bundle_dir,\n            expected_bundle_sha256=expected_bundle_sha256,\n            gallery_path=gallery_path,\n            expected_gallery_sha256=expected_gallery_sha256,\n            gallery_count=gallery_count,\n            native_library_path=native_library_path,\n            expected_native_library_sha256=expected_native_library_sha256,\n        )\n\n    @classmethod\n    def _from_bundle(\n        cls,\n        *,\n        _probe: bool,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        \"\"\"Share the original lifecycle across exactly two fixed installed bindings.\"\"\"\n",
+    1
+  ],
+  [
+    "        self = cls()\n        try:\n",
+    "        self = cls()\n        try:\n            _require(type(_probe) is bool, \"fixed internal connected binding required\")\n            if _probe:\n                schema = \"siglip2-connected-probe-bundle-v1\"\n                code_names = (_CODE - {_TRAINER, \"test_siglip2_connected_mlp.py\"}) | {\n                    \"train_siglip2_connected_probe.py\", \"test_siglip2_connected_probe.py\"\n                }\n                authority_factory = _installed_probe_authority\n                authority_schema = \"sfora-connected-probe-inference-extraction-v1\"\n                runtime_filename = \"connected_probe_inference.py\"\n            else:\n                schema = \"siglip2-connected-mlp-bundle-v1\"\n                code_names = _CODE\n                authority_factory = _installed_authority\n                authority_schema = \"sfora-connected-inference-extraction-v1\"\n                runtime_filename = \"connected_inference.py\"\n",
+    1
+  ],
+  [
+    "manifest[\"schema\"] == \"siglip2-connected-mlp-bundle-v1\"",
+    "manifest[\"schema\"] == schema",
+    1
+  ],
+  [
+    "manifest[\"code\"].keys() == _CODE",
+    "manifest[\"code\"].keys() == code_names",
+    1
+  ],
+  [
+    "authority_path, authority_sha = _installed_authority()",
+    "authority_path, authority_sha = authority_factory()",
+    1
+  ],
+  [
+    "record[\"SCHEMA\"] == \"sfora-connected-inference-extraction-v1\"",
+    "record[\"SCHEMA\"] == authority_schema",
+    1
+  ],
+  [
+    "runtime_path = Path(__file__).resolve().parent / \"connected_inference.py\"",
+    "runtime_path = Path(__file__).resolve().parent / runtime_filename",
+    1
+  ]
+]

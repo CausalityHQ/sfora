@@ -1,0 +1,77 @@
+{
+  "results": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/extract_connected_probe_inference.py",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.6194019160466269,
+      "log": "/tmp/sfora-connected-probe-library-final-0.log",
+      "sha256": "5133b311c2efc769a24ffa0c14f10423ad8646eb8fbe87b2add0977e2e74571d"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_inference_extraction.py"
+      ],
+      "exit": 0,
+      "seconds": 2.0725205569760874,
+      "log": "/tmp/sfora-connected-probe-library-final-1.log",
+      "sha256": "1ae31dae136f543a388f6cba3e6b7e32718f914a1fec1366357bbd65729c708b"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_probe_inference_extraction.py"
+      ],
+      "exit": 0,
+      "seconds": 13.981207194039598,
+      "log": "/tmp/sfora-connected-probe-library-final-2.log",
+      "sha256": "f2e964fcffeecc036d10243ea95c58e1a624de05ffc627a8be0b13c049d4854b"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_compact_serving.py"
+      ],
+      "exit": 0,
+      "seconds": 1.3184763030149043,
+      "log": "/tmp/sfora-connected-probe-library-final-3.log",
+      "sha256": "19193bb25961e2a12e147fb82670c91ec93175e984a622b7254296cac33ee378"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_compact_serving.py",
+        "--probe-only"
+      ],
+      "exit": 0,
+      "seconds": 1.7821675660088658,
+      "log": "/tmp/sfora-connected-probe-library-final-4.log",
+      "sha256": "19193bb25961e2a12e147fb82670c91ec93175e984a622b7254296cac33ee378"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_observe_connected_serving.py"
+      ],
+      "exit": 1,
+      "seconds": 4.743593377061188,
+      "log": "/tmp/sfora-connected-probe-library-final-5.log",
+      "sha256": "42cde530b30ce8b1efd55492e4e0031d7cd67bce022a09f70b43d58b902c6e6c"
+    }
+  ],
+  "seconds": 24.518522295053117,
+  "address_space_bytes": 1073741824,
+  "serial": true,
+  "third_party_imports_denied": true,
+  "pass": false
+}

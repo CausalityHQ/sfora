@@ -1,0 +1,72 @@
+Traceback (most recent call last):
+  File "<string>", line 11, in <module>
+    runpy.run_path(script,run_name='__main__')
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "scripts/test_observe_connected_serving.py", line 1022, in <module>
+    main()
+    ~~~~^^
+  File "scripts/test_observe_connected_serving.py", line 1003, in main
+    installed_sources_check(d, installed)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "scripts/test_observe_connected_serving.py", line 856, in installed_sources_check
+    d.check_runtime_sources(sources,bundle)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-probe-library-source-20261008/scripts/observe_connected_serving.py", line 115, in check_runtime_sources
+    for fact in sources.values(): file_bytes(fact)
+                                  ~~~~~~~~~~^^^^^^
+  File "/home/rb/worktrees/sfora-connected-probe-library-source-20261008/scripts/observe_connected_serving.py", line 83, in file_bytes
+    path = canonical(fact['path'])
+  File "/home/rb/worktrees/sfora-connected-probe-library-source-20261008/scripts/observe_connected_serving.py", line 74, in canonical
+    require(path.is_absolute() and str(path) == value and path.resolve() == path and
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            not path.is_symlink(), 'canonical absolute nonsymlink path required')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-probe-library-source-20261008/scripts/observe_connected_serving.py", line 68, in require
+    raise ValueError(message)
+ValueError: canonical absolute nonsymlink path required
+Error in sys.excepthook:
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/apport_python_hook.py", line 238, in partial_apport_excepthook
+    return apport_excepthook(binary, exc_type, exc_obj, exc_tb)
+  File "/usr/lib/python3/dist-packages/apport_python_hook.py", line 72, in apport_excepthook
+    import apport.report
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1333, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 1267, in _find_spec
+  File "<string>", line 8, in find_spec
+    raise AssertionError('third-party import denied by final source gate: '+fullname)
+AssertionError: third-party import denied by final source gate: apport
+
+Original exception was:
+Traceback (most recent call last):
+  File "<string>", line 11, in <module>
+    runpy.run_path(script,run_name='__main__')
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "scripts/test_observe_connected_serving.py", line 1022, in <module>
+    main()
+    ~~~~^^
+  File "scripts/test_observe_connected_serving.py", line 1003, in main
+    installed_sources_check(d, installed)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "scripts/test_observe_connected_serving.py", line 856, in installed_sources_check
+    d.check_runtime_sources(sources,bundle)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-probe-library-source-20261008/scripts/observe_connected_serving.py", line 115, in check_runtime_sources
+    for fact in sources.values(): file_bytes(fact)
+                                  ~~~~~~~~~~^^^^^^
+  File "/home/rb/worktrees/sfora-connected-probe-library-source-20261008/scripts/observe_connected_serving.py", line 83, in file_bytes
+    path = canonical(fact['path'])
+  File "/home/rb/worktrees/sfora-connected-probe-library-source-20261008/scripts/observe_connected_serving.py", line 74, in canonical
+    require(path.is_absolute() and str(path) == value and path.resolve() == path and
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            not path.is_symlink(), 'canonical absolute nonsymlink path required')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-connected-probe-library-source-20261008/scripts/observe_connected_serving.py", line 68, in require
+    raise ValueError(message)
+ValueError: canonical absolute nonsymlink path required

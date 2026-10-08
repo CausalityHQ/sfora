@@ -346,6 +346,22 @@ def probe_guard_checks(oracle):
         sys.modules.pop(fixture.__name__,None)
 
 
+def probe_literal_pin_check(oracle):
+    bridge = load('_probe_literal_pin_bridge', ROOT / 'src/sfora/connected_compact_serving.py')
+    path, digest = bridge._installed_probe_authority()
+    assert path == ROOT / 'src/sfora/_connected_probe_inference_authority.py'
+    assert path.is_absolute() and path.resolve() == path
+    assert digest == hashlib.sha256(path.read_bytes()).hexdigest()
+    raw = bridge._read_checked(path, digest)
+    with tempfile.TemporaryDirectory(prefix='probe-pin-mutation-') as scratch:
+        changed = Path(scratch) / path.name
+        changed.write_bytes(raw + b'# changed authority\n')
+        oracle.reject(lambda: bridge._read_checked(changed, digest), 'current file bytes differ')
+    with patch.object(bridge, '_installed_probe_authority', return_value=(path, '0' * 64)):
+        oracle.reject(lambda: bridge._read_checked(*bridge._installed_probe_authority()), 'current file bytes differ')
+    sys.modules.pop(bridge.__name__)
+
+
 def main():
     if not __debug__:
         raise SystemExit('source check requires assertions')
@@ -360,6 +376,7 @@ def main():
         falsifiers(oracle)
         admission_check(oracle, values)
         probe_guard_checks(oracle)
+        probe_literal_pin_check(oracle)
     finally:
         sys.meta_path.remove(guard)
     print('connected probe inference source-only checks passed; native UNRUN')

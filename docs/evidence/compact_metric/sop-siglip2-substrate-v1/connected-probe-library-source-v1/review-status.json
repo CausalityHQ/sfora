@@ -2,7 +2,7 @@
   "schema": "connected-probe-library-review-status-v1",
   "commit": "fbe930376f5eb92340179e52d4476e9bee6a0078",
   "dual_review_id": "3489b08c1de54e5f",
-  "decision": "PENDING_SOURCE_REVIEW",
+  "decision": "SOURCE_GO_ONLY",
   "native_parity_qualified": false,
   "deployment_quality_speed_qualified": false
 }

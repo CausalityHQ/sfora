@@ -907,7 +907,7 @@ def main():
     assert not any(n in sys.modules for n in ("torch", "numpy", "PIL", "sfora"))
     print(
         "PASS: connected bridge source-only admission, exact wire, failure cleanup, "
-        "registry ownership, lifecycle lock"
+        "registry ownership, lifecycle lock; mode=" + ("probe" if probe else "mlp")
     )
 
 

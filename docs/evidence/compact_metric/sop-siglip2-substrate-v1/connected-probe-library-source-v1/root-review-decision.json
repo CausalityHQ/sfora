@@ -1,0 +1,30 @@
+{
+  "schema": "connected-probe-library-root-review-decision-v1",
+  "reviewed_commit": "fbe930376f5eb92340179e52d4476e9bee6a0078",
+  "integration_commit": "13dac17d",
+  "dual_group": "3489b08c1de54e5f",
+  "opus": "SOURCE_GO",
+  "astra": "SOURCE_GO",
+  "decision": "SOURCE_INTEGRATION_ONLY",
+  "test_evidence_repairs": [
+    "direct actual probe authority literal pin plus changed-file and stale-digest negatives",
+    "mode-specific serving PASS logs"
+  ],
+  "affected_source_checks": {
+    "terminal_session": 78598,
+    "exit": 0,
+    "timeout_seconds": 120,
+    "address_space_bytes": 1073741824,
+    "tests": [
+      "test_connected_probe_inference_extraction.py",
+      "test_connected_compact_serving.py",
+      "test_connected_compact_serving.py --probe-only"
+    ]
+  },
+  "native_parity_qualified": false,
+  "quality_speed_release_qualified": false,
+  "final_test_hashes": {
+    "scripts/test_connected_probe_inference_extraction.py": "ca59bfc0e27db41b50d8fd41c94dd999dfc414af08bf5604b88e44888da42193",
+    "scripts/test_connected_compact_serving.py": "9589dae6a5b77d500c313559ec613669e71b6e66ae127498c033a649012016d3"
+  }
+}
