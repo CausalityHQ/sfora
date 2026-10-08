@@ -1,0 +1,346 @@
+{
+  "id": "511d7817e19c4a1e",
+  "provider": "codex",
+  "model": "gpt-6-astra",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791449054,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791450254,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nREAD-ONLY evaluation-admission specialist, NEW bounded question (not duplicate latency plan0602c95ab2f844c8, which completed). Repo /home/rb/worktrees/sfora-positive-causality current master bb1a736 (resolve exact). Read docs/connected_mlp_decision_2026-10-08.md currentKILL, source plan/observer contract in connected-next-mechanism-research-v1, src/sfora/connected_compact_serving.py, scripts/qualify_connected_serving_requests.py authority/main, scripts/observe_connected_serving.py prepare/measure_request, scripts/evaluate_siglip2_connected_mlp.py authority/admit_bundle/accept_unit/global_exit, original fullCPUv5+control061 full-export-v2 receipts. Observer fingerprint attribution exact2 integrated6a167100; native UNRUN. Need ONE concrete prospective ENGINEERING-ONLY qualified-control public image-to-top10 measurement admission. Current serving driver MUST remain candidate-GO-only unchanged; current scientific candidateKILL must remainKILL, no survivor/official/VAL/quality bypass. Establish whether existing original control export-launch authority+fullCPU+terminal reader can admit unchanged public control061 bundle and TRAIN images without rerunning duplicate full export/native ownership or needing full-selection GO. Identify exact smallest separate driver/admission seam and genuine full uncached exit, source/runtime/native provenance/both-lock/resource/whole-lifecycle requirements. Reuse public22call/readout oracle/ties/profile API, no hashing cache/whitelist/global rebinding/threshold edits. If impossible within original meanings, exact blocker only. Desired output exact FILE/CODE/UNIT/CLI schema, actual control receipt/source linkage from committed metadata (future own hashes dynamic root supplied), bounded stdlib actual-context/reader falsifier and measurement stop rule. No edits/tests/Torch/thirdparty/native/SSH/images/GPU/cloud/consultations/children. Root independently reviews and owns implementation/freeze/native. Gallery-freshness worker is independent; do not duplicate quality diagnosis or invent new training intervention.",
+  "prompt_sha256": "ada353bef8bbfdab9cc3bab84fb730ecc11bd703f03595a91136b8e82a237ddf",
+  "prompt_bytes": 2357,
+  "fingerprint": "ac439aef36820ba1375f276bce51a96f4f39c16a96decbb4e6b3354af2fbcb8c",
+  "evidence": {
+    "git_commit": "bb1a7362391b03635abeded3b6155f72914ee6b0",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "a4669528cedfd994e71634794fcaf6d2b2896d1c2afd8a7c71512341fe5ba0dd",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6-astra",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "32d60903-a775-4900-9c6b-7de84ac7ff3b"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-511d7817e19c4a1e.service",
+  "pid": 3373514,
+  "pgid": 3373514,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "budget_usd": null,
+      "timeout_seconds": 1195,
+      "started_at": 1791449059
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791449692,
+  "event_cursor": 152,
+  "events": [
+    {
+      "seq": 129,
+      "at": 1791449511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 130,
+      "at": 1791449511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 131,
+      "at": 1791449511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 132,
+      "at": 1791449511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 133,
+      "at": 1791449511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 134,
+      "at": 1791449511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 135,
+      "at": 1791449511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 136,
+      "at": 1791449511,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 137,
+      "at": 1791449546,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 138,
+      "at": 1791449546,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 139,
+      "at": 1791449546,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 140,
+      "at": 1791449549,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 141,
+      "at": 1791449549,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 142,
+      "at": 1791449549,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 143,
+      "at": 1791449565,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 144,
+      "at": 1791449565,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 145,
+      "at": 1791449566,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 146,
+      "at": 1791449566,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 147,
+      "at": 1791449566,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 148,
+      "at": 1791449566,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 149,
+      "at": 1791449608,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 150,
+      "at": 1791449613,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 151,
+      "at": 1791449683,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 152,
+      "at": 1791449691,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 145,
+        "at": 1791449566,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 146,
+        "at": 1791449566,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 147,
+        "at": 1791449566,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 148,
+        "at": 1791449566,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 149,
+        "at": 1791449608,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 150,
+        "at": 1791449613,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 151,
+        "at": 1791449683,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 152,
+        "at": 1791449691,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Blocked under the unchanged original meanings.** Control061\u2019s export can be read without full-selection GO, but that authority cannot admit the public cuTile runtime through its genuine uncached exit.\n\nInspected `master` at `bb1a7362391b03635abeded3b6155f72914ee6b0`. The relevant inspected files have no working-tree diff.\n\nThe original metadata admission is available:\n\n- [Control061 export authority](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-full-export-control-179061-v2-freeze/authority-full-export-control-179061-v2.json) has `phase=\"export\"`, `stage=\"full\"`, `panel=\"selection\"`, `arm=\"control\"`, `seed=179061`, `selection_go=null`.\n- Its selected fullCPUv5 receipt is `1a732ebece8d775bffd142ff8abf32cfbc0da5ffb44c787cd0af22d8b3f7c189`.\n- Its [accepted export UNIT](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-export-control-179061-v2/unit.json) binds receipt `db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407`, invocation `2ffefca891564bc2a74267d3511c0401`, service `1307.947s`.\n- Both use evaluator source-v9, execution `3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029`; its evaluator/test hashes match current source.\n\nThus a separate caller could use unchanged [`authority()`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1112), followed by `accept_unit(context, control061_export_unit, \"export\", \"control\", 179061, stage=\"full\", panel=\"selection\")`. This reuses qualification receipts without executing another export. It does **not** establish public-request runtime admission.\n\nThe exact blocker is the native-origin closure:\n\n1. [`imported_origins()`](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_siglip2_substrate_cpu.py:480) reads every mapped `.so` from `/proc/self/maps`.\n2. The authenticated [`native_source_api()`](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_nearest_ranking.py:503) permits the historical source-CPU/warm runtime plus exactly four proven cuDNN libraries. Committed metadata contains **1,762 historical file paths + four supplemental paths = all 1,766 control061 export origin paths**. None admits the separate cuTile library.\n3. Public [`CutilePackedInt8Gallery.open()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:71) loads that separate library with `ctypes.CDLL`. `close()` destroys its gallery handle; it provides no library-unmapping contract.\n4. Required [`exit_rehash()`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1772) invokes that same native-origin authority with `require_exact=True`, including the original nested exit. An additional mapped library violates `unknown or changed native origin`; it also cannot satisfy the exact-four difference.\n\nAdding `observation.native` to `context[\"guards\"]` only pins bytes. It does not extend this authenticated runtime authority. Neither the original terminal reader nor `admit_bundle()` grants that extension. Consequently, there is **no valid FILE/CODE/UNIT/CLI schema-only repair** for the requested complete lifecycle.\n\nA bounded falsifier, **proposed but unrun**, is one extension of [the existing actual native-adapter fixture](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_nearest_ranking.py:1302): retain its positive original-context audit/exit, then add one tiny regular `public-cutile.so` fixture to both the observed `files` and `native_files`, and add its correct digest to ordinary guards. Invoke the genuine owned audit and nested exit without replacing their functions. Both must still reject the extra origin. Bound this stdlib-only check to **120 seconds/1 GiB**, with no library loading.\n\n**Stop rule:** no control measurement launch under this authority. Resolving this requires a separately reviewed native-runtime admission/exit contract; changing the scientific GO requirement would not resolve it. Candidate KILL and the candidate-GO-only driver remain unchanged.\n\nNo edits, tests, native execution, images, SSH or consultations were performed. Runtime failure is source-derived; public measurement remains UNRUN.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Blocked under the unchanged original meanings.** Control061\u2019s export can be read without full-selection GO, but that authority cannot admit the public cuTile runtime through its genuine uncached exit.\n\nInspected `master` at `bb1a7362391b03635abeded3b6155f72914ee6b0`. The relevant inspected files have no working-tree diff.\n\nThe original metadata admission is available:\n\n- [Control061 export authority](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-full-export-control-179061-v2-freeze/authority-full-export-control-179061-v2.json) has `phase=\"export\"`, `stage=\"full\"`, `panel=\"selection\"`, `arm=\"control\"`, `seed=179061`, `selection_go=null`.\n- Its selected fullCPUv5 receipt is `1a732ebece8d775bffd142ff8abf32cfbc0da5ffb44c787cd0af22d8b3f7c189`.\n- Its [accepted export UNIT](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-export-control-179061-v2/unit.json) binds receipt `db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407`, invocation `2ffefca891564bc2a74267d3511c0401`, service `1307.947s`.\n- Both use evaluator source-v9, execution `3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029`; its evaluator/test hashes match current source.\n\nThus a separate caller could use unchanged [`authority()`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1112), followed by `accept_unit(context, control061_export_unit, \"export\", \"control\", 179061, stage=\"full\", panel=\"selection\")`. This reuses qualification receipts without executing another export. It does **not** establish public-request runtime admission.\n\nThe exact blocker is the native-origin closure:\n\n1. [`imported_origins()`](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_siglip2_substrate_cpu.py:480) reads every mapped `.so` from `/proc/self/maps`.\n2. The authenticated [`native_source_api()`](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_nearest_ranking.py:503) permits the historical source-CPU/warm runtime plus exactly four proven cuDNN libraries. Committed metadata contains **1,762 historical file paths + four supplemental paths = all 1,766 control061 export origin paths**. None admits the separate cuTile library.\n3. Public [`CutilePackedInt8Gallery.open()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:71) loads that separate library with `ctypes.CDLL`. `close()` destroys its gallery handle; it provides no library-unmapping contract.\n4. Required [`exit_rehash()`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1772) invokes that same native-origin authority with `require_exact=True`, including the original nested exit. An additional mapped library violates `unknown or changed native origin`; it also cannot satisfy the exact-four difference.\n\nAdding `observation.native` to `context[\"guards\"]` only pins bytes. It does not extend this authenticated runtime authority. Neither the original terminal reader nor `admit_bundle()` grants that extension. Consequently, there is **no valid FILE/CODE/UNIT/CLI schema-only repair** for the requested complete lifecycle.\n\nA bounded falsifier, **proposed but unrun**, is one extension of [the existing actual native-adapter fixture](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_nearest_ranking.py:1302): retain its positive original-context audit/exit, then add one tiny regular `public-cutile.so` fixture to both the observed `files` and `native_files`, and add its correct digest to ordinary guards. Invoke the genuine owned audit and nested exit without replacing their functions. Both must still reject the extra origin. Bound this stdlib-only check to **120 seconds/1 GiB**, with no library loading.\n\n**Stop rule:** no control measurement launch under this authority. Resolving this requires a separately reviewed native-runtime admission/exit contract; changing the scientific GO requirement would not resolve it. Candidate KILL and the candidate-GO-only driver remain unchanged.\n\nNo edits, tests, native execution, images, SSH or consultations were performed. Runtime failure is source-derived; public measurement remains UNRUN."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 2357,
+  "output_bytes": 4282,
+  "elapsed_seconds": 638,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)\ndevbox-ask: codex consult still running (8m 00s)\ndevbox-ask: codex consult still running (8m 30s)\ndevbox-ask: codex consult still running (9m 00s)\ndevbox-ask: codex consult still running (9m 30s)\ndevbox-ask: codex consult still running (10m 00s)\ndevbox-ask: codex consult still running (10m 30s)",
+  "progress_truncated": false,
+  "result": "**Blocked under the unchanged original meanings.** Control061\u2019s export can be read without full-selection GO, but that authority cannot admit the public cuTile runtime through its genuine uncached exit.\n\nInspected `master` at `bb1a7362391b03635abeded3b6155f72914ee6b0`. The relevant inspected files have no working-tree diff.\n\nThe original metadata admission is available:\n\n- [Control061 export authority](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-full-export-control-179061-v2-freeze/authority-full-export-control-179061-v2.json) has `phase=\"export\"`, `stage=\"full\"`, `panel=\"selection\"`, `arm=\"control\"`, `seed=179061`, `selection_go=null`.\n- Its selected fullCPUv5 receipt is `1a732ebece8d775bffd142ff8abf32cfbc0da5ffb44c787cd0af22d8b3f7c189`.\n- Its [accepted export UNIT](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-export-control-179061-v2/unit.json) binds receipt `db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407`, invocation `2ffefca891564bc2a74267d3511c0401`, service `1307.947s`.\n- Both use evaluator source-v9, execution `3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029`; its evaluator/test hashes match current source.\n\nThus a separate caller could use unchanged [`authority()`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1112), followed by `accept_unit(context, control061_export_unit, \"export\", \"control\", 179061, stage=\"full\", panel=\"selection\")`. This reuses qualification receipts without executing another export. It does **not** establish public-request runtime admission.\n\nThe exact blocker is the native-origin closure:\n\n1. [`imported_origins()`](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_siglip2_substrate_cpu.py:480) reads every mapped `.so` from `/proc/self/maps`.\n2. The authenticated [`native_source_api()`](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_nearest_ranking.py:503) permits the historical source-CPU/warm runtime plus exactly four proven cuDNN libraries. Committed metadata contains **1,762 historical file paths + four supplemental paths = all 1,766 control061 export origin paths**. None admits the separate cuTile library.\n3. Public [`CutilePackedInt8Gallery.open()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:71) loads that separate library with `ctypes.CDLL`. `close()` destroys its gallery handle; it provides no library-unmapping contract.\n4. Required [`exit_rehash()`](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1772) invokes that same native-origin authority with `require_exact=True`, including the original nested exit. An additional mapped library violates `unknown or changed native origin`; it also cannot satisfy the exact-four difference.\n\nAdding `observation.native` to `context[\"guards\"]` only pins bytes. It does not extend this authenticated runtime authority. Neither the original terminal reader nor `admit_bundle()` grants that extension. Consequently, there is **no valid FILE/CODE/UNIT/CLI schema-only repair** for the requested complete lifecycle.\n\nA bounded falsifier, **proposed but unrun**, is one extension of [the existing actual native-adapter fixture](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_nearest_ranking.py:1302): retain its positive original-context audit/exit, then add one tiny regular `public-cutile.so` fixture to both the observed `files` and `native_files`, and add its correct digest to ordinary guards. Invoke the genuine owned audit and nested exit without replacing their functions. Both must still reject the extra origin. Bound this stdlib-only check to **120 seconds/1 GiB**, with no library loading.\n\n**Stop rule:** no control measurement launch under this authority. Resolving this requires a separately reviewed native-runtime admission/exit contract; changing the scientific GO requirement would not resolve it. Candidate KILL and the candidate-GO-only driver remain unchanged.\n\nNo edits, tests, native execution, images, SSH or consultations were performed. Runtime failure is source-derived; public measurement remains UNRUN.",
+  "result_truncated": false
+}
