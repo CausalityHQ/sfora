@@ -1,0 +1,264 @@
+{
+  "base": "e0f20557",
+  "pre_edit_snapshot": "/tmp/sfora-connected-probe-library-pre-edit",
+  "owned_files": [
+    "scripts/extract_connected_probe_inference.py",
+    "src/sfora/connected_probe_inference.py",
+    "src/sfora/_connected_probe_inference_authority.py",
+    "scripts/test_connected_probe_inference_extraction.py",
+    "src/sfora/connected_compact_serving.py",
+    "scripts/test_connected_compact_serving.py",
+    "scripts/test_connected_inference_extraction.py",
+    "README.md"
+  ],
+  "pins": {
+    "src/sfora/connected_compact_serving.py": "3d395a8fd7779bdae9145a3195785fc428b74fb53a8c0e2e47237fd8b22ed3ce",
+    "scripts/test_connected_compact_serving.py": "57be4f524f587bb199d60666c76225b23f6cfccf557d289b506b8d0322093499",
+    "scripts/test_connected_inference_extraction.py": "ddc1aa96dd32e0ff919eb5c7e475c67cc7f5349cd1d65a1d311593cb43864867",
+    "README.md": "788845ce58ddf907a8ca0d992b0be4df6a00b63817d4e0c32c09b60e17e60658",
+    "src/sfora/connected_inference.py": "ea73430a5cc1a7f7ee769dbd37d27dc9379b03896bcab7e9ae3a7b771a42b9eb",
+    "src/sfora/_connected_inference_authority.py": "d1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+    "scripts/train_siglip2_connected_probe.py": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e",
+    "scripts/test_siglip2_connected_probe.py": "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120"
+  },
+  "historical_probe9": [
+    [
+      "extract_siglip2_vision_source.py",
+      "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d"
+    ],
+    [
+      "joint_relational_compaction.py",
+      "4ca0de1b0579ea6165c81e9057e9afe77e6dd4141f0b4a0adb281de25300de67"
+    ],
+    [
+      "prototype_residual_readout.py",
+      "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68"
+    ],
+    [
+      "quadratic_readout.py",
+      "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6"
+    ],
+    [
+      "qualify_siglip2_substrate_cpu.py",
+      "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38"
+    ],
+    [
+      "test_siglip2_connected_probe.py",
+      "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120"
+    ],
+    [
+      "train_siglip2_cached_readout.py",
+      "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c"
+    ],
+    [
+      "train_siglip2_connected_probe.py",
+      "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+    ],
+    [
+      "train_siglip2_substrate_adaptation.py",
+      "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+    ]
+  ],
+  "api": {
+    "factory": "ConnectedCompactIndex.from_probe_bundle",
+    "keyword_only": [
+      "bundle_dir",
+      "expected_bundle_sha256",
+      "gallery_path",
+      "expected_gallery_sha256",
+      "gallery_count",
+      "native_library_path",
+      "expected_native_library_sha256"
+    ],
+    "internal_choices": [
+      "mlp",
+      "probe"
+    ],
+    "same_index_lifecycle": true,
+    "mlp_only_from_bundle": true
+  },
+  "plumbing": [
+    [
+      "original.fingerprint",
+      "fingerprint"
+    ],
+    [
+      "original.CheckpointPages",
+      "CheckpointPages"
+    ],
+    [
+      "original.load_vision",
+      "load_vision"
+    ],
+    [
+      "source.module_origin",
+      "module_origin"
+    ],
+    [
+      "source.construct",
+      "construct"
+    ],
+    [
+      "source.numerical_flags",
+      "numerical_flags"
+    ],
+    [
+      "primitive._check_tensor",
+      "_check_tensor"
+    ],
+    [
+      "primitive._check_features",
+      "_check_features"
+    ],
+    [
+      "primitive._check_base",
+      "_check_base"
+    ],
+    [
+      "primitive._finite",
+      "_finite"
+    ],
+    [
+      "primitive._require",
+      "require"
+    ],
+    [
+      "readout.raw_features",
+      "raw_features"
+    ],
+    [
+      "_require(",
+      "require("
+    ],
+    [
+      "def model_structure(model, source, packages):",
+      "def model_structure(model, packages):"
+    ],
+    [
+      "model_structure(model,source,",
+      "model_structure(model,"
+    ],
+    [
+      "def encoder_facts(state, original, source, packages, *, serving=False):",
+      "def encoder_facts(state, packages, *, serving=False):"
+    ],
+    [
+      "encoder_facts(endpoint,original,source,",
+      "encoder_facts(endpoint,"
+    ],
+    [
+      "def construct_encoder(source, original, construct_context, config, buffers, processor_config, base,",
+      "def construct_encoder(construct_context, config, buffers, processor_config, base,"
+    ],
+    [
+      "overlay=None, source_runtime=None):",
+      "overlay=None):"
+    ],
+    [
+      "construct_encoder(source,original,construct_context,",
+      "construct_encoder(construct_context,"
+    ],
+    [
+      "def fullfeature_raw_features(features, head, A, means, C, mu_train, arm, primitive, readout):",
+      "def fullfeature_raw_features(features, head, A, means, C, mu_train, arm):"
+    ],
+    [
+      "raw_features(features, head, A, means, 'concat', primitive)",
+      "raw_features(features, head, A, means, 'concat')"
+    ],
+    [
+      "def check_weight(A, device, arm, primitive):",
+      "def check_weight(A, device, arm):"
+    ],
+    [
+      "def check_means(means, device, primitive):",
+      "def check_means(means, device):"
+    ],
+    [
+      "def raw_features(features, base, A, means, arm, primitive):",
+      "def raw_features(features, base, A, means, arm):"
+    ],
+    [
+      "check_weight(A, device, arm, primitive)",
+      "check_weight(A, device, arm)"
+    ],
+    [
+      "check_means(means, device, primitive)",
+      "check_means(means, device)"
+    ]
+  ],
+  "extraction": {
+    "sources": "existing CLOSURE replacing accepted trainer; add _probe_decorators,_probe_vision_forward,probe_source; 41 definitions",
+    "construct_encoder": "remove EXACT two source_runtime-only spans as original oracle; all other probe guards untouched",
+    "construct": "original two exact bound_file substitutions",
+    "admit_bundle": "prepend _check_runtime; exact probe trainer self hash replaced by _binding[0] tuple match; append bound runtime guards",
+    "load_inference": "replace historical module-loading block with runtime module registry; exact local helper plumbing, context extract removal and directory member addition",
+    "inference_outputs": "local runtime check and fresh historical evidence reads; canonical shared _pack call; no math changes",
+    "_check_base": "original installed exact code/globals/defaults/source authentication",
+    "constants": "replace MLP/MLP_SHAPES by exact accepted PROBE/PROBE_SHAPES/PROBE_SOURCE_SHA; probe schemas/own2; all others exact",
+    "helpers": "_bind_runtime changes exactly2 filenames; _check_runtime,_head_method_code,_pack exact current bytes",
+    "hashworker_helpers": [
+      [
+        "_sha_cpu_bytes",
+        "95c5eeb8bfdc4ead6cbb358d8156c55fc6929573da88f94a651a3972449683c7",
+        "c06c74a807afcc04ccf83c928764465647dfc757b18895296e66758b2aa60781"
+      ],
+      [
+        "_fingerprint_cuda_dict",
+        "b27af928b1c3384d80889b9fe6d1798cee23f55a34ff61411cbab5ae32274dba",
+        "2d79f0a0d9a3a45e2f9a46049c6e098dec728f1e17262ce5d6350a19a76686ca"
+      ]
+    ],
+    "pipeline": "exact2 large encoder dict calls only; preserve serving+CUDA selector and helper bytes; no other reads/cache/tasks/budget changes"
+  },
+  "bridge_inverse": {
+    "base_sha256": "3d395a8fd7779bdae9145a3195785fc428b74fb53a8c0e2e47237fd8b22ed3ce",
+    "operations": "Remove exact _installed_probe_authority def and exact from_probe_bundle wrapper; restore original from_bundle signature/docstring replacing fixed dispatch/private implementation; restore exact literal schema/_CODE/_installed_authority/runtime filename/authority-schema expressions. Every before/after span occurrence checked exactly; restore original WHOLE bridge before old pipeline_contract_check. Exact ledger published before bridge writes; no normalisation/old hash changes.",
+    "exact_operations": [
+      [
+        "def _literal_state(",
+        "def _installed_probe_authority() -> tuple[Path, str]:\n    return (\n        Path(__file__).absolute().parent / \"_connected_probe_inference_authority.py\",\n        \"0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab\",\n    )\n\n\ndef _literal_state(",
+        1
+      ],
+      [
+        "    @classmethod\n    def from_bundle(\n        cls,\n        *,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        \"\"\"Load explicit caller-pinned bytes; device, dimensions and k are fixed.\"\"\"\n",
+        "    @classmethod\n    def from_bundle(\n        cls,\n        *,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        \"\"\"Load an explicit MLP bundle; device, dimensions and k are fixed.\"\"\"\n        return cls._from_bundle(\n            _probe=False,\n            bundle_dir=bundle_dir,\n            expected_bundle_sha256=expected_bundle_sha256,\n            gallery_path=gallery_path,\n            expected_gallery_sha256=expected_gallery_sha256,\n            gallery_count=gallery_count,\n            native_library_path=native_library_path,\n            expected_native_library_sha256=expected_native_library_sha256,\n        )\n\n    @classmethod\n    def from_probe_bundle(\n        cls,\n        *,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        \"\"\"Load an explicit probe bundle; installed/native parity remains unqualified.\"\"\"\n        return cls._from_bundle(\n            _probe=True,\n            bundle_dir=bundle_dir,\n            expected_bundle_sha256=expected_bundle_sha256,\n            gallery_path=gallery_path,\n            expected_gallery_sha256=expected_gallery_sha256,\n            gallery_count=gallery_count,\n            native_library_path=native_library_path,\n            expected_native_library_sha256=expected_native_library_sha256,\n        )\n\n    @classmethod\n    def _from_bundle(\n        cls,\n        *,\n        _probe: bool,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        \"\"\"Share the original lifecycle across exactly two fixed installed bindings.\"\"\"\n",
+        1
+      ],
+      [
+        "        self = cls()\n        try:\n",
+        "        self = cls()\n        try:\n            _require(type(_probe) is bool, \"fixed internal connected binding required\")\n            if _probe:\n                schema = \"siglip2-connected-probe-bundle-v1\"\n                code_names = (_CODE - {_TRAINER, \"test_siglip2_connected_mlp.py\"}) | {\n                    \"train_siglip2_connected_probe.py\", \"test_siglip2_connected_probe.py\"\n                }\n                authority_factory = _installed_probe_authority\n                authority_schema = \"sfora-connected-probe-inference-extraction-v1\"\n                runtime_filename = \"connected_probe_inference.py\"\n            else:\n                schema = \"siglip2-connected-mlp-bundle-v1\"\n                code_names = _CODE\n                authority_factory = _installed_authority\n                authority_schema = \"sfora-connected-inference-extraction-v1\"\n                runtime_filename = \"connected_inference.py\"\n",
+        1
+      ],
+      [
+        "manifest[\"schema\"] == \"siglip2-connected-mlp-bundle-v1\"",
+        "manifest[\"schema\"] == schema",
+        1
+      ],
+      [
+        "manifest[\"code\"].keys() == _CODE",
+        "manifest[\"code\"].keys() == code_names",
+        1
+      ],
+      [
+        "authority_path, authority_sha = _installed_authority()",
+        "authority_path, authority_sha = authority_factory()",
+        1
+      ],
+      [
+        "record[\"SCHEMA\"] == \"sfora-connected-inference-extraction-v1\"",
+        "record[\"SCHEMA\"] == authority_schema",
+        1
+      ],
+      [
+        "runtime_path = Path(__file__).resolve().parent / \"connected_inference.py\"",
+        "runtime_path = Path(__file__).resolve().parent / runtime_filename",
+        1
+      ]
+    ],
+    "proposed_sha256": "d3ebfd9a575d7fb77ffbf3a3e1c2d01793edaa03eef0da63faf543596c1d68b3"
+  },
+  "verification": "narrow RED/GREEN <=30s RLIMIT_AS1GiB; once stable ONE serial affected source gate <=120s AS1GiB, source-only third-party denial; native parent-owned",
+  "limits": "No native/Torch/thirdparty imports/SSH/images/checkpoints/GPU/cloud/jobs/consults/children/operator; no master merge/push; no artifact eligibility or quality/speed/release claims"
+}

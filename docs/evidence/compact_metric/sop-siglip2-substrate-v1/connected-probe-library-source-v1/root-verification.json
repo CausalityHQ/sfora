@@ -1,0 +1,12 @@
+{
+  "schema": "probe-library-root-source-gate-log-verification-v1",
+  "source_receipt_sha256": "97f69a7613c21c0138875657aa702eb655892ead6da6743612079409bbb2f2bf",
+  "all_ten_original_logs_match": true,
+  "seconds": 95.59156524995342,
+  "native_parity_qualified": false,
+  "commit_binding_pending": false,
+  "commit": "fbe930376f5eb92340179e52d4476e9bee6a0078",
+  "exact_eight_committed_hashes_match": true,
+  "dual_review": "3489b08c1de54e5f",
+  "source_acceptance_pending_review": true
+}

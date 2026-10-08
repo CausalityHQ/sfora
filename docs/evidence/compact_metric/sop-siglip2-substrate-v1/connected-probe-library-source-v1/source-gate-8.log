@@ -1,0 +1,6 @@
+PASS initializer runtime: real restore/direct/canonical RED500 -> phase GREEN; unchanged predicates/origins
+PASS witness scan: inverse source/AST, fresh occurrences, ordered owner, bounded/joined workers, negatives
+PASS exact runtime/CPU/batch/historical source and historical test inverses
+PASS executed producer-shaped full mechanics receipt: first17/steps/missing/tamper negatives
+PASS real original terminal AST: connected/gradient/control seams and binding/log/cgroup falsifiers
+PASS source-only connected MLP contracts/falsifiers; native UNRUN

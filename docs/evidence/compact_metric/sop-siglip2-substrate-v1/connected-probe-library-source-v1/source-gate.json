@@ -1,0 +1,123 @@
+{
+  "results": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/extract_connected_probe_inference.py",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.5124610149068758,
+      "log": "/tmp/sfora-connected-probe-library-final-0.log",
+      "sha256": "5133b311c2efc769a24ffa0c14f10423ad8646eb8fbe87b2add0977e2e74571d"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_inference_extraction.py"
+      ],
+      "exit": 0,
+      "seconds": 1.892183440970257,
+      "log": "/tmp/sfora-connected-probe-library-final-1.log",
+      "sha256": "1ae31dae136f543a388f6cba3e6b7e32718f914a1fec1366357bbd65729c708b"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_probe_inference_extraction.py"
+      ],
+      "exit": 0,
+      "seconds": 14.409246486029588,
+      "log": "/tmp/sfora-connected-probe-library-final-2.log",
+      "sha256": "f2e964fcffeecc036d10243ea95c58e1a624de05ffc627a8be0b13c049d4854b"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_compact_serving.py"
+      ],
+      "exit": 0,
+      "seconds": 1.3531421209918335,
+      "log": "/tmp/sfora-connected-probe-library-final-3.log",
+      "sha256": "19193bb25961e2a12e147fb82670c91ec93175e984a622b7254296cac33ee378"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_compact_serving.py",
+        "--probe-only"
+      ],
+      "exit": 0,
+      "seconds": 1.516937345964834,
+      "log": "/tmp/sfora-connected-probe-library-final-4.log",
+      "sha256": "19193bb25961e2a12e147fb82670c91ec93175e984a622b7254296cac33ee378"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_observe_connected_serving.py"
+      ],
+      "exit": 0,
+      "seconds": 6.2305349360685796,
+      "log": "/tmp/sfora-connected-probe-library-final-5.log",
+      "sha256": "a401391639cf3e880cc9df5e149e5e73a6444f15e9d38e457e72724731fd26f0"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_serving_requests.py"
+      ],
+      "exit": 0,
+      "seconds": 5.024419951951131,
+      "log": "/tmp/sfora-connected-probe-library-final-6.log",
+      "sha256": "6d4ccde9c97750e4622d504ce7e115d5e45d6c17fdb0143ee8a1005c2d409fed"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_connected_control_serving.py"
+      ],
+      "exit": 0,
+      "seconds": 48.556245248997584,
+      "log": "/tmp/sfora-connected-probe-library-final-7.log",
+      "sha256": "5a61bf93a13dcf0d34934ea7ea5560f1d72cfd4295fe18648a81e104d96c0f04"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_siglip2_connected_mlp.py",
+        "--source-only"
+      ],
+      "exit": 0,
+      "seconds": 8.152880702982657,
+      "log": "/tmp/sfora-connected-probe-library-final-8.log",
+      "sha256": "055fa6badf78f535f223f1f79e6b0f17eb054a8b4b7233ffaf03e1b865339c7e"
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "scripts/test_siglip2_connected_probe.py",
+        "--source-only"
+      ],
+      "exit": 0,
+      "seconds": 7.9416490939911455,
+      "log": "/tmp/sfora-connected-probe-library-final-9.log",
+      "sha256": "2b719a7751b678be2405aaaa1561c2acfffb37111ce9a51fd428a229202b96fe"
+    }
+  ],
+  "seconds": 95.59156524995342,
+  "address_space_bytes": 1073741824,
+  "serial": true,
+  "third_party_imports_denied": true,
+  "pass": true
+}
