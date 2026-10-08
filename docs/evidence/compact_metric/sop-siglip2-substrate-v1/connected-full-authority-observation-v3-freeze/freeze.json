@@ -1,0 +1,27 @@
+{
+  "diagnostic": "/home/riomus/runs/sfora-connected-full-authority-observation-v3.jsonl",
+  "files": {
+    "command.sh": "34e3074cc30a582a966bc4af0c558091ccfb5f93ff1727fd4754017eb56ab592",
+    "controller.sh": "7bd5b39e92783d49130582cc8f23444a1e24e23196bee97b72f55d7869f8854b",
+    "launch.sh": "c2fcb7be7479911c89535c76c5a1bd381d6ea86bb0c5865428320906cf1cbfa4",
+    "manifest.json": "e1d50ca169e7159b7d871eb17d0356b864e313ecbf407a7aadb9ee98e397f974",
+    "observe_connected_full_authority.py": "18f1124aa7ab4aa86be162dffae1db52c75f6a02f11668eb0d1241c689667554",
+    "test_connected_full_authority_observation.py": "af16b339de90fa8701b47a3327ca57f9a7db9cc6f9da6ab5c09888d3d45551f5"
+  },
+  "original_failure_preserved": true,
+  "qualification_eligible": false,
+  "remote_root": "/home/riomus/runs/sfora-connected-full-authority-observation-source-v3",
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 900,
+    "swap_bytes": 0
+  },
+  "root_checks": "corrected evaluator exact2 integrated and observer functions unchanged; worker8 source-only tests PASS; pinned interpreter assurance remains prerequisite",
+  "schema": "connected-authority-observation-root-freeze-v1",
+  "source_commit": "eb0a59fc",
+  "state_reuse_eligible": false,
+  "stop_before_native_start": true,
+  "unit": "sfora-connected-full-authority-observation-v3",
+  "unused_output": "/home/riomus/runs/sfora-connected-full-authority-observation-unused-v3"
+}

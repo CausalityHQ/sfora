@@ -1,0 +1,9 @@
+{
+  "exit_status": 0,
+  "original_log_sha256": "61ff41d9e424c2a0b0eda8a3f0696e0824b443a7bd87303215f12e0a5f4915b1",
+  "pass": true,
+  "qualification_eligible": false,
+  "root_verification": "original terminal and bounded source-only suite; no native roots, no model/image/quality",
+  "state_reuse_eligible": false,
+  "tests_started": true
+}
