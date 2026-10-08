@@ -1,0 +1,28 @@
+{
+  "ledger": {
+    "changed_narrow_test_functions": [
+      "repin_contract",
+      "source_contract",
+      "export_envelope_contract",
+      "original_owner_contract",
+      "bootstrap_inverse",
+      "bootstrap_test_inverse",
+      "main"
+    ],
+    "original_historical_hash_occurrences": 43,
+    "original_test_functions": 54,
+    "unchanged_original_test_functions": 47
+  },
+  "scripts/evaluate_siglip2_connected_mlp.py": {
+    "ast_sha256": "89ba648756d5aa874c12aba9e22770609ab97f3f030b14a15b6f72b131fd3598",
+    "inverse_ast_sha256": "b9fde02142ddf953aad16a579dbd77bf0e9ad35302cbb0677a1e52d5e08e1e2e",
+    "inverse_sha256": "0a807abc27cbf7150824b2dd202e7be75aaa548f0e27918a1d5b1c862908850b",
+    "sha256": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4"
+  },
+  "scripts/test_connected_mlp_evaluation.py": {
+    "ast_sha256": "280ef39b897768ab2d136a6043ce462d6936757a6073fe9c23898723923e13ce",
+    "inverse_ast_sha256": "e9429d51597b5882fea42c90f1223b0065835b58907bb7cfe5a43c92e22d38dd",
+    "inverse_sha256": "09818ee1aab610160db21d95f16689c679000e26b1062296e81bb1f988fcbf63",
+    "sha256": "48b47ea04f0cdf5f1980583d2a219c8d6803d0215293628956bc3b408139b89b"
+  }
+}

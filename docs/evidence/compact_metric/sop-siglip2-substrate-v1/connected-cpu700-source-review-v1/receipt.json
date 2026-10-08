@@ -1,0 +1,139 @@
+{
+  "artifacts": {
+    "base-evaluate_siglip2_connected_mlp.py": "0a807abc27cbf7150824b2dd202e7be75aaa548f0e27918a1d5b1c862908850b",
+    "base-test_connected_mlp_evaluation.py": "09818ee1aab610160db21d95f16689c679000e26b1062296e81bb1f988fcbf63",
+    "contract-addendum-owner-fixture.json": "830203427d2f64c3dde330d33fea1de7217f70597e3c236fb2dc3300ddb16a89",
+    "contract.json": "719b3417cbc5c1baaafb8dfdeb57c4aeb24fe2f42717f3e36b6e928dea9be409",
+    "evaluate_siglip2_connected_mlp.py": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4",
+    "final-source-hashes.json": "af648fb1f7d72e9e7528d049397e69f629c3545dcee912c77c795a2daf691904",
+    "final-source-suite-resources.log": "b19f3219ccdef9c10d156b4d081c9c668476750fa2d5e9c58c170d47d4eb5648",
+    "final-source-suite.log": "190fb7c5c125ab94dfbb6e6182604301d48cdec5ded7018f16df88f40415310b",
+    "focused-green-resources.log": "a69f298ece62bfed4b0e027ce3268d6655f3a1ac6809794f6db2f43104dbf9b1",
+    "focused-green.log": "03ef2bcead29872480b7117fdb894e0b222786a6a50208ba0f5c48c1b9aaf1ea",
+    "focused-red-resources.log": "f2bf89649ca06a16a648f1da35600bdcf846955ce0357661d2679ce2f42da312",
+    "focused-red.log": "d8aaf8b9a85b4e683ed814d09196538e716cf654ac98556b4cac7712542b0f84",
+    "focused.py": "e4af4d9a37b8a17745f2f93af9ef913a5aea0d3eff1ae50bc8be96a4b436385a",
+    "owner-layer-repair-resources.log": "0ff5e062fba27e738079923d01d81065d80ab9bf1fc29da3bdadfb4e76ee48db",
+    "owner-layer-repair.log": "a86433c71d11b8db85c3ccea1fba093b69b45ca15f689e81443cd75652173d6f",
+    "owner-layer-repair2-resources.log": "03193ce5d480d850ccc5778c954c576e6bba164a4dc049c2f8e9261bf6916207",
+    "owner-layer-repair2.log": "86c5f811722b11b7c0799dc0ed8ff9b2ab4b37e2ac0704873d86139ecc8e167c",
+    "production-ast-delta.json": "80d9bc4c7ad9b3da816892e4f60e18690349f8c9177f5fe54ce4a32d65b15f0c",
+    "proposal.patch": "03db52bcc6aa1a17e48cadbdbeae8ae58cf0be38655f051e6191b4ae34d5fbb9",
+    "remaining-focused-green-resources.log": "975c2700f75222900e3a423071d560ea00a1dc6c6b5aa9f930efbae5f375da9d",
+    "remaining-focused-green.log": "fc9fecc0b88fbda7ab53532ed3355dbe7d901094e44cf11ccd95ecc9f6b6d465",
+    "script-fixtures-sha256.json": "fd47b8e9028f638c7e250b237894f25273706ebe8600f77b4165cd8a8b56d994",
+    "test_connected_mlp_evaluation.py": "48b47ea04f0cdf5f1980583d2a219c8d6803d0215293628956bc3b408139b89b"
+  },
+  "author": [
+    "Roman Bartusiak",
+    "riomus@gmail.com",
+    "Roman Bartusiak",
+    "riomus@gmail.com"
+  ],
+  "base_commit": "ca5caa4de0e28bcfa1faf119a4b8acd9e8ed2e47",
+  "branch": "devbox/connected-cpu700-proposal-20261008",
+  "clean": true,
+  "commit": "f04bb7c6b715854b2ed5f0983f5ff5ec0d64038e",
+  "contract": "/tmp/connected-cpu700-proposal-20261008-contract.json",
+  "contract_addendum": "/data/orchestration/sfora-connected-cpu700-proposal-20261008-evidence/contract-addendum-owner-fixture.json",
+  "created_utc": "2026-10-08T05:23:29.306081+00:00",
+  "durable_contract": "/data/orchestration/sfora-connected-cpu700-proposal-20261008-evidence/contract.json",
+  "exact_commit_files": [
+    "scripts/evaluate_siglip2_connected_mlp.py",
+    "scripts/test_connected_mlp_evaluation.py"
+  ],
+  "material_limit": "Actual CPU700 first-stage context rejects historical CPU500 export-owner launch under the untouched production equality predicate. Separate archived test context preserves historical owner falsifiers without rebinding candidate globals or changing archives. Full prospective CPU700 remains unqualified.",
+  "merged": false,
+  "native_or_gpu_or_quality_run": false,
+  "no_consults_or_children_or_operator_contact": true,
+  "observation": "authority370.979972706/service371.614/host663162880/events0/swap0/noNative is prior source engineering observation only. Historical two-endpoint planning sum489.239498964 before omitted native preparation and extra endpoints is neither a lower bound nor a new full measurement.",
+  "old_cpu500": "HOLD; original failures remain FAIL; no launch performed",
+  "parent_next_step": "Review actual proposal before adoption/freeze and ONE future prospective fullCPU700; obtain actual future execution manifest and UNIT, do not infer them from this proposal.",
+  "production_delta": [
+    {
+      "line": 872,
+      "new": 700,
+      "old": 500
+    }
+  ],
+  "proposal_only": true,
+  "pushed": false,
+  "qualification": "UNQUALIFIED",
+  "schema": "connected-cpu700-source-proposal-receipt-v1",
+  "source_hashes": {
+    "ledger": {
+      "changed_narrow_test_functions": [
+        "repin_contract",
+        "source_contract",
+        "export_envelope_contract",
+        "original_owner_contract",
+        "bootstrap_inverse",
+        "bootstrap_test_inverse",
+        "main"
+      ],
+      "original_historical_hash_occurrences": 43,
+      "original_test_functions": 54,
+      "unchanged_original_test_functions": 47
+    },
+    "scripts/evaluate_siglip2_connected_mlp.py": {
+      "ast_sha256": "89ba648756d5aa874c12aba9e22770609ab97f3f030b14a15b6f72b131fd3598",
+      "inverse_ast_sha256": "b9fde02142ddf953aad16a579dbd77bf0e9ad35302cbb0677a1e52d5e08e1e2e",
+      "inverse_sha256": "0a807abc27cbf7150824b2dd202e7be75aaa548f0e27918a1d5b1c862908850b",
+      "sha256": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4"
+    },
+    "scripts/test_connected_mlp_evaluation.py": {
+      "ast_sha256": "280ef39b897768ab2d136a6043ce462d6936757a6073fe9c23898723923e13ce",
+      "inverse_ast_sha256": "e9429d51597b5882fea42c90f1223b0065835b58907bb7cfe5a43c92e22d38dd",
+      "inverse_sha256": "09818ee1aab610160db21d95f16689c679000e26b1062296e81bb1f988fcbf63",
+      "sha256": "48b47ea04f0cdf5f1980583d2a219c8d6803d0215293628956bc3b408139b89b"
+    }
+  },
+  "verification": {
+    "all_failed_logs_preserved": true,
+    "command": "timeout 120s prlimit --as=1073741824 python3 -B -u scripts/test_connected_mlp_evaluation.py --source-only",
+    "complete_production_byte_and_ast_inverse": true,
+    "complete_test_byte_and_ast_inverse": true,
+    "elapsed_wall_seconds": 81.93,
+    "exit_status": 0,
+    "final_full_affected_suite_runs": 1,
+    "green": "all narrowly changed layers and final full affected source-only suite passed",
+    "helper_scripts_unchanged": 1065,
+    "logs": {
+      "final-source-suite.log": {
+        "exit_status": 0,
+        "sha256": "190fb7c5c125ab94dfbb6e6182604301d48cdec5ded7018f16df88f40415310b"
+      },
+      "focused-green.log": {
+        "exit_status": 1,
+        "sha256": "03ef2bcead29872480b7117fdb894e0b222786a6a50208ba0f5c48c1b9aaf1ea"
+      },
+      "focused-red.log": {
+        "exit_status": 1,
+        "sha256": "d8aaf8b9a85b4e683ed814d09196538e716cf654ac98556b4cac7712542b0f84"
+      },
+      "owner-layer-repair.log": {
+        "exit_status": 1,
+        "sha256": "a86433c71d11b8db85c3ccea1fba093b69b45ca15f689e81443cd75652173d6f"
+      },
+      "owner-layer-repair2.log": {
+        "exit_status": 0,
+        "sha256": "86c5f811722b11b7c0799dc0ed8ff9b2ab4b37e2ac0704873d86139ecc8e167c"
+      },
+      "remaining-focused-green.log": {
+        "exit_status": 0,
+        "sha256": "fc9fecc0b88fbda7ab53532ed3355dbe7d901094e44cf11ccd95ecc9f6b6d465"
+      }
+    },
+    "narrowly_composed_original_test_functions": 7,
+    "original_historical_hash_occurrences_preserved": 43,
+    "original_test_functions": 54,
+    "process_peak_rss_kib": 168272,
+    "process_swaps": 0,
+    "production_normal_exit_source_host_swap_cuda_math_cost_parity_predicates": "all exact except the single own prospective CPU seconds literal",
+    "red": "expected prospective CPU700 assertion failed before production edit",
+    "rlimit_as_bytes": 1073741824,
+    "timeout_seconds": 120,
+    "untouched_original_test_functions": 47
+  },
+  "worktree": "/home/rb/worktrees/sfora-connected-cpu700-proposal-20261008"
+}

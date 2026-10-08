@@ -1,0 +1,8 @@
+{
+  "schema": "connected-cpu700-proposal-contract-addendum-v1",
+  "scope": "only failing original_owner_contract test fixture; production unchanged beyond one CPU literal",
+  "actual_rejection": "actual new CPU700 context rejects immutable historical CPU500 launch at load_original_owner equality predicate",
+  "fixture_isolation": "separate archived_context shallow copy carries immutable original CPU500 policy only for historical owner loading; never modifies actual evaluator globals, actual context current CPU700 policy, or archived records; actual current_reader accepts current CPU700 synthetic fixture before archive branch",
+  "inverse": "exact CPU test inverse restores entire original test byte/AST identity",
+  "qualification": "UNQUALIFIED; historical first-stage export reuse is unavailable under actual current CPU700 launch; no original failures relabelled"
+}
