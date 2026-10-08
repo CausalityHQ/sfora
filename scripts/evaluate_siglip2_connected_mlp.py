@@ -99,28 +99,58 @@ def _capture_source_builtins(function):
     canonical = _SOURCE_BUILTINS
     error,code = ValueError,function.__code__
     def source_live_guard(module, digest, guards, names=None, class_name=None):
+        if verify_delegate.__code__ is not binding_code:
+            raise error('authenticated initializer delegate checker changed')
+        verify_delegate()
         if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:
             raise error('authenticated builtin baseline/source binding changed')
-        return function(canonical,module,digest,guards,names,class_name,None)
+        return function(canonical,module,digest,guards,names,class_name,None,verify_delegate)
     def initializer_live_guard(context):
+        if initializer_check.__code__ is not initializer_check_code:
+            raise error('authenticated initializer delegate checker changed')
+        initializer_check()
         if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:
             raise error('authenticated builtin baseline/source binding changed')
         t = context['training_context']
         return function(canonical,t['legacy']['selected']['genuine']['reference'],
             '163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8',
-            t['guards'],{'admit_cgroup','require'},None,context)
+            t['guards'],{'admit_cgroup','require'},None,context,initializer_check)
+    # Independent cells: changing the delegate's closure cannot move its checker
+    # or the import-time expectations shared by fresh and already returned guards.
+    delegate = initializer_live_guard
+    delegate_code,delegate_globals,delegate_builtins = delegate.__code__,delegate.__globals__,delegate.__builtins__
+    delegate_metadata = (delegate.__module__,delegate.__name__,delegate.__qualname__)
+    delegate_closure = delegate.__closure__
+    binding_error = ValueError
+    def verify_delegate():
+        if (source_live_guard.__dict__.get('initializer') is not delegate or
+                delegate.__code__ is not delegate_code or delegate.__globals__ is not delegate_globals or
+                delegate.__builtins__ is not delegate_builtins or delegate.__defaults__ is not None or
+                delegate.__kwdefaults__ is not None or delegate.__closure__ is not delegate_closure or
+                (delegate.__module__,delegate.__name__,delegate.__qualname__) != delegate_metadata):
+            raise binding_error('authenticated initializer delegate binding changed')
+        for cell,value in delegate_cells:
+            if cell.cell_contents is not value:
+                raise binding_error('authenticated initializer delegate closure changed')
+    initializer_check = verify_delegate
+    binding_code = initializer_check_code = verify_delegate.__code__
+    delegate_cells = tuple((cell,cell.cell_contents) for cell in delegate_closure)
     source_live_guard.initializer = initializer_live_guard
     return source_live_guard
 
 
 @_capture_source_builtins
-def source_live_guard(baseline, module, digest, guards, names, class_name, initializer_owner):
+def source_live_guard(baseline, module, digest, guards, names, class_name, initializer_owner, delegate_guard):
     """Independent lexical source/runtime binding, including genuine class methods."""
     canonical = {key:value for key,value in baseline}
     builtin_namespace = canonical['__import__']('builtins').__dict__
     namespaces = [module.__dict__,canonical['globals']()]
     error = canonical['ValueError']
+    delegate_guard_code = delegate_guard.__code__
     def builtin_guard():
+        if delegate_guard.__code__ is not delegate_guard_code:
+            raise error('authenticated initializer delegate checker changed')
+        delegate_guard()
         # No global/builtin calls: even all/any/type/ValueError may have changed.
         if _SOURCE_BUILTINS is not baseline:
             raise error('authenticated builtin baseline binding changed')

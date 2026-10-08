@@ -1053,10 +1053,106 @@ def original_owner_test_inverse():
 # END ORIGINAL OWNER FALSIFIER
 
 
+# BEGIN INITIALIZER DELEGATE FALSIFIER
+
+def initializer_delegate_inverse(raw):
+    """Restore exact held 6841013 bytes before all unchanged historical inverses."""
+    edits = [
+        (b"    error,code = ValueError,function.__code__\n    def source_live_guard(module, digest, guards, names=None, class_name=None):\n        if verify_delegate.__code__ is not binding_code:\n            raise error('authenticated initializer delegate checker changed')\n        verify_delegate()\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error('authenticated builtin baseline/source binding changed')\n        return function(canonical,module,digest,guards,names,class_name,None,verify_delegate)\n    def initializer_live_guard(context):\n        if initializer_check.__code__ is not initializer_check_code:\n            raise error('authenticated initializer delegate checker changed')\n        initializer_check()\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error('authenticated builtin baseline/source binding changed')\n", b"    error,code = ValueError,function.__code__\n    def source_live_guard(module, digest, guards, names=None, class_name=None):\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error('authenticated builtin baseline/source binding changed')\n        return function(canonical,module,digest,guards,names,class_name,None)\n    def initializer_live_guard(context):\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error('authenticated builtin baseline/source binding changed')\n"),
+        (b"        return function(canonical,t['legacy']['selected']['genuine']['reference'],\n            '163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8',\n            t['guards'],{'admit_cgroup','require'},None,context,initializer_check)\n    # Independent cells: changing the delegate's closure cannot move its checker\n    # or the import-time expectations shared by fresh and already returned guards.\n    delegate = initializer_live_guard\n    delegate_code,delegate_globals,delegate_builtins = delegate.__code__,delegate.__globals__,delegate.__builtins__\n    delegate_metadata = (delegate.__module__,delegate.__name__,delegate.__qualname__)\n    delegate_closure = delegate.__closure__\n    binding_error = ValueError\n    def verify_delegate():\n        if (source_live_guard.__dict__.get('initializer') is not delegate or\n                delegate.__code__ is not delegate_code or delegate.__globals__ is not delegate_globals or\n                delegate.__builtins__ is not delegate_builtins or delegate.__defaults__ is not None or\n                delegate.__kwdefaults__ is not None or delegate.__closure__ is not delegate_closure or\n                (delegate.__module__,delegate.__name__,delegate.__qualname__) != delegate_metadata):\n            raise binding_error('authenticated initializer delegate binding changed')\n        for cell,value in delegate_cells:\n            if cell.cell_contents is not value:\n                raise binding_error('authenticated initializer delegate closure changed')\n    initializer_check = verify_delegate\n    binding_code = initializer_check_code = verify_delegate.__code__\n    delegate_cells = tuple((cell,cell.cell_contents) for cell in delegate_closure)\n    source_live_guard.initializer = initializer_live_guard\n    return source_live_guard\n", b"        return function(canonical,t['legacy']['selected']['genuine']['reference'],\n            '163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8',\n            t['guards'],{'admit_cgroup','require'},None,context)\n    source_live_guard.initializer = initializer_live_guard\n    return source_live_guard\n"),
+        (b'\n@_capture_source_builtins\ndef source_live_guard(baseline, module, digest, guards, names, class_name, initializer_owner, delegate_guard):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = {key:value for key,value in baseline}\n', b'\n@_capture_source_builtins\ndef source_live_guard(baseline, module, digest, guards, names, class_name, initializer_owner):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = {key:value for key,value in baseline}\n'),
+        (b"    namespaces = [module.__dict__,canonical['globals']()]\n    error = canonical['ValueError']\n    delegate_guard_code = delegate_guard.__code__\n    def builtin_guard():\n        if delegate_guard.__code__ is not delegate_guard_code:\n            raise error('authenticated initializer delegate checker changed')\n        delegate_guard()\n        # No global/builtin calls: even all/any/type/ValueError may have changed.\n        if _SOURCE_BUILTINS is not baseline:\n", b"    namespaces = [module.__dict__,canonical['globals']()]\n    error = canonical['ValueError']\n    def builtin_guard():\n        # No global/builtin calls: even all/any/type/ValueError may have changed.\n        if _SOURCE_BUILTINS is not baseline:\n"),
+    ]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'initializer delegate inverse edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == '12b9d3bcdf2af64aaf1b169344a3a2bfffd9a891eede14124b0f430659af8a36', 'initializer delegate inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == '805de9c064ac6ad6344140f9a6ebdd508c7fce3b64c4738b598ca6f101737c7e', 'initializer delegate inverse AST differs'
+    return raw
+
+
+def initializer_delegate_test_inverse(raw):
+    """Restore exact held 6841013 bytes before all unchanged historical inverses."""
+    start = raw.index(b'# BEGIN INITIALIZER DELEGATE FALSIFIER\n')
+    end = raw.index(b'# BEGIN INITIALIZER ORIGIN FALSIFIER\n',start)
+    raw = raw[:start]+raw[end:]
+    edits = [
+        (b'def initializer_origin_inverse(raw):\n    """Restore exact b9bc24f7 bytes; no normalization or historical hash changes."""\n    raw = initializer_delegate_inverse(raw)\n    edits = [\n        (b\'        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\\n            raise error(\\\'authenticated builtin baseline/source binding changed\\\')\\n        return function(canonical,module,digest,guards,names,class_name,None)\\n    def initializer_live_guard(context):\\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\\n            raise error(\\\'authenticated builtin baseline/source binding changed\\\')\\n        t = context[\\\'training_context\\\']\\n        return function(canonical,t[\\\'legacy\\\'][\\\'selected\\\'][\\\'genuine\\\'][\\\'reference\\\'],\\n            \\\'163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8\\\',\\n            t[\\\'guards\\\'],{\\\'admit_cgroup\\\',\\\'require\\\'},None,context)\\n    source_live_guard.initializer = initializer_live_guard\\n    return source_live_guard\\n\\n\\n@_capture_source_builtins\\ndef source_live_guard(baseline, module, digest, guards, names, class_name, initializer_owner):\\n    """Independent lexical source/runtime binding, including genuine class methods."""\\n    canonical = {key:value for key,value in baseline}\\n\', b\'        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\\n            raise error(\\\'authenticated builtin baseline/source binding changed\\\')\\n        return function(canonical,module,digest,guards,names,class_name)\\n    return source_live_guard\\n\\n\\n@_capture_source_builtins\\ndef source_live_guard(baseline, module, digest, guards, names=None, class_name=None):\\n    """Independent lexical source/runtime binding, including genuine class methods."""\\n    canonical = {key:value for key,value in baseline}\\n\'),\n', b'def initializer_origin_inverse(raw):\n    """Restore exact b9bc24f7 bytes; no normalization or historical hash changes."""\n    edits = [\n        (b\'        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\\n            raise error(\\\'authenticated builtin baseline/source binding changed\\\')\\n        return function(canonical,module,digest,guards,names,class_name,None)\\n    def initializer_live_guard(context):\\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\\n            raise error(\\\'authenticated builtin baseline/source binding changed\\\')\\n        t = context[\\\'training_context\\\']\\n        return function(canonical,t[\\\'legacy\\\'][\\\'selected\\\'][\\\'genuine\\\'][\\\'reference\\\'],\\n            \\\'163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8\\\',\\n            t[\\\'guards\\\'],{\\\'admit_cgroup\\\',\\\'require\\\'},None,context)\\n    source_live_guard.initializer = initializer_live_guard\\n    return source_live_guard\\n\\n\\n@_capture_source_builtins\\ndef source_live_guard(baseline, module, digest, guards, names, class_name, initializer_owner):\\n    """Independent lexical source/runtime binding, including genuine class methods."""\\n    canonical = {key:value for key,value in baseline}\\n\', b\'        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\\n            raise error(\\\'authenticated builtin baseline/source binding changed\\\')\\n        return function(canonical,module,digest,guards,names,class_name)\\n    return source_live_guard\\n\\n\\n@_capture_source_builtins\\ndef source_live_guard(baseline, module, digest, guards, names=None, class_name=None):\\n    """Independent lexical source/runtime binding, including genuine class methods."""\\n    canonical = {key:value for key,value in baseline}\\n\'),\n'),
+        (b'def initializer_origin_test_inverse(raw):\n    """Restore exact b9bc24f7 bytes; no normalization or historical hash changes."""\n    raw = initializer_delegate_test_inverse(raw)\n    start = raw.index(b\'# BEGIN INITIALIZER ORIGIN FALSIFIER\\n\')\n    end = raw.index(b\'# BEGIN BUILTIN BASELINE FALSIFIER\\n\',start)\n', b'def initializer_origin_test_inverse(raw):\n    """Restore exact b9bc24f7 bytes; no normalization or historical hash changes."""\n    start = raw.index(b\'# BEGIN INITIALIZER ORIGIN FALSIFIER\\n\')\n    end = raw.index(b\'# BEGIN BUILTIN BASELINE FALSIFIER\\n\',start)\n'),
+        (b'            builtin_endpoint_finally_contract(admit,unit)\n            initializer_endpoint_finally_contract(admit,unit,legacy)\n            initializer_delegate_contract(e,context,admit,guard,unit,legacy)\n        # A source or callback mutation after loader capture is rejected at call and exit.\n        saved=trainer.check_terminal.__code__;trainer.check_terminal.__code__=(lambda *args:None).__code__\n', b'            builtin_endpoint_finally_contract(admit,unit)\n            initializer_endpoint_finally_contract(admit,unit,legacy)\n        # A source or callback mutation after loader capture is rejected at call and exit.\n        saved=trainer.check_terminal.__code__;trainer.check_terminal.__code__=(lambda *args:None).__code__\n'),
+    ]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'initializer delegate inverse edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == 'aa0f564a83b446085e05960e438fffa8d5a8b8ace8de2c726f14ebb382835d96', 'initializer delegate inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == '3d587521ba567d4c3aeb728a1384855bc5757e7cfe790c3f196ff0a6d8555018', 'initializer delegate inverse AST differs'
+    return raw
+
+
+
+def initializer_delegate_contract(e,context=None,admit=None,endpoint_guard=None,unit=None,legacy=None):
+    """Independent import-time binding rejects delegate replacement and metadata/closure mutation."""
+    from types import FunctionType
+    from unittest.mock import patch
+    with tempfile.TemporaryDirectory() as directory:
+        path=Path(directory)/'ordinary.py';path.write_text('def valid(v):\n    return all(v)\n')
+        ordinary=module('_delegate_ordinary',path);digest=hashlib.sha256(path.read_bytes()).hexdigest()
+        live=e.source_live_guard(ordinary,digest,{})
+        delegate=e.source_live_guard.initializer
+        fresh=lambda:e.source_live_guard(ordinary,digest,{})
+        checks=[fresh,live]
+        if context is not None:
+            checks.append(e.source_live_guard.initializer(context))
+            checks.extend((lambda:e.load_endpoint_reader(context),lambda:endpoint_guard(context),
+                lambda:admit(unit,'cpu','control',179061),lambda:e.exit_rehash(context,endpoint_guard)))
+        def rejected():
+            for call in checks:rejects(call,'initializer delegate')
+        with patch.object(e.source_live_guard,'initializer',lambda context:lambda:None):rejected()
+        # Same bytecode with a foreign globals dictionary is still a replacement.
+        clone=FunctionType(delegate.__code__,dict(delegate.__globals__),delegate.__name__,delegate.__defaults__,delegate.__closure__)
+        with patch.object(e.source_live_guard,'initializer',clone):rejected()
+        original_code=delegate.__code__
+        # Code.replace preserves the freevar count while changing the code identity.
+        code=original_code.replace(co_consts=original_code.co_consts+('changed',))
+        mutations=(('__code__',code),('__defaults__',(None,)),('__kwdefaults__',{'forged':True}),
+            ('__name__','forged'),('__qualname__','forged'),('__module__','forged'))
+        for key,value in mutations:
+            saved=getattr(delegate,key);setattr(delegate,key,value)
+            try:rejected()
+            finally:setattr(delegate,key,saved)
+        for cell in delegate.__closure__:
+            saved=cell.cell_contents;cell.cell_contents=object()
+            try:rejected()
+            finally:cell.cell_contents=saved
+        checker=dict(zip(delegate.__code__.co_freevars,(c.cell_contents for c in delegate.__closure__)))['initializer_check']
+        saved=checker.__code__;checker.__code__=saved.replace(co_consts=saved.co_consts+('changed',))
+        try:rejected()
+        finally:checker.__code__=saved
+        # Context and public snapshots cannot authorize a new delegate.
+        if context is not None:
+            with patch.object(e.source_live_guard,'initializer',lambda context:lambda:None),\
+                    patch.dict(context,{'helper_snapshots':[], 'training_context':dict(context['training_context'])}):
+                rejected()
+            visited=[]
+            class MutatingUnit(dict):
+                def keys(self):
+                    visited.append(True);e.source_live_guard.initializer=lambda context:lambda:None
+                    return super().keys()
+            try:rejects(lambda:admit(MutatingUnit(unit),'cpu','control',179061),'initializer delegate')
+            finally:e.source_live_guard.initializer=delegate
+            assert visited
+        fresh()();live()
+    print('PASS initializer delegate import/fresh/cached/call/finally/exit identity and metadata binding')
+
+
+# END INITIALIZER DELEGATE FALSIFIER
+
+
 # BEGIN INITIALIZER ORIGIN FALSIFIER
 
 def initializer_origin_inverse(raw):
     """Restore exact b9bc24f7 bytes; no normalization or historical hash changes."""
+    raw = initializer_delegate_inverse(raw)
     edits = [
         (b'        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error(\'authenticated builtin baseline/source binding changed\')\n        return function(canonical,module,digest,guards,names,class_name,None)\n    def initializer_live_guard(context):\n        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error(\'authenticated builtin baseline/source binding changed\')\n        t = context[\'training_context\']\n        return function(canonical,t[\'legacy\'][\'selected\'][\'genuine\'][\'reference\'],\n            \'163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8\',\n            t[\'guards\'],{\'admit_cgroup\',\'require\'},None,context)\n    source_live_guard.initializer = initializer_live_guard\n    return source_live_guard\n\n\n@_capture_source_builtins\ndef source_live_guard(baseline, module, digest, guards, names, class_name, initializer_owner):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = {key:value for key,value in baseline}\n', b'        if _SOURCE_BUILTINS is not canonical or function.__code__ is not code:\n            raise error(\'authenticated builtin baseline/source binding changed\')\n        return function(canonical,module,digest,guards,names,class_name)\n    return source_live_guard\n\n\n@_capture_source_builtins\ndef source_live_guard(baseline, module, digest, guards, names=None, class_name=None):\n    """Independent lexical source/runtime binding, including genuine class methods."""\n    canonical = {key:value for key,value in baseline}\n'),
         (b"        'authenticated module/builtins required')\n    path = Path(module.__file__); spec = module.__spec__\n    if initializer_owner is None:\n        def registry_guard():\n            return sys.modules.get(module.__name__) is module\n    else:\n        # The original exporter never registers this one module. Its actual\n        # holder objects, captured independently of mutable snapshots, own it.\n        from importlib.machinery import SourceFileLoader\n        t = initializer_owner['training_context']; legacy = t['legacy']\n        selected = legacy['selected']; genuine = selected['genuine']; admission = legacy['admission']\n        fit_context = t['fit_context']; original = legacy['original']; Flat = original.FlatAdmission\n        require(module.__name__ == '_genuine_fit_reference' and\n            path == Path('/home/riomus/runs/sfora-native256-fit-export-source-v1/export_siglip2_substrate_fit.py') and\n            spec is not None and type(spec.loader) is SourceFileLoader and module.__loader__ is spec.loader and\n            spec.loader.name == module.__name__ and spec.loader.path == str(path) and\n            type(admission) is Flat, 'authenticated initializer original source/loader differs')\n        loader_name,loader_path = spec.loader.name,spec.loader.path\n        def registry_guard():\n            require(initializer_owner['training_context'] is t and t['legacy'] is legacy and\n                t['fit_context'] is fit_context and fit_context['legacy'] is legacy and\n                legacy['selected'] is selected and selected['genuine'] is genuine and\n                genuine['reference'] is module and legacy['admission'] is admission and admission.init is module and\n                legacy['original'] is original and original.FlatAdmission is Flat and type(admission) is Flat,\n                'authenticated initializer owner binding changed')\n            require(t['guards'] is guards and guards.get(str(path)) == digest,\n                'authenticated initializer source digest changed')\n            require(module.__loader__ is spec.loader and vars(spec.loader) == {'name':loader_name,'path':loader_path},\n                'authenticated initializer loader changed')\n            return module.__name__ not in sys.modules and all(value is not module for value in sys.modules.values())\n    require(spec is not None and spec.loader is not None and spec.name == module.__name__ and\n        Path(spec.origin) == path and registry_guard(),\n        'authenticated module registry/origin differs')\n    raw = bound_file(guards,path,digest).read_bytes()\n    require(hashlib.sha256(raw).hexdigest() == digest, 'authenticated source changed before compilation')\n    tree = ast.parse(raw,filename=str(path)); compiled = compile(raw,str(path),'exec',dont_inherit=True)\n    if initializer_owner is not None:\n        # This pinned initializer has only stdlib imports and constant assignments.\n        expected_globals = {}\n        nodes = [n for n in tree.body if isinstance(n,(ast.Import,ast.ImportFrom,ast.Assign))]\n        exec(compile(ast.Module(body=nodes,type_ignores=[]),str(path),'exec',dont_inherit=True),expected_globals)\n        expected_names = set(expected_globals) | {n.name for n in tree.body if isinstance(n,ast.FunctionDef)} | {\n            '__name__','__doc__','__package__','__loader__','__spec__','__file__','__cached__'}\n        require(vars(module).keys() == expected_names and all(type(vars(module)[k]) is type(v) and\n            vars(module)[k] == v for k,v in expected_globals.items()), 'authenticated initializer source globals differ')\n    values = dict(vars(module)); literals = {k:copy.deepcopy(v) for k,v in values.items()\n        if k != '__builtins__' and isinstance(v,(dict,list,tuple,set,frozenset))}\n", b"        'authenticated module/builtins required')\n    path = Path(module.__file__); spec = module.__spec__\n    require(spec is not None and spec.loader is not None and spec.name == module.__name__ and\n        Path(spec.origin) == path and sys.modules.get(module.__name__) is module,\n        'authenticated module registry/origin differs')\n    raw = bound_file(guards,path,digest).read_bytes()\n    require(hashlib.sha256(raw).hexdigest() == digest, 'authenticated source changed before compilation')\n    tree = ast.parse(raw,filename=str(path)); compiled = compile(raw,str(path),'exec',dont_inherit=True)\n    values = dict(vars(module)); literals = {k:copy.deepcopy(v) for k,v in values.items()\n        if k != '__builtins__' and isinstance(v,(dict,list,tuple,set,frozenset))}\n"),
@@ -1073,6 +1169,7 @@ def initializer_origin_inverse(raw):
 
 def initializer_origin_test_inverse(raw):
     """Restore exact b9bc24f7 bytes; no normalization or historical hash changes."""
+    raw = initializer_delegate_test_inverse(raw)
     start = raw.index(b'# BEGIN INITIALIZER ORIGIN FALSIFIER\n')
     end = raw.index(b'# BEGIN BUILTIN BASELINE FALSIFIER\n',start)
     raw = raw[:start]+raw[end:]
@@ -1810,6 +1907,7 @@ def endpoint_derivative_contract(e):
             assert admit(unit,'cpu','control',179061)==record
             builtin_endpoint_finally_contract(admit,unit)
             initializer_endpoint_finally_contract(admit,unit,legacy)
+            initializer_delegate_contract(e,context,admit,guard,unit,legacy)
         # A source or callback mutation after loader capture is rejected at call and exit.
         saved=trainer.check_terminal.__code__;trainer.check_terminal.__code__=(lambda *args:None).__code__
         rejects(lambda:admit(unit,'cpu','control',179061),'authenticated')
