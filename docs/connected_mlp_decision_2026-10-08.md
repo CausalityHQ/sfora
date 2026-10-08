@@ -1,0 +1,31 @@
+# Connected MLP decision — 2026-10-08
+
+The production joint quality-and-speed goal remains unmet. All numbers below are verified measurements from the linked original receipts; there are no projections.
+
+In-Shop previously exposed TRAIN selection: seed179061, 1734 query images, 1715 gallery images, 498 products. This is not the official query/gallery protocol.
+
+| Model | Packed R@1 (%) | mAP@R (%) |
+|---|---:|---:|
+| Frozen source | 96.309112 | 80.572295 |
+| Accepted concat baseline | 96.482122 | 81.777540 |
+| Fresh connected control | 96.770473 | 82.765722 |
+| Fresh connected candidate | 97.116494 | 85.151734 |
+
+Candidate minus control: +0.346021 percentage points R@1 and +2.386012 points mAP@R. [Original summary](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-first-selection-score-v2/summary.json), [parent verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-first-selection-score-v2/verification.json). Decision **CONTINUE**; no first-stage confidence interval. Both-seed full selection and product-bootstrap GO remain pending. Sealed validation is ineligible until that GO.
+
+| Engineering measurement | Control / baseline | Candidate / observation | Decision |
+|---|---:|---:|---|
+| Seed179069 fresh training, whole service (s) | 2188.712 | 2345.673 | Candidate 7.171% slower; admissible cost, no speed win |
+| Seed179069 update-core ratio | 1.000000 | 1.059007 | Candidate 5.901% slower |
+| Full evaluator CPU-v1, service (s) | Frozen cap 500 | 500.114 | FAIL_TIMEOUT; no qualifying receipt |
+| Authority-only observation-v2, wall (s) | No matched speed baseline | 563.699274 | Completed engineering observation; no CPU qualification |
+
+Seed179069 training host peak 6103474176 bytes; CUDA allocation peak 2349298688 bytes; zero memory events and swap. [Original candidate verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-train-candidate-179069-v1/verification.json). Both seed pairs have accepted original training receipts; no retraining or state reuse is needed for the next evaluation gate.
+
+[Original CPU failure](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-cpu-v1/failure.json) remains a failure. [Authority observation](evidence/compact_metric/sop-siglip2-substrate-v1/connected-full-authority-observation-v2/result.json) imported no native roots, peaked at644960256 host bytes, and had zero events/swap. Endpoint-admission callers account for58.3444% of samples; this is not exact input-loop time. The frozen 500-second CPU gate is not rescued by this observation.
+
+The next intervention targets evaluator-owned endpoint input admission with four fresh independent original readers, authenticated callbacks, complete reader-state preservation and unchanged terminal predicates. [Bounded implementation decision and runnable falsifier](evidence/compact_metric/sop-siglip2-substrate-v1/connected-endpoint-reader-decision-v1/decision.md). No native benefit is claimed yet.
+
+Ordered gates: review and freeze actual new evaluator bytes; one fresh full CPU500 qualification; four independent GPU exports1500 in frozen endpoint order; full paired selection score700 with unchanged bootstrap/floors/cost/parity; only GO admits sealed validation. A quality survivor must then pass matched public B1/B32 decode-to-top-k latency, including10000 interleaved paired calls plus confidence interval for a p99 claim. Current qualification B32 timings are not product latency.
+
+This experiment supplies no new SOP official TEST result, no official In-Shop confirmation, and no new CUB/Cars transfer or matched serving speed win. Historical exploratory results remain historical; the production target is not redefined around this TRAIN panel.
