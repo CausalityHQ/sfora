@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "fde2335f01154ba2ba2925797b544b00",
+  "log": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/full-selection-score-v1-original.log",
+    "sha256": "c1f7b285960f94acbf6be1e00d05575a3baab8548f0b143e00667c3c6516eaa2"
+  },
+  "native_peak_rss_kib": 1177372,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-selection-score-v1/receipt.json",
+    "sha256": "01ae023cb89b828c029817582cdb48204ff8177e76047ccec0773e5d90aafbfa"
+  },
+  "service_seconds": 557.514,
+  "unit": "sfora-connected-mlp-evaluation-full-selection-score-v1"
+}
