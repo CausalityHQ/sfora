@@ -1,0 +1,73 @@
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/command.sh: OK
+Running as unit: sfora-connected-gallery-freshness-diagnostic-v1.service; invocation ID: b72986a4fc5b459cbaac861d88037b85
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/diagnose_connected_gallery_freshness.py: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/test_connected_gallery_freshness.py: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/execution.json: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/authority.json: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/score-verification.json: OK
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/diagnose_connected_gallery_freshness.py", line 772, in <module>
+    run(parser().parse_args())
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/diagnose_connected_gallery_freshness.py", line 727, in run
+    cleanup_error(error,callbacks)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/diagnose_connected_gallery_freshness.py", line 244, in cleanup_error
+    raise error
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/diagnose_connected_gallery_freshness.py", line 667, in run
+    key=label(endpoint);first=stale_values(context,sources,endpoint,features,budget)
+                              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/diagnose_connected_gallery_freshness.py", line 578, in stale_values
+    state=endpoint_payload(context,sources,endpoint);panel=context['partition']['panels']['selection']
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/diagnose_connected_gallery_freshness.py", line 481, in endpoint_payload
+    check_endpoint_payload(disk,endpoint,manifest,facts,context['cpu']['source'],context['cpu']['numerical_flags'],m)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/diagnose_connected_gallery_freshness.py", line 501, in check_endpoint_payload
+    require(disk['arm']==endpoint['arm']==ident['arm'] and ident['seed']==endpoint['seed'] and
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            disk['source']==source==ident['source'] and disk['numerical_flags']==flags and
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+            fingerprint(disk['processor']['config'])==facts['processor_config_sha256'],
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            'original endpoint source/numerical/static provenance differs')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-connected-gallery-freshness-source-v1/diagnose_connected_gallery_freshness.py", line 75, in require
+    if not condition: raise ValueError(message)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: original endpoint source/numerical/static provenance differs
+FINAL_CGROUP {"command_exit_status": 1, "invocation_id": "b72986a4fc5b459cbaac861d88037b85", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-gallery-freshness-diagnostic-v1.service", "values": {"memory.current": "3392065536", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "3965980672", "memory.stat": "anon 5988352\nfile 3376828416\nkernel 8359936\nkernel_stack 65536\npagetables 339968\nsec_pagetables 0\npercpu 2112\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 8192\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5894144\ninactive_file 3310395392\nactive_file 66433024\nunevictable 0\nslab_reclaimable 7794328\nslab_unreclaimable 128920\nslab 7923248\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 154436\npgmajfault 667\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 50\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Command exited with non-zero status 1
+	Command being timed: "/bin/bash /home/riomus/runs/sfora-connected-gallery-freshness-source-v1/command.sh"
+	User time (seconds): 10.77
+	System time (seconds): 2.49
+	Percent of CPU this job got: 60%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:22.03
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 850012
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 666
+	Minor (reclaiming a frame) page faults: 153602
+	Voluntary context switches: 54922
+	Involuntary context switches: 107
+	Swaps: 0
+	File system inputs: 20051808
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+STOP_CGROUP {"exit_code": "exited", "exit_status": "1", "invocation_id": "b72986a4fc5b459cbaac861d88037b85", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-gallery-freshness-diagnostic-v1.service", "service_result": "exit-code", "values": {"memory.current": "3391672320", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "3965980672", "memory.stat": "anon 5439488\nfile 3376828416\nkernel 7991296\nkernel_stack 0\npagetables 114688\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 8192\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5394432\ninactive_file 3310395392\nactive_file 66433024\nunevictable 0\nslab_reclaimable 7793752\nslab_unreclaimable 57544\nslab 7851296\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 155955\npgmajfault 667\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 50\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 22.075s
+CPU time consumed: 13.279s
+Memory peak: 3.6G
+Memory swap peak: 0B
