@@ -1,0 +1,17 @@
+{
+  "output_capturing.py": {
+    "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/output_capturing.py",
+    "sha256": "65fa93bcfd2314d2a680c08c3699773f2ffea44340e85cd0e6392698b83b37bb",
+    "size": 12675
+  },
+  "auto_docstring.py": {
+    "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/auto_docstring.py",
+    "sha256": "1c807048db9d45b45af9a4960802af5186bbe8f817059ac163abea49c187f660",
+    "size": 165700
+  },
+  "generic.py": {
+    "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/generic.py",
+    "sha256": "252a17b73d020df90157e4033e2db51dcac8c11c9ffb799c33d5302a71c4964e",
+    "size": 40695
+  }
+}
