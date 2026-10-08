@@ -1,0 +1,94 @@
+{
+  "schema": "exact-torch-census-final-source-receipt-v1",
+  "scope": "source-only; Torch/native/DGX UNRUN; Torch numerical parity NOT proven; no source or gate change after this commit",
+  "worktree": "/home/rb/worktrees/sfora-connected-exact-torch-census-20261008",
+  "branch": "devbox/connected-exact-torch-census-20261008",
+  "commit": {
+    "final": "4536b3a3ca2c654844b3a96a81d9a4f803c8142a",
+    "base": "6467e04d0daf854cf6ab932511672c87d78d033e",
+    "superseded_by_amend": "1e2ff882 (reflog only; its code was never run under the full suite, only narrow classes)",
+    "author": "Roman Bartusiak <riomus@gmail.com>",
+    "committer_time_utc": "2026-10-08T20:00:49Z",
+    "files_changed_vs_base": ["scripts/census_connected_core_errors_torch.py", "scripts/test_connected_core_errors_torch.py"],
+    "diffstat_vs_base": "2 files changed, 147 insertions(+), 8 deletions(-)",
+    "tree_clean_at_final_suite": true,
+    "pushed": false
+  },
+  "code_sha256": {
+    "driver": "f50328e5c33fe32dd15ba653927400263868c053c5518e42d4b047e25ec74d6f",
+    "test": "4f0ebc4d26d2dc860081e3f7a3c00e3ad3e1f521f4b61972023784f8aea8d7f1",
+    "note": "driver and test roles carry no accepted pin in SOURCE_ROLES; the root authority must be (re)issued with exactly these"
+  },
+  "final_suite": {
+    "count": "exactly one full-file run, on the committed 4536b3a3 tree, no overlap with any other run; narrow class runs before the amend are not this suite",
+    "command_as_issued": "cd /home/rb/worktrees/sfora-connected-exact-torch-census-20261008/scripts && (ulimit -v 1048576; start=$(date +%s.%N); CUDA_VISIBLE_DEVICES= timeout 120 /usr/bin/time -f 'maxrss_kib=%M' python3 -B -m unittest -v test_connected_core_errors_torch > /tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad/final_suite.log 2>&1; echo \"exit=$? wall=$(echo \"$(date +%s.%N) - $start\" | bc)\")",
+    "caps": {"address_space_bytes": 1073741824, "timeout_seconds": 120, "cuda_visible_devices": "", "bytecode": "-B"},
+    "interpreter": "python3 = 3.14.4 on this x86_64 dev host (the admitted native interpreter is 3.13.9 aarch64; no 3.13 exists locally)",
+    "original_log": {
+      "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad/final_suite.log",
+      "sha256": "25fb6f694f6f52413e524e3a3f3fbd6458d4facac0754c545012ee7536be2a4e",
+      "bytes": 6879,
+      "mtime_utc": "2026-10-08T20:01:12.674780604Z",
+      "contains": ["41 verbose '... ok' lines", "'Ran 41 tests in 4.239s'", "'OK'", "'maxrss_kib=98324' from /usr/bin/time"],
+      "contains_no": ["skipped", "FAIL", "ERROR"]
+    },
+    "result": {"tests_run": 41, "ok": 41, "failed": 0, "errors": 0, "skipped": 0,
+               "composition": "37 (6467e04d source suite) + 3 OwnSourceTests + 1 AST-declaration test",
+               "real_input_tests_ran": true},
+    "exit_status": 0,
+    "exit_and_wall_provenance": "exit=0 and wall=4.434549507s were printed on the shell command's stdout (my tool result) and are NOT written into final_suite.log; the log itself holds unittest's 4.239s and maxrss. Log was created 20:01:08.31Z and last written 20:01:12.67Z, consistent with the 4.43s wall.",
+    "unittest_seconds": 4.239,
+    "wall_seconds_shell_measured": 4.434549507,
+    "process_peak_rss_kib": 98324
+  },
+  "contract_final": {
+    "launch_schema": "connected-exact-torch-census-launch-v1",
+    "result_schema": "sfora-connected-core-error-census-torch-v1",
+    "launch_keys": ["schema", "inputs", "sources", "native_sources", "source_cpu", "locks", "resource_policy", "both_locks_held", "candidate_status", "qualification_eligible", "state_reuse_eligible"],
+    "limits_exact_builtin_types": {
+      "whole_process_seconds": 900, "exit_reserve_seconds": 120, "host_bytes": 8589934592, "swap_bytes": 0, "cuda_visible_devices": "",
+      "types": {"whole_process_seconds": "int", "exit_reserve_seconds": "int", "host_bytes": "int", "swap_bytes": "int", "cuda_visible_devices": "str"},
+      "enforced_on": ["authority resource_policy in read_authority (exact_policy)", "live LIMITS inside check_own at every own-Source checkpoint"],
+      "rejects": "False for 0, 900.0 for 900, or any other value/type alias"
+    },
+    "source_roles_basename_beside_driver_and_accepted_pin": {
+      "driver": ["census_connected_core_errors_torch.py", null],
+      "test": ["test_connected_core_errors_torch.py", null],
+      "command": [null, null],
+      "census": ["census_connected_core_errors.py", "0fdc170019de1137ac9d82b55868ec8c8f8b21867d2a71c8c31a29f9a5b333d2"],
+      "scorer": ["compare_inshop_sop_warmstart_100.py", "8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250"],
+      "replay": ["evaluate_siglip2_prototype_residual.py", "e74b944dee26565029a4ec7e6ea2948d0f23e8564e5ee60ffd2f876453f529eb"],
+      "serving": ["qualify_connected_serving_requests.py", null],
+      "source_driver": ["qualify_siglip2_substrate_cpu.py", "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38"],
+      "extract": ["extract_siglip2_vision_source.py", "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d"],
+      "quadratic_owner": ["train_siglip2_quadratic_readout.py", "17cf2dac93a45aae3ba929ad5c36e73f4c33576eae9bb5f9dec670c272a1731f"],
+      "original": ["train_siglip2_substrate_adaptation.py", "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"],
+      "initializer": ["export_siglip2_substrate_fit.py", "163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8"]
+    },
+    "other_pins_unchanged": {
+      "CPU_PROOF_SHA": "e8a1e02e27ed4e4726682c0a61e547d097912b98e3535ddb3da8c1bb4e144cbf",
+      "CPU_EXECUTION_SHA": "3eabe74c62aadafae5441bcded6e85d489f17409ce3b77116f61ab75c4014f2b",
+      "NATIVE_SOURCES_SHA": "8cd70a9b706e0a8ff6dea3092310083ba3f7cd2fffd58cac5b8f6e3842a7ad3b",
+      "SCORER_AST": "717489188a008ceba1b930d9e7dff32b90cd5347302835538eb171fe23f4b33e"
+    },
+    "live_guards_added_by_the_correction": {
+      "own_source": "serving.Source(sys.modules[__name__], authority['sources']['driver']) built in admit() right after load_helpers; held in ctx.own, separate from ctx.owned so close_sources never removes the running module (never removes __main__)",
+      "check_own": "Source.check() (FILE, registry, functions, defaults, globals, literals) + exact_policy(LIVE LIMITS)",
+      "checkpoints": ["admit(): immediately before `import torch`", "guard(ctx) via ctx.guard before every endpoint replay (alongside locks and owned helper Sources)", "exit_checks(): callback before close_sources, so failure blocks finalize/publish"],
+      "ast_declaration_binding": "ADAPTER_DUMPS = immutable tuple of ast.dump strings of VALUES_ARG, PACK_STATEMENT, CAPTURE_STATEMENT, AGGREGATES taken at the authenticated driver's import; check_declarations() (dump(live) == ADAPTER_DUMPS) runs first in adapt() and unadapt(), i.e. before verify_adapter and before exec in compile_scorer",
+      "unchanged": "helpers, scorer AST pin, adapter inverse, replay, geometry, all pre-existing require predicates, serving Source (no generic change/normalization/whitelist)"
+    }
+  },
+  "evidence_limits": {
+    "torch_parity": "UNPROVEN: source-only suite; only the root's single native job can falsify exact Torch equality",
+    "warningregistry": "no actual evidence either way (no native run); if a real warning ever conflicts the Source, report exact stdlib/source evidence first",
+    "ast_residual": "Source guards the module-level AST constants by identity only; contents are covered by ADAPTER_DUMPS at adapt/unadapt, not at every guard()",
+    "ast_dump_cross_version": "ADAPTER_DUMPS is an import-time snapshot so it is interpreter-independent; the pre-existing SCORER_AST pin was not touched and its 3.14.4-vs-3.13.9 ast.dump equality is unmeasured here (fails closed)",
+    "main_probe_is_stale": {
+      "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-connected-exact-torch-census-20261008/751103e6-923a-4917-81be-6a6d2671b936/scratchpad/main_probe.py",
+      "sha256": "bf3e386619446ca1ca158e5214c96d2f677827139dcdd1b6eea29a88b726f558",
+      "statement": "One-off real-__main__ (spec None) Source probe ran against the driver as of the earlier 1e2ff882 revision (before the AST binding and line wrap). Its output was printed to my tool result only, no file. It was NOT rerun on 4536b3a3, so there is no executed real-__main__ evidence for the final driver; the suite exercises the registered-module (spec not None) Source branch."
+    },
+    "not_done_by_this_agent": ["no native/SSH/Torch/thirdparty execution", "no operator contact", "no child agents/reviews", "no push or merge"]
+  }
+}

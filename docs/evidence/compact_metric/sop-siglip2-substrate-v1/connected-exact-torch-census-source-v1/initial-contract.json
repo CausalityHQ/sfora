@@ -1,0 +1,116 @@
+{
+  "schema": "sfora-exact-torch-census-source-contract-v1",
+  "base": "a0fe0eedf6b9e365eddf82ecd00c973775a7740b",
+  "status": "SOURCE ONLY. Native/DGX execution UNRUN. Not a native qualification.",
+  "owns_new_files": [
+    "scripts/census_connected_core_errors_torch.py",
+    "scripts/test_connected_core_errors_torch.py"
+  ],
+  "unchanged_preserved": [
+    "scripts/census_connected_core_errors.py (sha 0fdc1700...b333d2; original FAIL_EXACT_REPLAY at query 747 stays immutable)",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-core-error-census-v1/*",
+    "accepted original receipt 01ae023c...afbfa and the paired candidate KILL"
+  ],
+  "cli": "python -B scripts/census_connected_core_errors_torch.py --authority FILE.path --authority-sha256 SHA --output NEWFILE",
+  "cli_notes": [
+    "--output: absolute canonical NEWFILE whose parent exists; exclusive hard-link publication (census.publish); never overwritten.",
+    "Exit 0 only after replay + full uncached exit + publication. Any failure: nonzero exit, NO output file, no retry, no tolerance, no CUDA fallback.",
+    "Launch under python -B (sys.dont_write_bytecode) and unoptimized (sys.flags.optimize==0). stdout/stderr is the root's original log."
+  ],
+  "environment_required": {
+    "CUDA_VISIBLE_DEVICES": "exactly the empty string",
+    "INVOCATION_ID": "32 lowercase hex of the enclosing systemd unit; must differ from the CPU proof invocation id",
+    "cgroup": "enclosing cgroup v2 *.service with memory.max == 8589934592, swap current/peak/max == 0, no oom/oom_kill/max events (qualify_siglip2_substrate_cpu.cgroup_memory + export_siglip2_substrate_fit.admit_cgroup)",
+    "interpreter": "must equal the CPU proof invocation: python path /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13 (resolved), sha256 9258c53d...9b6b, sys.version '3.13.9 (main, Oct 14 2025, 21:26:54) [Clang 20.1.4 ]'",
+    "locks": "two inherited exclusive lifetime lock descriptors, verified without waiting and re-verified at exit (qualify_connected_serving_requests.Locks)",
+    "torch_threads": "numerical flags from the CPU proof are applied and re-verified: threads=8, interop_threads=20, FP32, default CPU, no autocast"
+  },
+  "FILE": "{path: canonical absolute regular file (no symlink), sha256: actual lowercase 64-hex of the current bytes}; exactly these two keys; <=64MiB",
+  "UNIT": "{proof: FILE, log: FILE, unit: str, invocation_id: 32hex, service_seconds: number, native_peak_rss_kib: int, both_locks_held: true} -- the existing export_siglip2_substrate_fit.admit_cpu descriptor, validated by the same log/cgroup/invocation predicates but WITHOUT admit_cpu's image/checkpoint/input_guards rehash",
+  "authority_file": {
+    "schema": "connected-exact-torch-census-launch-v1",
+    "keys_exact": [
+      "schema", "inputs", "sources", "native_sources", "source_cpu", "locks",
+      "resource_policy", "both_locks_held", "candidate_status",
+      "qualification_eligible", "state_reuse_eligible"
+    ],
+    "inputs": "FILE of the existing sfora-existing-core-census-inputs-v1 fetch receipt (root-supplied local copy; census.admit_inputs authenticates the accepted receipt 01ae023c..., the four packed wires, fit.json, partition and every inner pin). Its own hash is NOT pinned (paths differ per host).",
+    "sources": "object with EXACTLY these roles, each a FILE; all roles except command live in the SAME directory as the running driver (census.admit_inputs resolves compare_/evaluate_ siblings from its own __file__) and have the exact basename shown; pinned roles must equal the pin (existing hashes of artifacts already in the accepted receipt input_guards), driver/test/command/serving are authority-only",
+    "source_roles": {
+      "driver": {"name": "census_connected_core_errors_torch.py", "pin": null, "note": "path must equal the running __main__ file; bytes hashed at authority read and re-hashed at the uncached exit. NOT wrapped in a Source live guard: a library warning would write __warningregistry__ into __main__ globals and falsely trip it."},
+      "test": {"name": "test_connected_core_errors_torch.py", "pin": null},
+      "command": {"name": "any", "pin": null, "note": "root command file; bound and recorded, not parsed"},
+      "census": {"name": "census_connected_core_errors.py", "pin": "0fdc170019de1137ac9d82b55868ec8c8f8b21867d2a71c8c31a29f9a5b333d2"},
+      "scorer": {"name": "compare_inshop_sop_warmstart_100.py", "pin": "8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250"},
+      "replay": {"name": "evaluate_siglip2_prototype_residual.py", "pin": "e74b944dee26565029a4ec7e6ea2948d0f23e8564e5ee60ffd2f876453f529eb"},
+      "serving": {"name": "qualify_connected_serving_requests.py", "pin": null, "note": "Source.load/check and Locks only; bootstrap-loaded from authenticated bytes"},
+      "source_driver": {"name": "qualify_siglip2_substrate_cpu.py", "pin": "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38"},
+      "extract": {"name": "extract_siglip2_vision_source.py", "pin": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d"},
+      "quadratic_owner": {"name": "train_siglip2_quadratic_readout.py", "pin": "17cf2dac93a45aae3ba929ad5c36e73f4c33576eae9bb5f9dec670c272a1731f"},
+      "original": {"name": "train_siglip2_substrate_adaptation.py", "pin": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"},
+      "initializer": {"name": "export_siglip2_substrate_fit.py", "pin": "163bee8b62bc90792ee848a4830a06e1416a3a34903ae4e1ba546dd93e9ebaa8"}
+    },
+    "native_sources": "FILE of the original paired-native256-vision-sources-v1 sources.json (sha256 must equal 8cd70a9b706e0a8ff6dea3092310083ba3f7cd2fffd58cac5b8f6e3842a7ad3b; it must be in the CPU proof input_guards). Only context['sources'] for the existing package_origins.",
+    "source_cpu": "UNIT. proof.sha256 must equal e8a1e02e27ed4e4726682c0a61e547d097912b98e3535ddb3da8c1bb4e144cbf (late-dense-v1/native256-source-cpu-so400-v4.json). log = its original terminal log (not hash-pinned; predicates parsed). Original source closure /home/riomus/runs/sfora-native256-source-cpu-v4, execution sha 3eabe74c62aadafae5441bcded6e85d489f17409ce3b77116f61ab75c4014f2b.",
+    "locks": "[{path, fd}, {path, fd}] exactly two canonical regular files, fd>=3, distinct",
+    "resource_policy": {"whole_process_seconds": 900, "exit_reserve_seconds": 120, "host_bytes": 8589934592, "swap_bytes": 0, "cuda_visible_devices": ""},
+    "both_locks_held": true,
+    "candidate_status": "KILL",
+    "qualification_eligible": false,
+    "state_reuse_eligible": false
+  },
+  "no_future_hash_guesses": "Authority contains only hashes of files that exist when it is written. No output, terminal, receipt, or later-frozen file hash is required.",
+  "admission_order": [
+    "startup: unoptimized -B, no profiler, no torch/numpy/PIL/transformers/torchvision/safetensors/sfora in sys.modules, CUDA_VISIBLE_DEVICES == ''",
+    "read authority FILE; exact keys/schema/policy; every FILE exact; pinned roles equal pins; driver path == __file__",
+    "bootstrap serving helper from authenticated bytes; Source(serving) live guard; Source.load every other helper (all stdlib-only at import); Locks(authority.locks)",
+    "census.admit_inputs(inputs): authenticated receipt, wires, fit, partition, row mapping, 44-query core, fetch record",
+    "cross-check accepted receipt vs CPU proof: python path/sha/version, numerical_flags, packages equal; accepted origins files/modules/native_files subset of proof",
+    "UNIT narrow admission of CPU proof + terminal log; interpreter path/sha/version equals proof; invocation id differs",
+    "source.cgroup_memory() + initializer.admit_cgroup (before)",
+    "source.package_origins({sources: native_sources record, extract, guards}) BEFORE native import; must equal proof origins.packages; each package __init__ sha must equal the proof origins.files entry",
+    "import torch (only native import; CUDA not initialized); apply proof numerical flags; verify flags == proof",
+    "quadratic_owner.audit_origins(narrow context, initial=True, admission=FlatAdmission()) against ONLY the CPU proof origins (no vendor supplement, no new whitelist)",
+    "exact original scorer: SHA + function AST pin 717489188a008ceba1b930d9e7dff32b90cd5347302835538eb171fe23f4b33e; packed adapter + exact AST inverse; compile; exec",
+    "replay all four endpoints x 1734 queries (original batches 13x128 + 70) device cpu; ALL 6936 R1/AP pairs exact; otherwise raise with mismatch inventory, publish nothing",
+    "geometry from retained core score rows only (44 x 4 x 1715); Python stable order; derived R1 must equal replayed R1",
+    "full uncached exit: second audit_origins with a fresh FlatAdmission, rehash every guard (driver FILEs, package/origin files, census input guards), Source.check of every module, Locks.check, cgroup after, numerical flags, CUDA still uninitialized, wall < 900",
+    "publish census (census.publish: temp + fresh guard rehash + exclusive link); final wall < 900"
+  ],
+  "budget_rule": "wall from driver import. Body steps (admission, scoring batches) may start only while wall < 780 (= 900 - 120 exit reserve); metric work never starts after that. Final wall after publication must be < 900. Engineering-only caps, not a native qualification.",
+  "scorer_adapter": {
+    "source": "scripts/compare_inshop_sop_warmstart_100.py function packed_quality, bytes pinned by SHA, function AST pinned by sha256(ast.dump(Module([FunctionDef]), include_attributes=False))",
+    "edits_only": [
+      "parameter `values: np.ndarray` -> `packed` (decoded wire object with .codes int8 [N,128] and .inverse_norms float16 [N])",
+      "delete the single statement `packed = pack_int8_unit_embeddings(torch.from_numpy(values.copy()))`",
+      "append `census_capture(start, rows, scores)` as the last statement of the 128-query batch loop (read-only)",
+      "return dict drops the np.mean aggregates recall_at_1/map_at_r; keeps per_query_r1/per_query_ap"
+    ],
+    "preserved_verbatim": "codes.float().to(device), inverse.float(), FP32 `(code[rows] @ code[gallery].T) * inverse[rows, None] * inverse[None, gallery]` (matmul then two ordered multiplications), stable descending argsort [:, :width], panel-wide width (=81), integer cumsum / ranks division, masks, Torch .sum(dim=1), final division, batches range(0, len(query), 128) -> 13x128 + 70",
+    "inverse_check": "unadapt(adapted) must ast.dump-equal the pinned original and adapt(unadapt(adapted)) must equal adapted; any other difference (reduction, multiplication order, sort, width, batch size, dtype) is rejected",
+    "device": "torch.device('cpu') passed explicitly (as the accepted evaluator did)",
+    "forbidden": "scalar AP surrogate, packing stub or fabricated unit vectors, int32 matmul scorer (diagnose_connected_gallery_freshness.native_wire_quality), tolerance, CUDA"
+  },
+  "replay_rule": "For each of control-179061, candidate-179061, control-179069, candidate-179069: actual per_query_r1 == receipt per_query_r1 and actual per_query_ap == receipt per_query_ap as lists (Python float equality = FP32 bit equality). 1734 x 4 = 6936 pairs. Falsifier: candidate-179061 query 747 expected AP 0.290910005569458 (old scalar census got 0.2909099757671356). Any mismatch anywhere rejects the whole census before geometry publication. No aggregate quality, bootstrap, selection or GO is computed or emitted.",
+  "geometry": "Only after all 6936 pairs pass. For the 44 core queries x 4 endpoints use the retained 1715-score float32 rows: full-gallery stable order (ties by gallery index), best positive and top impostor identity/rank/score/margin, positive_count, replayed per_query_r1/ap, authenticated row provenance (census.map_rows). Raw score rows are not published; their sha256 per endpoint is.",
+  "result_file_keys": [
+    "schema=sfora-connected-core-error-census-torch-v1", "scope", "original_decision", "candidate_status",
+    "scientific_gate_changed", "qualification_eligible", "state_reuse_eligible",
+    "core_query_indices", "queries", "per_product_core_counts", "scored_queries", "gallery_rows", "endpoints", "scored_pairs",
+    "replay{queries,endpoints,per_query_pairs,exact,tolerance,batch_sizes,width,falsifier,endpoint_digests}",
+    "core_score_rows_sha256{endpoint}", "scorer{source_sha256,ast_sha256,device,torch_version,numerical_flags}",
+    "authority{path,sha256}", "launch", "resource_policy", "invocation", "origins", "cgroup_before", "cgroup_after",
+    "resources", "provenance", "full_uncached_exit_pass", "exit_rehash_pass", "cleanup_pass",
+    "terminal_exit_and_both_locks_require_parent_receipt"
+  ],
+  "root_owns": [
+    "freezing the 11-file source directory + command + authority FILE, the single native job, the systemd unit (MemoryMax=8G, MemorySwapMax=0, CUDA hidden), both lifetime locks, the original log, exit status, invocation identity and terminal cgroup evidence",
+    "first collecting the already-queued native-hash comparison (session 33593); this job must not run concurrently with or before it"
+  ],
+  "stop_rule": "Any admission, exact-replay, resource, source-identity or exit-rehash failure => no accepted census, no tolerance, no automatic retry, no CUDA fallback. Original FAIL and candidate KILL are unchanged by any outcome.",
+  "known_limits": [
+    "Source tests cannot import Torch: they prove structure (pins, AST inverse, global-name closure, mutation rejection, gating, geometry, helper API compatibility), NOT numerical equality. The native replay is the only numerical falsifier.",
+    "The Torch import executes site-packages code before audit_origins can hash it (same as every existing native driver); package_origins authenticates the package __init__ bytes first.",
+    "Wall clock is measured from driver import, not interpreter start."
+  ]
+}
