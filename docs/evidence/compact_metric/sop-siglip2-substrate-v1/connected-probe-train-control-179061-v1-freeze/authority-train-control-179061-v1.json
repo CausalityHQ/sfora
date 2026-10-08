@@ -1,0 +1,166 @@
+{
+  "arm": "control",
+  "both_locks_held": true,
+  "execution_sha256": "d007a50139a839a5901a1dabbd1177def5665df89bfabe8f7f568d8dc94fff66",
+  "fresh_control": null,
+  "historical_mlp_actual_gradient": {
+    "authority": {
+      "path": "/home/riomus/runs/sfora-actual-objective-gradient-source-v2/authority.json",
+      "sha256": "8476396999a7570d241b497201a1f4db1881bff02ee314b23c64dd602c743667"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "1a0ef321f35748ec9b88abf7115d7fba",
+      "log": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-prerequisite-evidence-v1/actual-objective-gradient-v2-original.log",
+        "sha256": "3dd0843123c576c91869286f1f69320ae2f4fa50c32aef7c714bc51e1f305b1a"
+      },
+      "native_peak_rss_kib": 4689356,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-actual-objective-gradient-v2/receipt.json",
+        "sha256": "e7da19ba546f9d5375697d3d0347b3c96f9cfe0ee5183f9341d473114461d896"
+      },
+      "service_seconds": 163.485,
+      "unit": "sfora-actual-objective-gradient-v2"
+    }
+  },
+  "original_cpu": {
+    "authority": {
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/authority-cpu-v5.json",
+      "sha256": "8fcfb9ae55c33ed842c68ab01b59fea378f1258b4b784d5874e40e9f49801eac"
+    },
+    "terminal": {
+      "both_locks_held": true,
+      "invocation_id": "8b1805166f8b4aa0940e944bd987e8a3",
+      "log": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-train-source-v5/cpu-v5.log",
+        "sha256": "70773d48671d83c41fbeafabe0895aca8a0ff70818fe77e7d6074363507dd6df"
+      },
+      "native_peak_rss_kib": 6085564,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v5/receipt.json",
+        "sha256": "d2239da896465ee004ebb95c9316713d634fa457c91c708c6c410769a8c17b03"
+      },
+      "service_seconds": 424.51,
+      "unit": "sfora-so400-identity-diversity-cpu-v5"
+    }
+  },
+  "phase": "train",
+  "recipe": {
+    "adamw": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "capturable": false,
+      "differentiable": false,
+      "eps": 1e-08,
+      "foreach": false,
+      "fused": false,
+      "lr": 0.0001,
+      "maximize": false,
+      "weight_decay": 0.05
+    },
+    "batch": 64,
+    "classes": {
+      "candidate": 1008,
+      "control": 1008
+    },
+    "clip": 1.0,
+    "cost_ratio": 1.5,
+    "encoder_lr": 1e-05,
+    "encoder_names": [
+      "head.probe"
+    ],
+    "encoder_shapes": [
+      [
+        1,
+        1,
+        1152
+      ]
+    ],
+    "microbatch": 16,
+    "objective": "unchanged original CONTROL complete-gallery SmoothAP and P[label]",
+    "rows": 6355,
+    "scaler": 128.0,
+    "seeds": [
+      179061,
+      179069
+    ],
+    "serving": "CUDA FP16 autocast / CPU FP32",
+    "training": "FP32 autocast disabled",
+    "updates": 128,
+    "views": [
+      "canonical",
+      "augmented"
+    ]
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 3000,
+    "swap_bytes": 0
+  },
+  "schema": "siglip2-connected-probe-launch-v1",
+  "seed": 179061,
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "3878bdb9b5814e97917b601bc3165c6f",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-probe-train-source-v2/cpu-v2-original.log",
+      "sha256": "8419e674475be126ed3f73fea352810e1ec6e986b71fad6466dcfdd2996a7c46"
+    },
+    "native_peak_rss_kib": 6058996,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-probe-cpu-v2/receipt.json",
+      "sha256": "e5ca67fc169dea5dc5054ad37d522131cbfce0e7b93f026766ce4e3b1c70c8aa"
+    },
+    "service_seconds": 415.363,
+    "unit": "sfora-connected-probe-cpu-v2"
+  },
+  "selected_mechanics": {
+    "candidate": {
+      "both_locks_held": true,
+      "invocation_id": "5ea2c367bf1a42c0ad36fcd1b273dc3d",
+      "log": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-source-v2/mechanics-candidate-179061-v1-original.log",
+        "sha256": "4ba21be3541941ac05a7362652f12225fc5a81819950ddb391906978721f40dc"
+      },
+      "native_peak_rss_kib": 5076516,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-connected-probe-mechanics-candidate-179061-v1/receipt.json",
+        "sha256": "bc33b4210bca8f94eac28fc6e3e47c85950f7d91b65b5b261c8e3ce9cbdf8c1e"
+      },
+      "service_seconds": 901.432,
+      "unit": "sfora-connected-probe-mechanics-candidate-179061-v1"
+    },
+    "control": {
+      "both_locks_held": true,
+      "invocation_id": "0f7b623798264349872e5422622975ff",
+      "log": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-source-v2/mechanics-control-179061-v1-original.log",
+        "sha256": "4bf784b3a2b36bc9919b42772ce0c79c20105034be24cbf96533d6982dedbddf"
+      },
+      "native_peak_rss_kib": 5041496,
+      "receipt": {
+        "path": "/home/riomus/runs/sfora-connected-probe-mechanics-control-179061-v1/receipt.json",
+        "sha256": "55c07c2713c26d5e7d3022303b76a6514ca5eb1588025c14818ad4f32add34c1"
+      },
+      "service_seconds": 899.984,
+      "unit": "sfora-connected-probe-mechanics-control-179061-v1"
+    }
+  },
+  "witness": {
+    "files": {
+      "connected_residual_readout.py": "f0782630a462667ba52aa72b84d724f82c752a0f7f1ef66ac7346eba5e9800e1",
+      "prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+      "quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+      "qualify_actual_objective_encoder_gradients.py": "48599c7f6119e055c0ac901140279faa8654028d1fdd64c1ccb2803556591c14",
+      "qualify_connected_encoder_gradients.py": "86cfd83947218cf5a10011efb21297811bb5f13188486faf314ae6f52e8b3dba",
+      "test_actual_objective_encoder_gradients.py": "ce740cc3c5388b9b3c4b1b9272c2e8ab62e3f8ba44a6cb88e761023489f76abc",
+      "train_siglip2_cached_readout.py": "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c"
+    },
+    "root": "/home/riomus/runs/sfora-actual-objective-gradient-source-v2"
+  }
+}

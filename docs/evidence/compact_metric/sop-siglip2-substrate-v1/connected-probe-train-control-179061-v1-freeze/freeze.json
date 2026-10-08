@@ -1,0 +1,18 @@
+{
+  "schema": "connected-probe-TRAIN-freeze-v1",
+  "unit": "sfora-connected-probe-train-control-179061-v1",
+  "policy_seconds": 3000,
+  "source": "qualified probe source-v2 unchanged",
+  "actual_mechanics": {
+    "control": "0f7b623798264349872e5422622975ff",
+    "candidate": "5ea2c367bf1a42c0ad36fcd1b273dc3d"
+  },
+  "files": {
+    "train-control-179061-v1-controller.sh": "105fbf885f7688ec9ce45c6947ceca0f287cbd56a17b20d2c18aadb123469b25",
+    "train-control-179061-v1-launch.sh": "4cc974d19caaa167f502ae0474165cb16daa5dd4796f8f4040d1fc0c6b36030a",
+    "train-control-179061-v1-command.sh": "b610cb6fe64c39d8053b859357d58248bb70459fbc2ba6f9f542c8a38daf7df6",
+    "authority-train-control-179061-v1.json": "beb8603eba5afa0210d8478c566577335ceed29db075ed580c7b31ad0bf79f41"
+  },
+  "stop_rule": "ONE fresh control TRAIN128; normal source/resource/first17 replay/fulluncachedexit required; no automatic retries or partial reuse; candidate binds its actual accepted normal UNIT before ratios",
+  "quality_speed_claim": false
+}
