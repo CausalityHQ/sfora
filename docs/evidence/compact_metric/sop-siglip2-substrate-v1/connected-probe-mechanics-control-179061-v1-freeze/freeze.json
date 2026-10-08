@@ -1,0 +1,15 @@
+{
+  "schema": "connected-probe-mechanics-freeze-v1",
+  "unit": "sfora-connected-probe-mechanics-control-179061-v1",
+  "invocation_id": "0f7b623798264349872e5422622975ff",
+  "controller_pid": 1792780,
+  "policy_seconds": 1200,
+  "cpu_evidence_commit": "2ba5cbb9",
+  "files": {
+    "mechanics-control-179061-v1-controller.sh": "fc4efd834ebb7c2361d9710d35e9eb5bbf597472bf5aff115c226862ee80cc7f",
+    "mechanics-control-179061-v1-launch.sh": "e270d1506bda995b84f11e8c160decd2cc57980cb8c8324d0a5b95c010f878e6",
+    "mechanics-control-179061-v1-command.sh": "caba2dc6f3ea6750793ac028188a88468c5c5ab0f9e87c8b7ce3bc3ac44be680",
+    "authority-mechanics-control-179061-v1.json": "e37fb4e3b11e01283a7eca66ca9e5fe3f01e7ff046b64afac4781374c5a52bf8"
+  },
+  "qualification": "UNRUN; original job active; no quality or speed claim"
+}
