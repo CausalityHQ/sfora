@@ -1,0 +1,51 @@
+{
+  "candidate_status": "KILL unchanged",
+  "cuda_peak_allocated_bytes": 2066498560,
+  "decision": "FIXED_WITNESS_ENCODER_BATCH_DRIFT",
+  "differences": {
+    "codes": {
+      "different_bytes": 13,
+      "exact": false
+    },
+    "features": {
+      "different_bytes": 16770,
+      "exact": false
+    },
+    "inverse_norms": {
+      "different_bytes": 5,
+      "exact": false
+    },
+    "pooled": {
+      "different_bytes": 6161,
+      "exact": false
+    },
+    "raw": {
+      "different_bytes": 1896,
+      "exact": false
+    },
+    "unit": {
+      "different_bytes": 1918,
+      "exact": false
+    },
+    "wire": {
+      "different_bytes": 18,
+      "exact": false
+    }
+  },
+  "events": 0,
+  "exit_status": 0,
+  "files": {
+    "original.log": "1ce5b4e83e21cc838385f5dbc6b9cce6a565971cefb222bffb15762a1320695b",
+    "receipt.json": "9ec2b4dc23af03d7102fcb021a12f118593378ca27136a7c94b3e4e92040ff56"
+  },
+  "host_peak_bytes": 3899768832,
+  "invocation_id": "f9f1cd19068141318630dbbe4e4b11f5",
+  "original_tail_cause_established": false,
+  "quality_or_speed_claim": false,
+  "service_seconds": 161.645,
+  "ssh_session": 67742,
+  "status": "ACCEPTED_ENGINEERING_OBSERVATION_ONLY",
+  "strict_final_allocated_bytes": 0,
+  "swap": 0,
+  "workspace_drop_bytes": 33554432
+}
