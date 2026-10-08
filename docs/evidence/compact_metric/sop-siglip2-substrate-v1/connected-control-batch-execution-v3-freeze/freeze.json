@@ -1,0 +1,16 @@
+{
+  "files": {
+    "authority.json": "d1c2c3e704f16ad9a104e45b50254387e2edb87a466f773bd11bb531ba393975",
+    "command.sh": "e83e145ae34db02638f9358b9a59ae70e9c1cd6d728ad015f6d58d7ce776f4be",
+    "execution.json": "bb568e8f9b4528c15854b1a65b769826a2303b04640271c4b1192414dd57d9ab",
+    "launch.sh": "d90d6c27d63f93dd897927beae0c5b597c8ccff001b65e67230c2ccc1963057f",
+    "observe_connected_control_batch_execution.py": "6ab72d671ddb2bf80405977eadd29144feb42b16a0d0b0be49055baf3bffc097",
+    "test_connected_control_batch_execution.py": "c78f068a1979c260c4f79a795e312d17354141e324927a554db00ee4a666e146"
+  },
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-control-batch-execution-observation-v3",
+  "root": "/home/riomus/runs/sfora-connected-control-batch-execution-source-v3",
+  "schema": "connected-control-batch-execution-freeze-v1",
+  "source_commit": "4b6b1d71b9d89c1e14a78b4374d133c9f9829055",
+  "stop_rule": "ONE fixed 44-forward B32/B6/B6 engineering observation with bounded partial Python CUDA owner metadata before unchanged final allocated0 predicate. Same700s/8GiB/events0/swap0/CUDA<10GB/both locks/full integrity; all old FAIL and candidate KILL retained. No owner fix, quality, serving speed, reuse or accepted drift claim before original normal terminal. GC observer may miss native ownership and transiently materializes full lists; caps unchanged."
+}
