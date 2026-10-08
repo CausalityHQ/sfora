@@ -1,0 +1,70 @@
+{
+  "after": {
+    "cgroup_path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-gradient-decomposition-v3.service",
+    "event": "GRADIENT_PHASE_MEMORY_V1",
+    "invocation_id": "842d803739ee4a66a28d6d36a3881763",
+    "memory_current": 8588701696,
+    "memory_events": {
+      "high": 0,
+      "low": 0,
+      "max": 17592,
+      "oom": 0,
+      "oom_group_kill": 0,
+      "oom_kill": 0
+    },
+    "memory_peak": 8589934592,
+    "memory_stat": {
+      "active_file": 457375744,
+      "anon": 2607972352,
+      "file": 5838594048,
+      "file_mapped": 508080128,
+      "inactive_file": 5330423808,
+      "kernel": 100077568,
+      "pgscan_direct": 6759076,
+      "pgsteal_direct": 6758224,
+      "slab": 87963632,
+      "slab_reclaimable": 86918360,
+      "workingset_refault_file": 6672459
+    },
+    "phase": "exit:union:end",
+    "status": "UNACCEPTED",
+    "timestamp_ns": 1791474749415284699
+  },
+  "all_four_release_end_max_events_zero": true,
+  "anon_bytes_equal": true,
+  "before": {
+    "cgroup_path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-gradient-decomposition-v3.service",
+    "event": "GRADIENT_PHASE_MEMORY_V1",
+    "invocation_id": "842d803739ee4a66a28d6d36a3881763",
+    "memory_current": 3176583168,
+    "memory_events": {
+      "high": 0,
+      "low": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_group_kill": 0,
+      "oom_kill": 0
+    },
+    "memory_peak": 5383135232,
+    "memory_stat": {
+      "active_file": 453808128,
+      "anon": 2607972352,
+      "file": 511774720,
+      "file_mapped": 508166144,
+      "inactive_file": 7172096,
+      "kernel": 15130624,
+      "pgscan_direct": 0,
+      "pgsteal_direct": 0,
+      "slab": 3022528,
+      "slab_reclaimable": 1977128,
+      "workingset_refault_file": 6672451
+    },
+    "phase": "exit:union:begin",
+    "status": "UNACCEPTED",
+    "timestamp_ns": 1791474699583895614
+  },
+  "file_growth_bytes": 5326819328,
+  "genuine_and_origin_exit_events_zero": true,
+  "next": "Bounded source-only final-union consumed-page file advice, every original read/hash/stat/guard/resource/math preserved",
+  "scope": "Observed interval, not attribution to individual file or anonymous ownership"
+}
