@@ -1,0 +1,13 @@
+{
+  "host_peak_bytes": 144613376,
+  "invocation_id": "842693d01d834052adc9d9dfee5ce3d2",
+  "log_sha256": "50d448dcf8bcd65c759de93b9d5e317db06e87d70203b9d3d0ad5b6f43e9ff8e",
+  "pass": true,
+  "process_peak_rss_kib": 135840,
+  "qualification_eligible": false,
+  "service_runtime": "20.229s",
+  "source_execution_sha256": "56dd3f10a2eefdcb9ce63b63b134d9b934d14f50ecaf58ca67668b363002b6e7",
+  "state_reuse_eligible": false,
+  "zero_events": true,
+  "zero_swap": true
+}
