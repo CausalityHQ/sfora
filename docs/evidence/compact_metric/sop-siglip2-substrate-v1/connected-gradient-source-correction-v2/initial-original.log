@@ -1,0 +1,15 @@
+{"command": ["/usr/bin/python3", "-B", "-S", "/home/rb/worktrees/sfora-gradient-workspace-contract-20261008/scripts/test_connected_control_batch_execution.py"]}
+.....F........................
+======================================================================
+FAIL: test_cuda_ownership_diagnostic_is_bounded_and_metadata_only (__main__.ObserverTests.test_cuda_ownership_diagnostic_is_bounded_and_metadata_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-gradient-workspace-contract-20261008/scripts/test_connected_control_batch_execution.py", line 1026, in test_cuda_ownership_diagnostic_is_bounded_and_metadata_only
+    self.assertEqual(len(sample['type']), 128)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 106 != 128
+
+----------------------------------------------------------------------
+Ran 30 tests in 11.891s
+
+FAILED (failures=1)

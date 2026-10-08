@@ -1,0 +1,61 @@
+{
+  "address_space_limit_bytes": [
+    1073741824,
+    1073741824
+  ],
+  "base": "ac777a042e1b1175bd90a2f3d24f2bb296e0732c",
+  "commands": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "-S",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts",
+        "-p",
+        "test_connected_control_batch_execution.py"
+      ],
+      "exit_code": 0,
+      "seconds": 7.216482731048018
+    },
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "-S",
+        "/home/rb/worktrees/sfora-gradient-workspace-contract-20261008/scripts/test_connected_gradient_decomposition.py",
+        "--source-only"
+      ],
+      "exit_code": 0,
+      "seconds": 3.4410003199009225
+    }
+  ],
+  "native_qualified": false,
+  "original_log_sha256": "9baacaa4526fa9da3fd4a07ee09fd0941fc014d3c9ec928e1f7ca1a8bf9d00a6",
+  "parent_grant": "immediate-1791473769655180010-2965865",
+  "peak_children_rss_kib": 280088,
+  "preserved_failed_receipt": "/tmp/sfora-gradient-workspace-final-9lfznnbk/receipt.json",
+  "preserved_failed_receipt_sha256": "34c26d4021abc8ef418ed2fb855eae979b8499bcc7bfe915ed76e038ece88941",
+  "reported_children_swaps": 0,
+  "scientific_result_accepted": false,
+  "source_only": true,
+  "source_sha256_after": {
+    "observe_connected_control_batch_execution.py": "6dc7c0e78447837a517fbec83d6bcc0228cd3824a6b09e441da4d9a1f3508fbf",
+    "qualify_connected_gradient_decomposition.py": "2bc273f3db332c0bf2b3b3e3b45722e581035c6509aef9d7c2dc5456494de63c",
+    "test_connected_control_batch_execution.py": "077de4bb275bb5bee095883e620052efbe998693f1c2438706bbb916f21be972",
+    "test_connected_gradient_decomposition.py": "3c9c67a7ba3d52b1a73f4aeb3aaebf8e53793c026ed4c2725cb44448cf666f9e"
+  },
+  "source_sha256_before": {
+    "observe_connected_control_batch_execution.py": "6dc7c0e78447837a517fbec83d6bcc0228cd3824a6b09e441da4d9a1f3508fbf",
+    "qualify_connected_gradient_decomposition.py": "2bc273f3db332c0bf2b3b3e3b45722e581035c6509aef9d7c2dc5456494de63c",
+    "test_connected_control_batch_execution.py": "077de4bb275bb5bee095883e620052efbe998693f1c2438706bbb916f21be972",
+    "test_connected_gradient_decomposition.py": "3c9c67a7ba3d52b1a73f4aeb3aaebf8e53793c026ed4c2725cb44448cf666f9e"
+  },
+  "status": "PASS",
+  "timeout_seconds": 120,
+  "wall_seconds": 10.657998244045302,
+  "worktree": "/home/rb/worktrees/sfora-gradient-workspace-contract-20261008"
+}

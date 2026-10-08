@@ -1,0 +1,42 @@
+{
+  "address_space_limit_bytes": [
+    1073741824,
+    1073741824
+  ],
+  "base": "ac777a042e1b1175bd90a2f3d24f2bb296e0732c",
+  "commands": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "-S",
+        "/home/rb/worktrees/sfora-gradient-workspace-contract-20261008/scripts/test_connected_control_batch_execution.py"
+      ],
+      "exit_code": 1,
+      "seconds": 12.012812784989364
+    }
+  ],
+  "native_qualified": false,
+  "original_log_sha256": "2ba3064cb2a5232ff48ae6ab6d82a6cd5be17a150988e6f806da1e1cf92b76d1",
+  "parent_grant": "immediate-1791473470308368944-2965865",
+  "peak_children_rss_kib": 284952,
+  "reported_children_swaps": 0,
+  "scientific_result_accepted": false,
+  "source_only": true,
+  "source_sha256_after": {
+    "observe_connected_control_batch_execution.py": "6dc7c0e78447837a517fbec83d6bcc0228cd3824a6b09e441da4d9a1f3508fbf",
+    "qualify_connected_gradient_decomposition.py": "2bc273f3db332c0bf2b3b3e3b45722e581035c6509aef9d7c2dc5456494de63c",
+    "test_connected_control_batch_execution.py": "077de4bb275bb5bee095883e620052efbe998693f1c2438706bbb916f21be972",
+    "test_connected_gradient_decomposition.py": "3c9c67a7ba3d52b1a73f4aeb3aaebf8e53793c026ed4c2725cb44448cf666f9e"
+  },
+  "source_sha256_before": {
+    "observe_connected_control_batch_execution.py": "6dc7c0e78447837a517fbec83d6bcc0228cd3824a6b09e441da4d9a1f3508fbf",
+    "qualify_connected_gradient_decomposition.py": "2bc273f3db332c0bf2b3b3e3b45722e581035c6509aef9d7c2dc5456494de63c",
+    "test_connected_control_batch_execution.py": "077de4bb275bb5bee095883e620052efbe998693f1c2438706bbb916f21be972",
+    "test_connected_gradient_decomposition.py": "3c9c67a7ba3d52b1a73f4aeb3aaebf8e53793c026ed4c2725cb44448cf666f9e"
+  },
+  "status": "FAIL",
+  "timeout_seconds": 120,
+  "wall_seconds": 12.01323088107165,
+  "worktree": "/home/rb/worktrees/sfora-gradient-workspace-contract-20261008"
+}

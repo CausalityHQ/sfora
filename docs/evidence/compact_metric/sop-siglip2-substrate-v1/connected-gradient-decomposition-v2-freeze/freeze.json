@@ -1,0 +1,26 @@
+{
+  "files": {
+    "authority.json": "4aa5bb2c68d1ea91dc1ccf516faa9a9e79acbd3f68fe5239421b781138e8ec4e",
+    "command.sh": "4333ad615e23e961c77727e322f19b3b66ca6a854af76635820fe0c75c8c30b9",
+    "execution.json": "7bbdd3a7910a155859dca1c1014966fb2089b380ae1ce909a432e17a479ab307",
+    "launch.sh": "121529f26c92ed0dbc51749bd838e02d64c37ffc42c5daea5ba2683f1fa31181",
+    "observe_connected_control_batch_execution.py": "6dc7c0e78447837a517fbec83d6bcc0228cd3824a6b09e441da4d9a1f3508fbf",
+    "qualify_connected_gradient_decomposition.py": "2bc273f3db332c0bf2b3b3e3b45722e581035c6509aef9d7c2dc5456494de63c",
+    "test_connected_gradient_decomposition.py": "3c9c67a7ba3d52b1a73f4aeb3aaebf8e53793c026ed4c2725cb44448cf666f9e"
+  },
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-gradient-decomposition-v2",
+  "policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "extra_tensor_bytes": 536870912,
+    "gradient_sets_max": 8,
+    "host_bytes": 8589934592,
+    "seconds": 3000,
+    "swap_bytes": 0
+  },
+  "root": "/home/riomus/runs/sfora-connected-gradient-decomposition-source-v2",
+  "schema": "connected-gradient-decomposition-freeze-v1",
+  "source_commit": "6089511c9309cd9cf6c8edda9af49a53825736b3",
+  "stop_rule": "Prospective engineering-only bounded phase memory observer; original v1 remains FAIL. No memory cap/event reset or advice/cache changes. Explicit gradient workspace selector preserves strict zero allocated after disposal. ONE original four-state TRAIN-only vector qualification:061init/128 then069init/128; first originalB64/micro16/bothviews/complete canonicalS6355, unchanged losses/K63/K64. No optimizer updates/new gallery/shadow/held quality. Exact numerical-only total=reg+rank, all actual6member/perlayer norms+dots+cos; stop first admission/math/role/lifetime/source/resource failure. Complete original payload/currentbytes/RNG/flags/native origins/strictallocated0/fulluncachedexit/normal terminal+bothlocks required. <=7sets290903232B (<8sets512MiB);3000s/8GiB/events0/swap0/CUDA<10GB. Cost UNMEASURED. CandidateKILL/HOLD_NEW_TRAINING_ARM preserved; no model/quality/speed/reuse/causal-intervention qualification.",
+  "unit": "sfora-connected-gradient-decomposition-v2"
+}

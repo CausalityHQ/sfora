@@ -1,0 +1,12 @@
+{
+  "worker_commit": "1bb5fb0fe3ed25b2ee9de76a52a83996d1b88df5",
+  "integrated": "6089511c",
+  "exact_four_blobs_match_terminal_receipt": true,
+  "replacement_seconds": 10.657998244045302,
+  "rss_kib": 280088,
+  "swaps": 0,
+  "native": "UNRUN",
+  "initial_failure": "Inherited diagnostic fixture qualified type length differs under __main__; unchanged test passes standard discovery",
+  "resource_cause": "UNPROVEN",
+  "next": "Prospective bounded phase memory diagnostic, strict original resource gates and footer environment correction"
+}

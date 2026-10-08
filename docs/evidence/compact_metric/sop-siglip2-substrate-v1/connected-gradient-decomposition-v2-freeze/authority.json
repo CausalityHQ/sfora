@@ -1,0 +1,98 @@
+{
+  "bootstrap": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/authority-train-control-179061-v1.json",
+    "sha256": "9459187171def85aaa436bbef3032b8bbf97d76222601b883c6e6c044d609c52"
+  },
+  "both_locks_held": true,
+  "candidates": [
+    {
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/candidate-179061-terminal.pt",
+        "sha256": "cc20ff1b808fabd158d5545e2f270fd0e7d30e12eefc1d2e5ced1b1859a0a8b3"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/authority-train-candidate-179061-v1.json",
+        "sha256": "578b92a6ae1b7831820dde7ab1d50fb0ad0fa5fa4b681e1e310c24fa8cc96ec3"
+      },
+      "seed": 179061,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "856020168fb8471290cd666cc62fce22",
+        "log": {
+          "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-candidate-179061-v1-original.log",
+          "sha256": "ec0a5e7603bc846a9a783692031ac0ed3e8a6714e487fbd3fce770324cd1b6c0"
+        },
+        "native_peak_rss_kib": 5090964,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/receipt.json",
+          "sha256": "bc6c7357e4cb667e86c15e8f10453f1d27a14f79498a760e81f417b0e881a22b"
+        },
+        "service_seconds": 2295.117,
+        "unit": "sfora-connected-mlp-train-candidate-179061-v1"
+      },
+      "terminal_state_sha256": "13b8bb5d1007afc8bd8c7142b2835b25250f94c83a45847669577fa175b1a540"
+    },
+    {
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179069-v1/candidate-179069-terminal.pt",
+        "sha256": "85c2503e5399451197c589f5b154eba914200f029de8a846812bbb9fe89aaf71"
+      },
+      "launch": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/authority-train-candidate-179069-v1.json",
+        "sha256": "9b4c5291e6e2c6dd97898eb5d7007f23f74ba860d13389f69eab3278fa47c793"
+      },
+      "seed": 179069,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "408c181541ee41e9bde23fea0580f583",
+        "log": {
+          "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-candidate-179069-v1-original.log",
+          "sha256": "18d2718455d90368759f27e1016ea1605abe4520729f2889d9875c4ec064447d"
+        },
+        "native_peak_rss_kib": 5097160,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179069-v1/receipt.json",
+          "sha256": "955cd7389a8d9f55b600225b8ce6b576b222b927627cd4f2410786e5ea804c20"
+        },
+        "service_seconds": 2345.673,
+        "unit": "sfora-connected-mlp-train-candidate-179069-v1"
+      },
+      "terminal_state_sha256": "bb90967e1bfdf360d0da57dec21548ac8782d7e7652552a28da4a28076f99372"
+    }
+  ],
+  "evaluator": {
+    "code": {
+      "evaluate_siglip2_connected_mlp.py": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4",
+      "test_connected_mlp_evaluation.py": "48b47ea04f0cdf5f1980583d2a219c8d6803d0215293628956bc3b408139b89b"
+    },
+    "execution_sha256": "3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029",
+    "root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9"
+  },
+  "execution_sha256": "7bbdd3a7910a155859dca1c1014966fb2089b380ae1ce909a432e17a479ab307",
+  "output": "/home/riomus/runs/sfora-connected-gradient-decomposition-v2",
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "extra_tensor_bytes": 536870912,
+    "gradient_sets_max": 8,
+    "host_bytes": 8589934592,
+    "seconds": 3000,
+    "swap_bytes": 0
+  },
+  "schema": "connected-gradient-decomposition-launch-v1",
+  "training": {
+    "code": {
+      "test_siglip2_connected_mlp.py": "8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f045bc25",
+      "train_siglip2_connected_mlp.py": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
+    },
+    "execution_sha256": "a3d4e1e4ea76084a4036a1c7626b00353401adc3833838375974509aed2f2e8c",
+    "root": "/home/riomus/runs/sfora-connected-mlp-train-source-v6"
+  },
+  "workspace_source": {
+    "path": "/home/riomus/runs/sfora-connected-gradient-decomposition-source-v2/observe_connected_control_batch_execution.py",
+    "sha256": "6dc7c0e78447837a517fbec83d6bcc0228cd3824a6b09e441da4d9a1f3508fbf"
+  }
+}
