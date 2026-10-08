@@ -1,0 +1,10 @@
+{
+  "source_root": "/home/riomus/runs/sfora-connected-gallery-freshness-source-v1",
+  "execution_sha256": "75caf981fd868417dcca15f512948dfad43d6f1eba6ff4cf2cc595aef01ae5c9",
+  "authority_sha256": "9bd88118446ae34f9124570b2a0bc00842eb52135991e8ec2ec7f6229a4b6c6e",
+  "files": {
+    "diagnose_connected_gallery_freshness.py": "4a52c22bdf53731361585787e5647bfea0a8c4f75a134eeac726c44edd2c4962",
+    "test_connected_gallery_freshness.py": "954e657c0a391847c8e8a9dd7dffa2e0691c95151d3b3f8964ef4a960b9f3900"
+  },
+  "native_run": false
+}

@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "stdout": "{\"pass\": true, \"source_roles\": 14, \"original_terminal_count\": 6, \"guard_count\": 60, \"native_imports\": false}\n",
+  "stderr": ""
+}
