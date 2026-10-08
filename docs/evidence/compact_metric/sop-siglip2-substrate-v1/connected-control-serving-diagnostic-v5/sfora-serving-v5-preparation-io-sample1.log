@@ -1,0 +1,10 @@
+Thu Oct  8 14:10:49 UTC 2026
+rchar: 300841977729
+wchar: 0
+syscr: 1205011
+syscw: 0
+read_bytes: 300153839616
+write_bytes: 0
+cancelled_write_bytes: 0
+    PID %CPU     ELAPSED STAT
+1528946 92.1       05:51 Sl
