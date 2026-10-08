@@ -31,8 +31,69 @@ def load(path, name):
 
 
 
-def workspace_inverse(raw):
+def workspace_origin_inverse(raw):
     tree = ast.parse(raw)
+    helpers = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'capture_workspace_owner']
+    if len(helpers) != 1:
+        raise ValueError('workspace origin helper count differs')
+    expected = ast.parse("""known = {}
+for record in (context['source_cpu'], context['warm']):
+    for path, digest in record['origins']['files'].items():
+        require(known.setdefault(path, digest) == digest, 'workspace original origin conflict')
+facts = []
+for module in (torch, native, version):
+    path = str(Path(module.__file__).resolve())
+    require(path in known, 'workspace original guarded origin required')
+    fact = {'path': path, 'sha256': known[path]}
+    authenticated(fact, context['guards'])
+    facts.append(fact)
+""").body
+    body = helpers[0].body
+    matches = [i for i in range(len(body)-len(expected)+1) if
+               ast.dump(ast.Module(body=body[i:i+len(expected)], type_ignores=[]), include_attributes=False) ==
+               ast.dump(ast.Module(body=expected, type_ignores=[]), include_attributes=False)]
+    if len(matches) != 1:
+        raise ValueError('workspace origin exact seam differs')
+    body[matches[0]:matches[0]+len(expected)] = ast.parse("""known = {}
+for record in (context['source_cpu'], context['warm']):
+    known.update(record['origins']['files'])
+facts = []
+for module in (torch, native, version):
+    path = str(Path(module.__file__).resolve())
+    require(known.get(path) == context['guards'].get(path) and path in known,
+            'workspace original guarded origin required')
+    facts.append({'path': path, 'sha256': known[path]})
+""").body
+    return tree
+
+
+def workspace_origin_test_inverse(raw):
+    tree = ast.parse(raw)
+    names = {'workspace_origin_inverse', 'workspace_origin_test_inverse',
+             'test_workspace_origin_promotion_authenticates_current_original_files',
+             'test_workspace_origin_inverse_preserves_exact_base_contract'}
+    removed = []
+    restored = []
+    class Restore(ast.NodeTransformer):
+        def visit_FunctionDef(self, node):
+            if node.name in names:
+                removed.append(node.name)
+                return None
+            if node.name in ('workspace_inverse', 'workspace_test_inverse'):
+                expected = 'workspace_origin_inverse(raw)' if node.name == 'workspace_inverse' else 'workspace_origin_test_inverse(raw)'
+                if ast.unparse(node.body[0].value) != expected:
+                    raise ValueError('workspace origin test entry seam differs')
+                node.body[0].value = ast.parse('ast.parse(raw)', mode='eval').body
+                restored.append(node.name)
+            return self.generic_visit(node)
+    tree = Restore().visit(tree)
+    if sorted(removed) != sorted(names) or sorted(restored) != ['workspace_inverse', 'workspace_test_inverse']:
+        raise ValueError('workspace origin test seam counts differ')
+    return tree
+
+
+def workspace_inverse(raw):
+    tree = workspace_origin_inverse(raw)
     expected = ast.parse("""failure = None
 try:
     try:
@@ -80,7 +141,7 @@ finally:
 
 
 def workspace_test_inverse(raw):
-    tree = ast.parse(raw)
+    tree = workspace_origin_test_inverse(raw)
     class Restore(ast.NodeTransformer):
         def visit_FunctionDef(self, node):
             if node.name in ('workspace_inverse', 'workspace_test_inverse') or node.name.startswith('test_workspace_'):
@@ -918,6 +979,120 @@ class ObserverTests(unittest.TestCase):
                     if mutant in (None, 'tensor', 'after'):
                         report = json.loads(stderr.getvalue()); self.assertFalse(report['native_causality_established'])
                         self.assertEqual(report['before']['allocated_bytes'] - report['after']['allocated_bytes'], 33554431 if mutant == 'after' else 33554432)
+
+    def test_workspace_origin_promotion_authenticates_current_original_files(self):
+        from types import ModuleType
+        tree = ast.parse(DRIVER.read_bytes())
+        helper = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'capture_workspace_owner')
+        # Only builtin type predicates use the stdlib callback; all FILE reads stay genuine.
+        count = 0
+        class BuiltinSeam(ast.NodeTransformer):
+            def visit_Call(self, node):
+                nonlocal count
+                if ast.unparse(node) == 'type(sys.getsizeof)':
+                    count += 1
+                    return ast.copy_location(ast.parse('type(clear)', mode='eval').body, node)
+                return self.generic_visit(node)
+        helper = BuiltinSeam().visit(helper)
+        self.assertEqual(count, 2)
+        namespace = dict(vars(self.o))
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[helper], type_ignores=[])), str(DRIVER), 'exec'), namespace)
+        version_raw = (EVIDENCE/'connected-cuda-workspace-source-audit-v1/installed-version.py').read_bytes()
+        self.assertEqual(hashlib.sha256(version_raw).hexdigest(),
+                         'c846964f2d105f1f367cdc92dea045debcdcc09557b5da60591e8079f1b2c828')
+        cases = {None: None, 'occupied': None, 'conflict': 'conflicting FILE',
+            'missing': 'original guarded origin', 'foreign': 'original guarded origin',
+            'original_conflict': 'original origin conflict', 'sha': 'FILE SHA',
+            'version_sha': 'version source hash', 'mutation': 'FILE SHA', 'occupied_mutation': 'FILE SHA',
+            'during_read': 'changed during authentication', 'symlink_during_read': 'guarded binding',
+            'symlink': 'original guarded origin',
+            'registry': 'module ownership', 'python': 'builtin',
+            'captured_bytes': 'FILE SHA', 'captured_guard': 'guarded binding',
+            'captured_registry': 'captured ownership', 'captured_callable': 'captured ownership',
+            'captured_symlink': 'guarded binding'}
+        for mutant, error in cases.items():
+            with self.subTest(mutant=mutant), tempfile.TemporaryDirectory() as tmp:
+                events = []
+                torch = ModuleType('torch'); native = ModuleType('torch._C'); version = ModuleType('torch.version')
+                torch._C = native; torch.version = version
+                torch.__version__ = version.__version__ = '2.12.1+cu130'
+                version.git_version = '7269437d655783a26cba32aa88195b741ff496aa'
+                def clear():events.append('clear')
+                clear.__name__ = '_cuda_clearCublasWorkspaces'; clear.__module__ = 'torch._C'; clear.__self__ = native
+                native._cuda_clearCublasWorkspaces = clear
+                torch.cuda = SimpleNamespace(synchronize=lambda:events.append('sync'))
+                facts = {}
+                for module, raw in ((torch, b'original torch'), (native, b'original native'), (version, version_raw)):
+                    path = Path(tmp)/module.__name__; path.write_bytes(raw); module.__file__ = str(path)
+                    facts[str(path)] = hashlib.sha256(raw).hexdigest()
+                context = {'guards':{}, 'source_cpu':{'origins':{'files':dict(facts)}},
+                           'warm':{'origins':{'files':dict(facts)}}}
+                if mutant in ('occupied', 'occupied_mutation'):context['guards'].update(facts)
+                if mutant == 'conflict':context['guards'][torch.__file__] = '0'*64
+                if mutant == 'missing':
+                    for record in (context['source_cpu'], context['warm']):del record['origins']['files'][native.__file__]
+                if mutant == 'foreign':
+                    path = Path(tmp)/'foreign'; path.write_bytes(b'original native'); native.__file__ = str(path)
+                if mutant == 'original_conflict':context['warm']['origins']['files'][torch.__file__] = '0'*64
+                if mutant in ('sha', 'version_sha'):
+                    path = native.__file__ if mutant == 'sha' else version.__file__
+                    if mutant == 'version_sha':Path(path).write_bytes(b'wrong version source')
+                    for record in (context['source_cpu'], context['warm']):
+                        record['origins']['files'][path] = '0'*64 if mutant == 'sha' else hashlib.sha256(Path(path).read_bytes()).hexdigest()
+                if mutant in ('mutation', 'occupied_mutation'):Path(torch.__file__).write_bytes(b'changed torch')
+                if mutant == 'symlink':
+                    path = Path(native.__file__); target = Path(tmp)/'unadmitted'; path.rename(target); path.symlink_to(target)
+                if mutant == 'python':native._cuda_clearCublasWorkspaces = lambda:None
+                advice = os.posix_fadvise
+                def mutate(fd, offset, length, kind):
+                    advice(fd, offset, length, kind)
+                    if mutant == 'during_read':Path(torch.__file__).write_bytes(b'changed torch')
+                    if mutant == 'symlink_during_read' and not (Path(tmp)/'unadmitted').exists():
+                        path = Path(torch.__file__); target = Path(tmp)/'unadmitted'; path.rename(target); path.symlink_to(target)
+                with patch.dict(sys.modules, {'torch':torch, 'torch._C':native, 'torch.version':version}), \
+                     patch.dict(os.environ, {'CUBLAS_WORKSPACE_CONFIG':':4096:8'}), \
+                     patch.object(self.o.os, 'posix_fadvise', mutate):
+                    if mutant == 'registry':sys.modules['torch._C'] = ModuleType('torch._C')
+                    if error and not mutant.startswith('captured_'):
+                        with self.assertRaisesRegex(ValueError, error):namespace['capture_workspace_owner'](torch, context)
+                    else:
+                        dispose = namespace['capture_workspace_owner'](torch, context)
+                        self.assertEqual(context['guards'], facts)
+                        if mutant == 'captured_bytes':Path(native.__file__).write_bytes(b'changed native')
+                        if mutant == 'captured_guard':context['guards'][native.__file__] = '0'*64
+                        if mutant == 'captured_registry':sys.modules['torch._C'] = ModuleType('torch._C')
+                        if mutant == 'captured_callable':native._cuda_clearCublasWorkspaces = lambda:None
+                        if mutant == 'captured_symlink':
+                            path = Path(native.__file__); target = Path(tmp)/'unadmitted'; path.rename(target); path.symlink_to(target)
+                        if error:
+                            with self.assertRaisesRegex(ValueError, error):dispose()
+                        else:self.assertTrue(callable(dispose))
+                self.assertEqual(events, [], 'authentication touched CUDA or the workspace owner')
+                if mutant in ('mutation', 'during_read'):self.assertEqual(context['guards'], {})
+                if mutant == 'conflict':self.assertEqual(context['guards'], {torch.__file__:'0'*64})
+
+    def test_workspace_origin_inverse_preserves_exact_base_contract(self):
+        raw = DRIVER.read_bytes()
+        restored = workspace_origin_inverse(raw)
+        self.assertEqual(hashlib.sha256(ast.dump(restored, include_attributes=False).encode()).hexdigest(),
+                         '2020ed24ecb78f9ab5a49fa78b7d7dfbae1d5bd7adabc27a5185fc83abab335d')
+        restored_tests = workspace_origin_test_inverse(Path(__file__).read_bytes())
+        self.assertEqual(hashlib.sha256(ast.dump(restored_tests, include_attributes=False).encode()).hexdigest(),
+                         '51da8ab8ad99f1f9c6ae614f25530b85607f7daa396357d222aec1dcaa7f0cf1')
+        for before, after in ((b"authenticated(fact, context['guards'])", b'authenticated(fact, {})'),
+                              (b'require(path in known,', b'require(True,'),
+                              (b'known.setdefault(path, digest) == digest', b'True')):
+            self.assertEqual(raw.count(before), 1)
+            with self.assertRaisesRegex(ValueError, 'exact seam'):workspace_origin_inverse(raw.replace(before, after, 1))
+        for before, after in ((b'33554432', b'33554431'),
+                              (b'type(clear) is type(sys.getsizeof)', b'True'),
+                              (b'time.perf_counter()-started < 700', b'time.perf_counter()-started < 701'),
+                              (b'F.normalize(pooled.float(),dim=1)', b'F.normalize(pooled,dim=1)'),
+                              (b'        cuda_ownership_snapshot()', b'        cuda_ownership_snapshot(None)'),
+                              (b'failure = caught', b'failure = None')):
+            self.assertIn(before, raw)
+            changed = workspace_origin_inverse(raw.replace(before, after, 1))
+            self.assertNotEqual(ast.dump(changed, include_attributes=False), ast.dump(restored, include_attributes=False))
 
     def test_workspace_inverse_preserves_complete_production_and_tests(self):
         raw = DRIVER.read_bytes()

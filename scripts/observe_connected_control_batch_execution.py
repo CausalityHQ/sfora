@@ -487,13 +487,15 @@ def capture_workspace_owner(torch, context):
             version.__version__ == torch.__version__ == '2.12.1+cu130', 'workspace version differs')
     known = {}
     for record in (context['source_cpu'], context['warm']):
-        known.update(record['origins']['files'])
+        for path, digest in record['origins']['files'].items():
+            require(known.setdefault(path, digest) == digest, 'workspace original origin conflict')
     facts = []
     for module in (torch, native, version):
         path = str(Path(module.__file__).resolve())
-        require(known.get(path) == context['guards'].get(path) and path in known,
-                'workspace original guarded origin required')
-        facts.append({'path': path, 'sha256': known[path]})
+        require(path in known, 'workspace original guarded origin required')
+        fact = {'path': path, 'sha256': known[path]}
+        authenticated(fact, context['guards'])
+        facts.append(fact)
     require(facts[2]['sha256'] == 'c846964f2d105f1f367cdc92dea045debcdcc09557b5da60591e8079f1b2c828',
             'workspace version source hash differs')
     binding = (clear.__name__, clear.__module__, clear.__self__)
