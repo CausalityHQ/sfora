@@ -1,0 +1,89 @@
+{
+  "schema": "connected-gallery-freshness-source-worker-receipt-v1",
+  "status": "SOURCE_IMPLEMENTED_STDLIB_VERIFIED_NATIVE_UNRUN",
+  "base_commit": "83aaa0656d6d3e0d6497f066d3877e0055572ce0",
+  "commit": "73cf75524b31838411bc91e061471e1480383730",
+  "branch": "devbox/connected-gallery-freshness-20261008",
+  "files": {
+    "/home/rb/worktrees/sfora-connected-gallery-freshness-20261008/scripts/diagnose_connected_gallery_freshness.py": "4a52c22bdf53731361585787e5647bfea0a8c4f75a134eeac726c44edd2c4962",
+    "/home/rb/worktrees/sfora-connected-gallery-freshness-20261008/scripts/test_connected_gallery_freshness.py": "954e657c0a391847c8e8a9dd7dffa2e0691c95151d3b3f8964ef4a960b9f3900"
+  },
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "ai_trailers": false,
+  "exact_two_new_files": true,
+  "final_suite": {
+    "command": "ulimit -v 1048576; timeout 120s /usr/bin/time -v python3 -B scripts/test_connected_gallery_freshness.py",
+    "original_session_id": 45842,
+    "exit_code": 0,
+    "tests": 19,
+    "test_seconds": 6.938,
+    "whole_seconds": 7.05,
+    "peak_rss_kib": 354096,
+    "swaps": 0,
+    "address_space_limit_bytes": 1073741824,
+    "timeout_seconds": 120,
+    "number_of_final_full_suites": 1
+  },
+  "checks": {
+    "syntax": true,
+    "cli_help": true,
+    "optimized_rejection": true,
+    "native_import_absence": true,
+    "staged_diff_check": true
+  },
+  "executed_seams": [
+    "exact pinned committed fullscore/verification/fullCPU/four exports prepare joins via test-only I/O metadata standins",
+    "six actual original duration-only terminal readers with genuine FlatAdmission and original exporter-reference admit_cgroup",
+    "actual frozen terminal C+mu add-order readout with independent reload identities and omittedC/wrongmu mutants",
+    "actual unchanged packed scorer AST signed ties/unequal inverses/R1-preserving AP mutation + persisted wire arithmetic",
+    "original complete typed endpoint tree/member fingerprint and real tensor/provenance predicates with native byte standins",
+    "actual live original source guards; foreign registry identity/partial-admit disposal",
+    "post-disposal genuine cgroup/RNG/flags/CUDA/budget final cap falsifiers"
+  ],
+  "contract": {
+    "path": "/tmp/sfora-connected-gallery-freshness-worker-contract.json",
+    "sha256": "8ca244784f75cd9424c760fc0a0ea4c7e6701d0620d33115dc46bb4889766cc1"
+  },
+  "logs": [
+    {
+      "path": "/tmp/sfora-freshness-red.log",
+      "sha256": "290a73e05c922169bada9ff0c0a7a43aa340ed7608d195ad2144b01ed2a397bf"
+    },
+    {
+      "path": "/tmp/sfora-freshness-readout-green.log",
+      "sha256": "f0942a24c4c6ac0a63855142b0988b797d46b91ab920cdfecf7dbc832eef53f9"
+    },
+    {
+      "path": "/tmp/sfora-freshness-sources-green.log",
+      "sha256": "0ab7aa75866acfa8827c1cd7791a0a148fc27cedeb8cf7cf7eff7b42df584f4f"
+    },
+    {
+      "path": "/tmp/sfora-freshness-prepare-green.log",
+      "sha256": "c185fe75f0e0d89b758cf55e9cbb9ca5efd7ff14d9b0056748f4cb9f2350704a"
+    },
+    {
+      "path": "/tmp/sfora-freshness-typed-scorer-green.log",
+      "sha256": "54ff823b19d577c3c94f58c2402f9197c324d5099fd4a8eff5af3063c098651f"
+    },
+    {
+      "path": "/tmp/sfora-freshness-finalcap-green.log",
+      "sha256": "35d65e8b61220852b4f3b565fd913c8f8e417ad8fddc1e995d2971312dc79a55"
+    },
+    {
+      "path": "/tmp/sfora-freshness-prepare-finalcap-green.log",
+      "sha256": "3fe05fb17c7935ffde670acd1d1169c187cab34cf0fc42e95728f84cd2fa09a6"
+    },
+    {
+      "path": "/tmp/sfora-freshness-final-suite.log",
+      "sha256": "843ec59d9cb6529477bdf3c762d1a936857a8d5d44f95341545ea9655b7e1d2f"
+    }
+  ],
+  "candidate_status": "KILL unchanged",
+  "native_launch_authorized": false,
+  "native_numerical_run": false,
+  "remote_reads": false,
+  "existing_production_edits": false,
+  "merged": false,
+  "pushed": false,
+  "remaining": "Parent review/integration/exact prospective FILE/CODE/UNIT freeze, remote stdlib prepare-only preflight and root-only ONE original native gate. Control tap numerical parity remains unmeasured; same-device success never licenses causal-null or survivor claim."
+}

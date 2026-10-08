@@ -1,0 +1,11 @@
+{
+  "schema": "gallery-freshness-parent-source-verification-v1",
+  "commit": "73cf75524b31838411bc91e061471e1480383730",
+  "original_worker_receipt_sha256": "5098347b859cd1f2a0004973e58cfc04257155b1513b896a37ba91ba6e275fea",
+  "exact_files_and_parent_pass": true,
+  "committed_bytes_match_receipt": true,
+  "all_original_log_hashes_pass": true,
+  "original_suite_terminal_pass": true,
+  "duplicate_suite_run": false,
+  "native_unrun": true
+}
