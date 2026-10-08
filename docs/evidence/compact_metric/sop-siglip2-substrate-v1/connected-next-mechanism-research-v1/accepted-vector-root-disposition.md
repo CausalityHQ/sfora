@@ -1,0 +1,7 @@
+The completed Fable consultation 22de3899c9014d07 is advisory research, not experiment admission. The accepted v4 first-B64 measurements show positive combined encoder regression/ranking dot products at both measured states and both seeds. They weaken the proposed broad conflict mechanism; they do not establish alignment on all batches or error subsets.
+
+The proposed existing-artifact core-error census is under a separate read-only feasibility audit (928b7208a42447fa). Packed wires are explicitly SHA-bound in the accepted selection receipt. Availability, row mapping and exact scorer reproduction still require verification. Mutual confusion does not establish label noise, and the proposed near-error count of eight is not an admitted training trigger. The original candidate KILL and scientific thresholds remain unchanged.
+
+The installed serving observer candidate a4cd794ce74dfa44791262620d8cc41722fda828 has six independently verified committed source hashes and three original passing stdlib suite exits (55.0455 seconds total, 1 GiB address-space ceiling). Package sources remained unchanged. Prior fixture failures are preserved. New result-gated Opus/Astra review b6808379c31f41e1 is active before integration/native freeze. No new DGX serving or training job has launched.
+
+Native wheel parity, lifecycle and matched B1/B32 latency remain unqualified. Joint protocol-matched quality and speed publication requirements remain unmet.
