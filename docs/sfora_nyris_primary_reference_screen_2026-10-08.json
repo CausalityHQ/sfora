@@ -1,0 +1,39 @@
+{
+  "audited_sections": [
+    "Table1",
+    "Table2",
+    "Table3",
+    "5",
+    "6",
+    "7"
+  ],
+  "comparison_decision": "SOP row below dated UNICOM91.2. mAP@20 is not mAP@R. No matched packed128 latency. No new strongest-reference or SOTA claim; gates unchanged.",
+  "new_native_job": false,
+  "new_sfora_quality_read": false,
+  "paper": "Visual Product Search Benchmark",
+  "pdf": "https://arxiv.org/pdf/2603.17186",
+  "protocol": "Zero-shot; normalized float dot-product exact Qdrant search; local A100. No In-Shop results.",
+  "publication": "arXiv2603.17186v1,2026-03-17",
+  "reported_row": {
+    "SOP_R_at_1_percent": 86.9,
+    "SOP_R_at_5_percent": 94.2,
+    "SOP_mAP_at_20_percent": 72.4,
+    "dimensions": 768,
+    "input_pixels": 336,
+    "model": "GEMv5.1"
+  },
+  "schema": "sfora-primary-reference-screen-v1",
+  "source": "https://arxiv.org/html/2603.17186v1",
+  "split": {
+    "dataset": "SOP official TEST",
+    "gallery": 60502,
+    "products": 11316,
+    "queries": 60502,
+    "self_matches_excluded": true
+  },
+  "table_verification": "Primary HTML/PDF extracted table and prose agree; screenshot requested but image not exposed by this tool session.",
+  "unresolved_primary_lead": {
+    "state": "Browser challenge; full paper unverified, no numerical claim or bypass.",
+    "url": "https://openreview.net/pdf?id=3fx0Kz6Zfl"
+  }
+}
