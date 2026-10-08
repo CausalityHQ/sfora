@@ -367,6 +367,7 @@ def run(args):
         native_source = requests.Source.load(sources['control_native']); owned.append(native_source)
         runtime = requests.strict_json(observer.file_bytes(authority['native_runtime'],keep=True))
         require(runtime['library'] == observation['native'], 'same frozen control native FILE required')
+        native_source.module.validate_runtime_compiler(runtime,observer)
         fact = authority['evaluator']
         evaluator_source = native_source.module.load_evaluator_source(
             {'path':str(Path(fact['root'])/'evaluate_siglip2_connected_mlp.py'),

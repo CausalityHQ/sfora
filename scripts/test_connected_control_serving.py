@@ -2,7 +2,7 @@
 """Bounded stdlib falsifier:120s/AS1GiB/fixtures16MiB; native work UNRUN."""
 import ast
 import copy
-from contextlib import ExitStack, contextmanager, redirect_stdout
+from contextlib import ExitStack, contextmanager, redirect_stderr, redirect_stdout
 import hashlib
 import importlib.abc
 import importlib.util
@@ -19,6 +19,48 @@ import unittest
 from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
+
+COMPILER_VALIDATOR = '''def validate_runtime_compiler(record, observer):
+    require(type(record) is dict and record.keys() ==
+        {'schema','library','build_receipt','build_evidence','source_manifest','supplemental','runtime_compiler'} and
+        record['schema'] == 'connected-control-native-authority-v2', 'exact combined native authority required')
+    file = record['runtime_compiler']
+    observer.file_bytes(file)
+    path = Path(file['path'])
+    require(stat.S_ISREG(path.stat().st_mode) and os.access(path,os.X_OK), 'regular executable runtime compiler FILE required')
+    require(os.environ.get('CUTILE_TILEIRAS_PATH') == file['path'], 'exact CUTILE_TILEIRAS_PATH binding required')
+
+
+'''
+ORIGIN_DIAGNOSTIC = '''        changed = [{'path':p,'actual_sha256':h,'expected_sha256':union.get(p)}
+            for p,h in origins['files'].items() if union.get(p) != h]
+        if changed:
+            print(json.dumps({'schema':'connected-control-native-origin-rejection-v1',
+                'total_count':len(changed),'origins':changed[:32]},sort_keys=True),file=sys.stderr,flush=True)
+'''
+PRODUCTION_DELTAS = {
+    'qualify_connected_control_serving.py': ('d76376418deef511de97b7c516bb0d8f6eca0c1cd55e49a3898ce72da763517c', [
+        ('', "        native_source.module.validate_runtime_compiler(runtime,observer)\n")]),
+    'connected_control_native_authority.py': ('2a9a1b4f8cb7303e4d8f58dbcb0dad37699548385de374b2c306afcc30bb9985', [
+        ('connected-control-native-authority-v1 FILE with\nexact keys schema/library/build_receipt/build_evidence/source_manifest/supplemental.',
+         'connected-control-native-authority-v2 FILE with\nexact keys schema/library/build_receipt/build_evidence/source_manifest/supplemental/runtime_compiler.\n'
+         'runtime_compiler is an executable FILE bound to CUTILE_TILEIRAS_PATH, never a native grant.'),
+        ('import os\n', 'import json\nimport os\n'),
+        ('', COMPILER_VALIDATOR),
+        ("        require(type(record) is dict and record.keys() ==\n"
+         "            {'schema','library','build_receipt','build_evidence','source_manifest','supplemental'} and\n"
+         "            record['schema'] == 'connected-control-native-authority-v1', 'exact combined native authority required')\n",
+         '        validate_runtime_compiler(record,self.observer)\n'),
+        ("facts = [self.fact,record['library'],", "facts = [self.fact,record['runtime_compiler'],record['library'],"),
+        ('', ORIGIN_DIAGNOSTIC)])}
+
+
+def production_inverse(raw, digest, changes):
+    for before,after in reversed(changes):
+        if raw.count(after) != 1: raise ValueError('exact production delta differs')
+        raw = raw.replace(after,before,1)
+    if hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() != digest:
+        raise ValueError('whole production AST inverse differs')
 
 
 class NoNative(importlib.abc.MetaPathFinder):
@@ -96,6 +138,7 @@ def guard_helpers(context):
 
 def runtime_fixture(root):
     binary = root/'cutile.so'; binary.write_bytes(b'fresh fixture binary')
+    compiler = root/'tileiras'; compiler.write_bytes(b'compiler FILE fixture; never executed'); compiler.chmod(0o755)
     source = write_json(root/'source-manifest.json', {'ffi.rs':'a'*64})
     binaries = write_json(root/'binaries.json', {'candidate.so':fact(binary)['sha256']})
     evidence = {'source-manifest.json':source,'binaries.json':binaries}
@@ -105,7 +148,7 @@ def runtime_fixture(root):
     provenance = write_json(root/'provenance.json', {'schema':'connected-control-native-file-provenance-v1',
         'file':fact(binary),'kind':'archived-cutile-build','origin':'fixture archived candidate.so',
         'evidence':[receipt,binaries,source]})
-    authority = {'schema':'connected-control-native-authority-v1','library':fact(binary),
+    authority = {'schema':'connected-control-native-authority-v2','library':fact(binary),'runtime_compiler':fact(compiler),
         'build_receipt':receipt,'build_evidence':evidence,'source_manifest':source,
         'supplemental':[{'file':fact(binary),'provenance':provenance}]}
     return binary, authority, write_json(root/'runtime.json',authority)
@@ -300,6 +343,7 @@ def genuine_exit_fixture(root):
     def stat_file(path,*args,**kwargs): return actual_stat(virtual.get(str(path),path),*args,**kwargs)
     virtual_dirs = {str(Path(p).parent) for p in virtual}
     with ExitStack() as stack:
+        stack.enter_context(patch.dict(os.environ,{'CUTILE_TILEIRAS_PATH':runtime['runtime_compiler']['path']}))
         stack.enter_context(patch.object(Path,'open',open_file))
         stack.enter_context(patch.object(Path,'stat',stat_file))
         stack.enter_context(patch.object(Path,'is_file',lambda p:actual_is_file(virtual.get(str(p),p))))
@@ -326,6 +370,133 @@ def genuine_exit_fixture(root):
 
 
 class ControlTests(unittest.TestCase):
+    def test_exact_production_delta_and_whole_ast_inverse(self):
+        for name,(digest,changes) in PRODUCTION_DELTAS.items():
+            raw = (HERE/name).read_text()
+            with self.subTest(source=name): production_inverse(raw,digest,changes)
+            for before,after in changes:
+                with self.subTest(delta=after),self.assertRaisesRegex(ValueError,'delta'):
+                    production_inverse(raw.replace(after,after[:-1]+'?',1),digest,changes)
+            with self.subTest(retained=name),self.assertRaisesRegex(ValueError,'AST'):
+                production_inverse(raw.replace('raise ValueError(message)','raise RuntimeError(message)',1),digest,changes)
+
+    def test_compiler_rejects_invalid_binding_before_evaluator_authority(self):
+        driver = load('_control_compiler_driver',HERE/'qualify_connected_control_serving.py')
+        native = load('_control_compiler_native',HERE/'connected_control_native_authority.py')
+        observer = load('_control_compiler_observer',HERE/'observe_connected_serving.py')
+        run = next(n for n in ast.parse(Path(driver.__file__).read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name == 'run')
+        body = next(n.body for n in run.body if isinstance(n,ast.Try))
+        start = next(i+1 for i,n in enumerate(body) if isinstance(n,ast.Assign) and ast.unparse(n.targets[0]) == 'runtime')
+        end = next(i+1 for i,n in enumerate(body) if isinstance(n,ast.Assign) and ast.unparse(n.value) == 'evaluator.authority(eargs)')
+        code = compile(ast.Module(body=copy.deepcopy(body[start:end]),type_ignores=[]),driver.__file__,'exec')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); _,runtime,_ = runtime_fixture(root)
+            compiler = Path(runtime['runtime_compiler']['path']); raw = compiler.read_bytes()
+            link = root/'compiler-link'; link.symlink_to(compiler)
+            directory_file = root/'compiler-directory'; directory_file.mkdir()
+            bad = root/'bad-compiler'; bad.write_bytes(b'wrong compiler'); bad.chmod(0o755)
+            entered = []
+            evaluator = SimpleNamespace(FILES=set(),check_code=lambda *a:None,closure=lambda *a:{},
+                authority=lambda args:(entered.append(args) or {},None))
+            descriptor = {'root':str(root),'execution_sha256':'a'*64,'code':{'evaluate_siglip2_connected_mlp.py':'b'*64}}
+            evaluator.closure = lambda *a:descriptor['code']
+            def admit(record,env):
+                namespace = {**vars(driver),'runtime':record,'observer':observer,'observation':{'native':runtime['library']},
+                    'native_source':SimpleNamespace(module=native),'owned':[],'output':root/'out',
+                    'authority':{'evaluator':descriptor,'evaluation_authority':{'path':str(root/'evaluation.json'),'sha256':'a'*64}}}
+                with patch.dict(os.environ,env,clear=True),patch.object(native,'load_evaluator_source',
+                        lambda *a:SimpleNamespace(module=evaluator)):
+                    exec(code,namespace)
+            cases = [
+                ('missing env',runtime,{}),('wrong env',runtime,{'CUTILE_TILEIRAS_PATH':str(bad)}),
+                ('old schema',{**runtime,'schema':'connected-control-native-authority-v1'},None),
+                ('missing FILE',{k:v for k,v in runtime.items() if k != 'runtime_compiler'},None),
+                ('wrong hash',{**runtime,'runtime_compiler':{**runtime['runtime_compiler'],'sha256':'0'*64}},None),
+                ('missing path',{**runtime,'runtime_compiler':{**runtime['runtime_compiler'],'path':str(root/'missing')}},None),
+                ('relative path',{**runtime,'runtime_compiler':{**runtime['runtime_compiler'],'path':'tileiras'}},None),
+                ('symlink',{**runtime,'runtime_compiler':{**runtime['runtime_compiler'],'path':str(link)}},None),
+                ('directory',{**runtime,'runtime_compiler':{**runtime['runtime_compiler'],'path':str(directory_file)}},None)]
+            for label,record,env in cases:
+                entered.clear()
+                env = env if env is not None else {'CUTILE_TILEIRAS_PATH':record.get('runtime_compiler',runtime['runtime_compiler'])['path']}
+                with self.subTest(mutant=label),self.assertRaises(ValueError): admit(record,env)
+                self.assertEqual(entered,[],label)
+            for label in ('mode','changed bytes'):
+                entered.clear()
+                try:
+                    if label == 'mode': compiler.chmod(0o644)
+                    else: compiler.write_bytes(b'x'*len(raw))
+                    with self.subTest(mutant=label),self.assertRaises(ValueError):
+                        admit(runtime,{'CUTILE_TILEIRAS_PATH':str(compiler)})
+                    self.assertEqual(entered,[],label)
+                finally: compiler.write_bytes(raw); compiler.chmod(0o755)
+            admit(runtime,{'CUTILE_TILEIRAS_PATH':str(compiler)})
+            self.assertEqual(len(entered),1)
+
+    def test_origin_diagnostic_is_bounded_and_rejects_real_unknown_or_changed_hashes(self):
+        with tempfile.TemporaryDirectory() as directory,patch.dict(sys.modules),genuine_exit_fixture(Path(directory)) as g:
+            packages = g.f.legacy['selected']['packages']
+            def rejected():
+                stderr = io.StringIO()
+                with redirect_stderr(stderr),self.assertRaisesRegex(ValueError,'unknown or changed combined native origin'):
+                    g.authority.collect(g.f.extract,packages)
+                self.assertTrue(stderr.getvalue(),'origin rejection omitted metadata')
+                return json.loads(stderr.getvalue())
+            unknown = []
+            for i in range(35):
+                path = Path(directory)/f'unknown{i}.so'; path.write_bytes(bytes([i])); unknown.append(path)
+            g.map_paths.extend(str(p) for p in unknown)
+            report = rejected()
+            self.assertEqual(report['schema'],'connected-control-native-origin-rejection-v1')
+            self.assertEqual(report['total_count'],35)
+            self.assertEqual(len(report['origins']),32)
+            for row in report['origins']:
+                self.assertEqual(row,{'path':str(Path(row['path']).resolve()),
+                    'actual_sha256':fact(Path(row['path']))['sha256'],'expected_sha256':None})
+            del g.map_paths[-35:]
+            historical = Path(g.map_paths[0]); raw = historical.read_bytes(); expected = fact(historical)['sha256']
+            try:
+                historical.write_bytes(b'changed historical bytes')
+                self.assertEqual(rejected()['origins'],[{'path':str(historical),
+                    'actual_sha256':fact(historical)['sha256'],'expected_sha256':expected}])
+            finally: historical.write_bytes(raw)
+            # Change S after the initial fresh FILE check; the genuine collector sees its new bytes.
+            raw = g.binary.read_bytes(); expected = fact(g.binary)['sha256']; actual_open = Path.open
+            def change_at_maps(path,*args,**kwargs):
+                if str(path) == '/proc/self/maps': g.binary.write_bytes(b'changed supplemental bytes')
+                return actual_open(path,*args,**kwargs)
+            try:
+                with patch.object(Path,'open',change_at_maps): report = rejected()
+                self.assertEqual(report['origins'],[{'path':str(g.binary),
+                    'actual_sha256':fact(g.binary)['sha256'],'expected_sha256':expected}])
+            finally: g.binary.write_bytes(raw)
+            self.assertNotIn(g.runtime['runtime_compiler']['path'],g.authority.files)
+            g.authority.collect(g.f.extract,packages)
+
+    def test_compiler_binding_and_current_bytes_survive_full_original_exit(self):
+        with tempfile.TemporaryDirectory() as directory,patch.dict(sys.modules),genuine_exit_fixture(Path(directory)) as g:
+            file = g.runtime['runtime_compiler']; compiler = Path(file['path']); raw = compiler.read_bytes()
+            self.assertIn(file,g.authority.provenance_facts())
+            self.assertNotIn(str(compiler),g.authority.files)
+            g.evaluator.merge_guards(g.context['guards'],{v['path']:v['sha256'] for v in g.authority.provenance_facts()})
+            self.assertEqual(g.context['guards'][str(compiler)],file['sha256'])
+            def exit():
+                g.f.context['fit_context']['phase_seconds'].clear()
+                with redirect_stdout(io.StringIO()): g.api.evaluator_exit(g.context,g.guard)
+            exit()
+            with patch.dict(os.environ,{'CUTILE_TILEIRAS_PATH':str(compiler)+'.wrong'}), \
+                    self.assertRaisesRegex(ValueError,'CUTILE_TILEIRAS_PATH'): exit()
+            try:
+                compiler.chmod(0o644)
+                with self.assertRaisesRegex(ValueError,'executable'): exit()
+            finally: compiler.chmod(0o755)
+            try:
+                saved = compiler.stat(); compiler.write_bytes(b'x'*len(raw))
+                os.utime(compiler,ns=(saved.st_atime_ns,saved.st_mtime_ns))
+                with self.assertRaisesRegex(ValueError,'SHA256'): exit()
+            finally: compiler.write_bytes(raw)
+            exit()
+
     def test_genuine_collector_and_real_proc_maps_agree(self):
         source = load('_control_real_maps_collector',HERE/'qualify_siglip2_substrate_cpu.py')
         extract = load('_control_real_maps_extract',HERE/'extract_siglip2_vision_source.py')
@@ -869,7 +1040,8 @@ class ControlTests(unittest.TestCase):
             def read_text(path, *args, **kwargs):
                 return map_state[0] if str(path) == '/proc/self/maps' else actual_read_text(path,*args,**kwargs)
             with patch.object(native,'ARCHIVE_SHA',runtime['build_receipt']['sha256']), \
-                 patch.object(native,'BINARY_SHA',fact(binary)['sha256']), patch.object(Path,'read_text',read_text):
+                 patch.object(native,'BINARY_SHA',fact(binary)['sha256']), patch.object(Path,'read_text',read_text), \
+                 patch.dict(os.environ,{'CUTILE_TILEIRAS_PATH':runtime['runtime_compiler']['path']}):
                 for mutant,text in [
                     ({**runtime,'supplemental':[]},'provenance'),
                     ({**runtime,'supplemental':runtime['supplemental']*2},'conflicting'),
@@ -909,6 +1081,8 @@ class ControlTests(unittest.TestCase):
                     self.assertEqual(substitutions, {'audit':2,'quadratic':0,'fitter':1,'evaluator':1}[name])
                 for files, mapped, modules, text in [
                     ({**combined_files,f.bulk[0]['path']:f.bulk[0]['sha256']},list(combined_files),{},'unknown'),
+                    ({**combined_files,runtime['runtime_compiler']['path']:runtime['runtime_compiler']['sha256']},
+                        list(combined_files),{},'unknown'),
                     (combined_files,list(f.files),{},'mapping'),
                     (combined_files,list(combined_files),{'torch.foreign':str(binary)},'module'),
                     (f.files,list(f.files),{},'supplemental')]:
@@ -926,7 +1100,7 @@ class ControlTests(unittest.TestCase):
                         saved.replace(str(binary.stat().st_ino)+' '+str(binary),'1 '+str(binary))
                     with self.assertRaisesRegex(ValueError,text): exit()
                     map_state[0] = saved
-                for p in (binary,Path(runtime['build_receipt']['path']),Path(runtime['supplemental'][0]['provenance']['path']),
+                for p in (binary,Path(runtime['runtime_compiler']['path']),Path(runtime['build_receipt']['path']),Path(runtime['supplemental'][0]['provenance']['path']),
                           Path(runtime['build_evidence']['binaries.json']['path']),Path(f.source.__file__)):
                     raw,saved = p.read_bytes(),p.stat()
                     try:
@@ -978,13 +1152,15 @@ class ControlTests(unittest.TestCase):
                         self.assertRaisesRegex(ValueError,'namespace binding'): exit()
                 # A mutation arriving at the final bundle boundary is caught by the final audit.
                 real_admit = context['trainer'].admit_bundle
-                raw = binary.read_bytes()
-                def mutate(path,digest):
-                    result = real_admit(path,digest)
-                    binary.write_bytes(b'x'*len(raw))
-                    return result
-                with patch.object(context['trainer'],'admit_bundle',mutate),self.assertRaisesRegex(ValueError,'SHA256'): exit()
-                binary.write_bytes(raw)
+                for target in (binary,Path(runtime['runtime_compiler']['path'])):
+                    raw = target.read_bytes()
+                    def mutate(path,digest):
+                        result = real_admit(path,digest)
+                        target.write_bytes(b'x'*len(raw))
+                        return result
+                    try:
+                        with patch.object(context['trainer'],'admit_bundle',mutate),self.assertRaisesRegex(ValueError,'SHA256'): exit()
+                    finally: target.write_bytes(raw)
                 exit()
                 f.unchanged_originals(self)
                 self.assertLess(sum(p.stat().st_size for p in root.rglob('*') if p.is_file()),16*1024**2)

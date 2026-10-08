@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Separate H-union-S control native authority; no historical reader is rebound.
 
-The root freezes an actual connected-control-native-authority-v1 FILE with
-exact keys schema/library/build_receipt/build_evidence/source_manifest/supplemental.
+The root freezes an actual connected-control-native-authority-v2 FILE with
+exact keys schema/library/build_receipt/build_evidence/source_manifest/supplemental/runtime_compiler.
+runtime_compiler is an executable FILE bound to CUTILE_TILEIRAS_PATH, never a native grant.
 build_evidence covers every archived files_sha256 entry. supplemental is a
 nonempty exact list of {file:FILE,provenance:FILE}, including library. Each
 provenance JSON has schema/file/kind/origin/evidence; kind is archived-cutile-build
@@ -22,6 +23,7 @@ evaluator builtin baseline by identity, plus its nested source guard functions.
 import ast
 import builtins
 import copy
+import json
 import os
 from pathlib import Path
 import stat
@@ -106,6 +108,17 @@ def load_evaluator_source(fact, request):
         raise
 
 
+def validate_runtime_compiler(record, observer):
+    require(type(record) is dict and record.keys() ==
+        {'schema','library','build_receipt','build_evidence','source_manifest','supplemental','runtime_compiler'} and
+        record['schema'] == 'connected-control-native-authority-v2', 'exact combined native authority required')
+    file = record['runtime_compiler']
+    observer.file_bytes(file)
+    path = Path(file['path'])
+    require(stat.S_ISREG(path.stat().st_mode) and os.access(path,os.X_OK), 'regular executable runtime compiler FILE required')
+    require(os.environ.get('CUTILE_TILEIRAS_PATH') == file['path'], 'exact CUTILE_TILEIRAS_PATH binding required')
+
+
 class CombinedAuthority:
     def __init__(self, context, fact, observer, request):
         self.context, self.fact, self.observer, self.request = context, copy.deepcopy(fact), observer, request
@@ -128,9 +141,7 @@ class CombinedAuthority:
 
     def validate_runtime(self):
         record = self.read_json(self.fact)
-        require(type(record) is dict and record.keys() ==
-            {'schema','library','build_receipt','build_evidence','source_manifest','supplemental'} and
-            record['schema'] == 'connected-control-native-authority-v1', 'exact combined native authority required')
+        validate_runtime_compiler(record,self.observer)
         require(record['build_receipt']['sha256'] == ARCHIVE_SHA and
             record['library']['sha256'] == BINARY_SHA, 'archived native binary/build FILE differs')
         build = self.read_json(record['build_receipt'])
@@ -208,7 +219,7 @@ class CombinedAuthority:
 
     def provenance_facts(self):
         record = self.record
-        facts = [self.fact,record['library'],record['build_receipt'],record['source_manifest'],*record['build_evidence'].values()]
+        facts = [self.fact,record['runtime_compiler'],record['library'],record['build_receipt'],record['source_manifest'],*record['build_evidence'].values()]
         for row in record['supplemental']:
             facts.extend((row['file'],row['provenance'],*self.read_json(row['provenance'])['evidence']))
         return facts
@@ -241,6 +252,11 @@ class CombinedAuthority:
             type(origins['modules']) is dict and type(origins['native_files']) is list and
             len(origins['native_files']) == len(set(origins['native_files'])), 'complete genuine native mapping inventory required')
         union = {**self.historical['files'],**self.files}
+        changed = [{'path':p,'actual_sha256':h,'expected_sha256':union.get(p)}
+            for p,h in origins['files'].items() if union.get(p) != h]
+        if changed:
+            print(json.dumps({'schema':'connected-control-native-origin-rejection-v1',
+                'total_count':len(changed),'origins':changed[:32]},sort_keys=True),file=sys.stderr,flush=True)
         require(all(union.get(p) == h for p,h in origins['files'].items()), 'unknown or changed combined native origin')
         require(all(self.historical['modules'].get(n) == p for n,p in origins['modules'].items()),
             'unknown or changed combined module origin')
