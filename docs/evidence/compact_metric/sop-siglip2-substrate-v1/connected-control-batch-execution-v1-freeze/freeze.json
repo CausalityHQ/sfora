@@ -1,0 +1,15 @@
+{
+  "files": {
+    "authority.json": "3ed85073ab003e09509983ccabbdffddbb11419e3c2e4fad9fe0dc201504d133",
+    "command.sh": "bf40ecb64340bbe0f2d441a5e8cdad2a7c96f5e21b51406079507456b25297a6",
+    "execution.json": "0472570c604b3bfbac0e6d8e7026c804321bc7d5525d6eaf4ea76122555893fc",
+    "launch.sh": "0c36ccfe22bfdc211d9baa7401e844123b2c2297f66c5131940fc45179218322",
+    "observe_connected_control_batch_execution.py": "dc274cc3ecc8a2ff08aa69fc9954b367f47768c52a6caee77fb508ececb2b524",
+    "test_connected_control_batch_execution.py": "34ad39653df9802de79ea2365b2acba17443313c18ea90646c45cc051d7d597d"
+  },
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-control-batch-execution-observation-v1",
+  "root": "/home/riomus/runs/sfora-connected-control-batch-execution-source-v1",
+  "schema": "connected-control-batch-execution-freeze-v1",
+  "stop_rule": "One fixed B32/B6/B6; accepted B32/cache/pixels prerequisite, repeat exact; unchanged 700s/8GiB/noSwap/CUDA<10GB/both locks/full integrity; engineering observation only; all old FAIL and candidate KILL retained."
+}
