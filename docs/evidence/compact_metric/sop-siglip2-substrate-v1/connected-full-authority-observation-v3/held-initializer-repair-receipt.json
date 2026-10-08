@@ -1,0 +1,30 @@
+{
+  "api": "source_live_guard remains registered-only; source_live_guard.initializer(context) is finite to the original name/path/digest and lexically captured holder chain.",
+  "base": "b9bc24f7a636d4989db167ac0fdf10ba65053ca6",
+  "causal_red": "Actual original exporter constructor leaves _genuine_fit_reference absent from sys.modules; original load_endpoint_reader raises authenticated module registry/origin differs. Other three actual constructors register their modules and pass ordinary authentication.",
+  "clean": true,
+  "commit": "6841013ea0e20cde27cfa2ca8787b66ff1eadc9f",
+  "files": {
+    "scripts/evaluate_siglip2_connected_mlp.py": "12b9d3bcdf2af64aaf1b169344a3a2bfffd9a891eede14124b0f430659af8a36",
+    "scripts/test_connected_mlp_evaluation.py": "aa0f564a83b446085e05960e438fffa8d5a8b8ace8de2c726f14ebb382835d96"
+  },
+  "logs": {
+    "/tmp/initializer-origin-final.log": "097a09fe8067766f39411c55879e145358f3b2a600f76d9f7e6e8607ffc10a38",
+    "/tmp/initializer-origin-final.metrics": "8b499ff871f2b60f1919ff3c6460b7917b8105dfb35a58e3d781fab354478918",
+    "/tmp/initializer-origin-focused.log": "38ca121bf022e42c0024f3bcdbf3c7b49e760d752416fea6fad574901092cae6",
+    "/tmp/initializer-origin-inverses.log": "d08182eae0a972fa48346a269c53bd09b645d8cee3b92e5b90a87c3239bde76f",
+    "/tmp/initializer-origin-mutants.log": "338bc31130d186ac16d9731b0f5a33bca2c38a4cfde9d917bc43ba87cdbf13ce",
+    "/tmp/initializer-origin-red.log": "f6b85f2518326e05bbd78473e45b5b2f21e0401ec33d51d759bf9a07e73e7502"
+  },
+  "merged": false,
+  "native_run": false,
+  "pushed": false,
+  "qualification_eligible": false,
+  "verification": {
+    "command": "timeout 120s prlimit --as=1073741824 python3 -B scripts/test_connected_mlp_evaluation.py --source-only",
+    "elapsed_seconds": 39.88,
+    "exit_status": 0,
+    "full_suite_runs": 1,
+    "peak_rss_kib": 158224
+  }
+}
