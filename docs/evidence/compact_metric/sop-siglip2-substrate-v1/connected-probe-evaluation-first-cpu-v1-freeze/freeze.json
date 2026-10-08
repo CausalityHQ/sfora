@@ -1,0 +1,25 @@
+{
+  "CODE": {
+    "code": {
+      "evaluate_siglip2_connected_probe.py": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+      "test_connected_probe_evaluation.py": "c101bc5517acc720f66084a0d7859630f3d344a02831a671e2e790820fa68890"
+    },
+    "execution_sha256": "e1f5bb49de7f26cd582fa014381b0d0e30bf244f1c8e20d33e0cd1103452d0b4",
+    "root": "/home/riomus/runs/sfora-connected-probe-evaluation-source-v1"
+  },
+  "files": {
+    "authority-first-cpu-v1.json": "b1b73e6789b6f3e14e3ee892b4c9ec12abddd8165994866130d2019da3f290e8",
+    "first-cpu-v1-command.sh": "078157f9c4df95a56bc0f2ef3291469757e753dafe73166931da33ac3058a096",
+    "first-cpu-v1-controller.sh": "d5098cce8df03c8f6f96e8201c32cd1a3d3042ac5fd9889ec07ff297ae680698",
+    "first-cpu-v1-launch.sh": "2ab5043f9c0e20f72b191f9b5c5c753eaa741ddd17d64e9b653e65a5aac2c5f3"
+  },
+  "policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 700,
+    "swap_bytes": 0
+  },
+  "schema": "connected-probe-evaluator-first-cpu-freeze-v1",
+  "stop_rule": "ONE CPU700 after accepted paired TRAIN and cost; full source/native exit, zero events/swap, 8GiB, original normal0, exact locks; no quality/speed eligibility.",
+  "unit": "sfora-connected-probe-evaluation-first-cpu-v1"
+}

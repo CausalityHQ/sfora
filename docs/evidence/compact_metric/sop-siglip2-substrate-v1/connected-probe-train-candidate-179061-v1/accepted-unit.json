@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "87e5ed643485414c94bdeec2f7072289",
+  "log": {
+    "path": "/home/riomus/runs/sfora-connected-probe-train-source-v2/train-candidate-179061-v1-original.log",
+    "sha256": "dcf0033e1ba6d609ea137d44257769c47748b5a1888632f28c70017e00fc975f"
+  },
+  "native_peak_rss_kib": 4972524,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-connected-probe-train-candidate-179061-v1/receipt.json",
+    "sha256": "d89f6f590189c0c587240d2ebcbf670b45181e4609aca01463539e8e1b0239d7"
+  },
+  "service_seconds": 2222.92,
+  "unit": "sfora-connected-probe-train-candidate-179061-v1"
+}

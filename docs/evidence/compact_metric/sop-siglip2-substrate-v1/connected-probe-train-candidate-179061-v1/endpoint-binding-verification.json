@@ -1,0 +1,10 @@
+{
+  "bundle_sha256": "b2335bf828b7a6a92aba0a832da9aa207170b304f6e145b1e386498d326353c6",
+  "endpoint_sha256": "f5e28f2c880793829fb87514879c193a3bb1031b77c6e5ac10c461a1d6a0ca91",
+  "evaluator_sha256": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+  "full_original_endpoint_predicates": true,
+  "native_evaluator_cpu_qualified": false,
+  "pass": true,
+  "receipt_sha256": "d89f6f590189c0c587240d2ebcbf670b45181e4609aca01463539e8e1b0239d7",
+  "schema": "connected-probe-candidate-endpoint-binding-v1"
+}
