@@ -1,0 +1,13 @@
+{
+  "schema": "connected-serving-fingerprint-attribution-source-contract-v1",
+  "original_plan": "0602c95ab2f844c8",
+  "decision": "IMPLEMENT_INSTRUMENTATION_ONLY",
+  "files": ["scripts/observe_connected_serving.py", "scripts/test_observe_connected_serving.py"],
+  "change": "Each original fingerprint record gains scalar caller filename, qualified function name, call line and validated-return host_seconds using the existing adjusted clock. No frame/tensor retained.",
+  "preserve": "All original digest/occurrence/current-byte checks, APIs, timer/cleanup/RNG and original validation remain. No trainer/bridge/serializer/packing/native edits, synchronization, inference call, cache or dependency.",
+  "check": "Real original serializer with existing NoNative/fake tensors: distinct callers, repeated aliases, unchanged digests, finite nonnegative time, backing-byte mutation with same pointer/version changes digest, and weakref release. One affected stdlib suite <=120s/1GiB after narrow repair; retain original terminal.",
+  "interpretation": "Inclusive fingerprint durations overlap existing phase totals; never add them together. Source byte counts are not latency measurements.",
+  "native_authorized": false,
+  "candidate_status": "KILL",
+  "next_native_dependency": "Separate original qualified-control admission/freeze; current candidate GO-only serving driver is unchanged. No p99 product claim without 10000 paired calls and CI."
+}
