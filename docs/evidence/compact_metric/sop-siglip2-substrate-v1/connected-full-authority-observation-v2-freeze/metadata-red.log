@@ -1,0 +1,22 @@
+E
+======================================================================
+ERROR: test_native_metadata_lookup_preserves_origin_without_execution (test_connected_full_authority_observation.ObservationTest.test_native_metadata_lookup_preserves_origin_without_execution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/tmp47n24po9/test_connected_full_authority_observation.py", line 231, in test_native_metadata_lookup_preserves_origin_without_execution
+    d.observe(raw,argv,d.Sampler(str(target),stream))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp47n24po9/observe_connected_full_authority.py", line 261, in observe
+    context, original_guard = module.authority(args)
+                              ~~~~~~~~~~~~~~~~^^^^^^
+  File "/tmp/tmp648typya/target.py", line 6, in authority
+  File "<frozen importlib.util>", line 99, in find_spec
+  File "<frozen importlib._bootstrap>", line 1267, in _find_spec
+  File "/tmp/tmp47n24po9/observe_connected_full_authority.py", line 233, in find_spec
+    raise ImportError('native import forbidden in authority observation: ' + fullname)
+ImportError: native import forbidden in authority observation: torch
+
+----------------------------------------------------------------------
+Ran 1 test in 0.005s
+
+FAILED (errors=1)

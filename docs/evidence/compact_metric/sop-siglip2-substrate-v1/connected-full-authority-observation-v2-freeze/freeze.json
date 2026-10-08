@@ -1,0 +1,27 @@
+{
+  "diagnostic": "/home/riomus/runs/sfora-connected-full-authority-observation-v2.jsonl",
+  "files": {
+    "command.sh": "04342bb8e52b4d403fa292484c1dd5817664732ea147c82376b4e6240d2e1ed5",
+    "controller.sh": "0213618dc4694c8bd53fcec3b023162036575c5b50cf125f1a8bd7d2226c5f4b",
+    "launch.sh": "af221a7aea302a3b44c0c39412de99719c77fec78d513f524b6f01a0eae480cb",
+    "manifest.json": "30ddf964348d0c9cc9e1b2fe3f1691ab28656f231e3adb5d3e83e470186c8632",
+    "observe_connected_full_authority.py": "97c653e45519549fd023909a41a88c61d7f80684ca2cd4ad73c0dd4b9813b9a0",
+    "test_connected_full_authority_observation.py": "7bbe6b53d4f1855683d6ef7847e5bf2681747e8d2a16604d980390cff3629e6b"
+  },
+  "original_failure_preserved": true,
+  "qualification_eligible": false,
+  "remote_root": "/home/riomus/runs/sfora-connected-full-authority-observation-source-v2",
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 900,
+    "swap_bytes": 0
+  },
+  "root_checks": "metadata RED old driver; root6 affected stdlib tests PASS0.756s; diagnostic1 failed before imports; genuine evaluator unchanged",
+  "schema": "connected-authority-observation-root-freeze-v1",
+  "source_commit": "717bbb6a27d1198e12cb0f89443115957073e8fc",
+  "state_reuse_eligible": false,
+  "stop_before_native_start": true,
+  "unit": "sfora-connected-full-authority-observation-v2",
+  "unused_output": "/home/riomus/runs/sfora-connected-full-authority-observation-unused-v2"
+}

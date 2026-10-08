@@ -1,0 +1,11 @@
+{
+  "genuine_evaluator_unchanged": true,
+  "native_unrun": true,
+  "original_driver_metadata_RED_exit": 1,
+  "prior_observation": "FAIL_OBSERVER_METADATA_BLOCK",
+  "qualification_eligible": false,
+  "root_affected_tests": 6,
+  "root_exit": 0,
+  "root_test_seconds": 0.756,
+  "schema": "connected-authority-observation-source-checks-v1"
+}
