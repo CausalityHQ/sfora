@@ -1,0 +1,474 @@
+[
+  {
+    "groups": {
+      "A": {
+        "max_abs_correspondence_error": 8.195638656616211e-08,
+        "ranking_norm": 1.990237683474566,
+        "regression_norm": 6.546660026287811,
+        "regression_ranking_cosine": 0.23756462475831602,
+        "regression_ranking_dot": 3.095326775177449,
+        "total_equals_sum": true,
+        "total_norm": 7.280828063929436,
+        "zero_norm_cosine_undefined": false
+      },
+      "AC": {
+        "max_abs_correspondence_error": 8.195638656616211e-08,
+        "ranking_norm": 2.0026875170538974,
+        "regression_norm": 6.583439066312301,
+        "regression_ranking_cosine": 0.2381245683714547,
+        "regression_ranking_dot": 3.1395703350658595,
+        "total_equals_sum": true,
+        "total_norm": 7.323357707457958,
+        "zero_norm_cosine_undefined": false
+      },
+      "C": {
+        "max_abs_correspondence_error": 3.026798367500305e-09,
+        "ranking_norm": 0.22296020775308031,
+        "regression_norm": 0.6949190169021493,
+        "regression_ranking_cosine": 0.28555416996546557,
+        "regression_ranking_dot": 0.04424355988841066,
+        "total_equals_sum": true,
+        "total_norm": 0.7881058398980553,
+        "zero_norm_cosine_undefined": false
+      },
+      "all6": {
+        "max_abs_correspondence_error": 2.551823854446411e-07,
+        "ranking_norm": 2.0938986119273677,
+        "regression_norm": 8.04839818447556,
+        "regression_ranking_cosine": 0.23649317394143649,
+        "regression_ranking_dot": 3.9855082582021493,
+        "total_equals_sum": true,
+        "total_norm": 8.782490643297237,
+        "zero_norm_cosine_undefined": false
+      },
+      "allfour": {
+        "max_abs_correspondence_error": 2.551823854446411e-07,
+        "ranking_norm": 0.6112725301106315,
+        "regression_norm": 4.629799498468864,
+        "regression_ranking_cosine": 0.29891067935518645,
+        "regression_ranking_dot": 0.8459379231362898,
+        "total_equals_sum": true,
+        "total_norm": 4.847739038791142,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc1.bias": {
+        "max_abs_correspondence_error": 4.5292836148291826e-10,
+        "ranking_norm": 0.0016021735046613701,
+        "regression_norm": 0.011715809936223159,
+        "regression_ranking_cosine": 0.15815613799517594,
+        "regression_ranking_dot": 2.9687109508192733e-06,
+        "total_equals_sum": true,
+        "total_norm": 0.012073300536073892,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc1.weight": {
+        "max_abs_correspondence_error": 1.955777406692505e-08,
+        "ranking_norm": 0.27160908818495083,
+        "regression_norm": 1.7306103647091433,
+        "regression_ranking_cosine": 0.22906094370922664,
+        "regression_ranking_dot": 0.10766998278435815,
+        "total_equals_sum": true,
+        "total_norm": 1.8122151497275534,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc2.bias": {
+        "max_abs_correspondence_error": 9.89530235528946e-10,
+        "ranking_norm": 0.009956777061531514,
+        "regression_norm": 0.07748520940435163,
+        "regression_ranking_cosine": 0.3213977583324357,
+        "regression_ranking_dot": 0.00024795932047836456,
+        "total_equals_sum": true,
+        "total_norm": 0.08123431477478847,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc2.weight": {
+        "max_abs_correspondence_error": 2.551823854446411e-07,
+        "ranking_norm": 0.5475225154400506,
+        "regression_norm": 4.293470617542983,
+        "regression_ranking_cosine": 0.3139466800316045,
+        "regression_ranking_dot": 0.7380170123205024,
+        "total_equals_sum": true,
+        "total_norm": 4.4955205772896685,
+        "zero_norm_cosine_undefined": false
+      },
+      "fc1": {
+        "max_abs_correspondence_error": 1.955777406692505e-08,
+        "ranking_norm": 0.2716138136115309,
+        "regression_norm": 1.73065002084222,
+        "regression_ranking_cosine": 0.22905802547303217,
+        "regression_ranking_dot": 0.10767295149530896,
+        "total_equals_sum": true,
+        "total_norm": 1.812255366522029,
+        "zero_norm_cosine_undefined": false
+      },
+      "fc2": {
+        "max_abs_correspondence_error": 2.551823854446411e-07,
+        "ranking_norm": 0.5476130406804183,
+        "regression_norm": 4.294169756935718,
+        "regression_ranking_cosine": 0.3139491216244134,
+        "regression_ranking_dot": 0.7382649716409808,
+        "total_equals_sum": true,
+        "total_norm": 4.496254471749988,
+        "zero_norm_cosine_undefined": false
+      }
+    },
+    "mse": 0.8576454073190689,
+    "rank": 0.07246225629933178,
+    "seed": 179061,
+    "step": 0
+  },
+  {
+    "groups": {
+      "A": {
+        "max_abs_correspondence_error": 2.6309862732887268e-08,
+        "ranking_norm": 1.5174586385641151,
+        "regression_norm": 3.137743425582914,
+        "regression_ranking_cosine": 0.22088917999978103,
+        "regression_ranking_dot": 1.0517408286604342,
+        "total_equals_sum": true,
+        "total_norm": 3.7751286343329205,
+        "zero_norm_cosine_undefined": false
+      },
+      "AC": {
+        "max_abs_correspondence_error": 2.6309862732887268e-08,
+        "ranking_norm": 1.5253915676428706,
+        "regression_norm": 3.1533750236314866,
+        "regression_ranking_cosine": 0.2209616870615812,
+        "regression_ranking_dot": 1.0628548089380623,
+        "total_equals_sum": true,
+        "total_norm": 3.79424605368672,
+        "zero_norm_cosine_undefined": false
+      },
+      "C": {
+        "max_abs_correspondence_error": 2.3283064365386963e-09,
+        "ranking_norm": 0.15536638916804654,
+        "regression_norm": 0.31359246622659454,
+        "regression_ranking_cosine": 0.2281113678023211,
+        "regression_ranking_dot": 0.011113980277628204,
+        "total_equals_sum": true,
+        "total_norm": 0.3804036148052604,
+        "zero_norm_cosine_undefined": false
+      },
+      "all6": {
+        "max_abs_correspondence_error": 1.1641532182693481e-07,
+        "ranking_norm": 1.5886458388275555,
+        "regression_norm": 3.312097357246006,
+        "regression_ranking_cosine": 0.22184128054133942,
+        "regression_ranking_dot": 1.1672732878709833,
+        "total_equals_sum": true,
+        "total_norm": 3.9784835156262526,
+        "zero_norm_cosine_undefined": false
+      },
+      "allfour": {
+        "max_abs_correspondence_error": 1.1641532182693481e-07,
+        "ranking_norm": 0.4438199709207921,
+        "regression_norm": 1.0130226375620135,
+        "regression_ranking_cosine": 0.2322476730924666,
+        "regression_ranking_dot": 0.10441847893292099,
+        "total_equals_sum": true,
+        "total_norm": 1.1966737099947413,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc1.bias": {
+        "max_abs_correspondence_error": 1.7826096154749393e-10,
+        "ranking_norm": 0.0012392453299998052,
+        "regression_norm": 0.002124934375778624,
+        "regression_ranking_cosine": 0.09509785338943275,
+        "regression_ranking_dot": 2.504226039636369e-07,
+        "total_equals_sum": true,
+        "total_norm": 0.00255967184026447,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc1.weight": {
+        "max_abs_correspondence_error": 1.1175870895385742e-08,
+        "ranking_norm": 0.20424510061057752,
+        "regression_norm": 0.3663012303211419,
+        "regression_ranking_cosine": 0.16585348848423537,
+        "regression_ranking_dot": 0.012408367159369549,
+        "total_equals_sum": true,
+        "total_norm": 0.4480060006271288,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc2.bias": {
+        "max_abs_correspondence_error": 4.94765117764473e-10,
+        "ranking_norm": 0.0072123379859547945,
+        "regression_norm": 0.017565617343839064,
+        "regression_ranking_cosine": 0.244196948460271,
+        "regression_ranking_dot": 3.093710852544496e-05,
+        "total_equals_sum": true,
+        "total_norm": 0.02055341689780789,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc2.weight": {
+        "max_abs_correspondence_error": 1.1641532182693481e-07,
+        "ranking_norm": 0.39396262756319445,
+        "regression_norm": 0.9443120282086555,
+        "regression_ranking_cosine": 0.24723945579372833,
+        "regression_ranking_dot": 0.09197892424242203,
+        "total_equals_sum": true,
+        "total_norm": 1.1094546393289626,
+        "zero_norm_cosine_undefined": false
+      },
+      "fc1": {
+        "max_abs_correspondence_error": 1.1175870895385742e-08,
+        "ranking_norm": 0.20424886010064502,
+        "regression_norm": 0.36630739370217963,
+        "regression_ranking_cosine": 0.16585099226079822,
+        "regression_ranking_dot": 0.012408617581973513,
+        "total_equals_sum": true,
+        "total_norm": 0.44801331288014734,
+        "zero_norm_cosine_undefined": false
+      },
+      "fc2": {
+        "max_abs_correspondence_error": 1.1641532182693481e-07,
+        "ranking_norm": 0.39402864075561805,
+        "regression_norm": 0.9444753874676749,
+        "regression_ranking_cosine": 0.2472384093469035,
+        "regression_ranking_dot": 0.09200986135094748,
+        "total_equals_sum": true,
+        "total_norm": 1.1096450061504954,
+        "zero_norm_cosine_undefined": false
+      }
+    },
+    "mse": 0.42135145142674446,
+    "rank": 0.03336495794064831,
+    "seed": 179061,
+    "step": 128
+  },
+  {
+    "groups": {
+      "A": {
+        "max_abs_correspondence_error": 8.940696716308594e-08,
+        "ranking_norm": 2.070323738503233,
+        "regression_norm": 6.716596425614618,
+        "regression_ranking_cosine": 0.25763911888693075,
+        "regression_ranking_dot": 3.582608244857906,
+        "total_equals_sum": true,
+        "total_norm": 7.520912483854467,
+        "zero_norm_cosine_undefined": false
+      },
+      "AC": {
+        "max_abs_correspondence_error": 8.940696716308594e-08,
+        "ranking_norm": 2.0817017089765337,
+        "regression_norm": 6.750587753709313,
+        "regression_ranking_cosine": 0.25818113854270464,
+        "regression_ranking_dot": 3.628144683803078,
+        "total_equals_sum": true,
+        "total_norm": 7.560436929594831,
+        "zero_norm_cosine_undefined": false
+      },
+      "C": {
+        "max_abs_correspondence_error": 3.4924596548080444e-09,
+        "ranking_norm": 0.2173513812834379,
+        "regression_norm": 0.6765851579447221,
+        "regression_ranking_cosine": 0.3096522169663389,
+        "regression_ranking_dot": 0.0455364389451719,
+        "total_equals_sum": true,
+        "total_norm": 0.7720634537286022,
+        "zero_norm_cosine_undefined": false
+      },
+      "all6": {
+        "max_abs_correspondence_error": 3.501772880554199e-07,
+        "ranking_norm": 2.2147319536757437,
+        "regression_norm": 8.43255533649587,
+        "regression_ranking_cosine": 0.20209781476765634,
+        "regression_ranking_dot": 3.774348424389574,
+        "total_equals_sum": true,
+        "total_norm": 9.141210218539378,
+        "zero_norm_cosine_undefined": false
+      },
+      "allfour": {
+        "max_abs_correspondence_error": 3.501772880554199e-07,
+        "ranking_norm": 0.7560129770556554,
+        "regression_norm": 5.0534695489866,
+        "regression_ranking_cosine": 0.0382683361982852,
+        "regression_ranking_dot": 0.14620374058649613,
+        "total_equals_sum": true,
+        "total_norm": 5.138240719657599,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc1.bias": {
+        "max_abs_correspondence_error": 3.4924596548080444e-10,
+        "ranking_norm": 0.0016945731204947234,
+        "regression_norm": 0.013083096476016352,
+        "regression_ranking_cosine": -0.15745767762711924,
+        "regression_ranking_dot": -3.4908782221588694e-06,
+        "total_equals_sum": true,
+        "total_norm": 0.012925062321438141,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc1.weight": {
+        "max_abs_correspondence_error": 2.2351741790771484e-08,
+        "ranking_norm": 0.2775255810311433,
+        "regression_norm": 1.8935671975275168,
+        "regression_ranking_cosine": 0.01459493081926779,
+        "regression_ranking_dot": 0.007669830793962934,
+        "total_equals_sum": true,
+        "total_norm": 1.9177999999618478,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc2.bias": {
+        "max_abs_correspondence_error": 1.2223608791828156e-09,
+        "ranking_norm": 0.012726754079719816,
+        "regression_norm": 0.08380809235978075,
+        "regression_ranking_cosine": 0.04804640692084294,
+        "regression_ranking_dot": 5.124653695790234e-05,
+        "total_equals_sum": true,
+        "total_norm": 0.08537130498059506,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc2.weight": {
+        "max_abs_correspondence_error": 3.501772880554199e-07,
+        "ranking_norm": 0.7031147356601303,
+        "regression_norm": 4.684523752445304,
+        "regression_ranking_cosine": 0.04204503415024951,
+        "regression_ranking_dot": 0.13848615413379745,
+        "total_equals_sum": true,
+        "total_norm": 4.766141577454835,
+        "zero_norm_cosine_undefined": false
+      },
+      "fc1": {
+        "max_abs_correspondence_error": 2.2351741790771484e-08,
+        "ranking_norm": 0.27753075452052944,
+        "regression_norm": 1.8936123940673855,
+        "regression_ranking_cosine": 0.014587667895110977,
+        "regression_ranking_dot": 0.007666339915740775,
+        "total_equals_sum": true,
+        "total_norm": 1.9178435538619087,
+        "zero_norm_cosine_undefined": false
+      },
+      "fc2": {
+        "max_abs_correspondence_error": 3.501772880554199e-07,
+        "ranking_norm": 0.7032299067672112,
+        "regression_norm": 4.685273373408345,
+        "regression_ranking_cosine": 0.04204697599519822,
+        "regression_ranking_dot": 0.13853740067075535,
+        "total_equals_sum": true,
+        "total_norm": 4.76690610312997,
+        "zero_norm_cosine_undefined": false
+      }
+    },
+    "mse": 0.903904639184475,
+    "rank": 0.07833676179870963,
+    "seed": 179069,
+    "step": 0
+  },
+  {
+    "groups": {
+      "A": {
+        "max_abs_correspondence_error": 2.9802322387695312e-08,
+        "ranking_norm": 1.906021445811892,
+        "regression_norm": 3.0323294961824305,
+        "regression_ranking_cosine": 0.2655686387074652,
+        "regression_ranking_dot": 1.5349030910169634,
+        "total_equals_sum": true,
+        "total_norm": 3.9871977874122164,
+        "zero_norm_cosine_undefined": false
+      },
+      "AC": {
+        "max_abs_correspondence_error": 2.9802322387695312e-08,
+        "ranking_norm": 1.915595695455158,
+        "regression_norm": 3.0477669578421662,
+        "regression_ranking_cosine": 0.26598578961059677,
+        "regression_ranking_dot": 1.5529019801774084,
+        "total_equals_sum": true,
+        "total_norm": 4.00801626079747,
+        "zero_norm_cosine_undefined": false
+      },
+      "C": {
+        "max_abs_correspondence_error": 2.3283064365386963e-09,
+        "ranking_norm": 0.19128281823382726,
+        "regression_norm": 0.3063678440967646,
+        "regression_ranking_cosine": 0.3071330554779302,
+        "regression_ranking_dot": 0.017998889160444953,
+        "total_equals_sum": true,
+        "total_norm": 0.40798057658675196,
+        "zero_norm_cosine_undefined": false
+      },
+      "all6": {
+        "max_abs_correspondence_error": 1.1455267667770386e-07,
+        "ranking_norm": 2.0112937525846744,
+        "regression_norm": 3.197178300458901,
+        "regression_ranking_cosine": 0.2744959085529182,
+        "regression_ranking_dot": 1.765136261666368,
+        "total_equals_sum": true,
+        "total_norm": 4.218711203499727,
+        "zero_norm_cosine_undefined": false
+      },
+      "allfour": {
+        "max_abs_correspondence_error": 1.1455267667770386e-07,
+        "ranking_norm": 0.6130217702005456,
+        "regression_norm": 0.9659532367618909,
+        "regression_ranking_cosine": 0.35841281995820967,
+        "regression_ranking_dot": 0.21223428148895962,
+        "total_equals_sum": true,
+        "total_norm": 1.3165598625650057,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc1.bias": {
+        "max_abs_correspondence_error": 1.4551915228366852e-10,
+        "ranking_norm": 0.001276918796924751,
+        "regression_norm": 0.002506623900058216,
+        "regression_ranking_cosine": 0.0879756954122186,
+        "regression_ranking_dot": 2.8158866234774163e-07,
+        "total_equals_sum": true,
+        "total_norm": 0.002911505094543372,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc1.weight": {
+        "max_abs_correspondence_error": 1.0011717677116394e-08,
+        "ranking_norm": 0.2169197445339388,
+        "regression_norm": 0.39814780136506467,
+        "regression_ranking_cosine": 0.2028718319344889,
+        "regression_ranking_dot": 0.0175212528514045,
+        "total_equals_sum": true,
+        "total_norm": 0.49052863952792125,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc2.bias": {
+        "max_abs_correspondence_error": 4.802132025361061e-10,
+        "ranking_norm": 0.01035457677601024,
+        "regression_norm": 0.015951587989785677,
+        "regression_ranking_cosine": 0.4128350517488763,
+        "regression_ranking_dot": 6.81887674457646e-05,
+        "total_equals_sum": true,
+        "total_norm": 0.022316987900374886,
+        "zero_norm_cosine_undefined": false
+      },
+      "encoder.layers.26.mlp.fc2.weight": {
+        "max_abs_correspondence_error": 1.1455267667770386e-07,
+        "ranking_norm": 0.5732649190289922,
+        "regression_norm": 0.8799336608836865,
+        "regression_ranking_cosine": 0.38586640525678934,
+        "regression_ranking_dot": 0.194644558281447,
+        "total_equals_sum": true,
+        "total_norm": 1.221558431148184,
+        "zero_norm_cosine_undefined": false
+      },
+      "fc1": {
+        "max_abs_correspondence_error": 1.0011717677116394e-08,
+        "ranking_norm": 0.21692350285361708,
+        "regression_norm": 0.3981556917779919,
+        "regression_ranking_cosine": 0.20286755702947537,
+        "regression_ranking_dot": 0.01752153444006685,
+        "total_equals_sum": true,
+        "total_norm": 0.4905372799890227,
+        "zero_norm_cosine_undefined": false
+      },
+      "fc2": {
+        "max_abs_correspondence_error": 1.1455267667770386e-07,
+        "ranking_norm": 0.5733584259863348,
+        "regression_norm": 0.8800782355652039,
+        "regression_ranking_cosine": 0.3858752321320972,
+        "regression_ranking_dot": 0.19471274704889277,
+        "total_equals_sum": true,
+        "total_norm": 1.2217622717444494,
+        "zero_norm_cosine_undefined": false
+      }
+    },
+    "mse": 0.43123551085591316,
+    "rank": 0.040381750848609954,
+    "seed": 179069,
+    "step": 128
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "all4_states_bothviews": true,
+  "both_locks_held": true,
+  "decision": "ACCEPT_ENGINEERING_VECTOR_RECEIPT_ONLY",
+  "final_cuda_allocated_bytes": 0,
+  "freeze_sha256": "96bfd710d875fe60af26c4889372f86897d4506f28ccd4d7960e79fa9554205b",
+  "full_exit_pass": true,
+  "host_peak_bytes": 5383925760,
+  "log_sha256": "5c9e919f1f270becef7c3d20912db565a178cf7635e199dd715bc1b260ea40e3",
+  "peak_cuda_allocated_bytes": 2553947648,
+  "phase_records": 76,
+  "quality_or_training_admitted": false,
+  "receipt_sha256": "118e64cbdfd8fbdf36af20dfb4835ca00f4a76c1e114320570789b6d4429067f",
+  "schema": "root-gradient-verification-v1",
+  "verification_note": "Initial root count expectation75 inherited failed v3; successful v4 adds original post-publication resource sample, actual76 all authenticated/zeroevents.",
+  "zero_events": true,
+  "zero_swap": true
+}
