@@ -309,13 +309,19 @@ def compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registr
     sys.modules[spec.name] = runtime
     try:
         spec.loader.exec_module(runtime)
-        expected = next(code for code in compile(actual, runtime.__file__, 'exec', dont_inherit=True).co_consts
-                        if isinstance(code, CodeType) and code.co_name == 'fingerprint')
+        expected = next(
+            code
+            for code in compile(actual, runtime.__file__, 'exec', dont_inherit=True).co_consts
+            if isinstance(code, CodeType) and code.co_name == 'fingerprint'
+        )
         assert runtime.fingerprint.__code__ == expected
         assert runtime.fingerprint.__defaults__ == (None, None)
         assert runtime.fingerprint.__globals__ is vars(runtime)
         inherited = compile(actual, runtime.__file__, 'exec', flags=__future__.annotations.compiler_flag)
-        changed = next(code for code in inherited.co_consts if isinstance(code, CodeType) and code.co_name == 'fingerprint')
+        changed = next(
+            code for code in inherited.co_consts
+            if isinstance(code, CodeType) and code.co_name == 'fingerprint'
+        )
         assert changed != expected, 'serializer compiler-flag negative did not differ'
     finally:
         del sys.modules[spec.name]

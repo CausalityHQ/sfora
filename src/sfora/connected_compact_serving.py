@@ -7,9 +7,9 @@ only proven registry ownership and finished owned-frame references are cleaned.
 
 from __future__ import annotations
 
-import hashlib
 import ast
 import copy
+import hashlib
 import importlib.util
 import json
 import re
@@ -60,18 +60,23 @@ _MANIFEST = {
 def _installed_authority() -> tuple[Path, str]:
     return (
         Path(__file__).absolute().parent / "_connected_inference_authority.py",
-        "6e1027127d827f031db6673cac668a8da943f0395f652319d28dce5d8afc536b",
+        "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
     )
 
 
 def _literal_state(value: object) -> object:
     """Snapshot only mutable literal globals; modules/callables retain identity."""
     if type(value) is dict:
-        return dict, tuple((_literal_state(key), _literal_state(item)) for key, item in cast(dict[object, object], value).items())
+        return dict, tuple(
+            (_literal_state(key), _literal_state(item))
+            for key, item in cast(dict[object, object], value).items()
+        )
     if type(value) in (tuple, list):
         return type(value), tuple(_literal_state(item) for item in cast(tuple[object, ...], value))
     if type(value) in (set, frozenset):
-        return type(value), frozenset(_literal_state(item) for item in cast(set[object] | frozenset[object], value))
+        return type(value), frozenset(
+            _literal_state(item) for item in cast(set[object] | frozenset[object], value)
+        )
     return type(value), value
 
 
@@ -131,8 +136,12 @@ class ConnectedCompactIndex:
         self._release: FunctionType | None = None
         self._release_modules: tuple[ModuleType, ...] = ()
         self._guards: tuple[tuple[Path, str, bool], ...] = ()
-        self._namespaces: list[tuple[ModuleType | type[Any], dict[str, object], dict[str, object]]] = []
-        self._callables: list[tuple[FunctionType, CodeType, object, object, object, object, object]] = []
+        self._namespaces: list[
+            tuple[ModuleType | type[Any], dict[str, object], dict[str, object]]
+        ] = []
+        self._callables: list[
+            tuple[FunctionType, CodeType, object, object, object, object, object]
+        ] = []
         self._shared: tuple[ModuleType, ...] = ()
 
     @classmethod
@@ -188,7 +197,8 @@ class ConnectedCompactIndex:
                     isinstance(node, ast.Assign)
                     and len(node.targets) == 1
                     and isinstance(node.targets[0], ast.Name)
-                    or isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+                    or isinstance(node, ast.Expr)
+                    and isinstance(node.value, ast.Constant)
                     and isinstance(node.value.value, str)
                     for node in tree.body
                 ),
@@ -196,11 +206,20 @@ class ConnectedCompactIndex:
             )
             record = {
                 node.targets[0].id: ast.literal_eval(node.value)
-                for node in tree.body if isinstance(node, ast.Assign)
+                for node in tree.body
+                if isinstance(node, ast.Assign)
             }
             _require(
-                record.keys() == {"SCHEMA", "HISTORICAL_CODE", "SOURCE_SYMBOLS", "PACKED_SOURCE_SYMBOLS",
-                                  "SUBSTITUTIONS", "RUNTIME_SHA256", "PACKED_SHA256"}
+                record.keys()
+                == {
+                    "SCHEMA",
+                    "HISTORICAL_CODE",
+                    "SOURCE_SYMBOLS",
+                    "PACKED_SOURCE_SYMBOLS",
+                    "SUBSTITUTIONS",
+                    "RUNTIME_SHA256",
+                    "PACKED_SHA256",
+                }
                 and record["SCHEMA"] == "sfora-connected-inference-extraction-v1"
                 and tuple(sorted(manifest["code"].items())) == record["HISTORICAL_CODE"],
                 "unsupported historical inference closure",
@@ -227,10 +246,14 @@ class ConnectedCompactIndex:
                 _require(name not in sys.modules, "fresh connected loader namespace required")
                 self._owned[name] = self._module
                 sys.modules[name] = self._module
-                exec(compile(source, str(runtime_path), "exec", dont_inherit=True), vars(self._module))
+                exec(
+                    compile(source, str(runtime_path), "exec", dont_inherit=True),
+                    vars(self._module),
+                )
             self._snapshot(self._module, source)
             self._module._bind_runtime(
-                record["HISTORICAL_CODE"], tuple((str(path), sha) for path, sha, owned in self._guards[:3])
+                record["HISTORICAL_CODE"],
+                tuple((str(path), sha) for path, sha, owned in self._guards[:3]),
             )
             # The one permitted namespace change occurs during authenticated binding.
             self._namespaces.clear()
@@ -253,7 +276,11 @@ class ConnectedCompactIndex:
             for key, value in tuple(release_globals.items()):
                 if type(value) is FunctionType and value.__globals__ is fn.__globals__:
                     release_globals[key] = FunctionType(
-                        value.__code__, release_globals, value.__name__, copy.deepcopy(value.__defaults__), value.__closure__
+                        value.__code__,
+                        release_globals,
+                        value.__name__,
+                        copy.deepcopy(value.__defaults__),
+                        value.__closure__,
                     )
                     release_globals[key].__kwdefaults__ = copy.deepcopy(value.__kwdefaults__)
             self._release = FunctionType(
@@ -297,51 +324,80 @@ class ConnectedCompactIndex:
 
     def _remember(self, modules: Iterable[object]) -> None:
         for module in modules:
-            if type(module) is ModuleType:
+            if type(module) is ModuleType:  # noqa: SIM102  # Preserve ownership AST.
                 if module not in self._shared:
                     self._owned[module.__name__] = module
 
     def _snapshot(self, module: ModuleType, source: bytes) -> None:
         namespace = vars(module)
         expected = compile(source, module.__file__, "exec", dont_inherit=True)
-        declarations = {node.name for node in ast.parse(source).body
-                        if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
-        codes = {code.co_name: code for code in expected.co_consts
-                 if isinstance(code, CodeType) and code.co_name in declarations}
+        declarations = {
+            node.name
+            for node in ast.parse(source).body
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef))
+        }
+        codes = {
+            code.co_name: code
+            for code in expected.co_consts
+            if isinstance(code, CodeType) and code.co_name in declarations
+        }
         for key, code in codes.items():
             value = namespace.get(key)
             if type(value) is FunctionType:
-                _require(value.__code__ == code and value.__globals__ is namespace,
-                         "installed inference callable source differs")
+                _require(
+                    value.__code__ == code and value.__globals__ is namespace,
+                    "installed inference callable source differs",
+                )
                 self._save_callable(value)
                 if module is self._module:
                     self._apis[key] = (value, value.__code__)
             elif type(value) is type:
                 methods = {c.co_name: c for c in code.co_consts if isinstance(c, CodeType)}
                 class_values = dict(vars(value))
-                self._namespaces.append((value, class_values, {
-                    name: _literal_state(item) for name, item in class_values.items()
-                    if type(item) in (dict, list, set, tuple)
-                }))
+                self._namespaces.append(
+                    (
+                        value,
+                        class_values,
+                        {
+                            name: _literal_state(item)
+                            for name, item in class_values.items()
+                            if type(item) in (dict, list, set, tuple)
+                        },
+                    )
+                )
                 for name, item in class_values.items():
                     item = item.__func__ if isinstance(item, (classmethod, staticmethod)) else item
                     item = item.fget if isinstance(item, property) else item
                     if type(item) is FunctionType:
-                        _require(name not in methods or item.__code__ == methods[name]
-                                 and item.__globals__ is namespace, "canonical packing method source differs")
+                        _require(
+                            name not in methods
+                            or item.__code__ == methods[name]
+                            and item.__globals__ is namespace,
+                            "canonical packing method source differs",
+                        )
                         self._save_callable(item)
             else:
                 _require(False, "installed inference definition missing")
         values = dict(namespace)
         literals = {
-            key: _literal_state(value) for key, value in values.items()
+            key: _literal_state(value)
+            for key, value in values.items()
             if key != "__builtins__" and type(value) in (dict, list, set, tuple)
         }
         self._namespaces.append((module, values, literals))
 
     def _save_callable(self, value: FunctionType) -> None:
-        self._callables.append((value, value.__code__, value.__defaults__, value.__kwdefaults__, value.__closure__,
-                                _literal_state(value.__defaults__), _literal_state(value.__kwdefaults__)))
+        self._callables.append(
+            (
+                value,
+                value.__code__,
+                value.__defaults__,
+                value.__kwdefaults__,
+                value.__closure__,
+                _literal_state(value.__defaults__),
+                _literal_state(value.__kwdefaults__),
+            )
+        )
 
     def _capture_failure(self, error: BaseException | None) -> None:
         """Use exact authenticated loader frames, never a registry diff or sweep."""
@@ -392,10 +448,20 @@ class ConnectedCompactIndex:
                 and fn.__globals__ is vars(cast(ModuleType, self._module)),
                 "connected public callable changed",
             )
-        for fn, code, defaults, kwdefaults, closure, default_state, kwdefault_state in self._callables:
+        for (
+            fn,
+            code,
+            defaults,
+            kwdefaults,
+            closure,
+            default_state,
+            kwdefault_state,
+        ) in self._callables:
             _require(
-                fn.__code__ is code and fn.__defaults__ is defaults
-                and fn.__kwdefaults__ is kwdefaults and fn.__closure__ is closure
+                fn.__code__ is code
+                and fn.__defaults__ is defaults
+                and fn.__kwdefaults__ is kwdefaults
+                and fn.__closure__ is closure
                 and _literal_state(fn.__defaults__) == default_state
                 and _literal_state(fn.__kwdefaults__) == kwdefault_state,
                 "installed inference callable state changed",
@@ -410,8 +476,10 @@ class ConnectedCompactIndex:
             )
         for module in self._shared:
             _require(
-                module.__file__ == str(self._guards[2][0]) and module.__spec__.origin == module.__file__
-                and module.__spec__.name == module.__name__, "canonical shared packing origin changed",
+                module.__file__ == str(self._guards[2][0])
+                and module.__spec__.origin == module.__file__
+                and module.__spec__.name == module.__name__,
+                "canonical shared packing origin changed",
             )
         _require(
             cast(ModuleType, self._module).__file__ == str(self._guards[0][0])

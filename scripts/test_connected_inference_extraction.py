@@ -394,7 +394,7 @@ def literal_pin_check():
     path, digest = bridge._installed_authority()
     assert path == ROOT / 'src/sfora/_connected_inference_authority.py'
     assert path.is_absolute() and path.resolve() == path
-    assert digest == '6e1027127d827f031db6673cac668a8da943f0395f652319d28dce5d8afc536b'
+    assert digest == '538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e'
     raw = bridge._read_checked(path, digest)
     with tempfile.TemporaryDirectory(prefix='connected-pin-mutation-') as scratch:
         file = Path(scratch) / path.name
