@@ -1,0 +1,13 @@
+{
+  "worker_commit": "a987ff4068746e1dd2eb87d0b2f15e07afbacb8f",
+  "integrated": "c499ab5a",
+  "committed_blob_hashes_match_final_receipt": true,
+  "independent_runtime_top_level_symbol_ASTs_identical": 42,
+  "packed_bytes_identical": true,
+  "source_final_seconds": 3.0405169469304383,
+  "rss_kib": 46412,
+  "swaps": 0,
+  "native": "UNRUN",
+  "mypy": "UNRUN",
+  "quality_or_latency_claim": false
+}

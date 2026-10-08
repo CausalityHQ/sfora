@@ -1,0 +1,15 @@
+{
+  "parent_runtime_binding_message_id": "immediate-1791473469074726968-2965865",
+  "parent_authority_binding_message_id": "immediate-1791473573609345130-2965865",
+  "literal_runtime_sha256": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+  "literal_packed_sha256": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+  "literal_authority_sha256": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+  "source_sha256": {
+    "src/sfora/connected_inference.py": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+    "src/sfora/_connected_inference_authority.py": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+    "src/sfora/connected_compact_serving.py": "7c9713d3356c32f0c86feca788f53f299dc386b97964cec11016f88688c91932",
+    "scripts/test_connected_compact_serving.py": "6627538c459fd237aa5dcc3960e2d51271b0108c82d233cb04adaeafb9b9bd5c",
+    "scripts/test_connected_inference_extraction.py": "5a6e9c314918ed08548e39c136baae021f5b1ffd4e11f5826fa28a4051bd58a7"
+  },
+  "final_gate": "ROOT HOLD for original gradient terminal"
+}

@@ -1,0 +1,53 @@
+{
+  "schema": "sfora-connected-inference-static-cleanup-source-suite-v1",
+  "started_utc": "2026-10-08T15:35:20.815099+00:00",
+  "finished_utc": "2026-10-08T15:35:23.855616+00:00",
+  "repo": "/home/rb/worktrees/sfora-packaged-inference-static-cleanup-20261008",
+  "base": "cf1561fc47b153e5e68fcf1dbb95c53fc03540df",
+  "source_sha256": {
+    "src/sfora/connected_inference.py": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+    "src/sfora/_connected_inference_authority.py": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+    "src/sfora/connected_compact_serving.py": "7c9713d3356c32f0c86feca788f53f299dc386b97964cec11016f88688c91932",
+    "scripts/test_connected_compact_serving.py": "6627538c459fd237aa5dcc3960e2d51271b0108c82d233cb04adaeafb9b9bd5c",
+    "scripts/test_connected_inference_extraction.py": "5a6e9c314918ed08548e39c136baae021f5b1ffd4e11f5826fa28a4051bd58a7",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4"
+  },
+  "source_sha256_after": {
+    "src/sfora/connected_inference.py": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+    "src/sfora/_connected_inference_authority.py": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+    "src/sfora/connected_compact_serving.py": "7c9713d3356c32f0c86feca788f53f299dc386b97964cec11016f88688c91932",
+    "scripts/test_connected_compact_serving.py": "6627538c459fd237aa5dcc3960e2d51271b0108c82d233cb04adaeafb9b9bd5c",
+    "scripts/test_connected_inference_extraction.py": "5a6e9c314918ed08548e39c136baae021f5b1ffd4e11f5826fa28a4051bd58a7",
+    "src/sfora/packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4"
+  },
+  "timeout_seconds": 120,
+  "address_space_bytes": 1073741824,
+  "tests": [
+    {
+      "script": "scripts/test_connected_compact_serving.py",
+      "exit_code": 0,
+      "wall_seconds": 1.4928262480534613
+    },
+    {
+      "script": "scripts/test_connected_inference_extraction.py",
+      "exit_code": 0,
+      "wall_seconds": 1.5471453260397539
+    }
+  ],
+  "wall_seconds": 3.0405169469304383,
+  "child_peak_rss_kib": 46412,
+  "reported_swaps": 0,
+  "source_checks": [
+    "exact OWN5",
+    "full runtime/bridge AST preservation modulo imports and authorized pin",
+    "both test ASTs preserved modulo literal authority pin",
+    "38 original source and original/extracted AST fields unchanged",
+    "four packed ledger records unchanged",
+    "source bytes stable before/after"
+  ],
+  "native_qualification": "NOT_EXECUTED",
+  "mypy": "UNRUN",
+  "quality_or_speed_claim": false,
+  "exit_code": 0,
+  "original_log": "/tmp/sfora-packaged-inference-static-cleanup-final-qy6yqh8k/original.log"
+}

@@ -1,0 +1,40 @@
+{
+  "base": "cf1561fc47b153e5e68fcf1dbb95c53fc03540df",
+  "owned": [
+    "src/sfora/connected_inference.py",
+    "src/sfora/_connected_inference_authority.py",
+    "src/sfora/connected_compact_serving.py",
+    "scripts/test_connected_compact_serving.py",
+    "scripts/test_connected_inference_extraction.py"
+  ],
+  "baseline_sha256": {
+    "src/sfora/connected_inference.py": "cace364f75e362eb0a3b30221683ca951fe89c97365ab06940c31e5fc8fb58e2",
+    "src/sfora/_connected_inference_authority.py": "6e1027127d827f031db6673cac668a8da943f0395f652319d28dce5d8afc536b",
+    "src/sfora/connected_compact_serving.py": "fdbb7abbd7795b1b6090062963efa276e458b4be15813a1ab246ba7655055493",
+    "scripts/test_connected_compact_serving.py": "caf54bf85fb7a9715d0f8db47da1f59d722522cada72be4de9dc225ab19082fa",
+    "scripts/test_connected_inference_extraction.py": "cb7e0e00d4bbca04b31db9f558e1604ed0a08fe1c96b44ec72a9a96ebd606941"
+  },
+  "packed_sha256": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+  "ruff_version": "0.15.20",
+  "baseline_ruff": {
+    "E501": 105,
+    "I001": 2,
+    "SIM102": 1,
+    "B905": 1,
+    "E702": 4
+  },
+  "contract": "format/import/semicolon only; preserve 38 full ASTs, full runtime/bridge semantics except import order and authority pin; historical/packed bytes unchanged; no runtime self-hash cycle",
+  "rootbind": "runtime+canonical packed+actual ledger receipt, then parent verified runtime/packed literals, then actual authority receipt, then parent-supplied bridge SHA",
+  "limits": {
+    "narrow_seconds": 15,
+    "address_space_bytes": 1073741824,
+    "final_seconds": 120,
+    "final_gate": "ROOT HOLD"
+  },
+  "unverified": [
+    "mypy",
+    "installed-native",
+    "quality",
+    "speed"
+  ]
+}

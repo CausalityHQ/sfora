@@ -1,0 +1,16 @@
+{
+  "stage": 2,
+  "base": "cf1561fc47b153e5e68fcf1dbb95c53fc03540df",
+  "worktree": "/home/rb/worktrees/sfora-packaged-inference-static-cleanup-20261008",
+  "source_sha256": {
+    "src/sfora/connected_inference.py": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+    "src/sfora/_connected_inference_authority.py": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+    "src/sfora/connected_compact_serving.py": "f7eb8e9222aa8ec62e7079e12c35f514e36ad0abda040655fc562cef699c8e0b"
+  },
+  "canonical_packed_sha256": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+  "literal_runtime_pin": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+  "literal_packed_pin": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+  "parent_step1_message_id": "immediate-1791473469074726968-2965865",
+  "bridge_authority_pin_held": "6e1027127d827f031db6673cac668a8da943f0395f652319d28dce5d8afc536b",
+  "final_gate": "ROOT HOLD for serial slot"
+}
