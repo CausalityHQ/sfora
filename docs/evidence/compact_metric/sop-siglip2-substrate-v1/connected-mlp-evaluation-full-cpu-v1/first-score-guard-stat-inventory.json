@@ -1,0 +1,28 @@
+{
+  "canonical_regular_rejections": [],
+  "files": 20381,
+  "groups_count_bytes": {
+    "arrays": [
+      26,
+      206206878
+    ],
+    "checkpoint": [
+      37,
+      20710017061
+    ],
+    "native": [
+      262,
+      4248503188
+    ],
+    "other": [
+      20056,
+      570384335
+    ]
+  },
+  "hashes_validated": "source receipt bytes authenticated against accepted bc80bef...; source FILE sizes obtained by read-only stat; FILE contents not rehashed by this inventory audit",
+  "latency_or_runtime_read_volume_measured": false,
+  "native_model_or_quality_execution": false,
+  "receipt_sha256": "bc80bef471cd05c7ab842258a9b86f3e8813f5dabc5235e2202399f5c607028d",
+  "schema": "first-score-guard-stat-inventory-v1",
+  "total_inventory_bytes": 25735111462
+}
