@@ -1,0 +1,10 @@
+{
+  "all_worker_artifact_hashes_verified": true,
+  "native_result": "FAIL_CONTROL_TAP_PARITY",
+  "pass": true,
+  "receipt_sha256": "923c5a2038da87586baed464839e9df7421d6bac30e587ee4a728bb2b58152bb",
+  "root_both_committed_source_hashes_verified": true,
+  "root_production_exact_byte_inverse_verified": true,
+  "suite_rerun": false,
+  "worker_commit": "708bc339147fcd9759913c0f1187911dfd79969e"
+}
