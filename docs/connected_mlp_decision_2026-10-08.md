@@ -1,6 +1,6 @@
 # Connected MLP decision — 2026-10-08
 
-The production joint quality-and-speed goal remains unmet. All numbers below are verified measurements from the linked original receipts; there are no projections.
+The production joint quality-and-speed goal remains unmet. Quality and training numbers below are verified measurements from the linked original receipts. Prospective gates and runtime estimates are labelled separately.
 
 In-Shop previously exposed TRAIN selection: seed179061, 1734 query images, 1715 gallery images, 498 products. This is not the official query/gallery protocol.
 
@@ -24,8 +24,10 @@ Seed179069 training host peak 6103474176 bytes; CUDA allocation peak 2349298688 
 
 [Original CPU failure](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-cpu-v1/failure.json) remains a failure. [Authority observation](evidence/compact_metric/sop-siglip2-substrate-v1/connected-full-authority-observation-v2/result.json) imported no native roots, peaked at644960256 host bytes, and had zero events/swap. Endpoint-admission callers account for58.3444% of samples; this is not exact input-loop time. The frozen 500-second CPU gate is not rescued by this observation.
 
-The next intervention targets evaluator-owned endpoint input admission with four fresh independent original readers, authenticated callbacks, complete reader-state preservation and unchanged terminal predicates. [Bounded implementation decision and runnable falsifier](evidence/compact_metric/sop-siglip2-substrate-v1/connected-endpoint-reader-decision-v1/decision.md). No native benefit is claimed yet.
+The evaluator-owned endpoint admission correction is integrated and pushed: four fresh independent original readers, authenticated transitive callbacks and immutable builtin baselines, complete reader-state preservation, and unchanged terminal predicates. The independent Opus/Astra findings and resolved falsifiers are recorded in the [release decision](evidence/compact_metric/sop-siglip2-substrate-v1/connected-endpoint-reader-review-v1/decision.md). No native speed benefit is claimed yet.
 
-Ordered gates: review and freeze actual new evaluator bytes; one fresh full CPU500 qualification; four independent GPU exports1500 in frozen endpoint order; full paired selection score700 with unchanged bootstrap/floors/cost/parity; only GO admits sealed validation. A quality survivor must then pass matched public B1/B32 decode-to-top-k latency, including10000 interleaved paired calls plus confidence interval for a p99 claim. Current qualification B32 timings are not product latency.
+The full affected source-only suite passed under the pinned DGX Python3.13.9: service13.648s, process peak134260KiB, zero swap and memory events. It constructed no model and read no new quality data. [Original receipt and verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-py313-assurance-v2/verification.json). The preceding launcher failed before tests because its runner path was relative to systemd’s working directory; [that failure remains preserved](evidence/compact_metric/sop-siglip2-substrate-v1/connected-py313-assurance-v1/verification.json).
+
+Ordered gates: collect the ONE active corrected-source authority-only observation-v3 (engineering900, not qualification), assess CPU500 feasibility from its measured wall time and explicitly estimated remaining qualification/exit work; if eligible, one fresh full CPU500 qualification; four independent GPU exports1500 in frozen endpoint order; full paired selection score700 with unchanged bootstrap/floors/cost/parity; only GO admits sealed validation. A quality survivor must then pass matched public B1/B32 decode-to-top-k latency, including10000 interleaved paired calls plus confidence interval for a p99 claim. Current qualification B32 timings are not product latency.
 
 This experiment supplies no new SOP official TEST result, no official In-Shop confirmation, and no new CUB/Cars transfer or matched serving speed win. Historical exploratory results remain historical; the production target is not redefined around this TRAIN panel.
