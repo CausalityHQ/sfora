@@ -161,6 +161,21 @@ with ConnectedCompactIndex.from_bundle(
             top10_ordinals, top10_scores = index.search_images([image])
 ```
 
+`from_bundle(...)` admits only the MLP schema and its exact historical nine-file
+closure. `ConnectedCompactIndex.from_probe_bundle(...)` takes the same keyword
+arguments and returns the same index for the separately pinned single-probe
+schema/closure. Select that factory explicitly for an accepted probe bundle;
+there is no schema fallback. Its package runtime retains the absolute
+`head.probe` overlay, complete 448-parameter identity and frozen-447 checks,
+and genuine source/decorator guards. Historical bundle code remains evidence.
+
+The probe factory is a **source-only, unqualified research preview**. Deployment
+still requires a chosen accepted bundle, its matching gallery and exporter
+provenance, authenticated native build, and fresh non-editable installed public
+parity/lifecycle qualification. CPU/control mechanics do not establish candidate
+quality, release eligibility or a speed improvement. Absolute authenticated
+source/dependency paths remain required; relocation is unsupported.
+
 The opened image and converted RGB image are separately owned and closed; the
 index context manager closes the encoder and resident native gallery.
 **Native parity, quality, lifecycle, and B1/B32 end-to-end latency remain

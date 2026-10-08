@@ -64,6 +64,13 @@ def _installed_authority() -> tuple[Path, str]:
     )
 
 
+def _installed_probe_authority() -> tuple[Path, str]:
+    return (
+        Path(__file__).absolute().parent / "_connected_probe_inference_authority.py",
+        "0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab",
+    )
+
+
 def _literal_state(value: object) -> object:
     """Snapshot only mutable literal globals; modules/callables retain identity."""
     if type(value) is dict:
@@ -156,9 +163,73 @@ class ConnectedCompactIndex:
         native_library_path: Path,
         expected_native_library_sha256: str,
     ) -> ConnectedCompactIndex:
-        """Load explicit caller-pinned bytes; device, dimensions and k are fixed."""
+        """Load an explicit MLP bundle; device, dimensions and k are fixed."""
+        return cls._from_bundle(
+            _probe=False,
+            bundle_dir=bundle_dir,
+            expected_bundle_sha256=expected_bundle_sha256,
+            gallery_path=gallery_path,
+            expected_gallery_sha256=expected_gallery_sha256,
+            gallery_count=gallery_count,
+            native_library_path=native_library_path,
+            expected_native_library_sha256=expected_native_library_sha256,
+        )
+
+    @classmethod
+    def from_probe_bundle(
+        cls,
+        *,
+        bundle_dir: Path,
+        expected_bundle_sha256: str,
+        gallery_path: Path,
+        expected_gallery_sha256: str,
+        gallery_count: int,
+        native_library_path: Path,
+        expected_native_library_sha256: str,
+    ) -> ConnectedCompactIndex:
+        """Load an explicit probe bundle; installed/native parity remains unqualified."""
+        return cls._from_bundle(
+            _probe=True,
+            bundle_dir=bundle_dir,
+            expected_bundle_sha256=expected_bundle_sha256,
+            gallery_path=gallery_path,
+            expected_gallery_sha256=expected_gallery_sha256,
+            gallery_count=gallery_count,
+            native_library_path=native_library_path,
+            expected_native_library_sha256=expected_native_library_sha256,
+        )
+
+    @classmethod
+    def _from_bundle(
+        cls,
+        *,
+        _probe: bool,
+        bundle_dir: Path,
+        expected_bundle_sha256: str,
+        gallery_path: Path,
+        expected_gallery_sha256: str,
+        gallery_count: int,
+        native_library_path: Path,
+        expected_native_library_sha256: str,
+    ) -> ConnectedCompactIndex:
+        """Share the original lifecycle across exactly two fixed installed bindings."""
         self = cls()
         try:
+            _require(type(_probe) is bool, "fixed internal connected binding required")
+            if _probe:
+                schema = "siglip2-connected-probe-bundle-v1"
+                code_names = (_CODE - {_TRAINER, "test_siglip2_connected_mlp.py"}) | {
+                    "train_siglip2_connected_probe.py", "test_siglip2_connected_probe.py"
+                }
+                authority_factory = _installed_probe_authority
+                authority_schema = "sfora-connected-probe-inference-extraction-v1"
+                runtime_filename = "connected_probe_inference.py"
+            else:
+                schema = "siglip2-connected-mlp-bundle-v1"
+                code_names = _CODE
+                authority_factory = _installed_authority
+                authority_schema = "sfora-connected-inference-extraction-v1"
+                runtime_filename = "connected_inference.py"
             _require(
                 isinstance(bundle_dir, Path)
                 and bundle_dir.is_absolute()
@@ -179,16 +250,16 @@ class ConnectedCompactIndex:
             _require(
                 isinstance(manifest, dict)
                 and manifest.keys() == _MANIFEST
-                and manifest["schema"] == "siglip2-connected-mlp-bundle-v1"
+                and manifest["schema"] == schema
                 and isinstance(manifest["code"], dict)
-                and manifest["code"].keys() == _CODE
+                and manifest["code"].keys() == code_names
                 and isinstance(manifest["files"], dict)
                 and manifest["files"].keys() == _FILES,
                 "unsupported connected bundle schema/closure",
             )
             for name, digest in (manifest["code"] | manifest["files"]).items():
                 _checked_file(bundle_dir / name, digest, True)
-            authority_path, authority_sha = _installed_authority()
+            authority_path, authority_sha = authority_factory()
             authority_source = _read_checked(authority_path, authority_sha)
             # The authenticated record is literal data and never binds the bridge.
             tree = ast.parse(authority_source)
@@ -220,11 +291,11 @@ class ConnectedCompactIndex:
                     "RUNTIME_SHA256",
                     "PACKED_SHA256",
                 }
-                and record["SCHEMA"] == "sfora-connected-inference-extraction-v1"
+                and record["SCHEMA"] == authority_schema
                 and tuple(sorted(manifest["code"].items())) == record["HISTORICAL_CODE"],
                 "unsupported historical inference closure",
             )
-            runtime_path = Path(__file__).resolve().parent / "connected_inference.py"
+            runtime_path = Path(__file__).resolve().parent / runtime_filename
             packed_path = runtime_path.parent / "packed_int8.py"
             source = _read_checked(runtime_path, record["RUNTIME_SHA256"])
             _checked_file(packed_path, record["PACKED_SHA256"])

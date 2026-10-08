@@ -301,10 +301,10 @@ def registry_regressions(bridge, load, events, Image, result, opened, no_owned_r
     no_owned_registry()
 
 
-def compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registry):
+def compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registry, runtime_filename="connected_inference.py"):
     # The actual package serializer must use the package's own compiler flags.
-    actual = (ROOT / 'src/sfora/connected_inference.py').read_bytes()
-    spec = importlib.util.spec_from_file_location('_package_compile_subject', ROOT / 'src/sfora/connected_inference.py')
+    actual = (ROOT / 'src/sfora' / runtime_filename).read_bytes()
+    spec = importlib.util.spec_from_file_location('_package_compile_subject', ROOT / 'src/sfora' / runtime_filename)
     runtime = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = runtime
     try:
@@ -353,6 +353,19 @@ def compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registr
 
 
 def main():
+    probe = "--probe-only" in sys.argv
+    runtime_filename = "connected_probe_inference.py" if probe else "connected_inference.py"
+    authority_filename = "_connected_probe_inference_authority.py" if probe else "_connected_inference_authority.py"
+    bundle_schema = "siglip2-connected-probe-bundle-v1" if probe else "siglip2-connected-mlp-bundle-v1"
+    authority_schema = "sfora-connected-probe-inference-extraction-v1" if probe else "sfora-connected-inference-extraction-v1"
+    factory_name = "from_probe_bundle" if probe else "from_bundle"
+    trainer_filename = "train_siglip2_connected_probe.py" if probe else "train_siglip2_connected_mlp.py"
+    code_names = (CODE_NAMES - {"train_siglip2_connected_mlp.py", "test_siglip2_connected_mlp.py"}) | {
+        "train_siglip2_connected_probe.py", "test_siglip2_connected_probe.py"
+    } if probe else CODE_NAMES
+    fixture_source = SOURCE.replace('"connected_inference.py"', '"connected_probe_inference.py"').replace(
+        '"_connected_inference_authority.py"', '"_connected_probe_inference_authority.py"') if probe else SOURCE
+
     assert not any(n in sys.modules for n in ("torch", "numpy", "PIL", "sfora"))
     spec = importlib.util.spec_from_file_location(
         "connected_bridge_test_subject", ROOT / "src/sfora/connected_compact_serving.py"
@@ -433,15 +446,15 @@ def main():
             root = Path(scratch)
             bundle = root / "bundle"
             bundle.mkdir()
-            for name in CODE_NAMES:
+            for name in code_names:
                 (bundle / name).write_bytes(
                     b"raise AssertionError(\"historical evidence executed\")\n"
                 )
             for name in ("vision.pt", "endpoint.pt", "processor.json"):
                 (bundle / name).write_bytes(b"synthetic owned bytes")
             manifest = {
-                "schema": "siglip2-connected-mlp-bundle-v1",
-                "code": {name: sha((bundle / name).read_bytes()) for name in CODE_NAMES},
+                "schema": bundle_schema,
+                "code": {name: sha((bundle / name).read_bytes()) for name in code_names},
                 "files": {
                     name: sha((bundle / name).read_bytes())
                     for name in ("vision.pt", "endpoint.pt", "processor.json")
@@ -459,22 +472,22 @@ def main():
             library.write_bytes(b"synthetic native bytes")
             installed = root / "installed"
             installed.mkdir()
-            runtime_path = installed / "connected_inference.py"
-            runtime_path.write_text(SOURCE)
+            runtime_path = installed / runtime_filename
+            runtime_path.write_text(fixture_source)
             (installed / "helper.py").write_bytes(b"# installed ownership fixture\n")
             packed_path = installed / "packed_int8.py"
             packed_path.write_bytes(b"# shared packing ownership fixture\n")
-            authority_path = installed / "_connected_inference_authority.py"
+            authority_path = installed / authority_filename
             def install_authority(code=None):
                 historical = tuple(sorted((manifest["code"] if code is None else code).items()))
-                record = {"SCHEMA": "sfora-connected-inference-extraction-v1", "HISTORICAL_CODE": historical,
+                record = {"SCHEMA": authority_schema, "HISTORICAL_CODE": historical,
                           "SOURCE_SYMBOLS": (), "PACKED_SOURCE_SYMBOLS": (), "SUBSTITUTIONS": (),
                           "RUNTIME_SHA256": sha(runtime_path.read_bytes()), "PACKED_SHA256": sha(packed_path.read_bytes())}
                 authority_path.write_text('\n'.join(key + ' = ' + repr(value) for key, value in record.items()) + '\n')
                 events.historical_code = historical
                 return authority_path, sha(authority_path.read_bytes())
             authority = install_authority()
-            bridge._installed_authority = lambda: authority
+            setattr(bridge, "_installed_probe_authority" if probe else "_installed_authority", lambda: authority)
             bridge.__file__ = str(installed / 'connected_compact_serving.py')
             packed_module = stubs['sfora.packed_int8']
             packed_module.__file__ = str(packed_path)
@@ -493,11 +506,11 @@ def main():
                 native_library_path=library,
                 expected_native_library_sha256=sha(library.read_bytes()),
             )
-            trainer = bundle / "train_siglip2_connected_mlp.py"
+            trainer = bundle / trainer_filename
             registry_before = dict(sys.modules)
 
             def load(**changes):
-                return bridge.ConnectedCompactIndex.from_bundle(**(args | changes))
+                return getattr(bridge.ConnectedCompactIndex, factory_name)(**(args | changes))
 
             def no_owned_registry():
                 assert all(sys.modules.get(m.__name__) is not m for m in events.helpers)
@@ -513,7 +526,39 @@ def main():
                 check(bridge, load, events, Image, result, opened, no_owned_registry)
                 return
 
-            compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registry)
+            compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registry, runtime_filename)
+            # Correctly hashed cross-binding and mixed evidence must reject before
+            # source execution, shared package import or native loading.
+            wrong_factory = getattr(bridge.ConnectedCompactIndex, "from_bundle" if probe else "from_probe_bundle")
+            before = len(events.calls)
+            fails(lambda: wrong_factory(**args), "cross-binding schema/closure")
+            assert len(events.calls) == before
+            mixed = manifest | {"code": manifest["code"] | {
+                "train_siglip2_connected_mlp.py" if probe else "train_siglip2_connected_probe.py": "0" * 64}}
+            raw = json.dumps(mixed).encode()
+            original = (bundle / "bundle.json").read_bytes()
+            (bundle / "bundle.json").write_bytes(raw)
+            fails(lambda: load(expected_bundle_sha256=sha(raw)), "mixed code closure")
+            assert len(events.calls) == before
+            (bundle / "bundle.json").write_bytes(original)
+            for path in (runtime_path, authority_path, packed_path, trainer,
+                         bundle / "vision.pt", bundle / "endpoint.pt", bundle / "processor.json"):
+                saved = path.read_bytes()
+                path.unlink()
+                fails(load, "missing evidence: " + path.name)
+                assert len(events.calls) == before
+                path.write_bytes(saved)
+            # A correctly hashed authority with the other extraction-schema literal
+            # remains unsupported; authority bytes alone cannot select a binding.
+            saved = authority_path.read_bytes()
+            changed = saved.replace(authority_schema.encode(),
+                ("sfora-connected-inference-extraction-v1" if probe else "sfora-connected-probe-inference-extraction-v1").encode())
+            authority_path.write_bytes(changed)
+            authority = authority_path, sha(changed)
+            fails(load, "wrong authority-schema literal")
+            assert len(events.calls) == before
+            authority_path.write_bytes(saved)
+            authority = install_authority()
             if "--compile-only" in sys.argv:
                 return
 
@@ -690,7 +735,7 @@ def main():
             # Run the actual installed loader through admission to its first denied
             # native import; genuine package frames must release all owned references.
             saved_runtime = runtime_path.read_bytes()
-            runtime_path.write_bytes((ROOT / 'src/sfora/connected_inference.py').read_bytes())
+            runtime_path.write_bytes((ROOT / 'src/sfora' / runtime_filename).read_bytes())
             constructor = installed / 'constructor.py'
             constructor.write_bytes(b'# authenticated constructor evidence\n')
             actual_source = runtime_path.read_text()
@@ -715,7 +760,7 @@ def main():
                         retained.append(weakref.ref(module))
                     return super()._snapshot(module, source)
             try:
-                GenuineProbe.from_bundle(**(args | {'expected_bundle_sha256': sha((bundle / 'bundle.json').read_bytes())}))
+                getattr(GenuineProbe, factory_name)(**(args | {'expected_bundle_sha256': sha((bundle / 'bundle.json').read_bytes())}))
             except AssertionError as error:
                 assert str(error) == 'real native/package import: torch'
                 trace = error.__traceback__
@@ -738,7 +783,7 @@ def main():
                     raise ValueError('actual package pre-return rejection') from cause
             guard.hook = denied_native
             try:
-                GenuineProbe.from_bundle(**(args | {'expected_bundle_sha256': sha((bundle / 'bundle.json').read_bytes())}))
+                getattr(GenuineProbe, factory_name)(**(args | {'expected_bundle_sha256': sha((bundle / 'bundle.json').read_bytes())}))
             except ValueError as error:
                 assert str(error) == 'actual package pre-return rejection'
                 assert isinstance(error.__cause__, LookupError)
