@@ -5,7 +5,7 @@ The original scalar census failed exact replay by one FP32 ULP and stays
 immutable (so does the paired candidate KILL). This driver replays the four
 stored packed wires through the ORIGINAL Torch CPU scorer arithmetic: the
 authenticated body of compare_inshop_sop_warmstart_100.packed_quality with only
-an exactly invertible packed-input / read-only-capture / no-aggregate adapter.
+an exactly invertible packed-input / pre-batch-budget / read-only-capture / no-aggregate adapter.
 All 1734 queries x four endpoints must reproduce the accepted per-query R1/AP
 bit-for-bit before any geometry is derived or published. No tolerance, scalar
 surrogate, packing stub, int32 scorer, CUDA, image, checkpoint or held read.
@@ -21,13 +21,16 @@ audit_origins, numerical_flags and cgroup primitives; no new whitelist).
 
 The running driver is itself live code: after the helpers load, a genuine serving.Source over this module
 (FILE, registry, functions, defaults, globals, literals) is checked before native import, before every endpoint
-replay and in the full exit; LIMITS needs exact builtin value types (False/900.0 cannot alias 0/900). The four
-adapter AST declarations are bound to their import-time dumps before any adaptation (a forged capture is rejected).
+replay and in the full exit (where check_interpreter's original predicate is repeated uncached); LIMITS needs
+exact builtin value types (False/900.0 cannot alias 0/900). The adapter AST declarations are bound to their
+import-time dumps before any adaptation (a forged batch/capture statement is rejected before exec).
 
 Engineering-only caps: 900s total, the last 120s reserved for the uncached exit
 (no metric work starts inside it), 8GiB cgroup, zero swap, CUDA hidden, both
 inherited lifetime locks. Root owns the single native job, log, exit status and
-terminal cgroup evidence. Any failure publishes nothing: no retry, no fallback.
+terminal cgroup evidence. No retry, no fallback. The original publish's atomic link is the commit point; a failure
+after it (the final whole-process cap) removes only the file this invocation linked (stat identity + content
+hash), never a foreign replacement, and the published terminal still needs the parent's exit/lock receipt.
 """
 if not __debug__:
     raise SystemExit('optimized mode forbidden; original assertions required')
@@ -45,6 +48,7 @@ import os
 from pathlib import Path
 import re
 import resource
+import stat
 import struct
 import sys
 import time
@@ -100,11 +104,12 @@ PROOF_FALSE = ('model_qualified', 'initializer_qualified', 'training_qualified',
 VALUES_ARG = ast.parse('def f(values: np.ndarray): pass').body[0].args.args[0]
 PACK_STATEMENT = ast.parse('packed = pack_int8_unit_embeddings(torch.from_numpy(values.copy()))').body[0]
 CAPTURE_STATEMENT = ast.parse('census_capture(start, rows, scores)').body[0]
+BATCH_STATEMENT = ast.parse('census_batch(start)').body[0]
 AGGREGATES = ast.parse("{'recall_at_1': float(np.mean(hits)), 'map_at_r': float(np.mean(aps))}", mode='eval').body
 # The four declarations are mutable ASTs and adapt/unadapt compare the adapter against themselves, so their dumps are
 # frozen here, at the authenticated source's import, as immutable strings (a forged capture would invert cleanly).
 ADAPTER_DUMPS = tuple(ast.dump(node, include_attributes=False)
-                      for node in (VALUES_ARG, PACK_STATEMENT, CAPTURE_STATEMENT, AGGREGATES))
+                      for node in (VALUES_ARG, PACK_STATEMENT, CAPTURE_STATEMENT, BATCH_STATEMENT, AGGREGATES))
 
 
 def require(condition, message):
@@ -377,19 +382,22 @@ def batch_loop(function):
 
 
 def check_declarations():
-    require(tuple(dump(n) for n in (VALUES_ARG, PACK_STATEMENT, CAPTURE_STATEMENT, AGGREGATES)) == ADAPTER_DUMPS,
+    declarations = (VALUES_ARG, PACK_STATEMENT, CAPTURE_STATEMENT, BATCH_STATEMENT, AGGREGATES)
+    require(tuple(dump(n) for n in declarations) == ADAPTER_DUMPS,
             'adapter AST declarations differ from the authenticated driver source')
 
 
 def adapt(original):
-    """Packed input, read-only capture, no np aggregates; every other statement verbatim."""
+    """Packed input, pre-batch budget hook, read-only capture, no np aggregates; all else verbatim."""
     check_declarations()
     function = copy.deepcopy(original)
     require(dump(function.args.args[0]) == dump(VALUES_ARG) and dump(function.body[1]) == dump(PACK_STATEMENT),
             'original packing statement differs')
     function.args.args[0] = ast.arg(arg='packed')
     del function.body[1]
-    batch_loop(function).body.append(copy.deepcopy(CAPTURE_STATEMENT))
+    loop = batch_loop(function)
+    loop.body.insert(0, copy.deepcopy(BATCH_STATEMENT))
+    loop.body.append(copy.deepcopy(CAPTURE_STATEMENT))
     result = function.body[-1]
     require(isinstance(result, ast.Return) and isinstance(result.value, ast.Dict) and
             dump(ast.Dict(keys=result.value.keys[:2], values=result.value.values[:2])) == dump(AGGREGATES),
@@ -406,6 +414,8 @@ def unadapt(adapted):
     loop = batch_loop(function)
     require(dump(loop.body[-1]) == dump(CAPTURE_STATEMENT), 'capture is not the last batch statement')
     loop.body.pop()
+    require(dump(loop.body[0]) == dump(BATCH_STATEMENT), 'budget hook is not the first batch statement')
+    loop.body.pop(0)
     result = function.body[-1]
     result.value.keys = copy.deepcopy(AGGREGATES.keys) + result.value.keys
     result.value.values = copy.deepcopy(AGGREGATES.values) + result.value.values
@@ -417,11 +427,11 @@ def verify_adapter(original, adapted):
             'packed adapter is not the exact inverse of the pinned original scorer')
 
 
-def compile_scorer(torch, raw, path, capture):
+def compile_scorer(torch, raw, path, capture, batch):
     original = scorer_function(raw)
     adapted = adapt(original)
     verify_adapter(original, adapted)
-    namespace = {'torch': torch, 'census_capture': capture}
+    namespace = {'torch': torch, 'census_capture': capture, 'census_batch': batch}
     exec(compile(ast.Module(body=[adapted], type_ignores=[]), path, 'exec', dont_inherit=True), namespace)
     return namespace['packed_quality']
 
@@ -569,8 +579,11 @@ def replay(ctx):
         budget.check()
         ctx.guard()
         retained[key] = {}
-        fn = compile_scorer(torch, raw, scorer['path'], make_capture(core, retained[key], budget))
-        results[key] = fn(packed_input(torch, state['wires'][key]), labels, query, gallery, device=torch.device('cpu'))
+        fn = compile_scorer(torch, raw, scorer['path'], make_capture(core, retained[key], budget),
+                            lambda start: budget.check())
+        packed = packed_input(torch, state['wires'][key])
+        budget.check()
+        results[key] = fn(packed, labels, query, gallery, device=torch.device('cpu'))
         require(retained[key].keys() == core and all(len(r) == len(gallery) for r in retained[key].values()),
                 'core score rows were not all captured')
     expected = {f'{a}-{s}': state['receipt']['quality'][s][a] for s, a in census.ENDPOINTS}
@@ -612,10 +625,35 @@ def exit_checks(ctx):
     callbacks.append(lambda: [source.check() for source in ctx.owned])
     if ctx.own is not None:
         callbacks.append(lambda: check_own(ctx.own))
+    if ctx.proof is not None:
+        callbacks.append(lambda: check_interpreter(ctx.proof, ctx.modules['extract']))
     if ctx.torch is not None:
         callbacks.append(state_after)
     callbacks += [gc.collect, lambda: close_sources(ctx.owned)]
     return callbacks
+
+
+def owned_output(output):
+    """Stat identity and content hash of the regular file at output (a symlink or other file is never ours)."""
+    info = os.lstat(output)
+    require(stat.S_ISREG(info.st_mode), 'published output is not a regular file; foreign file left in place')
+    return ((info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns),
+            hashlib.sha256(Path(output).read_bytes()).hexdigest())
+
+
+def publish_census(census, output, payload, guards, budget):
+    """Original publish, then the final whole-process cap; a failure removes only the file this call linked."""
+    census.publish(output, payload, guards)
+    owner = owned_output(output)
+    try:
+        budget.check(reserve=False)
+    except BaseException as error:
+        try:
+            require(owned_output(output) == owner, 'published output was replaced; foreign file left in place')
+            os.unlink(output)
+        except BaseException as failure:
+            error.add_note('output removal: ' + repr(failure))
+        raise
 
 
 def finalize(args, ctx):
@@ -660,8 +698,7 @@ def run(args):
         error = failure
     cleanup_error(error, exit_checks(ctx))
     finalize(args, ctx)
-    ctx.state['census'].publish(args.output, ctx.payload, ctx.state['guards'])
-    ctx.budget.check(reserve=False)
+    publish_census(ctx.state['census'], args.output, ctx.payload, ctx.state['guards'], ctx.budget)
     return ctx.payload
 
 

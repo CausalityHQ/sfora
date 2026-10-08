@@ -416,7 +416,7 @@ class ScorerTests(Base):
             with self.subTest(name), self.assertRaises(ValueError):
                 self.m.scorer_function(self.mutate(source, old, new).encode())
 
-    def test_adapter_is_the_exact_inverse_and_only_touches_four_things(self):
+    def test_adapter_is_the_exact_inverse_and_only_touches_five_things(self):
         original = self.m.scorer_function(self.scorer)
         adapted = self.m.adapt(original)
         self.m.verify_adapter(original, adapted)
@@ -430,6 +430,10 @@ class ScorerTests(Base):
         self.assertEqual([ast.unparse(n) for n in loops[0].body if 'census_capture' in ast.unparse(n)],
                          ['census_capture(start, rows, scores)'])
         self.assertEqual(ast.unparse(loops[0].body[-1]), 'census_capture(start, rows, scores)')
+        self.assertEqual([ast.unparse(n) for n in loops[0].body if 'census_batch' in ast.unparse(n)],
+                         ['census_batch(start)'])
+        self.assertEqual(ast.unparse(loops[0].body[0]), 'census_batch(start)')
+        self.assertLess(0, next(i for i, n in enumerate(loops[0].body) if ' @ ' in ast.unparse(n)))
         self.assertEqual([a.arg for a in adapted.args.args], ['packed', 'labels', 'query', 'gallery'])
         for statement in ('code = packed.codes.float().to(device)', 'inverse = packed.inverse_norms.float().to(device)'):
             self.assertIn(statement, text)
@@ -445,6 +449,9 @@ class ScorerTests(Base):
                  'capture twice': ('census_capture(start, rows, scores)',
                                    'census_capture(start, rows, scores)\n        census_capture(start, rows, scores)'),
                  'capture moved': ('        census_capture(start, rows, scores)\n', ''),
+                 'batch hook removed': ('        census_batch(start)\n', ''),
+                 'batch hook twice': ('census_batch(start)', 'census_batch(start)\n        census_batch(start)'),
+                 'batch hook argument': ('census_batch(start)', 'census_batch(0)'),
                  'aggregate kept': ("return {'per_query_r1'", "return {'recall_at_1': 1.0, 'per_query_r1'"),
                  'extra statement': ('    hits: list[int] = []', '    packed = packed\n    hits: list[int] = []')}
         cases = {n: m for n, m in self.MUTATIONS.items() if n not in ('code promotion',)}
@@ -462,7 +469,7 @@ class ScorerTests(Base):
         with self.assertRaises(ValueError):
             self.m.verify_adapter(function, self.m.adapt(original))
 
-    def test_adapted_scorer_resolves_only_torch_and_the_capture_hook(self):
+    def test_adapted_scorer_resolves_only_torch_and_the_two_hooks(self):
         adapted = self.m.adapt(self.m.scorer_function(self.scorer))
         module = compile(ast.Module(body=[adapted], type_ignores=[]), 'scorer', 'exec', dont_inherit=True)
         names, pending = set(), [module]
@@ -470,19 +477,21 @@ class ScorerTests(Base):
             code = pending.pop()
             names |= {i.argval for i in dis.get_instructions(code) if i.opname == 'LOAD_GLOBAL'}
             pending += [c for c in code.co_consts if hasattr(c, 'co_code')]
-        self.assertEqual({n for n in names if not hasattr(builtins, n)}, {'torch', 'census_capture'})
+        self.assertEqual({n for n in names if not hasattr(builtins, n)}, {'torch', 'census_capture', 'census_batch'})
 
     def test_compile_scorer_defines_the_adapted_function_signature(self):
         torch = SimpleNamespace(inference_mode=lambda: (lambda fn: fn), device=type('device', (), {}))
-        fn = self.m.compile_scorer(torch, self.scorer, str(HERE / 'compare_inshop_sop_warmstart_100.py'), print)
+        fn = self.m.compile_scorer(torch, self.scorer, str(HERE / 'compare_inshop_sop_warmstart_100.py'), print, print)
         parameters = inspect.signature(fn).parameters
         self.assertEqual(list(parameters), ['packed', 'labels', 'query', 'gallery', 'device'])
         self.assertEqual(parameters['device'].kind, inspect.Parameter.KEYWORD_ONLY)
         with self.assertRaises(ValueError):
-            self.m.compile_scorer(torch, self.mutate(self.scorer.decode(), 'stable=True', 'stable=False').encode(), 'x', print)
+            broken = self.mutate(self.scorer.decode(), 'stable=True', 'stable=False').encode()
+            self.m.compile_scorer(torch, broken, 'x', print, print)
 
     def test_in_place_adapter_declaration_mutation_is_rejected_before_execution(self):
         declared = {'VALUES_ARG': 'values: np.ndarray', 'CAPTURE_STATEMENT': 'census_capture(start, rows, scores)',
+                    'BATCH_STATEMENT': 'census_batch(start)',
                     'PACK_STATEMENT': 'packed = pack_int8_unit_embeddings(torch.from_numpy(values.copy()))',
                     'AGGREGATES': "{'recall_at_1': float(np.mean(hits)), 'map_at_r': float(np.mean(aps))}"}
         for name, text in declared.items():
@@ -490,19 +499,21 @@ class ScorerTests(Base):
         forged = ast.parse('census_capture(start, rows, forged_scores)').body[0]
         cases = {'capture argument forged': lambda m: setattr(m.CAPTURE_STATEMENT.value.args[2], 'id', 'forged_scores'),
                  'capture rebound': lambda m: setattr(m, 'CAPTURE_STATEMENT', forged),
+                 'batch argument forged': lambda m: setattr(m.BATCH_STATEMENT.value.args[0], 'id', 'forged_start'),
+                 'batch rebound': lambda m: setattr(m, 'BATCH_STATEMENT', ast.parse('census_batch(0)').body[0]),
                  'values argument': lambda m: setattr(m.VALUES_ARG, 'arg', 'forged'),
                  'pack target': lambda m: setattr(m.PACK_STATEMENT.targets[0], 'id', 'forged'),
                  'aggregate key': lambda m: setattr(m.AGGREGATES.keys[0], 'value', 'forged')}
         control = load_driver()
         with patch.object(builtins, 'exec') as run, self.assertRaises(KeyError):
-            control.compile_scorer(SimpleNamespace(), self.scorer, 'x', print)
+            control.compile_scorer(SimpleNamespace(), self.scorer, 'x', print, print)
         run.assert_called_once()
         for name, mutate in cases.items():
             with self.subTest(name):
                 m = load_driver()
                 mutate(m)
                 with patch.object(builtins, 'exec') as run, self.assertRaises(ValueError):
-                    m.compile_scorer(SimpleNamespace(), self.scorer, 'x', print)
+                    m.compile_scorer(SimpleNamespace(), self.scorer, 'x', print, print)
                 run.assert_not_called()
 
     def test_packed_input_keeps_original_dtypes_and_rejects_drift(self):
@@ -653,9 +664,10 @@ class GatingTests(Base):
 
     def scripted(self, ctx, tamper=None):
         calls = []
+        self.matmuls = matmuls = []
         expected = {f'{a}-{s}': ctx.state['receipt']['quality'][s][a] for s, a in ctx.state['census'].ENDPOINTS}
         order = iter(expected)
-        def compile_scorer(torch, raw, path, capture):
+        def compile_scorer(torch, raw, path, capture, batch):
             key = next(order)
             result = copy.deepcopy({k: expected[key][k] for k in ('per_query_r1', 'per_query_ap')})
             if tamper:
@@ -663,6 +675,8 @@ class GatingTests(Base):
             def fn(packed, labels, query, gallery, *, device):
                 calls.append((key, packed, device, len(query), len(gallery)))
                 for start in range(0, len(query), 128):
+                    batch(start)
+                    matmuls.append((key, start))
                     size = min(128, len(query) - start)
                     capture(start, query[start:start + size], Scores({i: [0.5] * len(gallery) for i in range(size)}))
                 return result
@@ -705,6 +719,51 @@ class GatingTests(Base):
                 patch.object(self.m, 'build_census') as build, self.assertRaises(ValueError):
             self.m.replay(ctx)
         build.assert_not_called()
+
+    def test_reserve_crossing_skips_the_next_matmul_at_prelude_capture_or_between_batches(self):
+        crossing = {'prelude': None, 'before capture of batch 1': ('metric', 1), 'between batches 1 and 2': ('gap', 1)}
+        expected = {'prelude': [], 'before capture of batch 1': [0, 128], 'between batches 1 and 2': [0, 128]}
+        for name, trigger in crossing.items():
+            ctx, matmuls = self.context(), []
+
+            def compile_scorer(torch, raw, path, capture, batch):
+                def fn(packed, labels, query, gallery, *, device):
+                    if trigger is None:
+                        ctx.budget.clock.now = 780.
+                    for index, start in enumerate(range(0, len(query), 128)):
+                        batch(start)
+                        matmuls.append(start)
+                        if trigger == ('metric', index):
+                            ctx.budget.clock.now = 780.
+                        capture(start, query[start:start + 128], Scores({i: [0.5] * len(gallery) for i in range(128)}))
+                        if trigger == ('gap', index):
+                            ctx.budget.clock.now = 780.
+                    return {}
+                return fn
+            with self.subTest(name), patch.object(self.m, 'compile_scorer', compile_scorer), \
+                    patch.object(self.m, 'packed_input', lambda t, w: w), \
+                    patch.object(self.m, 'build_census') as build, self.assertRaises(ValueError):
+                self.m.replay(ctx)
+            self.assertEqual(matmuls, expected[name])
+            build.assert_not_called()
+
+    def test_final_check_follows_preparation_and_precedes_the_original_call(self):
+        for name in ('compile', 'packed input'):
+            ctx, called = self.context(), []
+            def fn(*args, **kwargs):
+                called.append(1)
+            def compile_scorer(torch, raw, path, capture, batch):
+                if name == 'compile':
+                    ctx.budget.clock.now = 780.
+                return fn
+            def packed_input(torch, wire):
+                if name == 'packed input':
+                    ctx.budget.clock.now = 780.
+                return wire
+            with self.subTest(name), patch.object(self.m, 'compile_scorer', compile_scorer), \
+                    patch.object(self.m, 'packed_input', packed_input), self.assertRaises(ValueError):
+                self.m.replay(ctx)
+            self.assertEqual(called, [])
 
     def test_reserve_blocks_metric_work_and_width_is_checked(self):
         ctx = self.context()
@@ -774,7 +833,7 @@ class ExitTests(Base):
         audits, locks, rehashed = [], [], []
         ctx = SimpleNamespace(
             audit=lambda: audits.append(1) or {'files': 1}, origins={}, guards=guards, state=None, torch=None,
-            locks=SimpleNamespace(check=lambda: locks.append(1)), owned=owned, modules=modules, own=None)
+            locks=SimpleNamespace(check=lambda: locks.append(1)), owned=owned, modules=modules, own=None, proof=None)
         self.m.cleanup_error(None, self.m.exit_checks(ctx))
         self.assertEqual((audits, locks, owned, ctx.origins), ([1], [1], [], {'final': {'files': 1}}))
         path.write_text('changed')
@@ -782,10 +841,32 @@ class ExitTests(Base):
         guards2[str(path)] = fact(path)['sha256']
         path.write_text('again')
         ctx = SimpleNamespace(audit=None, origins={}, guards=guards2, state=None, torch=None, locks=None, owned=owned2,
-                              own=None)
+                              own=None, proof=None)
         with self.assertRaises(ValueError):
             self.m.cleanup_error(None, self.m.exit_checks(ctx))
         self.assertEqual(owned2, [], 'sources are disposed even when an exit proof fails')
+
+    def test_exit_repeats_the_admission_interpreter_predicate_uncached(self):
+        extract = self.helpers()[4]['extract']
+        tmp = self.tmp()
+        real, other, launch = tmp / 'python-real', tmp / 'python-other', tmp / 'python'
+        real.write_bytes(b'interpreter-a')
+        other.write_bytes(b'interpreter-a')
+        launch.symlink_to(real)
+        invocation = {'python': str(real.resolve()), 'python_sha256': extract.sha(real), 'python_version': sys.version}
+        ctx = SimpleNamespace(audit=None, origins={}, guards={}, state=None, torch=None, locks=None, owned=[], own=None,
+                              proof={'invocation': invocation}, modules={'extract': extract})
+        with patch.object(sys, 'executable', str(launch)):
+            self.m.cleanup_error(None, self.m.exit_checks(ctx))
+            real.write_bytes(b'interpreter-b')
+            with self.assertRaises(ValueError):
+                self.m.cleanup_error(None, self.m.exit_checks(ctx))
+            real.write_bytes(b'interpreter-a')
+            self.m.cleanup_error(None, self.m.exit_checks(ctx))
+            launch.unlink()
+            launch.symlink_to(other)
+            with self.assertRaises(ValueError):
+                self.m.cleanup_error(None, self.m.exit_checks(ctx))
 
     def test_exit_state_requires_hidden_cuda_flags_cgroup_and_cap(self):
         modules = {'source_driver': SimpleNamespace(numerical_flags=lambda: {'threads': 8},
@@ -793,6 +874,7 @@ class ExitTests(Base):
                    'initializer': SimpleNamespace(admit_cgroup=lambda value, unit: None)}
         def ctx(**override):
             base = dict(audit=None, origins={}, guards={}, state=None, locks=None, owned=[], modules=modules, own=None,
+                        proof=None,
                         torch=SimpleNamespace(cuda=SimpleNamespace(is_initialized=lambda: False)), flags={'threads': 8},
                         before={'path': '/cg/unit.service'}, unit='unit', budget=self.m.Budget(started=0., clock=lambda: 10.))
             return SimpleNamespace(**{**base, **override})
@@ -807,6 +889,79 @@ class ExitTests(Base):
         for name, override in bad.items():
             with self.subTest(name), self.assertRaises(ValueError):
                 self.m.cleanup_error(None, self.m.exit_checks(ctx(**override)))
+
+
+class PublishTests(Base):
+    """Original publish, then the final cap: a failed terminal removes only the file this call linked."""
+    PAYLOAD = {'schema': 'x', 'full_uncached_exit_pass': True}
+    RAW = (json.dumps(PAYLOAD, sort_keys=True, indent=2, allow_nan=False) + '\n').encode()
+
+    def attempt(self, after_link=None):
+        _, _, _, owned, modules = self.helpers()
+        census = modules['census']
+        self.m.close_sources(owned)
+        directory = self.tmp()
+        output = directory / 'census.json'
+
+        def clock():
+            if after_link is None or not os.path.lexists(output):
+                return 0.
+            after_link(directory, output)
+            return 901.
+        error = None
+        try:
+            self.m.publish_census(census, str(output), self.PAYLOAD, {}, self.m.Budget(started=0., clock=clock))
+        except ValueError as failure:
+            error = failure
+        return directory, output, error
+
+    def test_success_leaves_exactly_the_original_publication(self):
+        directory, output, error = self.attempt()
+        self.assertIsNone(error)
+        self.assertEqual((output.read_bytes(), [p.name for p in directory.iterdir()]), (self.RAW, ['census.json']))
+
+    def test_cap_crossing_after_the_link_removes_the_owned_output_and_leaves_no_temporary(self):
+        directory, output, error = self.attempt(lambda d, o: None)
+        self.assertIsInstance(error, ValueError)
+        self.assertEqual(list(directory.iterdir()), [])
+
+    def test_foreign_or_changed_output_is_never_removed(self):
+        def replace(data):
+            def act(directory, output):
+                foreign = directory / 'foreign.tmp'
+                foreign.write_bytes(data)
+                os.replace(foreign, output)
+            return act
+
+        def symlink(directory, output):
+            output.unlink()
+            (directory / 'target').write_bytes(self.RAW)
+            output.symlink_to(directory / 'target')
+
+        def edit(directory, output):
+            with output.open('ab') as stream:
+                stream.write(b'x')
+        cases = {'different bytes': (replace(b'foreign'), b'foreign'),
+                 'same bytes new inode': (replace(self.RAW), self.RAW),
+                 'symlink': (symlink, self.RAW), 'edited in place': (edit, self.RAW + b'x')}
+        for name, (act, content) in cases.items():
+            with self.subTest(name):
+                directory, output, error = self.attempt(act)
+                self.assertIsInstance(error, ValueError)
+                self.assertEqual(output.read_bytes(), content)
+                self.assertTrue(os.path.lexists(output))
+                self.assertTrue(any('foreign' in note for note in error.__notes__), error.__notes__)
+        directory, output, error = self.attempt(lambda d, o: o.unlink())
+        self.assertIsInstance(error, ValueError)
+        self.assertEqual(list(directory.iterdir()), [])
+
+    def test_run_publishes_only_through_the_owned_output_guard(self):
+        run = next(n for n in ast.parse(DRIVER.read_text()).body if getattr(n, 'name', None) == 'run')
+        text = ast.unparse(run)
+        self.assertIn("publish_census(ctx.state['census'], args.output, ctx.payload, ctx.state['guards'], "
+                      "ctx.budget)", text)
+        self.assertNotIn('.publish(', text)
+        self.assertNotIn('check(reserve=False)', text)
 
 
 class OwnSourceTests(Base):
@@ -856,7 +1011,7 @@ class OwnSourceTests(Base):
         m, source = self.own()
         owned = self.helpers()[3]
         ctx = SimpleNamespace(locks=SimpleNamespace(check=lambda: None), owned=owned, own=source, audit=None,
-                              origins={}, guards={}, state=None, torch=None)
+                              origins={}, guards={}, state=None, torch=None, proof=None)
         m.guard(ctx)
         m.cleanup_error(None, m.exit_checks(ctx))
         self.assertEqual(owned, [])
