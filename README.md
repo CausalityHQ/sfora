@@ -131,7 +131,9 @@ top10_ordinals, top10_scores = cpu_gallery.search_packed(query_packed)
 existing 128D, 130-byte-per-row packed wire and native exact top-10 scorer.
 `search_images` accepts a list or tuple of 1–32 PIL images and returns the
 unchanged native gallery ordinals and scores (`k=10`). It uses CUDA device 0
-and the architecture-specific native binary described above.
+and the architecture-specific native binary described above. The package owns
+the inference runtime; it authenticates the bundle’s historical code as evidence
+without executing training or qualification modules on the serving path.
 
 Supply the three `trusted_*_sha256` variables below from an independently trusted
 artifact record: the SHA-256 of `bundle_dir / "bundle.json"`, gallery bytes, and
@@ -165,7 +167,8 @@ index context manager closes the encoder and resident native gallery.
 UNQUALIFIED.** Source-only checks do not certify a release, SOTA, or speed win;
 the earlier packed-scorer timings do not measure this connected API. See the
 [connected decision](docs/connected_mlp_decision_2026-10-08.md),
-[package verification](docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-library-bridge-source-v1/package-parent-verification.json),
+[inference extraction verification](docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-packaged-inference-source-v1/root-verification.json),
+[formatting verification](docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-packaged-inference-static-cleanup-v1/root-verification.json),
 and [serving decision](docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-serving-critical-path-plan-v1/parent-decision.json).
 
 > ## Historical status (2026-07-29) — superseded and partly retracted
