@@ -1,0 +1,16 @@
+{
+  "files": {
+    "authority.json": "2bed8237afb9eb4fd1b05a16505aeb224fab81320b5068524aabe0217c209b46",
+    "command.sh": "2b362ed10283b7ae70a341777fc398b3c73f4033ce1d4be29e2eb02b7dffb147",
+    "execution.json": "03b5b4c4906957b2ad94dcf431b2f10f376c1b5766cc89f49c4260dc7588adbe",
+    "launch.sh": "486d1a5efca7d11a4c40c013c2628e6c2c3e9cedcbbe5e3be475e63dea04479d",
+    "observe_connected_control_batch_execution.py": "977ae48e43feaded1301c4c4f3d2f2c46c9e0638ec1ad1e26b813cf2193a0c5a",
+    "test_connected_control_batch_execution.py": "abf32ffd41879e41cafc55a277dfcbf6974f2c7bc0727a1296babc9d4e1a133b"
+  },
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-control-batch-execution-observation-v4",
+  "root": "/home/riomus/runs/sfora-connected-control-batch-execution-source-v4",
+  "schema": "connected-control-batch-execution-freeze-v1",
+  "source_commit": "16a80b78f8cde0d792cf9dbd668c3bae1732f124",
+  "stop_rule": "ONE fixed44 B32/B6/B6 engineering causal observation. Capture admitted builtin/module/source runtime ownership before CUDA; sync and dispose only original cuBLAS workspace once; require exactly33554432 allocation drop, then original allocated0/final_state and all integrity checks. Runtime binding not cryptographic C pointer identity. Same700s/8GiB/max0/swap0/CUDA<10GB/both locks, flags/math/images/witness unchanged. Historical failures/KILL retained; no quality/serving speed/reuse claim."
+}
