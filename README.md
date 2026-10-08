@@ -125,6 +125,49 @@ cpu_gallery = CpuPackedInt8Gallery.open_packed(gallery_packed, block_rows=65_536
 top10_ordinals, top10_scores = cpu_gallery.search_packed(query_packed)
 ```
 
+### Connected image-to-top-10 API (research preview)
+
+`ConnectedCompactIndex` connects an authenticated image encoder bundle to the
+existing 128D, 130-byte-per-row packed wire and native exact top-10 scorer.
+`search_images` accepts a list or tuple of 1–32 PIL images and returns the
+unchanged native gallery ordinals and scores (`k=10`). It uses CUDA device 0
+and the architecture-specific native binary described above.
+
+Supply the three `trusted_*_sha256` variables below from an independently trusted
+artifact record: the SHA-256 of `bundle_dir / "bundle.json"`, gallery bytes, and
+native library bytes, respectively. Hashing the current local files does not
+establish trust. Replace the example paths with canonical absolute `Path` values
+and set `gallery_count` to the actual row count (an integer at least 10).
+
+```python
+from pathlib import Path
+
+from PIL import Image
+from sfora.connected_compact_serving import ConnectedCompactIndex
+
+with ConnectedCompactIndex.from_bundle(
+    bundle_dir=Path("/srv/sfora/connected-bundle"),
+    expected_bundle_sha256=trusted_bundle_sha256,
+    gallery_path=Path("/srv/sfora/gallery.bin"),
+    expected_gallery_sha256=trusted_gallery_sha256,
+    gallery_count=10,  # Replace with the actual gallery row count (>=10).
+    native_library_path=Path("/srv/sfora/libsfora_cutile_int8_score.so"),
+    expected_native_library_sha256=trusted_native_library_sha256,
+) as index:
+    with Image.open("/srv/sfora/query.jpg") as source_image:
+        with source_image.convert("RGB") as image:
+            top10_ordinals, top10_scores = index.search_images([image])
+```
+
+The opened image and converted RGB image are separately owned and closed; the
+index context manager closes the encoder and resident native gallery.
+**Native parity, quality, lifecycle, and B1/B32 end-to-end latency remain
+UNQUALIFIED.** Source-only checks do not certify a release, SOTA, or speed win;
+the earlier packed-scorer timings do not measure this connected API. See the
+[connected decision](docs/connected_mlp_decision_2026-10-08.md),
+[package verification](docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-library-bridge-source-v1/package-parent-verification.json),
+and [serving decision](docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-serving-critical-path-plan-v1/parent-decision.json).
+
 > ## Historical status (2026-07-29) — superseded and partly retracted
 >
 > The “two results stand” wording below is preserved as decision history. The
