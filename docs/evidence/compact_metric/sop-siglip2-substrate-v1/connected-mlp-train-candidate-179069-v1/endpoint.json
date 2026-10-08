@@ -1,0 +1,33 @@
+{
+  "arm": "candidate",
+  "bundle": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179069-v1/candidate-179069-bundle/bundle.json",
+    "sha256": "a991792140ba7cac0abf14f07540345c1cd78d952fd7cde1dd9c294465ace185"
+  },
+  "checkpoint": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179069-v1/candidate-179069-terminal.pt",
+    "sha256": "85c2503e5399451197c589f5b154eba914200f029de8a846812bbb9fe89aaf71"
+  },
+  "inference_state_sha256": "32cd3c60f975c2363ed54bcf818543af20e55950a637691761a6e96ac5df48b7",
+  "launch": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/authority-train-candidate-179069-v1.json",
+    "sha256": "9b4c5291e6e2c6dd97898eb5d7007f23f74ba860d13389f69eab3278fa47c793"
+  },
+  "seed": 179069,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "408c181541ee41e9bde23fea0580f583",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-candidate-179069-v1-original.log",
+      "sha256": "18d2718455d90368759f27e1016ea1605abe4520729f2889d9875c4ec064447d"
+    },
+    "native_peak_rss_kib": 5097160,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179069-v1/receipt.json",
+      "sha256": "955cd7389a8d9f55b600225b8ce6b576b222b927627cd4f2410786e5ea804c20"
+    },
+    "service_seconds": 2345.673,
+    "unit": "sfora-connected-mlp-train-candidate-179069-v1"
+  },
+  "terminal_state_sha256": "bb90967e1bfdf360d0da57dec21548ac8782d7e7652552a28da4a28076f99372"
+}

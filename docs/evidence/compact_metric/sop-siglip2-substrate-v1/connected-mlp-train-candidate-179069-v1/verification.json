@@ -1,0 +1,54 @@
+{
+  "actual_complete_terminal_predicate_and_original_membership_reader_pass": true,
+  "all128_updates_verified": true,
+  "engineering_only": true,
+  "first17_exact_admitted_mechanics": true,
+  "fresh_control": {
+    "both_locks_held": true,
+    "invocation_id": "7c47981c69154f289d4651d6a844bd8a",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-control-179069-v1-original.log",
+      "sha256": "f077cec2278c761bc5408eccec3757f343af7da5dc195a27de6097b8bae89d6f"
+    },
+    "native_peak_rss_kib": 5108192,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179069-v1/receipt.json",
+      "sha256": "22f1d1bf1c26d68368a2ade98de5a18b1b9fc14e9e44ea7959583bca12fd884a"
+    },
+    "service_seconds": 2188.712,
+    "unit": "sfora-connected-mlp-train-control-179069-v1"
+  },
+  "matched_train_cost_qualified": true,
+  "memory_events_zero": true,
+  "next_gate": "Accepted paired069 TRAIN and measured cost gates admit ONE fresh connected evaluator CPU500; exports/quality remain conditional on complete CPU PASS. No state reuse or speed claim.",
+  "normal_whole_service_ratio": 1.071713866420068,
+  "original_launch_exit": 0,
+  "pass": true,
+  "peak_cuda_allocated_bytes": 2349298688,
+  "quality_read": false,
+  "schema": "connected-mlp-train-parent-verification-v1",
+  "service_seconds": 2345.673,
+  "source_and_train_freezes_exit_rehashed": true,
+  "state_reuse_eligible": false,
+  "strict_public_reload_raw_unit_packed": true,
+  "swap_bytes": 0,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "408c181541ee41e9bde23fea0580f583",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-source-v6/train-candidate-179069-v1-original.log",
+      "sha256": "18d2718455d90368759f27e1016ea1605abe4520729f2889d9875c4ec064447d"
+    },
+    "native_peak_rss_kib": 5097160,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179069-v1/receipt.json",
+      "sha256": "955cd7389a8d9f55b600225b8ce6b576b222b927627cd4f2410786e5ea804c20"
+    },
+    "service_seconds": 2345.673,
+    "unit": "sfora-connected-mlp-train-candidate-179069-v1"
+  },
+  "total_training_core_seconds": 1793.3078516038513,
+  "update_core_ratio": 1.0590074006170374,
+  "update_core_seconds_median": 13.912586270496831,
+  "whole_unit_peak_host_bytes": 6103474176
+}
