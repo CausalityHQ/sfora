@@ -586,6 +586,63 @@ def apply_overlay(model, encoder):
             params[name].copy_(encoder[name])
 
 
+def _probe_decorators(packages, guards):
+    """Exact executable decorator sources already guarded by original CPU-v5."""
+    descriptors = (
+        ('transformers.utils.generic','252a17b73d020df90157e4033e2db51dcac8c11c9ffb799c33d5302a71c4964e',
+         ('merge_with_config_defaults',)),
+        ('transformers.utils.output_capturing','65fa93bcfd2314d2a680c08c3699773f2ffea44340e85cd0e6392698b83b37bb',
+         ('capture_outputs',)),
+        ('transformers.utils.auto_docstring','1c807048db9d45b45af9a4960802af5186bbe8f817059ac163abea49c187f660',
+         ('auto_docstring','auto_method_docstring')),
+    )
+    admitted = {}
+    for name,sha,names in descriptors:
+        module = sys.modules.get(name)
+        require(module is not None, 'original probe decorator module absent')
+        path = Path(module.__file__)
+        require(path.is_relative_to(Path(packages['transformers']['root'])) and guards.get(str(path)) == sha,
+                'CPU-v5 probe decorator source guard differs')
+        raw = bound_file(guards,path,sha).read_bytes()
+        require(hashlib.sha256(raw).hexdigest() == sha, 'probe decorator source changed before compilation')
+        code = compile(raw,str(path),'exec',dont_inherit=True)
+        for member in names:
+            expected = next(c for c in code.co_consts if isinstance(c,CodeType) and c.co_name == member)
+            fn = vars(module).get(member)
+            require(type(fn) is FunctionType and fn.__globals__ is vars(module) and fn.__code__ == expected and
+                    fn.__closure__ is None and '__wrapped__' not in vars(fn), 'live probe decorator factory differs')
+            admitted[member] = (fn,expected,module)
+    return admitted
+
+
+def _probe_vision_forward(fn, expected, module, decorators):
+    """Exact two-wrapper circuit from bound sources, including callable closures."""
+    merge,merge_code,generic = decorators['merge_with_config_defaults']
+    capture,capture_code,outputs = decorators['capture_outputs']
+    auto,_,_ = decorators['auto_docstring']
+    require(module.merge_with_config_defaults is merge and module.capture_outputs is capture and
+            module.auto_docstring is auto, 'model probe decorator bindings differ')
+    outer = next(c for c in merge_code.co_consts if isinstance(c,CodeType) and c.co_name == 'wrapper')
+    factory = next(c for c in capture_code.co_consts if isinstance(c,CodeType) and c.co_name == 'wrapped_fn')
+    inner = next(c for c in factory.co_consts if isinstance(c,CodeType) and c.co_name == 'wrapper')
+    # auto_method_docstring returns the same function: no third executable wrapper.
+    for code,owner,flags in ((outer,generic,{}),(inner,outputs,{'tie_last_hidden_states':False})):
+        require(type(fn) is FunctionType and fn.__code__ == code and fn.__globals__ is vars(owner) and
+                fn.__defaults__ is None and fn.__kwdefaults__ is None and fn.__closure__ is not None and
+                len(fn.__closure__) == len(code.co_freevars) and set(code.co_freevars) == {'func',*flags},
+                'genuine live probe circuit differs: wrapper')
+        cells = dict(zip(code.co_freevars,fn.__closure__,strict=True))
+        require(all(cells[key].cell_contents is value for key,value in flags.items()),
+                'genuine live probe wrapper flags differ')
+        target = cells['func'].cell_contents
+        require(vars(fn).get('__wrapped__') is target, 'probe wrapper actual callable closure differs')
+        fn = target
+    require(type(fn) is FunctionType and fn.__code__ == expected and fn.__globals__ is vars(module) and
+            fn.__closure__ is None and '__wrapped__' not in vars(fn) and type(fn.__defaults__) is tuple and
+            len(fn.__defaults__) == 1 and fn.__defaults__[0] is False and fn.__kwdefaults__ is None,
+            'genuine live probe circuit differs: base forward')
+
+
 def probe_source(model, packages, guards):
     """Bind genuine classes/live methods to the CPU-v5 observed Siglip source."""
     module = sys.modules.get('transformers.models.siglip.modeling_siglip')
@@ -605,10 +662,15 @@ def probe_source(model, packages, guards):
         cls = type(instance)
         cls_code = next(c for c in code.co_consts if isinstance(c,CodeType) and c.co_name == cls.__name__)
         for name in ('__init__','forward'):
-            fn = inspect.unwrap(vars(cls)[name])
+            fn = vars(cls)[name]
             expected = next(c for c in cls_code.co_consts if isinstance(c,CodeType) and c.co_name == name)
-            require(name not in vars(instance) and type(fn) is FunctionType and fn.__globals__ is vars(module) and
-                    fn.__code__ == expected and
+            require(name not in vars(instance), 'genuine live probe circuit differs: instance')
+            if cls is type(model) and name == 'forward':
+                _probe_vision_forward(fn,expected,module,_probe_decorators(packages,guards))
+                continue
+            require(type(fn) is FunctionType and fn.__globals__ is vars(module) and
+                    fn.__code__ == expected and '__wrapped__' not in vars(fn) and
+                    fn.__defaults__ is None and fn.__kwdefaults__ is None and
                     (fn.__closure__ is None if not expected.co_freevars else
                      expected.co_freevars == ('__class__',) and fn.__closure__ is not None and
                      len(fn.__closure__) == 1 and fn.__closure__[0].cell_contents is cls),
