@@ -34,6 +34,23 @@ def packed(rows):
                     for codes, inv in rows)
 
 
+def comparison_bytes(count):
+    return {'raw':struct.pack('<128f',*([.25]*128))*count,
+            'unit':struct.pack('<128f',*([.125]*128))*count,
+            'codes':struct.pack('<128b',*([1]*128))*count,
+            'inverse_norms':struct.pack('<e',.5)*count,
+            'wire':packed([([1]*128,.5)]*count)}
+
+
+def independent_row_counts(actual, expected, width):
+    counts={}
+    for offset in range(max(len(actual),len(expected))):
+        left=actual[offset] if offset<len(actual) else None
+        right=expected[offset] if offset<len(expected) else None
+        if left!=right:counts[offset//width]=counts.get(offset//width,0)+1
+    return counts
+
+
 def source_facts(d):
     paths={name:HERE/file for name,file in d.SOURCE_FILES.items() if name not in ('scorer','packing')}
     paths['identity']=EVIDENCE/'export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py'
@@ -433,6 +450,126 @@ class FreshnessTests(unittest.TestCase):
         self.assertEqual(differences['raw']['different_bytes'],1)
         with self.assertRaisesRegex(ValueError,'control tap'):
             self.d.require_control_tap(differences)
+
+    def test_control_row_boundaries_unequal_lengths_and_reordered_roles(self):
+        panel={'original_rows':[95,31,63,32,0,96],'query':[3,0,4],'gallery':[5,2,1]}
+        fit={'targets':[0]*100,'rows':[{'train_row':1000+i} for i in range(100)]}
+        widths={'raw':512,'unit':512,'codes':128,'inverse_norms':2,'wire':130}
+        expected=comparison_bytes(6)
+        for name,width in widths.items():
+            changed=bytearray(expected[name])
+            for offset in (width-1,width,4*width+width-1):changed[offset]^=1
+            for payload in (bytes(changed),bytes(changed)[:-width-1],bytes(changed)+b'\x01'):
+                with self.subTest(name=name,length=len(payload)):
+                    actual={**expected,name:payload}
+                    aggregates=self.d.byte_differences(actual,expected)
+                    differences=self.d.control_byte_differences(actual,expected,panel,fit)
+                    self.assertEqual({k:{f:v for f,v in d.items() if f!='row_localization'}
+                                      for k,d in differences.items()},aggregates)
+                    report=differences[name]['row_localization'];rows=report['rows']
+                    oracle=independent_row_counts(payload,expected[name],width)
+                    self.assertEqual(report['row_bytes'],width)
+                    self.assertEqual({r['selection_row']:r['different_bytes'] for r in rows},oracle)
+                    self.assertEqual(sum(r['different_bytes'] for r in rows),aggregates[name]['different_bytes'])
+                    for row in rows:
+                        i=row['selection_row']
+                        if i>=6:
+                            self.assertEqual(row['mapping_status'],'UNAVAILABLE');continue
+                        role='query' if i in panel['query'] else 'gallery';index=panel[role].index(i)
+                        original=panel['original_rows'][i]
+                        self.assertEqual((row['role'],row['role_index']),(role,index))
+                        self.assertEqual((row['live_encoder_batch_index'],row['live_encoder_batch_size'],
+                                          row['live_encoder_batch_row'],row['live_encoder_tail']),(0,3,index,True))
+                        self.assertEqual((row['original_fit_index'],row['official_train_row']),
+                                         (original,1000+original))
+                        self.assertEqual((row['original_cache_batch_index'],row['original_cache_batch_start'],
+                                          row['original_cache_batch_size'],row['original_cache_batch_row']),
+                                         (original//32,original-original%32,min(32,100-original+original%32),original%32))
+                    self.assertFalse(report['causation_established'])
+                    self.assertEqual(report['tail_only_hypothesis'],
+                                     'NOT_FALSIFIED' if len(payload)==len(expected[name]) else 'UNAVAILABLE')
+                    with self.assertRaisesRegex(ValueError,'control tap'):self.d.require_control_tap(differences)
+        exact=self.d.control_byte_differences(expected,expected,panel,fit)
+        self.d.require_control_tap(exact)
+        self.assertTrue(all(v['row_localization']['tail_only_hypothesis']=='NO_MISMATCH' for v in exact.values()))
+        for invalid_panel,invalid_fit in ((panel,{**fit,'rows':fit['rows'][:-1]}),
+                                         ({**panel,'original_rows':[-1]+panel['original_rows'][1:]},fit)):
+            with self.assertRaisesRegex(ValueError,'FIT row mapping'):
+                self.d.control_byte_differences(expected,expected,invalid_panel,invalid_fit)
+
+    def test_actual_original_fit_batches_and_independent_tail_only_falsifier(self):
+        raw=(EVIDENCE/'identity-mix-v1/partition.json').read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),'702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c')
+        partition=json.loads(raw);panel=partition['panels']['selection']
+        record=json.loads((EVIDENCE/'connected-mlp-evaluation-full-export-control-179061-v2/receipt.json').read_bytes())
+        fit_raw=(EVIDENCE/'late-dense-v1/native256-fit-manifest-v1.json').read_bytes()
+        self.assertEqual(hashlib.sha256(fit_raw).hexdigest(),partition['original_fit']['sha256'])
+        fit=json.loads(fit_raw);fit_count=len(fit['targets'])
+        self.assertEqual((fit_count,len(fit['rows']),fit['fit_images']),(13283,13283,13283))
+        cache=json.loads((EVIDENCE/'late-dense-v1/native256-fit-export-so400-v1.json').read_bytes())['cache']
+        self.assertEqual((cache['sha256'],cache['shape']),(partition['original_cache']['sha256'],[fit_count,1152]))
+        for batch in record['images']:
+            for row in batch['rows']:
+                self.assertEqual(panel['original_rows'][row['panel_ordinal']],row['original_row'])
+                self.assertEqual(row['train_row'],fit['rows'][row['original_row']]['train_row'])
+        self.assertEqual({r:len(panel[r]) for r in ('query','gallery')},{'query':1734,'gallery':1715})
+        self.assertEqual({r:record['batch_sizes'][r][-1] for r in ('query','gallery')},{'query':6,'gallery':19})
+        self.assertTrue(all(i<13280 for i in panel['original_rows']))
+        self.assertEqual({min(32,fit_count-(i//32)*32) for i in panel['original_rows']},{32})
+        expected=comparison_bytes(3449)
+        widths={'raw':512,'unit':512,'codes':128,'inverse_norms':2,'wire':130}
+        tails=set(panel['query'][-6:]+panel['gallery'][-19:])
+        for role,tail_size in (('query',6),('gallery',19)):
+            for role_index in (0,31,len(panel[role])-tail_size-1,len(panel[role])-tail_size,len(panel[role])-1):
+                i=panel[role][role_index];actual={}
+                for name,width in widths.items():
+                    payload=bytearray(expected[name]);payload[i*width]^=1;actual[name]=bytes(payload)
+                differences=self.d.control_byte_differences(actual,expected,panel,fit)
+                for report in (v['row_localization'] for v in differences.values()):
+                    self.assertEqual(report['tail_only_hypothesis'],'NOT_FALSIFIED' if i in tails else 'FALSIFIED')
+                    self.assertFalse(report['causation_established']);row,=report['rows']
+                    self.assertEqual((row['selection_row'],row['role'],row['role_index']),(i,role,role_index))
+                    self.assertEqual((row['live_encoder_batch_index'],row['live_encoder_batch_row']),
+                                     (role_index//32,role_index%32))
+                    self.assertEqual(row['live_encoder_batch_size'],tail_size if i in tails else 32)
+                    self.assertEqual(row['original_cache_batch_size'],32)
+                    self.assertEqual(row['original_fit_index'],panel['original_rows'][i])
+                    self.assertNotEqual(row['original_fit_index'],row['official_train_row'])
+
+    def test_historical_v2_row_localization_unavailable_without_comparison_buffers(self):
+        folder=EVIDENCE/'connected-gallery-freshness-diagnostic-v2'
+        self.assertEqual({p.name for p in folder.iterdir() if p.is_file()},
+                         {'original.log','terminal.json','control-179061-tap.json'})
+        tap=json.loads((folder/'control-179061-tap.json').read_bytes())
+        terminal=json.loads((folder/'terminal.json').read_bytes())
+        self.assertEqual(terminal['tap'],tap)
+        self.assertEqual({k:v['different_bytes'] for k,v in tap.items()},
+                         {'raw':1902,'unit':1896,'codes':9,'inverse_norms':1,'wire':10})
+        self.assertEqual({k:set(v) for k,v in tap.items()},
+                         {k:{'exact','different_bytes'}|({'max_absolute_difference'} if k in ('raw','unit') else set())
+                          for k in ('raw','unit','codes','inverse_norms','wire')})
+        self.assertTrue(all('row_localization' not in v for v in tap.values()),
+                        'historical v2 rows UNAVAILABLE: comparison buffers were not retained')
+        self.assertEqual((terminal['decision'],terminal['candidate_status'],terminal['counterfactual_cells_completed']),
+                         ('FAIL_CONTROL_TAP_PARITY','KILL',0))
+
+    def test_exact_complete_production_ast_inverse_for_only_control_report_seam(self):
+        tree=ast.parse(DRIVER.read_bytes());seams=[n for n in tree.body
+            if isinstance(n,ast.FunctionDef) and n.name=='control_byte_differences']
+        self.assertEqual(len(seams),1);tree.body.remove(seams[0])
+        new=ast.parse("control_byte_differences(output_bytes(first),output_bytes(fresh[key]),panel,context['fit'])",mode='eval').body
+        old=ast.parse("byte_differences(output_bytes(first),output_bytes(fresh[key]))",mode='eval').body
+        dump=lambda value:ast.dump(value,include_attributes=False)
+        class Inverse(ast.NodeTransformer):
+            count=0
+            def visit_Call(self,node):
+                if dump(node)==dump(new):self.count+=1;return copy.deepcopy(old)
+                return self.generic_visit(node)
+        inverse=Inverse();restored=inverse.visit(tree)
+        self.assertEqual(inverse.count,1)
+        # Pin the entire base83277af6 production AST, including every original guard/method.
+        self.assertEqual(hashlib.sha256(dump(restored).encode()).hexdigest(),
+                         '75826d2d9a59b168e770eecb3435ed314af09eec6a76190e2e84e9cd59b7165e')
 
     def test_whole_cap_and_cleanup_preserve_original_error(self):
         b=self.d.Budget(started=0,clock=lambda:700)

@@ -223,6 +223,40 @@ def byte_differences(actual, expected):
     return result
 
 
+def control_byte_differences(actual, expected, panel, fit):
+    """Localize retained control bytes; tail confinement never establishes cause."""
+    result=byte_differences(actual,expected);mapping={};count=len(panel['original_rows']);fit_count=len(fit['targets'])
+    query,gallery=roles(panel,count)
+    require(len(fit['rows'])==fit_count and all(type(r) is int and 0<=r<fit_count for r in panel['original_rows']),
+            'original FIT row mapping required')
+    for role,indices in (('query',query),('gallery',gallery)):
+        for index,i in enumerate(indices):
+            original=panel['original_rows'][i];start=index//32*32;cache_start=original//32*32
+            size=min(32,len(indices)-start)
+            mapping[i]={'mapping_status':'AVAILABLE','role':role,'role_index':index,
+                'live_encoder_batch_index':index//32,'live_encoder_batch_size':size,
+                'live_encoder_batch_row':index%32,'live_encoder_tail':size<32,
+                'original_fit_index':original,'official_train_row':fit['rows'][original]['train_row'],
+                'original_cache_batch_index':original//32,'original_cache_batch_start':cache_start,
+                'original_cache_batch_size':min(32,fit_count-cache_start),'original_cache_batch_row':original%32}
+    for name,width in (('raw',512),('unit',512),('codes',128),('inverse_norms',2),('wire',130)):
+        a,b=actual[name],expected[name];rows=[]
+        for start in range(0,max(len(a),len(b)),width):
+            left,right=a[start:start+width],b[start:start+width]
+            different=sum(x!=y for x,y in zip(left,right))+abs(len(left)-len(right))
+            if different:
+                i=start//width
+                rows.append({'selection_row':i,'different_bytes':different,'actual_bytes':len(left),
+                    'expected_bytes':len(right),**mapping.get(i,{'mapping_status':'UNAVAILABLE'})})
+        complete=len(a)==len(b)==count*width
+        hypothesis='FALSIFIED' if any(r.get('live_encoder_tail') is False for r in rows) else (
+            'UNAVAILABLE' if not complete else 'NOT_FALSIFIED' if rows else 'NO_MISMATCH')
+        result[name]['row_localization']={'status':'AVAILABLE' if all(r['mapping_status']=='AVAILABLE' for r in rows)
+            else 'UNAVAILABLE','row_bytes':width,'actual_bytes':len(a),'expected_bytes':len(b),'rows':rows,
+            'tail_only_hypothesis':hypothesis,'causation_established':False}
+    return result
+
+
 def require_control_tap(differences):
     require(all(v['exact'] for v in differences.values()),'control tap differs; counterfactual stopped')
 
@@ -665,7 +699,7 @@ def run(args):
         for endpoint in context['score']['launch']['endpoints']:
             if endpoint['arm']!='control':continue
             key=label(endpoint);first=stale_values(context,sources,endpoint,features,budget)
-            differences=byte_differences(output_bytes(first),output_bytes(fresh[key]));instruments[key]=differences
+            differences=control_byte_differences(output_bytes(first),output_bytes(fresh[key]),panel,context['fit']);instruments[key]=differences
             write_json(args.output/(key+'-tap.json'),differences)
             require_control_tap(differences)
             replay(context['score']['quality'][str(endpoint['seed'])]['control'],
