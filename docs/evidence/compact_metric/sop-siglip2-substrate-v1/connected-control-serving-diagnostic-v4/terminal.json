@@ -1,0 +1,58 @@
+{
+  "accepted_latency": false,
+  "compile_identity_frontier_passed": true,
+  "exit_status": 1,
+  "failure_site": "RequestObserver._event requires calls <=2000000 and stack depth <512; original log does not distinguish conjunct",
+  "host_peak_bytes": 4653977600,
+  "invocation_id": "bf883082c60d4597a104f86daf86b42b",
+  "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "original_log_sha256": "7dc4e102f329ef7f36fc371e1adc39e99b18f7fc5727749d8c16c2010f230c70",
+  "phases_seconds": {
+    "admission": 394.7140953830094,
+    "cache_target": 2.3063231249980163,
+    "independent_reload": 1.4720649920054711,
+    "source_prepare": 20.46640756499255
+  },
+  "primary_failure": "incomplete observation: ValueError: profile resource bound exceeded",
+  "process_peak_rss_kib": 4147296,
+  "quality_verdict": "prior In-Shop TRAIN-selection KILL unchanged",
+  "schema": "connected-control-serving-original-terminal-v1",
+  "service_seconds": 575.735,
+  "ssh_session": 49972,
+  "swap_peak_bytes": 0,
+  "terminal_authority": {
+    "final": {
+      "command_exit_status": 1,
+      "invocation_id": "bf883082c60d4597a104f86daf86b42b",
+      "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-serving-diagnostic-v4.service",
+      "values": {
+        "memory.current": "748711936",
+        "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory.max": "8589934592",
+        "memory.peak": "4653977600",
+        "memory.stat": "anon 5914624\nfile 737980416\nkernel 2920448\nkernel_stack 32768\npagetables 204800\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5779456\ninactive_file 161566720\nactive_file 576413696\nunevictable 0\nslab_reclaimable 2573168\nslab_unreclaimable 90824\nslab 2663992\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 837950\npgmajfault 9456\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 983\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+        "memory.swap.current": "0",
+        "memory.swap.max": "0",
+        "memory.swap.peak": "0"
+      }
+    },
+    "stop": {
+      "exit_code": "exited",
+      "exit_status": "1",
+      "invocation_id": "bf883082c60d4597a104f86daf86b42b",
+      "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-serving-diagnostic-v4.service",
+      "service_result": "exit-code",
+      "values": {
+        "memory.current": "748109824",
+        "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory.max": "8589934592",
+        "memory.peak": "4653977600",
+        "memory.stat": "anon 5435392\nfile 737980416\nkernel 2723840\nkernel_stack 0\npagetables 98304\nsec_pagetables 0\npercpu 1056\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 0\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5328896\ninactive_file 161566720\nactive_file 576413696\nunevictable 0\nslab_reclaimable 2571960\nslab_unreclaimable 46560\nslab 2618520\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 839447\npgmajfault 9456\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 983\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+        "memory.swap.current": "0",
+        "memory.swap.max": "0",
+        "memory.swap.peak": "0"
+      }
+    }
+  },
+  "unit": "sfora-connected-control-serving-diagnostic-v4"
+}
