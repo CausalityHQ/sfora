@@ -787,6 +787,8 @@ def inference_outputs(endpoint, images):
 
 def preparation_check(d, root):
     # A plausible metadata-only receipt must never produce a qualification claim.
+    assert d.LIMITS == {'body_seconds':300,'host_bytes':8589934592,'swap_bytes':0,
+        'cuda_allocated_bytes_exclusive':10000000000}
     names = {'observer':'scripts/observe_connected_serving.py', 'test':'scripts/test_observe_connected_serving.py',
         'bridge':'src/sfora/connected_compact_serving.py', 'trainer':'scripts/train_siglip2_connected_mlp.py',
         'serializer':'scripts/train_siglip2_substrate_adaptation.py'}
@@ -810,8 +812,8 @@ def preparation_check(d, root):
         'bundle':{'directory':str(bundle), 'manifest':binding(manifest)},
         'gallery':{'file':binding(fixture),'count':10}, 'native':binding(fixture),
         'train_images':images, 'qualified_terminal':binding(fixture), 'cache_conditions':'fixed cold read, resident gallery',
-        'resource_policy':{'body_seconds':120,'host_bytes':8589934592,'swap_bytes':0,
-            'cuda_allocated_bytes_exclusive':10000000000,'whole_process_seconds':300,'exit_reserve_seconds':30},
+        'resource_policy':{'body_seconds':300,'host_bytes':8589934592,'swap_bytes':0,
+            'cuda_allocated_bytes_exclusive':10000000000,'whole_process_seconds':1500,'exit_reserve_seconds':300},
         'both_locks_held':True, 'qualification_eligible':False, 'state_reuse_eligible':False}
     path = root / 'authority.json'
     def write(value):
@@ -819,6 +821,13 @@ def preparation_check(d, root):
         return binding(path)['sha256']
     digest = write(authority)
     assert d.prepare(path, digest) == authority
+    for key,value in [('body_seconds',120),('body_seconds',299),('body_seconds',301),('body_seconds',300.),
+            ('whole_process_seconds',599),('whole_process_seconds',600),('exit_reserve_seconds',0),
+            ('host_bytes',8589934593),('swap_bytes',1),('cuda_allocated_bytes_exclusive',10000000001)]:
+        mutant = authority | {'resource_policy':authority['resource_policy'] | {key:value}}
+        rejects(lambda:d.prepare(path,write(mutant)), 'required')
+    headroom = authority | {'resource_policy':authority['resource_policy'] | {'whole_process_seconds':601}}
+    assert d.prepare(path,write(headroom)) == headroom
     for role in ('trainer','serializer'):
         mutant = authority | {'sources':sources | {role:binding(ROOT / names[role])}}
         rejects(lambda:d.prepare(path,write(mutant)), 'bundle source FILE paths required')

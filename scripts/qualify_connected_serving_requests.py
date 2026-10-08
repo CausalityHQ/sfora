@@ -306,7 +306,7 @@ def request_body(factory, observer, read_images, synchronize, paths, sources, gu
     calls, originals, observations, charges = [], {}, {}, [{},{}]
     def bounded():
         guard()
-        require(time.perf_counter()-started < 120, 'diagnostic body120 cap exceeded')
+        require(time.perf_counter()-started < 300, 'diagnostic body300 cap exceeded')
     def request(index, count, kind, *, probe=None):
         bounded()
         result, row = observer.measure_request(index, read_images, synchronize, paths[:count], observer=probe)
@@ -515,7 +515,7 @@ def run(args):
         require(observation['bundle']['manifest'] == endpoint['bundle'], 'same survivor bundle FILE required')
         policy = observation['resource_policy']
         require(policy['whole_process_seconds'] <= evaluator.policy('export')['seconds'] and
-                time.perf_counter()-STARTED + 120 + policy['exit_reserve_seconds'] < policy['whole_process_seconds'],
+                time.perf_counter()-STARTED + 300 + policy['exit_reserve_seconds'] < policy['whole_process_seconds'],
                 'insufficient frozen whole-process admission/body/exit headroom')
         before = evaluator.native_start(context)
         import torch

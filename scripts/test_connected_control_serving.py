@@ -948,8 +948,88 @@ ALIAS_DELTAS = {'qualify_connected_serving_requests.py': ('f525f40b13e60d2f4b4b1
                                             'bridge_source,wrapper_source,packed_source,packing_source): '
                                             'source.check()')])}
 
+# Finite prospective body-only inverse, before every preserved historical inverse.
+BODY300_DELTAS = {'observe_connected_serving.py': ('1c3d9f47d17ab6e711caf59317fc56f376744c47be3296123d8eb4d1e57ef6bb',
+                                  '456f022d936814530a71f30131fd8439de91613cd9cc8cceca236d5c49e335e8',
+                                  [('admissions/releases and full exit separately. Body120s stays inside the '
+                                    "parent's\n",
+                                    'admissions/releases and full exit separately. Body300s stays inside the '
+                                    "parent's\n",
+                                    1),
+                                   ("LIMITS = {'body_seconds':120, 'host_bytes':8 * 1024**3, "
+                                    "'swap_bytes':0,\n",
+                                    "LIMITS = {'body_seconds':300, 'host_bytes':8 * 1024**3, "
+                                    "'swap_bytes':0,\n",
+                                    1),
+                                   ("            policy['whole_process_seconds'] > 120 + "
+                                    "policy['exit_reserve_seconds'], 'unchanged parent cap/reserve "
+                                    "required')\n",
+                                    "            policy['whole_process_seconds'] > 300 + "
+                                    "policy['exit_reserve_seconds'], 'unchanged parent cap/reserve "
+                                    "required')\n",
+                                    1)]),
+ 'qualify_connected_serving_requests.py': ('cd87559f81b14ce3ba8b1d5742b2410d8ee3df581400c4ac387176b1e376e7c8',
+                                           '6e2fee4a5d4e9596a96fe3c642a35fb4a01945e2930d5c1eec0f4e2227b44caf',
+                                           [("        require(time.perf_counter()-started < 120, 'diagnostic "
+                                             "body120 cap exceeded')\n",
+                                             "        require(time.perf_counter()-started < 300, 'diagnostic "
+                                             "body300 cap exceeded')\n",
+                                             1),
+                                            ('                time.perf_counter()-STARTED + 120 + '
+                                             "policy['exit_reserve_seconds'] < "
+                                             "policy['whole_process_seconds'],\n",
+                                             '                time.perf_counter()-STARTED + 300 + '
+                                             "policy['exit_reserve_seconds'] < "
+                                             "policy['whole_process_seconds'],\n",
+                                             1)]),
+ 'qualify_connected_control_serving.py': ('4c610106bd596baf411db928e510d02dd9a331861cd27830452d3753ac423c00',
+                                          'c1726c68cdfdc608359805d984445bbe9afc8e17822a9de4a314bc01b8475eb1',
+                                          [('Launch: both original inherited lifetime locks; '
+                                            'body<=120s/whole<=1500s/positive\n',
+                                            'Launch: both original inherited lifetime locks; '
+                                            'body<=300s/whole<=1500s/positive\n',
+                                            1),
+                                           ("        120+policy['exit_reserve_seconds'] < "
+                                            "policy['whole_process_seconds'] <= 1500,\n",
+                                            "        300+policy['exit_reserve_seconds'] < "
+                                            "policy['whole_process_seconds'] <= 1500,\n",
+                                            1),
+                                           ("        0 < seconds(record['body_seconds']) <= 120 and "
+                                            "record['ties']['ascending_ordinal_score_bits_exact'] is True,\n",
+                                            "        0 < seconds(record['body_seconds']) <= 300 and "
+                                            "record['ties']['ascending_ordinal_score_bits_exact'] is True,\n",
+                                            1),
+                                           ("        policy['body_seconds'] == 120 and policy['host_bytes'] "
+                                            "== 8*1024**3 and policy['swap_bytes'] == 0 and\n",
+                                            "        policy['body_seconds'] == 300 and policy['host_bytes'] "
+                                            "== 8*1024**3 and policy['swap_bytes'] == 0 and\n",
+                                            1),
+                                           ('            '
+                                            "time.perf_counter()-STARTED+120+policy['exit_reserve_seconds'] "
+                                            "< policy['whole_process_seconds'],\n",
+                                            '            '
+                                            "time.perf_counter()-STARTED+300+policy['exit_reserve_seconds'] "
+                                            "< policy['whole_process_seconds'],\n",
+                                            1),
+                                           ('            '
+                                            "require(time.perf_counter()-STARTED+120+policy['exit_reserve_seconds'] "
+                                            "< policy['whole_process_seconds'],\n",
+                                            '            '
+                                            "require(time.perf_counter()-STARTED+300+policy['exit_reserve_seconds'] "
+                                            "< policy['whole_process_seconds'],\n",
+                                            1)])}
+
+
+def reverse_body300(raw, name):
+    if name not in BODY300_DELTAS: return raw
+    for before,after,count in reversed(BODY300_DELTAS[name][2]):
+        if raw.count(after) != count: raise ValueError('exact body300 delta differs')
+        raw = raw.replace(after,before,count)
+    return raw
+
 
 def reverse_alias(raw, name):
+    raw = reverse_body300(raw,name)
     if name not in ALIAS_DELTAS: return raw
     for before,after in reversed(ALIAS_DELTAS[name][1]):
         if raw.count(after) != 1: raise ValueError('exact packing alias delta differs')
@@ -1079,7 +1159,7 @@ def observation_fixture(root, observer):
     value = {'schema':'connected-control-serving-attribution-authority-v2','sources':sources,
         'bundle':{'directory':str(bundle),'manifest':manifest},'gallery':{'file':fact(path),'count':10},
         'native':fact(path),'train_images':images,'control_export_receipt':fact(path),'cache_conditions':'frozen diagnostic fixture',
-        'resource_policy':{'body_seconds':120,'host_bytes':8*1024**3,'swap_bytes':0,
+        'resource_policy':{'body_seconds':300,'host_bytes':8*1024**3,'swap_bytes':0,
             'cuda_allocated_bytes_exclusive':10_000_000_000,'whole_process_seconds':1500,'exit_reserve_seconds':30},
         'both_locks_held':True,'qualification_eligible':False,'state_reuse_eligible':False}
     return value
@@ -1280,9 +1360,80 @@ def genuine_exit_fixture(root):
 
 
 class ControlTests(unittest.TestCase):
+    def test_body300_finite_inverse_restores_complete_original_bytes_and_asts(self):
+        for name,(byte_digest,ast_digest,changes) in BODY300_DELTAS.items():
+            raw = (HERE/name).read_text()
+            restored = reverse_body300(raw,name)
+            with self.subTest(source=name):
+                self.assertEqual(hashlib.sha256(restored.encode()).hexdigest(),byte_digest)
+                self.assertEqual(hashlib.sha256(ast.dump(ast.parse(restored),include_attributes=False).encode()).hexdigest(),ast_digest)
+            for before,after,count in changes:
+                for mutant in (raw.replace(after,after.replace('300','301'),1),raw+after):
+                    with self.subTest(delta=after),self.assertRaisesRegex(ValueError,'body300 delta'):
+                        reverse_body300(mutant,name)
+            mutant = reverse_body300(raw.replace('raise ValueError(message)','raise RuntimeError(message)',1),name)
+            self.assertNotEqual(hashlib.sha256(mutant.encode()).hexdigest(),byte_digest)
+            self.assertNotEqual(hashlib.sha256(ast.dump(ast.parse(mutant),include_attributes=False).encode()).hexdigest(),ast_digest)
+
+    def test_body300_actual_admission_and_headroom_boundaries(self):
+        for name in ('qualify_connected_serving_requests.py','qualify_connected_control_serving.py'):
+            driver = load('_body300_headroom_'+name[:-3],HERE/name)
+            run = next(n for n in ast.parse((HERE/name).read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name == 'run')
+            checks = [n for n in ast.walk(run) if isinstance(n,ast.Expr) and isinstance(n.value,ast.Call) and
+                isinstance(n.value.func,ast.Name) and n.value.func.id == 'require' and
+                any(isinstance(v,ast.Constant) and type(v.value) is str and 'body/exit headroom' in v.value for v in n.value.args)]
+            self.assertEqual(len(checks),1 if name == 'qualify_connected_serving_requests.py' else 2)
+            namespace = dict(vars(driver),STARTED=0.,policy={'whole_process_seconds':1500,'exit_reserve_seconds':300},
+                evaluator=SimpleNamespace(policy=lambda role:{'seconds':1500}))
+            for check in checks:
+                code = compile(ast.Module(body=[check],type_ignores=[]),driver.__file__,'exec')
+                for elapsed in (899.,900.,901.):
+                    with self.subTest(source=name,elapsed=elapsed),patch.object(driver.time,'perf_counter',lambda:elapsed):
+                        if elapsed == 899.: exec(code,namespace)
+                        else:
+                            with self.assertRaisesRegex(ValueError,'headroom'): exec(code,namespace)
+
+    def test_body300_receipt_boundaries(self):
+        driver = load('_body300_receipt_driver',HERE/'qualify_connected_control_serving.py')
+        with tempfile.TemporaryDirectory() as directory:
+            record,authority,authority_fact = measurement_fixture(Path(directory),driver)
+            for elapsed in (299.,300.,301.):
+                with self.subTest(elapsed=elapsed):
+                    value = record | {'body_seconds':elapsed}
+                    if elapsed <= 300.: driver.validate_receipt(value,authority,authority_fact)
+                    else:
+                        with self.assertRaisesRegex(ValueError,'body'): driver.validate_receipt(value,authority,authority_fact)
+
+    def test_body300_observation_policy_and_terminal_caps(self):
+        driver = load('_body300_caps_driver',HERE/'qualify_connected_control_serving.py')
+        observer = load('_body300_caps_observer',HERE/'observe_connected_serving.py')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); value = observation_fixture(root,observer)
+            value['resource_policy']['exit_reserve_seconds'] = 300
+            def prepare(policy):
+                return driver.prepare_observation(write_json(root/'observation.json',value | {'resource_policy':policy}),observer)
+            policy = value['resource_policy']
+            self.assertEqual(prepare(policy),value)
+            for key,bad in [('body_seconds',120),('body_seconds',299),('body_seconds',301),('body_seconds',300.),
+                    ('whole_process_seconds',600),('whole_process_seconds',1501),('exit_reserve_seconds',0),
+                    ('host_bytes',8*1024**3+1),('swap_bytes',1),('cuda_allocated_bytes_exclusive',10_000_000_001)]:
+                with self.subTest(key=key,value=bad),self.assertRaisesRegex(ValueError,'cap|reserve'):
+                    prepare(policy | {key:bad})
+            self.assertEqual(prepare(policy | {'whole_process_seconds':601})['resource_policy']['whole_process_seconds'],601)
+        accept = next(n for n in ast.parse(Path(driver.__file__).read_bytes()).body if isinstance(n,ast.FunctionDef) and n.name == 'accept_unit')
+        check = next(n for n in ast.walk(accept) if isinstance(n,ast.Expr) and isinstance(n.value,ast.Call) and
+            any(isinstance(v,ast.Constant) and v.value == 'frozen diagnostic resource policy differs' for v in n.value.args))
+        code = compile(ast.Module(body=[check],type_ignores=[]),driver.__file__,'exec')
+        namespace = dict(vars(driver),policy=policy)
+        exec(code,namespace)
+        for key,bad in [('body_seconds',120),('body_seconds',299),('body_seconds',301),('whole_process_seconds',1501),
+                ('exit_reserve_seconds',0),('host_bytes',8*1024**3+1),('swap_bytes',1),('cuda_allocated_bytes_exclusive',10_000_000_001)]:
+            with self.subTest(terminal_key=key,value=bad),self.assertRaisesRegex(ValueError,'resource policy'):
+                exec(code,namespace | {'policy':policy | {key:bad}})
+
     def test_alias_delta_reverses_complete_a4cd_driver_asts_and_rejects_mutants(self):
         for name,(digest,changes) in ALIAS_DELTAS.items():
-            raw = (HERE/name).read_text()
+            raw = reverse_body300((HERE/name).read_text(),name)
             with self.subTest(source=name): production_inverse(raw,digest,changes)
             for before,after in changes:
                 with self.subTest(delta=after),self.assertRaisesRegex(ValueError,'delta'):
@@ -1913,7 +2064,7 @@ class ControlTests(unittest.TestCase):
             pinned = f.write('terminal-input',b'fresh')
             authority_fact = f.write_json('terminal-authority.json',{})
             authority = {'sources':{'control_driver':fact(Path(driver.__file__))},'control_export':{'receipt':pinned}}
-            policy = {'body_seconds':120,'host_bytes':8*1024**3,'swap_bytes':0,'cuda_allocated_bytes_exclusive':10_000_000_000,
+            policy = {'body_seconds':300,'host_bytes':8*1024**3,'swap_bytes':0,'cuda_allocated_bytes_exclusive':10_000_000_000,
                 'whole_process_seconds':1500,'exit_reserve_seconds':30}
             output = root/'terminal-output'; output.mkdir()
             record = {'schema':'connected-control-serving-diagnostic-v1','status':'DISCARDED_DIAGNOSTIC','engineering_only':True,

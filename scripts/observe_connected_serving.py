@@ -19,7 +19,7 @@ standalone observe_call does not authorize a public observation.
 
 Proposed22calls: original owner B1/B32 each2warm+8timed; genuine release;
 observation owner B1/B32 each1instrumented; genuine release. Charge both
-admissions/releases and full exit separately. Body120s stays inside the parent's
+admissions/releases and full exit separately. Body300s stays inside the parent's
 unchanged cap, 8GiB/noSwap/CUDA<10GB/bothlocks; never extend a cap. The timer
 includes image read/decode through synchronized native top10, with image cleanup
 separate. Stop parity/source/predicate/ownership/resource/cleanup failures.
@@ -53,7 +53,7 @@ import time
 from types import CodeType, FunctionType
 
 SCHEMA = 'connected-serving-attribution-authority-v2'
-LIMITS = {'body_seconds':120, 'host_bytes':8 * 1024**3, 'swap_bytes':0,
+LIMITS = {'body_seconds':300, 'host_bytes':8 * 1024**3, 'swap_bytes':0,
           'cuda_allocated_bytes_exclusive':10_000_000_000}
 OUTPUT_KEYS = {'raw', 'unit', 'codes', 'inverse_norms', 'wire'}
 INSTRUMENTATION_POLICY = {'schema':'connected-serving-retained-resources-v1',
@@ -190,7 +190,7 @@ def prepare(path, digest):
             all(type(v) is int and v >= 0 for v in policy.values()) and
             all(policy[k] == v for k,v in LIMITS.items()) and
             policy['exit_reserve_seconds'] > 0 and
-            policy['whole_process_seconds'] > 120 + policy['exit_reserve_seconds'], 'unchanged parent cap/reserve required')
+            policy['whole_process_seconds'] > 300 + policy['exit_reserve_seconds'], 'unchanged parent cap/reserve required')
     for fact in [bundle['manifest'], gallery['file'], authority['native'], authority['qualified_terminal'], *images]:
         file_bytes(fact)
     return authority

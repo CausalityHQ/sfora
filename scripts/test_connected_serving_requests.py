@@ -654,11 +654,61 @@ class DriverTests(unittest.TestCase):
             self.assertTrue(any('opened close failed' in n for n in target.__notes__))
             self.assertTrue(any('decoded close failed' in n for n in target.__notes__))
 
+    def test_body300_actual_deadline_boundaries(self):
+        driver = self.driver_module()
+        body = next(n for n in ast.parse(Path(driver.__file__).read_bytes()).body
+            if isinstance(n,ast.FunctionDef) and n.name == 'request_body')
+        bounded = next(n for n in body.body if isinstance(n,ast.FunctionDef) and n.name == 'bounded')
+        guards = []
+        namespace = dict(vars(driver),started=0.,guard=lambda:guards.append('fresh'))
+        exec(compile(ast.Module(body=[bounded],type_ignores=[]),driver.__file__,'exec'),namespace)
+        for elapsed in (299.,300.,301.):
+            with self.subTest(elapsed=elapsed),patch.object(driver.time,'perf_counter',lambda:elapsed):
+                if elapsed == 299.: namespace['bounded']()
+                else:
+                    with self.assertRaisesRegex(ValueError,'body300'): namespace['bounded']()
+        self.assertEqual(guards,['fresh']*3)
+
+    def test_body300_second_owner_prefactory_and_admitted_finally_release(self):
+        driver = self.driver_module()
+        clock = driver.time.perf_counter
+        for phase in ('prefactory','admission','observation'):
+            with self.subTest(phase=phase),tempfile.TemporaryDirectory() as directory, public_fixture(Path(directory)) as f:
+                released_ticks = 0
+                def deadline():
+                    nonlocal released_ticks
+                    if f.events.closes: released_ticks += 1
+                    expired = {'prefactory':released_ticks >= 4,'admission':len(f.events.owners) == 2,
+                        'observation':len(f.events.searches) == 21}[phase]
+                    return clock() + (301. if expired else 0.)
+                with patch.object(driver.time,'perf_counter',deadline),self.assertRaisesRegex(ValueError,'body300'):
+                    driver.request_body(f.factory,f.observer,f.reader,lambda:None,f.paths,f.pins,lambda:None)
+                self.assertEqual(f.events.searches,[1]*10+[32]*10+([1] if phase == 'observation' else []))
+                self.assertEqual(len(f.events.owners),1 if phase == 'prefactory' else 2)
+                self.assertEqual(f.events.closes,['gallery']*(1 if phase == 'prefactory' else 2))
+                self.assertEqual(len(f.events.images),331 if phase == 'observation' else 330)
+                self.assertIsNone(sys.getprofile())
+
     def test_body120_stops_after_first_over_budget_call_and_releases_owner(self):
         driver = self.driver_module()
+        inverse = load('_requests_body300_inverse',HERE/'test_connected_control_serving.py')
+        tree = ast.parse(inverse.reverse_body300(Path(driver.__file__).read_text(),Path(driver.__file__).name))
+        body = next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name == 'request_body')
+        namespace = dict(vars(driver))
+        exec(compile(ast.Module(body=[body],type_ignores=[]),driver.__file__,'exec'),namespace)
         with tempfile.TemporaryDirectory() as directory, public_fixture(Path(directory)) as f:
             def clock(): return 121. if f.events.searches else 0.
             with patch.object(driver.time,'perf_counter',clock), self.assertRaisesRegex(ValueError,'body120'):
+                namespace['request_body'](f.factory,f.observer,f.reader,lambda:None,f.paths,f.pins,lambda:None)
+            self.assertEqual(f.events.searches,[1])
+            self.assertEqual(f.events.closes,['gallery'])
+            self.assertIsNone(sys.getprofile())
+
+    def test_body300_stops_after_first_over_budget_call_and_releases_owner(self):
+        driver = self.driver_module()
+        with tempfile.TemporaryDirectory() as directory, public_fixture(Path(directory)) as f:
+            def clock(): return 301. if f.events.searches else 0.
+            with patch.object(driver.time,'perf_counter',clock), self.assertRaisesRegex(ValueError,'body300'):
                 driver.request_body(f.factory,f.observer,f.reader,lambda:None,f.paths,f.pins,lambda:None)
             self.assertEqual(f.events.searches,[1])
             self.assertEqual(f.events.closes,['gallery'])

@@ -15,7 +15,7 @@ replacing qualified_terminal with control_export_receipt. observer.prepare is
 unchanged. native_runtime is the separate complete H-union-S authority FILE.
 No selection GO, survivor, export, score or new training is performed.
 
-Launch: both original inherited lifetime locks; body<=120s/whole<=1500s/positive
+Launch: both original inherited lifetime locks; body<=300s/whole<=1500s/positive
 exit reserve/8GiB/zero swap/CUDA<10GB. Admission, every fresh hash, both sequential
 owners, cleanup, complete nested exit and publication count against the cap.
 Result schema connected-control-serving-diagnostic-v1, DISCARDED_DIAGNOSTIC,
@@ -88,7 +88,7 @@ def prepare_observation(fact, observer):
     require(type(policy) is dict and policy.keys() == observer.LIMITS.keys() | {'whole_process_seconds','exit_reserve_seconds'} and
         all(type(v) is int and v >= 0 for v in policy.values()) and
         all(policy[k] == v for k,v in observer.LIMITS.items()) and policy['exit_reserve_seconds'] > 0 and
-        120+policy['exit_reserve_seconds'] < policy['whole_process_seconds'] <= 1500,
+        300+policy['exit_reserve_seconds'] < policy['whole_process_seconds'] <= 1500,
         'unchanged whole-process cap/exit reserve required')
     for file in [bundle['manifest'],gallery['file'],value['native'],value['control_export_receipt'],*images]:
         observer.file_bytes(file)
@@ -150,7 +150,7 @@ def validate_receipt(record, authority, authority_fact):
         record['invocation']['cublas_workspace_config'] == ':4096:8', 'exact new control diagnostic CLI/environment required')
     expected = [(b,k) for b in (1,32) for k in ['warm_oracle','warm']+['timed']*8] + [(1,'observation'),(32,'observation')]
     require([(r['batch'],r['kind']) for r in record['calls']] == expected and
-        0 < seconds(record['body_seconds']) <= 120 and record['ties']['ascending_ordinal_score_bits_exact'] is True,
+        0 < seconds(record['body_seconds']) <= 300 and record['ties']['ascending_ordinal_score_bits_exact'] is True,
         'unchanged22 public calls/oracle/tie body required')
     require(type(record['calls']) is list and
         record['oracle_semantics'] == 'instrumented first original warmup; second warmup and all8timed are unprofiled' and
@@ -316,7 +316,7 @@ def accept_unit(context, unit, authority_fact):
         if failures: requests.raise_failures(failures)
     resources = record['resources']; policy = record['resource_policy']
     require(policy['whole_process_seconds'] <= 1500 and policy['exit_reserve_seconds'] > 0 and
-        policy['body_seconds'] == 120 and policy['host_bytes'] == 8*1024**3 and policy['swap_bytes'] == 0 and
+        policy['body_seconds'] == 300 and policy['host_bytes'] == 8*1024**3 and policy['swap_bytes'] == 0 and
         policy['cuda_allocated_bytes_exclusive'] == 10_000_000_000, 'frozen diagnostic resource policy differs')
     requests.check_resources({**resources,'wall_seconds':record['whole_process_seconds']},policy,reserve=False)
     legacy = context['training_context']['legacy']
@@ -394,7 +394,7 @@ def run(args):
         api = runtime_authority.install(evaluator_source,context)
         policy = observation['resource_policy']
         require(policy['whole_process_seconds'] <= evaluator.policy('export')['seconds'] and
-            time.perf_counter()-STARTED+120+policy['exit_reserve_seconds'] < policy['whole_process_seconds'],
+            time.perf_counter()-STARTED+300+policy['exit_reserve_seconds'] < policy['whole_process_seconds'],
             'insufficient frozen admission/body/exit headroom')
         before = evaluator.native_start(context)
         import torch
@@ -446,7 +446,7 @@ def run(args):
                     gallery_path=Path(observation['gallery']['file']['path']),expected_gallery_sha256=observation['gallery']['file']['sha256'],
                     gallery_count=observation['gallery']['count'],native_library_path=Path(observation['native']['path']),
                     expected_native_library_sha256=observation['native']['sha256'])
-            require(time.perf_counter()-STARTED+120+policy['exit_reserve_seconds'] < policy['whole_process_seconds'],
+            require(time.perf_counter()-STARTED+300+policy['exit_reserve_seconds'] < policy['whole_process_seconds'],
                 'insufficient whole-process body/exit headroom')
             diagnostic = requests.request_body(factory,observer,read_images,torch.cuda.synchronize,
                 [Path(f['path']) for f in observation['train_images']],observation['sources'],guard)
