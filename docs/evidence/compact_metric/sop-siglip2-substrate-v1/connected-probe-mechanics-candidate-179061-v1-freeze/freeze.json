@@ -1,0 +1,15 @@
+{
+  "schema": "connected-probe-mechanics-freeze-v1",
+  "unit": "sfora-connected-probe-mechanics-candidate-179061-v1",
+  "policy_seconds": 1200,
+  "source": "qualified probe source-v2 unchanged",
+  "precondition": "accepted control mechanics original0f7b6237; fresh host/process/lock clearance",
+  "files": {
+    "mechanics-candidate-179061-v1-controller.sh": "3fcc9cb397099d1bf328cbc2940a13eb593e14d188992114f02e01877511257d",
+    "mechanics-candidate-179061-v1-launch.sh": "0374d3c8cc63f175054c49d27491079f0f0810c322c63593af8c951d68a7c32e",
+    "mechanics-candidate-179061-v1-command.sh": "abed56aa76e097e095e9a0190e3d01b5acbc6765cb9e72f16e8aa9ab4ea32119",
+    "authority-mechanics-candidate-179061-v1.json": "feab23ade435b464779ab9977b180479f0342e0a111695d95624f3b1919db60b"
+  },
+  "stop_rule": "ONE original candidate mechanics; any failure closes; no TRAIN without both accepted exact-source mechanics",
+  "quality_speed_training_claim": false
+}

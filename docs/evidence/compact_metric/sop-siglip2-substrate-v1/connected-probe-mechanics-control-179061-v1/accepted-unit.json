@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "0f7b623798264349872e5422622975ff",
+  "log": {
+    "path": "/home/riomus/runs/sfora-connected-probe-train-source-v2/mechanics-control-179061-v1-original.log",
+    "sha256": "4bf784b3a2b36bc9919b42772ce0c79c20105034be24cbf96533d6982dedbddf"
+  },
+  "native_peak_rss_kib": 5041496,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-connected-probe-mechanics-control-179061-v1/receipt.json",
+    "sha256": "55c07c2713c26d5e7d3022303b76a6514ca5eb1588025c14818ad4f32add34c1"
+  },
+  "service_seconds": 899.984,
+  "unit": "sfora-connected-probe-mechanics-control-179061-v1"
+}
