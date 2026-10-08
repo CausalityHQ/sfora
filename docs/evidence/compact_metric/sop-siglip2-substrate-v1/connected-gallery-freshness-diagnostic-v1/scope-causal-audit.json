@@ -1,0 +1,19 @@
+{
+  "schema": "gallery-scope-representation-causal-audit-v1",
+  "original_native_fail_preserved": true,
+  "native_unrun": true,
+  "actual_scope_identity_function_executed": true,
+  "full_scope_keys": [
+    "arm",
+    "manifest",
+    "payload"
+  ],
+  "compact_scope": {
+    "arm": "control",
+    "manifest_sha256": "55cde4ef9de3c3636da2215c706115f36b90436f47fc23b345f72cc168874726",
+    "arm_sha256": "1f3ad34bbd20a3b375ccb4908f9a3da05b63b514395cb553e1c81925789b2280"
+  },
+  "old_equality_impossible": true,
+  "original_cpu_identity_matches_projection": true,
+  "correction": "Use authenticated original identity.scope_identity(disk[scope]) == ident[scope] == manifest[scope], retaining all original full fingerprint/member checks. Do not compare payload directly to identity."
+}
