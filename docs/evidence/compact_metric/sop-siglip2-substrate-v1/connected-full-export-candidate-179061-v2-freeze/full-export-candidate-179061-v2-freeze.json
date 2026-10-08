@@ -1,0 +1,35 @@
+{
+  "execution_sha256": "3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029",
+  "files": {
+    "authority-full-export-candidate-179061-v2.json": "c6d19278bb58e1b7b7ff024fb8bf18520ccd0020c3fd5c02c3313894075a7295",
+    "full-export-candidate-179061-v2-command.sh": "54cda76d2af13d2e96b9eee0b335c1081133bbe1cffb352b6db044c3add445a0",
+    "full-export-candidate-179061-v2-controller.sh": "ba8d0de6c56893e02e3d41368791bb4c5ca357c197590cde750fc8a580704cab",
+    "full-export-candidate-179061-v2-launch.sh": "10a5a037ebf6ad6a9c157521c2f3194717c256109da3d421eead463cf77ae2cc"
+  },
+  "output": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-candidate-179061-v2",
+  "policy": {
+    "cuda_visible_devices": "0",
+    "host_bytes": 8589934592,
+    "seconds": 1500,
+    "swap_bytes": 0
+  },
+  "schema": "connected-export1500-parent-freeze-v1",
+  "selected_cpu": {
+    "both_locks_held": true,
+    "invocation_id": "28c014bfd2724aa494cd2a1d59dc7560",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/full-cpu-v5-original.log",
+      "sha256": "8897da6b3ccfa160c94aa4872d1e7d25c82d31c66b011b0870c52dcf05c7c997"
+    },
+    "native_peak_rss_kib": 1463280,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-cpu-v5/receipt.json",
+      "sha256": "1a732ebece8d775bffd142ff8abf32cfbc0da5ffb44c787cd0af22d8b3f7c189"
+    },
+    "service_seconds": 563.299,
+    "unit": "sfora-connected-mlp-evaluation-full-cpu-v5"
+  },
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9",
+  "stop_rule": "ONE fresh full-stage endpoint export1500, selected only by declared arm/seed. Complete two independent B32 query/gallery passes/tails6/19/oracles/readbacks/current448/frozen444/nativeexactfour/fulluncachedexit/normal0/bothlocks/8GiB/zeroevents/noSwap/CUDA<10GB required. Failure closes arm; original900failure/partials remain ineligible. All four ordered fresh full-stage exports required before paired score; historical first exports denied. No TRAIN repeat or cap extension.",
+  "unit": "sfora-connected-mlp-evaluation-full-export-candidate-179061-v2"
+}

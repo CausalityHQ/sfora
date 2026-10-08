@@ -1,0 +1,45 @@
+{
+  "execution_sha256": "3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029",
+  "launched_at_freeze": [
+    "control-179061"
+  ],
+  "order": [
+    {
+      "arm": "control",
+      "authority_sha256": "0875aec90fe11c1523b66584bbec8164be5dc886d3da81131a4c220a1f624c8b",
+      "launch_requires": "all earlier ordered exports independently accepted; DGX idle and both locks; no partial reuse",
+      "seed": 179061,
+      "unit": "sfora-connected-mlp-evaluation-full-export-control-179061-v2"
+    },
+    {
+      "arm": "candidate",
+      "authority_sha256": "c6d19278bb58e1b7b7ff024fb8bf18520ccd0020c3fd5c02c3313894075a7295",
+      "launch_requires": "all earlier ordered exports independently accepted; DGX idle and both locks; no partial reuse",
+      "seed": 179061,
+      "unit": "sfora-connected-mlp-evaluation-full-export-candidate-179061-v2"
+    },
+    {
+      "arm": "candidate",
+      "authority_sha256": "2562a06a9aab595600fa34be5d7c764be58fdfad27a7d2068970491ce85fb373",
+      "launch_requires": "all earlier ordered exports independently accepted; DGX idle and both locks; no partial reuse",
+      "seed": 179069,
+      "unit": "sfora-connected-mlp-evaluation-full-export-candidate-179069-v2"
+    },
+    {
+      "arm": "control",
+      "authority_sha256": "e3bf897b5a3332686f384cbbc04bb8e1d34a8ff41e65d11f2615ca1789a36c86",
+      "launch_requires": "all earlier ordered exports independently accepted; DGX idle and both locks; no partial reuse",
+      "seed": 179069,
+      "unit": "sfora-connected-mlp-evaluation-full-export-control-179069-v2"
+    }
+  ],
+  "schema": "connected-full-export-sequence-v1",
+  "selected_cpu_invocation": "28c014bfd2724aa494cd2a1d59dc7560",
+  "source_root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9",
+  "stop_rule": "One original job at a time. A failed endpoint closes that arm and blocks paired scoring; collect original terminal and retain all failures. No sealed validation without full selection GO.",
+  "unlaunched_at_freeze": [
+    "candidate-179061",
+    "candidate-179069",
+    "control-179069"
+  ]
+}
