@@ -323,6 +323,31 @@ def compile_regressions(bridge, args, bundle, manifest, Packed, no_owned_registr
             if isinstance(code, CodeType) and code.co_name == 'fingerprint'
         )
         assert changed != expected, 'serializer compiler-flag negative did not differ'
+        # The new private SHA helpers use the same authenticated compiler/snapshot.
+        index = bridge.ConnectedCompactIndex()
+        index._module = runtime
+        index._owned[spec.name] = runtime
+        index._guards = ((Path(runtime.__file__).absolute(), sha(actual), False),)
+        index._snapshot(runtime, actual)
+        index._check_current()
+        compiled = compile(actual, runtime.__file__, 'exec', dont_inherit=True)
+        for name in ('_sha_cpu_bytes', '_fingerprint_cuda_dict'):
+            fn = getattr(runtime, name)
+            expected_helper = next(code for code in compiled.co_consts
+                                   if isinstance(code, CodeType) and code.co_name == name)
+            assert fn.__code__ == expected_helper and fn.__globals__ is vars(runtime)
+            saved = fn.__code__
+            try:
+                fn.__code__ = (lambda value: value).__code__
+                fails(index._check_current, 'installed inference callable state changed')
+            finally:
+                fn.__code__ = saved
+            try:
+                setattr(runtime, name, lambda value: value)
+                fails(index._check_current, 'installed inference globals changed')
+            finally:
+                setattr(runtime, name, fn)
+            index._check_current()
     finally:
         del sys.modules[spec.name]
 

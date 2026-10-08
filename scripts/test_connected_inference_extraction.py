@@ -123,6 +123,54 @@ def expected_definition(path, name):
     return source
 
 
+def pipeline_record():
+    tree = ast.parse((ROOT / 'src/sfora/_connected_inference_authority.py').read_text())
+    substitutions = next(ast.literal_eval(n.value) for n in tree.body
+                         if isinstance(n, ast.Assign) and n.targets[0].id == 'SUBSTITUTIONS')
+    assert substitutions[-1][0] == '_fresh_cpu_sha_pipeline'
+    return substitutions[-1][1]
+
+
+def pipeline_inverse(source):
+    record = pipeline_record()
+    start = source.index('\n\ndef _sha_cpu_bytes(')
+    end = source.index('\n\ndef fingerprint(', start)
+    source = source[:start] + source[end:]
+    for before, after in record['replacements']:
+        assert source.count(after) == 1
+        source = source.replace(after, before)
+    return source
+
+
+def pipeline_contract_check():
+    import difflib
+    record = pipeline_record()
+    source = RUNTIME.read_text()
+    base = pipeline_inverse(source)
+    # Historical whole-file hashes and every prior extraction assertion survive.
+    assert sha(base.encode()) == record['base_runtime_sha256'] == '52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512'
+    nodes = {n.name: ast.get_source_segment(source, n) for n in ast.parse(source).body
+             if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+    astsha = lambda text: sha(ast.dump(ast.parse(text), include_attributes=False).encode())
+    assert tuple(n for n, *_ in record['helpers']) == ('_sha_cpu_bytes', '_fingerprint_cuda_dict')
+    for name, byte_sha, ast_sha in record['helpers']:
+        assert (sha(nodes[name].encode()), astsha(nodes[name])) == (byte_sha, ast_sha)
+    assert (sha(nodes['encoder_facts'].encode()), astsha(nodes['encoder_facts'])) == record['encoder']
+    original = next(ast.get_source_segment(base, n) for n in ast.parse(base).body
+                    if isinstance(n, ast.FunctionDef) and n.name == 'encoder_facts')
+    assert ''.join(difflib.unified_diff(original.splitlines(True), nodes['encoder_facts'].splitlines(True),
+                fromfile='original:encoder_facts', tofile='fresh-sha:encoder_facts')) == record['encoder_diff']
+    authority = (ROOT / 'src/sfora/_connected_inference_authority.py').read_text()
+    start = authority.index('\n    (\n        "_fresh_cpu_sha_pipeline",')
+    end = authority.index('\n)\n\nRUNTIME_SHA256', start)
+    historical = authority[:start] + authority[end:]
+    historical = historical.replace(sha(source.encode()), record['base_runtime_sha256'])
+    assert sha(historical.encode()) == record['base_authority_sha256'] == '538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e'
+    bridge = (ROOT / 'src/sfora/connected_compact_serving.py').read_text()
+    bridge = bridge.replace(sha(authority.encode()), record['base_authority_sha256'])
+    assert sha(bridge.encode()) == record['base_bridge_sha256']
+
+
 def dependency_check():
     source = RUNTIME.read_text()
     tree = ast.parse(source)
@@ -159,11 +207,14 @@ def correspondence():
     nodes = {node.name: node for node in ast.parse(RUNTIME.read_text()).body
              if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
     names = {name for symbols in CLOSURE.values() for name in symbols}
-    assert nodes.keys() == names | {'_bind_runtime', '_check_runtime', '_head_method_code', '_pack'}
+    assert nodes.keys() == names | {'_bind_runtime', '_check_runtime', '_head_method_code', '_pack',
+                                          '_sha_cpu_bytes', '_fingerprint_cuda_dict'}
+    historical_nodes = {node.name: node for node in ast.parse(pipeline_inverse(RUNTIME.read_text())).body
+                        if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
     for path, symbols in CLOSURE.items():
         for name in symbols:
             expected = ast.parse(expected_definition(path, name)).body[0]
-            assert ast.dump(nodes[name], include_attributes=False) == ast.dump(expected, include_attributes=False), name
+            assert ast.dump(historical_nodes[name], include_attributes=False) == ast.dump(expected, include_attributes=False), name
 
 
 class NoNative(importlib.abc.MetaPathFinder):
@@ -207,7 +258,8 @@ def ledger_check():
     assert all(isinstance(node, (ast.Assign, ast.Expr)) for node in tree.body)
     assert values['SCHEMA'] == 'sfora-connected-inference-extraction-v1'
     runtime = RUNTIME.read_text()
-    nodes = {node.name: node for node in ast.parse(runtime).body if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
+    historical_runtime = pipeline_inverse(runtime)
+    nodes = {node.name: node for node in ast.parse(historical_runtime).body if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
     ledger = values['SOURCE_SYMBOLS']
     assert {(path, name) for path, file_sha, name, *rest in ledger} == {
         (path, name) for path, symbols in CLOSURE.items() for name in symbols}
@@ -215,7 +267,7 @@ def ledger_check():
     differences = []
     for path, file_sha, name, source_sha, source_ast_sha, runtime_sha, runtime_ast_sha in ledger:
         original = original_definition(path, name)
-        extracted = ast.get_source_segment(runtime, nodes[name])
+        extracted = ast.get_source_segment(historical_runtime, nodes[name])
         astsha = lambda text: sha(ast.dump(ast.parse(text), include_attributes=False).encode())
         assert sha((ROOT / path).read_bytes()) == file_sha
         assert (sha(original.encode()), astsha(original), sha(extracted.encode()), astsha(extracted)) == (
@@ -224,7 +276,7 @@ def ledger_check():
             differences.append((name, ''.join(difflib.unified_diff(
                 original.splitlines(True), extracted.splitlines(True), fromfile=path+':'+name,
                 tofile='connected_inference.py:'+name))))
-    assert values['SUBSTITUTIONS'] == tuple(differences)
+    assert values['SUBSTITUTIONS'][:-1] == tuple(differences)
     assert 'BRIDGE_SHA256' not in values, 'authority cycle'
     if 'RUNTIME_SHA256' in values:
         assert values['RUNTIME_SHA256'] == sha(RUNTIME.read_bytes())
@@ -311,6 +363,9 @@ def admission_check(values):
                 raise AssertionError('source-only fixture constructed native runtime')
             head_check(runtime)
             serializer_check(runtime)
+            fresh_sha_check(runtime)
+            pipeline_failure_context_check(runtime)
+            pipeline_routing_check(runtime)
         finally:
             sys.modules.pop(spec.name, None)
 
@@ -387,6 +442,311 @@ def serializer_check(runtime):
         assert runtime.fingerprint((1, 2)) != runtime.fingerprint([1, 2])
 
 
+def pipeline_routing_check(runtime):
+    torch = ModuleType('torch')
+    torch.float32 = object()
+    params = {name: SimpleNamespace(shape=(1,), dtype=torch.float32, device=SimpleNamespace(type='cuda'),
+                    grad=None, is_leaf=True, grad_fn=None, requires_grad=False)
+              for name in (*runtime.MLP, *(str(i) for i in range(444)))}
+    processor = SimpleNamespace(to_json_string=lambda: '{}', backend='backend')
+    buffers = {'embeddings.position_ids': object()}
+    model = SimpleNamespace(named_parameters=lambda: params.items(), state_dict=lambda: params,
+            named_modules=lambda: [('embeddings', SimpleNamespace(_non_persistent_buffers_set={'position_ids'}))],
+            named_buffers=lambda: buffers.items())
+    ident = {'inventory': {name: [1] for name in params}, 'nonpersistent': {'embeddings': ['position_ids']},
+             'buffers_sha256': 'buffers', 'runtime': 'runtime', 'frozen_sha256': 'frozen'}
+    state = {'model': model, 'encoder_identity': ident, 'device': 'cuda', 'arm': 'control',
+             'processor_object': processor, 'processor': {'config': {}, 'backend': 'backend', 'origin': 'origin'},
+             'guards': {}, 'processor_cache': object()}
+    serial, parallel = [], []
+    def hash_dict(value):
+        if value is buffers or isinstance(value, dict) and value.keys() == buffers.keys(): return 'buffers'
+        if isinstance(value, dict): return 'frozen' if len(value) == 444 else 'vision'
+        return 'mlp'
+    def serial_hash(value):
+        serial.append(value)
+        return hash_dict(value)
+    def parallel_hash(value):
+        parallel.append(value)
+        return hash_dict(value)
+    with patch.dict(sys.modules, {'torch': torch}), patch.object(runtime, 'fingerprint', serial_hash), \
+         patch.object(runtime, '_fingerprint_cuda_dict', parallel_hash), \
+         patch.object(runtime, 'model_structure', return_value='runtime'), \
+         patch.object(runtime, 'module_origin', return_value='origin'), \
+         patch.object(runtime, '_processor_cache', return_value=state['processor_cache']):
+        for device, serving, arm in [('cuda', True, 'control'), ('cpu', True, 'control'),
+                                     ('cuda', False, 'control'), ('cpu', False, 'candidate')]:
+            state.update(device=device, arm=arm)
+            for name, tensor in params.items():
+                tensor.device.type = device
+                tensor.requires_grad = not serving and arm == 'candidate' and name in runtime.MLP
+            serial.clear()
+            parallel.clear()
+            result = runtime.encoder_facts(state, {}, serving=serving)
+            assert result == {'vision_sha256': 'vision', 'encoder': dict.fromkeys(runtime.MLP, 'mlp')}
+            assert len(parallel) == (2 if device == 'cuda' and serving else 0)
+            assert len(serial) == (5 if parallel else 7)
+            assert list(serial[0]) == ['embeddings.position_ids']
+            assert all(serial[-4 + i] is params[name] for i, name in enumerate(runtime.MLP))
+        state.update(device='cuda', arm='control')
+        for tensor in params.values(): tensor.device.type, tensor.requires_grad = 'cuda', False
+        ident['frozen_sha256'] = 'mutated'
+        reject(lambda: runtime.encoder_facts(state, {}, serving=True), 'current frozen444 bytes differ')
+
+
+def fresh_sha_check(runtime):
+    import threading
+    import weakref
+    import gc
+    from array import array
+
+    caller = threading.get_ident()
+    copies, owners = [], []
+    class Tensor:
+        def __init__(self, storage, indices=None):
+            self.storage = storage
+            self.indices = tuple(range(len(storage))) if indices is None else indices
+            self.dtype, self.shape, self._version = 'torch.float32', (len(self.indices),), 0
+            self.device = SimpleNamespace(type='cuda')
+            self.fail = None
+        def data_ptr(self): return id(self.storage)
+        def numel(self): return len(self.indices)
+        def element_size(self): return 1
+        def detach(self): return self
+        def cpu(self):
+            assert threading.get_ident() == caller, 'tensor copy left caller thread'
+            copies.append(self)
+            if self.fail: raise ValueError(self.fail)
+            self.snapshot = array('B', (self.storage[i] for i in self.indices))
+            owners.append(weakref.ref(self.snapshot))
+            return self
+        def contiguous(self): return self
+        def reshape(self, width):
+            assert width == -1
+            return self
+        def view(self, dtype): return self
+        def numpy(self):
+            raw, self.snapshot = self.snapshot, None
+            return raw
+    torch = ModuleType('torch')
+    torch.Tensor, torch.uint8 = Tensor, object()
+    with patch.dict(sys.modules, {'torch': torch}):
+        storage = bytearray(b'abcdefghijk')
+        a, b = Tensor(storage, (7, 3, 1)), Tensor(storage, (2, 3, 4))
+        value = {'z': a, 'a': b, 'alias': a}
+        expected = runtime.fingerprint(value)
+        assert runtime._fingerprint_cuda_dict(value) == expected
+        assert len(copies) == 6
+        assert runtime._fingerprint_cuda_dict(dict(reversed(list(value.items())))) == expected
+        storage[3] = ord('Z')  # .data-like mutation: pointer/version stay unchanged.
+        assert a._version == b._version == 0
+        changed = runtime.fingerprint(value)
+        assert changed != expected and runtime._fingerprint_cuda_dict(value) == changed
+        assert len(copies) == 15, 'each occurrence must copy fresh bytes'
+        # Feed a stale-fact mutant to the exact same current-byte digest oracle.
+        def oracle():
+            assert runtime._fingerprint_cuda_dict(value) == runtime.fingerprint(value)
+        oracle()
+        with patch.object(runtime, '_fingerprint_cuda_dict', return_value=expected):
+            try:
+                oracle()
+            except AssertionError:
+                pass
+            else:
+                raise AssertionError('stale digest mutant survived')
+        assert runtime._fingerprint_cuda_dict({}) == runtime.fingerprint({})
+        from collections import OrderedDict
+        ordered = OrderedDict(reversed(list(value.items())))
+        assert runtime._fingerprint_cuda_dict(ordered) == runtime.fingerprint(ordered)
+        gc.collect()
+        assert all(ref() is None for ref in owners), 'CPU snapshots escaped'
+
+
+        # Four independent real SHA calls must overlap, with at most four snapshots.
+        barrier = threading.Barrier(4, timeout=2)
+        lock = threading.Lock()
+        active = peak = calls = live_peak = 0
+        real_sha = hashlib.sha256
+        def overlap_sha(raw=b''):
+            nonlocal active, peak, calls, live_peak
+            if not isinstance(raw, memoryview):
+                return real_sha(raw)
+            assert threading.get_ident() != caller and raw.format == 'B'
+            with lock:
+                active += 1
+                calls += 1
+                ordinal = calls
+                peak = max(peak, active)
+                live_peak = max(live_peak, sum(ref() is not None for ref in owners))
+            try:
+                if ordinal <= 4:
+                    barrier.wait()
+                return real_sha(raw)
+            finally:
+                with lock: active -= 1
+        batch = {str(i): Tensor(bytearray([i] * 4096)) for i in range(8)}
+        expected = runtime.fingerprint(batch)
+        before = len(copies)
+        with patch.object(runtime.hashlib, 'sha256', overlap_sha):
+            assert runtime._fingerprint_cuda_dict(batch) == expected
+        assert calls == 8 and peak == 4 and live_peak <= 4
+        assert len(copies) - before == 8
+        gc.collect()
+        assert all(ref() is None for ref in owners)
+
+        # A 33 MiB leaf cannot be copied while two older 33 MiB leaves are retained.
+        byte_cap = 96 * 1024**2
+        block = threading.Event()
+        started = threading.Event()
+        draining = threading.Event()
+        pending_sizes = []
+        budget_peak = 0
+        class BudgetTensor(Tensor):
+            def __init__(self, ordinal, size):
+                super().__init__(bytearray())
+                self.ordinal, self.size = ordinal, size
+            def numel(self): return self.size
+            def cpu(self):
+                nonlocal budget_peak
+                assert threading.get_ident() == caller
+                with lock:
+                    assert sum(pending_sizes) + self.size <= byte_cap
+                    pending_sizes.append(self.size)
+                    budget_peak = max(budget_peak, sum(pending_sizes))
+                return self
+            def numpy(self):
+                raw = array('B', [self.ordinal]) * self.size
+                owners.append(weakref.ref(raw))
+                return raw
+        def budget_sha(raw=b''):
+            if not isinstance(raw, memoryview): return real_sha(raw)
+            if raw[0] == 1: started.set()
+            assert block.wait(2), 'budget drain did not unblock'
+            try:
+                return real_sha(raw)
+            finally:
+                with lock: pending_sizes.remove(raw.nbytes)
+        from concurrent.futures import ThreadPoolExecutor
+        class BudgetExecutor(ThreadPoolExecutor):
+            def submit(self, fn, *args, **kwargs):
+                future = super().submit(fn, *args, **kwargs)
+                original_result = future.result
+                def result(*args, **kwargs):
+                    draining.set()
+                    return original_result(*args, **kwargs)
+                future.result = result
+                return future
+        def release_budget():
+            if started.wait(2) and draining.wait(2): block.set()
+        releaser = threading.Thread(target=release_budget)
+        releaser.start()
+        try:
+            with patch.object(runtime.hashlib, 'sha256', budget_sha), \
+                 patch.object(runtime, 'ThreadPoolExecutor', BudgetExecutor):
+                runtime._fingerprint_cuda_dict({str(i): BudgetTensor(i, 33 * 1024**2) for i in range(3)})
+        finally:
+            block.set()
+            releaser.join(2)
+        assert not releaser.is_alive() and draining.is_set() and not pending_sizes
+        assert budget_peak == 66 * 1024**2 <= byte_cap
+        gc.collect()
+        assert all(ref() is None for ref in owners)
+        huge = BudgetTensor(0, byte_cap + 1)
+        reject(lambda: runtime._fingerprint_cuda_dict({'huge': huge}), 'exceeds byte budget')
+        assert not pending_sizes, 'oversize leaf copied before rejection'
+        reject(lambda: runtime._fingerprint_cuda_dict({1: a}), 'string-to-tensor')
+        cpu = Tensor(bytearray(b'x'))
+        cpu.device.type = 'cpu'
+        before = len(copies)
+        reject(lambda: runtime._fingerprint_cuda_dict({'cpu': cpu}), 'CUDA tensor leaves')
+        assert len(copies) == before
+
+        # Join all workers on failure; report the earliest input failure, not completion order.
+        joined = []
+        failure_barrier = threading.Barrier(3, timeout=2)
+        failure_owners = []
+        def failing_sha(raw=b''):
+            if not isinstance(raw, memoryview): return real_sha(raw)
+            failure_owners.append(weakref.ref(raw.obj))
+            ordinal = raw[0]
+            try:
+                failure_barrier.wait()
+                if ordinal in (0, 1): raise ValueError('sha-' + str(ordinal))
+                return real_sha(raw)
+            finally:
+                joined.append(ordinal)
+        broken = {str(i): Tensor(bytearray([i])) for i in range(3)}
+        broken['3'] = Tensor(bytearray(b'x'))
+        broken['3'].fail = 'copy-3'
+        with patch.object(runtime.hashlib, 'sha256', failing_sha):
+            error = reject(lambda: runtime._fingerprint_cuda_dict(broken), 'sha-0')
+        assert sorted(joined) == [0, 1, 2]
+        gc.collect()
+        assert all(ref() is None for ref in failure_owners), 'failure retained CPU snapshot'
+        trace = error.__traceback__
+        while trace:
+            if trace.tb_frame.f_code.co_name in {'_sha_cpu_bytes', '_fingerprint_cuda_dict', 'drain'}:
+                assert all(value is None for name, value in trace.tb_frame.f_locals.items()
+                           if name in {'raw', 'view', 'item', 'entry', 'value'})
+            trace = trace.tb_next
+        # Copy failure is retained when every earlier SHA succeeds.
+        joined.clear()
+        with patch.object(runtime.hashlib, 'sha256', overlap_sha):
+            # Avoid the four-task barrier: these three SHA tasks are already beyond it.
+            reject(lambda: runtime._fingerprint_cuda_dict(broken), 'copy-3')
+        gc.collect()
+        assert all(ref() is None for ref in owners), 'copy failure retained CPU snapshot'
+
+
+def pipeline_failure_context_check(runtime):
+    import threading
+    import weakref
+    import gc
+    from array import array
+    release = threading.Event()
+    refs, snapshot_refs = [], []
+    caller = threading.get_ident()
+    class Tensor:
+        def __init__(self, ordinal):
+            self.ordinal, self.dtype, self.shape, self._version = ordinal, 'torch.float32', (1,), 0
+            self.device = SimpleNamespace(type='cuda')
+        def data_ptr(self): return id(self)
+        def numel(self): return 1
+        def element_size(self): return 1
+        def detach(self): return self
+        def cpu(self):
+            assert threading.get_ident() == caller
+            if self.ordinal:
+                release.set()
+                raise ValueError('later copy failure')
+            return self
+        def contiguous(self): return self
+        def reshape(self, width): return self
+        def view(self, dtype): return self
+        def numpy(self):
+            raw = array('B', [0])
+            snapshot_refs.append(weakref.ref(raw))
+            return raw
+    torch = ModuleType('torch')
+    torch.Tensor, torch.uint8 = Tensor, object()
+    def inputs():
+        tensors = [Tensor(0), Tensor(1)]
+        refs.extend(weakref.ref(tensor) for tensor in tensors)
+        return dict(zip(('a', 'b'), tensors))
+    real_sha = hashlib.sha256
+    def sha_failure(raw=b''):
+        if not isinstance(raw, memoryview): return real_sha(raw)
+        real_sha(raw)
+        assert release.wait(2)
+        raise ValueError('earlier SHA failure')
+    with patch.dict(sys.modules, {'torch': torch}), patch.object(runtime.hashlib, 'sha256', sha_failure):
+        error = reject(lambda: runtime._fingerprint_cuda_dict(inputs()), 'earlier SHA failure')
+    assert error.__context__ is None, 'later copy failure chained onto earlier SHA failure'
+    gc.collect()
+    assert all(ref() is None for ref in refs), 'new exception chain retained tensor aliases'
+    assert all(ref() is None for ref in snapshot_refs), 'new exception chain retained CPU snapshots'
+
+
 def literal_pin_check():
     spec = importlib.util.spec_from_file_location('_literal_pin_bridge', ROOT / 'src/sfora/connected_compact_serving.py')
     bridge = importlib.util.module_from_spec(spec)
@@ -394,7 +754,9 @@ def literal_pin_check():
     path, digest = bridge._installed_authority()
     assert path == ROOT / 'src/sfora/_connected_inference_authority.py'
     assert path.is_absolute() and path.resolve() == path
-    assert digest == '538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e'
+    historical_digest = pipeline_record()['base_authority_sha256']
+    assert historical_digest == '538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e'
+    assert digest == sha(path.read_bytes())
     raw = bridge._read_checked(path, digest)
     with tempfile.TemporaryDirectory(prefix='connected-pin-mutation-') as scratch:
         file = Path(scratch) / path.name
@@ -456,6 +818,7 @@ def main():
     guard = NoNative()
     sys.meta_path.insert(0, guard)
     try:
+        pipeline_contract_check()
         dependency_check()
         correspondence()
         values = ledger_check()

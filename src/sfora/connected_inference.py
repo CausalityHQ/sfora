@@ -519,10 +519,11 @@ def encoder_facts(state, packages, *, serving=False):
         _processor_cache(processor, state["guards"]) is state["processor_cache"],
         "authenticated processor cache changed",
     )
-    frozen = fingerprint({n: p for n, p in params.items() if n not in MLP})
+    tensor_hash = _fingerprint_cuda_dict if serving and state["device"] == "cuda" else fingerprint
+    frozen = tensor_hash({n: p for n, p in params.items() if n not in MLP})
     require(frozen == ident["frozen_sha256"], "current frozen444 bytes differ")
     return {
-        "vision_sha256": fingerprint(model.state_dict()),
+        "vision_sha256": tensor_hash(model.state_dict()),
         "encoder": {n: fingerprint(params[n]) for n in MLP},
     }
 
@@ -843,6 +844,101 @@ def release_inference(endpoint):
     )
     if "torch" in sys.modules and sys.modules["torch"].cuda.is_initialized():
         sys.modules["torch"].cuda.empty_cache()
+
+
+def _sha_cpu_bytes(raw):
+    try:
+        return hashlib.sha256(raw).hexdigest()
+    finally:
+        raw.release()
+        raw = None
+
+
+def _fingerprint_cuda_dict(value):
+    """Fresh caller-owned CUDA snapshots; only CPU SHA work leaves the caller."""
+    import torch
+
+    digest = hashlib.sha256()
+    pending, retained = [], 0
+    raw = view = item = entry = None
+    failed_future = False
+    failure = None
+
+    def frame(raw):
+        raw = raw.encode() if isinstance(raw, str) else raw
+        digest.update(str(len(raw)).encode() + b":" + raw)
+
+    def fact_visit(item):
+        frame(type(item).__name__)
+        if isinstance(item, tuple):
+            frame(str(len(item)))
+            for child in item:
+                fact_visit(child)
+        else:
+            frame(repr(item))
+
+    def drain():
+        nonlocal retained, entry, failed_future
+        entry = pending.pop(0)
+        failed_future = True
+        leaf_sha = entry[0].result()
+        fact_visit(entry[1])
+        frame("Tensor")
+        fact_visit((entry[2], entry[3], leaf_sha))
+        retained -= entry[4]
+        entry = None
+        failed_future = False
+
+    try:
+        require(isinstance(value, dict) and all(type(key) is str for key in value),
+                "CUDA fingerprint requires a string-to-tensor dictionary")
+        frame("dict")
+        frame(str(len(value)))
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            try:
+                for key in sorted(value, key=repr):
+                    item = value[key]
+                    require(isinstance(item, torch.Tensor) and item.device.type == "cuda",
+                            "CUDA fingerprint requires CUDA tensor leaves")
+                    # Preserve the original per-occurrence metadata reads without caching.
+                    (item.data_ptr(), item._version, str(item.dtype), tuple(item.shape))
+                    size = item.numel() * item.element_size()
+                    require(type(size) is int and 0 <= size <= 96 * 1024**2,
+                            "CUDA fingerprint snapshot exceeds byte budget")
+                    while pending and (len(pending) == 4 or retained + size > 96 * 1024**2):
+                        drain()
+                    raw = item.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()
+                    view = memoryview(raw)
+                    require(view.nbytes == size and view.c_contiguous and view.format == "B",
+                            "CUDA fingerprint snapshot byte layout differs")
+                    dtype, shape = str(item.dtype), tuple(item.shape)
+                    pending.append((executor.submit(_sha_cpu_bytes, view), key, dtype, shape, size))
+                    retained += size
+                    raw = view = item = None
+                while pending:
+                    drain()
+            except BaseException as error:
+                failure = error
+            try:
+                if failure is not None:
+                    # Join outside except so a later copy error cannot become SHA context.
+                    earlier = failed_future
+                    for entry in pending:
+                        try:
+                            entry[0].result()
+                        except BaseException as worker_error:
+                            if not earlier:
+                                failure, earlier = worker_error, True
+                    raise failure
+            finally:
+                if view is not None:
+                    view.release()
+                raw = view = item = entry = value = None
+                pending.clear()
+        return digest.hexdigest()
+    finally:
+        raw = view = item = entry = value = None
+        pending.clear()
 
 
 def fingerprint(value, frozen=None, consumed=None):
