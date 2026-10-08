@@ -230,8 +230,26 @@ class Sampler:
 class DenyNative:
     def find_spec(self, fullname, path=None, target=None):
         if fullname.split('.')[0] in NATIVE:
-            raise ImportError('native import forbidden in authority observation: ' + fullname)
+            # Original package_origins queries specs without importing packages.
+            for finder in sys.meta_path:
+                if finder is self:
+                    continue
+                spec = finder.find_spec(fullname, path, target)
+                if spec is not None:
+                    spec.loader = NativeExecutionDenied(fullname)
+                    return spec
         return None
+
+
+class NativeExecutionDenied:
+    def __init__(self, fullname):
+        self.fullname = fullname
+
+    def create_module(self, spec):
+        raise ImportError('native import forbidden in authority observation: ' + self.fullname)
+
+    def exec_module(self, module):
+        raise ImportError('native import forbidden in authority observation: ' + self.fullname)
 
 
 def observe(raw, argv, sampler):

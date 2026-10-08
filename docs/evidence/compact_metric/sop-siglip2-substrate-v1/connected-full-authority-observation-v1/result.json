@@ -1,0 +1,20 @@
+{
+  "cause": "Observer finder rejected original importlib.util.find_spec(torch), a metadata-only lookup; no actual torch import occurred. Correct observation loader guard without touching original evaluator, source predicates or qualification caps.",
+  "files": {
+    "diagnostic.jsonl": "a1030ac39860f43124f3e12b0f4d18f27d0c945564141a906a7f85b195cb29e5",
+    "original.log": "9ed33f326460b3b565300f67952bf07d5ead9e6f8b7f01a0179f2b0166475c09",
+    "terminal-status.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  "invocation_id": "d757d53cd99a44498a7a47856f3144ec",
+  "launch_exit_status": 1,
+  "memory_events_zero": true,
+  "original_exec": 10776,
+  "original_timeout_cause_unresolved": true,
+  "peak_host_bytes": 160481280,
+  "qualification_eligible": false,
+  "schema": "connected-authority-observation-result-v1",
+  "service_seconds": 21.07,
+  "state_reuse_eligible": false,
+  "status": "FAIL_OBSERVER_METADATA_BLOCK",
+  "swap_bytes": 0
+}

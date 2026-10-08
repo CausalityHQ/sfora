@@ -182,6 +182,7 @@ class ObservationTest(unittest.TestCase):
                       "def native_start(*args): raise AssertionError('native_start reached')\n"
                       "def run(*args): raise AssertionError('run reached')\n")
             for root in sorted(d.NATIVE):
+                (Path(folder)/(root+'.py')).write_text("raise AssertionError('native code executed')\n")
                 raw = (prefix + f'def authority(args):\n    import {root}\n    native_start()\n').encode()
                 with self.subTest(root=root), self.assertRaisesRegex(ImportError, 'native import forbidden'):
                     d.observe(raw, argv, d.Sampler(str(target), io.BytesIO()))
@@ -204,6 +205,32 @@ class ObservationTest(unittest.TestCase):
                     self.assertNotIn('END', [row['event'] for row in rows])
                     self.assertFalse(sampler.thread.is_alive())
             self.assertFalse(output.exists())
+
+    def test_native_metadata_lookup_preserves_origin_without_execution(self):
+        d = driver()
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder)/'target.py'
+            native = Path(folder)/'torch.py'
+            native.write_text("raise AssertionError('native code executed')\n")
+            argv = [str(target),'--output',str(Path(folder)/'absent')]
+            raw = ("import argparse, importlib.util, sys\n"
+                   "def parser():\n"
+                   "    p=argparse.ArgumentParser(); p.add_argument('--output'); return p\n"
+                   "def cli(args): return [__file__, '--output', args.output]\n"
+                   "def authority(args):\n"
+                   "    spec=importlib.util.find_spec('torch')\n"
+                   f"    assert spec.origin == {str(native)!r}\n"
+                   "    assert 'torch' not in sys.modules\n"
+                   "    try: import torch\n"
+                   "    except ImportError as e: assert 'native import forbidden' in str(e)\n"
+                   "    else: raise AssertionError('native execution allowed')\n"
+                   "    assert 'torch' not in sys.modules\n"
+                   "    return {'guards':{},'training_context':{'legacy':{'invocations':set()}}},None\n").encode()
+            target.write_bytes(raw)
+            stream=io.BytesIO()
+            d.observe(raw,argv,d.Sampler(str(target),stream))
+            self.assertEqual(json.loads(stream.getvalue().splitlines()[-1])['event'],'END')
+            self.assertNotIn('torch',sys.modules)
 
     def test_authenticated_main_and_rejections(self):
         d = driver()
