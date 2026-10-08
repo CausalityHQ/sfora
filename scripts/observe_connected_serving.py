@@ -43,6 +43,7 @@ traceback frames. Cleanup attempts all images and the genuine index; cancellatio
 takes priority and every secondary failure remains in notes and a cause group.
 """
 import argparse
+import ast
 import hashlib
 import json
 from pathlib import Path
@@ -51,7 +52,7 @@ import sys
 import time
 from types import CodeType, FunctionType
 
-SCHEMA = 'connected-serving-attribution-authority-v1'
+SCHEMA = 'connected-serving-attribution-authority-v2'
 LIMITS = {'body_seconds':120, 'host_bytes':8 * 1024**3, 'swap_bytes':0,
           'cuda_allocated_bytes_exclusive':10_000_000_000}
 OUTPUT_KEYS = {'raw', 'unit', 'codes', 'inverse_norms', 'wire'}
@@ -106,6 +107,53 @@ def pairs(items):
     return result
 
 
+def check_runtime_sources(sources, bundle):
+    """Authenticate installed execution and historical evidence without executing it."""
+    require(type(sources) is dict and sources.keys() ==
+            {'observer','test','bridge','trainer','serializer','runtime','ledger','packed'},
+            'complete observation source pins required')
+    for fact in sources.values(): file_bytes(fact)
+    directory = canonical(sources['bridge']['path']).parent
+    for role, name in (('runtime','connected_inference.py'),
+                       ('ledger','_connected_inference_authority.py'), ('packed','packed_int8.py')):
+        require(sources[role]['path'] == str(directory / name), 'installed source sibling differs: '+role)
+    tree = ast.parse(file_bytes(sources['ledger'], keep=True))
+    record = {}
+    for node in tree.body:
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and type(node.value.value) is str:
+            continue
+        require(isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name),
+                'literal installed inference authority required')
+        name = node.targets[0].id
+        require(name not in record, 'duplicate installed inference authority assignment')
+        record[name] = ast.literal_eval(node.value)
+    require(record.keys() == {'SCHEMA','HISTORICAL_CODE','SOURCE_SYMBOLS','PACKED_SOURCE_SYMBOLS',
+            'SUBSTITUTIONS','RUNTIME_SHA256','PACKED_SHA256'} and
+            record['SCHEMA'] == 'sfora-connected-inference-extraction-v1', 'exact installed inference authority required')
+    bridge = ast.parse(file_bytes(sources['bridge'], keep=True))
+    functions = [n for n in bridge.body if isinstance(n, ast.FunctionDef) and n.name == '_installed_authority']
+    require(len(functions) == 1 and len(functions[0].body) == 1 and isinstance(functions[0].body[0], ast.Return) and
+            isinstance(functions[0].body[0].value, ast.Tuple) and len(functions[0].body[0].value.elts) == 2 and
+            isinstance(functions[0].body[0].value.elts[1], ast.Constant) and
+            functions[0].body[0].value.elts[1].value == sources['ledger']['sha256'], 'bridge ledger identity differs')
+    require(record['RUNTIME_SHA256'] == sources['runtime']['sha256'] and
+            record['PACKED_SHA256'] == sources['packed']['sha256'], 'installed source ledger pins differ')
+    manifest = json.loads(file_bytes(bundle['manifest'], keep=True), object_pairs_hook=pairs,
+        parse_constant=lambda value: require(False, 'nonfinite JSON'))
+    names = {'train_siglip2_connected_mlp.py','test_siglip2_connected_mlp.py',
+        'qualify_siglip2_substrate_cpu.py','extract_siglip2_vision_source.py','train_siglip2_cached_readout.py',
+        'train_siglip2_substrate_adaptation.py','prototype_residual_readout.py','quadratic_readout.py',
+        'joint_relational_compaction.py'}
+    require(type(manifest) is dict and type(manifest.get('code')) is dict and manifest['code'].keys() == names and
+            type(record['HISTORICAL_CODE']) is tuple and
+            record['HISTORICAL_CODE'] == tuple(sorted(manifest['code'].items())), 'exact historical inference closure required')
+    for name, digest in manifest['code'].items():
+        file_bytes({'path':str(Path(bundle['directory']) / name), 'sha256':digest})
+    require(all(sources[role] == {'path':str(Path(bundle['directory']) / name), 'sha256':manifest['code'][name]}
+        for role, name in (('trainer','train_siglip2_connected_mlp.py'),
+                           ('serializer','train_siglip2_substrate_adaptation.py'))), 'historical source evidence differs')
+
+
 def prepare(path, digest):
     """Pinning inputs is preparation only, never terminal/native admission."""
     raw = file_bytes({'path':str(path), 'sha256':digest}, keep=True)
@@ -118,7 +166,7 @@ def prepare(path, digest):
             authority['qualification_eligible'] is False and authority['state_reuse_eligible'] is False,
             'exact source-only attribution authority required')
     sources = authority['sources']
-    require(type(sources) is dict and sources.keys() == {'observer','test','bridge','trainer','serializer'},
+    require(type(sources) is dict and sources.keys() == {'observer','test','bridge','trainer','serializer','runtime','ledger','packed'},
             'complete observation source pins required')
     for fact in sources.values(): file_bytes(fact)
     require(canonical(sources['observer']['path']) == Path(__file__).absolute(), 'current observer FILE differs')
@@ -129,6 +177,7 @@ def prepare(path, digest):
     require(sources['trainer']['path'] == str(Path(bundle['directory']) / 'train_siglip2_connected_mlp.py') and
             sources['serializer']['path'] == str(Path(bundle['directory']) / 'train_siglip2_substrate_adaptation.py'),
             'bundle source FILE paths required')
+    check_runtime_sources(sources, bundle)
     require(type(gallery) is dict and gallery.keys() == {'file','count'} and
             type(gallery['count']) is int and gallery['count'] >= 10, 'exact gallery binding required')
     images = authority['train_images']
@@ -182,15 +231,17 @@ class RequestObserver:
 
     def __init__(self, fingerprint, sources):
         require(sys.getprofile() is None and sys.flags.optimize == 0, 'unoptimized unprofiled observer required')
-        require(type(fingerprint) is FunctionType and 'serializer' in sources, 'original serializer required')
-        raw = file_bytes(sources['serializer'], keep=True)
-        code = compile(raw, sources['serializer']['path'], 'exec', dont_inherit=True)
+        require(type(fingerprint) is FunctionType and 'runtime' in sources, 'original runtime required')
+        raw = file_bytes(sources['runtime'], keep=True)
+        code = compile(raw, sources['runtime']['path'], 'exec', dont_inherit=True)
         expected = next(c for c in code.co_consts if isinstance(c, CodeType) and c.co_name == 'fingerprint')
         module = sys.modules.get(fingerprint.__module__)
         require(module is not None and vars(module) is fingerprint.__globals__ and
                 getattr(module, 'fingerprint', None) is fingerprint and
-                module.__file__ == sources['serializer']['path'] and fingerprint.__code__ == expected,
-                'original serializer code/module identity differs')
+                module.__name__ == fingerprint.__module__ and module.__spec__ is not None and
+                module.__spec__.name == module.__name__ and module.__spec__.origin == sources['runtime']['path'] and
+                module.__file__ == sources['runtime']['path'] and fingerprint.__code__ == expected,
+                'original runtime code/module identity differs')
         self.fingerprint_code = fingerprint.__code__
         self.visit_code = next(c for c in self.fingerprint_code.co_consts
             if isinstance(c, CodeType) and c.co_name == 'visit')
@@ -238,12 +289,17 @@ class RequestObserver:
 
     @classmethod
     def from_index(cls, index, sources):
-        """Observe exact admitted owners, including the freshly loaded bundle serializer."""
+        """Observe the exact admitted installed runtime owner."""
         index._check_current()
-        module = index._endpoint['modules']['train_siglip2_substrate_adaptation.py']
-        require(sources['trainer']['path'] == index._module.__file__ and
-                sources['serializer']['path'] == module.__file__ and
-                Path(module.__file__) == Path(index._module.__file__).parent / 'train_siglip2_substrate_adaptation.py',
+        modules = index._endpoint['modules']
+        require(type(modules) is dict and modules.keys() == {'runtime'} and modules['runtime'] is index._module,
+                'admitted runtime module owner differs')
+        module = modules['runtime']
+        require(len(index._guards) >= 3 and tuple((Path(sources[role]['path']), sources[role]['sha256'], False)
+                for role in ('runtime','ledger','packed')) == index._guards[:3], 'admitted installed source guards differ')
+        require(all(sources[role] == {'path':str(index._endpoint['directory'] / name),
+                'sha256':index._endpoint['manifest']['code'][name]} for role, name in
+                (('trainer','train_siglip2_connected_mlp.py'), ('serializer','train_siglip2_substrate_adaptation.py'))),
                 'admitted bundle source FILE paths required')
         observer = cls(module.fingerprint, sources)
         observer.output_code = index._apis['inference_outputs'][1]

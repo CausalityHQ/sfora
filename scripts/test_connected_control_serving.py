@@ -542,6 +542,341 @@ def witness(report, count):
     ]),
 }
 
+# Exact installed-observer migration from complete 721106c9/39be5a43 ASTs.
+MIGRATION_DELTAS = {
+    'observe_connected_serving.py': ('c88fba2ee44f1c5a16e4e6b35948c34cc22c5de88a1f442226b4587b39d66671', [
+        ('''import argparse
+import hashlib
+''', '''import argparse
+import ast
+import hashlib
+'''),
+        ('''
+SCHEMA = 'connected-serving-attribution-authority-v1'
+LIMITS = {'body_seconds':120, 'host_bytes':8 * 1024**3, 'swap_bytes':0,
+''', '''
+SCHEMA = 'connected-serving-attribution-authority-v2'
+LIMITS = {'body_seconds':120, 'host_bytes':8 * 1024**3, 'swap_bytes':0,
+'''),
+        ('''
+def prepare(path, digest):
+''', '''
+def check_runtime_sources(sources, bundle):
+    """Authenticate installed execution and historical evidence without executing it."""
+    require(type(sources) is dict and sources.keys() ==
+            {'observer','test','bridge','trainer','serializer','runtime','ledger','packed'},
+            'complete observation source pins required')
+    for fact in sources.values(): file_bytes(fact)
+    directory = canonical(sources['bridge']['path']).parent
+    for role, name in (('runtime','connected_inference.py'),
+                       ('ledger','_connected_inference_authority.py'), ('packed','packed_int8.py')):
+        require(sources[role]['path'] == str(directory / name), 'installed source sibling differs: '+role)
+    tree = ast.parse(file_bytes(sources['ledger'], keep=True))
+    record = {}
+    for node in tree.body:
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and type(node.value.value) is str:
+            continue
+        require(isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name),
+                'literal installed inference authority required')
+        name = node.targets[0].id
+        require(name not in record, 'duplicate installed inference authority assignment')
+        record[name] = ast.literal_eval(node.value)
+    require(record.keys() == {'SCHEMA','HISTORICAL_CODE','SOURCE_SYMBOLS','PACKED_SOURCE_SYMBOLS',
+            'SUBSTITUTIONS','RUNTIME_SHA256','PACKED_SHA256'} and
+            record['SCHEMA'] == 'sfora-connected-inference-extraction-v1', 'exact installed inference authority required')
+    bridge = ast.parse(file_bytes(sources['bridge'], keep=True))
+    functions = [n for n in bridge.body if isinstance(n, ast.FunctionDef) and n.name == '_installed_authority']
+    require(len(functions) == 1 and len(functions[0].body) == 1 and isinstance(functions[0].body[0], ast.Return) and
+            isinstance(functions[0].body[0].value, ast.Tuple) and len(functions[0].body[0].value.elts) == 2 and
+            isinstance(functions[0].body[0].value.elts[1], ast.Constant) and
+            functions[0].body[0].value.elts[1].value == sources['ledger']['sha256'], 'bridge ledger identity differs')
+    require(record['RUNTIME_SHA256'] == sources['runtime']['sha256'] and
+            record['PACKED_SHA256'] == sources['packed']['sha256'], 'installed source ledger pins differ')
+    manifest = json.loads(file_bytes(bundle['manifest'], keep=True), object_pairs_hook=pairs,
+        parse_constant=lambda value: require(False, 'nonfinite JSON'))
+    names = {'train_siglip2_connected_mlp.py','test_siglip2_connected_mlp.py',
+        'qualify_siglip2_substrate_cpu.py','extract_siglip2_vision_source.py','train_siglip2_cached_readout.py',
+        'train_siglip2_substrate_adaptation.py','prototype_residual_readout.py','quadratic_readout.py',
+        'joint_relational_compaction.py'}
+    require(type(manifest) is dict and type(manifest.get('code')) is dict and manifest['code'].keys() == names and
+            type(record['HISTORICAL_CODE']) is tuple and
+            record['HISTORICAL_CODE'] == tuple(sorted(manifest['code'].items())), 'exact historical inference closure required')
+    for name, digest in manifest['code'].items():
+        file_bytes({'path':str(Path(bundle['directory']) / name), 'sha256':digest})
+    require(all(sources[role] == {'path':str(Path(bundle['directory']) / name), 'sha256':manifest['code'][name]}
+        for role, name in (('trainer','train_siglip2_connected_mlp.py'),
+                           ('serializer','train_siglip2_substrate_adaptation.py'))), 'historical source evidence differs')
+
+
+def prepare(path, digest):
+'''),
+        ('''    sources = authority['sources']
+    require(type(sources) is dict and sources.keys() == {'observer','test','bridge','trainer','serializer'},
+            'complete observation source pins required')
+''', '''    sources = authority['sources']
+    require(type(sources) is dict and sources.keys() == {'observer','test','bridge','trainer','serializer','runtime','ledger','packed'},
+            'complete observation source pins required')
+'''),
+        ('''            'bundle source FILE paths required')
+    require(type(gallery) is dict and gallery.keys() == {'file','count'} and
+''', '''            'bundle source FILE paths required')
+    check_runtime_sources(sources, bundle)
+    require(type(gallery) is dict and gallery.keys() == {'file','count'} and
+'''),
+        ('''        require(sys.getprofile() is None and sys.flags.optimize == 0, 'unoptimized unprofiled observer required')
+        require(type(fingerprint) is FunctionType and 'serializer' in sources, 'original serializer required')
+        raw = file_bytes(sources['serializer'], keep=True)
+        code = compile(raw, sources['serializer']['path'], 'exec', dont_inherit=True)
+        expected = next(c for c in code.co_consts if isinstance(c, CodeType) and c.co_name == 'fingerprint')
+''', '''        require(sys.getprofile() is None and sys.flags.optimize == 0, 'unoptimized unprofiled observer required')
+        require(type(fingerprint) is FunctionType and 'runtime' in sources, 'original runtime required')
+        raw = file_bytes(sources['runtime'], keep=True)
+        code = compile(raw, sources['runtime']['path'], 'exec', dont_inherit=True)
+        expected = next(c for c in code.co_consts if isinstance(c, CodeType) and c.co_name == 'fingerprint')
+'''),
+        ('''                getattr(module, 'fingerprint', None) is fingerprint and
+                module.__file__ == sources['serializer']['path'] and fingerprint.__code__ == expected,
+                'original serializer code/module identity differs')
+        self.fingerprint_code = fingerprint.__code__
+''', '''                getattr(module, 'fingerprint', None) is fingerprint and
+                module.__name__ == fingerprint.__module__ and module.__spec__ is not None and
+                module.__spec__.name == module.__name__ and module.__spec__.origin == sources['runtime']['path'] and
+                module.__file__ == sources['runtime']['path'] and fingerprint.__code__ == expected,
+                'original runtime code/module identity differs')
+        self.fingerprint_code = fingerprint.__code__
+'''),
+        ('''    def from_index(cls, index, sources):
+        """Observe exact admitted owners, including the freshly loaded bundle serializer."""
+        index._check_current()
+        module = index._endpoint['modules']['train_siglip2_substrate_adaptation.py']
+        require(sources['trainer']['path'] == index._module.__file__ and
+                sources['serializer']['path'] == module.__file__ and
+                Path(module.__file__) == Path(index._module.__file__).parent / 'train_siglip2_substrate_adaptation.py',
+                'admitted bundle source FILE paths required')
+''', '''    def from_index(cls, index, sources):
+        """Observe the exact admitted installed runtime owner."""
+        index._check_current()
+        modules = index._endpoint['modules']
+        require(type(modules) is dict and modules.keys() == {'runtime'} and modules['runtime'] is index._module,
+                'admitted runtime module owner differs')
+        module = modules['runtime']
+        require(len(index._guards) >= 3 and tuple((Path(sources[role]['path']), sources[role]['sha256'], False)
+                for role in ('runtime','ledger','packed')) == index._guards[:3], 'admitted installed source guards differ')
+        require(all(sources[role] == {'path':str(index._endpoint['directory'] / name),
+                'sha256':index._endpoint['manifest']['code'][name]} for role, name in
+                (('trainer','train_siglip2_connected_mlp.py'), ('serializer','train_siglip2_substrate_adaptation.py'))),
+                'admitted bundle source FILE paths required')
+'''),
+    ]),
+    'qualify_connected_serving_requests.py': ('f16eb2ab7e89c2e16dbf9168017f6f46700640de578111e0102a72369bf4ee2c', [
+        ('''
+SCHEMA = 'connected-serving-requests-authority-v1'
+KEYS = {'schema', 'sources', 'observation', 'evaluator', 'evaluation_authority',
+''', '''
+SCHEMA = 'connected-serving-requests-authority-v2'
+KEYS = {'schema', 'sources', 'observation', 'evaluator', 'evaluation_authority',
+'''),
+        ('''                         type(v) in (dict,list,tuple,set,frozenset)}
+        self.classes, self.functions = [], []
+''', '''                         type(v) in (dict,list,tuple,set,frozenset)}
+        legacy_packing = ()
+        if module.__name__ == 'sfora.packed_int8':
+            # These four canonical definitions retain historical pickle metadata.
+            names = ('_unit_rows','PackedInt8Embeddings','fixed_int8_unit_codes','pack_int8_unit_embeddings')
+            legacy_packing = tuple(self.values.get(name) for name in names)
+            require(all(getattr(value,'__module__',None) == 'sfora.joint_relational_compaction' and
+                getattr(value,'__name__',None) == name and
+                getattr(value,'__qualname__',None) == name for name,value in zip(names,legacy_packing,strict=True)) and
+                isinstance(legacy_packing[1],type), 'canonical packing declarations differ')
+            require(isinstance(expected.get('PackedInt8Embeddings'),CodeType) and
+                {'__post_init__','bytes_per_vector','restore','cosine_similarity','to_bytes','save','load','from_bytes'} <=
+                vars(legacy_packing[1]).keys(), 'canonical packing methods missing')
+            for fn in (legacy_packing[0],legacy_packing[2],legacy_packing[3]):
+                require(type(fn) is FunctionType and fn.__globals__ is vars(module) and
+                    fn.__code__ == expected.get(fn.__qualname__), 'live source code differs')
+        self.classes, self.functions = [], []
+'''),
+        ('''            generated = False
+            if isinstance(value, type) and value.__module__ == module.__name__:
+                self.classes.append((value, dict(vars(value))))
+''', '''            generated = False
+            if isinstance(value, type) and (value.__module__ == module.__name__ or value in legacy_packing):
+                self.classes.append((value, dict(vars(value))))
+'''),
+        ('''                           for v in vars(value).values()]
+            for fn in members:
+                if isinstance(fn, FunctionType) and fn.__module__ == module.__name__:
+                    original = getattr(fn, '__wrapped__', fn)
+''', '''                           for v in vars(value).values()]
+                if legacy_packing and value is legacy_packing[1]:
+                    members += [v.fget for v in vars(value).values() if isinstance(v,property)]
+            for fn in members:
+                if isinstance(fn, FunctionType) and (fn.__module__ == module.__name__ or fn in legacy_packing or
+                        legacy_packing and value is legacy_packing[1]):
+                    if legacy_packing and value is legacy_packing[1] and fn.__module__ == 'dataclasses':
+                        require(fn is getattr(dataclasses,fn.__name__,None), 'canonical dataclass helper differs')
+                        self.functions.append((fn,fn.__code__,fn.__defaults__,copy.deepcopy(fn.__kwdefaults__)))
+                        continue
+                    original = getattr(fn, '__wrapped__', fn)
+'''),
+        ('''    require(type(sources) is dict and sources.keys() ==
+        {'driver','test','observer','observer_test','bridge','native_wrapper','packing'}, 'complete request source pins required')
+    require(sources['driver']['path'] == str(Path(__file__).absolute()) and
+''', '''    require(type(sources) is dict and sources.keys() ==
+        {'driver','test','observer','observer_test','bridge','native_wrapper','packing','runtime','ledger','packed'}, 'complete request source pins required')
+    require(sources['driver']['path'] == str(Path(__file__).absolute()) and
+'''),
+        ('''                observation['sources']['bridge'] == sources['bridge'] and
+                observation['qualified_terminal'] == authority['selection']['receipt'], 'observation source/GO binding differs')
+''', '''                observation['sources']['bridge'] == sources['bridge'] and
+                all(observation['sources'][role] == sources[role] for role in ('runtime','ledger','packed')) and
+                observation['qualified_terminal'] == authority['selection']['receipt'], 'observation source/GO binding differs')
+'''),
+        ('''            [authority_fact,authority['observation'],authority['evaluation_authority'],*sources.values(),
+             observation['gallery']['file'],observation['native'],*observation['train_images']]})
+''', '''            [authority_fact,authority['observation'],authority['evaluation_authority'],*sources.values(),
+             *observation['sources'].values(),observation['bundle']['manifest'],
+             observation['gallery']['file'],observation['native'],*observation['train_images']]})
+'''),
+        ('''        from PIL import Image
+        from sfora import cutile_int8, joint_relational_compaction
+        native_source = Source(cutile_int8,sources['native_wrapper'])
+        packing_source = Source(joint_relational_compaction,sources['packing'])
+        bridge_source = Source.load(sources['bridge']); owned.append(bridge_source)
+''', '''        from PIL import Image
+        from sfora import cutile_int8, joint_relational_compaction, packed_int8
+        native_source = Source(cutile_int8,sources['native_wrapper'])
+        packing_source = Source(joint_relational_compaction,sources['packing'])
+        packed_source = Source(packed_int8,sources['packed'])
+        bridge_source = Source.load(sources['bridge']); owned.append(bridge_source)
+'''),
+        ('''            locks.check()
+            for source in (self_source,observer_source,evaluator_source,bridge_source,native_source,packing_source): source.check()
+            for fact in [*sources.values(),authority_fact,authority['observation'],
+                         authority['evaluation_authority'],observation['native'],observation['gallery']['file']]:
+                observer.file_bytes(fact)
+            evaluator.guard_helpers(context)
+''', '''            locks.check()
+            for source in (self_source,observer_source,evaluator_source,bridge_source,native_source,packing_source,packed_source): source.check()
+            for fact in [*sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],
+                         authority_fact,authority['observation'],
+                         authority['evaluation_authority'],observation['native'],observation['gallery']['file']]:
+                observer.file_bytes(fact)
+            observer.check_runtime_sources(observation['sources'],observation['bundle'])
+            evaluator.guard_helpers(context)
+'''),
+    ]),
+    'qualify_connected_control_serving.py': ('717b6804191aa80355432448d8ae49edcf769e5249a9f501ebcac87463f6d101', [
+        ('''
+Authority has exactly KEYS, schema connected-control-serving-requests-authority-v1.
+sources has exactly SOURCES; the root supplies actual hashes, including all three
+new files. control={arm:control,seed:179061}. observation is a FILE with schema
+connected-control-serving-attribution-authority-v1 and original observer fields,
+replacing qualified_terminal with control_export_receipt. observer.prepare is
+''', '''
+Authority has exactly KEYS, schema connected-control-serving-requests-authority-v2.
+sources has exactly SOURCES; the root supplies actual hashes, including all three
+new files. control={arm:control,seed:179061}. observation is a FILE with schema
+connected-control-serving-attribution-authority-v2 and original observer fields,
+replacing qualified_terminal with control_export_receipt. observer.prepare is
+'''),
+        ('''
+SCHEMA = 'connected-control-serving-requests-authority-v1'
+KEYS = {'schema','sources','evaluator','evaluation_authority','control_export',
+''', '''
+SCHEMA = 'connected-control-serving-requests-authority-v2'
+KEYS = {'schema','sources','evaluator','evaluation_authority','control_export',
+'''),
+        ('''SOURCES = {'control_driver','control_native','control_test','request_driver','request_test',
+           'observer','observer_test','bridge','native_wrapper','packing'}
+CONTROL = {'arm':'control','seed':179061}
+''', '''SOURCES = {'control_driver','control_native','control_test','request_driver','request_test',
+           'observer','observer_test','bridge','native_wrapper','packing','runtime','ledger','packed'}
+CONTROL = {'arm':'control','seed':179061}
+'''),
+        ('''    require(type(value) is dict and value.keys() == keys and
+        value['schema'] == 'connected-control-serving-attribution-authority-v1' and
+        value['qualification_eligible'] is False and value['state_reuse_eligible'] is False,
+''', '''    require(type(value) is dict and value.keys() == keys and
+        value['schema'] == 'connected-control-serving-attribution-authority-v2' and
+        value['qualification_eligible'] is False and value['state_reuse_eligible'] is False,
+'''),
+        ('''    sources = value['sources']
+    require(type(sources) is dict and sources.keys() == {'observer','test','bridge','trainer','serializer'},
+        'complete observation source pins required')
+''', '''    sources = value['sources']
+    require(type(sources) is dict and sources.keys() == {'observer','test','bridge','trainer','serializer','runtime','ledger','packed'},
+        'complete observation source pins required')
+'''),
+        ('''        'bundle source FILE paths required')
+    require(type(gallery) is dict and gallery.keys() == {'file','count'} and
+''', '''        'bundle source FILE paths required')
+    observer.check_runtime_sources(sources,bundle)
+    require(type(gallery) is dict and gallery.keys() == {'file','count'} and
+'''),
+        ('''            observation['sources']['observer'] == sources['observer'] and observation['sources']['test'] == sources['observer_test'] and
+            observation['sources']['bridge'] == sources['bridge'], 'terminal control observation/source binding differs')
+        native_source = requests.Source.load(sources['control_native']); owned.append(native_source)
+''', '''            observation['sources']['observer'] == sources['observer'] and observation['sources']['test'] == sources['observer_test'] and
+            observation['sources']['bridge'] == sources['bridge'] and
+            all(observation['sources'][role] == sources[role] for role in ('runtime','ledger','packed')), 'terminal control observation/source binding differs')
+        native_source = requests.Source.load(sources['control_native']); owned.append(native_source)
+'''),
+        ('''        required = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],
+            *sources.values(),*native.provenance_facts(),observation['bundle']['manifest'],observation['gallery']['file'],
+            observation['control_export_receipt'],*observation['train_images']]
+''', '''        required = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],
+            *sources.values(),*observation['sources'].values(),*native.provenance_facts(),observation['bundle']['manifest'],observation['gallery']['file'],
+            observation['control_export_receipt'],*observation['train_images']]
+'''),
+        ('''        require(observation['sources']['observer'] == sources['observer'] and
+            observation['sources']['test'] == sources['observer_test'] and observation['sources']['bridge'] == sources['bridge'],
+            'control observation source binding differs')
+''', '''        require(observation['sources']['observer'] == sources['observer'] and
+            observation['sources']['test'] == sources['observer_test'] and observation['sources']['bridge'] == sources['bridge'] and
+            all(observation['sources'][role] == sources[role] for role in ('runtime','ledger','packed')),
+            'control observation source binding differs')
+'''),
+        ('''        frozen = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],
+            *sources.values(),observation['bundle']['manifest'],observation['control_export_receipt'],
+            observation['gallery']['file'],observation['native'],*observation['train_images']]
+''', '''        frozen = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],
+            *sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],observation['control_export_receipt'],
+            observation['gallery']['file'],observation['native'],*observation['train_images']]
+'''),
+        ('''        from PIL import Image
+        from sfora import cutile_int8,joint_relational_compaction
+        wrapper_source = requests.Source(cutile_int8,sources['native_wrapper'])
+        packing_source = requests.Source(joint_relational_compaction,sources['packing'])
+        bridge_source = requests.Source.load(sources['bridge']); owned.append(bridge_source)
+''', '''        from PIL import Image
+        from sfora import cutile_int8,joint_relational_compaction,packed_int8
+        wrapper_source = requests.Source(cutile_int8,sources['native_wrapper'])
+        packing_source = requests.Source(joint_relational_compaction,sources['packing'])
+        packed_source = requests.Source(packed_int8,sources['packed'])
+        bridge_source = requests.Source.load(sources['bridge']); owned.append(bridge_source)
+'''),
+        ('''            for source in (self_source,request_source,observer_source,native_source,evaluator_source,
+                bridge_source,wrapper_source,packing_source): source.check()
+            for file in frozen: observer.file_bytes(file)
+            api.authenticate()
+''', '''            for source in (self_source,request_source,observer_source,native_source,evaluator_source,
+                bridge_source,wrapper_source,packing_source,packed_source): source.check()
+            for file in frozen: observer.file_bytes(file)
+            observer.check_runtime_sources(observation['sources'],observation['bundle'])
+            api.authenticate()
+'''),
+    ]),
+}
+
+
+def reverse_migration(raw, name):
+    for before,after in reversed(MIGRATION_DELTAS[name][1]):
+        if raw.count(after) != 1: raise ValueError("exact migration delta differs")
+        raw = raw.replace(after,before,1)
+    return raw
+
+
 def production_inverse(raw, digest, changes):
     for before,after in reversed(changes):
         if raw.count(after) != 1: raise ValueError('exact production delta differs')
@@ -643,17 +978,17 @@ def runtime_fixture(root):
 
 def observation_fixture(root, observer):
     bundle = root/'bundle'; bundle.mkdir()
-    sources = {'observer':fact(Path(observer.__file__)),
-        'test':fact(HERE/'test_observe_connected_serving.py'),
-        'bridge':fact(HERE.parent/'src/sfora/connected_compact_serving.py')}
+    helpers = load('_control_observation_helpers',HERE/'test_observe_connected_serving.py')
+    sources = {**helpers.installed_fixture(root,bundle=bundle),
+        'observer':fact(Path(observer.__file__)), 'test':fact(HERE/'test_observe_connected_serving.py')}
     for role,name in [('trainer','train_siglip2_connected_mlp.py'),('serializer','train_siglip2_substrate_adaptation.py')]:
-        path = bundle/name; path.write_bytes((HERE/name).read_bytes()); sources[role] = fact(path)
-    manifest = write_json(bundle/'bundle.json',{})
+        sources[role] = fact(bundle/name)
+    manifest = fact(bundle/'bundle.json')
     path = root/'fixture'; path.write_bytes(b'FILE metadata only')
     images = []
     for i in range(32):
         image = root/f'image{i}'; image.write_bytes(bytes([i])); images.append(fact(image))
-    value = {'schema':'connected-control-serving-attribution-authority-v1','sources':sources,
+    value = {'schema':'connected-control-serving-attribution-authority-v2','sources':sources,
         'bundle':{'directory':str(bundle),'manifest':manifest},'gallery':{'file':fact(path),'count':10},
         'native':fact(path),'train_images':images,'control_export_receipt':fact(path),'cache_conditions':'frozen diagnostic fixture',
         'resource_policy':{'body_seconds':120,'host_bytes':8*1024**3,'swap_bytes':0,
@@ -857,9 +1192,22 @@ def genuine_exit_fixture(root):
 
 
 class ControlTests(unittest.TestCase):
+    def test_migration_reverses_complete_three_production_asts_and_rejects_mutants(self):
+        for name,(digest,changes) in MIGRATION_DELTAS.items():
+            raw = (HERE/name).read_text()
+            with self.subTest(source=name): production_inverse(raw,digest,changes)
+            for before,after in changes:
+                with self.subTest(delta=after),self.assertRaisesRegex(ValueError,'delta'):
+                    production_inverse(raw.replace(after,after[:-1]+'?',1),digest,changes)
+                with self.subTest(duplicate=after),self.assertRaisesRegex(ValueError,'delta'):
+                    production_inverse(raw+after,digest,changes)
+            with self.subTest(retained=name),self.assertRaisesRegex(ValueError,'AST'):
+                production_inverse(raw.replace('raise ValueError(message)','raise RuntimeError(message)',1),digest,changes)
+
     def test_exact_production_delta_and_whole_ast_inverse(self):
         for name,(digest,changes) in PRODUCTION_DELTAS.items():
             raw = (HERE/name).read_text()
+            if name in MIGRATION_DELTAS: raw = reverse_migration(raw,name)
             if name in RESOURCE_DELTAS:
                 for before,after in reversed(RESOURCE_DELTAS[name][1]):
                     if raw.count(after) != 1: raise ValueError('exact resource delta differs')
@@ -874,6 +1222,7 @@ class ControlTests(unittest.TestCase):
     def test_resource_only_delta_reverses_entire_three_production_asts(self):
         for name,(digest,changes) in RESOURCE_DELTAS.items():
             raw = (HERE/name).read_text()
+            raw = reverse_migration(raw,name)
             with self.subTest(source=name): production_inverse(raw,digest,changes)
             for before,after in changes:
                 with self.subTest(delta=after),self.assertRaisesRegex(ValueError,'delta'):
@@ -1057,6 +1406,11 @@ class ControlTests(unittest.TestCase):
             obs_root = root/'observation'; obs_root.mkdir()
             observation = observation_fixture(obs_root,g.observer)
             observation['bundle'] = {'directory':str(Path(manifest['path']).parent),'manifest':manifest}
+            helpers = load('_control_terminal_observation_helpers',HERE/'test_observe_connected_serving.py')
+            installed_root = obs_root/'terminal-installed'; installed_root.mkdir()
+            observation['sources'].update(helpers.installed_fixture(installed_root,bundle=Path(manifest['path']).parent))
+            manifest = fact(Path(manifest['path']))
+            observation['bundle']['manifest'] = manifest
             for role,name in [('trainer','train_siglip2_connected_mlp.py'),('serializer','train_siglip2_substrate_adaptation.py')]:
                 observation['sources'][role] = fact(Path(manifest['path']).parent/name)
             observation.update(native=fact(g.binary),control_export_receipt=export_unit['receipt'])
@@ -1065,7 +1419,8 @@ class ControlTests(unittest.TestCase):
                 'control_driver':Path(driver.__file__),'control_native':Path(g.native.__file__),'control_test':Path(__file__),
                 'request_driver':HERE/'qualify_connected_serving_requests.py','request_test':HERE/'test_connected_serving_requests.py',
                 'observer':Path(g.observer.__file__),'observer_test':HERE/'test_observe_connected_serving.py',
-                'bridge':HERE.parent/'src/sfora/connected_compact_serving.py','native_wrapper':HERE.parent/'src/sfora/cutile_int8.py',
+                'bridge':Path(observation['sources']['bridge']['path']),
+                **{role:Path(observation['sources'][role]['path']) for role in ('runtime','ledger','packed')},'native_wrapper':HERE.parent/'src/sfora/cutile_int8.py',
                 'packing':HERE.parent/'src/sfora/joint_relational_compaction.py'}.items()}
             authority = {'schema':driver.SCHEMA,'sources':sources,'evaluator':g.own,'evaluation_authority':evaluation_fact,
                 'control_export':export_unit,'control':dict(driver.CONTROL),'observation':observation_fact,
@@ -1081,7 +1436,7 @@ class ControlTests(unittest.TestCase):
             unit = terminal_fixture(root,f,'diagnostic-terminal','9'*32,record)
             record['resources'] = {k:record.pop(k) for k in ('wall_seconds','process_peak_rss_kib','cgroup_before','cgroup_after')}
             record['resources']['peak_cuda_allocated_bytes'] = 1
-            required = [authority_fact,observation_fact,g.runtime_fact,evaluation_fact,*sources.values(),*g.authority.provenance_facts(),
+            required = [authority_fact,observation_fact,g.runtime_fact,evaluation_fact,*sources.values(),*observation['sources'].values(),*g.authority.provenance_facts(),
                 manifest,observation['gallery']['file'],export_unit['receipt'],*observation['train_images']]
             record['input_guards'] = {**common,**{v['path']:v['sha256'] for v in required}}
             output = Path(record['output']); output.mkdir()
@@ -1149,12 +1504,22 @@ class ControlTests(unittest.TestCase):
         with self.subTest(contract='fitter starts with control unit'):
             self.assertEqual(context['training_context']['fit_context']['unit_started'],driver.STARTED)
         frozen = next(n for n in body if isinstance(n,ast.Assign) and ast.unparse(n.targets[0]) == 'frozen')
-        observation = {'bundle':{'manifest':'bundle'},'gallery':{'file':'gallery'},'native':'native',
+        observation = {'sources':{'observer':'observer-source','test':'observation-test','bridge':'installed-bridge',
+            'runtime':'installed-runtime','ledger':'installed-ledger','packed':'installed-packed',
+            'trainer':'historical-trainer','serializer':'historical-serializer'},
+            'bundle':{'manifest':'bundle'},'gallery':{'file':'gallery'},'native':'native',
             'control_export_receipt':'export','train_images':['image']}
         namespace = execute([frozen],{'authority_fact':'authority','authority':{'observation':'observation',
             'native_runtime':'runtime','evaluation_authority':'evaluation'},'sources':{'source':'source'},'observation':observation})
         with self.subTest(contract='explicit bundle and terminal freeze'):
-            self.assertTrue({'bundle','export'} <= set(namespace['frozen']))
+            expected = ['authority','observation','runtime','evaluation','source',
+                *observation['sources'].values(),'bundle','export','gallery','native','image']
+            self.assertEqual(namespace['frozen'],expected)
+        guard = next(n for n in body if isinstance(n,ast.FunctionDef) and n.name == 'guard')
+        reads = []
+        read_loop = next(n for n in guard.body if isinstance(n,ast.For) and ast.unparse(n.iter) == 'frozen')
+        execute([read_loop],{'frozen':namespace['frozen'],'observer':SimpleNamespace(file_bytes=reads.append)})
+        self.assertEqual(reads,expected)
         start = next(i for i,n in enumerate(body) if isinstance(n,ast.Expr) and ast.unparse(n).startswith('api.audit_origins('))
         end = next(i for i in range(start+1,len(body)) if isinstance(body[i],ast.Expr) and ast.unparse(body[i]) == 'guard()')
         with tempfile.TemporaryDirectory() as directory,patch.dict(sys.modules),genuine_exit_fixture(Path(directory)) as g:

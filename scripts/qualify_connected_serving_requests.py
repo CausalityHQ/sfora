@@ -44,7 +44,7 @@ import time
 from types import CodeType, FunctionType, SimpleNamespace
 import uuid
 
-SCHEMA = 'connected-serving-requests-authority-v1'
+SCHEMA = 'connected-serving-requests-authority-v2'
 KEYS = {'schema', 'sources', 'observation', 'evaluator', 'evaluation_authority',
         'selection', 'exports', 'survivor', 'locks'}
 STARTED = time.perf_counter()
@@ -109,17 +109,39 @@ class Source:
         self.values = dict(vars(module))
         self.literals = {k:copy.deepcopy(v) for k,v in self.values.items() if k != '__builtins__' and
                          type(v) in (dict,list,tuple,set,frozenset)}
+        legacy_packing = ()
+        if module.__name__ == 'sfora.packed_int8':
+            # These four canonical definitions retain historical pickle metadata.
+            names = ('_unit_rows','PackedInt8Embeddings','fixed_int8_unit_codes','pack_int8_unit_embeddings')
+            legacy_packing = tuple(self.values.get(name) for name in names)
+            require(all(getattr(value,'__module__',None) == 'sfora.joint_relational_compaction' and
+                getattr(value,'__name__',None) == name and
+                getattr(value,'__qualname__',None) == name for name,value in zip(names,legacy_packing,strict=True)) and
+                isinstance(legacy_packing[1],type), 'canonical packing declarations differ')
+            require(isinstance(expected.get('PackedInt8Embeddings'),CodeType) and
+                {'__post_init__','bytes_per_vector','restore','cosine_similarity','to_bytes','save','load','from_bytes'} <=
+                vars(legacy_packing[1]).keys(), 'canonical packing methods missing')
+            for fn in (legacy_packing[0],legacy_packing[2],legacy_packing[3]):
+                require(type(fn) is FunctionType and fn.__globals__ is vars(module) and
+                    fn.__code__ == expected.get(fn.__qualname__), 'live source code differs')
         self.classes, self.functions = [], []
         for value in self.values.values():
             members = [value]
             generated = False
-            if isinstance(value, type) and value.__module__ == module.__name__:
+            if isinstance(value, type) and (value.__module__ == module.__name__ or value in legacy_packing):
                 self.classes.append((value, dict(vars(value))))
                 generated = dataclasses.is_dataclass(value)
                 members = [v.__func__ if isinstance(v,(classmethod,staticmethod)) else v
                            for v in vars(value).values()]
+                if legacy_packing and value is legacy_packing[1]:
+                    members += [v.fget for v in vars(value).values() if isinstance(v,property)]
             for fn in members:
-                if isinstance(fn, FunctionType) and fn.__module__ == module.__name__:
+                if isinstance(fn, FunctionType) and (fn.__module__ == module.__name__ or fn in legacy_packing or
+                        legacy_packing and value is legacy_packing[1]):
+                    if legacy_packing and value is legacy_packing[1] and fn.__module__ == 'dataclasses':
+                        require(fn is getattr(dataclasses,fn.__name__,None), 'canonical dataclass helper differs')
+                        self.functions.append((fn,fn.__code__,fn.__defaults__,copy.deepcopy(fn.__kwdefaults__)))
+                        continue
                     original = getattr(fn, '__wrapped__', fn)
                     if generated and original.__qualname__ not in expected:
                         # Only fresh admitted stdlib dataclass-generated methods lack source code.
@@ -417,7 +439,7 @@ def run(args):
     go = read_go(authority['selection'])
     sources = authority['sources']
     require(type(sources) is dict and sources.keys() ==
-        {'driver','test','observer','observer_test','bridge','native_wrapper','packing'}, 'complete request source pins required')
+        {'driver','test','observer','observer_test','bridge','native_wrapper','packing','runtime','ledger','packed'}, 'complete request source pins required')
     require(sources['driver']['path'] == str(Path(__file__).absolute()) and
             sources['test']['path'] == str(Path(__file__).with_name('test_connected_serving_requests.py').absolute()),
             'current driver/test FILE required')
@@ -432,6 +454,7 @@ def run(args):
         require(observation['sources']['observer'] == sources['observer'] and
                 observation['sources']['test'] == sources['observer_test'] and
                 observation['sources']['bridge'] == sources['bridge'] and
+                all(observation['sources'][role] == sources[role] for role in ('runtime','ledger','packed')) and
                 observation['qualified_terminal'] == authority['selection']['receipt'], 'observation source/GO binding differs')
         for fact in sources.values(): observer.file_bytes(fact)
         self_source = Source(sys.modules[__name__], sources['driver'])
@@ -454,6 +477,7 @@ def run(args):
         context, exit_guard = evaluator.authority(eargs)
         evaluator.merge_guards(context['guards'], {f['path']:f['sha256'] for f in
             [authority_fact,authority['observation'],authority['evaluation_authority'],*sources.values(),
+             *observation['sources'].values(),observation['bundle']['manifest'],
              observation['gallery']['file'],observation['native'],*observation['train_images']]})
         require(go['launch']['selected_cpu'] == context['launch']['selected_cpu'] and
                 go['launch']['endpoints'] == context['launch']['endpoints'] and
@@ -478,19 +502,22 @@ def run(args):
         before = evaluator.native_start(context)
         import torch
         from PIL import Image
-        from sfora import cutile_int8, joint_relational_compaction
+        from sfora import cutile_int8, joint_relational_compaction, packed_int8
         native_source = Source(cutile_int8,sources['native_wrapper'])
         packing_source = Source(joint_relational_compaction,sources['packing'])
+        packed_source = Source(packed_int8,sources['packed'])
         bridge_source = Source.load(sources['bridge']); owned.append(bridge_source)
         torch.random.default_generator.manual_seed(survivor['seed'])
         torch.cuda.manual_seed_all(survivor['seed'])
         rng, cuda_rng = torch.random.get_rng_state().clone(), torch.cuda.get_rng_state_all()
         def guard(*, reserve=True):
             locks.check()
-            for source in (self_source,observer_source,evaluator_source,bridge_source,native_source,packing_source): source.check()
-            for fact in [*sources.values(),authority_fact,authority['observation'],
+            for source in (self_source,observer_source,evaluator_source,bridge_source,native_source,packing_source,packed_source): source.check()
+            for fact in [*sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],
+                         authority_fact,authority['observation'],
                          authority['evaluation_authority'],observation['native'],observation['gallery']['file']]:
                 observer.file_bytes(fact)
+            observer.check_runtime_sources(observation['sources'],observation['bundle'])
             evaluator.guard_helpers(context)
             resources = evaluator.resources(context,before)
             resources['wall_seconds'] = time.perf_counter()-STARTED

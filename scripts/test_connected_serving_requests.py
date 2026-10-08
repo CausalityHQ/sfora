@@ -42,8 +42,8 @@ def public_fixture(root):
     helpers = load('_requests_fixture_helpers', HERE / 'test_observe_connected_serving.py')
     observer = load('_requests_fixture_observer', HERE / 'observe_connected_serving.py')
     bridge = load('_requests_fixture_bridge', HERE.parent / 'src/sfora/connected_compact_serving.py')
-    serializer = load('_requests_fixture_serializer', HERE / 'train_siglip2_substrate_adaptation.py')
-    trainer_tree = ast.parse((HERE / 'train_siglip2_connected_mlp.py').read_text())
+    serializer = load('_requests_fixture_serializer', HERE.parent / 'src/sfora/connected_inference.py')
+    trainer_tree = ast.parse((HERE.parent / 'src/sfora/connected_inference.py').read_text())
     release = ast.unparse(next(n for n in trainer_tree.body if isinstance(n, ast.FunctionDef)
                               and n.name == 'release_inference'))
     test_tree = ast.parse((HERE / 'test_observe_connected_serving.py').read_text())
@@ -60,16 +60,15 @@ def public_fixture(root):
     events.owners, events.closes, events.images, events.searches = [], [], [], []
     bundle = root / 'bundle'
     bundle.mkdir()
-    for name in bridge._CODE:
-        (bundle / name).write_bytes(Path(serializer.__file__).read_bytes() if name ==
-            'train_siglip2_substrate_adaptation.py' else source.encode() if name == bridge._TRAINER else b'# standin\n')
     for name in bridge._FILES:
         (bundle / name).write_bytes(b'owned fixture')
     manifest = {'schema':'siglip2-connected-mlp-bundle-v1',
-        'code':{n:fact(bundle/n)['sha256'] for n in bridge._CODE},
+        'code':{},
         'files':{n:fact(bundle/n)['sha256'] for n in bridge._FILES},
         **{n:{} for n in bridge._MANIFEST - {'schema','code','files'}}}
     (bundle / 'bundle.json').write_text(json.dumps(manifest))
+    installed = helpers.installed_fixture(root,source=source,bundle=bundle)
+    bridge = load('_requests_fixture_installed_bridge',Path(installed['bridge']['path']))
     gallery, library = root/'gallery.bin', root/'native.so'
     gallery.write_bytes(bytes(130*10))
     library.write_bytes(b'fixture native')
@@ -100,12 +99,13 @@ def public_fixture(root):
     for name in ('PIL','PIL.Image','sfora','sfora.joint_relational_compaction','sfora.cutile_int8'):
         stubs[name] = ModuleType(name)
     stubs['PIL.Image'].Image = Image
+    stubs['sfora.packed_int8'] = helpers.packed_standin(Path(installed['packed']['path']))
     stubs['sfora.joint_relational_compaction'].PackedInt8Embeddings = Packed
     stubs['sfora.cutile_int8'].CutilePackedInt8Gallery = Gallery
     args = {'bundle_dir':bundle, 'expected_bundle_sha256':fact(bundle/'bundle.json')['sha256'],
         'gallery_path':gallery, 'expected_gallery_sha256':fact(gallery)['sha256'], 'gallery_count':10,
         'native_library_path':library, 'expected_native_library_sha256':fact(library)['sha256']}
-    pins = {'bridge':fact(Path(bridge.__file__)), 'trainer':fact(bundle/bridge._TRAINER),
+    pins = {**installed, 'trainer':fact(bundle/bridge._TRAINER),
             'serializer':fact(bundle/'train_siglip2_substrate_adaptation.py')}
     def factory():
         assert not any(not owner._closed for owner in events.owners), 'overlapping public owners'
@@ -123,7 +123,7 @@ def public_fixture(root):
     finally:
         helpers.Tensor.widths = widths
         for name in ('_requests_fixture_helpers','_requests_fixture_observer',
-                     '_requests_fixture_bridge','_requests_fixture_serializer'):
+                     '_requests_fixture_bridge','_requests_fixture_installed_bridge','_requests_fixture_serializer'):
             sys.modules.pop(name, None)
 
 
@@ -143,6 +143,67 @@ class DriverTests(unittest.TestCase):
         self.assertTrue((HERE / 'qualify_connected_serving_requests.py').is_file(),
                         'request driver implementation missing')
         return self.driver
+
+    def test_actual_packed_source_authenticates_legacy_metadata_and_globals(self):
+        driver = self.driver_module()
+        path = HERE.parent/'src/sfora/packed_int8.py'
+        nn = ModuleType('torch.nn'); nn.functional = ModuleType('torch.nn.functional')
+        stubs = {'numpy':ModuleType('numpy'),'torch':ModuleType('torch'),'torch.nn':nn,
+            'torch.nn.functional':nn.functional}
+        with patch.dict(sys.modules,stubs):
+            packed = load('sfora.packed_int8',path)
+            source = driver.Source(packed,fact(path))
+            source.check()
+            self.assertEqual(packed._unit_rows.__module__,'sfora.joint_relational_compaction')
+            for name in ('_unit_rows','PackedInt8Embeddings','fixed_int8_unit_codes','pack_int8_unit_embeddings'):
+                value = getattr(packed,name)
+                for attr in ('__name__','__qualname__','__module__'):
+                    original_attr = getattr(value,attr)
+                    try:
+                        setattr(value,attr,'foreign')
+                        with self.assertRaisesRegex(ValueError,'packing declarations'): driver.Source(packed,fact(path))
+                    finally: setattr(value,attr,original_attr)
+            original = packed._unit_rows.__code__
+            try:
+                packed._unit_rows.__code__ = (lambda value:True).__code__
+                with self.assertRaisesRegex(ValueError,'live source'):
+                    source.check()
+                with self.assertRaisesRegex(ValueError,'live source'):
+                    driver.Source(packed,fact(path))
+            finally: packed._unit_rows.__code__ = original
+            source.check()
+            foreign = dict(vars(packed))
+            from types import FunctionType
+            replacement = FunctionType(original,foreign,packed._unit_rows.__name__)
+            replacement.__qualname__ = packed._unit_rows.__qualname__
+            replacement.__module__ = packed._unit_rows.__module__
+            with patch.object(packed,'_unit_rows',replacement),self.assertRaisesRegex(ValueError,'live source'):
+                driver.Source(packed,fact(path))
+            method = packed.PackedInt8Embeddings.from_bytes.__func__
+            code = method.__code__
+            try:
+                method.__code__ = (lambda *a,**kw:None).__code__
+                with self.assertRaisesRegex(ValueError,'live source'): source.check()
+            finally: method.__code__ = code
+            foreign_method = FunctionType(code,foreign,method.__name__)
+            foreign_method.__qualname__ = method.__qualname__
+            foreign_method.__module__ = 'foreign'
+            with patch.object(packed.PackedInt8Embeddings,'from_bytes',classmethod(foreign_method)), \
+                    self.assertRaisesRegex(ValueError,'live source'):
+                driver.Source(packed,fact(path))
+            getter = packed.PackedInt8Embeddings.bytes_per_vector.fget
+            code = getter.__code__
+            try:
+                getter.__code__ = (lambda self:130).__code__
+                with self.assertRaisesRegex(ValueError,'live source'): source.check()
+                with self.assertRaisesRegex(ValueError,'live source'): driver.Source(packed,fact(path))
+            finally: getter.__code__ = code
+            descriptor = vars(packed.PackedInt8Embeddings)['to_bytes']
+            try:
+                del packed.PackedInt8Embeddings.to_bytes
+                with self.assertRaisesRegex(ValueError,'methods missing'): driver.Source(packed,fact(path))
+            finally: packed.PackedInt8Embeddings.to_bytes = descriptor
+            source.check()
 
     def test_missing_go_never_imports_native(self):
         driver = self.driver_module()
@@ -256,7 +317,7 @@ class DriverTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             authority = {k:None for k in driver.KEYS}
-            authority['schema'] = 'connected-serving-requests-authority-v1'
+            authority['schema'] = 'connected-serving-requests-authority-v2'
             path = root/'authority.json'
             path.write_text(json.dumps(authority))
             with self.assertRaisesRegex(ValueError, 'full selection GO'):

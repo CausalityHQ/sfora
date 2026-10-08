@@ -7,10 +7,10 @@ current bytes. Evaluator CODE={root,execution_sha256,code}, original exact two;
 control_export is the original complete control061 UNIT unchanged. The original
 full export launch/fullCPU authority is admitted with the original evaluator.
 
-Authority has exactly KEYS, schema connected-control-serving-requests-authority-v1.
+Authority has exactly KEYS, schema connected-control-serving-requests-authority-v2.
 sources has exactly SOURCES; the root supplies actual hashes, including all three
 new files. control={arm:control,seed:179061}. observation is a FILE with schema
-connected-control-serving-attribution-authority-v1 and original observer fields,
+connected-control-serving-attribution-authority-v2 and original observer fields,
 replacing qualified_terminal with control_export_receipt. observer.prepare is
 unchanged. native_runtime is the separate complete H-union-S authority FILE.
 No selection GO, survivor, export, score or new training is performed.
@@ -37,11 +37,11 @@ from types import SimpleNamespace
 
 import qualify_connected_serving_requests as requests
 
-SCHEMA = 'connected-control-serving-requests-authority-v1'
+SCHEMA = 'connected-control-serving-requests-authority-v2'
 KEYS = {'schema','sources','evaluator','evaluation_authority','control_export',
         'control','observation','native_runtime','locks'}
 SOURCES = {'control_driver','control_native','control_test','request_driver','request_test',
-           'observer','observer_test','bridge','native_wrapper','packing'}
+           'observer','observer_test','bridge','native_wrapper','packing','runtime','ledger','packed'}
 CONTROL = {'arm':'control','seed':179061}
 CONTROL_RECEIPT_SHA = 'db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407'
 CONTROL_INVOCATION = '2ffefca891564bc2a74267d3511c0401'
@@ -60,11 +60,11 @@ def prepare_observation(fact, observer):
     keys = {'schema','sources','bundle','gallery','native','train_images','control_export_receipt',
         'cache_conditions','resource_policy','both_locks_held','qualification_eligible','state_reuse_eligible'}
     require(type(value) is dict and value.keys() == keys and
-        value['schema'] == 'connected-control-serving-attribution-authority-v1' and
+        value['schema'] == 'connected-control-serving-attribution-authority-v2' and
         value['qualification_eligible'] is False and value['state_reuse_eligible'] is False,
         'exact engineering control observation required')
     sources = value['sources']
-    require(type(sources) is dict and sources.keys() == {'observer','test','bridge','trainer','serializer'},
+    require(type(sources) is dict and sources.keys() == {'observer','test','bridge','trainer','serializer','runtime','ledger','packed'},
         'complete observation source pins required')
     for file in sources.values(): observer.file_bytes(file)
     require(observer.canonical(sources['observer']['path']) == Path(observer.__file__).absolute(), 'current observer FILE differs')
@@ -76,6 +76,7 @@ def prepare_observation(fact, observer):
     require(sources['trainer']['path'] == str(Path(bundle['directory'])/'train_siglip2_connected_mlp.py') and
         sources['serializer']['path'] == str(Path(bundle['directory'])/'train_siglip2_substrate_adaptation.py'),
         'bundle source FILE paths required')
+    observer.check_runtime_sources(sources,bundle)
     require(type(gallery) is dict and gallery.keys() == {'file','count'} and
         type(gallery['count']) is int and gallery['count'] >= 10, 'exact gallery binding required')
     images = value['train_images']
@@ -263,7 +264,8 @@ def accept_unit(context, unit, authority_fact):
         observation = prepare_observation(authority['observation'],observer)
         require(observation['control_export_receipt'] == authority['control_export']['receipt'] and
             observation['sources']['observer'] == sources['observer'] and observation['sources']['test'] == sources['observer_test'] and
-            observation['sources']['bridge'] == sources['bridge'], 'terminal control observation/source binding differs')
+            observation['sources']['bridge'] == sources['bridge'] and
+            all(observation['sources'][role] == sources[role] for role in ('runtime','ledger','packed')), 'terminal control observation/source binding differs')
         native_source = requests.Source.load(sources['control_native']); owned.append(native_source)
         native = native_source.module.CombinedAuthority(context['training_context'],authority['native_runtime'],observer,requests)
         require(native.record['library'] == observation['native'], 'terminal native FILE differs')
@@ -287,7 +289,7 @@ def accept_unit(context, unit, authority_fact):
             projected['files'].keys()-historical_files == native.supplement['files'].keys() and
             native.supplement['files'].keys() <= set(projected['native_files']), 'original exact-four terminal projection differs')
         required = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],
-            *sources.values(),*native.provenance_facts(),observation['bundle']['manifest'],observation['gallery']['file'],
+            *sources.values(),*observation['sources'].values(),*native.provenance_facts(),observation['bundle']['manifest'],observation['gallery']['file'],
             observation['control_export_receipt'],*observation['train_images']]
         for file in required:
             observer.file_bytes(file)
@@ -361,7 +363,8 @@ def run(args):
         observer = observer_source.module
         observation = prepare_observation(authority['observation'],observer)
         require(observation['sources']['observer'] == sources['observer'] and
-            observation['sources']['test'] == sources['observer_test'] and observation['sources']['bridge'] == sources['bridge'],
+            observation['sources']['test'] == sources['observer_test'] and observation['sources']['bridge'] == sources['bridge'] and
+            all(observation['sources'][role] == sources[role] for role in ('runtime','ledger','packed')),
             'control observation source binding differs')
         for file in sources.values(): observer.file_bytes(file)
         native_source = requests.Source.load(sources['control_native']); owned.append(native_source)
@@ -383,7 +386,7 @@ def run(args):
         context['training_context']['fit_context']['unit_started'] = STARTED
         endpoint,exported = admit_control(evaluator,context,authority,observation)
         frozen = [authority_fact,authority['observation'],authority['native_runtime'],authority['evaluation_authority'],
-            *sources.values(),observation['bundle']['manifest'],observation['control_export_receipt'],
+            *sources.values(),*observation['sources'].values(),observation['bundle']['manifest'],observation['control_export_receipt'],
             observation['gallery']['file'],observation['native'],*observation['train_images']]
         evaluator.merge_guards(context['guards'],{f['path']:f['sha256'] for f in frozen})
         runtime_authority = native_source.module.CombinedAuthority(context['training_context'],authority['native_runtime'],observer,requests)
@@ -396,17 +399,19 @@ def run(args):
         before = evaluator.native_start(context)
         import torch
         from PIL import Image
-        from sfora import cutile_int8,joint_relational_compaction
+        from sfora import cutile_int8,joint_relational_compaction,packed_int8
         wrapper_source = requests.Source(cutile_int8,sources['native_wrapper'])
         packing_source = requests.Source(joint_relational_compaction,sources['packing'])
+        packed_source = requests.Source(packed_int8,sources['packed'])
         bridge_source = requests.Source.load(sources['bridge']); owned.append(bridge_source)
         torch.random.default_generator.manual_seed(179061); torch.cuda.manual_seed_all(179061)
         rng,cuda_rng = torch.random.get_rng_state().clone(),torch.cuda.get_rng_state_all()
         def guard(*,reserve=True):
             locks.check()
             for source in (self_source,request_source,observer_source,native_source,evaluator_source,
-                bridge_source,wrapper_source,packing_source): source.check()
+                bridge_source,wrapper_source,packing_source,packed_source): source.check()
             for file in frozen: observer.file_bytes(file)
+            observer.check_runtime_sources(observation['sources'],observation['bundle'])
             api.authenticate()
             evaluator.guard_helpers(context)
             resources = evaluator.resources(context,before)

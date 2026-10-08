@@ -31,6 +31,63 @@ def binding(path):
     return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
+def installed_fixture(root, *, source=None, bundle=None):
+    """Re-pin a temporary installed closure; historical sources are execution traps."""
+    installed = Path(tempfile.mkdtemp(prefix='installed-',dir=root))
+    package = ROOT / 'src/sfora'
+    runtime = (package / 'connected_inference.py').read_text()
+    if source is not None:
+        tree, replacement = ast.parse(runtime), ast.parse(source)
+        names = {n.name for n in replacement.body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+        tree.body = [n for n in tree.body if not isinstance(n, (ast.FunctionDef, ast.ClassDef)) or n.name not in names]
+        tree.body += replacement.body
+        runtime = ast.unparse(tree) + '\n'
+    (installed / 'connected_inference.py').write_text(runtime)
+    (installed / 'packed_int8.py').write_text('''class PackedInt8Embeddings:
+    @classmethod
+    def from_bytes(cls, wire, *, count, dimensions):
+        assert dimensions == 128
+        return wire
+''')
+    ledger = {n.targets[0].id:ast.literal_eval(n.value) for n in
+        ast.parse((package / '_connected_inference_authority.py').read_bytes()).body if isinstance(n, ast.Assign)}
+    bundle = root / 'bundle' if bundle is None else bundle
+    bundle.mkdir(exist_ok=True)
+    for name, _ in ledger['HISTORICAL_CODE']:
+        path = bundle / name
+        if not path.exists(): path.write_text("raise AssertionError('historical code executed')\n")
+    ledger.update(HISTORICAL_CODE=tuple(sorted((name, binding(bundle / name)['sha256'])
+        for name, _ in ledger['HISTORICAL_CODE'])),
+        RUNTIME_SHA256=binding(installed / 'connected_inference.py')['sha256'],
+        PACKED_SHA256=binding(installed / 'packed_int8.py')['sha256'])
+    path = installed / '_connected_inference_authority.py'
+    path.write_text('\n'.join(name + ' = ' + repr(value) for name, value in ledger.items()) + '\n')
+    bridge = (package / 'connected_compact_serving.py').read_text()
+    old_pin = next(n for n in ast.walk(ast.parse(bridge)) if isinstance(n, ast.FunctionDef) and n.name == '_installed_authority')
+    pin = next(n.value.elts[1].value for n in old_pin.body if isinstance(n, ast.Return))
+    assert bridge.count(pin) == 1
+    (installed / 'connected_compact_serving.py').write_text(bridge.replace(pin, binding(path)['sha256']))
+    manifest = bundle / 'bundle.json'
+    if manifest.exists():
+        value = json.loads(manifest.read_bytes())
+    else:
+        value = {'schema':'siglip2-connected-mlp-bundle-v1'}
+    if value.get('code') != dict(ledger['HISTORICAL_CODE']):
+        value['code'] = dict(ledger['HISTORICAL_CODE'])
+        manifest.write_text(json.dumps(value))
+    return {role:binding(installed / name) for role, name in (
+        ('bridge','connected_compact_serving.py'), ('runtime','connected_inference.py'),
+        ('ledger','_connected_inference_authority.py'), ('packed','packed_int8.py'))}
+
+
+def packed_standin(path):
+    """Real source/origin metadata without importing a native implementation."""
+    spec = importlib.util.spec_from_file_location('sfora.packed_int8', path)
+    module = importlib.util.module_from_spec(spec)
+    exec(compile(path.read_bytes(), str(path), 'exec', dont_inherit=True), vars(module))
+    return module
+
+
 def rejects(call, message):
     try:
         call()
@@ -96,7 +153,7 @@ class Tensor:
 def serializer_check(d, original):
     # Dropping/reordering occurrences, caching .data or retaining frames fails here.
     stubs = {'torch': SimpleNamespace(Tensor=Tensor, uint8='uint8')}
-    sources = {'serializer': binding(Path(original.__file__))}
+    sources = {'runtime': binding(Path(original.__file__))}
     shared = bytearray(b'abcdefgh')
     a = Tensor(shared, indices=(0, 2, 4, 6))
     b = Tensor(shared, indices=(1, 3, 5, 7))
@@ -169,7 +226,7 @@ def serializer_check(d, original):
 
 
 def resource_accounting_check(d, original):
-    sources = {'serializer':binding(Path(original.__file__))}
+    sources = {'runtime':binding(Path(original.__file__))}
     with modules({'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8')}):
         probe = d.RequestObserver(original.fingerprint, sources)
         probe.calls = 2_000_000
@@ -227,7 +284,7 @@ def resource_accounting_check(d, original):
 def call_volume_check(d, original):
     # Real extracted observer + original serializer, one pair under the external30s/256MiB guard.
     with modules({'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8')}):
-        sources = {'serializer':binding(Path(original.__file__))}
+        sources = {'runtime':binding(Path(original.__file__))}
         expected = original.fingerprint(3)
         def target():
             for i in range(2_000_010): len(())
@@ -253,7 +310,7 @@ def call_volume_check(d, original):
 
 def fingerprint_attribution_check(d, original):
     # Wrong callers, cached bytes or retained caller frames must reject attribution.
-    sources = {'serializer':binding(Path(original.__file__))}
+    sources = {'runtime':binding(Path(original.__file__))}
     def first(value):
         return original.fingerprint(value)
     def second(value):
@@ -295,7 +352,7 @@ def fingerprint_attribution_check(d, original):
 
 
 def stack_check(d, original):
-    sources = {'serializer':binding(Path(original.__file__))}
+    sources = {'runtime':binding(Path(original.__file__))}
     class MismatchedReturn(d.RequestObserver):
         def _event(self, frame, event, arg, tick):
             super()._event(frame, event, arg, tick)
@@ -322,7 +379,7 @@ def stack_check(d, original):
 
 
 def c_metadata_check(d, original):
-    sources = {'serializer':binding(Path(original.__file__))}
+    sources = {'runtime':binding(Path(original.__file__))}
     kept, values = [], [3,1,2]
     def key(value):
         kept.append(b'x'.upper)  # Retain reused bound-method allocations across C profile events.
@@ -347,7 +404,7 @@ def predicate_check(d, original):
         assert Predicate().item()
         return original.fingerprint(3)
     with modules({'torch':SimpleNamespace(Tensor=Tensor, uint8='uint8')}):
-        probe = d.RequestObserver(original.fingerprint, {'serializer':binding(Path(original.__file__))})
+        probe = d.RequestObserver(original.fingerprint, {'runtime':binding(Path(original.__file__))})
         d.observe_call(probe, target)
         rows = [row for row in probe.report()['host_events'] if row['function'].endswith('Predicate.item')]
         assert rows and all(row['phase'] == 'predicate-sync-plus-wait' for row in rows), 'item wait mislabeled'
@@ -356,7 +413,7 @@ def predicate_check(d, original):
 
 def public_check(d, original, bridge, root, *, witness_only=False, cancel_only=False, transient_only=False, cleanup_only=False, bundle_only=False, ambient_only=False):
     # Real bridge authentication, registry, serializer, exact wire and release predicates.
-    trainer_source = (ROOT / 'scripts/train_siglip2_connected_mlp.py').read_text()
+    trainer_source = (ROOT / 'src/sfora/connected_inference.py').read_text()
     tree = ast.parse(trainer_source)
     release = ast.get_source_segment(trainer_source, next(n for n in tree.body
         if isinstance(n, ast.FunctionDef) and n.name == 'release_inference'))
@@ -375,6 +432,7 @@ import _attribution_events as events
 def require(condition, message):
     if not condition: raise ValueError(message)
 def load_authenticated(name, path): return None
+def admit_bundle(directory, digest): return None
 class Owner:
     def parameters(self): return ()
     def buffers(self): return ()
@@ -382,16 +440,9 @@ def _processor_cache(processor, guards):
     return object() if events.failure == 'cache_authority' else processor.cache
 def load_inference(directory, digest, device):
     assert device == 'cuda'
-    helper = ModuleType('_connected_serving_attribution_fixture')
-    sys.modules[helper.__name__] = helper
-    path = directory / 'train_siglip2_substrate_adaptation.py'
-    spec = importlib.util.spec_from_file_location('_connected_serving_attribution_serializer_' + str(time.time_ns()), path)
-    serializer = importlib.util.module_from_spec(spec)
-    sys.modules[serializer.__name__] = serializer
-    spec.loader.exec_module(serializer)
     cache = lru_cache(maxsize=10)(lambda value: value)
     endpoint = {name:Owner() for name in ('model','processor_object','head_object','A','C','mu_train')}
-    endpoint.update(modules={'helper':helper,'train_siglip2_substrate_adaptation.py':serializer}, guards={}, processor_cache=cache)
+    endpoint.update(modules={'runtime':sys.modules[__name__]}, guards={}, processor_cache=cache, directory=directory, manifest=__import__('json').loads((directory / 'bundle.json').read_bytes()))
     endpoint['processor_object'].cache = cache
     cache(endpoint['processor_object'])
     events.cache = cache
@@ -399,7 +450,7 @@ def load_inference(directory, digest, device):
     if events.failure == 'lifetime': events.retained = endpoint['model']
     return endpoint
 def inference_outputs(endpoint, images):
-    digest = endpoint['modules']['train_siglip2_substrate_adaptation.py'].fingerprint({'param':events.param})
+    digest = fingerprint({'param':events.param})
     require(digest == events.expected, 'current .data rejected')
     if events.target_error is not None: raise events.target_error
     if events.failure == 'inference': raise ValueError('inference failed')
@@ -419,18 +470,16 @@ def inference_outputs(endpoint, images):
         source = source.replace("fingerprint({'param':events.param})", "fingerprint({'param':endpoint['A']})")
     bundle = root / 'bundle'
     bundle.mkdir()
-    for name in bridge._CODE:
-        if name == 'train_siglip2_substrate_adaptation.py':
-            (bundle / name).write_bytes(Path(original.__file__).read_bytes())
-        else:
-            (bundle / name).write_text(source if name == bridge._TRAINER else '# standin helper\n')
     for name in bridge._FILES:
         (bundle / name).write_bytes(b'owned standin')
     manifest = {'schema':'siglip2-connected-mlp-bundle-v1',
-        'code':{name:binding(bundle / name)['sha256'] for name in bridge._CODE},
+        'code':{},
         'files':{name:binding(bundle / name)['sha256'] for name in bridge._FILES},
         **{name:{} for name in bridge._MANIFEST - {'schema', 'code', 'files'}}}
     (bundle / 'bundle.json').write_text(json.dumps(manifest))
+    installed = installed_fixture(root, source=source, bundle=bundle)
+    bridge = load('_serving_installed_bridge_check', Path(installed['bridge']['path']))
+    sys.modules.pop(bridge.__name__)
     gallery, library = root / 'gallery.bin', root / 'native.so'
     gallery.write_bytes(b'gallery'); library.write_bytes(b'native standin')
     closes = []
@@ -457,12 +506,13 @@ def inference_outputs(endpoint, images):
     for name in ('PIL', 'PIL.Image', 'sfora', 'sfora.joint_relational_compaction', 'sfora.cutile_int8'):
         stubs[name] = ModuleType(name)
     stubs['PIL.Image'].Image = Image
+    stubs['sfora.packed_int8'] = packed_standin(Path(installed['packed']['path']))
     stubs['sfora.joint_relational_compaction'].PackedInt8Embeddings = Packed
     stubs['sfora.cutile_int8'].CutilePackedInt8Gallery = Gallery
     args = dict(bundle_dir=bundle, expected_bundle_sha256=binding(bundle / 'bundle.json')['sha256'],
         gallery_path=gallery, expected_gallery_sha256=binding(gallery)['sha256'], gallery_count=10,
         native_library_path=library, expected_native_library_sha256=binding(library)['sha256'])
-    sources = {'bridge':binding(Path(bridge.__file__)), 'trainer':binding(bundle / bridge._TRAINER),
+    sources = {**installed, 'trainer':binding(bundle / bridge._TRAINER),
         'serializer':binding(bundle / 'train_siglip2_substrate_adaptation.py')}
     with modules(stubs):
         events.expected = original.fingerprint({'param':events.param})
@@ -494,17 +544,35 @@ def inference_outputs(endpoint, images):
         if bundle_only:
             assert hasattr(d.RequestObserver, 'from_index'), 'admitted-index observer missing'
             index = bridge.ConnectedCompactIndex.from_bundle(**args)
-            actual = index._endpoint['modules']['train_siglip2_substrate_adaptation.py']
+            actual = index._endpoint['modules']['runtime']
             assert actual.fingerprint is not original.fingerprint and actual.fingerprint.__code__ is not original.fingerprint.__code__
             before = dict(vars(actual))
             probe = d.RequestObserver.from_index(index, sources)
             request(index, probe)
             assert probe.report()['complete'] and probe.fingerprints and probe.leaves and probe.output is not None
             assert all(vars(actual).get(key) is value for key,value in before.items())
+            foreign = load('_foreign_equal_runtime', Path(sources['runtime']['path']))
+            assert foreign.fingerprint.__code__ == actual.fingerprint.__code__
+            try:
+                index._endpoint['modules']['runtime'] = foreign
+                rejects(lambda:d.RequestObserver.from_index(index,sources), 'runtime module owner')
+                index._endpoint['modules']['runtime'] = actual
+                index._endpoint['modules']['extra'] = foreign
+                rejects(lambda:d.RequestObserver.from_index(index,sources), 'runtime module owner')
+                del index._endpoint['modules']['extra']
+                for role in ('runtime','ledger','packed'):
+                    rejects(lambda:d.RequestObserver.from_index(index,sources | {
+                        role:sources[role] | {'sha256':'0'*64}}), 'installed source guards')
+                for role in ('trainer','serializer'):
+                    rejects(lambda:d.RequestObserver.from_index(index,sources | {
+                        role:binding(Path(original.__file__))}), 'bundle source FILE paths')
+            finally:
+                index._endpoint['modules'] = {'runtime':actual}
+                sys.modules.pop(foreign.__name__)
             index.close()
             assert all(ref() is None for ref in events.refs)
             index = bridge.ConnectedCompactIndex.from_bundle(**args)
-            wrong = d.RequestObserver(original.fingerprint, sources | {'serializer':binding(Path(original.__file__))})
+            wrong = d.RequestObserver(original.fingerprint, sources | {'runtime':binding(Path(original.__file__))})
             rejects(lambda:request(index, wrong), 'public witness')
             assert not wrong.report()['complete'] and index._closed and not index._owned
             assert all(ref() is None for ref in events.refs)
@@ -562,8 +630,8 @@ def inference_outputs(endpoint, images):
         if transient_only:
             index = bridge.ConnectedCompactIndex.from_bundle(**args)
             ref = weakref.ref(index._endpoint['A'])
-            serializer = index._endpoint['modules']['train_siglip2_substrate_adaptation.py']
-            pins = sources | {'serializer':binding(Path(serializer.__file__))}
+            serializer = index._endpoint['modules']['runtime']
+            pins = sources | {'runtime':binding(Path(serializer.__file__))}
             probe = d.RequestObserver.from_index(index, pins)
             caught = None
             try:
@@ -619,7 +687,7 @@ def inference_outputs(endpoint, images):
             return
         if witness_only:
             # Generic scalar profiling is valid; PUBLIC profiling needs byte/output witnesses.
-            scalar = d.RequestObserver(original.fingerprint, {'serializer':binding(Path(original.__file__))})
+            scalar = d.RequestObserver(original.fingerprint, {'runtime':binding(Path(original.__file__))})
             assert d.observe_call(scalar, lambda:original.fingerprint(3)) == original.fingerprint(3)
             assert scalar.report()['complete'] and not scalar.leaves
             class SilentObserver(d.RequestObserver):
@@ -692,10 +760,11 @@ def inference_outputs(endpoint, images):
         assert index._closed and events.cache.cache_info().currsize == 0
         index = bridge.ConnectedCompactIndex.from_bundle(**args)
         trainer = bundle / bridge._TRAINER
-        trainer.write_text(source + '# stale source\n')
+        trainer_raw = trainer.read_bytes()
+        trainer.write_bytes(trainer_raw + b'# stale source\n')
         rejects(lambda: request(index), 'current file bytes differ')
         assert index._closed and not index._owned
-        trainer.write_text(source)
+        trainer.write_bytes(trainer_raw)
         index = bridge.ConnectedCompactIndex.from_bundle(**args)
         def bad_reader(paths): raise RuntimeError('decode failed')
         rejects(lambda: d.measure_request(index, bad_reader, lambda:None, [root / 'TRAIN.fixture']), 'decode failed')
@@ -724,12 +793,11 @@ def preparation_check(d, root):
     bundle = root / 'future_bundle'
     bundle.mkdir()
     sources = {role:binding(ROOT / name) for role,name in names.items()}
+    installed = installed_fixture(root, bundle=bundle)
+    sources.update(installed)
     for role in ('trainer','serializer'):
-        path = bundle / Path(names[role]).name
-        path.write_bytes((ROOT / names[role]).read_bytes())
-        sources[role] = binding(path)
+        sources[role] = binding(bundle / Path(names[role]).name)
     manifest = bundle / 'bundle.json'
-    manifest.write_bytes(b'prospective standin; NOT an admitted bundle')
     fixture = root / 'future.fixture'
     fixture.write_bytes(b'not native/image/terminal evidence')
     images = []
@@ -737,7 +805,7 @@ def preparation_check(d, root):
         path = root / f'TRAIN-{number}.fixture'
         path.write_bytes(bytes([number]))
         images.append(binding(path))
-    authority = {'schema':'connected-serving-attribution-authority-v1',
+    authority = {'schema':'connected-serving-attribution-authority-v2',
         'sources':sources,
         'bundle':{'directory':str(bundle), 'manifest':binding(manifest)},
         'gallery':{'file':binding(fixture),'count':10}, 'native':binding(fixture),
@@ -770,6 +838,65 @@ def preparation_check(d, root):
     assert row['attribution'] == 'UNMEASURED' and len(row['required_root_seams']) >= 7
 
 
+def installed_sources_check(d, root):
+    sources = installed_fixture(root)
+    sources.update(observer=binding(Path(d.__file__)), test=binding(Path(__file__)),
+        trainer=binding(root/'bundle/train_siglip2_connected_mlp.py'),
+        serializer=binding(root/'bundle/train_siglip2_substrate_adaptation.py'))
+    bundle = {'directory':str(root/'bundle'), 'manifest':binding(root/'bundle/bundle.json')}
+    d.check_runtime_sources(sources,bundle)
+    for path in (root/'bundle').glob('*.py'):
+        assert path.read_text().startswith("raise AssertionError('historical code executed')")
+    rejects(lambda:d.check_runtime_sources({k:v for k,v in sources.items() if k != 'runtime'},bundle), 'source pins')
+    for role in ('runtime','ledger','packed','trainer','serializer'):
+        path = Path(sources[role]['path']); raw = path.read_bytes()
+        try:
+            path.write_bytes(raw+b'\n# current bytes mutant\n')
+            rejects(lambda:d.check_runtime_sources(sources,bundle), 'SHA256 differs')
+        finally: path.write_bytes(raw)
+        rejects(lambda:d.check_runtime_sources(sources | {role:sources[role] | {'sha256':'0'*64}},bundle), 'SHA256 differs')
+    foreign = root/'foreign.py'; foreign.write_bytes(Path(sources['runtime']['path']).read_bytes())
+    rejects(lambda:d.check_runtime_sources(sources | {'runtime':binding(foreign)},bundle), 'source sibling')
+    ledger, bridge = Path(sources['ledger']['path']), Path(sources['bridge']['path'])
+    ledger_raw, bridge_raw = ledger.read_text(), bridge.read_text()
+    record = {n.targets[0].id:ast.literal_eval(n.value) for n in ast.parse(ledger_raw).body}
+    mutants = [
+        (ledger_raw+'SCHEMA = "sfora-connected-inference-extraction-v1"\n','duplicate'),
+        (ledger_raw+"raise AssertionError('ledger executed')\n",'literal'),
+        (ledger_raw+'EXTRA = 1\n','exact installed'),
+        (ledger_raw.replace(repr(record['SCHEMA']),repr('wrong-schema'),1),'exact installed'),
+        (ledger_raw.replace(repr(record['RUNTIME_SHA256']),repr('0'*64),1),'ledger pins'),
+        (ledger_raw.replace(repr(record['PACKED_SHA256']),repr('0'*64),1),'ledger pins'),
+        (ledger_raw.replace(repr(record['HISTORICAL_CODE']),repr(record['HISTORICAL_CODE'][:-1]),1),'historical inference')]
+    for raw, message in mutants:
+        try:
+            ledger.write_text(raw)
+            pinned = sources | {'ledger':binding(ledger)}
+            bridge.write_text(bridge_raw.replace(sources['ledger']['sha256'],pinned['ledger']['sha256']))
+            pinned['bridge'] = binding(bridge)
+            rejects(lambda:d.check_runtime_sources(pinned,bundle), message)
+        finally:
+            ledger.write_text(ledger_raw); bridge.write_text(bridge_raw)
+    try:
+        ledger.write_text(ledger_raw+'\n')
+        rejects(lambda:d.check_runtime_sources(sources | {'ledger':binding(ledger)},bundle), 'bridge ledger identity')
+    finally: ledger.write_text(ledger_raw)
+    manifest = Path(bundle['manifest']['path']); raw = manifest.read_text(); value = json.loads(raw)
+    for code in (dict(list(value['code'].items())[:-1]), value['code'] | {'extra.py':'0'*64},
+                 value['code'] | {'quadratic_readout.py':'0'*64}):
+        try:
+            manifest.write_text(json.dumps(value | {'code':code}))
+            rejects(lambda:d.check_runtime_sources(sources,bundle | {'manifest':binding(manifest)}), 'historical inference')
+        finally: manifest.write_text(raw)
+    path = root/'bundle/quadratic_readout.py'; raw = path.read_bytes()
+    try:
+        path.write_bytes(raw+b'\n')
+        rejects(lambda:d.check_runtime_sources(sources,bundle), 'SHA256 differs')
+    finally: path.write_bytes(raw)
+    d.check_runtime_sources(sources,bundle)
+    assert sum(p.stat().st_size for p in root.rglob('*') if p.is_file()) < 16*1024**2
+
+
 def main():
     assert __debug__ and sys.getprofile() is None
     assert not any(n.split('.')[0] in NATIVE for n in sys.modules)
@@ -783,8 +910,18 @@ def main():
             path = Path(sys.argv[sys.argv.index('--baseline-observer') + 1])
         assert path.is_file(), 'observer implementation missing'
         d = load(owned[0], path)
-        original = load(owned[1], ROOT / 'scripts/train_siglip2_substrate_adaptation.py')
+        original = load(owned[1], ROOT / 'src/sfora/connected_inference.py')
         bridge = load(owned[2], ROOT / 'src/sfora/connected_compact_serving.py')
+        if '--review-public' in sys.argv:
+            with tempfile.TemporaryDirectory(prefix='connected-installed-public-') as scratch:
+                public_check(d, original, bridge, Path(scratch))
+            print('PASS installed public calls, historical-byte guards, fresh data and genuine cleanup')
+            return
+        if '--installed-sources' in sys.argv:
+            with tempfile.TemporaryDirectory(prefix='connected-installed-sources-') as scratch:
+                installed_sources_check(d, Path(scratch))
+            print('PASS literal ledger, exact historical9 evidence, installed siblings and fresh source pins')
+            return
         if '--review-fingerprint' in sys.argv:
             fingerprint_attribution_check(d, original)
             print('PASS original fingerprint caller attribution, inclusive duration, fresh bytes and release')
@@ -853,6 +990,8 @@ def main():
             root = Path(scratch)
             public_check(d, original, bridge, root)
             preparation_check(d, root)
+            installed = root / 'installed-source-negatives'; installed.mkdir()
+            installed_sources_check(d, installed)
             witness, cancel = root / 'missing-witness', root / 'cancellation'
             transient, cleanup = root / 'transient', root / 'cleanup'
             bundle, ambient = root / 'actual-bundle', root / 'ambient-except'
