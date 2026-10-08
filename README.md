@@ -227,9 +227,9 @@ and [serving decision](docs/evidence/compact_metric/sop-siglip2-substrate-v1/con
 | --- | ---: | --- |
 | Proxy Anchor (reported) | 69.7 | baseline |
 | HIST (reported) | 71.4 | prior strong method |
-| **PFML (reported SOTA)** | **73.4** | best reported same-arch |
+| **PFML (historical published reference)** | **73.4** | historical same-architecture reference |
 | **HERD** (single model, 9 seeds; legacy recipe) | 71.6 best / 70.5 mean (σ≈0.6) | Historical common-preset run; corrected official-recipe rerun pending |
-| **SFORA** (HERD ensemble, 5 models) | **74.68** | **+1.3 over PFML — clears reported-SOTA +1%** |
+| **SFORA** (HERD ensemble, 5 models) | **74.68** | historical +1.28 percentage points over PFML; unmatched ensemble compute |
 | SFORA (HERD ensemble, 9 models) | 75.34 | scales further; +1.9 over PFML |
 | SFORA (9 models → 512-dim, GPA-aligned fold) | 74.90 | single-model footprint; 99.4% of the pack *transductively* (fold fit on test geometry), 98.0% with a train-only fold — alignment beats PCA |
 
@@ -406,7 +406,7 @@ for S in 0 1 2 3 4; do
     --output "reports/generated/cub.herd.official_recipe_seed${S}.json"
 done
 
-# 2. Feature-concatenation ensemble -> SOTA-beating Recall@1
+# 2. Measure the historical feature-concatenation ensemble; no SOTA claim
 uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
 # Report only after all artifacts have matching recipe IDs and digests.
 ```
