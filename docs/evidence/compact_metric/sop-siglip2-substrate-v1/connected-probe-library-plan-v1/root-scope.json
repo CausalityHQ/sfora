@@ -1,0 +1,21 @@
+{
+  "schema": "connected-probe-library-source-scope-v1",
+  "plan": "eccd00b72b384e35 terminal379s",
+  "decision": "IMPLEMENT_SOURCE_ONLY_PROBE_EXTRACTION_AND_EXPLICIT_BRIDGE_FACTORY",
+  "owned_files": [
+    "scripts/extract_connected_probe_inference.py",
+    "src/sfora/connected_probe_inference.py",
+    "src/sfora/_connected_probe_inference_authority.py",
+    "scripts/test_connected_probe_inference_extraction.py",
+    "src/sfora/connected_compact_serving.py",
+    "scripts/test_connected_compact_serving.py",
+    "scripts/test_connected_inference_extraction.py",
+    "README.md"
+  ],
+  "existing_mlp_authority_runtime_and_packing": "byte-preserved",
+  "native_gate_scripts": "deferred separate bounded task after actual accepted artifacts and source implementation",
+  "no_native_or_release_claim": true,
+  "verification": "ONE serial affected source gate <=120s/AS1GiB after narrow falsifiers; root owns native gates",
+  "limits": "No native/Torch/thirdparty imports/SSH/images/checkpoints/GPU/jobs/consults/children/operator; no master integration/push by child",
+  "actual_future_bundle_pins": "root supplied later; use current accepted probe source2 and unchanged original serving7 only, no model artifact/source hash guesses"
+}
