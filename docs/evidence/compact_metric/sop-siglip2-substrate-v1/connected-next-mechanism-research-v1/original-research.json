@@ -1,0 +1,333 @@
+{
+  "id": "72bd928039e44f38",
+  "provider": "fable",
+  "model": "claude-fable-5-1",
+  "effort": "max",
+  "fallbacks": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791444368,
+  "timeout_seconds": 1800,
+  "deadline_at": 1791446168,
+  "budget_usd": 6,
+  "prompt_preview": "NEW deep first-principles research decision after actual paired scientific KILL. Read-only; no edits/native/Torch/images/SSH/cloud/jobs/children/new consults. SAME Sfora production goal, repo /home/rb/worktrees/sfora-positive-causality exact HEAD375c088 (resolve full); production joint SOP+InShop strongest matched-reference quality AND decode-to-native-topk speed unmet. This is not duplicate old serving attribution plan d860d1995a8b4a57 or source admission critiques, nor a request to weaken gates. Read docs/connected_mlp_decision_2026-10-08.md; docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/{receipt.json,verification.json,query-transition-diagnostic.json,product-transition-diagnostic.json}; src/sfora/connected_compact_serving.py; scripts/train_siglip2_connected_mlp.py; immutable original source history/recipe/source guards in receipts. Data: exposed official-TRAIN selection1734queries/1715gallery/498products, 2paired seeds061/069; candidate connected four lastMLP encoder tensors + A/C versus frozen encoder live A/C control; same6355/1008 training identities,2views,B64micro16,128updates. C061 R1/AP96.77047/82.76572%; A06197.11649/85.15173%; C06996.71280/82.76524%; A06997.05882/84.97961%. Mean +.346021ppR1/+2.300189ppAP but productR1CI[-.084842,+.828167]pp =>KILL; APproductCI[1.771016,2.852259] positive. Each seednet6 nearest wins;11/12 gains vs5/6 losses,9sharedwins/5sharedlosses; affected15/18products, positive10/12 negative4/6. Train core+3.21/5.90%,whole+3.99/7.17%slower;<=1.50passes but NOspeedwin. Original score557.514s/host1.85GB/zeroSwapevents/paritypassed; all4exportqualified. No sealedVAL/officialread/newSOTAclaim. Current public parameter fingerprint occurrence3.423GB/request, dominanceUNMEASURED; new source-only serving driver underway, no survivornative launch allowed. Task: derive ONE cheapest causally distinct TRAIN-only next intervention/stop rule addressing nearest-error mechanism and joint speed/quality, not another serial loss tweak/randomprobe or largeruncertainty run to rescuefailedarm. Consider representation/layout, local/globalpooling, supervision/sampling/viewcoverage, teachertransfer, compression/preprocessing/serving; other-field inspiration only testable. Challenge AP-vsR1 inference and sparse exposedselection overfitting; distinguish evidence/hypotheses. Compare 2-3 concrete mechanisms briefly then chooseone, show smallest saved-wire/source/CPU falsifier and if needed ONE predeclared DGX TRAIN gate with pairedseed/budget/quality/packedparity/uncertainty/cost/stop unchanged; no futurehash guesses. If exact culprit is unknown, cheapest bounded causal diagnostic must discriminate and change next action, not merely inventory errors; no broad probe series. Need implementable formula/data/shape/API/estimated cost labelled estimates, source pointers, training-only calibration and independentconfirmation firewall. Preserve allmodels/failures/originalscores, RustCUDA/ties,8GiB/noSwap/CUDA<10GB/sourcegates, never use officialTEST forselection or extrapolateimpostorlinear. Search only primary papers/docs ifpriorarthelps; do notclaim exhaustiveSOTA or accessfailedsources. Give decisive recommendation plus strongest falsifier/killcondition and remaining proof obligations. No code changes.",
+  "prompt_sha256": "615a60295711ac53ccd0fd25013f4af6e5f520ca40547c9eb59c95c8224756ff",
+  "prompt_bytes": 3494,
+  "fingerprint": "ba08f88f9a57664db23843f12efae6832d4560fb311320c88f82d6afb1ead446",
+  "evidence": {
+    "git_commit": "375c0889d42de30b10cdaa16eea04c996ee4cb56",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "50fbfdac12834adda8d5026b519e69d14183803b780c4bf5f9b3041ac2cfc331",
+  "reused": false,
+  "systemd_unit": "devbox-consult-72bd928039e44f38.service",
+  "pid": 755089,
+  "pgid": 755089,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1",
+      "budget_usd": 6,
+      "timeout_seconds": 1800,
+      "started_at": 1791444368
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791444945,
+  "event_cursor": 54,
+  "events": [
+    {
+      "seq": 31,
+      "at": 1791444780,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 32,
+      "at": 1791444909,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 33,
+      "at": 1791444910,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 34,
+      "at": 1791444912,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 35,
+      "at": 1791444913,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 36,
+      "at": 1791444915,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 37,
+      "at": 1791444917,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 38,
+      "at": 1791444918,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 39,
+      "at": 1791444920,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 40,
+      "at": 1791444922,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 41,
+      "at": 1791444924,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 42,
+      "at": 1791444925,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 43,
+      "at": 1791444927,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 44,
+      "at": 1791444929,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 45,
+      "at": 1791444930,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 46,
+      "at": 1791444932,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 47,
+      "at": 1791444934,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 48,
+      "at": 1791444935,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 49,
+      "at": 1791444937,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 50,
+      "at": 1791444939,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 51,
+      "at": 1791444940,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 52,
+      "at": 1791444942,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 53,
+      "at": 1791444944,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 54,
+      "at": 1791444944,
+      "provider": "fable",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "fable": [
+      {
+        "seq": 47,
+        "at": 1791444934,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 48,
+        "at": 1791444935,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 49,
+        "at": 1791444937,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 50,
+        "at": 1791444939,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 51,
+        "at": 1791444940,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 52,
+        "at": 1791444942,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 53,
+        "at": 1791444944,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 54,
+        "at": 1791444944,
+        "provider": "fable",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Decision: do not launch another training arm yet. The persistent error core is a frozen-source core, so the next step is a zero-GPU saved-wire causal census with a predeclared census-to-action map, whose default outcome is a stop rule for this lane.**\n\n## New evidence from the accepted KILL receipt (my arithmetic on the saved per-query arrays)\n\nError sets reconstructed from `receipt.json` (concat arrays plus the three delta arrays), 1734 queries:\n\n| Endpoint | Errors (seed 061 / 069) |\n|---|---:|\n| Frozen source (packed) | 64 / 64, identical sets |\n| Accepted concat | 61 |\n| Fresh control (A/C) | 56 / 57, 54 shared |\n| Connected candidate | 50 / 51 |\n\n- Cross-seed persistent core (error in control and candidate, both seeds): 44 queries. 39 of them are frozen-source errors, 43 are concat errors.\n- Candidate wins 11/12, of which 9 are source errors. Candidate losses 5/6, of which only 1 is a source error. The arm breaks queries the frozen source gets right.\n- Candidate mean AP on the 44 core errors rose from 0.128 to 0.160. On the 1673 queries correct under both arms it rose from 0.841 to 0.873. Over 95% of the summed AP gain comes from re-ordering secondary positives of already-correct queries. AP gain carries no information about the 1-NN event. The \"AP positive therefore promising\" inference is invalid here.\n- Estimate, not measured: AP 0.16 with about 3.4 positives per product puts the first positive at roughly rank 4 to 8 for a typical core query, so most core positives are likely inside the native top-10. The census below measures this.\n\nInterpretation (hypothesis, consistent with every prior lane): readout training, last-MLP adaptation, view, mixing and loss arms all operate on a margin shell of about 20 queries around a deterministic 39-query frozen-source core. Each arm trades about +10 fixes for about 5 breaks, net +6, which is +0.35 pp and inside a product-bootstrap half-width of about 0.46 pp (about 8 queries). Nothing in this family can be certified on this panel unless it fixes core errors without breaking source-correct ones.\n\nOn sparse-selection overfitting: the 9 shared wins and 5 shared losses repeat across seeds, so the effect is deterministic given the recipe, and the KILL is a panel-size limit, not training noise. This panel has adjudicated at least six arms in this lineage. It can only certify effects of roughly +0.5 pp or more. That is a constraint to respect, not a threshold to move.\n\n## Mechanisms compared\n\n1. **Pose-twin absence** (same-pose impostor beats a positive whose same-pose view is missing from the gallery). Prior exploratory support on the Large pipeline: same-pose top impostors 2.09x enriched, 78/151 role-split misses were full-inventory hits. Loss-side and view-side attacks on it all failed (role-matched SmoothAP, genuine views, identity mix, crops). Untested form: positive membership restricted by pose metadata.\n2. **Capacity on the core** (deeper or longer encoder adaptation). Final-block, final-two, late-dense and PE final-MLP lanes all KILLed on quality, and this is exactly the \"larger run to rescue a failed arm\" the brief excludes. Dead.\n3. **Near-tie or compression shell** (positive at rank 2 to 3 with tiny margin, or float-correct but int8-wrong). Prior packed-vs-float was 0.0 pp on another pipeline. Cheap to measure, unlikely to be large.\n\nNone can be chosen on evidence yet because margins, ranks, pose structure and float-vs-int8 flips of the 44 core queries are unmeasured. The receipts say so explicitly. So the cheapest causally discriminating step is the census, with its outcomes bound to actions before reading.\n\n## The one next step: saved-wire causal census (D0)\n\nInputs, all already accepted and hashed, no model, no images, no GPU, no new quality data:\n- Eight export arrays on the DGX: `{control,candidate}-{179061,179069}.{raw,unit}.npy` [3449,128] float32 plus the matching `.packed.bin`, hashes in each export receipt under `panel_facts` and `files`. Local evidence holds only hashes, so this is a DGX CPU-only read.\n- Frozen source and concat per-query arrays already in the score receipt.\n- Panel order and paths from the bound scope file (sha `55cde4ef…`, path in `binding/scope`). Pose is the filename suffix (front, side, back, full, flat, additional). Product is the `id_` directory.\n\nPer query i and endpoint e, using the existing packed scorer and the lower-ordinal tie rule:\n- `rank1(i,e)` = rank of the first same-product gallery row.\n- `margin(i,e)` = score(top impostor) minus score(best positive), from unit floats and separately from int8 codes.\n- `twin(i)` = 1 if any positive gallery row shares the query pose.\n- `sp_imp(i,e)` = 1 if the top impostor shares the query pose.\n- `flip(i,e)` = 1 if float top-1 is correct and packed top-1 is wrong.\n\nReport these for the 44 core, the 64 source errors, the 9 shared wins and the 5 shared losses. Expected compute: under 2 minutes CPU, under 100 MB, about 150 lines of stdlib plus numpy (estimates). Independent confirmation: parent recomputes rank1 and margin from the raw arrays with a brute-force cosine, no shared code.\n\nPredeclared census-to-action map, read once, no re-thresholding:\n- **Class P dominates** (at least 22 of 44 core have `twin=0` and `sp_imp=1` under both control endpoints): fund ONE DGX TRAIN gate, pose-disjoint positive supervision. Metadata-only change to the SmoothAP and P[label] membership masks: positives for an anchor are same-product rows of a different pose only; negatives unchanged; operator, model, four tensors, lr, B64/micro16, 128 updates, two views, seeds 061/069, cost ratio 1.50, packed parity, 5000-draw product bootstrap, R1 product LCB > 0 criterion all unchanged. Cost estimate: 2 fresh controls plus 2 candidates at about 2200 to 2350 s each, 4 exports at about 1300 s, one score at about 560 s, about 4.5 hours DGX, under the existing 8 GiB, zero-swap and CUDA under 10 GB envelopes. Mechanism kill, in addition to the unchanged gate: the arm must fix at least 6 class-P core queries in both seeds with at most 2 shared new losses, otherwise stop the lane even if the aggregate is positive.\n- **Class C** (at least 5 core queries with `flip=1`): fix the int8 packing layout first, source-only, zero training. Expected small.\n- **Class N** (at least 22 core with float margin below 0.01 and impostor in the same category directory, both float and int8): treat as near-duplicate ceiling. Stop the quality lane on this substrate.\n- **Class D, or no class reaches its threshold** (at least 26 of 44 core with `rank1 > 10` under both candidates, or thresholds unmet): **STOP.** Record a bounded non-discovery: so400m at 256 with the 128-byte int8 contract has a deterministic 39-query source core on this panel that no readout, loss, view or last-MLP arm reaches. Further quality work needs a substrate change, which is outside this goal's budget.\n\nSpeed: every option above leaves the encoder graph and 128-byte wire unchanged, so decode-to-native-top-k latency is unaffected by construction. The 3.42 GB per-request parameter hashing is a serving guard cost owned by the separate source-only driver, not a model lever, and remains unmeasured for dominance.\n\nPrior-art note, labelled: pose-conditioned positive sampling is a small delta on known view-invariant metric learning. No novelty claim is made. The claim vehicle is the paired R1 product interval only.\n\n## Firewalls and obligations\n\n- Census uses only the exposed TRAIN panel plus TRAIN metadata. No sealed VAL or official TEST read. Thresholds above are fixed now; the census result cannot change them.\n- All four models, both control receipts, the source and concat floors and the original KILL are preserved. No retraining of accepted arms.\n- Remaining proof obligations: scope-file pose parsing verified against the receipt input-guard paths; brute-force parent recomputation of ranks; the class-P arm needs a source-only test proving the mask change is the sole diff and that both views see at least one different-pose positive per anchor, or the anchor is excluded and counted; no exact hashes are stated for the new source.\n- No code was changed. The devbox-tell channel was not used because nothing here needs an operator decision until the census result lands.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "fable": "**Decision: do not launch another training arm yet. The persistent error core is a frozen-source core, so the next step is a zero-GPU saved-wire causal census with a predeclared census-to-action map, whose default outcome is a stop rule for this lane.**\n\n## New evidence from the accepted KILL receipt (my arithmetic on the saved per-query arrays)\n\nError sets reconstructed from `receipt.json` (concat arrays plus the three delta arrays), 1734 queries:\n\n| Endpoint | Errors (seed 061 / 069) |\n|---|---:|\n| Frozen source (packed) | 64 / 64, identical sets |\n| Accepted concat | 61 |\n| Fresh control (A/C) | 56 / 57, 54 shared |\n| Connected candidate | 50 / 51 |\n\n- Cross-seed persistent core (error in control and candidate, both seeds): 44 queries. 39 of them are frozen-source errors, 43 are concat errors.\n- Candidate wins 11/12, of which 9 are source errors. Candidate losses 5/6, of which only 1 is a source error. The arm breaks queries the frozen source gets right.\n- Candidate mean AP on the 44 core errors rose from 0.128 to 0.160. On the 1673 queries correct under both arms it rose from 0.841 to 0.873. Over 95% of the summed AP gain comes from re-ordering secondary positives of already-correct queries. AP gain carries no information about the 1-NN event. The \"AP positive therefore promising\" inference is invalid here.\n- Estimate, not measured: AP 0.16 with about 3.4 positives per product puts the first positive at roughly rank 4 to 8 for a typical core query, so most core positives are likely inside the native top-10. The census below measures this.\n\nInterpretation (hypothesis, consistent with every prior lane): readout training, last-MLP adaptation, view, mixing and loss arms all operate on a margin shell of about 20 queries around a deterministic 39-query frozen-source core. Each arm trades about +10 fixes for about 5 breaks, net +6, which is +0.35 pp and inside a product-bootstrap half-width of about 0.46 pp (about 8 queries). Nothing in this family can be certified on this panel unless it fixes core errors without breaking source-correct ones.\n\nOn sparse-selection overfitting: the 9 shared wins and 5 shared losses repeat across seeds, so the effect is deterministic given the recipe, and the KILL is a panel-size limit, not training noise. This panel has adjudicated at least six arms in this lineage. It can only certify effects of roughly +0.5 pp or more. That is a constraint to respect, not a threshold to move.\n\n## Mechanisms compared\n\n1. **Pose-twin absence** (same-pose impostor beats a positive whose same-pose view is missing from the gallery). Prior exploratory support on the Large pipeline: same-pose top impostors 2.09x enriched, 78/151 role-split misses were full-inventory hits. Loss-side and view-side attacks on it all failed (role-matched SmoothAP, genuine views, identity mix, crops). Untested form: positive membership restricted by pose metadata.\n2. **Capacity on the core** (deeper or longer encoder adaptation). Final-block, final-two, late-dense and PE final-MLP lanes all KILLed on quality, and this is exactly the \"larger run to rescue a failed arm\" the brief excludes. Dead.\n3. **Near-tie or compression shell** (positive at rank 2 to 3 with tiny margin, or float-correct but int8-wrong). Prior packed-vs-float was 0.0 pp on another pipeline. Cheap to measure, unlikely to be large.\n\nNone can be chosen on evidence yet because margins, ranks, pose structure and float-vs-int8 flips of the 44 core queries are unmeasured. The receipts say so explicitly. So the cheapest causally discriminating step is the census, with its outcomes bound to actions before reading.\n\n## The one next step: saved-wire causal census (D0)\n\nInputs, all already accepted and hashed, no model, no images, no GPU, no new quality data:\n- Eight export arrays on the DGX: `{control,candidate}-{179061,179069}.{raw,unit}.npy` [3449,128] float32 plus the matching `.packed.bin`, hashes in each export receipt under `panel_facts` and `files`. Local evidence holds only hashes, so this is a DGX CPU-only read.\n- Frozen source and concat per-query arrays already in the score receipt.\n- Panel order and paths from the bound scope file (sha `55cde4ef…`, path in `binding/scope`). Pose is the filename suffix (front, side, back, full, flat, additional). Product is the `id_` directory.\n\nPer query i and endpoint e, using the existing packed scorer and the lower-ordinal tie rule:\n- `rank1(i,e)` = rank of the first same-product gallery row.\n- `margin(i,e)` = score(top impostor) minus score(best positive), from unit floats and separately from int8 codes.\n- `twin(i)` = 1 if any positive gallery row shares the query pose.\n- `sp_imp(i,e)` = 1 if the top impostor shares the query pose.\n- `flip(i,e)` = 1 if float top-1 is correct and packed top-1 is wrong.\n\nReport these for the 44 core, the 64 source errors, the 9 shared wins and the 5 shared losses. Expected compute: under 2 minutes CPU, under 100 MB, about 150 lines of stdlib plus numpy (estimates). Independent confirmation: parent recomputes rank1 and margin from the raw arrays with a brute-force cosine, no shared code.\n\nPredeclared census-to-action map, read once, no re-thresholding:\n- **Class P dominates** (at least 22 of 44 core have `twin=0` and `sp_imp=1` under both control endpoints): fund ONE DGX TRAIN gate, pose-disjoint positive supervision. Metadata-only change to the SmoothAP and P[label] membership masks: positives for an anchor are same-product rows of a different pose only; negatives unchanged; operator, model, four tensors, lr, B64/micro16, 128 updates, two views, seeds 061/069, cost ratio 1.50, packed parity, 5000-draw product bootstrap, R1 product LCB > 0 criterion all unchanged. Cost estimate: 2 fresh controls plus 2 candidates at about 2200 to 2350 s each, 4 exports at about 1300 s, one score at about 560 s, about 4.5 hours DGX, under the existing 8 GiB, zero-swap and CUDA under 10 GB envelopes. Mechanism kill, in addition to the unchanged gate: the arm must fix at least 6 class-P core queries in both seeds with at most 2 shared new losses, otherwise stop the lane even if the aggregate is positive.\n- **Class C** (at least 5 core queries with `flip=1`): fix the int8 packing layout first, source-only, zero training. Expected small.\n- **Class N** (at least 22 core with float margin below 0.01 and impostor in the same category directory, both float and int8): treat as near-duplicate ceiling. Stop the quality lane on this substrate.\n- **Class D, or no class reaches its threshold** (at least 26 of 44 core with `rank1 > 10` under both candidates, or thresholds unmet): **STOP.** Record a bounded non-discovery: so400m at 256 with the 128-byte int8 contract has a deterministic 39-query source core on this panel that no readout, loss, view or last-MLP arm reaches. Further quality work needs a substrate change, which is outside this goal's budget.\n\nSpeed: every option above leaves the encoder graph and 128-byte wire unchanged, so decode-to-native-top-k latency is unaffected by construction. The 3.42 GB per-request parameter hashing is a serving guard cost owned by the separate source-only driver, not a model lever, and remains unmeasured for dominance.\n\nPrior-art note, labelled: pose-conditioned positive sampling is a small delta on known view-invariant metric learning. No novelty claim is made. The claim vehicle is the paired R1 product interval only.\n\n## Firewalls and obligations\n\n- Census uses only the exposed TRAIN panel plus TRAIN metadata. No sealed VAL or official TEST read. Thresholds above are fixed now; the census result cannot change them.\n- All four models, both control receipts, the source and concat floors and the original KILL are preserved. No retraining of accepted arms.\n- Remaining proof obligations: scope-file pose parsing verified against the receipt input-guard paths; brute-force parent recomputation of ranks; the class-P arm needs a source-only test proving the mask change is the sole diff and that both views see at least one different-pose positive per anchor, or the anchor is excluded and counted; no exact hashes are stated for the new source.\n- No code was changed. The devbox-tell channel was not used because nothing here needs an operator decision until the census result lands."
+  },
+  "providers_used": [
+    "fable"
+  ],
+  "active_provider": "fable",
+  "phase": "Consultation completed",
+  "input_bytes": 3494,
+  "output_bytes": 8260,
+  "elapsed_seconds": 577,
+  "progress": "devbox-ask: fable consult still running (0m 30s)\ndevbox-ask: fable consult still running (1m 00s)\ndevbox-ask: fable consult still running (1m 30s)\ndevbox-ask: fable consult still running (2m 00s)\ndevbox-ask: fable consult still running (2m 30s)\ndevbox-ask: fable consult still running (3m 30s)\ndevbox-ask: fable consult still running (4m 00s)\ndevbox-ask: fable consult still running (4m 30s)\ndevbox-ask: fable consult still running (5m 00s)\ndevbox-ask: fable consult still running (5m 30s)\ndevbox-ask: fable consult still running (6m 00s)\ndevbox-ask: fable consult still running (6m 30s)\ndevbox-ask: fable consult still running (7m 00s)\ndevbox-ask: fable consult still running (7m 30s)\ndevbox-ask: fable consult still running (8m 00s)\ndevbox-ask: fable consult still running (8m 30s)\ndevbox-ask: fable consult still running (9m 00s)\ndevbox-ask: fable consult still running (9m 30s)",
+  "progress_truncated": false,
+  "result": "**Decision: do not launch another training arm yet. The persistent error core is a frozen-source core, so the next step is a zero-GPU saved-wire causal census with a predeclared census-to-action map, whose default outcome is a stop rule for this lane.**\n\n## New evidence from the accepted KILL receipt (my arithmetic on the saved per-query arrays)\n\nError sets reconstructed from `receipt.json` (concat arrays plus the three delta arrays), 1734 queries:\n\n| Endpoint | Errors (seed 061 / 069) |\n|---|---:|\n| Frozen source (packed) | 64 / 64, identical sets |\n| Accepted concat | 61 |\n| Fresh control (A/C) | 56 / 57, 54 shared |\n| Connected candidate | 50 / 51 |\n\n- Cross-seed persistent core (error in control and candidate, both seeds): 44 queries. 39 of them are frozen-source errors, 43 are concat errors.\n- Candidate wins 11/12, of which 9 are source errors. Candidate losses 5/6, of which only 1 is a source error. The arm breaks queries the frozen source gets right.\n- Candidate mean AP on the 44 core errors rose from 0.128 to 0.160. On the 1673 queries correct under both arms it rose from 0.841 to 0.873. Over 95% of the summed AP gain comes from re-ordering secondary positives of already-correct queries. AP gain carries no information about the 1-NN event. The \"AP positive therefore promising\" inference is invalid here.\n- Estimate, not measured: AP 0.16 with about 3.4 positives per product puts the first positive at roughly rank 4 to 8 for a typical core query, so most core positives are likely inside the native top-10. The census below measures this.\n\nInterpretation (hypothesis, consistent with every prior lane): readout training, last-MLP adaptation, view, mixing and loss arms all operate on a margin shell of about 20 queries around a deterministic 39-query frozen-source core. Each arm trades about +10 fixes for about 5 breaks, net +6, which is +0.35 pp and inside a product-bootstrap half-width of about 0.46 pp (about 8 queries). Nothing in this family can be certified on this panel unless it fixes core errors without breaking source-correct ones.\n\nOn sparse-selection overfitting: the 9 shared wins and 5 shared losses repeat across seeds, so the effect is deterministic given the recipe, and the KILL is a panel-size limit, not training noise. This panel has adjudicated at least six arms in this lineage. It can only certify effects of roughly +0.5 pp or more. That is a constraint to respect, not a threshold to move.\n\n## Mechanisms compared\n\n1. **Pose-twin absence** (same-pose impostor beats a positive whose same-pose view is missing from the gallery). Prior exploratory support on the Large pipeline: same-pose top impostors 2.09x enriched, 78/151 role-split misses were full-inventory hits. Loss-side and view-side attacks on it all failed (role-matched SmoothAP, genuine views, identity mix, crops). Untested form: positive membership restricted by pose metadata.\n2. **Capacity on the core** (deeper or longer encoder adaptation). Final-block, final-two, late-dense and PE final-MLP lanes all KILLed on quality, and this is exactly the \"larger run to rescue a failed arm\" the brief excludes. Dead.\n3. **Near-tie or compression shell** (positive at rank 2 to 3 with tiny margin, or float-correct but int8-wrong). Prior packed-vs-float was 0.0 pp on another pipeline. Cheap to measure, unlikely to be large.\n\nNone can be chosen on evidence yet because margins, ranks, pose structure and float-vs-int8 flips of the 44 core queries are unmeasured. The receipts say so explicitly. So the cheapest causally discriminating step is the census, with its outcomes bound to actions before reading.\n\n## The one next step: saved-wire causal census (D0)\n\nInputs, all already accepted and hashed, no model, no images, no GPU, no new quality data:\n- Eight export arrays on the DGX: `{control,candidate}-{179061,179069}.{raw,unit}.npy` [3449,128] float32 plus the matching `.packed.bin`, hashes in each export receipt under `panel_facts` and `files`. Local evidence holds only hashes, so this is a DGX CPU-only read.\n- Frozen source and concat per-query arrays already in the score receipt.\n- Panel order and paths from the bound scope file (sha `55cde4ef…`, path in `binding/scope`). Pose is the filename suffix (front, side, back, full, flat, additional). Product is the `id_` directory.\n\nPer query i and endpoint e, using the existing packed scorer and the lower-ordinal tie rule:\n- `rank1(i,e)` = rank of the first same-product gallery row.\n- `margin(i,e)` = score(top impostor) minus score(best positive), from unit floats and separately from int8 codes.\n- `twin(i)` = 1 if any positive gallery row shares the query pose.\n- `sp_imp(i,e)` = 1 if the top impostor shares the query pose.\n- `flip(i,e)` = 1 if float top-1 is correct and packed top-1 is wrong.\n\nReport these for the 44 core, the 64 source errors, the 9 shared wins and the 5 shared losses. Expected compute: under 2 minutes CPU, under 100 MB, about 150 lines of stdlib plus numpy (estimates). Independent confirmation: parent recomputes rank1 and margin from the raw arrays with a brute-force cosine, no shared code.\n\nPredeclared census-to-action map, read once, no re-thresholding:\n- **Class P dominates** (at least 22 of 44 core have `twin=0` and `sp_imp=1` under both control endpoints): fund ONE DGX TRAIN gate, pose-disjoint positive supervision. Metadata-only change to the SmoothAP and P[label] membership masks: positives for an anchor are same-product rows of a different pose only; negatives unchanged; operator, model, four tensors, lr, B64/micro16, 128 updates, two views, seeds 061/069, cost ratio 1.50, packed parity, 5000-draw product bootstrap, R1 product LCB > 0 criterion all unchanged. Cost estimate: 2 fresh controls plus 2 candidates at about 2200 to 2350 s each, 4 exports at about 1300 s, one score at about 560 s, about 4.5 hours DGX, under the existing 8 GiB, zero-swap and CUDA under 10 GB envelopes. Mechanism kill, in addition to the unchanged gate: the arm must fix at least 6 class-P core queries in both seeds with at most 2 shared new losses, otherwise stop the lane even if the aggregate is positive.\n- **Class C** (at least 5 core queries with `flip=1`): fix the int8 packing layout first, source-only, zero training. Expected small.\n- **Class N** (at least 22 core with float margin below 0.01 and impostor in the same category directory, both float and int8): treat as near-duplicate ceiling. Stop the quality lane on this substrate.\n- **Class D, or no class reaches its threshold** (at least 26 of 44 core with `rank1 > 10` under both candidates, or thresholds unmet): **STOP.** Record a bounded non-discovery: so400m at 256 with the 128-byte int8 contract has a deterministic 39-query source core on this panel that no readout, loss, view or last-MLP arm reaches. Further quality work needs a substrate change, which is outside this goal's budget.\n\nSpeed: every option above leaves the encoder graph and 128-byte wire unchanged, so decode-to-native-top-k latency is unaffected by construction. The 3.42 GB per-request parameter hashing is a serving guard cost owned by the separate source-only driver, not a model lever, and remains unmeasured for dominance.\n\nPrior-art note, labelled: pose-conditioned positive sampling is a small delta on known view-invariant metric learning. No novelty claim is made. The claim vehicle is the paired R1 product interval only.\n\n## Firewalls and obligations\n\n- Census uses only the exposed TRAIN panel plus TRAIN metadata. No sealed VAL or official TEST read. Thresholds above are fixed now; the census result cannot change them.\n- All four models, both control receipts, the source and concat floors and the original KILL are preserved. No retraining of accepted arms.\n- Remaining proof obligations: scope-file pose parsing verified against the receipt input-guard paths; brute-force parent recomputation of ranks; the class-P arm needs a source-only test proving the mask change is the sole diff and that both views see at least one different-pose positive per anchor, or the anchor is excluded and counted; no exact hashes are stated for the new source.\n- No code was changed. The devbox-tell channel was not used because nothing here needs an operator decision until the census result lands.",
+  "result_truncated": false
+}

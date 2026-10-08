@@ -1,0 +1,29 @@
+{
+  "candidate_census_requires_review": [
+    "Use only accepted exported wires, originalFIT/partition targets/path metadata; noimage/model/VAL/officialreads.",
+    "First reproduce ALL4 original perquery packedR1 arrays EXACT using original tie/packing arithmetic before reporting any margins or rank predicates.",
+    "Bind real panel ordering from partition702f...+originalFITd32f..., not scope6355 trainingrow order.",
+    "Predeclare overlapping-class precedence and what next action each result can support; no automatic cause, pose-target change, thresholdmove or entire-goal stop.",
+    "Parent independently verifies full arrays/ranks; estimatesunder2min/100MB are UNMEASURED.",
+    "No census native invocation or next training until exact source/inputs/resources/stop rule reviewed and frozen."
+  ],
+  "confirmed": [
+    "44 persistent current control/candidate errors across both seeds;39 also frozen source errors;43 concat errors",
+    "Controls56/57 and candidate50/51 errors; source64;concat61",
+    "Wins9 source-error repairs in eachseed; only1 of each5/6 losses also source-error"
+  ],
+  "corrections": [
+    "Both-correct AP contribution is87.3506%/84.8297% of summed AP gain, not over95%.",
+    "Both-correct controlAP means.851643/.852730, not.841; corecontrolAP means.112330/.105825, candidate.154488/.153038, not.128/.160.",
+    "MeanAP and average positive count do not identify a typical first-positive rank; drop rank4-8 estimate.",
+    "No universal .5pp detection floor or representation ceiling follows from this one paired interval.",
+    "Filename suffix is metadata view type, not verified physical pose; category + small score margin cannot prove near-duplicate identity or irreducible ceiling.",
+    "Float-correct/packed-wrong can show quantization loss without establishing a packing-layout bug.",
+    "Unchanged graph/wire shapes do not prove unchanged end-to-end latency or speed win.",
+    "Production goal has no exhausted budget; a lane stop does not stop substrate research or replace the goal."
+  ],
+  "original_consultation": "72bd928039e44f38",
+  "schema": "connected-next-mechanism-parent-screen-v1",
+  "source_asymmetry_audit": "../connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json",
+  "status": "PLAN_REVIEW_REQUIRED_NO_CENSUS_OR_TRAIN_LAUNCHED"
+}
