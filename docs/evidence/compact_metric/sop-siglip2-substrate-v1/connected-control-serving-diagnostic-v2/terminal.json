@@ -1,0 +1,129 @@
+{
+  "actual_unit": "sfora-connected-control-serving-diagnostic-v1",
+  "candidate_status": "KILL unchanged",
+  "compiler_executable_passed": true,
+  "decision": "FAIL_NATIVE_ORIGIN_UNACCEPTED",
+  "events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "final_cgroup": {
+    "command_exit_status": 1,
+    "invocation_id": "f01ae16a6f714d759fab5e11b8883a63",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-serving-diagnostic-v1.service",
+    "values": {
+      "memory.current": "727040000",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "1850249216",
+      "memory.stat": "anon 5910528\nfile 716431360\nkernel 2711552\nkernel_stack 32768\npagetables 200704\nsec_pagetables 0\npercpu 1408\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 262144\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5787648\ninactive_file 15011840\nactive_file 701419520\nunevictable 0\nslab_reclaimable 2372200\nslab_unreclaimable 91304\nslab 2463504\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 524832\npgmajfault 6568\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 133\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "host_peak_bytes": 1850249216,
+  "invocation_id": "f01ae16a6f714d759fab5e11b8883a63",
+  "log_sha256": "9114c511c66b9d64be7475befab468fe82367fe965d91abc55e229fb7313d8e0",
+  "original_ssh_session": 96019,
+  "output": "/home/riomus/runs/sfora-connected-control-serving-diagnostic-v2",
+  "primary_rejection": "unknown or changed combined native origin",
+  "quality_read": false,
+  "rejected_origins": {
+    "origins": [
+      {
+        "actual_sha256": "06cce242043cd160ad3a7652537f3e3afcce0f58587d2f8e6ae6a157e3289299",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/svm/_libsvm.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "ee567ce2679afdfb68875fdc649b107e31c9edb76b8c6d9299e132efd7da8e75",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/_loss/_loss.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "55645bef2a7ec65cdb6868c5a45fba4b6a45d07259b60647acaf77dd8a3a3889",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_random.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "567ac4107913cd03f498aec3dcde92b55d904c01bd4c613d213e185ed0970c04",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_seq_dataset.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "0bb2ae025213398d124ad8eadff8ce2ab1aa4cbc03dd1dc11002c10046e1d9cf",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/svm/_liblinear.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "62e51d3f9ec96e153386de68f5de0b4c05bc13c132c6f2f7053ebd55e117a262",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/svm/_libsvm_sparse.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "943555f4463b6c8b3d8c4b117330cf6840e8be5ac41e15e826e65083226641e3",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/linear_model/_sag_fast.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "36bcc8f5b56360d0162a77dbcb7ab39567cb5f35fc0d11fe70d87c524c182b3d",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/arrayfuncs.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "fd471937b539c445cbcee5846ba2d7e1c1410fda7b5df0ddf20133a48783efc5",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pydantic_core/_pydantic_core.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "4da75f646a3db3ee4d55f1723b7a58532e49d3d76c8e7b069a6cc771a88564e5",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/linear_model/_sgd_fast.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "f9e19c3c4805ee72b3a9a04bbce65a8645b7501147584322b5c3663de22b1745",
+        "expected_sha256": null,
+        "path": "/usr/lib/aarch64-linux-gnu/libnvidia-gpucomp.so.580.159.03"
+      },
+      {
+        "actual_sha256": "872e3e241cab6afba924715fce8c5f60a2891a4d247c7f05cd52e0baa591f67d",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/linear_model/_cd_fast.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "4f216e5c706dc22dec9b59f1b700d62b2f0bf51522db6de0960ff194328bdc4e",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_weight_vector.cpython-313-aarch64-linux-gnu.so"
+      },
+      {
+        "actual_sha256": "5cb3e6c6bc3fdb4aab8d47fe1903c03effe02e539bee041814a7efebfe20fe0a",
+        "expected_sha256": null,
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/feature_extraction/_hashing_fast.cpython-313-aarch64-linux-gnu.so"
+      }
+    ],
+    "schema": "connected-control-native-origin-rejection-v1",
+    "total_count": 14
+  },
+  "schema": "connected-control-serving-terminal-v1",
+  "service_seconds": 440.204,
+  "serving_receipt_accepted": false,
+  "source_root": "/home/riomus/runs/sfora-connected-control-serving-source-v2",
+  "stop_cgroup": {
+    "exit_code": "exited",
+    "exit_status": "1",
+    "invocation_id": "f01ae16a6f714d759fab5e11b8883a63",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-control-serving-diagnostic-v1.service",
+    "service_result": "exit-code",
+    "values": {
+      "memory.current": "726605824",
+      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "1850249216",
+      "memory.stat": "anon 5439488\nfile 716431360\nkernel 2535424\nkernel_stack 0\npagetables 106496\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 262144\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5332992\ninactive_file 15011840\nactive_file 701419520\nunevictable 0\nslab_reclaimable 2371624\nslab_unreclaimable 51264\nslab 2422888\nworkingset_refault_anon 0\nworkingset_refault_file 0\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 526331\npgmajfault 6568\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 133\nthp_collapse_alloc 0\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "swap_peak": 0,
+  "terminal_exit": 1,
+  "unit_label_note": "Original launcher retained v1 unit label; actual new invocation/source/output recorded, no relaunch."
+}
