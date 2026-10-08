@@ -1,0 +1,3 @@
+PASS actual authority loop: old overlap1 / new overlap2..4, exact fresh occurrences
+PASS actual accept_unit loop: old overlap1 / new overlap2..4, exact fresh occurrences
+PASS actual admission scans: mutation/symlink/roles/conflict/duplicates/errors, atomic owner and joined failures

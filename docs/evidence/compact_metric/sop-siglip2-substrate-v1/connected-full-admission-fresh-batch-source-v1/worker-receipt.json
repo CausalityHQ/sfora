@@ -1,0 +1,113 @@
+{
+  "schema": "connected-evaluator-source-only-fresh-admission-batch-v1",
+  "commit": "bcc3f26f22de420b7b86a4caf380dabe28ff14c8",
+  "parent_commit": "25174cbdf61086d5ddba91431e3c134718bfc143",
+  "worktree": "/home/rb/worktrees/sfora-connected-full-admission-fresh-batch-20261008",
+  "identity": "Roman Bartusiak <riomus@gmail.com> | Roman Bartusiak <riomus@gmail.com>",
+  "clean": true,
+  "changed_exactly": [
+    "scripts/evaluate_siglip2_connected_mlp.py",
+    "scripts/test_connected_mlp_evaluation.py"
+  ],
+  "files": {
+    "scripts/evaluate_siglip2_connected_mlp.py": {
+      "sha256": "bb966f62b6ff609a6a3c3247ad5e625d6a0526824f8c5242ef1ce1b2d0bf54cf",
+      "ast_sha256": "7c1434affd0efb0a0d625561cfd0a4251bdeaf828a7a35ae2b8ecaee5e21ebdd",
+      "bytes": 90960
+    },
+    "scripts/test_connected_mlp_evaluation.py": {
+      "sha256": "3aa5aa8be23c569e9e7f161edfb6c7daf0b293839bb156fcaf6ff876e2292529",
+      "ast_sha256": "399b5aad973afebd930140f16d086e4a8c2a57e677962efb17bc2266f434b956",
+      "bytes": 79070
+    }
+  },
+  "logs": {
+    "red": {
+      "path": "/tmp/connected-full-admission-fresh-batch-20261008-red.log",
+      "sha256": "baef66c0444638b11a97f164975dbc62bb226b32714a53b9afd8dc224fb80d54",
+      "exit": 1
+    },
+    "green": {
+      "path": "/tmp/connected-full-admission-fresh-batch-20261008-green.log",
+      "sha256": "637f2db5b72d31c35b30c2a069ea68b8c9afd0ede9da2172af10140275642481",
+      "exit": 0
+    },
+    "narrow": {
+      "path": "/tmp/connected-full-admission-fresh-batch-20261008-narrow.log",
+      "sha256": "c0a56e1ed7755f78674c3ee86cdcc2fa74f66a305b7220493212b5e651f26adc",
+      "exit": 0
+    },
+    "full-check": {
+      "path": "/tmp/connected-full-admission-fresh-batch-20261008-full-check.log",
+      "sha256": "5df4f96ccaab99d6a2fb6b44f176a2cf5ba2baa6ffdae2a7d47fa3117e0a615e",
+      "exit": 0
+    }
+  },
+  "contract": {
+    "path": "/tmp/connected-full-admission-fresh-batch-20261008-contract.json",
+    "sha256": "c30fd2818d5907453e1819223d20a9b7a20f64d3f9f5285796eb2f50530c79b3"
+  },
+  "full_check": {
+    "command": "timeout 120 prlimit --as=1073741824 -- python3 -B scripts/test_connected_mlp_evaluation.py --source-only",
+    "exit": 0,
+    "runs": 1,
+    "replacement_runs": 0,
+    "log": "/tmp/connected-full-admission-fresh-batch-20261008-full-check.log",
+    "native": "UNRUN"
+  },
+  "source_inverse": {
+    "base_evaluator_bytes": "919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69",
+    "base_evaluator_ast": "65be54726dcc34df31c15bab3164f695fc5facd26d8587169687064622ccc3aa",
+    "base_test_bytes": "df1e233279e04bacd64b6bbd47361d43d350740fd496434e79de7b53b9f66ccb",
+    "assigned_base_equals_full_cpu_freeze": true,
+    "pattern": "trainer.batch_bound_files and identity-diversity runtime batch both isolate per-read guards, join fixed4 then stage owner merge. Trainer bound_file differs (readinto vs evaluator read), so retain exact evaluator bound_file and locally use only shared stdlib batching structure."
+  },
+  "owner_failure_ledger": "Original loops publish each successful prefix to owner, then reject first byte/canonical/error/conflict. Candidate validates every submitted occurrence with private {}, joins all workers on success or failure before returning, and publishes no bulk owner changes on any fresh validation or ordered staged conflict failure. Prior caller effects (invocation added before accept_unit loop) remain unchanged. Fresh worker errors are observed in input future order; byte errors all precede owner conflict merge, so a later byte failure can replace an earlier owner-conflict diagnostic. Descriptor checks remain in exact evaluator bound_file without prevalidation. Success owner key/value and insertion order match original. Scheduling/read observation order may differ. All tested mutations/symlinks/conflicts/errors still reject; no accepted unit/native handoff follows rejection.",
+  "parent_stat_inventory": {
+    "path": "/home/rb/agents/handoffs/sfora-connected-first-score-guard-stat-inventory.json",
+    "sha256": "bb9c909a3b1b4ae0e41209af63500e21142e6c9d0da35f21514d15f466993616",
+    "data": {
+      "schema": "first-score-guard-stat-inventory-v1",
+      "receipt_sha256": "bc80bef471cd05c7ab842258a9b86f3e8813f5dabc5235e2202399f5c607028d",
+      "files": 20381,
+      "groups_count_bytes": {
+        "other": [
+          20056,
+          570384335
+        ],
+        "native": [
+          262,
+          4248503188
+        ],
+        "checkpoint": [
+          37,
+          20710017061
+        ],
+        "arrays": [
+          26,
+          206206878
+        ]
+      },
+      "canonical_regular_rejections": [],
+      "latency_or_runtime_read_volume_measured": false
+    },
+    "total_stat_bytes": 25735111462,
+    "provenance": "Parent collected FILE stat metadata; child verified inventory file checksum and arithmetic only, no external/runtime access."
+  },
+  "integration_state": "HOLD: new source cannot admit original first-score-v2 current source/execution equality; unchanged gates require root-owned provenance/requalification decision.",
+  "original_timeout": {
+    "execution": "exec65778",
+    "invocation": "inv4e74777ab12642969ad612b495cf326d",
+    "result": "FAIL_TIMEOUT500.114s",
+    "host_bytes": 1571721216,
+    "events": 0,
+    "swap": 0,
+    "admitted_receipt": false,
+    "exact_subphase": "UNKNOWN"
+  },
+  "performance_measured": false,
+  "native_run": false,
+  "torch_imported_by_source_suite": false,
+  "pushed": false,
+  "merged": false
+}

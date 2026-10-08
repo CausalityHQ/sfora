@@ -1,0 +1,115 @@
+{
+  "assignment_base": "25174cbdf61086d5ddba91431e3c134718bfc143",
+  "initial_worktree_head": "f860e06147ff7946a14497a1c6c43f67f304ba91",
+  "base_action": "Clean isolated assigned branch restored to exact assignment base before inspection/edits.",
+  "allowed_files": [
+    "scripts/evaluate_siglip2_connected_mlp.py",
+    "scripts/test_connected_mlp_evaluation.py"
+  ],
+  "scope": "Source-only admission audit and at most fixed-four stdlib batching of exact bound_file({}, p, h) calls at authority archived.input_guards and accept_unit record.input_guards; fresh read/hash for every occurrence including duplicates; joined before ordered owner merge.",
+  "trace_required": [
+    "authority",
+    "accept_unit",
+    "admit_endpoints",
+    "native_start"
+  ],
+  "frozen": [
+    "original bound_file API and implementation",
+    "FlatAdmission",
+    "terminal predicates",
+    "native exact4",
+    "packed ties",
+    "science/numeric math",
+    "source/runtime/origin",
+    "policies500/1500/700",
+    "source pins",
+    "trainer v6",
+    "archived owner dispatch"
+  ],
+  "validation": "One extracted actual old/new-loop stdlib RED/GREEN falsifier; exact inverse production bytes+AST; existing source-only/historical-hash checks; final one timeout120/prlimitAS1GiB python3 -B scripts/test_connected_mlp_evaluation.py --source-only (one replacement only on repair).",
+  "owner_failure_ledger": "Original loops publish each successful prefix to owner, then reject first byte/canonical/error/conflict. Candidate validates every submitted occurrence with private {}, joins all workers on success or failure before returning, and publishes no bulk owner changes on any fresh validation or ordered staged conflict failure. Prior caller effects (invocation added before accept_unit loop) remain unchanged. Fresh worker errors are observed in input future order; byte errors all precede owner conflict merge, so a later byte failure can replace an earlier owner-conflict diagnostic. Descriptor checks remain in exact evaluator bound_file without prevalidation. Success owner key/value and insertion order match original. Scheduling/read observation order may differ. All tested mutations/symlinks/conflicts/errors still reject; no accepted unit/native handoff follows rejection.",
+  "prohibited": [
+    "Torch/native execution",
+    "images",
+    "SSH/DGX/cloud/jobs",
+    "consultations",
+    "children",
+    "operator contact",
+    "master merge/push",
+    "control file edit"
+  ],
+  "known_evidence": {
+    "execution": "exec65778",
+    "invocation": "inv4e74777ab12642969ad612b495cf326d",
+    "result": "FAIL_TIMEOUT500.114s",
+    "host_bytes": 1571721216,
+    "events": 0,
+    "swap": 0,
+    "admitted_receipt": false,
+    "exact_subphase": "UNKNOWN"
+  },
+  "limitations": "No native success or causal attribution; performance unmeasured. Root owns DGX, source freeze and cap decisions.",
+  "trace": [
+    "run calls authority(args) then native_start(context); admitted marker follows native_start and output mkdir",
+    "authority authenticates closures and trainer.authority; admits first two endpoints; validates accepted concat via original terminal reader; freshly loops archived.input_guards; source selection adapter/preparation/guard_helpers",
+    "full stage: accept_unit first_selection score -> unchanged check_receipt equality on source_code/execution -> original terminal_reader -> fresh record.input_guards loop -> complete common guards/origin/interpreter -> append accepted_units; CONTINUE and exact first endpoints gate then admit_endpoints seed069",
+    "admit_endpoints retains trainer mechanics/train readers, nested checkpoint/bundle/identity/cost gates, then authority required_guards snapshot; native_start only after authority returns"
+  ],
+  "correspondence": {
+    "base_evaluator_bytes": "919a05d0f3de2eeb3b99e4a8da9519992082881eb2b84ddc4a257e75c3ca1b69",
+    "base_evaluator_ast": "65be54726dcc34df31c15bab3164f695fc5facd26d8587169687064622ccc3aa",
+    "base_test_bytes": "df1e233279e04bacd64b6bbd47361d43d350740fd496434e79de7b53b9f66ccb",
+    "assigned_base_equals_full_cpu_freeze": true,
+    "pattern": "trainer.batch_bound_files and identity-diversity runtime batch both isolate per-read guards, join fixed4 then stage owner merge. Trainer bound_file differs (readinto vs evaluator read), so retain exact evaluator bound_file and locally use only shared stdlib batching structure."
+  },
+  "integration_blocker": "Any new evaluator bytes/execution fail existing check_receipt current source_code/execution equality for accepted first-selection-score-v2 from source-v5. Scope forbids weakening equality, historical rerouting, lifecycle fixes, or relabeling/rerunning quality. Candidate cannot directly qualify full-stage launch with historical score. Root separately owns provenance/requalification decisions.",
+  "red_green": {
+    "red_log": "/tmp/connected-full-admission-fresh-batch-20261008-red.log",
+    "red_exit": 1,
+    "red_assertion": "authority admission scan still serial",
+    "green_log": "/tmp/connected-full-admission-fresh-batch-20261008-green.log",
+    "green_exit": 0,
+    "narrow_log": "/tmp/connected-full-admission-fresh-batch-20261008-narrow.log",
+    "narrow_exit": 0,
+    "check": "Actual extracted archived.input_guards and record.input_guards statements, exact evaluator bound_file; old overlap1/new2..4; real file reads, exact descriptor/read counts including duplicates, existing-owner fresh restored-mtime mutation, malformed roles/symlink/missing/directory/noncanonical, digest and owner conflict rejection, injected I/O error, joined failure and atomic bulk owner publication."
+  },
+  "parent_stat_inventory": {
+    "path": "/home/rb/agents/handoffs/sfora-connected-first-score-guard-stat-inventory.json",
+    "sha256": "bb9c909a3b1b4ae0e41209af63500e21142e6c9d0da35f21514d15f466993616",
+    "data": {
+      "schema": "first-score-guard-stat-inventory-v1",
+      "receipt_sha256": "bc80bef471cd05c7ab842258a9b86f3e8813f5dabc5235e2202399f5c607028d",
+      "files": 20381,
+      "groups_count_bytes": {
+        "other": [
+          20056,
+          570384335
+        ],
+        "native": [
+          262,
+          4248503188
+        ],
+        "checkpoint": [
+          37,
+          20710017061
+        ],
+        "arrays": [
+          26,
+          206206878
+        ]
+      },
+      "canonical_regular_rejections": [],
+      "latency_or_runtime_read_volume_measured": false
+    },
+    "total_stat_bytes": 25735111462,
+    "provenance": "Parent collected FILE stat metadata; child verified inventory file checksum and arithmetic only, no external/runtime access."
+  },
+  "full_check": {
+    "command": "timeout 120 prlimit --as=1073741824 -- python3 -B scripts/test_connected_mlp_evaluation.py --source-only",
+    "exit": 0,
+    "runs": 1,
+    "replacement_runs": 0,
+    "log": "/tmp/connected-full-admission-fresh-batch-20261008-full-check.log",
+    "native": "UNRUN"
+  }
+}

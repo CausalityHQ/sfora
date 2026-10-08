@@ -1,0 +1,14 @@
+{
+  "active_review_group": "d912ece6f7e64e16",
+  "critical_blocker": "New source cannot admit old first061 decision under unchanged source_code/execution equality. Keep equality. Separate original-decision owner/prospective qualification required; no original quality rerun/relabel or old export full-stage reuse.",
+  "failure_behavior": "Atomic bulk owner publication after joined success, failed bulk leaves owner unchanged; changed conflict-vs-byte error ordering always rejects.",
+  "live_native_jobs": [],
+  "native_qualification": "HOLD_UNRUN",
+  "original_full_cpu": "FAIL_TIMEOUT500.114s preserved",
+  "performance_measured": false,
+  "preserved": "All original terminal/scientific/policy/source/native and current-byte predicates remain, old/new complete production bytes inverse verified; every per-occurrence read including duplicates preserved.",
+  "reviewed_commit": "bcc3f26f22de420b7b86a4caf380dabe28ff14c8",
+  "root_independent_check": "Actual old/new-loop fresh scans plus full production/test inverses and every declared artifact hash verified in original root exec, exit0; full worker suite reused unchanged.",
+  "schema": "connected-fresh-admission-batch-parent-source-decision-v1",
+  "source_only_integration": "GO"
+}
