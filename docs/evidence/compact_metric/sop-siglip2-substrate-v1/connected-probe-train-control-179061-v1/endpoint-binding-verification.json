@@ -1,0 +1,10 @@
+{
+  "bundle_sha256": "4bd895f3011e9a5d5970001ffd877b284f7cd7b764eb4bbb8aea341050f0ee01",
+  "endpoint_sha256": "5df644fd06c37e932d3cb425963c114ee790a167e23f900f9c285ecc10638ec0",
+  "evaluator_sha256": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+  "full_original_endpoint_predicates": true,
+  "native_evaluator_cpu_qualified": false,
+  "pass": true,
+  "receipt_sha256": "9390fc680d862243c6a2661f0fd57a3c4b8181d2d280f407856ed66a308e01ec",
+  "schema": "connected-probe-control-endpoint-binding-v1"
+}
