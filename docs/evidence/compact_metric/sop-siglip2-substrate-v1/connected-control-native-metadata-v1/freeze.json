@@ -1,0 +1,9 @@
+{
+  "files": {
+    "library-provenance.json": "bbfbdebcebf3deae0776d7ef89fadd0ec02d16ceb217c6a5704d452a5d9ae02b",
+    "native-authority.json": "dd15fa6cacca1f8f0f675d1578fd74998d8932cbaaa2e4ae53c21fe9950bb9af"
+  },
+  "root": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v1",
+  "schema": "connected-control-native-metadata-freeze-v1",
+  "stop_rule": "Supplemental set contains ONLY archived candidate.so. Full genuine collector validates historical-union-supplemental before projection; unexpected mappings reject. No native load/runtime closure/quality/speed qualification claimed."
+}

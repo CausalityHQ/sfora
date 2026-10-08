@@ -1,0 +1,23 @@
+{
+  "evidence": [
+    {
+      "path": "/home/riomus/runs/sfora-connected-control-serving-build-authority-v1/receipt.json",
+      "sha256": "c2d6ff677c5c533f576774d8268c536483d27ff21e93c3efa8cf2319cacc7740"
+    },
+    {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/binaries.json",
+      "sha256": "938fba1ab612f9295e624178ea67ba45dbd7c701a5c8d0ca9740147e7f2d542a"
+    },
+    {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/source-manifest.json",
+      "sha256": "3b0088d4d06146c9fe698dbabb4a45cce85a9ba7c0b176df2136034df97b8472"
+    }
+  ],
+  "file": {
+    "path": "/home/riomus/runs/sfora-cutile-threads-v1/candidate.so",
+    "sha256": "3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526"
+  },
+  "kind": "archived-cutile-build",
+  "origin": "Immutable archived cutile-threads-v1 binary, separately staged identical accepted build receipt; provenance only, not current runtime qualification.",
+  "schema": "connected-control-native-file-provenance-v1"
+}
