@@ -77,6 +77,128 @@ MEMBERS = ('config','buffers','processor','head','A','means','C','mu_train','mu_
     'scope','common_statistics','base_vision','encoder','encoder_identity','arm')
 
 
+# BEGIN BOOTSTRAP PREREQUISITE READER
+
+def load_bootstrap_authority(context, args):
+    """Only the evaluator's three v6 prerequisites; original bootstrap stays intact."""
+    import builtins
+    error = ValueError
+    def require(condition, message):
+        if not condition:
+            raise error(message)
+    trainer = context['trainer']; guards,code = context['guards'],context['code']
+    source_guard = source_live_guard(trainer,TRAINING['code']['train_siglip2_connected_mlp.py'],guards)
+    require((args.phase,args.arm,args.seed) == ('train','control',179061) and type(args.seed) is int,
+        'fixed evaluator bootstrap train/control/179061 required')
+    arguments = dict(vars(args))
+    node = next(n for n in ast.parse(Path(trainer.__file__).read_bytes()).body
+        if isinstance(n,ast.FunctionDef) and n.name == 'authority')
+    dump = lambda n: ast.dump(n,include_attributes=False)
+    require(hashlib.sha256(dump(node).encode()).hexdigest() ==
+        '44d79c7536e18016f1bc9a85120e74926f81e5980964e573173b51d8c93441b5', 'frozen bootstrap AST differs')
+    original = copy.deepcopy(node)
+    calls = [ast.parse(text,mode='eval').body for text in (
+        "admit_terminal(context,launch['selected_cpu'],'cpu','control',SEEDS[0])",
+        "admit_terminal(context,launch['selected_mechanics'][arm],'mechanics',arm,args.seed)")]
+    for expected in calls:
+        matches = [n for n in ast.walk(node) if isinstance(n,ast.Call) and dump(n) == dump(expected)]
+        require(len(matches) == 1, 'exact bootstrap prerequisite call required')
+        matches[0].func.id = '_bootstrap_terminal'
+    restored = copy.deepcopy(node)
+    for n in ast.walk(restored):
+        if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id == '_bootstrap_terminal':
+            n.func.id = 'admit_terminal'
+    require(dump(restored) == dump(original), 'bootstrap derivative changed predicates')
+    node.name = 'connected_bootstrap_authority'
+    # Authenticate the loader before the first callback; mutable snapshots never own it.
+    owned_names = ('load_bootstrap_authority','load_endpoint_reader','require','bound_file')
+    owned = tuple(globals()[name] for name in owned_names)
+    raw = bound_file({},Path(__file__),code['evaluate_siglip2_connected_mlp.py']).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == code['evaluate_siglip2_connected_mlp.py'],
+        'bootstrap evaluator source changed before compilation')
+    compiled = compile(raw,__file__,'exec',dont_inherit=True)
+    for name,fn in zip(owned_names,owned):
+        require(type(fn) is FunctionType and fn.__globals__ is globals() and fn.__builtins__ is vars(builtins) and
+            (fn.__module__,fn.__name__,fn.__qualname__) == (__name__,name,name) and fn.__closure__ is None and
+            fn.__code__ == next(c for c in compiled.co_consts if getattr(c,'co_name',None) == name) and
+            fn.__defaults__ is None and fn.__kwdefaults__ is None, 'bootstrap owned callback source differs')
+    owned_codes = tuple(fn.__code__ for fn in owned)
+    live_guard,live_code = source_live_guard,source_live_guard.__code__
+    owned_globals = {key:globals()[key] for key in (*owned_names,'source_live_guard','Path','__name__','__file__','__builtins__')}
+    t = reader = endpoint_guard = None
+    reader_code = endpoint_code = None
+    count,used = 0,False
+    def terminal(current, unit, phase, arm, seed):
+        nonlocal t,reader,endpoint_guard,reader_code,endpoint_code,count
+        guard(context)
+        require(count < 3 and current['connected_args'] is args and
+            (phase,arm,seed) == (('cpu','control',179061),('mechanics','control',179061),
+                                ('mechanics','candidate',179061))[count], 'bootstrap prerequisite order differs')
+        launch = current['connected_launch']
+        require(unit is (launch['selected_cpu'] if count == 0 else launch['selected_mechanics'][arm]),
+            'bootstrap prerequisite UNIT owner differs')
+        if t is None:
+            # This call follows the untouched historical CPU and actual-gradient admission.
+            context['training_context'] = current
+            reader,endpoint_guard = load_endpoint_reader(context)
+            t = current
+            reader_code,endpoint_code = reader.__code__,endpoint_guard.__code__
+        require(current is t, 'bootstrap training context changed')
+        guard(context)
+        try:
+            result = reader(unit,phase,arm,seed)
+            count += 1
+            return result
+        finally:
+            guard(context)
+    namespace = {**vars(trainer),'__name__':__name__,'_bootstrap_terminal':terminal}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node],type_ignores=[])),__file__,'exec'),namespace)
+    derivative = namespace['connected_bootstrap_authority']; derivative_code = derivative.__code__
+    bindings = dict(namespace); terminal_code = terminal.__code__; terminal_closure = terminal.__closure__
+    terminal_metadata = (terminal.__module__,terminal.__name__,terminal.__qualname__)
+    def guard(current):
+        source_guard()
+        require(current is context and current['trainer'] is trainer and current['guards'] is guards and
+            current['code'] is code and vars(args) == arguments, 'bootstrap owner/arguments changed')
+        require(live_guard.__code__ is live_code and live_guard.__defaults__ == (None,None) and
+            live_guard.__kwdefaults__ is None and all(globals()[key] is value for key,value in owned_globals.items()) and
+            all(fn.__code__ is c and fn.__defaults__ is None and fn.__kwdefaults__ is None and
+                fn.__builtins__ is vars(builtins) and (fn.__module__,fn.__name__,fn.__qualname__) == (__name__,name,name)
+                for name,fn,c in zip(owned_names,owned,owned_codes)), 'bootstrap owned callback/global changed')
+        require(derivative is bindings['connected_bootstrap_authority'] and derivative.__code__ is derivative_code and
+            derivative.__globals__ is namespace and
+            derivative.__builtins__ is vars(builtins) and derivative.__defaults__ is None and
+            derivative.__kwdefaults__ is None and derivative.__name__ == derivative.__qualname__ == 'connected_bootstrap_authority' and
+            derivative.__module__ == __name__ and namespace.keys() == bindings.keys() and
+            all(namespace[key] is value for key,value in bindings.items()), 'bootstrap derivative binding changed')
+        require(terminal is bindings['_bootstrap_terminal'] and terminal.__code__ is terminal_code and terminal.__globals__ is globals() and
+            terminal.__builtins__ is vars(builtins) and terminal.__defaults__ is None and terminal.__kwdefaults__ is None and
+            terminal.__closure__ is terminal_closure and
+            (terminal.__module__,terminal.__name__,terminal.__qualname__) == terminal_metadata,
+            'bootstrap callback binding changed')
+        if t is not None:
+            require(current['training_context'] is t and t['connected_args'] is args and
+                reader.__code__ is reader_code and endpoint_guard.__code__ is endpoint_code,
+                'bootstrap context/reader binding changed')
+            endpoint_guard(current)
+    def run():
+        nonlocal used
+        guard(context)
+        require(not used, 'bootstrap authority is once-only')
+        used = True
+        try:
+            result = derivative(args)
+            require(result is t and count == 3, 'complete bootstrap prerequisites required')
+            return result,reader
+        finally:
+            guard(context)
+    guard(context)
+    return run,guard
+
+
+# END BOOTSTRAP PREREQUISITE READER
+
+
 # BEGIN ENDPOINT READER AUTHENTICATION
 # Capture the interpreter bindings at evaluator import, before helper admission.
 _SOURCE_BUILTINS = tuple(vars(__import__('builtins')).items())
@@ -1029,16 +1151,17 @@ def authority(args):
         'parent-frozen complete CPUv6 UNIT required; no mechanics/TRAIN qualification inferred')
     targs = SimpleNamespace(execution_sha256=training['execution_sha256'],authority=Path(first['launch']['path']),
         authority_sha256=first['launch']['sha256'],phase='train',arm='control',seed=SEEDS[0],output=args.output)
-    t = trainer.authority(targs)  # Original CPU, actual gradient, CPU600 and mechanics061 normal exits.
+    context = {'trainer':trainer,'guards':guards,'code':code}
+    bootstrap,endpoint_guard = load_bootstrap_authority(context,targs)
+    t,endpoint_reader = bootstrap()  # Original CPU/gradient, then three fresh batched prerequisites.
     require(t['launch']['scope'] == launch['scope'], 'original CONTROL scope FILE differs')
     common_guards = {p:h for p,h in {**guards,**t['guards']}.items()
         if p not in (str(args.authority),first['launch']['path'])}
     units = {'cpu:179061:control':t['connected_launch']['selected_cpu'],
         **{f'mechanics:179061:{a}':u for a,u in t['connected_launch']['selected_mechanics'].items()}}
-    context = {'args':args,'root':root,'guards':guards,'code':code,'launch':launch,'trainer':trainer,
+    context.update({'args':args,'root':root,'guards':guards,'code':code,'launch':launch,'trainer':trainer,
         'evaluator_reference':e,'training_context':t,'nearest_evaluator':native,'math':math_helper,'reference':reference,
-        'records':{},'manifests':{},'training_units':units,'accepted_units':[],'common_guards':common_guards}
-    endpoint_reader,endpoint_guard = load_endpoint_reader(context)
+        'records':{},'manifests':{},'training_units':units,'accepted_units':[],'common_guards':common_guards})
     admit_endpoints(context,launch['endpoints'][:2],endpoint_reader)
     archived = read_json(native.CONCAT_TERMINAL['receipt'],guards)
     require(archived['invocation']['invocation_id'] == native.CONCAT_TERMINAL['invocation_id'] and

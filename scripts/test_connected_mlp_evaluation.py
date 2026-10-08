@@ -1053,10 +1053,327 @@ def original_owner_test_inverse():
 # END ORIGINAL OWNER FALSIFIER
 
 
+# BEGIN BOOTSTRAP PREREQUISITE FALSIFIER
+
+def bootstrap_inverse(raw):
+    """Exact complete evaluator restoration to 37e1cf50 before historical inverses."""
+    start = raw.index(b'# BEGIN BOOTSTRAP PREREQUISITE READER\n')
+    end = raw.index(b'# BEGIN ENDPOINT READER AUTHENTICATION\n',start)
+    raw = raw[:start]+raw[end:]
+    edits = [
+        (b"    context = {'trainer':trainer,'guards':guards,'code':code}\n    bootstrap,endpoint_guard = load_bootstrap_authority(context,targs)\n    t,endpoint_reader = bootstrap()  # Original CPU/gradient, then three fresh batched prerequisites.\n",
+         b'    t = trainer.authority(targs)  # Original CPU, actual gradient, CPU600 and mechanics061 normal exits.\n'),
+        (b"    context.update({'args':args,'root':root,'guards':guards,'code':code,'launch':launch,'trainer':trainer,",
+         b"    context = {'args':args,'root':root,'guards':guards,'code':code,'launch':launch,'trainer':trainer,"),
+        (b"'accepted_units':[],'common_guards':common_guards})\n",
+         b"'accepted_units':[],'common_guards':common_guards}\n    endpoint_reader,endpoint_guard = load_endpoint_reader(context)\n"),
+    ]
+    for new,old in edits:
+        assert raw.count(new) == 1, 'bootstrap evaluator inverse edit differs'
+        raw = raw.replace(new,old,1)
+    assert hashlib.sha256(raw).hexdigest() == '9cf3ba0e005fcf1b9c1433359bae09a2540fb6143d6a5c83b8c2b1cfc60802a3', 'bootstrap evaluator inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == 'fd8ed53935be222f520604587c7ac9e707861cc9c57caec188f20516a650a68d', 'bootstrap evaluator inverse AST differs'
+    return raw
+
+
+def bootstrap_test_inverse(raw):
+    start = raw.index(b'# BEGIN BOOTSTRAP PREREQUISITE FALSIFIER\n')
+    end = raw.index(b'# BEGIN INITIALIZER DICT FALSIFIER\n',start)
+    raw = raw[:start]+raw[end:]
+    for line in (b'    raw = bootstrap_inverse(raw)\n', b'    raw = bootstrap_test_inverse(raw)\n',
+                 b'    bootstrap_prerequisite_contract()\n'):
+        assert raw.count(line) == 1
+        raw = raw.replace(line,b'',1)
+    assert hashlib.sha256(raw).hexdigest() == '2e869791c5667558a6c4d5d2459c4fba973a6705c08d5921a16ffac002ddef8d', 'bootstrap test inverse bytes differ'
+    assert hashlib.sha256(ast.dump(ast.parse(raw),include_attributes=False).encode()).hexdigest() == 'ede89414d4efdeec6c97661c28010badfccffa0419fa9a5019ea5477b2028ef8', 'bootstrap test inverse AST differs'
+    return raw
+
+
+def bootstrap_execution_contract(e):
+    """Execute both complete bootstrap ASTs; isolate only historical external I/O."""
+    from contextlib import ExitStack
+    from types import FunctionType
+    from unittest.mock import patch
+    import os
+    import threading
+    import time
+    names=('train_siglip2_connected_mlp','train_siglip2_substrate_adaptation','fit_siglip2_prototype_residual',
+        'train_siglip2_nearest_ranking','train_siglip2_quadratic_readout','train_siglip2_identity_diversity')
+    trainer,flat,fitter,nearest,old,training = [module('_bootstrap_'+n,HERE/(n+'.py')) for n in names]
+    legacy=original_initializer(flat);init=legacy['admission'].init
+    modules=(trainer,flat,fitter,nearest,old,training,init)
+    source_guards={m.__file__:hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() for m in modules}
+    initializer=json.loads((EVIDENCE/'identity-diversity-v1/cpu-v5/receipt.json').read_bytes())
+    cpu=json.loads((EVIDENCE/'connected-mlp-cpu-v6/receipt.json').read_bytes())
+    raw=Path(trainer.__file__).read_bytes()
+    original=next(n for n in ast.parse(raw).body if isinstance(n,ast.FunctionDef) and n.name=='authority')
+    dump=lambda n:ast.dump(n,include_attributes=False)
+    with tempfile.TemporaryDirectory() as directory:
+        root=Path(directory); output=root/'out'; witness=root/'witness';witness.mkdir()
+        def write(path,value):
+            path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_bytes(value if isinstance(value,bytes) else json.dumps(value).encode())
+            return {'path':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+        code=cpu['code']
+        for name,digest in code.items():
+            assert hashlib.sha256((HERE/name).read_bytes()).hexdigest()==digest
+            write(root/name,(HERE/name).read_bytes())
+        execution=write(root/'execution.json',(EVIDENCE/'connected-mlp-cpu-v6-freeze/execution.json').read_bytes())
+        launch=json.loads((EVIDENCE/'connected-mlp-train-control-179061-v1-freeze/authority-train-control-179061-v1.json').read_bytes())
+        launch['witness']['root']=str(witness)
+        for name,digest in launch['witness']['files'].items():
+            assert write(witness/name,(HERE/name).read_bytes())['sha256']==digest
+        extras=[write(root/('input'+str(i)),str(i).encode()) for i in range(6)]
+        records=[];units=[]
+        folders=['connected-mlp-cpu-v6','connected-mlp-mechanics-control-179061-v2','connected-mlp-mechanics-candidate-179061-v2']
+        for i,folder in enumerate(folders):
+            record=json.loads((EVIDENCE/folder/'receipt.json').read_bytes())
+            terminal_root=root/str(i); terminal_root.mkdir()
+            record['launch']['witness']=copy.deepcopy(launch['witness'])
+            result=record['qualifications'][0] if i==0 else record['result']
+            result['identity']['method']=trainer.method(record['launch'])
+            auth=write(terminal_root/'authority.json',record['launch'])
+            record.update(authority=auth,authority_sha256=auth['sha256'])
+            record['invocation']['argv']=trainer.cli(root,auth['path'],auth['sha256'],execution['sha256'],
+                record['phase'],record['arm'],record['seed'],terminal_root)
+            record['input_guards']={str(root/'execution.json'):execution['sha256'],**{str(root/n):h for n,h in code.items()},
+                **{str(witness/n):h for n,h in launch['witness']['files'].items()},auth['path']:auth['sha256'],
+                **{f['path']:f['sha256'] for f in extras}}
+            receipt=write(terminal_root/'receipt.json',record)
+            unit=copy.deepcopy(e.TRAINING_CPU if i==0 else launch['selected_mechanics'][record['arm']])
+            unit['receipt']=receipt;unit['log']=write(terminal_root/'original.log',(EVIDENCE/folder/'original.log').read_bytes())
+            records.append(record);units.append(unit)
+        launch['selected_cpu']=units[0];launch['selected_mechanics']=dict(zip(trainer.ARMS,units[1:]))
+        auth=write(root/'bootstrap.json',launch)
+        args=SimpleNamespace(execution_sha256=execution['sha256'],authority=Path(auth['path']),
+            authority_sha256=auth['sha256'],output=output,phase='train',arm='control',seed=179061)
+        witness_api=SimpleNamespace(FILES=trainer.WITNESS_FILES,HELPERS=launch['witness']['files'],
+            TRAIN_ROOT=Path(launch['original_cpu']['authority']['path']).parent,
+            CPU_AUTHORITY_SHA=launch['original_cpu']['authority']['sha256'],CPU_UNIT=launch['original_cpu']['terminal'],
+            TRAIN_EXECUTION='historical',TRAIN_CODE={'train_siglip2_identity_diversity.py':source_guards[training.__file__]})
+        visited=[];active=[0,0];readers=[];batches=[];lock=threading.Lock();real_open=Path.open
+        def observe(p,*a,**kw):
+            if str(p) in {f['path'] for f in extras} and (not a or a[0]=='rb'):
+                frame=sys._getframe(1)
+                while frame and 'self' not in frame.f_locals:frame=frame.f_back
+                reader=frame.f_locals.get('self') if frame else None
+                with lock:visited.append(str(p));readers.append(reader);active[0]+=1;active[1]=max(active)
+                try:time.sleep(.003)
+                finally:
+                    with lock:active[0]-=1
+            return real_open(p,*a,**kw)
+        def setup():
+            legacy['invocations'].clear();guards=dict(source_guards)
+            t={'trainer':training,'guards':guards,'legacy':legacy,'nearest':nearest,'fitter':fitter,'old':old,
+                'fit_context':{'legacy':legacy,'guards':guards},'source':cpu['source']}
+            context={'trainer':trainer,'guards':dict(source_guards),
+                'code':{n:hashlib.sha256((HERE/n).read_bytes()).hexdigest() for n in e.FILES}}
+            return context,t
+        def execute(adapted,mutate=None):
+            context,t=setup();order=[];owners=[]
+            run,guard=e.load_bootstrap_authority(context,args)
+            derivative=next(c.cell_contents for c in run.__closure__ if getattr(c.cell_contents,'__name__',None)=='connected_bootstrap_authority')
+            template=next(n for n in ast.parse(raw).body if isinstance(n,ast.FunctionDef) and n.name=='authority')
+            # Recover the executed adapted AST from the pinned production loader's exact replacements.
+            for call in ast.walk(template):
+                if isinstance(call,ast.Call) and isinstance(call.func,ast.Name) and call.func.id=='admit_terminal' and call.lineno in (253,256):
+                    if adapted:call.func.id='_bootstrap_terminal'
+            if adapted:
+                inverse=copy.deepcopy(template)
+                for call in ast.walk(inverse):
+                    if isinstance(call,ast.Call) and isinstance(call.func,ast.Name) and call.func.id=='_bootstrap_terminal':call.func.id='admit_terminal'
+                assert dump(inverse)==dump(original)
+                template.name='connected_bootstrap_authority'
+                ns=dict(derivative.__globals__)
+                exec(compile(ast.Module(body=[template],type_ignores=[]),str(DRIVER),'exec'),ns)
+                assert ns[template.name].__code__==derivative.__code__, 'executed bootstrap differs from production derivative'
+            else:ns=dict(vars(trainer))
+            if mutate:mutate(template)
+            def historical(historical_args):
+                order.append('historical-authority');assert historical_args.phase=='cpu';return t
+            def original_cpu(*a):order.append('historical-cpu');return initializer
+            with ExitStack() as historical_patches:
+                historical_patches.enter_context(patch.object(training,'authority',historical))
+                historical_patches.enter_context(patch.object(training,'admit_terminal',original_cpu))
+                def gradient(current):
+                    order.append('actual-gradient');assert current is t
+                    historical_patches.close()
+                def selected(current,unit,phase,arm,seed):
+                    order.append((phase,arm,seed));assert order[:3]==['historical-authority','historical-cpu','actual-gradient']
+                    return trainer.admit_terminal(current,unit,phase,arm,seed)
+                terminal=ns.get('_bootstrap_terminal')
+                def prerequisite(*a):
+                    order.append(tuple(a[2:]));assert order[:3]==['historical-authority','historical-cpu','actual-gradient']
+                    return terminal(*a)
+                # These are external historical bootstrap seams only. All three prospective
+                # terminal calls execute genuine validators, original FlatAdmission and logs.
+                ns.update(HERE=root,closure=lambda path,*a:code if path==root else witness_api.TRAIN_CODE,
+                    read_json=lambda *a:copy.deepcopy(launch),load_authenticated=lambda name,*a:witness_api if name=='_connected_admitted_witness' else training,
+                    admit_actual_gradient=gradient,admit_terminal=selected)
+                if adapted:ns['_bootstrap_terminal']=prerequisite
+                exec(compile(ast.fix_missing_locations(ast.Module(body=[template],type_ignores=[])),str(DRIVER),'exec'),ns)
+                def profile(frame,event,value):
+                    if event=='return' and frame.f_code is trainer.fresh_terminal_reader.__code__:owners.append(value)
+                    if frame.f_code is e.batch_terminal_files.__code__ and event in ('call','return'):
+                        r=frame.f_locals['reader'];g=frame.f_locals['guards']
+                        batches.append((event,(dict(r.entries),set(r.verified),dict(r.json_bytes),dict(g))))
+                prior_profile=sys.getprofile();sys.setprofile(profile)
+                try:
+                    with patch.object(Path,'open',observe):
+                        if adapted:
+                            # Execute the actual run wrapper too, swapping only its external-I/O fixture closure.
+                            cell=lambda value:(lambda:value).__closure__[0]
+                            cells=tuple(cell(ns[template.name]) if name=='derivative' else c
+                                for name,c in zip(run.__code__.co_freevars,run.__closure__))
+                            invoke=FunctionType(run.__code__,run.__globals__,run.__name__,closure=cells)
+                            result,returned_reader=invoke()
+                            assert returned_reader is not None
+                        else:result=ns[template.name](args)
+                finally:sys.setprofile(prior_profile)
+            assert result is t and order==['historical-authority','historical-cpu','actual-gradient',
+                ('cpu','control',179061),('mechanics','control',179061),('mechanics','candidate',179061)]
+            assert t['connected_required_guards']==t['guards']
+            assert list(t['connected_terminals'].values())==records
+            assert legacy['invocations']=={u['invocation_id'] for u in units}
+            if adapted:guard(context)
+            assert len(owners)==3 and all(type(r) is flat.FlatAdmission for r in owners)
+            states=[(dict(r.entries),set(r.verified),dict(r.json_bytes),r.init) for r in owners]
+            return context,t,run,guard,derivative,states
+        original_context,serial,_,_,_,serial_readers=execute(False)
+        assert active[1]==1, 'original bootstrap scan must be serial'
+        serial_state=copy.deepcopy((serial['guards'],serial['connected_required_guards'],serial['connected_terminals'],serial['connected_terminal_cgroups'],legacy['invocations']))
+        visited.clear();readers.clear();active[:]=[0,0]
+        context,t,run,guard,derivative,parallel_readers=execute(True)
+        assert serial_readers==parallel_readers
+        assert serial_state==(t['guards'],t['connected_required_guards'],t['connected_terminals'],t['connected_terminal_cgroups'],legacy['invocations'])
+        assert visited and len(visited)==18 and all(visited.count(f['path'])==3 for f in extras)
+        assert 1<active[1]<=4 and active[0]==0 and len({id(r) for r in readers})==18
+        assert all(type(r) is flat.FlatAdmission and r is not legacy['admission'] for r in readers)
+        # Authenticated production namespace, callbacks, real context and snapshots are independent.
+        def denied(text):
+            rejects(lambda:guard(context),text)
+            rejects(lambda:e.exit_rehash(context,guard),text)
+        with patch.dict(derivative.__globals__,{'admit_actual_gradient':lambda *a:None}):denied('derivative binding')
+        with patch.dict(derivative.__globals__,{'__builtins__':dict(derivative.__builtins__)}):denied('derivative binding')
+        callback=derivative.__globals__['_bootstrap_terminal']
+        for fn,text in ((callback,'callback binding'),(derivative,'derivative binding'),
+                        (trainer.authority,'authenticated'),(e.load_endpoint_reader,'owned callback'),(e.require,'owned callback')):
+            for key,value in (('__code__',fn.__code__.replace(co_name='forged')),('__defaults__',('forged',)),('__kwdefaults__',{'forged':True}),
+                              ('__module__','forged'),('__name__','forged'),('__qualname__','forged')):
+                old_value=getattr(fn,key);setattr(fn,key,value)
+                try:denied(text)
+                finally:setattr(fn,key,old_value)
+        live=e.source_live_guard;live_code=live.__code__
+        live.__code__=live_code.replace(co_name='forged')
+        try:denied('owned callback')
+        finally:live.__code__=live_code
+        with patch.dict(context,training_context={**t}):denied('context/reader binding')
+        with patch.dict(context,guards=dict(context['guards'])):denied('owner/arguments')
+        with patch.object(args,'seed',179069):denied('owner/arguments')
+        with patch.object(flat,'FlatAdmission',type('FlatAdmission',(flat.FlatAdmission,),{})):denied('binding changed')
+        with patch.object(e.source_live_guard,'initializer',lambda *a:lambda:None):denied('initializer delegate')
+        with patch.object(init,'require',lambda *a:None):
+            context['helper_snapshots']=[];denied('binding changed');del context['helper_snapshots']
+        guard(context)
+        rejects(run,'once-only')
+        # Foreign captured builtins cannot become the bootstrap's endpoint-loader authority.
+        import builtins
+        loader=e.load_endpoint_reader; prior=vars(e)['__builtins__']
+        vars(e)['__builtins__']={**vars(builtins),'bool':lambda value:True}
+        forged=FunctionType(loader.__code__,vars(e),loader.__name__)
+        forged.__module__=loader.__module__;forged.__qualname__=loader.__qualname__
+        vars(e)['__builtins__']=prior
+        with patch.object(e,'load_endpoint_reader',forged):
+            rejects(lambda:e.load_bootstrap_authority(setup()[0],args),'owned callback source')
+        def serial_dispatch(node):
+            for call in ast.walk(node):
+                if isinstance(call,ast.Call) and isinstance(call.func,ast.Name) and call.func.id=='_bootstrap_terminal':
+                    call.func.id='admit_terminal'
+        rejects(lambda:execute(True,serial_dispatch),'complete bootstrap prerequisites')
+        for phase,arm,seed in (('cpu','control',179061),('train','candidate',179061),('train','control',179069)):
+            bad=SimpleNamespace(**{**vars(args),'phase':phase,'arm':arm,'seed':seed})
+            rejects(lambda:e.load_bootstrap_authority(context,bad),'fixed evaluator bootstrap')
+        # Same real adapter rejects corruption despite restored mtime; no invocation is published.
+        p=Path(extras[0]['path']); stat=p.stat();p.write_bytes(b'x');os.utime(p,ns=(stat.st_atime_ns,stat.st_mtime_ns))
+        batches.clear();visited.clear();readers.clear()
+        rejects(lambda:execute(True),'SHA256')
+        assert not legacy['invocations'] and active[0]==0 and len(visited)==6
+        assert [v[0] for v in batches]==['call','return'] and batches[0][1]==batches[1][1]
+        p.write_bytes(b'0')
+        batches.clear();visited.clear()
+        with patch.dict(source_guards,{extras[0]['path']:'f'*64}):
+            rejects(lambda:execute(True),'stage file authority')
+        assert active[0]==0 and len(visited)==6 and batches[0][1]==batches[1][1]
+        target=root/'elsewhere';target.write_bytes(b'0');p.unlink();p.symlink_to(target)
+        rejects(lambda:execute(True),'canonical');assert not legacy['invocations'];p.unlink();p.write_bytes(b'0')
+        # Omitting state or a predicate changes the complete original AST, never an allowed derivative.
+        for change in ('predicate','snapshot','order'):
+            mutant=copy.deepcopy(original)
+            if change=='predicate':mutant.body.pop(0)
+            elif change=='snapshot':mutant.body.pop(-2)
+            else:mutant.body[-4],mutant.body[-3]=mutant.body[-3],mutant.body[-4]
+            assert hashlib.sha256(dump(mutant).encode()).hexdigest()!='44d79c7536e18016f1bc9a85120e74926f81e5980964e573173b51d8c93441b5'
+            parse=ast.parse
+            def altered(source,*a,**kw):
+                tree=parse(source,*a,**kw)
+                if source==raw:
+                    tree.body=[copy.deepcopy(mutant) if isinstance(n,ast.FunctionDef) and n.name=='authority' else n for n in tree.body]
+                return tree
+            with patch.object(ast,'parse',altered):
+                rejects(lambda:e.load_bootstrap_authority(setup()[0],args),'frozen bootstrap AST')
+
+
+def bootstrap_routing_contract(e):
+    """Execute the real evaluator bootstrap seam, including its right-biased guard merge."""
+    original=ast.parse(bootstrap_inverse(DRIVER.read_bytes()));adapted=ast.parse(DRIVER.read_bytes())
+    launch={'scope':'scope','endpoints':[{'launch':{'path':'/first'}}]}
+    args=SimpleNamespace(authority=Path('/outer'))
+    guards={'overlap':'outer','/outer':'excluded'}
+    t={'launch':{'scope':'scope'},'guards':{'overlap':'training','/first':'excluded','inner':'retained'},
+        'connected_launch':{'selected_cpu':'cpu','selected_mechanics':{'control':'control','candidate':'candidate'}}}
+    trainer=SimpleNamespace(authority=lambda args:t);reader=object();guard=object()
+    results=[]
+    for tree in (original,adapted):
+        node=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='authority')
+        start=next(i for i,n in enumerate(node.body) if isinstance(n,ast.Assign) and
+            ast.unparse(n.targets[0])==('t' if tree is original else 'context'))
+        end=next(i for i,n in enumerate(node.body) if isinstance(n,ast.Expr) and
+            isinstance(n.value,ast.Call) and isinstance(n.value.func,ast.Name) and n.value.func.id=='admit_endpoints')
+        owners=[]
+        def bootstrap(context,selected_args):
+            owners.append(context)
+            def run():context['training_context']=t;return t,reader
+            return run,guard
+        ns={'trainer':trainer,'targs':object(),'guards':guards,'code':{},'args':args,'root':HERE,
+            'launch':launch,'first':launch['endpoints'][0],'require':e.require,'load_bootstrap_authority':bootstrap,
+            'load_endpoint_reader':lambda context:(reader,guard),'e':object(),'native':object(),'math_helper':object(),'reference':object()}
+        exec(compile(ast.Module(body=node.body[start:end],type_ignores=[]),str(DRIVER),'exec'),ns)
+        current=ns['context']
+        assert current['common_guards']=={'overlap':'training','inner':'retained'}
+        assert ns['endpoint_reader'] is reader and ns['endpoint_guard'] is guard
+        if tree is adapted:assert owners==[current] and owners[0] is current
+        results.append({k:v for k,v in current.items() if k not in ('evaluator_reference','nearest_evaluator','math','reference')})
+    assert results[0]==results[1]
+
+
+def bootstrap_prerequisite_contract():
+    e = module('_bootstrap_evaluator', DRIVER)
+    assert hasattr(e, 'load_bootstrap_authority'), 'missing authenticated bootstrap prerequisite reader'
+    bootstrap_inverse(DRIVER.read_bytes());bootstrap_test_inverse(Path(__file__).read_bytes())
+    bootstrap_routing_contract(e)
+    with original_initializer_files():bootstrap_execution_contract(e)
+    assert not any(n.split('.')[0] in e.NATIVE for n in sys.modules)
+    print('PASS exact bootstrap AST/inverse, three ordered genuine admissions, state/fresh parallel reads and live guards')
+
+
+# END BOOTSTRAP PREREQUISITE FALSIFIER
+
+
 # BEGIN INITIALIZER DICT FALSIFIER
 
 def initializer_dict_inverse(raw):
     """Restore exact held 15eb6e0 bytes; keep all earlier inverse assertions."""
+    raw = bootstrap_inverse(raw)
     edits = [
         (b"    binding_error = ValueError\n    wrapper_dict,get_attribute = source_live_guard.__dict__,getattr\n    def verify_delegate():\n        if (source_live_guard.__dict__ is not wrapper_dict or\n                get_attribute(source_live_guard,'initializer',None) is not delegate or\n                delegate.__code__ is not delegate_code or delegate.__globals__ is not delegate_globals or\n", b"    binding_error = ValueError\n    def verify_delegate():\n        if (source_live_guard.__dict__.get('initializer') is not delegate or\n                delegate.__code__ is not delegate_code or delegate.__globals__ is not delegate_globals or\n"),
     ]
@@ -1070,6 +1387,7 @@ def initializer_dict_inverse(raw):
 
 def initializer_dict_test_inverse(raw):
     """Restore exact held 15eb6e0 bytes; keep all earlier inverse assertions."""
+    raw = bootstrap_test_inverse(raw)
     start = raw.index(b'# BEGIN INITIALIZER DICT FALSIFIER\n')
     end = raw.index(b'# BEGIN INITIALIZER DELEGATE FALSIFIER\n',start)
     raw = raw[:start]+raw[end:]
@@ -2208,6 +2526,7 @@ def main():
     parser.add_argument('--source-only', action='store_true', required=True)
     parser.add_argument('--narrow', action='store_true')
     args = parser.parse_args()
+    bootstrap_prerequisite_contract()
     endpoint_authentication_contract()
     actual_admission_scan_falsifier()
     e = module('_connected_eval_source_test', DRIVER)
