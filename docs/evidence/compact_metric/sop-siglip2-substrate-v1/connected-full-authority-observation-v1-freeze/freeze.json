@@ -1,0 +1,27 @@
+{
+  "diagnostic": "/home/riomus/runs/sfora-connected-full-authority-observation-v1.jsonl",
+  "files": {
+    "command.sh": "8e8fa972aa1dc132de3c4b4185c5d792e9e5e856f5980bfdce2b49bb63b557c7",
+    "controller.sh": "a07f188df5d97f442041bd9414d1939542afe6c770efc4660b250c065244a7a0",
+    "launch.sh": "9265e3293227e2d4d1cf47ceff35ae47d4d40ab8185b3e3057d5c7f78f41e681",
+    "manifest.json": "0fe19765b5d9cdb4cded7fde48394d6d8bdf3b8a1dd6fa4a1d472cbf8e719f54",
+    "observe_connected_full_authority.py": "9dd557cb358db2a74603f52f73bba6bd2c060baffb139ab14a71eca512eb63aa",
+    "test_connected_full_authority_observation.py": "c309b85f7100f0ad44c408f6105d37c2adfadfd4f30951666d373122951a2631"
+  },
+  "original_failure_preserved": true,
+  "qualification_eligible": false,
+  "remote_root": "/home/riomus/runs/sfora-connected-full-authority-observation-source-v1",
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 900,
+    "swap_bytes": 0
+  },
+  "root_checks": "worker5 stdlib tests PASS; root2 targeted control/pin tests PASS; full source read; no native execution",
+  "schema": "connected-authority-observation-root-freeze-v1",
+  "source_commit": "9954f3d7",
+  "state_reuse_eligible": false,
+  "stop_before_native_start": true,
+  "unit": "sfora-connected-full-authority-observation-v1",
+  "unused_output": "/home/riomus/runs/sfora-connected-full-authority-observation-unused-v1"
+}

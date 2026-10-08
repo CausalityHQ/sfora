@@ -1,0 +1,1 @@
+{"schema":"connected-authority-observation-source-checks-v1","worker_commit":"4cc65abedfa45141283dd82cb443996ea6a042c9","root_commit":"9954f3d7","worker_stdlib_tests":5,"worker_test_seconds":0.800,"worker_exit":0,"root_targeted_tests":2,"root_test_seconds":0.347,"root_exit":0,"native_unrun":true,"no_qualification_receipt":true,"original_cpu500_failure_preserved":true}
