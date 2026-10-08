@@ -19,6 +19,11 @@ and cgroup predicates WITHOUT admit_cpu's image/checkpoint rehash. Runtime
 membership is the original source-CPU proof only (existing package_origins,
 audit_origins, numerical_flags and cgroup primitives; no new whitelist).
 
+The running driver is itself live code: after the helpers load, a genuine serving.Source over this module
+(FILE, registry, functions, defaults, globals, literals) is checked before native import, before every endpoint
+replay and in the full exit; LIMITS needs exact builtin value types (False/900.0 cannot alias 0/900). The four
+adapter AST declarations are bound to their import-time dumps before any adaptation (a forged capture is rejected).
+
 Engineering-only caps: 900s total, the last 120s reserved for the uncached exit
 (no metric work starts inside it), 8GiB cgroup, zero swap, CUDA hidden, both
 inherited lifetime locks. Root owns the single native job, log, exit status and
@@ -52,6 +57,8 @@ LAUNCH_KEYS = {'schema', 'inputs', 'sources', 'native_sources', 'source_cpu', 'l
                'both_locks_held', 'candidate_status', 'qualification_eligible', 'state_reuse_eligible'}
 LIMITS = {'whole_process_seconds': 900, 'exit_reserve_seconds': 120, 'host_bytes': 8 * 1024**3,
           'swap_bytes': 0, 'cuda_visible_devices': ''}
+LIMIT_TYPES = {'whole_process_seconds': int, 'exit_reserve_seconds': int, 'host_bytes': int, 'swap_bytes': int,
+               'cuda_visible_devices': str}
 # role -> (basename beside the driver, accepted pin). Pins are the sources of the accepted
 # full-selection score / source-CPU proof and the frozen original census, never a future guess.
 SOURCE_ROLES = {
@@ -94,11 +101,20 @@ VALUES_ARG = ast.parse('def f(values: np.ndarray): pass').body[0].args.args[0]
 PACK_STATEMENT = ast.parse('packed = pack_int8_unit_embeddings(torch.from_numpy(values.copy()))').body[0]
 CAPTURE_STATEMENT = ast.parse('census_capture(start, rows, scores)').body[0]
 AGGREGATES = ast.parse("{'recall_at_1': float(np.mean(hits)), 'map_at_r': float(np.mean(aps))}", mode='eval').body
+# The four declarations are mutable ASTs and adapt/unadapt compare the adapter against themselves, so their dumps are
+# frozen here, at the authenticated source's import, as immutable strings (a forged capture would invert cleanly).
+ADAPTER_DUMPS = tuple(ast.dump(node, include_attributes=False)
+                      for node in (VALUES_ARG, PACK_STATEMENT, CAPTURE_STATEMENT, AGGREGATES))
 
 
 def require(condition, message):
     if not condition:
         raise ValueError(message)
+
+
+def exact_policy(policy):
+    require(type(policy) is dict and policy == LIMITS and {k: type(v) for k, v in policy.items()} == LIMIT_TYPES,
+            'exact builtin-typed resource policy required')
 
 
 def file_fact(fact):
@@ -185,6 +201,7 @@ def read_authority(path, digest):
             authority['resource_policy'] == LIMITS and authority['both_locks_held'] is True and
             authority['candidate_status'] == 'KILL' and authority['qualification_eligible'] is False and
             authority['state_reuse_eligible'] is False, 'exact diagnostic-only KILL authority and limits required')
+    exact_policy(authority['resource_policy'])
     sources, here = authority['sources'], Path(__file__).absolute().parent
     require(type(sources) is dict and sources.keys() == SOURCE_ROLES.keys(), 'exact source FILE roles required')
     for role, (name, pin) in SOURCE_ROLES.items():
@@ -224,6 +241,23 @@ def load_helpers(authority, guards):
         close_sources(owned)
         raise
     return serving, owned, modules
+
+
+def own_source(serving, authority):
+    """Authenticate the running driver (never part of the owned set, so never removed from sys.modules)."""
+    return serving.Source(sys.modules[__name__], authority['sources']['driver'])
+
+
+def check_own(source):
+    source.check()
+    exact_policy(LIMITS)
+
+
+def guard(ctx):
+    ctx.locks.check()
+    for source in ctx.owned:
+        source.check()
+    check_own(ctx.own)
 
 
 def close_sources(owned):
@@ -342,8 +376,14 @@ def batch_loop(function):
     return loops[0]
 
 
+def check_declarations():
+    require(tuple(dump(n) for n in (VALUES_ARG, PACK_STATEMENT, CAPTURE_STATEMENT, AGGREGATES)) == ADAPTER_DUMPS,
+            'adapter AST declarations differ from the authenticated driver source')
+
+
 def adapt(original):
     """Packed input, read-only capture, no np aggregates; every other statement verbatim."""
+    check_declarations()
     function = copy.deepcopy(original)
     require(dump(function.args.args[0]) == dump(VALUES_ARG) and dump(function.body[1]) == dump(PACK_STATEMENT),
             'original packing statement differs')
@@ -359,6 +399,7 @@ def adapt(original):
 
 
 def unadapt(adapted):
+    check_declarations()
     function = copy.deepcopy(adapted)
     function.args.args[0] = copy.deepcopy(VALUES_ARG)
     function.body.insert(1, copy.deepcopy(PACK_STATEMENT))
@@ -486,6 +527,7 @@ def admit(ctx):
     authority, guards = ctx.authority, ctx.guards
     serving, ctx.owned, modules = load_helpers(authority, guards)
     ctx.modules = modules
+    ctx.own = own_source(serving, authority)
     ctx.locks = serving.Locks(authority['locks'])
     inputs = authority['inputs']
     ctx.state = state = modules['census'].admit_inputs(inputs['path'], inputs['sha256'])
@@ -500,6 +542,7 @@ def admit(ctx):
     check_packages(modules, authority, proof, guards)
     ctx.budget.check()
     ctx.flags = copy.deepcopy(proof['numerical_flags'])
+    check_own(ctx.own)
     import torch
     ctx.torch = torch
     require(not torch.cuda.is_initialized(), 'CUDA initialization must not occur')
@@ -567,6 +610,8 @@ def exit_checks(ctx):
     if ctx.locks is not None:
         callbacks.append(ctx.locks.check)
     callbacks.append(lambda: [source.check() for source in ctx.owned])
+    if ctx.own is not None:
+        callbacks.append(lambda: check_own(ctx.own))
     if ctx.torch is not None:
         callbacks.append(state_after)
     callbacks += [gc.collect, lambda: close_sources(ctx.owned)]
@@ -603,10 +648,10 @@ def run(args):
     output = Path(args.output)
     require(output.is_absolute() and str(output) == args.output and output.parent.resolve() == output.parent and
             not os.path.lexists(output), 'exclusive canonical NEWFILE required')
-    ctx = SimpleNamespace(budget=Budget(), owned=[], modules=None, locks=None, state=None, proof=None, torch=None,
-                          audit=None, payload=None, origins={}, flags=None, before=None, unit=None)
+    ctx = SimpleNamespace(budget=Budget(), owned=[], own=None, modules=None, locks=None, state=None, proof=None,
+                          torch=None, audit=None, payload=None, origins={}, flags=None, before=None, unit=None)
     ctx.authority, ctx.guards = read_authority(args.authority, args.authority_sha256)
-    ctx.guard = lambda: (ctx.locks.check(), [source.check() for source in ctx.owned])
+    ctx.guard = lambda: guard(ctx)
     error = None
     try:
         admit(ctx)

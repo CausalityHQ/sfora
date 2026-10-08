@@ -32,8 +32,8 @@ INPUTS = Path('/tmp/sfora-connected-core-census-inputs-v1/fetch-receipt.json')
 INVOCATION = '0123456789abcdef0123456789abcdef'
 
 
-def load_driver():
-    spec = importlib.util.spec_from_file_location('_torch_census_test', DRIVER)
+def load_driver(path=DRIVER):
+    spec = importlib.util.spec_from_file_location('_torch_census_test', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -132,6 +132,8 @@ class AuthorityTests(Base):
             'reserve': lambda a: a['resource_policy'].update(exit_reserve_seconds=0),
             'memory': lambda a: a['resource_policy'].update(host_bytes=16 * 1024**3),
             'swap': lambda a: a['resource_policy'].update(swap_bytes=1),
+            'swap bool alias': lambda a: a['resource_policy'].update(swap_bytes=False),
+            'seconds float alias': lambda a: a['resource_policy'].update(whole_process_seconds=900.0),
             'cuda': lambda a: a['resource_policy'].update(cuda_visible_devices='0'),
             'locks held': lambda a: a.update(both_locks_held=False),
             'status': lambda a: a.update(candidate_status='GO'),
@@ -479,6 +481,30 @@ class ScorerTests(Base):
         with self.assertRaises(ValueError):
             self.m.compile_scorer(torch, self.mutate(self.scorer.decode(), 'stable=True', 'stable=False').encode(), 'x', print)
 
+    def test_in_place_adapter_declaration_mutation_is_rejected_before_execution(self):
+        declared = {'VALUES_ARG': 'values: np.ndarray', 'CAPTURE_STATEMENT': 'census_capture(start, rows, scores)',
+                    'PACK_STATEMENT': 'packed = pack_int8_unit_embeddings(torch.from_numpy(values.copy()))',
+                    'AGGREGATES': "{'recall_at_1': float(np.mean(hits)), 'map_at_r': float(np.mean(aps))}"}
+        for name, text in declared.items():
+            self.assertEqual(ast.unparse(getattr(self.m, name)), text)
+        forged = ast.parse('census_capture(start, rows, forged_scores)').body[0]
+        cases = {'capture argument forged': lambda m: setattr(m.CAPTURE_STATEMENT.value.args[2], 'id', 'forged_scores'),
+                 'capture rebound': lambda m: setattr(m, 'CAPTURE_STATEMENT', forged),
+                 'values argument': lambda m: setattr(m.VALUES_ARG, 'arg', 'forged'),
+                 'pack target': lambda m: setattr(m.PACK_STATEMENT.targets[0], 'id', 'forged'),
+                 'aggregate key': lambda m: setattr(m.AGGREGATES.keys[0], 'value', 'forged')}
+        control = load_driver()
+        with patch.object(builtins, 'exec') as run, self.assertRaises(KeyError):
+            control.compile_scorer(SimpleNamespace(), self.scorer, 'x', print)
+        run.assert_called_once()
+        for name, mutate in cases.items():
+            with self.subTest(name):
+                m = load_driver()
+                mutate(m)
+                with patch.object(builtins, 'exec') as run, self.assertRaises(ValueError):
+                    m.compile_scorer(SimpleNamespace(), self.scorer, 'x', print)
+                run.assert_not_called()
+
     def test_packed_input_keeps_original_dtypes_and_rejects_drift(self):
         class Tensor:
             def __init__(self, data, dtype):
@@ -748,14 +774,15 @@ class ExitTests(Base):
         audits, locks, rehashed = [], [], []
         ctx = SimpleNamespace(
             audit=lambda: audits.append(1) or {'files': 1}, origins={}, guards=guards, state=None, torch=None,
-            locks=SimpleNamespace(check=lambda: locks.append(1)), owned=owned, modules=modules)
+            locks=SimpleNamespace(check=lambda: locks.append(1)), owned=owned, modules=modules, own=None)
         self.m.cleanup_error(None, self.m.exit_checks(ctx))
         self.assertEqual((audits, locks, owned, ctx.origins), ([1], [1], [], {'final': {'files': 1}}))
         path.write_text('changed')
         _, guards2, _, owned2, _ = self.helpers()
         guards2[str(path)] = fact(path)['sha256']
         path.write_text('again')
-        ctx = SimpleNamespace(audit=None, origins={}, guards=guards2, state=None, torch=None, locks=None, owned=owned2)
+        ctx = SimpleNamespace(audit=None, origins={}, guards=guards2, state=None, torch=None, locks=None, owned=owned2,
+                              own=None)
         with self.assertRaises(ValueError):
             self.m.cleanup_error(None, self.m.exit_checks(ctx))
         self.assertEqual(owned2, [], 'sources are disposed even when an exit proof fails')
@@ -765,7 +792,7 @@ class ExitTests(Base):
                                                     cgroup_memory=lambda: {'path': '/cg/unit.service'}),
                    'initializer': SimpleNamespace(admit_cgroup=lambda value, unit: None)}
         def ctx(**override):
-            base = dict(audit=None, origins={}, guards={}, state=None, locks=None, owned=[], modules=modules,
+            base = dict(audit=None, origins={}, guards={}, state=None, locks=None, owned=[], modules=modules, own=None,
                         torch=SimpleNamespace(cuda=SimpleNamespace(is_initialized=lambda: False)), flags={'threads': 8},
                         before={'path': '/cg/unit.service'}, unit='unit', budget=self.m.Budget(started=0., clock=lambda: 10.))
             return SimpleNamespace(**{**base, **override})
@@ -780,6 +807,73 @@ class ExitTests(Base):
         for name, override in bad.items():
             with self.subTest(name), self.assertRaises(ValueError):
                 self.m.cleanup_error(None, self.m.exit_checks(ctx(**override)))
+
+
+class OwnSourceTests(Base):
+    """The running driver is live code too: a real serving.Source over this module, kept out of the owned set."""
+    def own(self, path=DRIVER):
+        m = load_driver(path)
+        sys.modules[m.__name__] = m
+        self.addCleanup(sys.modules.pop, m.__name__, None)
+        authority = self.authority()[0]
+        authority['sources']['driver'] = fact(path)
+        _, _, serving, owned, _ = self.helpers(authority)
+        try:
+            source = m.own_source(serving, authority)
+            m.check_own(source)
+        finally:
+            self.m.close_sources(owned)
+        return m, source
+
+    def test_live_mutation_file_registry_and_policy_types_are_caught(self):
+        def code(m):
+            m.require.__code__ = (lambda condition, message: None).__code__
+
+        def registry(m):
+            sys.modules[m.__name__] = SimpleNamespace()
+        cases = {
+            'function code': code,
+            'function default': lambda m: setattr(m.Budget.check, '__defaults__', (False,)),
+            'global': lambda m: setattr(m, 'WIDTH', 82),
+            'dict literal': lambda m: m.FALSIFIER.update(query_index=0),
+            'registry': registry,
+            'policy bool alias': lambda m: m.LIMITS.update(swap_bytes=False),
+            'policy float alias': lambda m: m.LIMITS.update(whole_process_seconds=900.0)}
+        for name, mutate in cases.items():
+            with self.subTest(name):
+                m, source = self.own()
+                mutate(m)
+                with self.assertRaises(ValueError):
+                    m.check_own(source)
+        copy = self.tmp() / DRIVER.name
+        copy.write_bytes(DRIVER.read_bytes())
+        m, source = self.own(copy)
+        copy.write_bytes(copy.read_bytes() + b'\n')
+        with self.assertRaises(ValueError):
+            m.check_own(source)
+
+    def test_guard_and_exit_check_the_own_source_and_never_remove_it(self):
+        m, source = self.own()
+        owned = self.helpers()[3]
+        ctx = SimpleNamespace(locks=SimpleNamespace(check=lambda: None), owned=owned, own=source, audit=None,
+                              origins={}, guards={}, state=None, torch=None)
+        m.guard(ctx)
+        m.cleanup_error(None, m.exit_checks(ctx))
+        self.assertEqual(owned, [])
+        self.assertIs(sys.modules[m.__name__], m)
+        m.LIMITS['swap_bytes'] = False
+        checks = {'guard': lambda: m.guard(ctx), 'exit': lambda: m.cleanup_error(None, m.exit_checks(ctx))}
+        for name, check in checks.items():
+            with self.subTest(name), self.assertRaises(ValueError):
+                check()
+
+    def test_admit_authenticates_the_own_source_after_helpers_and_before_native_import(self):
+        admit = next(n for n in ast.parse(DRIVER.read_text()).body if getattr(n, 'name', None) == 'admit')
+        lines = [ast.unparse(n) for n in admit.body]
+        at = lambda text: next(i for i, line in enumerate(lines) if text in line)
+        self.assertLess(at('load_helpers('), at('own_source('))
+        self.assertLess(at('own_source('), at('check_own(ctx.own)'))
+        self.assertLess(at('check_own(ctx.own)'), at('import torch'))
 
 
 class ProcessTests(Base):
