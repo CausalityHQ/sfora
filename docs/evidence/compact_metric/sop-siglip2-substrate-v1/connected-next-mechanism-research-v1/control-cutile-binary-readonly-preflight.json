@@ -1,0 +1,12 @@
+{
+  "schema": "control-cutile-binary-readonly-preflight-v1",
+  "remote_path": "/home/riomus/runs/sfora-cutile-threads-v1/candidate.so",
+  "actual_sha256": "3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526",
+  "archived_sha_match": true,
+  "elf_needed": ["libgcc_s.so.1", "libc.so.6"],
+  "original_session": 30595,
+  "exit_code": 0,
+  "library_loaded": false,
+  "native_measurement": false,
+  "limitation": "ELF NEEDED does not enumerate dlopen or prove the complete live mapped library inventory. Supplemental runtime authority remains required."
+}

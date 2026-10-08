@@ -1,0 +1,345 @@
+{
+  "id": "6ab2510f09274a61",
+  "provider": "codex",
+  "model": "gpt-6-astra",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791449746,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791450946,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nREAD ONLY bounded native-runtime admission design. Repo /home/rb/worktrees/sfora-positive-causality master bb1a736; completed original review511d7817e19c4a1e preserved at docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/control-serving-admission-review.json. Same production goal quality AND public speed, current connected candidate KILL. Original control061 full export is accepted, but historical native_source_api exact-four admits no public cuTile .so and genuine exit rejects extra mapped library. Do NOT weaken existing readers or GO gates. Design smallest SEPARATE prospective engineering-only control request qualifier with explicit cuTile provenance and complete combined native exit authority, preserving original source native predicates on their original subset and detecting any unknown/changed additional mapping. Read src/sfora/cutile_int8.py, connected_compact_serving.py; scripts/qualify_connected_serving_requests.py, observe_connected_serving.py, train_siglip2_nearest_ranking.py native_source_api and original imported_origins/exit chain; committed cuTile binary/build evidence. Identify exact provenance already available vs missing, FILE/CODE/UNIT/schema/API boundaries, no hash cache/global rebinding/unmapping assumption. Preserve candidateKILL and original artifacts; no official/VAL/quality read. Reuse22 public calls+oracle/ties/observer, no duplicate export. Give one actionable source plan, exact blocker if binary origin insufficient, and bounded stdlib combined-authority falsifier. No edits/tests/imports/native/Torch/SSH/images/GPU/cloud/consults/children. Root owns implementation/freeze/native; this is distinct from original review, whose unchanged-authority blocker is accepted.",
+  "prompt_sha256": "7c078c30f8e45d54b404d87c6193eaabbc2b0e43217ae7bcc3aa3e95f659694f",
+  "prompt_bytes": 2048,
+  "fingerprint": "eda1e8b0161cbcf3558ecfe7376eb2cb3055597db0b89ddd6fc7b4cba03e8928",
+  "evidence": {
+    "git_commit": "bb1a7362391b03635abeded3b6155f72914ee6b0",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "a25fc5e578e2dc1c0460e3feec9c51e79632414fc0d7b429fb995460c3980d17",
+    "worktree_sha256": "58d18dc226b13db54611b7e774acc941d7bd9dd4d235fb28f59ad8a66d6cbbc3",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "ac439aef36820ba1375f276bce51a96f4f39c16a96decbb4e6b3354af2fbcb8c",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6-astra",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "cb664f2c-f730-4ac5-bda5-f59da95f1dae"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-6ab2510f09274a61.service",
+  "pid": 3752991,
+  "pgid": 3752991,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "budget_usd": null,
+      "timeout_seconds": 1200,
+      "started_at": 1791449746
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791450363,
+  "event_cursor": 63,
+  "events": [
+    {
+      "seq": 40,
+      "at": 1791449950,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 41,
+      "at": 1791449950,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 42,
+      "at": 1791449950,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 43,
+      "at": 1791449963,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 44,
+      "at": 1791449963,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 45,
+      "at": 1791449969,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 46,
+      "at": 1791449970,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 47,
+      "at": 1791449979,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 48,
+      "at": 1791450007,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 49,
+      "at": 1791450007,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 50,
+      "at": 1791450010,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 51,
+      "at": 1791450011,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 52,
+      "at": 1791450029,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 53,
+      "at": 1791450041,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 54,
+      "at": 1791450041,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 55,
+      "at": 1791450046,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 56,
+      "at": 1791450047,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 57,
+      "at": 1791450083,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 58,
+      "at": 1791450087,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 59,
+      "at": 1791450098,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 60,
+      "at": 1791450102,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 61,
+      "at": 1791450195,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 62,
+      "at": 1791450362,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 63,
+      "at": 1791450363,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 56,
+        "at": 1791450047,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 57,
+        "at": 1791450083,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 58,
+        "at": 1791450087,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 59,
+        "at": 1791450098,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 60,
+        "at": 1791450102,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 61,
+        "at": 1791450195,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 62,
+        "at": 1791450362,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 63,
+        "at": 1791450363,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Use a separate engineering-only control qualifier with a separately authenticated combined native authority.** The original review’s blocker remains valid. Candidate **KILL**, existing GO readers, and historical artifacts remain unchanged.\n\nThe checkout was `d5a5c34bc58256aa1b8bf5a022bc53ad659ed9b1`; the seven inspected serving/admission files have no difference from supplied `bb1a736`.\n\n1. **Freeze the existing binary’s provenance before implementation is admitted for native use.**\n\n   Prefer the archived `/home/riomus/runs/sfora-cutile-threads-v1/candidate.so`, whose recorded SHA256 is:\n\n   ```\n   3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526\n   ```\n\n   The committed [threads receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/cutile-threads-v1/receipt.json) binds `binaries.json`, the source manifest, build controller, logs, and native probe evidence. Its [build controller](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/cutile-threads-v1/cpu.py) checks source hashes, cleans the package, builds offline/locked/release, and hashes the copied library. The native controller checks that the probe used that digest.\n\n   This is stronger provenance than the earlier comparison’s `8e1feb…` library: the threads archive includes the later FFI source hash `654901…`. The currently inspected FFI, top-k source, and Cargo.lock bytes match that archive’s entries; this does **not** authenticate an arbitrary current build output.\n\n   **Missing:** a prospective canonical runtime FILE binding, current-byte verification of that remote binary, and an explicit inventory/provenance chain for every additional library it maps. The archives inspected do not provide that complete mapping inventory or a hermetic toolchain attestation.\n\n   **Exact blocker:** if the proposed library does not match the archived binary, or introduces a mapped library absent from the frozen supplemental authority, stop before public measurement. A matching basename, Cargo.lock, or ordinary guard entry does not repair that gap. Do not rebuild or re-export merely to replace missing attribution.\n\n2. **Add three separate source files; reuse existing request machinery.**\n\n   Proposed files:\n\n   - `scripts/qualify_connected_control_serving.py`: admission, orchestration, diagnostic receipt.\n   - `scripts/connected_control_native_authority.py`: provenance validation and owned combined audit/exit.\n   - `scripts/test_connected_control_serving.py`: bounded stdlib falsifiers.\n\n   Reuse authenticated `Source`, `Locks`, `request_body`, `native_ties`, `decode_images`, and resource helpers from [the existing request driver](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_connected_serving_requests.py:236). Reuse `RequestObserver.from_index()` and `measure_request()` unchanged.\n\n   Keep `observe_connected_serving.prepare()` unchanged. Its `qualified_terminal` role must not be filled with a control export receipt. Give the control qualifier its own preparation schema and validate the same FILE, image-count, source, gallery, and resource constraints using the observer’s existing validation helpers.\n\n   Keep both public serving modules unchanged. [`close()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:202) destroys the gallery handle; successful authority must not depend on library unmapping.\n\n3. **Use explicit, separate descriptors and receipt roles.**\n\n   | Boundary | Proposed contract |\n   |---|---|\n   | FILE | Existing `{path, sha256}`; canonical regular file, fresh byte reads. |\n   | CODE | Existing `{root, execution_sha256, code}` with exact file inventory. Original evaluator CODE remains unchanged. |\n   | UNIT | Existing complete descriptor: receipt, log, unit, invocation ID, service seconds, peak RSS, both-lock evidence. |\n   | Control authority | `connected-control-serving-requests-authority-v1`; exact keys: `schema`, `sources`, `evaluator`, `evaluation_authority`, `control_export`, `control`, `observation`, `native_runtime`, `locks`. |\n   | Control selector | Exactly `{arm:\"control\", seed:179061}`. No survivor or selection-GO input. |\n   | Observation | Separate control schema; existing observation fields, replacing `qualified_terminal` with explicitly named `control_export_receipt`. |\n   | Native authority | `connected-control-native-authority-v1`; exact library FILE, archived build-evidence FILEs, source-manifest FILE, and explicit supplemental native FILEs with provenance references. No directory/pattern admission. |\n   | Result | `connected-control-serving-diagnostic-v1`; engineering-only, discarded; quality, qualification, state-reuse, and optimization eligibility remain false. |\n\n   Pin all three new files and every reused driver/observer/public-wrapper dependency in `sources`. Future hashes must come from the root’s actual freeze.\n\n   CLI:\n\n   ```\n   python -B qualify_connected_control_serving.py \\\n     --authority FILE --authority-sha256 SHA --output NEWDIR\n   ```\n\n   Authenticate the original export launch with unchanged evaluator `authority()`, then unchanged:\n\n   ```\n   accept_unit(context, control_export, \"export\", \"control\", 179061,\n               stage=\"full\", panel=\"selection\")\n   ```\n\n   The existing [control061 UNIT](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-export-control-179061-v2/unit.json) binds receipt `db63db82…3407`, invocation `2ffefca891564bc2a74267d3511c0401`; its launch selects fullCPUv5 receipt `1a732ebe…c189`. Reuse those accepted artifacts and the original bundle/gallery-row binding. Execute no export or quality scoring.\n\n   A new diagnostic receipt needs its own terminal validation against its actual CLI and complete-unit evidence. Never present it as an original evaluator export/score receipt.\n\n4. **Implement combined authority before projecting the historical subset.**\n\n   Let `H` be the original source-CPU/warm authority plus the proven four cuDNN additions. Let `S` be the separately frozen cuTile additions.\n\n   Every combined audit must:\n\n   - Obtain the complete current origin inventory through the genuine collector, freshly hashing its files.\n   - Reject conflicting authorities, unknown paths, changed bytes, unexpected module origins, and supplemental files lacking actual native mappings.\n   - Check additional mapped-file identities against canonical files; reject deleted/replaced mappings instead of silently resolving them to different disk bytes.\n   - Validate the complete inventory against `H ∪ S` **before** returning the `H` projection to historical predicates. Require the exact frozen supplemental inventory after library admission and at final exit.\n   - Keep complete combined evidence separate from `legacy[\"origins\"]`, which retains its historical-subset meaning.\n\n   The existing [`native_source_api()`](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_nearest_ranking.py:407) cannot simply receive this projection: its private audit collects origins again. Build a **new owned source-derived adapter**, following its existing authenticated AST approach:\n\n   - Retain the original exact-four supplement and all historical predicates.\n   - Change only the private audit’s collector dispatch to the combined collector.\n   - Give the new adapter a distinct ownership slot; preserve the original API/context binding.\n   - Route private quadratic and fitter exits through that audit.\n   - Derive a private evaluator exit changing only its native-API dispatch to the new adapter.\n\n   Verify exact substitution counts and inverse-AST equality. Initialize private namespaces once, then authenticate their functions, closures, defaults, dependencies, and bindings on every use. Do not rebind existing module globals, replace `source_driver`, mutate historical origin proofs, or introduce a byte-hash cache.\n\n   This must preserve the **entire** [evaluator exit](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1772): original guards, no-training checks, nested fitter/quadratic exit, fresh reader, FIT/TRAIN resolution, complete file rehashes, source closures, bundle admission, and final audit. Checking only the outer audit leaves the original nested rejection intact.\n\n5. **Run the existing bounded measurement only after those gates pass.**\n\n   Preserve exactly **22 public image calls**: B1/B32 each two warmups plus eight timed calls, then a fresh owner with one observed call per batch. Four calls are instrumented, including the original warmup oracles. Preserve byte/native parity, separate native tie checks, genuine releases, and both inherited lifetime locks.\n\n   Retain body ≤120 seconds, host ≤8 GiB, zero swap, CUDA allocation <10 GB, and a frozen whole-process cap no greater than the existing 1500-second export envelope, with positive exit reserve. Charge admission, provenance checks, both owners, cleanup, full exit, and publication. Abort when remaining headroom is insufficient; do not extend caps.\n\n   Publish success only after combined exit and terminal checks. This remains diagnostic timing, not production speed qualification.\n\n**Bounded falsifier — proposed, unrun:** extend the actual [native-adapter fixture](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_nearest_ranking.py:1193), using tiny regular files and synthetic inventory data. Run under **120 seconds, 1 GiB, ≤16 MiB fixture contents**, blocking third-party/native imports.\n\nRequire:\n\n- Historical authority passes its original inventory and still rejects `H + S`.\n- Combined authority passes `H + S` through the real adapted evaluator → fitter → quadratic exit chain.\n- Unknown additions fail even when their correct hashes appear in ordinary guards.\n- Missing mappings, forged module origins, conflicting membership, changed binary/build evidence, and same-size/restored-mtime mutations fail.\n- A mutation introduced before the nested/final audit is detected there.\n- Original source-subset, exact-four, FIT/TRAIN, closure, bundle, live-function, and ownership failures still reject.\n- Existing modules/globals remain unchanged; the original candidate-GO-only driver continues rejecting KILL.\n\nNo edits, tests, imports, native/remote execution, images, or quality-data reads were performed. Remaining risks are incomplete supplemental provenance, adapter predicate drift, and uncached lifecycle cost exceeding the frozen cap.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Use a separate engineering-only control qualifier with a separately authenticated combined native authority.** The original review’s blocker remains valid. Candidate **KILL**, existing GO readers, and historical artifacts remain unchanged.\n\nThe checkout was `d5a5c34bc58256aa1b8bf5a022bc53ad659ed9b1`; the seven inspected serving/admission files have no difference from supplied `bb1a736`.\n\n1. **Freeze the existing binary’s provenance before implementation is admitted for native use.**\n\n   Prefer the archived `/home/riomus/runs/sfora-cutile-threads-v1/candidate.so`, whose recorded SHA256 is:\n\n   ```\n   3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526\n   ```\n\n   The committed [threads receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/cutile-threads-v1/receipt.json) binds `binaries.json`, the source manifest, build controller, logs, and native probe evidence. Its [build controller](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/cutile-threads-v1/cpu.py) checks source hashes, cleans the package, builds offline/locked/release, and hashes the copied library. The native controller checks that the probe used that digest.\n\n   This is stronger provenance than the earlier comparison’s `8e1feb…` library: the threads archive includes the later FFI source hash `654901…`. The currently inspected FFI, top-k source, and Cargo.lock bytes match that archive’s entries; this does **not** authenticate an arbitrary current build output.\n\n   **Missing:** a prospective canonical runtime FILE binding, current-byte verification of that remote binary, and an explicit inventory/provenance chain for every additional library it maps. The archives inspected do not provide that complete mapping inventory or a hermetic toolchain attestation.\n\n   **Exact blocker:** if the proposed library does not match the archived binary, or introduces a mapped library absent from the frozen supplemental authority, stop before public measurement. A matching basename, Cargo.lock, or ordinary guard entry does not repair that gap. Do not rebuild or re-export merely to replace missing attribution.\n\n2. **Add three separate source files; reuse existing request machinery.**\n\n   Proposed files:\n\n   - `scripts/qualify_connected_control_serving.py`: admission, orchestration, diagnostic receipt.\n   - `scripts/connected_control_native_authority.py`: provenance validation and owned combined audit/exit.\n   - `scripts/test_connected_control_serving.py`: bounded stdlib falsifiers.\n\n   Reuse authenticated `Source`, `Locks`, `request_body`, `native_ties`, `decode_images`, and resource helpers from [the existing request driver](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_connected_serving_requests.py:236). Reuse `RequestObserver.from_index()` and `measure_request()` unchanged.\n\n   Keep `observe_connected_serving.prepare()` unchanged. Its `qualified_terminal` role must not be filled with a control export receipt. Give the control qualifier its own preparation schema and validate the same FILE, image-count, source, gallery, and resource constraints using the observer’s existing validation helpers.\n\n   Keep both public serving modules unchanged. [`close()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:202) destroys the gallery handle; successful authority must not depend on library unmapping.\n\n3. **Use explicit, separate descriptors and receipt roles.**\n\n   | Boundary | Proposed contract |\n   |---|---|\n   | FILE | Existing `{path, sha256}`; canonical regular file, fresh byte reads. |\n   | CODE | Existing `{root, execution_sha256, code}` with exact file inventory. Original evaluator CODE remains unchanged. |\n   | UNIT | Existing complete descriptor: receipt, log, unit, invocation ID, service seconds, peak RSS, both-lock evidence. |\n   | Control authority | `connected-control-serving-requests-authority-v1`; exact keys: `schema`, `sources`, `evaluator`, `evaluation_authority`, `control_export`, `control`, `observation`, `native_runtime`, `locks`. |\n   | Control selector | Exactly `{arm:\"control\", seed:179061}`. No survivor or selection-GO input. |\n   | Observation | Separate control schema; existing observation fields, replacing `qualified_terminal` with explicitly named `control_export_receipt`. |\n   | Native authority | `connected-control-native-authority-v1`; exact library FILE, archived build-evidence FILEs, source-manifest FILE, and explicit supplemental native FILEs with provenance references. No directory/pattern admission. |\n   | Result | `connected-control-serving-diagnostic-v1`; engineering-only, discarded; quality, qualification, state-reuse, and optimization eligibility remain false. |\n\n   Pin all three new files and every reused driver/observer/public-wrapper dependency in `sources`. Future hashes must come from the root’s actual freeze.\n\n   CLI:\n\n   ```\n   python -B qualify_connected_control_serving.py \\\n     --authority FILE --authority-sha256 SHA --output NEWDIR\n   ```\n\n   Authenticate the original export launch with unchanged evaluator `authority()`, then unchanged:\n\n   ```\n   accept_unit(context, control_export, \"export\", \"control\", 179061,\n               stage=\"full\", panel=\"selection\")\n   ```\n\n   The existing [control061 UNIT](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-export-control-179061-v2/unit.json) binds receipt `db63db82…3407`, invocation `2ffefca891564bc2a74267d3511c0401`; its launch selects fullCPUv5 receipt `1a732ebe…c189`. Reuse those accepted artifacts and the original bundle/gallery-row binding. Execute no export or quality scoring.\n\n   A new diagnostic receipt needs its own terminal validation against its actual CLI and complete-unit evidence. Never present it as an original evaluator export/score receipt.\n\n4. **Implement combined authority before projecting the historical subset.**\n\n   Let `H` be the original source-CPU/warm authority plus the proven four cuDNN additions. Let `S` be the separately frozen cuTile additions.\n\n   Every combined audit must:\n\n   - Obtain the complete current origin inventory through the genuine collector, freshly hashing its files.\n   - Reject conflicting authorities, unknown paths, changed bytes, unexpected module origins, and supplemental files lacking actual native mappings.\n   - Check additional mapped-file identities against canonical files; reject deleted/replaced mappings instead of silently resolving them to different disk bytes.\n   - Validate the complete inventory against `H ∪ S` **before** returning the `H` projection to historical predicates. Require the exact frozen supplemental inventory after library admission and at final exit.\n   - Keep complete combined evidence separate from `legacy[\"origins\"]`, which retains its historical-subset meaning.\n\n   The existing [`native_source_api()`](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_nearest_ranking.py:407) cannot simply receive this projection: its private audit collects origins again. Build a **new owned source-derived adapter**, following its existing authenticated AST approach:\n\n   - Retain the original exact-four supplement and all historical predicates.\n   - Change only the private audit’s collector dispatch to the combined collector.\n   - Give the new adapter a distinct ownership slot; preserve the original API/context binding.\n   - Route private quadratic and fitter exits through that audit.\n   - Derive a private evaluator exit changing only its native-API dispatch to the new adapter.\n\n   Verify exact substitution counts and inverse-AST equality. Initialize private namespaces once, then authenticate their functions, closures, defaults, dependencies, and bindings on every use. Do not rebind existing module globals, replace `source_driver`, mutate historical origin proofs, or introduce a byte-hash cache.\n\n   This must preserve the **entire** [evaluator exit](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1772): original guards, no-training checks, nested fitter/quadratic exit, fresh reader, FIT/TRAIN resolution, complete file rehashes, source closures, bundle admission, and final audit. Checking only the outer audit leaves the original nested rejection intact.\n\n5. **Run the existing bounded measurement only after those gates pass.**\n\n   Preserve exactly **22 public image calls**: B1/B32 each two warmups plus eight timed calls, then a fresh owner with one observed call per batch. Four calls are instrumented, including the original warmup oracles. Preserve byte/native parity, separate native tie checks, genuine releases, and both inherited lifetime locks.\n\n   Retain body ≤120 seconds, host ≤8 GiB, zero swap, CUDA allocation <10 GB, and a frozen whole-process cap no greater than the existing 1500-second export envelope, with positive exit reserve. Charge admission, provenance checks, both owners, cleanup, full exit, and publication. Abort when remaining headroom is insufficient; do not extend caps.\n\n   Publish success only after combined exit and terminal checks. This remains diagnostic timing, not production speed qualification.\n\n**Bounded falsifier — proposed, unrun:** extend the actual [native-adapter fixture](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_nearest_ranking.py:1193), using tiny regular files and synthetic inventory data. Run under **120 seconds, 1 GiB, ≤16 MiB fixture contents**, blocking third-party/native imports.\n\nRequire:\n\n- Historical authority passes its original inventory and still rejects `H + S`.\n- Combined authority passes `H + S` through the real adapted evaluator → fitter → quadratic exit chain.\n- Unknown additions fail even when their correct hashes appear in ordinary guards.\n- Missing mappings, forged module origins, conflicting membership, changed binary/build evidence, and same-size/restored-mtime mutations fail.\n- A mutation introduced before the nested/final audit is detected there.\n- Original source-subset, exact-four, FIT/TRAIN, closure, bundle, live-function, and ownership failures still reject.\n- Existing modules/globals remain unchanged; the original candidate-GO-only driver continues rejecting KILL.\n\nNo edits, tests, imports, native/remote execution, images, or quality-data reads were performed. Remaining risks are incomplete supplemental provenance, adapter predicate drift, and uncached lifecycle cost exceeding the frozen cap."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 2048,
+  "output_bytes": 10578,
+  "elapsed_seconds": 617,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)\ndevbox-ask: codex consult still running (8m 00s)\ndevbox-ask: codex consult still running (8m 30s)\ndevbox-ask: codex consult still running (9m 00s)\ndevbox-ask: codex consult still running (9m 30s)\ndevbox-ask: codex consult still running (10m 00s)",
+  "progress_truncated": false,
+  "result": "**Use a separate engineering-only control qualifier with a separately authenticated combined native authority.** The original review’s blocker remains valid. Candidate **KILL**, existing GO readers, and historical artifacts remain unchanged.\n\nThe checkout was `d5a5c34bc58256aa1b8bf5a022bc53ad659ed9b1`; the seven inspected serving/admission files have no difference from supplied `bb1a736`.\n\n1. **Freeze the existing binary’s provenance before implementation is admitted for native use.**\n\n   Prefer the archived `/home/riomus/runs/sfora-cutile-threads-v1/candidate.so`, whose recorded SHA256 is:\n\n   ```\n   3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526\n   ```\n\n   The committed [threads receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/cutile-threads-v1/receipt.json) binds `binaries.json`, the source manifest, build controller, logs, and native probe evidence. Its [build controller](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/cutile-threads-v1/cpu.py) checks source hashes, cleans the package, builds offline/locked/release, and hashes the copied library. The native controller checks that the probe used that digest.\n\n   This is stronger provenance than the earlier comparison’s `8e1feb…` library: the threads archive includes the later FFI source hash `654901…`. The currently inspected FFI, top-k source, and Cargo.lock bytes match that archive’s entries; this does **not** authenticate an arbitrary current build output.\n\n   **Missing:** a prospective canonical runtime FILE binding, current-byte verification of that remote binary, and an explicit inventory/provenance chain for every additional library it maps. The archives inspected do not provide that complete mapping inventory or a hermetic toolchain attestation.\n\n   **Exact blocker:** if the proposed library does not match the archived binary, or introduces a mapped library absent from the frozen supplemental authority, stop before public measurement. A matching basename, Cargo.lock, or ordinary guard entry does not repair that gap. Do not rebuild or re-export merely to replace missing attribution.\n\n2. **Add three separate source files; reuse existing request machinery.**\n\n   Proposed files:\n\n   - `scripts/qualify_connected_control_serving.py`: admission, orchestration, diagnostic receipt.\n   - `scripts/connected_control_native_authority.py`: provenance validation and owned combined audit/exit.\n   - `scripts/test_connected_control_serving.py`: bounded stdlib falsifiers.\n\n   Reuse authenticated `Source`, `Locks`, `request_body`, `native_ties`, `decode_images`, and resource helpers from [the existing request driver](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_connected_serving_requests.py:236). Reuse `RequestObserver.from_index()` and `measure_request()` unchanged.\n\n   Keep `observe_connected_serving.prepare()` unchanged. Its `qualified_terminal` role must not be filled with a control export receipt. Give the control qualifier its own preparation schema and validate the same FILE, image-count, source, gallery, and resource constraints using the observer’s existing validation helpers.\n\n   Keep both public serving modules unchanged. [`close()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:202) destroys the gallery handle; successful authority must not depend on library unmapping.\n\n3. **Use explicit, separate descriptors and receipt roles.**\n\n   | Boundary | Proposed contract |\n   |---|---|\n   | FILE | Existing `{path, sha256}`; canonical regular file, fresh byte reads. |\n   | CODE | Existing `{root, execution_sha256, code}` with exact file inventory. Original evaluator CODE remains unchanged. |\n   | UNIT | Existing complete descriptor: receipt, log, unit, invocation ID, service seconds, peak RSS, both-lock evidence. |\n   | Control authority | `connected-control-serving-requests-authority-v1`; exact keys: `schema`, `sources`, `evaluator`, `evaluation_authority`, `control_export`, `control`, `observation`, `native_runtime`, `locks`. |\n   | Control selector | Exactly `{arm:\"control\", seed:179061}`. No survivor or selection-GO input. |\n   | Observation | Separate control schema; existing observation fields, replacing `qualified_terminal` with explicitly named `control_export_receipt`. |\n   | Native authority | `connected-control-native-authority-v1`; exact library FILE, archived build-evidence FILEs, source-manifest FILE, and explicit supplemental native FILEs with provenance references. No directory/pattern admission. |\n   | Result | `connected-control-serving-diagnostic-v1`; engineering-only, discarded; quality, qualification, state-reuse, and optimization eligibility remain false. |\n\n   Pin all three new files and every reused driver/observer/public-wrapper dependency in `sources`. Future hashes must come from the root’s actual freeze.\n\n   CLI:\n\n   ```\n   python -B qualify_connected_control_serving.py \\\n     --authority FILE --authority-sha256 SHA --output NEWDIR\n   ```\n\n   Authenticate the original export launch with unchanged evaluator `authority()`, then unchanged:\n\n   ```\n   accept_unit(context, control_export, \"export\", \"control\", 179061,\n               stage=\"full\", panel=\"selection\")\n   ```\n\n   The existing [control061 UNIT](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-export-control-179061-v2/unit.json) binds receipt `db63db82…3407`, invocation `2ffefca891564bc2a74267d3511c0401`; its launch selects fullCPUv5 receipt `1a732ebe…c189`. Reuse those accepted artifacts and the original bundle/gallery-row binding. Execute no export or quality scoring.\n\n   A new diagnostic receipt needs its own terminal validation against its actual CLI and complete-unit evidence. Never present it as an original evaluator export/score receipt.\n\n4. **Implement combined authority before projecting the historical subset.**\n\n   Let `H` be the original source-CPU/warm authority plus the proven four cuDNN additions. Let `S` be the separately frozen cuTile additions.\n\n   Every combined audit must:\n\n   - Obtain the complete current origin inventory through the genuine collector, freshly hashing its files.\n   - Reject conflicting authorities, unknown paths, changed bytes, unexpected module origins, and supplemental files lacking actual native mappings.\n   - Check additional mapped-file identities against canonical files; reject deleted/replaced mappings instead of silently resolving them to different disk bytes.\n   - Validate the complete inventory against `H ∪ S` **before** returning the `H` projection to historical predicates. Require the exact frozen supplemental inventory after library admission and at final exit.\n   - Keep complete combined evidence separate from `legacy[\"origins\"]`, which retains its historical-subset meaning.\n\n   The existing [`native_source_api()`](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_nearest_ranking.py:407) cannot simply receive this projection: its private audit collects origins again. Build a **new owned source-derived adapter**, following its existing authenticated AST approach:\n\n   - Retain the original exact-four supplement and all historical predicates.\n   - Change only the private audit’s collector dispatch to the combined collector.\n   - Give the new adapter a distinct ownership slot; preserve the original API/context binding.\n   - Route private quadratic and fitter exits through that audit.\n   - Derive a private evaluator exit changing only its native-API dispatch to the new adapter.\n\n   Verify exact substitution counts and inverse-AST equality. Initialize private namespaces once, then authenticate their functions, closures, defaults, dependencies, and bindings on every use. Do not rebind existing module globals, replace `source_driver`, mutate historical origin proofs, or introduce a byte-hash cache.\n\n   This must preserve the **entire** [evaluator exit](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1772): original guards, no-training checks, nested fitter/quadratic exit, fresh reader, FIT/TRAIN resolution, complete file rehashes, source closures, bundle admission, and final audit. Checking only the outer audit leaves the original nested rejection intact.\n\n5. **Run the existing bounded measurement only after those gates pass.**\n\n   Preserve exactly **22 public image calls**: B1/B32 each two warmups plus eight timed calls, then a fresh owner with one observed call per batch. Four calls are instrumented, including the original warmup oracles. Preserve byte/native parity, separate native tie checks, genuine releases, and both inherited lifetime locks.\n\n   Retain body ≤120 seconds, host ≤8 GiB, zero swap, CUDA allocation <10 GB, and a frozen whole-process cap no greater than the existing 1500-second export envelope, with positive exit reserve. Charge admission, provenance checks, both owners, cleanup, full exit, and publication. Abort when remaining headroom is insufficient; do not extend caps.\n\n   Publish success only after combined exit and terminal checks. This remains diagnostic timing, not production speed qualification.\n\n**Bounded falsifier — proposed, unrun:** extend the actual [native-adapter fixture](/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_nearest_ranking.py:1193), using tiny regular files and synthetic inventory data. Run under **120 seconds, 1 GiB, ≤16 MiB fixture contents**, blocking third-party/native imports.\n\nRequire:\n\n- Historical authority passes its original inventory and still rejects `H + S`.\n- Combined authority passes `H + S` through the real adapted evaluator → fitter → quadratic exit chain.\n- Unknown additions fail even when their correct hashes appear in ordinary guards.\n- Missing mappings, forged module origins, conflicting membership, changed binary/build evidence, and same-size/restored-mtime mutations fail.\n- A mutation introduced before the nested/final audit is detected there.\n- Original source-subset, exact-four, FIT/TRAIN, closure, bundle, live-function, and ownership failures still reject.\n- Existing modules/globals remain unchanged; the original candidate-GO-only driver continues rejecting KILL.\n\nNo edits, tests, imports, native/remote execution, images, or quality-data reads were performed. Remaining risks are incomplete supplemental provenance, adapter predicate drift, and uncached lifecycle cost exceeding the frozen cap.",
+  "result_truncated": false
+}
