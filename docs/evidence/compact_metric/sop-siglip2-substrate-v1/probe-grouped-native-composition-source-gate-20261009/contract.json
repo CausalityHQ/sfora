@@ -1,0 +1,162 @@
+{
+  "schema": "probe-grouped-native-composition-contract-v1",
+  "base": "54b80524f5d5bdff275cb29ac70870f15f671bd7",
+  "owned": [
+    "scripts/qualify_connected_probe_serving.py",
+    "scripts/test_connected_probe_serving.py"
+  ],
+  "binding": "Immediately after genuine CombinedAuthority.install: bind exact native Source, owner class/context/owned dictionary/API; independently snapshot source modules, class/function code/globals/defaults/closure/attributes/literals, private function/namespace bindings, authority/files/identities/historical data. No API call in live preflight.",
+  "supplement": "Frozen owner.files and owner.fact, admitted by genuine install; never guard/filename/directory fallback.",
+  "ast_edits": [
+    "private grouped_md_origin sole known |= _probe_grouped_native_paths(context, mapped, group, alias, known) immediately before original map require; exact inverse",
+    "private bundle_reads_only sole grouped_md_origin -> _probe_grouped_md_origin call plus existing distribution substitution; exact inverse"
+  ],
+  "unchanged": [
+    "original module helpers/globals",
+    "source/group/RECORD checks",
+    "physical md read/hash/map/guard/native denial",
+    "exact-four/full evaluator exit",
+    "active original Source invariants",
+    "whole1500/body300/exit300/8GiB/0swap/CUDA<10GB/both locks"
+  ],
+  "tests": {
+    "narrow": "stdlib only <=15s RLIMIT_AS1GiB extracted real AST production-shaped fixture/read counters/byte+AST inverses/weak callbacks",
+    "cases": [
+      "H+exactS",
+      "H-only before admission",
+      "missing group",
+      "physical md",
+      "unknown even guard pinned",
+      "deleted/noncanonical/inode/dev",
+      "missing complete S",
+      "owner/API/source/globals/default/closure/attribute/literal forgeries",
+      "provenance/digest/RECORD",
+      "exact-four missing historical member",
+      "weak owner release"
+    ],
+    "full": "Released once by immediate-1791522706013716830-665549:132 PASS23.144s, wall23.55s, RSS106908KiB, swaps0, exit0; no duplicate run.",
+    "latest_narrow": {
+      "tests": 12,
+      "seconds": 6.667,
+      "exit": 0,
+      "wall_cap_seconds": 15,
+      "rlimit_as": 1073741824,
+      "log": "/tmp/grouped-stable-focused.log"
+    }
+  },
+  "prohibited": [
+    "Torch/third-party",
+    "SSH/native/images/GPU/cloud",
+    "reviews/consults/children/operator",
+    "merge/push"
+  ],
+  "claim": "Source-only; v4 exact culprit/native parity unproven. Stop exact blocker if bindings or pre-read ordering cannot be proved.",
+  "root_revision": {
+    "messages": [
+      "immediate-1791521312480241123-665549",
+      "immediate-1791521584799570619-665549",
+      "immediate-1791521643087973259-665549"
+    ],
+    "changes": [
+      "preserve physical md presence; forbid mapping/authority/content access as original",
+      "require M <= independently frozen H files union S, in addition to original K union S",
+      "reject malformed native-looking rows before authentication; compare raw identities and genuine mappings",
+      "api.authenticate exactly once after pure preflight; no audit/collect or inventory acceptance/mutation; outside original audits unchanged"
+    ],
+    "pending": null,
+    "full_message_received": "immediate-1791521643087973259-665549",
+    "exact_s": "Bind to independently frozen native authority library and gpucomp descriptors, exclude G/alias/site; generic owner.files alone forbidden.",
+    "prior_contract": "/tmp/sfora-probe-grouped-native-composition-contract-before-exact-s.json",
+    "chronology": "Opening contract preceded code. Initial root message was truncated: authenticate-only/preflight correction was implemented and recorded before full clause about publishing revised contract was received. This revision precedes exact-descriptor binding edits.",
+    "native_cost": "UNMEASURED",
+    "exact_s_implementation": "Immutable class FILE tuples pin authority path+cf085f68, exact candidate path+ARCHIVED_BINARY_SHA and exact gpucomp path+f9e19c3c; bind requires equality. Independent frozen v4 native authority bytes prove descriptors; fixture substitutes only immutable data pins before construction, never callable code."
+  },
+  "opening_preflight_order": [
+    "check captured live owner/API/source bindings without content reads",
+    "group <= mapped; physical alias absent including dangling symlink, unmapped, unguarded; mapped <= historical known | frozen S",
+    "genuine pinned CombinedAuthority.mappings: canonical/nondeleted/current inode/dev, identical path snapshot, frozen S inode/dev",
+    "if owner.admitted OR exact library mapped require complete frozen S <= mapped",
+    "existing api.audit_origins(legacy) exactly once; no extra authenticate",
+    "fresh inventory object and native path set equal pure map snapshot; return frozen S only"
+  ],
+  "preflight_order": [
+    "check independent live owner/API/source bindings without content reads",
+    "group <= mapped; md unmapped and absent from native/guard authority (filesystem presence allowed); mapped <= original K union frozen S AND frozen H files union frozen S",
+    "explicit malformed native-looking row rejection; genuine pinned CombinedAuthority.mappings; canonical/nondeleted/current inode/dev, snapshot agreement, frozen S inode/dev comparison",
+    "if owner.admitted OR exact library mapped require complete frozen S <= mapped",
+    "captured api.authenticate exactly once; check_native; genuine mappings still equal original snapshot",
+    "return frozen S only; do not inspect/accept/mutate inventory, collect origins, or change original outside audits"
+  ],
+  "source_checkpoint": {
+    "base": "54b80524f5d5bdff275cb29ac70870f15f671bd7",
+    "files": {
+      "scripts/qualify_connected_probe_serving.py": "374ffa6331152940e9935ab561af76954ddbfbdf99e90cedba22b37ed4940b3c",
+      "scripts/test_connected_probe_serving.py": "2b9ed1da8daab9bed82d51b4fca9c9d9a5bd22aed74cb5cbae37e55f4f1656cf"
+    },
+    "focused_tests": {
+      "tests": 12,
+      "seconds": 6.667,
+      "exit": 0,
+      "wall_cap_seconds": 15,
+      "rlimit_as": 1073741824,
+      "log": "/tmp/grouped-stable-focused.log"
+    },
+    "regressions": {
+      "mappingproxy_red": "/tmp/grouped-proxy-red.log",
+      "populated_default_red": "/tmp/grouped-default-registry-red.log",
+      "green": "/tmp/grouped-stable-focused.log",
+      "weak_owner": "boundary/native/opaque refs all gone after callback owner released"
+    },
+    "full_suite": {
+      "schema": "probe-grouped-native-composition-source-receipt-v1",
+      "base": "54b80524f5d5bdff275cb29ac70870f15f671bd7",
+      "release_message": "immediate-1791522706013716830-665549",
+      "source_files": {
+        "scripts/qualify_connected_probe_serving.py": "374ffa6331152940e9935ab561af76954ddbfbdf99e90cedba22b37ed4940b3c",
+        "scripts/test_connected_probe_serving.py": "2b9ed1da8daab9bed82d51b4fca9c9d9a5bd22aed74cb5cbae37e55f4f1656cf"
+      },
+      "command": "timeout 120s prlimit --as=1073741824 python3 -B scripts/test_connected_probe_serving.py",
+      "python": "3.14.4",
+      "original_session_id": 76846,
+      "exit": 0,
+      "tests": 132,
+      "test_seconds": 23.144,
+      "wall_seconds": 23.55,
+      "max_rss_kib": 106908,
+      "swaps": 0,
+      "rlimit_as": 1073741824,
+      "original_files": {
+        "/tmp/grouped-final-serial.log": "8c14e24fd9c7949faf255dc9a6c21dc17308b488595ba6f8aafc296fb4cda523",
+        "/tmp/grouped-final-serial.time": "2706a8059a2b3bc2d7f0a6c6d5549869719b9df17c649e2656328e334b382575"
+      },
+      "native_executed": false,
+      "native_cost": "UNMEASURED",
+      "native_parity": false,
+      "exact_four_native_qualified": false,
+      "cpython_3_13_qualified": false,
+      "integration": "parent-owned; no merge/push",
+      "commit": "a0e6f462b582d8f4e12ad36dbfd5c4cd87d7dcf4",
+      "clean_worktree": true,
+      "author": "Roman Bartusiak",
+      "commit_trailers": false
+    },
+    "commit": "a0e6f462b582d8f4e12ad36dbfd5c4cd87d7dcf4",
+    "native_cost": "UNMEASURED"
+  },
+  "completion": {
+    "commit": "a0e6f462b582d8f4e12ad36dbfd5c4cd87d7dcf4",
+    "clean": true,
+    "own_files": [
+      "scripts/qualify_connected_probe_serving.py",
+      "scripts/test_connected_probe_serving.py"
+    ],
+    "receipt": {
+      "path": "/tmp/sfora-probe-grouped-native-composition-receipt.json",
+      "sha256": "4d0fd744ffa98c9c5e3aec8db7ffb79035c83bb9c82a63d941c28637fe318895"
+    },
+    "integration": "parent-owned; no merge/push",
+    "native_cost": "UNMEASURED",
+    "native_exact_four": "UNQUALIFIED",
+    "cpython_3_13": "UNQUALIFIED"
+  }
+}
