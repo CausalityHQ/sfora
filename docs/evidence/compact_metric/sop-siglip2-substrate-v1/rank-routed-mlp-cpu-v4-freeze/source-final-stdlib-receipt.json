@@ -1,0 +1,22 @@
+{
+  "address_space_bytes": 1073741824,
+  "after": {
+    "scripts/test_siglip2_rank_routed_mlp.py": "d9a68a0548252eb4052f0ac731b8944c09c54a4d0da7582a63abc5bc502c0b42",
+    "scripts/train_siglip2_rank_routed_mlp.py": "1628700dcf502a7f9669d572eb06e3370bf875cb3aaa7d2aa464108c2cc5c572"
+  },
+  "before": {
+    "scripts/test_siglip2_rank_routed_mlp.py": "d9a68a0548252eb4052f0ac731b8944c09c54a4d0da7582a63abc5bc502c0b42",
+    "scripts/train_siglip2_rank_routed_mlp.py": "1628700dcf502a7f9669d572eb06e3370bf875cb3aaa7d2aa464108c2cc5c572"
+  },
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "scripts/test_siglip2_rank_routed_mlp.py",
+    "--source-only"
+  ],
+  "exit_code": 0,
+  "log_sha256": "d0dbae546520598c2e4d134940f83bebb82b9f99f4c128982d4004b366c98789",
+  "max_rss_kib": 71740,
+  "timeout_seconds": 120,
+  "wall_seconds": 19.007632885943167
+}

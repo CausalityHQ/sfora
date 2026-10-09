@@ -1,0 +1,36 @@
+{
+  "authority_sha256": "eb28c5c5c9bf4d92a6d14bbca4b849589f524b0ce9c331266bd17e741f325c72",
+  "execution_sha256": "b50cec732d474c8f97282a3745bae0995c750b556fa9e791af9bea40e9233f08",
+  "files": {
+    "authority-cpu-v4.json": "eb28c5c5c9bf4d92a6d14bbca4b849589f524b0ce9c331266bd17e741f325c72",
+    "cpu-v4-command.sh": "fd1bd84c347439be052b88d1de08412e1145ad31fd905f38c177d7e7cd75e282",
+    "cpu-v4-controller.sh": "bfbf371ca1b2608b061f5e0e4f1b4c168a37c1813a7d67c002ed676b36f9f5d0",
+    "cpu-v4-launch.sh": "e3dc89289e6413e93756a3221fbfd2f44706bfc7588de04c9fbb5fc038d122dc",
+    "critique-astra.md": "eea3c2e24149d2e2335a73c7f3fbce80a748068bb6837d61bb484e541fd61e40",
+    "critique-opus.md": "67a99e1cb61fda4ab11177daa9d664d81ab5365cf555ed821d6127dcbe2bb9c8",
+    "execution.json": "b50cec732d474c8f97282a3745bae0995c750b556fa9e791af9bea40e9233f08",
+    "review-reconciliation.md": "70277cc89adf40cb8480f76b6d8d3ff421c9691294ef2d45563788053e806c51",
+    "source-final-stdlib-receipt.json": "95f1c5fae6fef773d64a65664efccdf853739d96bf81db0a1c8ba0ae42be2c78",
+    "source-final-stdlib.log": "d0dbae546520598c2e4d134940f83bebb82b9f99f4c128982d4004b366c98789",
+    "source-preflight.py": "ca6a8af9b4a1762ff3a5042aaee4914bf0360ed4c97ffb7c945968c3583891af",
+    "source-verification.json": "605a933127d42e3cb4cb5092e2690ed8b2478602292230d44eea01a77065fac5",
+    "test_siglip2_rank_routed_mlp.py": "d9a68a0548252eb4052f0ac731b8944c09c54a4d0da7582a63abc5bc502c0b42",
+    "train_siglip2_rank_routed_mlp.py": "1628700dcf502a7f9669d572eb06e3370bf875cb3aaa7d2aa464108c2cc5c572"
+  },
+  "native_unrun_at_freeze": true,
+  "output": "/home/riomus/runs/sfora-rank-routed-mlp-cpu-v4",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "review_group": "232a87015de443ec",
+  "review_reconciled": true,
+  "schema": "rank-routed-mlp-parent-freeze-v4",
+  "source_commit": "aa2cea4a71b62055baed0a6cc36a86955d4e0851",
+  "source_gate_exit": 0,
+  "source_root": "/home/riomus/runs/sfora-rank-routed-mlp-train-source-v4",
+  "stop_rule": "ONE prospective CPU600/8GiB/zero-event/zero-swap/both-lock qualification only after both labelled critique findings are reconciled. Exact original independent both-view B64/micro16 gradient, scalar, state/RNG, role, source/native, cleanup/full uncached exit and outer normal terminal required. No unchanged retry or cap changes; original v3 FAIL retained. Declared overlap removal is not memory-fit/quality/speed proof.",
+  "unit": "sfora-rank-routed-mlp-cpu-v4"
+}
