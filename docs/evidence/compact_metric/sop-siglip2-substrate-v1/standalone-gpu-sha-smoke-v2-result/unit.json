@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "e594e58e8ad1495a8150757ca754e3fc",
+  "log": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/original-smoke-v2.log",
+    "sha256": "b1e6fc4a01ca51b4a27574f2a10649d049cc24e8f2e1d87c33db14bb8cc33709"
+  },
+  "native_peak_rss_kib": 666528,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-v2/smoke-receipt.json",
+    "sha256": "45eff741cc688c616eab66ae1aad0f83e0250fb025c64d2e1d28d3b02c0fc7a8"
+  },
+  "service_seconds": 4.393,
+  "unit": "sfora-standalone-gpu-sha-smoke-v2"
+}

@@ -1,0 +1,40 @@
+{
+  "all_smoke_checks": true,
+  "complete_current_mapped_file_hashes_exit_pass": true,
+  "engineering_only": true,
+  "exact_authority": true,
+  "exit_status": 0,
+  "next": "largest-leaf/full-inventory correctness; performance unmeasured",
+  "original_helper_and_source_exit_pass": true,
+  "outer_resources": {
+    "memory_events": {
+      "high": 0,
+      "low": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_group_kill": 0,
+      "oom_kill": 0
+    },
+    "memory_peak_bytes": 436899840,
+    "swap_current_bytes": 0,
+    "wall_seconds": 4.057281047978904
+  },
+  "product_go": false,
+  "schema": "standalone-cuda-sha-smoke-parent-verification-v1",
+  "speed_go": false,
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "e594e58e8ad1495a8150757ca754e3fc",
+    "log": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/original-smoke-v2.log",
+      "sha256": "b1e6fc4a01ca51b4a27574f2a10649d049cc24e8f2e1d87c33db14bb8cc33709"
+    },
+    "native_peak_rss_kib": 666528,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-v2/smoke-receipt.json",
+      "sha256": "45eff741cc688c616eab66ae1aad0f83e0250fb025c64d2e1d28d3b02c0fc7a8"
+    },
+    "service_seconds": 4.393,
+    "unit": "sfora-standalone-gpu-sha-smoke-v2"
+  }
+}

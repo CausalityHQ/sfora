@@ -1,0 +1,173 @@
+{
+ "authority": {
+  "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/native-authority-v2.json",
+  "sha256": "8f11965ce5f79a943d2d3aab2ea85cd509de1f5b1a5e6333ef201758f07c1887"
+ },
+ "checks": {
+  "injected_failures": {
+   "completed": "InjectedFault",
+   "launched": "InjectedFault",
+   "readback": "InjectedFault",
+   "status": "ValueError"
+  },
+  "mutation": {
+   "byte": 5,
+   "mask": 64,
+   "version": 0
+  },
+  "nondefault_stream_pending": {
+   "byte": 9,
+   "mask": 4
+  },
+  "parity": {
+   "lengths": [
+    0,
+    4,
+    52,
+    56,
+    60,
+    64,
+    68,
+    116,
+    120,
+    124,
+    128,
+    132
+   ],
+   "occurrences": 129
+  },
+  "raw_abi": {
+   "all_null": 1,
+   "count0_nulls": 0,
+   "count2e32": 1,
+   "lens_null": 1,
+   "out_null": 1,
+   "ptrs_null": 1
+  },
+  "rejections": [
+   "cpu",
+   "float64",
+   "transposed",
+   "stride_zero",
+   "tuple",
+   "int_list"
+  ],
+  "typed_trees": {
+   "serializers": 2,
+   "trees": 9
+  }
+ },
+ "device": {
+  "capability": [
+   12,
+   1
+  ],
+  "index": 0,
+  "name": "NVIDIA GB10"
+ },
+ "engineering_only": true,
+ "invocation": {
+  "argv": [
+   "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/qualify_cuda_sha256_native.py",
+   "smoke",
+   "--authority",
+   "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/native-authority-v2.json",
+   "--authority-sha256",
+   "8f11965ce5f79a943d2d3aab2ea85cd509de1f5b1a5e6333ef201758f07c1887",
+   "--output",
+   "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-v2"
+  ],
+  "cuda": "13.0",
+  "optimize": 0,
+  "pid": 2237474,
+  "python": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+  "torch": "2.12.1+cu130"
+ },
+ "library": {
+  "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/libsha256_occurrences.so",
+  "sha256": "c9fcd633340e327d1330cd473277bec22bdf6444ed5171d874b5e0392015da19"
+ },
+ "mappings": [
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_bindings/cydriver.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_bindings/cyruntime.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_bindings/cyruntime_ptds.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/cydriver.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/cyruntime.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/driver.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/runtime.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy.libs/libgfortran-e1b7dfc8-d8198c01.so.5.0.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy.libs/libscipy_openblas64_-4135cacc.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/_core/_multiarray_umath.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/linalg/_umath_linalg.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcublas.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcublasLt.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcudart.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcufft.so.12",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcufile.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcupti.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcurand.so.10",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcusolver.so.12",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcusparse.so.12",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libnvJitLink.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libnvrtc-builtins.so.13.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libnvrtc.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn.so.9",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cusparselt/lib/libcusparseLt.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/nccl/lib/libnccl.so.2",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/nvshmem/lib/libnvshmem_host.so.3",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/_C.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libarm_compute.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libarm_compute_graph.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libc10.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libc10_cuda.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libgomp.so.1",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_blas_core.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_blas_lp64_gomp.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_lapack_core.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_lapack_lp64_gomp.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libshm.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cpu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cuda.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_global_deps.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_nvshmem.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_python.so",
+  "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/libsha256_occurrences.so",
+  "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+  "/usr/lib/aarch64-linux-gnu/libc.so.6",
+  "/usr/lib/aarch64-linux-gnu/libcuda.so.580.159.03",
+  "/usr/lib/aarch64-linux-gnu/libdl.so.2",
+  "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+  "/usr/lib/aarch64-linux-gnu/libm.so.6",
+  "/usr/lib/aarch64-linux-gnu/libpthread.so.0",
+  "/usr/lib/aarch64-linux-gnu/librt.so.1",
+  "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.33",
+  "/usr/lib/aarch64-linux-gnu/libutil.so.1",
+  "/usr/lib/aarch64-linux-gnu/libz.so.1.3"
+ ],
+ "native_calls": 24,
+ "normal_terminal_required": true,
+ "optimization_eligible": false,
+ "product_go": false,
+ "qualification_eligible": false,
+ "quality_eligible": false,
+ "quality_read": false,
+ "resource_policy": {
+  "body_seconds": 300,
+  "cuda_allocated_bytes_exclusive": 10000000000,
+  "exit_reserve_seconds": 300,
+  "host_bytes": 8589934592,
+  "swap_bytes": 0,
+  "whole_process_seconds": 1500
+ },
+ "resources": {
+  "body_seconds": 3.897979489003774,
+  "peak_cuda_allocated_bytes": 15872,
+  "process_peak_rss_kib": 666528,
+  "wall_seconds": 3.979516365012387
+ },
+ "schema": "cuda-sha256-native-smoke-v1",
+ "speed_go": false,
+ "state_reuse_eligible": false,
+ "status": "SMOKE_DIAGNOSTIC_UNREVIEWED"
+}
