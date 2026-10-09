@@ -1,0 +1,11 @@
+{
+  "error": "installed source must exist beneath nonsymlink directories",
+  "function": "_installed_sha",
+  "harness_closed_only_identity_owned_leaks": true,
+  "leaked_source_descriptors": 1,
+  "native_modules_imported": false,
+  "schema": "installed-identity-fdopen-original-falsifier-v1",
+  "source_modified": false,
+  "source_sha256": "3886a1e0c21824824f296f810dcdb89af25a7365b857f7a5afff6c91ece4abc3",
+  "synthetic_failure": "os.fdopen raises OSError before adopting opened source descriptor"
+}
