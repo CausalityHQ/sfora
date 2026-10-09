@@ -1,5 +1,17 @@
 # Connected pooling probe: decision table, 9 October 2026
 
+Current checkpoint: the joint production quality-and-speed target is unmet. The table below records the latest results; the older pooling-probe and failure history remains underneath.
+
+| Latest evidence | Dataset / split / baseline | Verified result | Next gate |
+| --- | --- | --- | --- |
+| Paired MLP TRAIN128, seeds179061/179069 | In-Shop TRAIN-selection; control mean R@1 96.7416378316%, mAP@R 82.765482495% | Candidate mean R@1 97.0876585929%, mAP@R 85.0656714888%; product R@1 gain interval [-0.08484,+0.82817] percentage points; original KILL | All-query margin census before deciding on a separately qualified continuation |
+| Asymmetric cached gallery, seed179061 | Same In-Shop TRAIN-selection; symmetric candidate R@1 97.1164936563%, mAP@R 85.1517342156% | Cached-gallery R@1 96.8858131488%, mAP@R 83.6600278138%; normal terminal exit, branch closed | No additional seed or official read for this negative arm |
+| Standalone GPU SHA smoke-v2 | DGX GB10; engineering check, no dataset or serving baseline | Normal exit0; service4.393s, host peak436899840B, CUDA peak15872B, zero swap/events; raw and small typed-tree parity/lifecycle passed | Full-size 447/448 and 444/448 synthetic inventory parity, then paired engineering timing; no speed claim yet |
+| Original TRAIN128 checkpoint file preflight | Four original MLP endpoints, both arms/seeds | Current regular-file bytes match all four accepted whole-file SHA256 descriptors; no Torch/GPU | Typed optimizer/scaler/RNG restoration and continuation remain unqualified |
+
+All-query and full-inventory source specialists are active. No experiment is represented as running until actually launched. The standalone smoke does not qualify library adoption, end-to-end latency, official quality, or publication. Evidence: standalone-gpu-sha-smoke-v2-result and connected-mlp-continuation-parent-files-v1.
+
+
 The candidate trains the frozen pooling probe allocation alongside the same A/C readout. The paired seed 179061 TRAIN128 engineering and cost gates passed. The first paired TRAIN-selection quality gate then returned KILL: R@1 unchanged and mAP@R slightly lower. No serving-speed acceptance follows. Method, endpoints and scientific stop rules remain frozen on TRAIN identities.
 
 | Evidence / dataset and split | Control / reference | Candidate / current result | Units and qualification | Decision / next gate |
