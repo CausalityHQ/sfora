@@ -1,0 +1,15 @@
+{
+  "schema": "probe-grouped-native-populated-defaults-falsifier-v1",
+  "native": false,
+  "torch": false,
+  "source": "scripts/qualify_connected_serving_requests.py Source.functions retains fn.__defaults__; scripts/train_siglip2_nearest_ranking.py native_source_api(_owned={}) populates registry",
+  "draft_site": "_InstalledIdentityBoundary.function_binding copy.deepcopy(fn.__defaults__)",
+  "method": "Executed actual extracted function_binding AST from current specialist draft in independent stdlib namespace against original-shaped callable whose default registry contains (opaque owner, module)",
+  "observed_error": {
+    "type": "TypeError",
+    "message": "cannot pickle 'module' object"
+  },
+  "correction": "Retain genuine defaults/registry identity; separately authenticate original owner/API registry and finite source literal values, never deepcopy opaque ownership graph",
+  "delivery": "ONE failed message retained in worker composer; do not resend; child mailbox/pane consumption to be checked",
+  "full_gate": "held"
+}
