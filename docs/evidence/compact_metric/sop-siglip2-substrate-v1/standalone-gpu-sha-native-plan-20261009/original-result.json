@@ -1,0 +1,347 @@
+{
+  "id": "2bb153e3cf144d5e",
+  "provider": "codex",
+  "model": "gpt-6-astra",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791532105,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791533305,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nREAD-ONLY bounded next native plan. Repo /home/rb/worktrees/sfora-positive-causality master d74365e. Existing original Fable/dual critique under docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gpu-fresh-sha-research-20261009 already completed; DO NOT duplicate invention/critique. Standalone CUDA source rust/sfora-cuda-sha256/sha256_occurrences.cu, contract docs/gpu_sha256_source_contract_2026-10-09.md, source checks scripts/test_cuda_sha256_source.py integrated aee6b40b; actual CUDA UNRUN. Need smallest concrete compilation+finite-authority+native correctness gate plan for root, not general research. Exact GPU DGX spark-2751; CUDA13.4 nvcc exists /home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/nvcc, header adjacent include/cuda_runtime.h, /usr/bin/g++ exists, version/hash/compile UNRUN. No SSH/native/compiler/GPU/image execution or edits by planner. Root currently running unrelated bounded FS gate SSH54145, preserve it. Read existing native loader/admission patterns and propose exact files/callers/source/toolchain/binary closure to freeze, currentstream/error-drain/typed serializer parity falsifiers and meaningful performance comparison original 447+448 vs444+448 sequential without amalgamation. No automatic adoption/threshold/p99 claim; original CPU4helper rejected6s vsoriginal1.6s, serving rolled back. Output a concrete minimal implementable plan, hard source blockers, smallest first native falsifier; do not change scientific limits or duplicate existing consultations.",
+  "prompt_sha256": "ac7d56c0430369e6581af5f333ce9def865a9569dc19b039014ed1558fe571b2",
+  "prompt_bytes": 1842,
+  "fingerprint": "37f59b8f9f530a29c49758092896456d517a439e4919d6e1daca54915a08db8e",
+  "evidence": {
+    "git_commit": "d74365ebf5854265d83af72365e60c76d95a3d48",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "ab33692964399935e230388d52d154b352def751d5d8619ec261a53e339eb043",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6-astra",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "e74c582a-f07b-4928-be11-4d7fed0bb50c"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-2bb153e3cf144d5e.service",
+  "pid": 4067849,
+  "pgid": 4067849,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "budget_usd": null,
+      "timeout_seconds": 1197,
+      "started_at": 1791532108
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791532477,
+  "event_cursor": 97,
+  "events": [
+    {
+      "seq": 74,
+      "at": 1791532262,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 75,
+      "at": 1791532263,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 76,
+      "at": 1791532263,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 77,
+      "at": 1791532275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 78,
+      "at": 1791532275,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 79,
+      "at": 1791532276,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 80,
+      "at": 1791532276,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 81,
+      "at": 1791532276,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 82,
+      "at": 1791532276,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 83,
+      "at": 1791532276,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 84,
+      "at": 1791532276,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 85,
+      "at": 1791532320,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 86,
+      "at": 1791532320,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 87,
+      "at": 1791532320,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 88,
+      "at": 1791532320,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 89,
+      "at": 1791532320,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 90,
+      "at": 1791532320,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 91,
+      "at": 1791532320,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 92,
+      "at": 1791532322,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 93,
+      "at": 1791532322,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 94,
+      "at": 1791532323,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 95,
+      "at": 1791532400,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 96,
+      "at": 1791532476,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 97,
+      "at": 1791532477,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 90,
+        "at": 1791532320,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 91,
+        "at": 1791532320,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 92,
+        "at": 1791532322,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 93,
+        "at": 1791532322,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 94,
+        "at": 1791532323,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 95,
+        "at": 1791532400,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 96,
+        "at": 1791532476,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 97,
+        "at": 1791532477,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "Proceed with **one standalone harness and a two-stage build/load authority freeze**. Keep serving unchanged and wait for root to collect SSH54145 before releasing native work.\n\nThe inspected files are unchanged from `d74365e`, despite HEAD advancing during inspection. The CUDA source still hashes to `f4547f923c5cb3acf893ffc1186e8392c343a6e27951ea3812b430993e621fd1`.\n\n1. **Implement only the missing caller and its tests.**\n\n   Add `scripts/qualify_cuda_sha256_native.py` and `scripts/test_cuda_sha256_native.py`. Keep the CUDA primitive unchanged unless compilation or a falsifier identifies a defect.\n\n   The harness owns admission, explicit `ctypes` ABI binding, tensor validation, device pointer/length tables, current-stream launch, checked completion/readback, and cleanup. Before enqueue, require contiguous CUDA FP32 leaves on one active device, valid spans and capacities, contract-compliant lengths, and separately allocated output. Reject transposes, stride-zero views, other dtypes and CPU leaves before launching anything. No gather or fallback is needed for this first scope.\n\n   Reuse the **original `fingerprint`** for outer framing. Its existing `frozen.get(key)` seam can consume a private, per-call occurrence cursor containing freshly computed `(dtype, shape, lowercase_digest_hex)` facts. The cursor must verify each metadata key, consume exactly one result per occurrence, and reject missing, extra or reordered results. It must never index results by pointer or retain them between calls. This preserves duplicate hashing without introducing another serializer.\n\n   I verified AST equality between the [probe serializer](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:740), MLP serializer and original training serializer.\n\n2. **Freeze build inputs, then separately admit the produced binary.**\n\n   Put the prospective artifacts under `docs/evidence/compact_metric/sop-siglip2-substrate-v1/standalone-gpu-sha-native-v1/`:\n\n   - `source-manifest.json`: CUDA source, contract, source test, new harness/test, original serializer sources, reused admission helpers, fixture source and configuration.\n   - `build-authority.json` and `compile.sh`: canonical tool paths, hashes, exact environment, compiler arguments, target, resource ceiling and exclusive output directory.\n   - `build-receipt.json`: actual exit status, command, versions, logs, ELF hash, extracted device-image hashes and dependency inspection.\n   - `native-authority.json`: explicit executable/runtime FILE closure, binary receipt, GPU identity, stage, resource policy and oracle identities.\n\n   Root first authenticates the supplied nvcc path, adjacent headers and `/usr/bin/g++`, resolving symlinks and recording actual version/hash evidence. Include nvcc configuration, invoked CUDA subtools, host compiler/linker, consumed headers/libraries and inspection tools—not merely `nvcc` and `cuda_runtime.h`.\n\n   Compile once with explicit host compiler, optimization/PIC/shared-library flags, explicit CUDA runtime selection, and **only `code=sm_<verified target>` device output**. Determine the target from authenticated spark-2751 evidence; do not guess it from the hostname. Inspect the resulting fatbinary to require the intended SASS image and no embedded PTX fallback. Compiler-generated intermediate PTX is build evidence, not permission for runtime JIT.\n\n   Freeze the actual `libcudart`, driver-side dependencies, interpreter, Torch/NumPy and `hashlib`/crypto oracle closure. Existing directory trust or `DT_NEEDED` names are insufficient.\n\n3. **Use a finite loader; do not extend the Cutile grant implicitly.**\n\n   [CombinedAuthority](/home/rb/worktrees/sfora-positive-causality/scripts/connected_control_native_authority.py:111) hardcodes the archived Cutile schema, build and binary. Reuse its FILE/provenance, fresh-hash and mapped-inode checks as patterns; this SHA library needs its own authority.\n\n   Hash an opened regular-file descriptor, load that same authenticated inode, retain its canonical file through process exit, and check mapped device/inode identities and the complete permitted mapping set before and after execution. Reject unexpected dependencies and changed/deleted files.\n\n   Do **not** copy [the factorized loader](/home/rb/worktrees/sfora-positive-causality/src/sfora/factorized_residual_native.py:142) verbatim: it unlinks its temporary load alias, whereas the connected authority rejects deleted mappings. Bind all five argument types and `cudaError_t` explicitly. No runtime compilation, extension cache or blanket native-directory exception.\n\n4. **Run the smallest first native falsifier before allocating the full inventory.**\n\n   After root releases the frozen smoke authority, run one process on spark-2751, with a proposed **30-second smoke-body ceiling** inside the existing native resource envelope. Use less than 64 KiB of fixture data.\n\n   Test:\n\n   - Count zero with null arrays/output; oversized count and null nonzero top-level arguments.\n   - FP32 byte lengths `0, 4, 52, 56, 60, 64, 68, 116, 120, 124, 128, 132`; asymmetric bytes and literal signed-zero/NaN payloads.\n   - A contiguous offset view, duplicate and overlapping aliases, and **129 occurrences** to cross the 128-thread launch boundary.\n   - A nondefault current stream with pending byte mutation, followed immediately by candidate hashing. **Run the candidate before the oracle copy**, with no preceding global barrier.\n   - Same-version `.data` byte mutation and exact restoration; verify the unchanged version counter explicitly.\n\n   Require raw digest equality with `hashlib` and complete typed-tree equality with the original serializer. A wrong digest, stale mutation result, ordering failure, missing occurrence, timeout or authority mismatch stops this stage. A pass establishes only this smoke gate.\n\n5. **Complete correctness and error-lifetime gates before timing.**\n\n   Add the **19,832,832-byte `[4304,1152]` leaf**, all admitted padding cases, nested typed trees, differing shapes with identical raw bytes, tuple/list and key-type distinctions, aliases and occurrence reordering.\n\n   For streams, include default and nondefault streams, plus an explicit event dependency from another producer stream. Freeze input immutability during hashing; this API provides no atomic snapshot against concurrent mutation.\n\n   For errors, distinguish:\n\n   - Pre-enqueue rejection.\n   - Launch-status failure.\n   - Completion/readback failure after real work has been queued.\n\n   Inject failures at the harness’s checked boundaries while real benign work remains outstanding. Require no digest publication, owners retained until a real checked drain completes, cleared retained references afterward, and a healthy subsequent call. Label injected errors honestly. If draining itself fails, quarantine ownership until process teardown; do not pretend a poisoned context supports recovery. Avoid deliberate illegal-memory-access kernels on the shared device.\n\n   Add source-level negative tests for altered authority facts, binary identity, ABI binding, occurrence-cursor ordering and serializer framing. Reuse the existing source-check evidence while its inputs remain unchanged.\n\n6. **Only then release the matched engineering comparison.**\n\n   Generate one deterministic synthetic 448-leaf inventory using `expected_vision()` in `scripts/extract_siglip2_vision_source.py` and the pinned `late-dense-v1/so400-native256-upstream-metadata-v1.json`. Remove the extractor’s exact `vision_model.` prefix and verify the resulting names against the runtime PROBE/MLP roles. Allocate each parameter separately; do not substitute repeated aliases for the real workload.\n\n   Measure separately:\n\n   - Probe: **447 frozen → validate digest → 448 full**.\n   - MLP: **444 frozen → validate digest → 448 full**.\n   - Largest leaf alone, labelled as an isolated mechanism measurement.\n\n   Use three alternating original/candidate pairs per workload. Include traversal, validation, table construction/transfers, launch, completion, readback, hexadecimal conversion and original framing. Record admission/build costs separately and disclose source checks outside the clock. Preserve occurrence order and both launches; no amalgamation, deduplication or reuse across calls.\n\n   The comparator is original `fingerprint`, never `_fingerprint_cuda_dict`: the four-worker helper remains rejected at 6.05–6.11 seconds versus 1.57–1.60 seconds. Report observations and resources without adopting the projected thresholds.\n\n**Hard blockers today:** no compiled artifact, verified toolchain/runtime closure, SHA-specific native authority, validated caller, or native stream/error-lifetime evidence exists. The inspected source does not establish a specific SHA arithmetic defect; compilation and execution remain unproven. Full integration would additionally reach both `encoder_facts` callers, extraction ledgers/tests and installed bridge provenance, outside this standalone slice.\n\nKeep the existing body/whole-process limits, exit reserve, 8 GiB host ceiling, zero swap, CUDA allocation ceiling and lifetime locks. A standalone pass leaves B1/B32/tail parity, lifecycle/uncached exit, scientific gates and 10,000 interleaved paired-call p99 qualification unchanged.\n\nSkipped: edits, SSH, compiler/native/GPU/image execution, test reruns and duplicate consultations.  \nRisk: even byte-exact native results may be slower at the complete sequential-tree boundary.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "Proceed with **one standalone harness and a two-stage build/load authority freeze**. Keep serving unchanged and wait for root to collect SSH54145 before releasing native work.\n\nThe inspected files are unchanged from `d74365e`, despite HEAD advancing during inspection. The CUDA source still hashes to `f4547f923c5cb3acf893ffc1186e8392c343a6e27951ea3812b430993e621fd1`.\n\n1. **Implement only the missing caller and its tests.**\n\n   Add `scripts/qualify_cuda_sha256_native.py` and `scripts/test_cuda_sha256_native.py`. Keep the CUDA primitive unchanged unless compilation or a falsifier identifies a defect.\n\n   The harness owns admission, explicit `ctypes` ABI binding, tensor validation, device pointer/length tables, current-stream launch, checked completion/readback, and cleanup. Before enqueue, require contiguous CUDA FP32 leaves on one active device, valid spans and capacities, contract-compliant lengths, and separately allocated output. Reject transposes, stride-zero views, other dtypes and CPU leaves before launching anything. No gather or fallback is needed for this first scope.\n\n   Reuse the **original `fingerprint`** for outer framing. Its existing `frozen.get(key)` seam can consume a private, per-call occurrence cursor containing freshly computed `(dtype, shape, lowercase_digest_hex)` facts. The cursor must verify each metadata key, consume exactly one result per occurrence, and reject missing, extra or reordered results. It must never index results by pointer or retain them between calls. This preserves duplicate hashing without introducing another serializer.\n\n   I verified AST equality between the [probe serializer](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:740), MLP serializer and original training serializer.\n\n2. **Freeze build inputs, then separately admit the produced binary.**\n\n   Put the prospective artifacts under `docs/evidence/compact_metric/sop-siglip2-substrate-v1/standalone-gpu-sha-native-v1/`:\n\n   - `source-manifest.json`: CUDA source, contract, source test, new harness/test, original serializer sources, reused admission helpers, fixture source and configuration.\n   - `build-authority.json` and `compile.sh`: canonical tool paths, hashes, exact environment, compiler arguments, target, resource ceiling and exclusive output directory.\n   - `build-receipt.json`: actual exit status, command, versions, logs, ELF hash, extracted device-image hashes and dependency inspection.\n   - `native-authority.json`: explicit executable/runtime FILE closure, binary receipt, GPU identity, stage, resource policy and oracle identities.\n\n   Root first authenticates the supplied nvcc path, adjacent headers and `/usr/bin/g++`, resolving symlinks and recording actual version/hash evidence. Include nvcc configuration, invoked CUDA subtools, host compiler/linker, consumed headers/libraries and inspection tools—not merely `nvcc` and `cuda_runtime.h`.\n\n   Compile once with explicit host compiler, optimization/PIC/shared-library flags, explicit CUDA runtime selection, and **only `code=sm_<verified target>` device output**. Determine the target from authenticated spark-2751 evidence; do not guess it from the hostname. Inspect the resulting fatbinary to require the intended SASS image and no embedded PTX fallback. Compiler-generated intermediate PTX is build evidence, not permission for runtime JIT.\n\n   Freeze the actual `libcudart`, driver-side dependencies, interpreter, Torch/NumPy and `hashlib`/crypto oracle closure. Existing directory trust or `DT_NEEDED` names are insufficient.\n\n3. **Use a finite loader; do not extend the Cutile grant implicitly.**\n\n   [CombinedAuthority](/home/rb/worktrees/sfora-positive-causality/scripts/connected_control_native_authority.py:111) hardcodes the archived Cutile schema, build and binary. Reuse its FILE/provenance, fresh-hash and mapped-inode checks as patterns; this SHA library needs its own authority.\n\n   Hash an opened regular-file descriptor, load that same authenticated inode, retain its canonical file through process exit, and check mapped device/inode identities and the complete permitted mapping set before and after execution. Reject unexpected dependencies and changed/deleted files.\n\n   Do **not** copy [the factorized loader](/home/rb/worktrees/sfora-positive-causality/src/sfora/factorized_residual_native.py:142) verbatim: it unlinks its temporary load alias, whereas the connected authority rejects deleted mappings. Bind all five argument types and `cudaError_t` explicitly. No runtime compilation, extension cache or blanket native-directory exception.\n\n4. **Run the smallest first native falsifier before allocating the full inventory.**\n\n   After root releases the frozen smoke authority, run one process on spark-2751, with a proposed **30-second smoke-body ceiling** inside the existing native resource envelope. Use less than 64 KiB of fixture data.\n\n   Test:\n\n   - Count zero with null arrays/output; oversized count and null nonzero top-level arguments.\n   - FP32 byte lengths `0, 4, 52, 56, 60, 64, 68, 116, 120, 124, 128, 132`; asymmetric bytes and literal signed-zero/NaN payloads.\n   - A contiguous offset view, duplicate and overlapping aliases, and **129 occurrences** to cross the 128-thread launch boundary.\n   - A nondefault current stream with pending byte mutation, followed immediately by candidate hashing. **Run the candidate before the oracle copy**, with no preceding global barrier.\n   - Same-version `.data` byte mutation and exact restoration; verify the unchanged version counter explicitly.\n\n   Require raw digest equality with `hashlib` and complete typed-tree equality with the original serializer. A wrong digest, stale mutation result, ordering failure, missing occurrence, timeout or authority mismatch stops this stage. A pass establishes only this smoke gate.\n\n5. **Complete correctness and error-lifetime gates before timing.**\n\n   Add the **19,832,832-byte `[4304,1152]` leaf**, all admitted padding cases, nested typed trees, differing shapes with identical raw bytes, tuple/list and key-type distinctions, aliases and occurrence reordering.\n\n   For streams, include default and nondefault streams, plus an explicit event dependency from another producer stream. Freeze input immutability during hashing; this API provides no atomic snapshot against concurrent mutation.\n\n   For errors, distinguish:\n\n   - Pre-enqueue rejection.\n   - Launch-status failure.\n   - Completion/readback failure after real work has been queued.\n\n   Inject failures at the harness’s checked boundaries while real benign work remains outstanding. Require no digest publication, owners retained until a real checked drain completes, cleared retained references afterward, and a healthy subsequent call. Label injected errors honestly. If draining itself fails, quarantine ownership until process teardown; do not pretend a poisoned context supports recovery. Avoid deliberate illegal-memory-access kernels on the shared device.\n\n   Add source-level negative tests for altered authority facts, binary identity, ABI binding, occurrence-cursor ordering and serializer framing. Reuse the existing source-check evidence while its inputs remain unchanged.\n\n6. **Only then release the matched engineering comparison.**\n\n   Generate one deterministic synthetic 448-leaf inventory using `expected_vision()` in `scripts/extract_siglip2_vision_source.py` and the pinned `late-dense-v1/so400-native256-upstream-metadata-v1.json`. Remove the extractor’s exact `vision_model.` prefix and verify the resulting names against the runtime PROBE/MLP roles. Allocate each parameter separately; do not substitute repeated aliases for the real workload.\n\n   Measure separately:\n\n   - Probe: **447 frozen → validate digest → 448 full**.\n   - MLP: **444 frozen → validate digest → 448 full**.\n   - Largest leaf alone, labelled as an isolated mechanism measurement.\n\n   Use three alternating original/candidate pairs per workload. Include traversal, validation, table construction/transfers, launch, completion, readback, hexadecimal conversion and original framing. Record admission/build costs separately and disclose source checks outside the clock. Preserve occurrence order and both launches; no amalgamation, deduplication or reuse across calls.\n\n   The comparator is original `fingerprint`, never `_fingerprint_cuda_dict`: the four-worker helper remains rejected at 6.05–6.11 seconds versus 1.57–1.60 seconds. Report observations and resources without adopting the projected thresholds.\n\n**Hard blockers today:** no compiled artifact, verified toolchain/runtime closure, SHA-specific native authority, validated caller, or native stream/error-lifetime evidence exists. The inspected source does not establish a specific SHA arithmetic defect; compilation and execution remain unproven. Full integration would additionally reach both `encoder_facts` callers, extraction ledgers/tests and installed bridge provenance, outside this standalone slice.\n\nKeep the existing body/whole-process limits, exit reserve, 8 GiB host ceiling, zero swap, CUDA allocation ceiling and lifetime locks. A standalone pass leaves B1/B32/tail parity, lifecycle/uncached exit, scientific gates and 10,000 interleaved paired-call p99 qualification unchanged.\n\nSkipped: edits, SSH, compiler/native/GPU/image execution, test reruns and duplicate consultations.  \nRisk: even byte-exact native results may be slower at the complete sequential-tree boundary."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 1842,
+  "output_bytes": 9492,
+  "elapsed_seconds": 372,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)",
+  "progress_truncated": false,
+  "result": "Proceed with **one standalone harness and a two-stage build/load authority freeze**. Keep serving unchanged and wait for root to collect SSH54145 before releasing native work.\n\nThe inspected files are unchanged from `d74365e`, despite HEAD advancing during inspection. The CUDA source still hashes to `f4547f923c5cb3acf893ffc1186e8392c343a6e27951ea3812b430993e621fd1`.\n\n1. **Implement only the missing caller and its tests.**\n\n   Add `scripts/qualify_cuda_sha256_native.py` and `scripts/test_cuda_sha256_native.py`. Keep the CUDA primitive unchanged unless compilation or a falsifier identifies a defect.\n\n   The harness owns admission, explicit `ctypes` ABI binding, tensor validation, device pointer/length tables, current-stream launch, checked completion/readback, and cleanup. Before enqueue, require contiguous CUDA FP32 leaves on one active device, valid spans and capacities, contract-compliant lengths, and separately allocated output. Reject transposes, stride-zero views, other dtypes and CPU leaves before launching anything. No gather or fallback is needed for this first scope.\n\n   Reuse the **original `fingerprint`** for outer framing. Its existing `frozen.get(key)` seam can consume a private, per-call occurrence cursor containing freshly computed `(dtype, shape, lowercase_digest_hex)` facts. The cursor must verify each metadata key, consume exactly one result per occurrence, and reject missing, extra or reordered results. It must never index results by pointer or retain them between calls. This preserves duplicate hashing without introducing another serializer.\n\n   I verified AST equality between the [probe serializer](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:740), MLP serializer and original training serializer.\n\n2. **Freeze build inputs, then separately admit the produced binary.**\n\n   Put the prospective artifacts under `docs/evidence/compact_metric/sop-siglip2-substrate-v1/standalone-gpu-sha-native-v1/`:\n\n   - `source-manifest.json`: CUDA source, contract, source test, new harness/test, original serializer sources, reused admission helpers, fixture source and configuration.\n   - `build-authority.json` and `compile.sh`: canonical tool paths, hashes, exact environment, compiler arguments, target, resource ceiling and exclusive output directory.\n   - `build-receipt.json`: actual exit status, command, versions, logs, ELF hash, extracted device-image hashes and dependency inspection.\n   - `native-authority.json`: explicit executable/runtime FILE closure, binary receipt, GPU identity, stage, resource policy and oracle identities.\n\n   Root first authenticates the supplied nvcc path, adjacent headers and `/usr/bin/g++`, resolving symlinks and recording actual version/hash evidence. Include nvcc configuration, invoked CUDA subtools, host compiler/linker, consumed headers/libraries and inspection tools—not merely `nvcc` and `cuda_runtime.h`.\n\n   Compile once with explicit host compiler, optimization/PIC/shared-library flags, explicit CUDA runtime selection, and **only `code=sm_<verified target>` device output**. Determine the target from authenticated spark-2751 evidence; do not guess it from the hostname. Inspect the resulting fatbinary to require the intended SASS image and no embedded PTX fallback. Compiler-generated intermediate PTX is build evidence, not permission for runtime JIT.\n\n   Freeze the actual `libcudart`, driver-side dependencies, interpreter, Torch/NumPy and `hashlib`/crypto oracle closure. Existing directory trust or `DT_NEEDED` names are insufficient.\n\n3. **Use a finite loader; do not extend the Cutile grant implicitly.**\n\n   [CombinedAuthority](/home/rb/worktrees/sfora-positive-causality/scripts/connected_control_native_authority.py:111) hardcodes the archived Cutile schema, build and binary. Reuse its FILE/provenance, fresh-hash and mapped-inode checks as patterns; this SHA library needs its own authority.\n\n   Hash an opened regular-file descriptor, load that same authenticated inode, retain its canonical file through process exit, and check mapped device/inode identities and the complete permitted mapping set before and after execution. Reject unexpected dependencies and changed/deleted files.\n\n   Do **not** copy [the factorized loader](/home/rb/worktrees/sfora-positive-causality/src/sfora/factorized_residual_native.py:142) verbatim: it unlinks its temporary load alias, whereas the connected authority rejects deleted mappings. Bind all five argument types and `cudaError_t` explicitly. No runtime compilation, extension cache or blanket native-directory exception.\n\n4. **Run the smallest first native falsifier before allocating the full inventory.**\n\n   After root releases the frozen smoke authority, run one process on spark-2751, with a proposed **30-second smoke-body ceiling** inside the existing native resource envelope. Use less than 64 KiB of fixture data.\n\n   Test:\n\n   - Count zero with null arrays/output; oversized count and null nonzero top-level arguments.\n   - FP32 byte lengths `0, 4, 52, 56, 60, 64, 68, 116, 120, 124, 128, 132`; asymmetric bytes and literal signed-zero/NaN payloads.\n   - A contiguous offset view, duplicate and overlapping aliases, and **129 occurrences** to cross the 128-thread launch boundary.\n   - A nondefault current stream with pending byte mutation, followed immediately by candidate hashing. **Run the candidate before the oracle copy**, with no preceding global barrier.\n   - Same-version `.data` byte mutation and exact restoration; verify the unchanged version counter explicitly.\n\n   Require raw digest equality with `hashlib` and complete typed-tree equality with the original serializer. A wrong digest, stale mutation result, ordering failure, missing occurrence, timeout or authority mismatch stops this stage. A pass establishes only this smoke gate.\n\n5. **Complete correctness and error-lifetime gates before timing.**\n\n   Add the **19,832,832-byte `[4304,1152]` leaf**, all admitted padding cases, nested typed trees, differing shapes with identical raw bytes, tuple/list and key-type distinctions, aliases and occurrence reordering.\n\n   For streams, include default and nondefault streams, plus an explicit event dependency from another producer stream. Freeze input immutability during hashing; this API provides no atomic snapshot against concurrent mutation.\n\n   For errors, distinguish:\n\n   - Pre-enqueue rejection.\n   - Launch-status failure.\n   - Completion/readback failure after real work has been queued.\n\n   Inject failures at the harness’s checked boundaries while real benign work remains outstanding. Require no digest publication, owners retained until a real checked drain completes, cleared retained references afterward, and a healthy subsequent call. Label injected errors honestly. If draining itself fails, quarantine ownership until process teardown; do not pretend a poisoned context supports recovery. Avoid deliberate illegal-memory-access kernels on the shared device.\n\n   Add source-level negative tests for altered authority facts, binary identity, ABI binding, occurrence-cursor ordering and serializer framing. Reuse the existing source-check evidence while its inputs remain unchanged.\n\n6. **Only then release the matched engineering comparison.**\n\n   Generate one deterministic synthetic 448-leaf inventory using `expected_vision()` in `scripts/extract_siglip2_vision_source.py` and the pinned `late-dense-v1/so400-native256-upstream-metadata-v1.json`. Remove the extractor’s exact `vision_model.` prefix and verify the resulting names against the runtime PROBE/MLP roles. Allocate each parameter separately; do not substitute repeated aliases for the real workload.\n\n   Measure separately:\n\n   - Probe: **447 frozen → validate digest → 448 full**.\n   - MLP: **444 frozen → validate digest → 448 full**.\n   - Largest leaf alone, labelled as an isolated mechanism measurement.\n\n   Use three alternating original/candidate pairs per workload. Include traversal, validation, table construction/transfers, launch, completion, readback, hexadecimal conversion and original framing. Record admission/build costs separately and disclose source checks outside the clock. Preserve occurrence order and both launches; no amalgamation, deduplication or reuse across calls.\n\n   The comparator is original `fingerprint`, never `_fingerprint_cuda_dict`: the four-worker helper remains rejected at 6.05–6.11 seconds versus 1.57–1.60 seconds. Report observations and resources without adopting the projected thresholds.\n\n**Hard blockers today:** no compiled artifact, verified toolchain/runtime closure, SHA-specific native authority, validated caller, or native stream/error-lifetime evidence exists. The inspected source does not establish a specific SHA arithmetic defect; compilation and execution remain unproven. Full integration would additionally reach both `encoder_facts` callers, extraction ledgers/tests and installed bridge provenance, outside this standalone slice.\n\nKeep the existing body/whole-process limits, exit reserve, 8 GiB host ceiling, zero swap, CUDA allocation ceiling and lifetime locks. A standalone pass leaves B1/B32/tail parity, lifecycle/uncached exit, scientific gates and 10,000 interleaved paired-call p99 qualification unchanged.\n\nSkipped: edits, SSH, compiler/native/GPU/image execution, test reruns and duplicate consultations.  \nRisk: even byte-exact native results may be slower at the complete sequential-tree boundary.",
+  "result_truncated": false
+}

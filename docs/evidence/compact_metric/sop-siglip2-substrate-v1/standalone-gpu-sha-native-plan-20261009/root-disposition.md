@@ -1,0 +1,5 @@
+The completed original Astra plan 2bb153e3cf144d5e is retained. Root accepts a standalone caller and source-only tests as the next implementation slice; serving defaults remain unchanged. Build inputs must be frozen before compilation, and actual produced binary/dependencies require a separate finite native admission.
+
+The proposed new 30-second smoke threshold is not adopted. Keep the already established engineering body/whole/exit-reserve limits until a prospective protocol is explicitly frozen; no timing number is a qualification result. Root must independently inspect the occurrence-cursor framing seam and current-stream/error ownership before releasing native work. Existing scientific gates, sequential 447+448/444+448 checking, original serializer baseline and resource ceilings remain.
+
+Current unrelated FS gate SSH54145 remains active; no parallel native compile or kernel test is released by this source-only disposition. No compiler/runtime closure, SHA binary, native stream/error proof, throughput or product-speed claim exists yet.
