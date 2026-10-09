@@ -1,0 +1,365 @@
+{
+  "schema": "rank-routing-cpu-v2-readonly-lifetime-proposal-v1",
+  "status": "READONLY_PROPOSAL_BEFORE_CODE_NO_TESTS_OR_NATIVE",
+  "source_commit": "42174f497f347c23da5d5381de10dd962387c2d0",
+  "source_sha256": "2fb4f237345f346080e499cc99d97fbc40c7087f255027ed810ef02b56537b1f",
+  "evidence": "/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/rank-routed-mlp-cpu-v2-result",
+  "original_log_sha256": "c3e4f28ec09f8d88341403bbdbb433eff20764c2803798116793efc0ddb953cf",
+  "invocation_id": "868c122f26fb4052a3be2e6d65ad757e",
+  "original_terminal": 1,
+  "service_seconds": 325.558,
+  "observations": 111,
+  "max_rss_kib": 8146480,
+  "memory_max_bytes": 8589934592,
+  "max_events": 1643,
+  "oom": 0,
+  "oom_kill": 0,
+  "swap": 0,
+  "first_event_bracket": {
+    "before": {
+      "phase": "full_original_A_C_gradients",
+      "view": "canonical",
+      "seconds": 157.39249667699914,
+      "memory": {
+        "current": 5923344384,
+        "events": {
+          "high": 0,
+          "low": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0
+        },
+        "max": 8589934592,
+        "peak": 8205946880,
+        "stat": {
+          "active_anon": 4968861696,
+          "active_file": 590594048,
+          "anon": 4959084544,
+          "file": 835543040,
+          "file_mapped": 388337664,
+          "inactive_anon": 0,
+          "inactive_file": 244944896,
+          "kernel": 117985280,
+          "pgmajfault": 6691,
+          "pgscan_direct": 0,
+          "pgsteal_direct": 0,
+          "slab": 105383592
+        }
+      },
+      "process": {
+        "hwm_kib": 7448504,
+        "rss_kib": 5225868
+      },
+      "owners": {
+        "original_A_C": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null
+          ],
+          "numel": 167936,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "storage_bytes": 671744
+        },
+        "ranking": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 10089808,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ],
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 40359232
+        },
+        "regression": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null
+          ],
+          "numel": 167936,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "storage_bytes": 671744
+        }
+      }
+    },
+    "after": {
+      "phase": "full_total_gradients",
+      "view": "canonical",
+      "seconds": 158.62858467001934,
+      "memory": {
+        "current": 5930033152,
+        "events": {
+          "high": 0,
+          "low": 0,
+          "max": 228,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0
+        },
+        "max": 8589934592,
+        "peak": 8589934592,
+        "stat": {
+          "active_anon": 5032034304,
+          "active_file": 604590080,
+          "anon": 5021544448,
+          "file": 779464704,
+          "file_mapped": 388292608,
+          "inactive_anon": 0,
+          "inactive_file": 174874624,
+          "kernel": 117264384,
+          "pgmajfault": 6691,
+          "pgscan_direct": 17108,
+          "pgsteal_direct": 13691,
+          "slab": 104559904
+        }
+      },
+      "process": {
+        "hwm_kib": 7877428,
+        "rss_kib": 5286820
+      },
+      "owners": {
+        "original_A_C": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null
+          ],
+          "numel": 167936,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "storage_bytes": 671744
+        },
+        "ranking": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 10089808,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ],
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 40359232
+        },
+        "regression": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null
+          ],
+          "numel": 167936,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "storage_bytes": 671744
+        },
+        "total": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 10089808,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ],
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 40359232
+        }
+      }
+    }
+  },
+  "established_cause": "Unchanged admission rejected sticky memory.max events. The first observed transition 0->228 brackets canonical full six-member autograd.grad(loss,members), after full original A/C gradients. Source executes no other native computation between those boundary samples except scalar observer read/formatting, then the total gradient call and its scalar owner observation. This localizes a violating section; it does not identify its exact native allocation.",
+  "source_lifetimes": {
+    "before_total": "One genuine B64 encoder/ranking graph, detached regression branch and original-MSE branch still held in temporary. Earlier regression autograd retained its branch; ranking six-member encoder backward retained its graph; original A/C backward retained its graph. temporary holds regression2+ranking6+originalAC2 detached gradients when second six-member encoder backward (total) starts.",
+    "named_gradient_capacities_before_total": {
+      "regression": 671744,
+      "ranking": 40359232,
+      "original_A_C": 671744,
+      "sum": 41702720
+    },
+    "named_gradient_capacities_after_total": {
+      "total": 40359232,
+      "all_logged_sum": 82061952
+    },
+    "capacity_semantics": "Per-tensor summed storage capacity; aliases/shared storage can double-count. These are not unique/process allocations and cannot explain the transient peak by addition.",
+    "micro_independence": "Returned detached full totals/scalars survive while each micro16 graph runs; genuine full graph weakref gate executes before micros. Full/micro and actual optimizer-gradient correspondence reached post-integrity; no CONNECTED_UPDATE row returned.",
+    "cleanup": "arm_cleanup_end252.424765449s reached after unchanged release; previous training A still alive is absent from the immutable original log. This repairs secondary traceback retention, not the native resource violation."
+  },
+  "unknowns": [
+    "Exact CPU autograd workspace/allocation owner at peak, tensor/storage aliases, allocator caching/residency, reclaim/fragmentation and simultaneous transient activations are unobserved.",
+    "Augmented ranking and total calls also increased max; first canonical graph release reduced settled current substantially, whereas augmented release did not similarly reduce settled anon/RSS. Weakref success does not establish allocator release.",
+    "No source-only argument proves that any proposed ordering fits 8GiB or CPU600; no threshold/cap change or native prediction is offered."
+  ],
+  "one_proposed_finite_delta": {
+    "name": "Sequential full-total then independently replayed full-ranking B64 passes, each with one encoder backward and graph release before the next pass.",
+    "scope": "Only route_full_reference lifetime schedule plus its fixed observer labels; tests/whole inverse updated in OWN2. Model, optimizer, micro loop, witnesses/RTOL/ATOL, clipping, all resource/exit predicates and cleanup outside this helper unchanged.",
+    "first_pass": "At original counter0/model/state, generate the original four pixel16 chunks and concatenate B64; genuine full encoder forward and unchanged original full loss_terms/routed regression. Check routed regression encoder gradients absent using genuine six-member allow_unused autograd; drop its gradient tuple immediately after proof. Compute genuine original-loss A/C gradients. Compute genuine routed full-loss six-member total with retain_graph=False (the first six-member encoder backward). Compare its A/C against original A/C using original witness tolerances; retain only three finite detached scalars and six finite detached total gradients. Record scalar identity hashes of full input/features/raw using existing authenticated fingerprint, not retained owner snapshots.",
+    "first_release": "Clear every first-pass graph/temporary/originalAC tensor and enforce completed-pass weakrefs before recomputing. Restore original CPU RNG even on error and verify original initialized complete payload/RNG fingerprint. No first graph or originalAC/regression gradient tuple survives into pass2; only detached full result and scalar identity hashes do.",
+    "second_pass": "Reset the same original CPU RNG before regenerating the same B64 pixels and encoder features on the same model; exact authenticated input/features/raw fingerprints must match pass1. Invoke genuine original full loss_terms again; explicitly name/delete unused original MSE. Exact full rank scalar must match pass1. Compute genuine full rank six-member gradient with retain_graph=False (one encoder backward for this new graph), require all four encoder ranking gradients nonzero, and compare full total encoder four against this independent rank using unchanged RTOL/ATOL. It is not synthesized from totals, regression or micro sums.",
+    "second_release_return": "Destroy second graph/gradient tuple and enforce its weakrefs; restore original CPU RNG and complete initialized-state fingerprint on all exits. Return unchanged full scalar/six-gradient reference shape, so all independent full-vs-micro and actual optimizer routing predicates remain intact.",
+    "simultaneous_owners": "One model and at most one genuine B64 graph at any instant; outer/view accumulators remain unchanged. During second pass only detached first-pass total6/scalars3 and scalar hash strings coexist with the new B64 graph and its rank6 gradients. No graph clone/model copy/optimizer step/cache/allocator control.",
+    "observer_bound": "Fixed first total pass8 boundaries and second rank pass6 replace current full9 per view: +10 records across two views; prospective normal121 and conservative union123 <= unchanged128. Existing per-record4096/total262144 byte guards stay exact. No new observer records outside those finite pass boundaries.",
+    "cost_limit": "Adds one B64 encoder forward per view (two extra per first CPU reference update); both genuine encoder backward computations remain. All work charged to original CPU600/8GiB unit. Lower native residency, successful admission or speed is unproven.",
+    "inverse": "A new exact pinned helper/observer-label inverse must reproduce current trainer2fb4f237 byte-for-byte, then current observer inverse940d37fb and historical connected79efb320 continue unchanged; source scope exact OWN2."
+  },
+  "proposed_red_falsifier_not_executed": {
+    "seam": "Execute actual extracted route_full_reference with stdlib model/raw/loss/autograd stand-ins, each B64 forward producing a weakly tracked graph-owner token. No Torch/native imports.",
+    "red_on_current_source": "Allow regression and originalAC autograd calls; record encoder backward use for calls over all six active members. Reject a second encoder backward on the same retained B64 graph token. Current source reuses the token at total after rank and must RED. This tests the proposed lifetime invariant, not allocator byte predictions.",
+    "green_required": "Two distinct genuine model B64 forwards per view with identical original RNG/input/features/raw; total6 and originalAC2 come from first graph, rank6 from second; first weakref dead before second forward; each graph sees exactly one encoder backward with retain_graph=False. Final RNG/state identical; only detached six-gradient/scalar result remains. Existing independent full/micro accumulator perturbation and actual .grad mutants still reject.",
+    "negative_cases": "Retain first graph via original_MSE or loss; reuse first graph for rank; create total by adding gradient components; synthesize rank from total; mutate replay pixels/features/rank scalar or initialized state/RNG; fault or lifetime leak at either pass. These must fail without replacing primary errors or skipping original restoration/cleanup.",
+    "execution_hold": "No falsifier implementation or execution in this audit. Any code/narrow RED-GREEN/full-suite/commit/native requires parent release."
+  },
+  "actions": "Read immutable original log/verification/controller terminal and current committed source; create this external /tmp audit artifact only. Repository clean; no edits/tests/native/consult/child/operator/merge/push."
+}
