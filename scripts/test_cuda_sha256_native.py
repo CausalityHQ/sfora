@@ -873,12 +873,17 @@ def interpreter_fact():
 
 
 class Fixture:
-    def __init__(self, directory):
+    def __init__(self, directory, own=False):
         self.dir = Path(directory).resolve()
         self.handles, self.static = [], {}
         self.static.update(source=fact(CUDA), contract=fact(ROOT / 'docs/gpu_sha256_source_contract_2026-10-09.md'),
                            interpreter=interpreter_fact(), driver=fact(SCRIPT), test=fact(HERE / 'test_cuda_sha256_native.py'),
                            probe=fact(SERIALIZERS['probe']), mlp=fact(SERIALIZERS['mlp']))
+        if own:  # byte-identical private copies so a test can drift a closure FILE without touching the repo
+            for key, origin in (('source', CUDA), ('contract', ROOT / 'docs/gpu_sha256_source_contract_2026-10-09.md'),
+                                ('driver', SCRIPT), ('test', HERE / 'test_cuda_sha256_native.py'),
+                                ('probe', SERIALIZERS['probe']), ('mlp', SERIALIZERS['mlp'])):
+                self.static[key] = self.file(origin.name, origin.read_bytes())
         for name in ('nvcc', 'gxx', 'compile', 'evidence', 'log', 'proof_evidence'):
             self.static[name] = self.file(name, ('fixture ' + name).encode())
         self.static['library'] = self.file('libsha256_occurrences.so', b'fixture library ' * 64)
@@ -939,10 +944,12 @@ def at(stage, change):
 
 
 class AuthorityBase(unittest.TestCase):
+    own = False
+
     def setUp(self):
         directory = tempfile.TemporaryDirectory(prefix='sha-native-')
         self.addCleanup(directory.cleanup)
-        self.fixture = Fixture(directory.name)
+        self.fixture = Fixture(directory.name, self.own)
         self.addCleanup(self.fixture.close)
 
 
@@ -1166,6 +1173,27 @@ class LibraryTests(AuthorityBase):
         os.close(fd)
         self.assertEqual(set(after), {self.library, self.runtime})
 
+    def test_inventoried_undeclared_mapping_bytes_are_hashed_not_just_inode_and_size(self):
+        raw = b'inventoried but not declared'
+        extra = self.fixture.file('libextra.so', raw)
+
+        def freeze(digest):
+            def add(stage, record):
+                if stage == 'inventory':
+                    record['files'][extra['path']] = {'sha256': digest, 'size': len(raw)}
+            return mod.read_native_authority(self.fixture.render(add))
+        wrong = freeze(sha(b'y' * len(raw)))  # right size and inode, bytes the root never froze
+        self.maps.write_text(self.line(extra['path']) + '\n')  # already mapped before the dlopen, as Torch libraries are
+        before = len(os.listdir('/proc/self/fd'))
+        with self.assertRaisesRegex(ValueError, 'SHA256'):
+            mod.open_library(wrong, self.cdll(self.library, extra['path']), str(self.maps))
+        self.assertEqual(len(os.listdir('/proc/self/fd')), before)
+        exact = freeze(extra['sha256'])
+        self.maps.write_text(self.line(extra['path']) + '\n')
+        fd, _, after = mod.open_library(exact, self.cdll(self.library, extra['path']), str(self.maps))
+        os.close(fd)
+        self.assertEqual(set(after), {self.library, extra['path']})
+
     def test_descriptor_closed_on_failure(self):
         before = len(os.listdir('/proc/self/fd'))
         self.maps.write_text('')
@@ -1298,13 +1326,22 @@ def maps_line(path):
         os.major(info.st_dev), os.minor(info.st_dev), info.st_ino, path)
 
 
+class Clock:
+    def __init__(self):
+        self.now = 5000.0
+
+    def __call__(self):
+        return self.now
+
+
 class SmokeTests(AuthorityBase):
+    own = True  # private byte-identical copies of the closure FILEs, so a test can drift any of them
+
     def setUp(self):
         super().setUp()
         self.authority = self.fixture.render()
         self.admitted = mod.read_native_authority(self.authority)
         self.maps = self.fixture.dir / 'maps'
-        self.checks = []
         stack = contextlib.ExitStack()
         self.addCleanup(stack.close)
         self.stack = stack
@@ -1319,16 +1356,89 @@ class SmokeTests(AuthorityBase):
         self.maps.write_text('')
         self.count += 1
         self.output = self.fixture.dir / ('smoke-out-%d' % self.count)
+        self.counts, self.events, self.receipt_seen = {'source': 0, 'locks': 0}, [], []
+        self.drifts, self.extra_maps, self.library_fd, self.exiting = set(), [], None, False
 
     def cdll(self, path):
         self.paths = getattr(self, 'paths', []) + [(path, os.readlink(path))]
-        self.maps.write_text(maps_line(self.fixture.static['library']['path']))
+        self.library_fd = int(path.rsplit('/', 1)[1])
+        self.maps.write_text(maps_line(self.fixture.static['library']['path']) + ''.join(maps_line(p) for p in self.extra_maps))
         return types.SimpleNamespace(sfora_sha256_occurrences=self.native)
 
-    def run_smoke(self):
-        context = types.SimpleNamespace(authority=self.admitted, fact=self.authority, locks=None,
-                                        source=types.SimpleNamespace(check=lambda: self.checks.append(1)))
-        return mod.smoke(context, str(self.output), torch=self.torch, cdll=self.cdll, maps=str(self.maps))
+    def spy(self, kind):
+        def check():
+            self.counts[kind] += 1
+            self.events.append(kind)
+            self.receipt_seen.append(os.path.lexists(self.output))
+            if (kind, self.counts[kind]) in self.drifts or self.exiting and (kind, 'exit') in self.drifts:
+                raise ValueError('injected %s drift' % kind)
+        return types.SimpleNamespace(check=check)
+
+    def run_smoke(self, **overrides):
+        context = types.SimpleNamespace(authority=self.admitted, fact=self.authority, locks=self.spy('locks'),
+                                        source=self.spy('source'))
+        arguments = dict(torch=self.torch, cdll=self.cdll, maps=str(self.maps))
+        arguments.update(overrides)
+        return mod.smoke(context, str(self.output), **arguments)
+
+    def held_error(self, **overrides):
+        try:  # not assertRaises: it clears the traceback frames and would hide a pinned owner
+            self.run_smoke(**overrides)
+        except BaseException as error:
+            return error
+        raise AssertionError('smoke returned instead of rejecting')
+
+    @staticmethod
+    def frame_locals(error, name):
+        """Locals still pinned by the retained error's traceback frame `name` (empty once the frame was cleared)."""
+        trace = error.__traceback__
+        while trace is not None:
+            if trace.tb_frame.f_code.co_name == name:
+                return dict(trace.tb_frame.f_locals)
+            trace = trace.tb_next
+        raise AssertionError('no %s frame in the traceback' % name)
+
+    def fds(self):
+        return len(os.listdir('/proc/self/fd'))
+
+    def timed(self, admission=0.0):
+        clock = Clock()
+        self.stack.enter_context(mock.patch.object(mod, 'time', types.SimpleNamespace(perf_counter=clock)))
+        self.stack.enter_context(mock.patch.object(mod, 'STARTED', clock.now - admission))
+        return clock
+
+    def on_call(self, number, action):
+        seen = []
+
+        def hook():
+            seen.append(1)
+            if len(seen) == number:
+                action()
+        self.native.hook = hook
+
+    def on_exit_drain(self, action):
+        real, done = self.torch.cuda.synchronize, []
+
+        def synchronize():
+            if not done:
+                done.append(1)
+                action()
+            real()
+        self.torch.cuda.synchronize = synchronize
+
+    def with_extra(self, raw=b'inventoried but undeclared mapping'):
+        """A second, inventoried, undeclared .so that is already mapped before the dlopen, as a Torch library would be."""
+        extra = self.fixture.file('libextra.so', raw)
+
+        def add(stage, record):
+            if stage == 'inventory':
+                record['files'][extra['path']] = {'sha256': extra['sha256'], 'size': len(raw)}
+        self.authority = self.fixture.render(add)
+        self.admitted = mod.read_native_authority(self.authority)
+        self.reset()
+        self.maps.write_text(maps_line(extra['path']))
+        self.extra_maps = [extra['path']]
+        return extra
 
     def test_all_checks_pass_and_receipt_is_a_discarded_diagnostic(self):
         receipt = self.run_smoke()
@@ -1345,7 +1455,7 @@ class SmokeTests(AuthorityBase):
         written = json.loads((self.output / 'smoke-receipt.json').read_text())
         self.assertEqual(written['schema'], mod.SMOKE_RECEIPT)
         self.assertEqual(written['authority'], self.authority)
-        self.assertEqual(len(self.checks), 2)
+        self.assertEqual(self.counts['source'] + 1, self.counts['locks'])
         self.assertRegex(self.paths[0][0], r'^/proc/self/fd/\d+$')
         self.assertEqual(self.paths[0][1], self.fixture.static['library']['path'])
         log = self.torch.log
@@ -1436,6 +1546,316 @@ class SmokeTests(AuthorityBase):
         with self.assertRaisesRegex(ValueError, 'differ'):
             self.run_smoke()
         self.assertFalse(os.path.lexists(self.output))
+
+
+    # ------------------------------------------------ body clock vs whole-process clock
+    def test_body_clock_starts_at_body_entry_not_at_process_start(self):
+        self.timed(admission=700)  # admission/hashing already spent 700 s of the 1500 s whole-process cap
+        receipt = self.run_smoke()
+        self.assertLess(receipt['resources']['body_seconds'], mod.POLICY['body_seconds'])
+        self.assertGreaterEqual(receipt['resources']['wall_seconds'], 700)
+
+    def test_body_overrun_is_measured_from_body_entry(self):
+        clock = self.timed()
+        self.on_call(30, lambda: setattr(clock, 'now', clock.now + 301))
+        with self.assertRaisesRegex(ValueError, 'body deadline'):
+            self.run_smoke()
+        self.assertFalse(os.path.lexists(self.output))
+
+    def test_the_last_check_group_is_still_covered_by_the_body_end_guard(self):
+        for seconds, admission, message in ((301, 0, 'body deadline'), (10, 1195, 'headroom')):
+            with self.subTest(message):
+                self.reset()
+                clock = self.timed(admission=admission)
+                real = self.torch.zeros
+
+                def zeros(*shape, **kwargs):
+                    if shape == (1,):  # the last rejection fixture; no native call and no check follows it
+                        clock.now += seconds
+                    return real(*shape, **kwargs)
+                self.torch.zeros = zeros
+                with self.assertRaisesRegex(ValueError, message):
+                    self.run_smoke()
+                self.assertFalse(os.path.lexists(self.output))
+
+    def test_exit_reserve_is_required_before_exit_begins(self):
+        clock = self.timed(admission=1195)
+        self.on_call(30, lambda: setattr(clock, 'now', clock.now + 10))
+        with self.assertRaisesRegex(ValueError, 'headroom'):
+            self.run_smoke()
+        self.assertFalse(os.path.lexists(self.output))
+
+    def test_exit_work_may_use_the_reserve_but_not_pass_the_whole_cap(self):
+        for exit_seconds, accepted in ((600, True), (900, False)):
+            with self.subTest(exit_seconds):
+                self.reset()
+                clock = self.timed(admission=600)
+                self.on_exit_drain(lambda: setattr(clock, 'now', clock.now + exit_seconds))
+                if accepted:
+                    receipt = self.run_smoke()
+                    self.assertGreaterEqual(receipt['resources']['wall_seconds'], 1200)
+                    self.assertGreater(receipt['resources']['body_seconds'], mod.POLICY['body_seconds'])
+                else:
+                    with self.assertRaisesRegex(ValueError, 'headroom'):
+                        self.run_smoke()
+                    self.assertFalse(os.path.lexists(self.output))
+
+    # ------------------------------------------------ repeated Locks/Source checks
+    def test_locks_and_source_are_rechecked_at_every_checkpoint(self):
+        self.run_smoke()
+        self.assertEqual(self.counts['locks'], self.counts['source'] + 1)  # + the post-publication lock check
+        self.assertGreaterEqual(self.counts['source'], 9)
+        self.assertEqual(self.receipt_seen[:-1], [False] * (len(self.receipt_seen) - 1))
+        self.assertTrue(self.receipt_seen[-1], 'the last lock check must follow the receipt write')
+
+    def test_every_single_recheck_is_a_fail_closed_boundary(self):
+        self.run_smoke()
+        totals = dict(self.counts)
+        self.assertGreaterEqual(totals['source'], 9)
+        before = self.fds()
+        for kind in ('locks', 'source'):
+            for number in range(1, totals[kind] + 1):
+                with self.subTest(kind=kind, number=number):
+                    self.reset()
+                    self.drifts = {(kind, number)}
+                    with self.assertRaisesRegex(ValueError, 'injected'):
+                        self.run_smoke()
+                    # only the final post-publication lock check can fail with the diagnostic receipt already written
+                    self.assertEqual(os.path.lexists(self.output), (kind, number) == ('locks', totals['locks']))
+                    self.assertEqual(self.fds(), before)
+
+    # ------------------------------------------------ complete fresh FILE closure at exit
+    def test_exit_drains_then_rehashes_the_fresh_closure_then_source_then_locks_before_the_receipt(self):
+        real = mod.read_native_authority
+        self.on_exit_drain(lambda: self.events.append('drain'))
+
+        def spy(fact):
+            self.events.append('closure')
+            return real(fact)
+        with mock.patch.object(mod, 'read_native_authority', spy):
+            self.run_smoke()
+        self.assertEqual(self.events[-5:], ['drain', 'closure', 'source', 'locks', 'locks'])
+        self.assertEqual(self.events.count('closure'), 1)
+
+    def test_exit_rehash_catches_drift_in_every_closure_file(self):
+        static, directory = self.fixture.static, self.fixture.dir
+        paths = {name: Path(static[name]['path']) for name in (
+            'nvcc', 'gxx', 'compile', 'evidence', 'log', 'runtime', 'proof_evidence', 'source', 'contract', 'driver',
+            'test', 'probe', 'mlp', 'library')}
+        paths.update({name: directory / name for name in (
+            'build-authority.json', 'build-receipt.json', 'provenance.json', 'inventory.json', 'native-authority.json')})
+        self.run_smoke()
+        before = self.fds()
+        for name, path in paths.items():
+            with self.subTest(name):
+                self.reset()
+                original = path.read_bytes()
+
+                def drift(path=path, original=original):
+                    path.write_bytes(bytes([original[0] ^ 1]) + original[1:])
+                self.on_exit_drain(drift)
+                try:
+                    with self.assertRaisesRegex(ValueError, 'SHA256|differs'):
+                        self.run_smoke()
+                finally:
+                    path.write_bytes(original)
+                self.assertFalse(os.path.lexists(self.output))
+                self.assertEqual(self.fds(), before)
+
+    def test_exit_rehash_rejects_a_changed_running_interpreter(self):
+        other = self.fixture.static['nvcc']['path']
+        self.on_exit_drain(lambda: self.stack.enter_context(mock.patch.object(sys, 'executable', other)))
+        with self.assertRaisesRegex(ValueError, 'interpreter'):
+            self.run_smoke()
+        self.assertFalse(os.path.lexists(self.output))
+
+    # ------------------------------------------------ mapped bytes are authenticated, not just inode/size
+    def test_exact_undeclared_inventoried_mapping_is_hashed_and_accepted(self):
+        extra = self.with_extra()
+        self.assertIn(extra['path'], self.run_smoke()['mappings'])
+
+    def test_undeclared_mapping_edited_in_place_after_open_fails_at_exit(self):
+        extra = self.with_extra()
+        path = Path(extra['path'])
+        self.on_call(30, lambda: path.write_bytes(b'X' + path.read_bytes()[1:]))  # same inode, same size
+        with self.assertRaisesRegex(ValueError, 'SHA256|differs'):
+            self.run_smoke()
+        self.assertFalse(os.path.lexists(self.output))
+
+    # ------------------------------------------------ guaranteed cleanup preserving the primary rejection
+    def test_library_descriptor_is_closed_on_success_and_on_every_failure(self):
+        before = self.fds()
+        self.run_smoke()
+        self.assertEqual(self.fds(), before)
+        for name in ('wrong_digest', 'poisoned_drain', 'not_pending', 'accepts_nulls'):
+            with self.subTest(name):
+                self.reset()
+                self.arm(name)
+                with self.assertRaises((ValueError, RuntimeError)):
+                    self.run_smoke()
+                self.assertEqual(self.fds(), before)
+
+    def test_keyboard_interrupt_closes_the_descriptor_and_stays_primary(self):
+        before = self.fds()
+
+        def interrupt():
+            raise KeyboardInterrupt
+        self.on_call(30, interrupt)
+        with self.assertRaises(KeyboardInterrupt):
+            self.run_smoke()
+        self.assertEqual(self.fds(), before)
+        self.assertFalse(os.path.lexists(self.output))
+
+    def test_failed_body_releases_error_frame_owners_after_a_good_drain(self):
+        self.arm('wrong_digest')
+        error = self.held_error()
+        self.assertIsInstance(error, ValueError)
+        self.assertIn('digest', str(error))
+        gc.collect()
+        self.assertEqual([ref for ref in self.torch.made if ref() is not None], [], 'error frames pinned device owners')
+        self.assertEqual(self.frame_locals(error, 'smoke_checks'), {}, 'error frame locals were not released')
+        self.assertIsNotNone(error.__traceback__)
+
+    def test_failed_final_drain_keeps_owners_and_never_masks_the_primary_rejection(self):
+        self.arm('wrong_digest')
+        self.torch.cuda.synchronize = lambda: (_ for _ in ()).throw(RuntimeError('final drain'))
+        before = self.fds()
+        error = self.held_error()
+        self.assertIsInstance(error, ValueError)
+        self.assertIn('digest', str(error))
+        self.assertTrue(any('final drain' in note for note in error.__notes__), error.__notes__)
+        gc.collect()
+        self.assertTrue([ref for ref in self.torch.made if ref() is not None], 'owners released after a failed drain')
+        self.assertIn('tensors', self.frame_locals(error, 'smoke_checks'), 'error frames cleared after a failed drain')
+        self.assertEqual(self.fds(), before)
+        self.assertFalse(os.path.lexists(self.output))
+
+    def test_a_quarantined_hasher_keeps_its_owners_even_after_a_good_final_drain(self):
+        self.arm('poisoned_drain')
+        error = self.held_error()
+        self.assertIsInstance(error, (ValueError, RuntimeError))
+        gc.collect()
+        self.assertTrue([ref for ref in self.torch.made if ref() is not None], 'quarantined owners were released')
+        self.assertIn('tensors', self.frame_locals(error, 'smoke_checks'), 'error frames cleared despite a quarantine')
+
+    def close_failure(self):
+        real, raised = os.close, []
+
+        def close(fd):
+            real(fd)
+            if fd == self.library_fd and not raised:
+                raised.append(1)
+                raise OSError('close failed')
+        self.stack.enter_context(mock.patch.object(mod.os, 'close', close))
+
+    def test_cleanup_failure_alone_still_raises_without_a_receipt(self):
+        self.close_failure()
+        before = self.fds()
+        with self.assertRaisesRegex(OSError, 'close failed'):
+            self.run_smoke()
+        self.assertEqual(self.fds(), before)
+        self.assertFalse(os.path.lexists(self.output))
+
+    def test_cleanup_failure_never_replaces_the_primary_rejection(self):
+        self.arm('wrong_digest')
+        self.close_failure()
+        before = self.fds()
+        error = self.held_error()
+        self.assertIsInstance(error, ValueError)
+        self.assertIn('digest', str(error))
+        self.assertTrue(any('close failed' in note for note in error.__notes__), error.__notes__)
+        self.assertEqual(self.fds(), before)
+
+
+    # ------------------------------------------------ the independent exit also runs when the body failed
+    def spied_closure(self):
+        real = mod.read_native_authority
+
+        def spy(fact):
+            self.events.append('closure')
+            return real(fact)
+        return mock.patch.object(mod, 'read_native_authority', spy)
+
+    def refuse(self, path):
+        raise OSError('dlopen failed')
+
+    def test_body_failure_still_attempts_the_full_independent_exit(self):
+        self.arm('wrong_digest')
+        before = self.fds()
+        with self.spied_closure():
+            error = self.held_error()
+        self.assertIsInstance(error, ValueError)
+        self.assertIn('digest', str(error))
+        self.assertEqual(getattr(error, '__notes__', []), [])
+        self.assertEqual(self.events[-3:], ['closure', 'source', 'locks'])
+        self.assertEqual(self.fds(), before)
+        self.assertFalse(os.path.lexists(self.output))
+
+    def test_every_exit_check_is_attempted_despite_body_drain_and_other_exit_failures(self):
+        self.arm('wrong_digest')
+        nvcc = Path(self.fixture.static['nvcc']['path'])
+        original = nvcc.read_bytes()
+
+        def drain():
+            self.exiting = True
+            nvcc.write_bytes(bytes([original[0] ^ 1]) + original[1:])
+            raise RuntimeError('final drain')
+        self.torch.cuda.synchronize = drain
+        self.drifts = {('source', 'exit'), ('locks', 'exit')}
+        before = self.fds()
+        try:
+            with self.spied_closure():
+                error = self.held_error()
+        finally:
+            nvcc.write_bytes(original)
+        self.assertIsInstance(error, ValueError)
+        self.assertIn('digest', str(error))  # the original body rejection stays primary
+        notes = ' | '.join(error.__notes__)
+        for fragment in ('final drain', 'SHA256', 'injected source drift', 'injected locks drift'):
+            self.assertIn(fragment, notes)
+        self.assertEqual(self.events[-3:], ['closure', 'source', 'locks'])
+        self.assertEqual(self.fds(), before)
+        self.assertFalse(os.path.lexists(self.output))
+
+    def test_load_failure_before_the_mapping_snapshot_still_runs_the_exit_without_one(self):
+        self.cdll = self.refuse
+        before = self.fds()
+        with self.spied_closure():
+            error = self.held_error()
+        self.assertIsInstance(error, OSError)
+        self.assertIn('dlopen failed', str(error))
+        self.assertEqual(getattr(error, '__notes__', []), [], 'a missing snapshot must not be an exit failure')
+        self.assertEqual(self.events[-3:], ['closure', 'source', 'locks'])
+        self.assertEqual(self.fds(), before)
+
+    def test_current_mapped_bytes_are_validated_even_when_the_load_failed(self):
+        extra = self.with_extra()
+        path = Path(extra['path'])
+        path.write_bytes(b'X' + path.read_bytes()[1:])  # same inode and size, bytes the root never froze
+        self.cdll = self.refuse
+        error = self.held_error()
+        self.assertIsInstance(error, OSError)
+        self.assertIn('dlopen failed', str(error))
+        self.assertTrue(any('SHA256' in note for note in error.__notes__), getattr(error, '__notes__', None))
+
+    def test_import_failure_still_runs_the_cpu_exit_checks(self):
+        self.stack.enter_context(mock.patch.dict(sys.modules, {'torch': None}))
+        with self.spied_closure():
+            error = self.held_error(torch=None)
+        self.assertIsInstance(error, ImportError)
+        self.assertEqual(getattr(error, '__notes__', []), [])
+        self.assertEqual(self.events[-3:], ['closure', 'source', 'locks'])
+
+    def test_publication_that_crosses_the_whole_cap_is_not_silently_accepted(self):
+        clock = self.timed(admission=1100)
+        real = json.dump
+
+        def dump(*args, **kwargs):
+            clock.now += 450
+            return real(*args, **kwargs)
+        self.stack.enter_context(mock.patch.object(mod.json, 'dump', dump))
+        with self.assertRaisesRegex(ValueError, 'headroom'):
+            self.run_smoke()
 
 
 if __name__ == '__main__':

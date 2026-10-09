@@ -77,8 +77,10 @@ defaulted or guessed and no directory is ever granted. Strict JSON, no unknown/d
  open_library hashes an OPENED regular-file descriptor, dlopens that same inode through
  /proc/self/fd, and requires the maps entry to be that canonical undeleted inode, every
  file-backed .so mapping to be inventoried with its frozen size and live device/inode, and only
- declared files to appear. Declared FILEs are freshly hashed; other inventoried mappings are
- authenticated by size+device/inode only (root decision). The set is re-read after the run.
+ declared files to appear. EVERY mapped .so (declared or not) is then freshly stream-hashed through
+ an O_NOFOLLOW fd against the sha256 the root froze in the inventory, with the opened inode equal to
+ the mapped one: a mapping whose bytes are not authenticated fails closed. The set is re-read and
+ every mapped file re-hashed at exit. Unmapped inventory entries are not hashed here.
  UNIT: a user-written {decision:GO,authority} is NEVER accepted. UNIT_READER stays None until a
  genuine root-owned original unit/footer/locks/resources/exit/source reader exists, so --unit and
  therefore full/timing fail closed at admission.
@@ -97,8 +99,29 @@ CLI (argv order is canonical and exact; invoke by the canonical absolute script 
  oracle copy, labeled InjectedFault launch/completion/readback failures with real work
  outstanding, drain, released owners under a retained error and a healthy next call, and
  pre-enqueue rejections with zero native calls. It writes one diagnostic receipt (all
- eligibility flags false) only after every check passes. The 447+448/444+448 inventories,
- timing and every qualification gate are separate root releases.
+ eligibility flags false) only after every check AND the exit pass succeed. The 447+448/444+448
+ inventories, timing and every qualification gate are separate root releases.
+
+ Smoke clocks and exit (policy unchanged: body 300 / whole 1500 / exit reserve 300). The body clock
+ starts at smoke() entry (torch import and CUDA init count; admission does not) and is checked < 300
+ only up to the body-end guard; the whole clock runs from module load and must leave the 300 s
+ reserve at that guard (< 1200), then only < 1500 after the exit work. guard() (start, after each
+ check group, body end) = Source.check + Locks.check + resources. The exit runs after the body on EVERY
+ path, success or failure, each check attempted even after a body, drain or earlier exit failure
+ (errors are collected, never short-circuited): device drain (only if Torch loaded) -> current
+ mapping set (equal to the post-open snapshot when one exists; a load that failed before the
+ snapshot is not an exit failure) with every mapped .so re-hashed -> a FRESH
+ read_native_authority(authority) (authority, 4 sources, build authority + CUDA source/contract/
+ compile script/compilers/evidence, receipt/library/logs, runtime files + provenance + evidence,
+ inventory, interpreter; record and inventory must equal the admitted ones) -> Source.check ->
+ Locks.check -> close the library fd -> final resources. Only if the body and all of that
+ succeeded is the receipt written; afterwards Locks.check and the whole cap are checked once more,
+ and a failure there raises while the diagnostic receipt (normal_terminal_required) remains on disk.
+ The body rejection stays primary (requests.raise_failures) and every other error is attached.
+ One try/except/finally spans it: the fd is closed once on every path, and only after a good
+ drain with no quarantined hasher are the error frames' owners released (traceback.clear_frames).
+ Limits: "uncached" = no digest/descriptor/authority reuse, not a page-cache bypass; Python source
+ modules and non-.so mappings are outside the closure; the 8 GiB RSS cap is peak-RSS only.
 
 UNVERIFIED NATIVE ASSUMPTIONS (the tests use a fake torch/ABI and cannot check them): Tensor.data
 carries a fresh version counter; torch.cuda._sleep plus Event.query prove a mutation is still
@@ -118,6 +141,7 @@ import stat
 import struct
 import sys
 import time
+import traceback
 from types import SimpleNamespace
 import weakref
 
@@ -146,7 +170,7 @@ ARCH_FLAGS = ('-arch', '--gpu-architecture', '-code', '--gpu-code', '-ptx', '--p
 HEX = re.compile('[0-9a-f]{64}')
 FLAGS = ('quality_read', 'quality_eligible', 'qualification_eligible', 'state_reuse_eligible',
          'optimization_eligible', 'product_go', 'speed_go')
-STARTED = time.perf_counter()
+STARTED = time.perf_counter()  # whole-process clock (module load); the body clock starts at smoke() entry
 UNIT_READER = None  # the root wires the genuine terminal/provenance reader here; a GO file is never enough
 
 
@@ -345,6 +369,15 @@ def mapped_files(inventory, maps='/proc/self/maps'):
     return result
 
 
+def authenticate_mappings(inventory, mappings):
+    """Fresh streamed hash of every mapped .so inode against the digest the root froze for it; no size/inode-only trust."""
+    for path, identity in mappings.items():
+        entry = inventory[path]
+        info = hash_file({'path': path, 'sha256': entry['sha256']})
+        require((info.st_dev, info.st_ino) == identity and info.st_size == entry['size'],
+                'mapped native file is not the authenticated inode')
+
+
 def open_library(authority, cdll, maps='/proc/self/maps'):
     """Hash an opened descriptor, dlopen that same inode, verify the mapping set; keep fd to exit."""
     fact = authority.record['library']
@@ -360,6 +393,7 @@ def open_library(authority, cdll, maps='/proc/self/maps'):
         require(after.get(fact['path']) == (info.st_dev, info.st_ino), 'loaded library is not the authenticated inode')
         require(before.items() <= after.items() and after.keys() - before.keys() <= declared,
                 'native mapping set changed beyond the declared FILEs')
+        authenticate_mappings(authority.inventory, after)
         return fd, lib, after
     except BaseException:
         os.close(fd)
@@ -599,13 +633,14 @@ def smoke_cases(torch, device):
     return [c[0] for c in cases], [c[1] for c in cases], leaves, raws, base, base_raw
 
 
-def smoke_checks(torch, device, function, fingerprints, guard):
+def smoke_checks(torch, device, function, fingerprints, guard, hashers):
     calls = []
 
     def counted(*args):
         calls.append(args)
         return function(*args)
     hasher = Sha256Native(torch, counted)
+    hashers.append(hasher)
     results = {}
     handle = torch.cuda.current_stream(device).cuda_stream
 
@@ -699,6 +734,7 @@ def smoke_checks(torch, device, function, fingerprints, guard):
                     seen.append(1)
                     raise InjectedFault('injected ' + point)
             failing = Sha256Native(torch, function, fault)
+        hashers.append(failing)
         owners = [device_leaf(torch, device, raw) for raw in raws[:3]]
         refs = [weakref.ref(leaf) for leaf in owners]
         try:
@@ -733,27 +769,98 @@ def smoke_checks(torch, device, function, fingerprints, guard):
     return results, len(calls)
 
 
-def resources(torch):
+def resources(torch, body_started, final=False):
+    """body300 counts from body entry, whole1500 from process start. Before the exit work the whole clock must still
+    leave the 300 s exit reserve; once the exit work is done (final) only the whole cap remains."""
     import resource
     swap = re.search(r'VmSwap:\s+(\d+) kB', Path('/proc/self/status').read_text())
     require(swap is not None and int(swap[1]) == POLICY['swap_bytes'], 'swap use differs')
-    facts = {'wall_seconds': time.perf_counter() - STARTED,
+    now = time.perf_counter()
+    facts = {'wall_seconds': now - STARTED, 'body_seconds': now - body_started,
              'process_peak_rss_kib': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
-             'peak_cuda_allocated_bytes': torch.cuda.max_memory_allocated()}
-    require(facts['wall_seconds'] < POLICY['body_seconds'], 'body deadline differs')
-    requests.check_resources(facts, POLICY, reserve=True)
+             'peak_cuda_allocated_bytes': 0 if torch is None else torch.cuda.max_memory_allocated()}  # none if Torch never loaded
+    require(final or facts['body_seconds'] < POLICY['body_seconds'], 'body deadline differs')
+    requests.check_resources(facts, POLICY, reserve=not final)
     return facts
 
 
-def smoke(context, output, torch=None, cdll=None, maps='/proc/self/maps'):
+def exit_pass(context, held, maps, body_started):
+    """The independent exit, run after the body on EVERY path. Each check is attempted even after a body, drain or
+    earlier exit failure; the errors are returned, never raised. Nothing admitted earlier is trusted or reused."""
+    errors, authority, torch = [], context.authority, held.torch
+
+    def attempt(check):
+        try:
+            check()
+        except BaseException as error:
+            errors.append(error)
+
+    def drain():
+        held.drain_tried = True
+        torch.cuda.synchronize()
+        held.drained = True
+
+    def mapped():  # a missing post-open snapshot (load failed first) is not an exit failure; the bytes still are checked
+        current = mapped_files(authority.inventory, maps)
+        require(held.mappings is None or current == held.mappings, 'native mapping inventory changed during the run')
+        authenticate_mappings(authority.inventory, current)
+
+    def closure():  # every authority/source/compiler/evidence/runtime/interpreter/inventory FILE, freshly hashed
+        fresh = read_native_authority(context.fact)
+        require(fresh.record == authority.record and fresh.inventory == authority.inventory, 'admitted closure differs at exit')
+
+    def release():
+        fd, held.fd = held.fd, None
+        if fd is not None:
+            os.close(fd)
+
+    def final():
+        held.final = resources(torch, body_started, final=True)
+
+    if torch is not None:
+        attempt(drain)
+        attempt(mapped)
+    attempt(closure)
+    attempt(context.source.check)
+    attempt(context.locks.check)
+    attempt(release)
+    attempt(final)
+    return errors
+
+
+def teardown(held, hashers, failure):
+    """Last resort cleanup: drain if the exit never tried; only after a good drain with no quarantined hasher release the
+    error frames' owners; always close the fd. Returns the errors."""
+    errors, torch = [], held.torch
+    if torch is not None and not held.drain_tried:
+        held.drain_tried = True
+        try:
+            torch.cuda.synchronize()
+            held.drained = True
+        except BaseException as error:
+            errors.append(error)
+    if failure is not None and held.drained and not any(h.poisoned or h.quarantine for h in hashers):
+        traceback.clear_frames(failure.__traceback__)
+    if held.fd is not None:
+        fd, held.fd = held.fd, None
+        try:
+            os.close(fd)
+        except BaseException as error:
+            errors.append(error)
+    return errors
+
+
+def smoke_body(context, held, hashers, cdll, maps, body_started):
     import ctypes
-    if torch is None:
+    if held.torch is None:
         import importlib
-        torch = importlib.import_module('torch')
+        held.torch = importlib.import_module('torch')
+    torch = held.torch
     if cdll is None:
         cdll = ctypes.CDLL
     authority, record = context.authority, context.authority.record
     context.source.check()
+    context.locks.check()
     prints = []
     for name in ('probe_serializer', 'mlp_serializer'):
         function, dump = load_fingerprint(read_bytes(record['sources'][name], 2 * 1024**2))
@@ -764,27 +871,51 @@ def smoke(context, output, torch=None, cdll=None, maps='/proc/self/maps'):
     props = torch.cuda.get_device_properties(spec['index'])
     require(props.name == spec['name'] and [props.major, props.minor] == spec['capability'], 'frozen CUDA device differs')
     device = torch.device('cuda', spec['index'])
+
     def guard():
-        return resources(torch)
+        context.source.check()
+        context.locks.check()
+        return resources(torch, body_started)
     guard()
-    fd, lib, mappings = open_library(authority, cdll, maps)
+    held.fd, lib, held.mappings = open_library(authority, cdll, maps)
     function = bind_abi(lib, ctypes)
-    checks, native_calls = smoke_checks(torch, device, function, [p[0] for p in prints], guard)
-    torch.cuda.synchronize()
-    require(mapped_files(authority.inventory, maps) == mappings, 'native mapping inventory changed during the run')
-    context.source.check()
-    final = resources(torch)
-    receipt = {'schema': SMOKE_RECEIPT, 'status': 'SMOKE_DIAGNOSTIC_UNREVIEWED', 'engineering_only': True,
-               'authority': context.fact, 'library': record['library'], 'device': spec, 'checks': checks,
-               'native_calls': native_calls, 'resources': final, 'resource_policy': POLICY, 'mappings': sorted(mappings),
-               **{flag: False for flag in FLAGS}, 'normal_terminal_required': True,
-               'invocation': {'argv': sys.argv, 'python': str(Path(sys.executable).resolve()), 'pid': os.getpid(),
-                              'optimize': sys.flags.optimize, 'torch': torch.__version__, 'cuda': torch.version.cuda}}
-    os.mkdir(output, 0o700)
-    with open(Path(output) / 'smoke-receipt.json', 'x') as stream:
-        json.dump(receipt, stream, sort_keys=True, indent=1)
-        stream.flush()
-        os.fsync(stream.fileno())
+    result = smoke_checks(torch, device, function, [p[0] for p in prints], guard, hashers)
+    guard()
+    return result
+
+
+def smoke(context, output, torch=None, cdll=None, maps='/proc/self/maps'):
+    body_started = time.perf_counter()
+    held = SimpleNamespace(torch=torch, fd=None, mappings=None, final=None, drain_tried=False, drained=False)
+    hashers, failures, result, receipt = [], [], None, None
+    try:
+        try:
+            result = smoke_body(context, held, hashers, cdll, maps, body_started)
+        except BaseException as error:
+            failures.append(error)
+        failures.extend(exit_pass(context, held, maps, body_started))
+        if not failures:
+            record, (checks, native_calls) = context.authority.record, result
+            receipt = {'schema': SMOKE_RECEIPT, 'status': 'SMOKE_DIAGNOSTIC_UNREVIEWED', 'engineering_only': True,
+                       'authority': context.fact, 'library': record['library'], 'device': record['device'], 'checks': checks,
+                       'native_calls': native_calls, 'resources': held.final, 'resource_policy': POLICY,
+                       'mappings': sorted(held.mappings), **{flag: False for flag in FLAGS}, 'normal_terminal_required': True,
+                       'invocation': {'argv': sys.argv, 'python': str(Path(sys.executable).resolve()), 'pid': os.getpid(),
+                                      'optimize': sys.flags.optimize, 'torch': held.torch.__version__,
+                                      'cuda': held.torch.version.cuda}}
+            os.mkdir(output, 0o700)
+            with open(Path(output) / 'smoke-receipt.json', 'x') as stream:
+                json.dump(receipt, stream, sort_keys=True, indent=1)
+                stream.flush()
+                os.fsync(stream.fileno())
+            context.locks.check()  # publication is inside the whole cap; a failure here leaves the receipt but fails the run
+            resources(held.torch, body_started, final=True)
+    except BaseException as error:
+        failures.append(error)
+    finally:
+        failures.extend(teardown(held, hashers, failures[0] if failures else None))
+        if failures:
+            requests.raise_failures(failures)
     return receipt
 
 
