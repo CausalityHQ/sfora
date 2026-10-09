@@ -7,6 +7,7 @@ import errno
 import hashlib
 import json
 import os
+import sys
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -329,24 +330,46 @@ def publish_writer_noreplace(
         final_info = path.lstat()
         if (final_info.st_dev, final_info.st_ino) != owned:
             raise RuntimeError("immutable publication final ownership differs")
-        completed = True
-        return PublishedFile(
+        result = PublishedFile(
             payload=reopened_payload,
             identity=owned,
             size=len(reopened_payload),
-            descriptor=retained_descriptor,
+            descriptor=-1,
         )
+        completed = True
     finally:
-        if published and not completed and owned is not None and os.path.lexists(path):
-            info = path.lstat()
-            if (info.st_dev, info.st_ino) == owned:
-                path.unlink()
-                os.fsync(directory)
-        if descriptor is not None:
-            os.close(descriptor)
-        if not completed and retained_descriptor is not None:
-            os.close(retained_descriptor)
-        os.close(directory)
+        failures: list[BaseException] = []
+        primary = None if completed else sys.exception()
+        try:
+            if published and not completed and owned is not None and os.path.lexists(path):
+                info = path.lstat()
+                if (info.st_dev, info.st_ino) == owned:
+                    path.unlink()
+                    os.fsync(directory)
+        except BaseException as failure:
+            failures.append(failure)
+        for owned_descriptor in (descriptor, directory):
+            if owned_descriptor is not None:
+                try:
+                    os.close(owned_descriptor)
+                except BaseException as failure:
+                    failures.append(failure)
+        # The retained descriptor is only handed over once every mandatory cleanup succeeded.
+        if retained_descriptor is not None and (failures or not completed):
+            try:
+                os.close(retained_descriptor)
+            except BaseException as failure:
+                failures.append(failure)
+        if failures:
+            first = failures[0] if primary is None else primary
+            for other in failures:
+                if other is not first:
+                    first.add_note(f"immutable publication cleanup also failed: {other!r}")
+            if primary is None:
+                raise first
+    assert retained_descriptor is not None
+    result.descriptor = retained_descriptor
+    return result
 
 
 def publish_large_writer_noreplace(
@@ -417,23 +440,45 @@ def publish_large_writer_noreplace(
         final_info = path.lstat()
         if (final_info.st_dev, final_info.st_ino) != owned:
             raise RuntimeError("immutable publication final ownership differs")
-        completed = True
-        return PublishedLargeFile(
+        result = PublishedLargeFile(
             identity=owned,
             size=info.st_size,
-            descriptor=retained_descriptor,
+            descriptor=-1,
         )
+        completed = True
     finally:
-        if published and not completed and owned is not None and os.path.lexists(path):
-            final = path.lstat()
-            if (final.st_dev, final.st_ino) == owned:
-                path.unlink()
-                os.fsync(directory)
-        if descriptor is not None:
-            os.close(descriptor)
-        if not completed and retained_descriptor is not None:
-            os.close(retained_descriptor)
-        os.close(directory)
+        failures: list[BaseException] = []
+        primary = None if completed else sys.exception()
+        try:
+            if published and not completed and owned is not None and os.path.lexists(path):
+                final = path.lstat()
+                if (final.st_dev, final.st_ino) == owned:
+                    path.unlink()
+                    os.fsync(directory)
+        except BaseException as failure:
+            failures.append(failure)
+        for owned_descriptor in (descriptor, directory):
+            if owned_descriptor is not None:
+                try:
+                    os.close(owned_descriptor)
+                except BaseException as failure:
+                    failures.append(failure)
+        # The retained descriptor is only handed over once every mandatory cleanup succeeded.
+        if retained_descriptor is not None and (failures or not completed):
+            try:
+                os.close(retained_descriptor)
+            except BaseException as failure:
+                failures.append(failure)
+        if failures:
+            first = failures[0] if primary is None else primary
+            for other in failures:
+                if other is not first:
+                    first.add_note(f"immutable publication cleanup also failed: {other!r}")
+            if primary is None:
+                raise first
+    assert retained_descriptor is not None
+    result.descriptor = retained_descriptor
+    return result
 
 
 def publish_bytes_noreplace(path: Path, payload: bytes, *, validator: Validator) -> PublishedFile:
