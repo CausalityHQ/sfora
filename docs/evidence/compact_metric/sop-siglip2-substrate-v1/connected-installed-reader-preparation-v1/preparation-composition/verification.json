@@ -1,0 +1,39 @@
+{
+  "command": "ulimit -v 1048576; timeout 15 python3 -B -S docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/preparation-composition/check.py",
+  "evidence_origin": "original exec tool result; no separate raw stdout file persisted",
+  "exit_code": 0,
+  "files": {
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/helper-binding-prototype/core.py": "705f5297f3318632bb0c6c888c9d278fa51ef7153773ee50e59c74febfd0b93d",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/metadata-prototype/sfora-serving-metadata-prototype.py": "1c4d6b11e89bffcd9d053b4c2ad2153dcd1497a767bc3edffa7b5c6250342286",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/preparation-composition/check.py": "2abe4a775d5390ddfd45b49e875fcb842ecd137bf6e85ec041b0cbf994082290",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/preparation-composition/fixture.py": "7263eee9008a8ca25ad5ebebe31af4d9a9b3ceb672946c2cbb09941f1e85431d",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/preparation-composition/scope.md": "1160ccfe34c4b39d3facbce66c0bc21428b903b450631ea6d865a76f7e911849"
+  },
+  "genuine_helpers": [
+    "connected_gallery_provenance",
+    "connected_serving_artifact",
+    "connected_serving_admission",
+    "connected_artifact_identity",
+    "connected_installed_environment"
+  ],
+  "native_run": false,
+  "negative_cases": [
+    "endpoint bytes",
+    "origin metadata bytes",
+    "selected wheel member bytes",
+    "repinned false installed authority",
+    "external anchor bytes",
+    "foreign callback",
+    "checker code",
+    "checker defaults",
+    "checker keyword defaults",
+    "duplicate checker snapshot",
+    "helper literal"
+  ],
+  "observed_tool_wall_seconds": 0.185221238,
+  "product_go": false,
+  "quality_result": null,
+  "schema": "source-only-serving-preparation-composition-v1",
+  "speed_result": null,
+  "synthetic_files": 10
+}
