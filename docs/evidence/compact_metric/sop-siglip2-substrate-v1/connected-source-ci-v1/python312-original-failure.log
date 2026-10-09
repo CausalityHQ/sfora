@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_inference_extraction.py", line 986, in <module>
+    main()
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_inference_extraction.py", line 956, in main
+    pipeline_contract_check()
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_inference_extraction.py", line 184, in pipeline_contract_check
+    assert (sha(nodes[name].encode()), astsha(nodes[name])) == (byte_sha, ast_sha)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

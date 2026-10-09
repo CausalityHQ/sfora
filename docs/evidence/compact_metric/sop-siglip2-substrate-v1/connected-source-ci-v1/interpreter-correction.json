@@ -1,0 +1,25 @@
+{
+  "cause": "Python 3.12 ast.dump includes empty fields that the authenticated Python 3.14.4 AST digest omits. Full source bytes identical; existing oracle rejects the different dump.",
+  "ci_green": false,
+  "ci_source_status": "FAIL",
+  "correction": "Pin only source-contract CI interpreter to authenticated 3.14.4; retain source/AST hashes and original test job on 3.12. Do not claim native or Python3.12 compatibility.",
+  "evidence": {
+    "helper-ast-python312.txt": "e88fd8d31a7238a52d43c329d5f7b5ac44a370a5ee420547870eb0fdb125f80b",
+    "helper-ast-python314.txt": "c06c74a807afcc04ccf83c928764465647dfc757b18895296e66758b2aa60781",
+    "python312-original-failure.log": "600a5cb8e86cfb28fef76b6f04c2a6b255667b158118d5f59154a7db28b437ca"
+  },
+  "failed_ci_commit": "2066707ad3991da423a62d89566e98856112a033",
+  "failed_ci_run": 37954219965,
+  "failed_source_job": 113900480706,
+  "format_failure_exact_cause": "UNPROVEN; authenticated Actions logs unavailable to local gh client. No formatting changes made.",
+  "helper_source_sha256": "95c5eeb8bfdc4ead6cbb358d8156c55fc6929573da88f94a651a3972449683c7",
+  "local_python312_exit": 1,
+  "local_python312_version": "3.12.13",
+  "local_python314_version": "3.14.4",
+  "original_format_job_failure": true,
+  "quality_speed_go": false,
+  "reason_not_rerun": "Only CI interpreter configuration changed to exact interpreter of prior terminal PASS; runtime/test bytes unchanged.",
+  "schema": "connected-source-ci-interpreter-correction-v1",
+  "source_tests_rerun": false,
+  "workflow_sha256": "fef4dd1c14ee0f1d9c6867018a2bc13337ffb59b95c500cd4eb145ecf68a890e"
+}

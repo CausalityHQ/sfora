@@ -18,7 +18,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          # Historical source manifests pin Python 3.14.4's ast.dump format.
+          # The existing product test job still uses Python 3.12.
+          python-version: "3.14.4"
 
       - name: Check packaged inference and bridge contracts without native dependencies
         # These script entry points are outside pytest discovery. They check
