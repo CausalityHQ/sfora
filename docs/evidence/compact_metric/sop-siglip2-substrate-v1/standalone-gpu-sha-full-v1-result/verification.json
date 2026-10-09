@@ -1,0 +1,68 @@
+{
+  "disposition": "NO_MEASURED_SPEED_WIN; retain original serving fingerprint",
+  "engineering_parity_exit_pass": true,
+  "invocation_id": "a307b9742c4c4172903ea8c80bd04820",
+  "limitation": "Three synthetic alternating pairs; no p99/confidence or production latency qualification.",
+  "log_sha256": "769a9c88971354c5c76697333ba1d7cc486db5d7ee36f9596e783238a5a5978f",
+  "normal_exit": 0,
+  "outer_resources": {
+    "memory_events": {
+      "high": 0,
+      "low": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_group_kill": 0,
+      "oom_kill": 0
+    },
+    "memory_peak_bytes": 459890688,
+    "swap_current_bytes": 0,
+    "wall_seconds": 58.25439492898295
+  },
+  "product_go": false,
+  "quality_go": false,
+  "receipt_sha256": "ecdebd71fc5e1e675c6e78796e70d7c8aba11204bbb53052fa25f96acdcbbbd2",
+  "schema": "standalone-full-sha-parent-verification-v1",
+  "service_seconds": 58.637,
+  "speed_go": false,
+  "timings": {
+    "largest": {
+      "candidate_seconds": [
+        0.8220446659834124,
+        0.6644501739938278,
+        0.7164604710123967
+      ],
+      "median_paired_ratio": 85.87644369369372,
+      "original_seconds": [
+        0.008356153994100168,
+        0.008347737981239334,
+        0.008342921995790675
+      ]
+    },
+    "mlp": {
+      "candidate_seconds": [
+        1.7543345309968572,
+        1.7543459190055728,
+        1.754461443022592
+      ],
+      "median_paired_ratio": 0.9992368504940272,
+      "original_seconds": [
+        1.7502286660019308,
+        1.7587859280174598,
+        1.7558013819798362
+      ]
+    },
+    "probe": {
+      "candidate_seconds": [
+        1.754391738009872,
+        1.7538083579856902,
+        1.7561942980100866
+      ],
+      "median_paired_ratio": 1.0198925738671925,
+      "original_seconds": [
+        1.7299540800158866,
+        1.6640600200043991,
+        1.7219404700153973
+      ]
+    }
+  }
+}

@@ -1,0 +1,433 @@
+{
+ "authority": {
+  "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/native-authority-v1.json",
+  "sha256": "ccb936ac4f0dff368a76564a3365c44ca5afcbaf251f51040b9b7816ea308756"
+ },
+ "checks": {
+  "comparison": {
+   "clock": "time.perf_counter around each complete arm of a sequential workload (frozen tree, digest validation, full tree). Candidate inside the clock: leaf traversal, validation, pinned table construction and H2D transfers, launch, stream completion, readback, hexadecimal conversion, original framing. Original inside: per-leaf D2H, streamed hashlib, original framing. Outside the clocks: guard() source/lock/resource/FILE rehash checks and a device drain before each arm. Descriptive observation only; no threshold, p99, GO, quality or product claim.",
+   "pairs": 3,
+   "workloads": {
+    "largest": {
+     "isolated_mechanism_only": true,
+     "pairs": [
+      {
+       "candidate_call_seconds": [
+        0.8220440740115009
+       ],
+       "candidate_seconds": 0.8220446659834124,
+       "order": [
+        "original",
+        "candidate"
+       ],
+       "original_call_seconds": [
+        0.008355178026249632
+       ],
+       "original_seconds": 0.008356153994100168
+      },
+      {
+       "candidate_call_seconds": [
+        0.6644495660148095
+       ],
+       "candidate_seconds": 0.6644501739938278,
+       "order": [
+        "candidate",
+        "original"
+       ],
+       "original_call_seconds": [
+        0.008347033988684416
+       ],
+       "original_seconds": 0.008347737981239334
+      },
+      {
+       "candidate_call_seconds": [
+        0.7164597509836312
+       ],
+       "candidate_seconds": 0.7164604710123967,
+       "order": [
+        "original",
+        "candidate"
+       ],
+       "original_call_seconds": [
+        0.008342170011019334
+       ],
+       "original_seconds": 0.008342921995790675
+      }
+     ],
+     "trees": [
+      1
+     ]
+    },
+    "mlp": {
+     "isolated_mechanism_only": false,
+     "pairs": [
+      {
+       "candidate_call_seconds": [
+        0.8772816259879619,
+        0.8770517850061879
+       ],
+       "candidate_seconds": 1.7543345309968572,
+       "order": [
+        "original",
+        "candidate"
+       ],
+       "original_call_seconds": [
+        0.8717148639843799,
+        0.8785121540131513
+       ],
+       "original_seconds": 1.7502286660019308
+      },
+      {
+       "candidate_call_seconds": [
+        0.8766429359966423,
+        0.8777018310211133
+       ],
+       "candidate_seconds": 1.7543459190055728,
+       "order": [
+        "candidate",
+        "original"
+       ],
+       "original_call_seconds": [
+        0.8722726659907494,
+        0.8865117100067437
+       ],
+       "original_seconds": 1.7587859280174598
+      },
+      {
+       "candidate_call_seconds": [
+        0.877323009975953,
+        0.8771373610070441
+       ],
+       "candidate_seconds": 1.754461443022592,
+       "order": [
+        "original",
+        "candidate"
+       ],
+       "original_call_seconds": [
+        0.8705345369817223,
+        0.8852652770001441
+       ],
+       "original_seconds": 1.7558013819798362
+      }
+     ],
+     "trees": [
+      444,
+      448
+     ]
+    },
+    "probe": {
+     "isolated_mechanism_only": false,
+     "pairs": [
+      {
+       "candidate_call_seconds": [
+        0.8770300379837863,
+        0.8773596519895364
+       ],
+       "candidate_seconds": 1.754391738009872,
+       "order": [
+        "original",
+        "candidate"
+       ],
+       "original_call_seconds": [
+        0.8879453440022189,
+        0.842003472003853
+       ],
+       "original_seconds": 1.7299540800158866
+      },
+      {
+       "candidate_call_seconds": [
+        0.8770956830121577,
+        0.8767111870110966
+       ],
+       "candidate_seconds": 1.7538083579856902,
+       "order": [
+        "candidate",
+        "original"
+       ],
+       "original_call_seconds": [
+        0.8317786589905154,
+        0.8322790410020389
+       ],
+       "original_seconds": 1.6640600200043991
+      },
+      {
+       "candidate_call_seconds": [
+        0.8774623019853607,
+        0.8787308280006982
+       ],
+       "candidate_seconds": 1.7561942980100866,
+       "order": [
+        "original",
+        "candidate"
+       ],
+       "original_call_seconds": [
+        0.8846836099983193,
+        0.8372551799984649
+       ],
+       "original_seconds": 1.7219404700153973
+      }
+     ],
+     "trees": [
+      447,
+      448
+     ]
+    }
+   }
+  },
+  "inventory": {
+   "bytes": 1711552256,
+   "frozen_leaves": {
+    "mlp": 444,
+    "probe": 447
+   },
+   "largest": "encoder.layers.0.mlp.fc1.weight",
+   "largest_leaf_bytes": 19832832,
+   "leaves": 448,
+   "roles": {
+    "mlp": [
+     "encoder.layers.26.mlp.fc1.weight",
+     "encoder.layers.26.mlp.fc1.bias",
+     "encoder.layers.26.mlp.fc2.weight",
+     "encoder.layers.26.mlp.fc2.bias"
+    ],
+    "probe": [
+     "head.probe"
+    ]
+   }
+  },
+  "largest_leaf": {
+   "aliases": {
+    "occurrences": 7,
+    "reversed": true
+   },
+   "injected_failures": {
+    "completed": "InjectedFault",
+    "launched": "InjectedFault",
+    "readback": "InjectedFault",
+    "status": "ValueError"
+   },
+   "mutation": {
+    "bytes": [
+     0,
+     9916417,
+     19832831
+    ],
+    "mask": 64,
+    "version": 1
+   },
+   "parity": {
+    "bytes": 19832832,
+    "digest": "81a84539cddb345828cd818474dbf1728db73970b3f4ceed4c5b448cee5b3959"
+   },
+   "streams": {
+    "producer_event": {
+     "byte": 3,
+     "distinct_streams": true,
+     "mask": 32
+    },
+    "side": true
+   }
+  },
+  "workloads": {
+   "largest": {
+    "digests": [
+     "a16f0520dbf579fadd17142a2b3969e14fda5a77d7d9dcd119f88fd03bb66f9e"
+    ],
+    "launches": [
+     1
+    ]
+   },
+   "mlp": {
+    "digests": [
+     "668471f361ca06f554edca89ea471d4204f373ee9aed9a63b54c1a746cb66dc1",
+     "ab3c861f1bfd6998cc432ff8652499eb9db754dd09b4c974848b14b01b0da00e"
+    ],
+    "launches": [
+     444,
+     448
+    ]
+   },
+   "probe": {
+    "digests": [
+     "d73e4de2f6b9c57a55f64e90de41b5d42bfc32fc19b4bd62bc6c08e782ce9081",
+     "ab3c861f1bfd6998cc432ff8652499eb9db754dd09b4c974848b14b01b0da00e"
+    ],
+    "launches": [
+     447,
+     448
+    ]
+   }
+  }
+ },
+ "device": {
+  "capability": [
+   12,
+   1
+  ],
+  "index": 0,
+  "name": "NVIDIA GB10"
+ },
+ "engineering_only": true,
+ "extractor": {
+  "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/extract_siglip2_vision_source.py",
+  "sha256": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d"
+ },
+ "fixture": {
+  "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/inventory.json",
+  "sha256": "a901e9a05d6b889523672e68e5116c803579f48cd3b886cd1708e5efd42264bb"
+ },
+ "invocation": {
+  "argv": [
+   "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/qualify_cuda_sha256_native.py",
+   "full",
+   "--authority",
+   "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/native-authority-v1.json",
+   "--authority-sha256",
+   "ccb936ac4f0dff368a76564a3365c44ca5afcbaf251f51040b9b7816ea308756",
+   "--unit",
+   "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/prior-unit.json",
+   "--unit-sha256",
+   "f604a87b1ba475eb407f5bc8690974b1c35e923af787946a1bbc71a5b46ff5ab",
+   "--output",
+   "/home/riomus/runs/sfora-standalone-gpu-sha-full-v1"
+  ],
+  "cuda": "13.0",
+  "optimize": 0,
+  "pid": 2269000,
+  "python": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+  "torch": "2.12.1+cu130"
+ },
+ "library": {
+  "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/libsha256_occurrences.so",
+  "sha256": "c9fcd633340e327d1330cd473277bec22bdf6444ed5171d874b5e0392015da19"
+ },
+ "mappings": [
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_bindings/cydriver.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_bindings/cyruntime.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_bindings/cyruntime_ptds.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/cydriver.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/cyruntime.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/driver.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/runtime.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy.libs/libgfortran-e1b7dfc8-d8198c01.so.5.0.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy.libs/libscipy_openblas64_-4135cacc.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/_core/_multiarray_umath.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/linalg/_umath_linalg.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcublas.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcublasLt.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcudart.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcufft.so.12",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcufile.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcupti.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcurand.so.10",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcusolver.so.12",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcusparse.so.12",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libnvJitLink.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libnvrtc-builtins.so.13.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libnvrtc.so.13",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn.so.9",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cusparselt/lib/libcusparseLt.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/nccl/lib/libnccl.so.2",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/nvshmem/lib/libnvshmem_host.so.3",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/_C.cpython-313-aarch64-linux-gnu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libarm_compute.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libarm_compute_graph.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libc10.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libc10_cuda.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libgomp.so.1",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_blas_core.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_blas_lp64_gomp.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_lapack_core.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_lapack_lp64_gomp.so.0",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libshm.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cpu.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cuda.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_global_deps.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_nvshmem.so",
+  "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_python.so",
+  "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/libsha256_occurrences.so",
+  "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+  "/usr/lib/aarch64-linux-gnu/libc.so.6",
+  "/usr/lib/aarch64-linux-gnu/libcuda.so.580.159.03",
+  "/usr/lib/aarch64-linux-gnu/libdl.so.2",
+  "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+  "/usr/lib/aarch64-linux-gnu/libm.so.6",
+  "/usr/lib/aarch64-linux-gnu/libpthread.so.0",
+  "/usr/lib/aarch64-linux-gnu/librt.so.1",
+  "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.33",
+  "/usr/lib/aarch64-linux-gnu/libutil.so.1",
+  "/usr/lib/aarch64-linux-gnu/libz.so.1.3"
+ ],
+ "metadata": {
+  "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/so400-native256-upstream-metadata-v1.json",
+  "sha256": "42411fd4a16dfa007eadb370ac0524a65f6d0ef3936cd3f320ef1c9f191f62a9"
+ },
+ "native_calls": 41,
+ "normal_terminal_required": true,
+ "optimization_eligible": false,
+ "prior": {
+  "authority": {
+   "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/native-authority-v2.json",
+   "sha256": "8f11965ce5f79a943d2d3aab2ea85cd509de1f5b1a5e6333ef201758f07c1887"
+  },
+  "invocation_id": "e594e58e8ad1495a8150757ca754e3fc",
+  "launch": {
+   "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/prior-launch.json",
+   "sha256": "2becd614c987a96b082b0ed23f4b00fc3da60acabe2f33703d907fabb3acc717"
+  },
+  "log": {
+   "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/original-smoke-v2.log",
+   "sha256": "b1e6fc4a01ca51b4a27574f2a10649d049cc24e8f2e1d87c33db14bb8cc33709"
+  },
+  "outer_resources": {
+   "memory_events": {
+    "high": 0,
+    "low": 0,
+    "max": 0,
+    "oom": 0,
+    "oom_group_kill": 0,
+    "oom_kill": 0
+   },
+   "memory_peak_bytes": 436899840,
+   "swap_current_bytes": 0,
+   "wall_seconds": 4.057281047978904
+  },
+  "receipt": {
+   "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-v2/smoke-receipt.json",
+   "sha256": "45eff741cc688c616eab66ae1aad0f83e0250fb025c64d2e1d28d3b02c0fc7a8"
+  },
+  "service_seconds": 4.393,
+  "unit": {
+   "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/prior-unit.json",
+   "sha256": "f604a87b1ba475eb407f5bc8690974b1c35e923af787946a1bbc71a5b46ff5ab"
+  },
+  "unit_name": "sfora-standalone-gpu-sha-smoke-v2",
+  "verification": {
+   "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/prior-verification.json",
+   "sha256": "516d4e165f14e21855d4b6fa7b9f83f1cfdbbad34ae11465e54bd43df1896402"
+  }
+ },
+ "product_go": false,
+ "qualification_eligible": false,
+ "quality_eligible": false,
+ "quality_read": false,
+ "resource_policy": {
+  "body_seconds": 300,
+  "cuda_allocated_bytes_exclusive": 10000000000,
+  "exit_reserve_seconds": 300,
+  "host_bytes": 8589934592,
+  "swap_bytes": 0,
+  "whole_process_seconds": 1500
+ },
+ "resources": {
+  "body_seconds": 58.076804380019894,
+  "peak_cuda_allocated_bytes": 1712758784,
+  "process_peak_rss_kib": 693996,
+  "wall_seconds": 58.16425723201246
+ },
+ "schema": "cuda-sha256-native-full-v1",
+ "speed_go": false,
+ "state_reuse_eligible": false,
+ "status": "FULL_DIAGNOSTIC_UNREVIEWED"
+}

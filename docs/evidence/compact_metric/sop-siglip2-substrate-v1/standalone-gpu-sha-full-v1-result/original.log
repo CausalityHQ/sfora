@@ -1,0 +1,8 @@
+Running as unit: sfora-standalone-gpu-sha-full-v1.service; invocation ID: a307b9742c4c4172903ea8c80bd04820
+{"bootstrap_exit_pass": true, "normal_outer_terminal_required": true, "resources": {"memory_events": {"high": 0, "low": 0, "max": 0, "oom": 0, "oom_group_kill": 0, "oom_kill": 0}, "memory_peak_bytes": 459890688, "swap_current_bytes": 0, "wall_seconds": 58.25439492898295}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 58.637s
+CPU time consumed: 58.614s
+Memory peak: 424.8M
+Memory swap peak: 0B
