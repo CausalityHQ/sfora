@@ -1,0 +1,14 @@
+{
+  "all_four_candidate_changed": true,
+  "all_four_control_equal_initial": true,
+  "complete_source_input_rehash_pass": true,
+  "invocation_id": "a8737b06e85643329e72cd8636d62a2a",
+  "normal_exit": 0,
+  "original_unit": "sfora-connected-mlp-displacement-179061-v1",
+  "output_sha256": "a884a896fbcfdd98d0405f9a518fc6e0321cb8077b7930062a74ff883a5b13a6",
+  "quality_inference": false,
+  "quantitative_checks_pass": true,
+  "schema": "connected-mlp-displacement-root-verification-v1",
+  "service_seconds": 1.718,
+  "training_released": false
+}

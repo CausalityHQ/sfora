@@ -1,0 +1,119 @@
+{
+ "base_vision_sha256": "ab79b5f8037d2f650f140920d11c3dfdb412c1c5bade4d18dfc7c0a9f6a14538",
+ "combined": {
+  "baseline_zero": false,
+  "candidate_norm": 102.0989289750439,
+  "control_norm": 102.10419224997315,
+  "difference_norm": 0.8456312312703075,
+  "numel": 9921872,
+  "relative_l2": 0.008282042222125604
+ },
+ "descriptive_only": true,
+ "inputs": {
+  "authority": {
+   "bytes": 1355,
+   "path": "/home/riomus/runs/sfora-connected-mlp-displacement-source-v1/authority.json",
+   "sha256": "f2655139389c2f212d0678449947b4110bdcc31f4015c6d5d3344a8af5c41e70"
+  },
+  "candidate_bundle": {
+   "bytes": 546690,
+   "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/candidate-179061-bundle/bundle.json",
+   "sha256": "3f1aecec973f7e13f6aa2724db845999ae2afccb6b4a0a0f908f65838ac79e4b"
+  },
+  "candidate_endpoint": {
+   "bytes": 42893040,
+   "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/candidate-179061-bundle/endpoint.pt",
+   "sha256": "22fba403532308becc3cac21e3c1fa71bdf053b4d9be014956c02dd128229e38"
+  },
+  "control_bundle": {
+   "bytes": 546690,
+   "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json",
+   "sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153"
+  },
+  "control_endpoint": {
+   "bytes": 42893040,
+   "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/endpoint.pt",
+   "sha256": "9e27e088ba11f0e6c87af451f810f67ebd975445b1c9686cc816fdb29a6d01b7"
+  },
+  "helper_source": {
+   "bytes": 131189,
+   "path": "/home/riomus/runs/sfora-connected-mlp-displacement-source-v1/pass201_pa_source_v2_contract.py",
+   "sha256": "f9cea09a3ed0a047eebfad9bc20b5d5ba76237f5da9690416e94566778d82990"
+  },
+  "interpreter": {
+   "bytes": 24540136,
+   "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+   "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "own_source": {
+   "bytes": 25128,
+   "path": "/home/riomus/runs/sfora-connected-mlp-displacement-source-v1/measure_connected_mlp_displacement.py",
+   "sha256": "d0c6be735ea62a09cfab6430d5bbaa69ce9ab279d4e066c95ccd681fa85dbfb5"
+  }
+ },
+ "schema": "sfora-connected-mlp-displacement-result-v1",
+ "tensors": {
+  "encoder.layers.26.mlp.fc1.bias": {
+   "baseline_zero": false,
+   "candidate_matches_initial": false,
+   "candidate_norm": 73.06903613519684,
+   "candidate_raw_sha256": "8d15e685b43921d3b0fcd0dd188db5368f2932f32569e74b2593e1de275d7b06",
+   "control_matches_initial": true,
+   "control_norm": 73.07338322704466,
+   "control_raw_sha256": "ff9ae3b0ba4f40d090dbfdf847243d25bde6357954dff10d00409561aecc9741",
+   "difference_norm": 0.02116258555901771,
+   "numel": 4304,
+   "relative_l2": 0.00028960730466336723,
+   "shape": [
+    4304
+   ]
+  },
+  "encoder.layers.26.mlp.fc1.weight": {
+   "baseline_zero": false,
+   "candidate_matches_initial": false,
+   "candidate_norm": 44.16051363445603,
+   "candidate_raw_sha256": "a1d98b71e5b501cae18fc8c276414cbc3078f5e41cd9d5c02a2da37200208744",
+   "control_matches_initial": true,
+   "control_norm": 44.162862819418535,
+   "control_raw_sha256": "9750a4f96cd3d0a420cd1b38771e7b61b50c434c988e8e15b7098bfaf4680ace",
+   "difference_norm": 0.6058592355759459,
+   "numel": 4958208,
+   "relative_l2": 0.01371874912306518,
+   "shape": [
+    4304,
+    1152
+   ]
+  },
+  "encoder.layers.26.mlp.fc2.bias": {
+   "baseline_zero": false,
+   "candidate_matches_initial": false,
+   "candidate_norm": 33.124429319184365,
+   "candidate_raw_sha256": "6c3eea087dc405b564636698b56fe2437f54d66c051c8aad98c0c2dc9acf9695",
+   "control_matches_initial": true,
+   "control_norm": 33.126866531962015,
+   "control_raw_sha256": "6c88b65de99d9f317c7420ed9b4c5306adb43462d8a8856eb59ebdb893843da3",
+   "difference_norm": 0.011553990671322878,
+   "numel": 1152,
+   "relative_l2": 0.00034878006527345903,
+   "shape": [
+    1152
+   ]
+  },
+  "encoder.layers.26.mlp.fc2.weight": {
+   "baseline_zero": false,
+   "candidate_matches_initial": false,
+   "candidate_norm": 45.14120594250602,
+   "candidate_raw_sha256": "798eb7f46edd393dd68611e21b0dc86bbf4c5e8b7408bfbf7a44125d46d9b7d2",
+   "control_matches_initial": true,
+   "control_norm": 45.141987108896096,
+   "control_raw_sha256": "9aa694b9efecbf877e841a009fdf59e2abd202ae1965554e7094dc353f401a12",
+   "difference_norm": 0.5894450069676485,
+   "numel": 4958208,
+   "relative_l2": 0.013057577761159012,
+   "shape": [
+    1152,
+    4304
+   ]
+  }
+ }
+}

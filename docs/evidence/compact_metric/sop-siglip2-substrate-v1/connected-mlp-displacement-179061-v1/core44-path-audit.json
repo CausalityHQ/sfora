@@ -1,0 +1,21 @@
+{
+  "causal_conclusion": false,
+  "distinct_impostor_products": 36,
+  "endpoint": "control-179061",
+  "median_margin": -0.07557451725006104,
+  "path_derived_counts": {
+    "back_full_detail_query": 21,
+    "cross_category_impostor": 22,
+    "cross_pose_positive_beaten_by_same_pose_impostor": 20,
+    "different_pose_positive": 42,
+    "margin_below_minus_005": 32,
+    "same_gender_impostor": 41,
+    "same_pose_impostor": 21,
+    "two_gallery_positives": 29
+  },
+  "pose_is_filename_suffix_not_visual_annotation": true,
+  "queries": 44,
+  "receipt_sha256": "931425db03a67c02c909326162e2f16786b89ee32a99cdc0ef42bb41b0d567e4",
+  "schema": "connected-core44-path-descriptive-audit-v1",
+  "training_release": false
+}

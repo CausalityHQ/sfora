@@ -44,3 +44,11 @@ Installed-control v6 completed with original exit0, invocation `986cdff0ab0940a9
 
 
 Exit-observation v1 original SSH34093 is terminal exit1, invf2dc68adb6204eb68020f904baa98af5, service634.541s, peak8589934592B/max1443/zeroOOM/swap. Root generated launcher retained the old short unit name; the attempt is independently UNACCEPTED for frozen-unit mismatch. Original wrong-target sampler was stopped after exact identity verification; corrected read-only sampler observed805 samples and normal cgroup disappearance. First max event at sample794 belongs to rehash.context; this supports consumed-file cache pressure, without attributing all cache to one file. Original log, compressed samples and review are in connected-asymmetric-exit-observation-v1-result. No receipt/quality/speed is accepted, and no native experiment remains active from this attempt.
+
+
+| New evidence (2026-10-09) | Dataset/split/control | Verified result | Next decision |
+|---|---|---|---|
+| Saved four-MLP displacement, seed179061 | In-Shop TRAIN-trained endpoints; frozen-MLP control equals all four admitted initial typed hashes | Candidate relative L2: fc1.weight 1.371875%, fc2.weight 1.305758%, biases 0.028961%/0.034878%, aggregate 0.828204% over 9,921,872 scalars. Stdlib-only original normal exit 0; 1.718 s service. No new quality measurement. | Review one paired longer-training intervention; displacement does not prove underfitting or justify 2%/10% thresholds. Preserve KILL and FIRST/FULL gates. |
+| Independent selected core44 path audit | In-Shop TRAIN-derived selection, control179061; existing census only | 42 different-pose positives; 21 same-pose impostors; 20 combined negative margins; median margin -0.0755745. Filename-query back/full/detail count 21, not 32 under this explicit predicate. | Descriptive selected-error evidence, no causal claim or official/VAL read. |
+
+Source and complete read evidence: connected-mlp-displacement-v1-freeze and connected-mlp-displacement-179061-v1. Production joint SOP/In-Shop quality-and-speed remains unmet.

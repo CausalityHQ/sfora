@@ -1,0 +1,12 @@
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-connected-mlp-displacement-source-v1/measure_connected_mlp_displacement.py: OK
+/home/riomus/runs/sfora-connected-mlp-displacement-source-v1/pass201_pa_source_v2_contract.py: OK
+/home/riomus/runs/sfora-connected-mlp-displacement-source-v1/authority.json: OK
+Running as unit: sfora-connected-mlp-displacement-179061-v1.service; invocation ID: a8737b06e85643329e72cd8636d62a2a
+{"bytes": 4499, "output": "/home/riomus/runs/sfora-connected-mlp-displacement-179061-v1.json", "sha256": "a884a896fbcfdd98d0405f9a518fc6e0321cb8077b7930062a74ff883a5b13a6"}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1.718s
+CPU time consumed: 1.620s
+Memory peak: 256.0K
+Memory swap peak: 0B
