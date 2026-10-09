@@ -1,0 +1,25 @@
+{
+  "cause": "bundle-only loader rejects installed sfora distribution top_level.txt absent probe",
+  "events": 0,
+  "exit": 1,
+  "exit_failure": "exact-four missing before image forward",
+  "files": {
+    "installed-wheel-identity-context.json": "ad2c324d11f0141fe47e260e98af1d01d1e7444139393501546a106faec685a6",
+    "loader-observations.json": "2ce695b15da9c8b632a91f798599698a5d84bc903713e3e3c1415817848c08e3",
+    "original.log": "4d5ff78b861e0fe43266b5648ff529bf91c9623d9ce488c0377413dc7fac1718",
+    "terminal-status.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  "host_peak_bytes": 3468660736,
+  "incomplete_owner": true,
+  "invocation_id": "3117d0868eae4fd4bd85011981ef2316",
+  "parity_qualified": false,
+  "retaining_paths": [
+    "construct_encoder.overlay.head.probe",
+    "construct_encoder.buffers.embeddings.position_ids"
+  ],
+  "rss_kib": 1492520,
+  "schema": "probe-loader-owner-observation-native-result-v1",
+  "service_seconds": 339.586,
+  "ssh_session": 6188,
+  "swaps": 0
+}

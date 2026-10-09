@@ -1,0 +1,313 @@
+[
+  {
+    "binding_complete": true,
+    "checkpoint": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/endpoint.pt",
+    "code_id": 197856861593520,
+    "device": 66306,
+    "diagnostic_complete": false,
+    "errors": {
+      "diagnostic_complete": true,
+      "edges": [],
+      "nodes": [
+        {
+          "id": 0,
+          "message": "bundle-only loader attempted external dependency: /home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora-0.3.0rc4.dist-info/top_level.txt",
+          "notes": [],
+          "suppress_context": false,
+          "traceback": [
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+              "function": "load_inference",
+              "line": 1329
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+              "function": "construct_encoder",
+              "line": 705
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/__init__.py",
+              "function": "<module>",
+              "line": 30
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/dependency_versions_check.py",
+              "function": "<module>",
+              "line": 16
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/__init__.py",
+              "function": "<module>",
+              "line": 22
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/auto_docstring.py",
+              "function": "<module>",
+              "line": 32
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/generic.py",
+              "function": "<module>",
+              "line": 38
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/import_utils.py",
+              "function": "<module>",
+              "line": 47
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/importlib/metadata/__init__.py",
+              "function": "packages_distributions",
+              "line": 1045
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/importlib/metadata/__init__.py",
+              "function": "_top_level_declared",
+              "line": 1051
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/importlib/metadata/__init__.py",
+              "function": "read_text",
+              "line": 915
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_local.py",
+              "function": "read_text",
+              "line": 546
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_abc.py",
+              "function": "read_text",
+              "line": 632
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_local.py",
+              "function": "open",
+              "line": 537
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/evaluate_siglip2_identity_diversity.py",
+              "function": "audit",
+              "line": 1701
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/evaluate_siglip2_identity_diversity.py",
+              "function": "require",
+              "line": 652
+            }
+          ],
+          "type": "builtins.ValueError"
+        }
+      ],
+      "root": 0
+    },
+    "event": "before_original_mapping_guard",
+    "function": "load_inference",
+    "globals_id": 253208525135488,
+    "inode": 21891395,
+    "line": 1352,
+    "locals_present": {
+      "cache": false,
+      "copied": false,
+      "disk": false,
+      "endpoint": false,
+      "head": false,
+      "model": false,
+      "pages": false
+    },
+    "mappings": [
+      {
+        "end": 253208260837376,
+        "mode": "rw-p",
+        "offset": 0,
+        "start": 253208257626112
+      }
+    ],
+    "owners": {
+      "candidates": [
+        {
+          "address": 253208260828864,
+          "bytes": 4608,
+          "device": "cpu",
+          "dtype": "torch.float32",
+          "end": 253208260833472,
+          "object_id": 253208522722192,
+          "path": "traceback:construct_encoder:705.overlay.head.probe",
+          "shape": [
+            1,
+            1,
+            1152
+          ],
+          "storage_id": 253208435070864,
+          "type": "torch.Tensor"
+        },
+        {
+          "address": 253208259389696,
+          "bytes": 2048,
+          "device": "cpu",
+          "dtype": "torch.int64",
+          "end": 253208259391744,
+          "object_id": 253208523140112,
+          "path": "traceback:construct_encoder:705.buffers.embeddings.position_ids",
+          "shape": [
+            1,
+            256
+          ],
+          "storage_id": 253208524565968,
+          "type": "torch.Tensor"
+        }
+      ],
+      "diagnostic_complete": false,
+      "edges_visited": 513,
+      "limitations": [
+        "GC enumeration has no bounded streaming API; global snapshot not allocated",
+        "native/C++ ownership is not observable",
+        "unsupported object type"
+      ],
+      "owner": "observed Python retaining path; other owners unresolved",
+      "reason": "owner inspection or quota failure",
+      "roots": [
+        "traceback:construct_encoder:705.overlay",
+        "traceback:construct_encoder:705.buffers",
+        "traceback:audit:1701.value",
+        "traceback:load_inference:1329"
+      ]
+    },
+    "source": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+    "source_sha256": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+  },
+  {
+    "errors": {
+      "diagnostic_complete": true,
+      "edges": [
+        {
+          "from": 0,
+          "kind": "context",
+          "to": 1
+        }
+      ],
+      "nodes": [
+        {
+          "id": 0,
+          "message": "checkpoint mapping survived independent copy/release",
+          "notes": [],
+          "suppress_context": false,
+          "traceback": [
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v3/qualify_connected_probe_serving.py",
+              "function": "reference_outputs",
+              "line": 470
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+              "function": "load_inference",
+              "line": 1352
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+              "function": "mapping_absent",
+              "line": 216
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+              "function": "require",
+              "line": 122
+            }
+          ],
+          "type": "builtins.ValueError"
+        },
+        {
+          "id": 1,
+          "message": "bundle-only loader attempted external dependency: /home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora-0.3.0rc4.dist-info/top_level.txt",
+          "notes": [],
+          "suppress_context": false,
+          "traceback": [
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+              "function": "load_inference",
+              "line": 1329
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+              "function": "construct_encoder",
+              "line": 705
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/__init__.py",
+              "function": "<module>",
+              "line": 30
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/dependency_versions_check.py",
+              "function": "<module>",
+              "line": 16
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/__init__.py",
+              "function": "<module>",
+              "line": 22
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/auto_docstring.py",
+              "function": "<module>",
+              "line": 32
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/generic.py",
+              "function": "<module>",
+              "line": 38
+            },
+            {
+              "file": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/import_utils.py",
+              "function": "<module>",
+              "line": 47
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/importlib/metadata/__init__.py",
+              "function": "packages_distributions",
+              "line": 1045
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/importlib/metadata/__init__.py",
+              "function": "_top_level_declared",
+              "line": 1051
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/importlib/metadata/__init__.py",
+              "function": "read_text",
+              "line": 915
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_local.py",
+              "function": "read_text",
+              "line": 546
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_abc.py",
+              "function": "read_text",
+              "line": 632
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_local.py",
+              "function": "open",
+              "line": 537
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/evaluate_siglip2_identity_diversity.py",
+              "function": "audit",
+              "line": 1701
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/evaluate_siglip2_identity_diversity.py",
+              "function": "require",
+              "line": 652
+            }
+          ],
+          "type": "builtins.ValueError"
+        }
+      ],
+      "root": 0
+    },
+    "event": "reference_catch_before_clear_frames"
+  }
+]
