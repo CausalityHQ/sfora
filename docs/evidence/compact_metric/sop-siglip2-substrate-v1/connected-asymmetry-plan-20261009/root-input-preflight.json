@@ -1,0 +1,95 @@
+{
+  "batch54_original_proof_verified": true,
+  "source_receipt": "connected-mlp-evaluation-export-control-179061-v2/receipt.json",
+  "batch": {
+    "outputs_sha256": "26b05f8fde9b48a0de5ba3d00fc46c4b19f9e980e464b61313d12a1e5fc6302a",
+    "pixels_sha256": "2f5464dc4338b5f6c4b790b094ad621d532b357625eacddc947d8b8936eabbde",
+    "residual_oracle": {
+      "C_exact_zero": false,
+      "omitted_C_mutant_rejected": true,
+      "residual_nonzero_witness": true,
+      "wrong_mu_mutant_rejected": true
+    },
+    "rgb_sha256": "1e13376002ccb60fa87c0f5cb1df17bb4ec556cc18a48ed29e8553ffac742410",
+    "role": "query",
+    "rows": [
+      {
+        "image_sha256": "4651007318b8c63f8b5e7f9d3766c0d0c99e8160bf77766f9a6c082d38652854",
+        "original_row": 13239,
+        "panel_ordinal": 3439,
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007940/02_3_back.jpg",
+        "product": "id_00007940",
+        "relative_path": "Img/img/WOMEN/Dresses/id_00007940/02_3_back.jpg",
+        "role": "query",
+        "target": 1995,
+        "train_row": 25802
+      },
+      {
+        "image_sha256": "2d864b6c55e77f87632c58e586afdfd4a392e373d614dc3c9cf77c8ab55acd08",
+        "original_row": 13240,
+        "panel_ordinal": 3440,
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007940/02_4_full.jpg",
+        "product": "id_00007940",
+        "relative_path": "Img/img/WOMEN/Dresses/id_00007940/02_4_full.jpg",
+        "role": "query",
+        "target": 1995,
+        "train_row": 25803
+      },
+      {
+        "image_sha256": "54c5c487334801a7459491eee95277f6377524c4149db2b26921c33ffed12a49",
+        "original_row": 13241,
+        "panel_ordinal": 3441,
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007941/02_1_front.jpg",
+        "product": "id_00007941",
+        "relative_path": "Img/img/WOMEN/Jackets_Coats/id_00007941/02_1_front.jpg",
+        "role": "query",
+        "target": 1996,
+        "train_row": 25804
+      },
+      {
+        "image_sha256": "0aa9b680eaa44835e1d4f4a1ca5a65d8ee9c42773ac68bf4804de54fec552885",
+        "original_row": 13242,
+        "panel_ordinal": 3442,
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007941/02_3_back.jpg",
+        "product": "id_00007941",
+        "relative_path": "Img/img/WOMEN/Jackets_Coats/id_00007941/02_3_back.jpg",
+        "role": "query",
+        "target": 1996,
+        "train_row": 25805
+      },
+      {
+        "image_sha256": "b831a71ef0368927c2a5314f2ce557ebf81ed5991b5a949b6dd971d316d34b1e",
+        "original_row": 13254,
+        "panel_ordinal": 3445,
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007953/01_1_front.jpg",
+        "product": "id_00007953",
+        "relative_path": "Img/img/WOMEN/Jackets_Coats/id_00007953/01_1_front.jpg",
+        "role": "query",
+        "target": 1998,
+        "train_row": 25837
+      },
+      {
+        "image_sha256": "dd5335b2fa0796132fdd5fae6a004cd4221f18e80efa28d67bfccdfc7886b054",
+        "original_row": 13257,
+        "panel_ordinal": 3448,
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007953/01_7_additional.jpg",
+        "product": "id_00007953",
+        "relative_path": "Img/img/WOMEN/Jackets_Coats/id_00007953/01_7_additional.jpg",
+        "role": "query",
+        "target": 1998,
+        "train_row": 25840
+      }
+    ]
+  },
+  "old_native_authority": {
+    "path": "/home/riomus/runs/sfora-so400-nearest-ranking-train-source-v5/native-authority.json",
+    "sha256": "7c1c78ef3f2c784f217822690e93e52e3ef55b27d6a27d8f9daf9b9b19295f51"
+  },
+  "old_native_role": "cuDNN four ONLY; no Cutile grant",
+  "cutile_actual_authority": {
+    "path": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json",
+    "sha256": "cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1"
+  },
+  "oracle_context_unresolved": true,
+  "new_native_launched": false
+}
