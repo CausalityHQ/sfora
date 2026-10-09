@@ -1,0 +1,24 @@
+{
+  "cwd": "/home/rb/worktrees/sfora-rank-routing-witness-allocation-20261009",
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "scripts/test_siglip2_rank_routed_mlp.py",
+    "--source-only"
+  ],
+  "timeout_seconds": 120,
+  "address_space_bytes": 1073741824,
+  "before": {
+    "scripts/train_siglip2_rank_routed_mlp.py": "1628700dcf502a7f9669d572eb06e3370bf875cb3aaa7d2aa464108c2cc5c572",
+    "scripts/test_siglip2_rank_routed_mlp.py": "ec17ce0e578de25312faf59087410813ad3f1b6e0976ce63433c40146b2c731c"
+  },
+  "exit_code": 0,
+  "timed_out": false,
+  "elapsed_seconds": 12.219236275064759,
+  "max_rss_kib": 71720,
+  "after": {
+    "scripts/train_siglip2_rank_routed_mlp.py": "1628700dcf502a7f9669d572eb06e3370bf875cb3aaa7d2aa464108c2cc5c572",
+    "scripts/test_siglip2_rank_routed_mlp.py": "ec17ce0e578de25312faf59087410813ad3f1b6e0976ce63433c40146b2c731c"
+  },
+  "log_sha256": "4aa0cc1a79049c0921f1ae6a17428bbc04129c97618408902a13badd2ae97a23"
+}

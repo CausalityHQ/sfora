@@ -1,0 +1,17 @@
+{
+  "cpu_v3_failure_unchanged": true,
+  "critique_group": "232a87015de443ec",
+  "critique_status_at_capture": "both running",
+  "exact_owned_files": {
+    "scripts/test_siglip2_rank_routed_mlp.py": "ec17ce0e578de25312faf59087410813ad3f1b6e0976ce63433c40146b2c731c",
+    "scripts/train_siglip2_rank_routed_mlp.py": "1628700dcf502a7f9669d572eb06e3370bf875cb3aaa7d2aa464108c2cc5c572"
+  },
+  "integrated_commit": "6dda0de37618de209147ddb6b275edf6e59a85e4",
+  "memory_fit_qualified": false,
+  "native_qualification": "HOLD",
+  "original_suite_log_sha256": "4aa0cc1a79049c0921f1ae6a17428bbc04129c97618408902a13badd2ae97a23",
+  "original_suite_receipt_sha256": "eff5a3e80c65353e938f62b9b5cdb75d53c1e930b555411522bd642fc37cfea2",
+  "quality_speed_go": false,
+  "schema": "rank-routed-witness-allocation-source-verification-v1",
+  "worker_commit": "16d82801a13486c5067be6f9b9fa06a063b51d95"
+}
