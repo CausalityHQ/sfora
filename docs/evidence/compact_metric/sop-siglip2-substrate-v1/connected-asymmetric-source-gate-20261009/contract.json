@@ -1,0 +1,245 @@
+{
+  "schema": "connected-asymmetric-cache-source-contract-v2",
+  "status": "REVISED_SOURCE_STABLE; SOURCE_ONLY; NATIVE_NO_GO; FULL_SUITE_AND_COMMIT_HELD_BY_ROOT",
+  "supersedes": "/tmp/sfora-asymmetric-cache-source-contract-v1-stable-draft.json (v1, unchanged copy; /tmp/sfora-asymmetric-cache-source-contract.json is the same v1 bytes)",
+  "authority_for_this_revision": "root repair document connected_asymmetric_implementation_repair_2026-10-09.md (8 criteria) + original separately labelled reviews: Astra connected-asymmetric-implementation-review-20261009/engineering-original-answer.md, Opus research-original-answer.md",
+  "unchanged": [
+    "method (ONE zero-training FS cell, stage first, seed 179061)",
+    "MLP evaluator b651f6a0 route and the unchanged admitted fullfeature_oracle",
+    "v3 3b756bf9 / v5 62e69a04 / control_native fc8795be and every historical file",
+    "six-image allowlist",
+    "scientific thresholds",
+    "whole 700s / 8GiB / 0 swap / zero events / CUDA<10GB / both locks",
+    "combined exit is never waived and no failure publishes anything",
+    "no cap, math, history or gate change; no SS/SF/decision key"
+  ],
+  "preserved_prior_stable_draft": {
+    "driver": {
+      "sha256": "9e868c66e033709d8d4dbc7df49b2fdffe4cd884dafcea0110ce180560e8c577",
+      "copy": "/tmp/sfora-asymmetric-cache-stable-9e868c66-diagnose.py"
+    },
+    "test": {
+      "sha256": "cf50217a0e640af9f7ed20335479d841d060597e5a7892519b655a9e8551d0dc",
+      "copy": "/tmp/sfora-asymmetric-cache-stable-cf50217a-test.py"
+    },
+    "evidence_valid_only_for_those_bytes": {
+      "narrow_log": "/tmp/sfora-asymmetric-cache-narrow-tests.log (42 tests OK 4.2s 52MB)",
+      "mutation_log": "/tmp/sfora-asymmetric-cache-mutation-evidence.log (13/13 killed)"
+    }
+  },
+  "frozen_additional_pins_from_committed_evidence": {
+    "wrapper_cutile_int8.py_sha256": "173eb393ed82d01281557b2f76edb1d50ffcc29faf85b9f9deb07d0df3c90d87",
+    "packed_int8.py_sha256": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+    "tail_image_allowlist_batch54": [
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007940/02_3_back.jpg",
+        "sha256": "4651007318b8c63f8b5e7f9d3766c0d0c99e8160bf77766f9a6c082d38652854"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007940/02_4_full.jpg",
+        "sha256": "2d864b6c55e77f87632c58e586afdfd4a392e373d614dc3c9cf77c8ab55acd08"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007941/02_1_front.jpg",
+        "sha256": "54c5c487334801a7459491eee95277f6377524c4149db2b26921c33ffed12a49"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007941/02_3_back.jpg",
+        "sha256": "0aa9b680eaa44835e1d4f4a1ca5a65d8ee9c42773ac68bf4804de54fec552885"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007953/01_1_front.jpg",
+        "sha256": "b831a71ef0368927c2a5314f2ce557ebf81ed5991b5a949b6dd971d316d34b1e"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007953/01_7_additional.jpg",
+        "sha256": "dd5335b2fa0796132fdd5fae6a004cd4221f18e80efa28d67bfccdfc7886b054"
+      }
+    ],
+    "source": "root-input-preflight.json batch54 rows (path + image_sha256); identical to images[54] of the accepted FULL control export db63db82"
+  },
+  "criteria": {
+    "1_images_before_denial": {
+      "cause": "prepare() put launch tail_oracle.images in its initial hashing list (driver L256) while bind_tail ran later (L404)",
+      "fix": "check_launch requires launch images == the frozen six (path,sha) pairs, in order (pure shape, zero opens); prepare() no longer authenticates them; admit() calls bind_tail (exact batch54 role/rows/export equality) BEFORE the only image authentication",
+      "falsifier": "valid-sha but forbidden image FILE substituted -> check_launch rejects; prepare records zero image opens; tripwire open() on the forbidden path never called; AST order bind_tail < authenticated(image)"
+    },
+    "2_wrapper_packed_pins": {
+      "cause": "Opus B1: only file name/parent checked; sfora code executed at import before any pin comparison",
+      "fix": "check_launch requires native_wrapper sha == WRAPPER_SHA and packed sha == PACKED_SHA (constants above); actual file hash is checked in prepare() before any sfora import; request_driver/observer remain root-frozen (not hard-coded)",
+      "falsifier": "fixture with changed wrapper/packed sha is rejected; accepted fixture uses the real pins"
+    },
+    "3_live_source_ownership": {
+      "cause": "v3 Sources.admit guards only evaluator + SOURCE_NAMES; v5 observer guarded the diagnostic and itself explicitly (v5 L565/567); driver S.checks was never populated",
+      "fix": "requests.Source(d, v3 source) and requests.Source(v5, v5 source) immediately after each load and before any call; both added to guard() tuple and to the per-batch light guard via live(S); pin(fn) (code, defaults, kwdefaults, globals dict, closure cell IDENTITIES, function attributes; no deepcopy) for runtime-created origin_audit closure, exec-created scorer and the workspace-dispose closure (dispose pin checked immediately before its single call); checked(action) runs live checks + locks + Sources.guard BEFORE every cleanup action that calls v3/v5/Sources-loaded code (a tampered function is not executed); own write_json replaces d.write_json",
+      "falsifier": "REAL requests.Source on REAL v3 and frozen v5 (git a20c1f35): code, kwdefaults, defaults, class attribute, literal, global rebind, global added, function rebind, registry replacement, disk change all detected; REAL Source on a true __main__ (driver copy run as script) passes; cleanup with a tampered real v3.final_state refuses to run it (RuntimeError sentinel never executes) and keeps the primary error"
+    },
+    "4_primary_preserving_phases": {
+      "cause": "tail_replay finally released directly: a secondary replaces the primary; run() cleared only the newest traceback so chained primary frames pinned the model past release_inference weakref check (demonstrated mechanically)",
+      "fix": "protected(phase, release): run phase; on any failure keep it primary, print a bounded report once, clear_frames over cause/context/exception-group graph (frame.clear on finished frames, tracebacks and identities kept), THEN attempt every release via cleanup_error which raises the primary; run() uses the same report+clear_frames before cleanup",
+      "falsifier": "primary in capture + secondary in release: primary identity/message preserved, all releases attempted, REAL release_inference (extracted from train_siglip2_connected_mlp.py) succeeds only after clear_frames; chained-primary case"
+    },
+    "5_terminal_checks_on_error": {
+      "cause": "v3.final_state: allocator-zero only when receipt is not None; budget.check() first so an expired cap skips flags/RNG/cgroup (demonstrated against the real function: receipt=None + 4096 allocated returns OK; expired cap -> 0 cgroup reads)",
+      "fix": "terminal_checks(S) independent of final_state and of the cap: allocator zero (after sync/dispose), CUDA peak, flags, CPU+CUDA RNG, cgroup read/admit/path; each attempted separately; original final_state call, receipt argument and guards unchanged; cap failure stays its own retained failure; nothing publishes",
+      "falsifier": "body error + residual allocation -> terminal failure recorded; expired cap -> cgroup read counter > 0, flags/RNG attempted, cap failure still the retained one"
+    },
+    "6_combined_exit_preserved": {
+      "cause": "Opus B2: dispatch forces admitted=True so an unmapped S rejects at the first audit_origins and the closure/bundle rehash never runs",
+      "fix": "exit_evaluator keeps api.evaluator_exit first and unchanged; if it raises, independent_exit(S) completes the uncached context_e guard rehash + all closure descriptors + endpoint admit_bundle, mirrored from the genuine exit_rehash body; the ORIGINAL combined rejection is re-raised (independent failures become notes); Cutile is NEVER mapped to rescue an error. NO_ASYMMETRY is a normal terminal outcome (not an error) and still maps Cutile once via the same load_native tie witness because the unchanged combined exit demands complete S on every successful path (decision flagged for root)",
+      "falsifier": "fake api raising \"exact supplemental native inventory required\": independent steps all run, original rejection is the raised error, no receipt; AST equality of the descriptor tuple and bundle loop with the genuine exit_rehash source"
+    },
+    "7_registry_ownership": {
+      "cause": "load_inference registers _connected_serving_<ns>_* via load_authenticated before the endpoint exists and has no failure cleanup (trainer L497/1197); evaluator authority registers _connected_eval_*, _compact_eval_* and more; evaluator_exit authenticates but never unregisters",
+      "fix": "snapshot of sys.modules (name->module) before admission; owned = new-or-replaced entries whose origin is an authenticated guarded FILE (any guard dict) or lies under the control/candidate bundle directories, excluding top-level native/third-party packages; plan computed before staging the receipt, disposal after all final guards with identity pop, conflicts (preexisting module replaced or missing) reported and fatal; foreign new modules reported, never unloaded; stdlib/site/native untouched",
+      "falsifier": "genuine extracted load_authenticated registers modules from temp files; genuine extracted load_inference body with a failing torch.load leaves _connected_serving_* entries; success and partial-failure sweeps restore the exact snapshot, preexisting/foreign/native entries survive, a replaced preexisting module is a conflict"
+    },
+    "8_publication_gate": {
+      "cause": "receipt was written before the final cap check and no last source/lock/resource check existed",
+      "fix": "cleanup order: release, mapping_absent, combined exit (+independent_exit on rejection), context+prospective rehash, cap, Sources.close, workspace dispose, final_state, terminal_checks, final_guard (locks, every Source incl. v3/v5/wrapper/packed, pins, guard_helpers, evaluator.resources, cap); ONLY if no error and no failure: stage receipt.json.partial (exclusive), unload registry, final locks+cap, os.link to receipt.json (exclusive) and unlink partial, post-publish cap check. Failure after the link leaves a receipt with a nonzero exit: parent must reject (root owns UNIT acceptance). NO_ASYMMETRY receipts carry descriptive gallery differing row/byte counts, no gate",
+      "falsifier": "run() with fakes: failed/expired anything -> neither partial nor receipt; success -> receipt after every cleanup entry; post-publish failure -> receipt present AND run raises; test-side parent model rejects nonzero-exit and service_seconds>=700 terminals and accepts only exit 0 / <700 / locks / matching invocation"
+    }
+  },
+  "decisions_for_root": [
+    "NO_ASYMMETRY maps Cutile once (same load_native) so the unchanged combined exit can succeed; error paths never map (criterion 6 reading)",
+    "request_driver/observer shas are not hard-coded: root freezes them (HEAD 6a4d310d / b255c6e8 or v5 109b1d8d / 33c36ce1)",
+    "no exit-reserve stop added (Opus should-fix 1) because the repair document forbids new caps/thresholds; fail-closed 700s remains",
+    "foreign new modules (stdlib lazy imports etc.) are reported, not unloaded; third-party/native/sfora stay process-terminal"
+  ],
+  "prior_review_open_items_not_addressed_here": [
+    "native admissibility, score-bit parity and 700s fit remain UNPROVEN",
+    "parent decide()/verifier and UNIT acceptance are root-owned"
+  ],
+  "tests_plan": "narrow stdlib only (<=15s, AS 1GiB): keep all prior structure tests adapted to the new order; add targeted falsifiers for 1-8 above; mutants for each; no full suite, no commit, no native, no imports of torch/third-party",
+  "reviews": {
+    "astra": "/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-implementation-review-20261009/engineering-original-answer.md",
+    "opus": ".../research-original-answer.md",
+    "repair_document": "/home/rb/worktrees/sfora-positive-causality/docs/connected_asymmetric_implementation_repair_2026-10-09.md"
+  },
+  "stable_revision": {
+    "supersedes": "stable_revision_1 (driver 093c41b9..., test b1c5c4ea...: its 36-mutant battery is valid for those bytes)",
+    "driver": {
+      "path": "scripts/diagnose_connected_asymmetric_cache.py",
+      "sha256": "f68b4aa480a17f60b5f48522cbb9d952bbd03f9594c0d1214c8f6f624662b181",
+      "lines": 1280
+    },
+    "test": {
+      "path": "scripts/test_connected_asymmetric_cache.py",
+      "sha256": "7370dd94065d50756232a220d0eb7e3c2be2ce92df31652398142e2e4f895791",
+      "lines": 1867
+    },
+    "repair": "registry ownership (root finding): tracked names are judged by IDENTITY ONLY (a foreign module with identical __file__/spec.origin is a conflict and is never owned); deletion is compare-and-delete per entry; a conflict never stops the other disposals and rejects at the end; real-registry falsifiers added",
+    "narrow_evidence": {
+      "tests": 80,
+      "result": "OK",
+      "unittest_seconds": 5.995,
+      "max_rss_kib": 60024,
+      "swaps": 0,
+      "log": "/tmp/sfora-asymmetric-cache-narrow-tests-v2b.log"
+    },
+    "new_layer_mutants": {
+      "log": "/tmp/sfora-asymmetric-cache-mutation-evidence-v2-registry-layer.log",
+      "mutants": 5,
+      "survived": 0,
+      "driver_restored_byte_identical": true
+    }
+  },
+  "stable_revision_1": {
+    "base": "6cd221c7a844432a41b2e19f7845322e213dddc9",
+    "git": "two untracked files only; nothing committed",
+    "driver": {
+      "path": "scripts/diagnose_connected_asymmetric_cache.py",
+      "sha256": "093c41b9e94a3a493c130c07fabaf2db6bf015904f583ad0352553a8165162a3",
+      "lines": 1270
+    },
+    "test": {
+      "path": "scripts/test_connected_asymmetric_cache.py",
+      "sha256": "b1c5c4ea106112550d8f117bf0e22873316b91e1b7ea9820151c35337102f89d",
+      "lines": 1802
+    },
+    "driver_diff_vs_reviewed_draft_9e868c66": {
+      "path": "/tmp/sfora-asymmetric-cache-revision-driver.diff",
+      "added": 333,
+      "removed": 64
+    },
+    "narrow_evidence": {
+      "command": "ulimit -v 1048576; timeout 15 python3 -B -m unittest -v scripts.test_connected_asymmetric_cache",
+      "tests": 77,
+      "result": "OK",
+      "skipped": 0,
+      "unittest_seconds": 5.999,
+      "wall": "0:06.22",
+      "max_rss_kib": 60336,
+      "swaps": 0,
+      "log": "/tmp/sfora-asymmetric-cache-narrow-tests-v2.log"
+    },
+    "mutation_evidence": {
+      "log": "/tmp/sfora-asymmetric-cache-mutation-evidence-v2.log",
+      "mutants": 36,
+      "survived": 0,
+      "driver_restored_byte_identical": true,
+      "note": "one mutant (3i Sources.guard dropped from final_guard) survived the first battery and led to a direct final_guard test; the battery was rerun on the final bytes"
+    },
+    "preserved_old_evidence": {
+      "bytes_valid_only_for": [
+        "9e868c66e033709d8d4dbc7df49b2fdffe4cd884dafcea0110ce180560e8c577",
+        "cf50217a0e640af9f7ed20335479d841d060597e5a7892519b655a9e8551d0dc"
+      ],
+      "logs": [
+        "/tmp/sfora-asymmetric-cache-narrow-tests.log",
+        "/tmp/sfora-asymmetric-cache-mutation-evidence.log"
+      ],
+      "copies": [
+        "/tmp/sfora-asymmetric-cache-stable-9e868c66-diagnose.py",
+        "/tmp/sfora-asymmetric-cache-stable-cf50217a-test.py"
+      ]
+    },
+    "root_decisions_applied": [
+      "request_driver 6a4d310d... and serving observer b255c6e8... frozen as constants (repo bytes equal them)",
+      "NO_ASYMMETRY maps Cutile once via load_native; error paths never map",
+      "no new cap or threshold",
+      "foreign/native/stdlib modules untouched"
+    ],
+    "late_seams": {
+      "sources_close": "EMPIRICAL (genuine v3.Sources.close with real pinned sources): it removes only its own _gallery_freshness_* entries; the driver-owned requests.Source objects, load_evaluator_source wrapper and v3 Source all still pass check() afterwards (an apparent FAIL was my experiment using a raw Source on the evaluator, whose _SOURCE_BUILTINS literal load_evaluator_source deliberately drops). The principle is still enforced: final_guard (all Sources, v3 Sources.guard, pins, helpers, locks, resources, cap) now runs BEFORE Sources.close; registry disposal is identity-only and after staging; publication repeats locks+resources+cap",
+      "pin_identity": "pin() compares __defaults__ and __kwdefaults__ by IDENTITY plus shallow key/value binding identity and cell identities; no ==, no deepcopy. Falsifiers: rebound equal tuple, rebound equal kwdefaults dict, equal-valued kwdefault rebinding, in-place key add/remove, and opaque defaults whose __eq__ raises (never called)"
+    },
+    "criterion_to_test_map": {
+      "1": [
+        "PrepareCoversEveryFile.test_prepare_authenticates_exactly_the_non_image_files_and_never_opens_a_tail_image",
+        "PrepareCoversEveryFile.test_a_forbidden_image_with_a_valid_sha_is_rejected_with_zero_opens",
+        "LaunchShape (forbidden image / reordered / substituted)"
+      ],
+      "2": [
+        "LaunchShape wrapper/packed/request/observer pin mutations",
+        "PinsAndApis.test_pins_equal_current_repository_sources"
+      ],
+      "3": [
+        "LiveSourceOwnership.* (real requests.Source on real v3 and frozen v5, 12 tamper classes, registry, disk, TRUE __main__ run as a script, genuine Sources.close, pins, wiring, tampered real v3.final_state refused in real cleanup())"
+      ],
+      "4": [
+        "PrimaryPreservingPhases.* (genuine extracted release_inference, primary+secondary, chained primary, clear_frames over cause/context/group, bounded report)"
+      ],
+      "5": [
+        "TerminalChecks.* (REAL v3.final_state shown insufficient on error/expired cap; independent allocator/flags/RNG/cgroup; cap retained)"
+      ],
+      "6": [
+        "IndependentExit.* (AST mirror of the genuine exit_rehash, unmapped-S rejection preserved, independent failures only notes, Cutile never mapped)"
+      ],
+      "7": [
+        "RegistryOwnership.* (genuine extracted load_authenticated and load_inference partial failure, foreign/native/stdlib survive, replacement/removal conflicts fatal)"
+      ],
+      "8": [
+        "ExceptionOrdering.* (staged publication, exclusive link, nothing published after any failure, post-link failure + parent model rejection of nonzero/cap-exceeded/lockless/mismatched terminals)"
+      ]
+    },
+    "still_unproven": [
+      "native admissibility of the MLP training_context + CombinedAuthority + body in one process",
+      "700s fit",
+      "Cutile score-bit parity vs the CPU reference",
+      "archive_replays..quality_stage and evaluator.authority/install/native_start are not executed here (AST/ordering/API proofs and genuine-function extractions only)",
+      "parent decide()/UNIT acceptance (the parent model in tests is only a model)"
+    ],
+    "holds": "full <=120s suite, commit, merge, push and every native action remain root-held"
+  }
+}

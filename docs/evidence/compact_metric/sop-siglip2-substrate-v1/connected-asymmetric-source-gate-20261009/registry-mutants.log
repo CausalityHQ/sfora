@@ -1,0 +1,7 @@
+driver sha256 f68b4aa480a17f60b5f48522cbb9d952bbd03f9594c0d1214c8f6f624662b181
+R1 tracked names judged by origin again                      rc=1 FAILED (failures=1)
+R2 deletion without the identity check                       rc=1 FAILED (failures=1)
+R3 conflicts stop the other disposals                        rc=1 FAILED (failures=1)
+R4 a different object under a tracked name is not a conflict rc=1 FAILED (failures=1)
+R5 tracked-removed conflict dropped                          rc=1 FAILED (failures=1)
+restored byte-identical: True | mutants: 5 | survived: none

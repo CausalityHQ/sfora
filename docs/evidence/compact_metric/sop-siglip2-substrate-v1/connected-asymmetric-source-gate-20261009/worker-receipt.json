@@ -1,0 +1,89 @@
+{
+  "schema": "connected-asymmetric-cache-source-commit-receipt-v1",
+  "status": "COMMITTED_ON_WORKER_BRANCH; NOT_MERGED; NOT_PUSHED; NATIVE_UNRUN; FREEZE_AND_LAUNCH_ROOT_OWNED",
+  "commit": "08be19635a75802aa02267ce53282f0c430006c4",
+  "parent": "6cd221c7a844432a41b2e19f7845322e213dddc9",
+  "branch": "devbox/asymmetric-cache-source-20261009",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "committer": "Roman Bartusiak <riomus@gmail.com>",
+  "subject": "Add source-only asymmetric cache-gallery FS falsifier and narrow falsifiers",
+  "attribution_trailers": "none",
+  "files": [
+    {
+      "path": "scripts/diagnose_connected_asymmetric_cache.py",
+      "sha256": "f68b4aa480a17f60b5f48522cbb9d952bbd03f9594c0d1214c8f6f624662b181",
+      "blob_in_commit_sha256": "f68b4aa480a17f60b5f48522cbb9d952bbd03f9594c0d1214c8f6f624662b181"
+    },
+    {
+      "path": "scripts/test_connected_asymmetric_cache.py",
+      "sha256": "7370dd94065d50756232a220d0eb7e3c2be2ce92df31652398142e2e4f895791",
+      "blob_in_commit_sha256": "7370dd94065d50756232a220d0eb7e3c2be2ce92df31652398142e2e4f895791"
+    }
+  ],
+  "execution_json": {
+    "content": {
+      "diagnose_connected_asymmetric_cache.py": "f68b4aa480a17f60b5f48522cbb9d952bbd03f9594c0d1214c8f6f624662b181",
+      "test_connected_asymmetric_cache.py": "7370dd94065d50756232a220d0eb7e3c2be2ce92df31652398142e2e4f895791"
+    },
+    "serialization": "json indent=2, sorted keys, trailing newline (byte-identical convention to the v3 and v5 freezes)",
+    "sha256": "e74b18f7f838f869737bc0b6debe14bfe10d6be239642db402e6faea947932f3",
+    "note": "proposal only: root creates and owns the actual freeze file"
+  },
+  "tested_bytes_identical_to_commit": true,
+  "evidence": {
+    "narrow_tests_v2b": {
+      "log": "/tmp/sfora-asymmetric-cache-narrow-tests-v2b.log",
+      "sha256": "4a77a7f853c3887004294da3d96b9899b1a952d96124d0d28c982a59cf2f468c",
+      "result": "80 tests OK, 6.0s, max RSS 60024 KiB, 0 swaps, exit 0 (ulimit -v 1048576; timeout 15)"
+    },
+    "mutation_new_registry_layer": {
+      "log": "/tmp/sfora-asymmetric-cache-mutation-evidence-v2-registry-layer.log",
+      "sha256": "1b09ed5fae43b2d30def152b67ba9e20d5caff9a283986b95cb1b99f9de60ab6",
+      "result": "5/5 killed, driver restored byte-identical"
+    },
+    "mutation_old_36_valid_only_for_prior_bytes": {
+      "log": "/tmp/sfora-asymmetric-cache-mutation-evidence-v2.log",
+      "sha256": "f29dabc18f08cb58f381d2f065315ea8e4f3a0e061414dab7b0bf6e3737172c9",
+      "applies_to": {
+        "driver": "093c41b9e94a3a493c130c07fabaf2db6bf015904f583ad0352553a8165162a3",
+        "test": "b1c5c4ea106112550d8f117bf0e22873316b91e1b7ea9820151c35337102f89d"
+      }
+    },
+    "oldest_evidence_valid_only_for": {
+      "driver": "9e868c66e033709d8d4dbc7df49b2fdffe4cd884dafcea0110ce180560e8c577",
+      "test": "cf50217a0e640af9f7ed20335479d841d060597e5a7892519b655a9e8551d0dc",
+      "logs": [
+        "/tmp/sfora-asymmetric-cache-narrow-tests.log",
+        "/tmp/sfora-asymmetric-cache-mutation-evidence.log"
+      ]
+    },
+    "driver_diff_vs_first_reviewed_draft": {
+      "path": "/tmp/sfora-asymmetric-cache-revision-driver.diff",
+      "sha256": "ed4e9853cf76f616ad3e1277e96a6c99c27d7cc5a385a03d29e0197502dda3e9"
+    }
+  },
+  "contract": {
+    "v2": {
+      "path": "/tmp/sfora-asymmetric-cache-source-contract-v2.json",
+      "sha256": "fa20f67c4df39cfef223755f96f7cd005943a8d6e3483411ab3be79c4d980f21"
+    },
+    "v1_stable_draft": {
+      "path": "/tmp/sfora-asymmetric-cache-source-contract-v1-stable-draft.json",
+      "sha256": "523897946db219adc38a4d040cf140bd3ab71c3f192af0f02598955cd914e203"
+    }
+  },
+  "unproven_unchanged": [
+    "native admissibility of the MLP training_context + CombinedAuthority + body in one process",
+    "700s fit",
+    "Cutile score-bit parity vs the CPU reference",
+    "archive_replays..quality_stage and evaluator.authority/install/native_start not executed here",
+    "parent decide()/UNIT acceptance (test-side parent model only)"
+  ],
+  "not_done_by_worker": [
+    "no merge",
+    "no push",
+    "no master change",
+    "no full <=120s suite beyond the identical 80-test module",
+    "no native, SSH, GPU, image or cloud action"
+  ]
+}
