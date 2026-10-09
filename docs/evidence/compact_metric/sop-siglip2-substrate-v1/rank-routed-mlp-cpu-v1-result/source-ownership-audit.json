@@ -1,0 +1,59 @@
+{
+  "schema": "rank-routing-native-failure-readonly-audit-v1",
+  "source_commit": "d64782f3e88bcd68b36909e3b8a1b334bbb33bd2",
+  "source_sha256": "940d37fb12e4a6cc3f53c023ee31d50f8316d801fe8a6db93af929b7028bb3f1",
+  "original_log": "/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/rank-routed-mlp-cpu-v1-result/original.log",
+  "original_log_sha256": "29c6d55abce2fca44155af6e13492fe7280f8e481d322b53d6563e7c38a6096c",
+  "invocation_id": "c51642b05b624c6c8ff7091c15055285",
+  "primary_rejection": {
+    "function": "update -> integrity -> resource_check -> original cgroup_memory",
+    "line": 1178,
+    "predicate": "memory.events oom/oom_kill/max must all equal 0",
+    "memory_max": 8589934592,
+    "memory_peak": 8589934592,
+    "max_events": 1699,
+    "oom": 0,
+    "oom_kill": 0,
+    "swap_peak": 0,
+    "max_rss_kib": 8137520,
+    "service_seconds": 244.234,
+    "meaning": "Cap-event admission failed, not deadline or OOM termination. max counters are cumulative; rejection location does not identify first cap-event phase."
+  },
+  "established_control_flow": [
+    "Candidate CPU first step reached post-update integrity. Both views executed genuine B64 reference then four micro16 updates.",
+    "Full graph lifetime/RNG/state gates, full-vs-micro scalar/A/C/encoder correspondence and per-view detached-reference/accumulator gates were passed.",
+    "Micro tensor lifetime gate and actual unscaled optimizer A/C-vs-routed and encoder-vs-ranking gates were passed.",
+    "Clip/scaler step/update, counter advance, all-active changed bytes, owner advance, optimizer zero_grad and current full448 encoder facts were passed.",
+    "Post-update integrity passed identity/roles/full448/complete payload checks before failing its final resource_check."
+  ],
+  "not_established": [
+    "No CONNECTED_UPDATE row, returned update, terminal payload digest, CPU result or accepted receipt. complete_arm_work138.72461766301421s prints from timed finally even on failure.",
+    "First max-event phase, live owner at peak, allocator workspace/retained allocator residency vs live graph vs page-cache mixture are unproven. Final memory.stat is post-process cleanup; near-cap RSS demonstrates substantial process residency but not its phase or owner.",
+    "Full B64 reference is a plausible contributor, not an established cause. Native parity/fit/quality eligibility remain unqualified."
+  ],
+  "source_ownership": {
+    "full_reference_outer": "ranking_total[6], routed_total[2], per-view ranking[6], route routed[2]/original[2]/unrouted[4]/ranking[4] already coexist with state/model before B64 graph construction.",
+    "full_reference_inner": "One B64 encoder/query graph plus detached regression path and genuine full-gallery/SmoothAP graph coexist with regression gradients[2, encoder None], ranking gradients[6], original A/C gradients[2], total gradients[6]. Returned detached totals share their total-gradient storage; detach is not a second storage clone.",
+    "micro": "B64 graph is gone; detached full gradients[6]/scalars remain during each micro16 graph, ranking gradients[6], routed regression gradients[2], unrouted regression gradients[6], and first CPU query/gallery split graph+gradient set. Both references and per-view accumulators are released before post-integrity.",
+    "failure_frame": "At update1178 members[6], optimizer and scaler, and ranking_total[6] remain locals. ranking_total deletion occurs1182, after the failing integrity. integrity params/owned lists and optimizer also retain live parameters. The active exception traceback owns these non-returned frames.",
+    "secondary": "arm_run finally invokes release while primary traceback still owns update/integrity frames. Clearing state and owner maps cannot drop A retained by members/optimizer/params. This is a sufficient source-supported owner for previous-training-A-alive; it is not evidence of a survived B64 graph or the peak cause."
+  },
+  "smallest_secondary_cleanup_candidate": "On exceptional arm_run exit, use stdlib traceback.clear_frames on the original pending exception traceback BEFORE existing release; preserve original exception/nonzero outcome and all lifetime gates. This clears completed update/integrity locals without discarding traceback location. Verify with a focused post-update failure/weakref stand-in first. No edit authorized or performed here.",
+  "bounded_primary_diagnostic_contract": {
+    "status": "PROPOSAL_ONLY_ROOT_AUTHORIZATION_AND_FRESH_FREEZE_REQUIRED",
+    "run": "One root-owned diagnostic CPU qualification; original math/fullB64-micro witnesses/roles/caps/stop rules untouched; no repair inference from a later-phase max sample.",
+    "identity": "Pin source/diagnostic hash, invocation id, actual cgroup path and worker PID; no overlapping run.",
+    "observation": "At fixed begin/end boundaries read raw cgroup memory.current/peak/events/stat and /proc/self/status VmRSS/VmHWM using stdlib, before invoking unchanged admission checks. These observations must not accept or reset max events.",
+    "boundaries": [
+      "fresh/initializer/model construction begin-end",
+      "each view: outer accumulators allocated; full reference pixels concatenated; B64 forward; full loss; each gradient set; full graph released/RNG restored",
+      "each view/micro: forward; original loss; regression/ranking witnesses (including first split); real backward; micro release",
+      "each view: full_micro compare; full detached reference/per-view accumulators released",
+      "unscale/actual optimizer compare; clip-step; zero_grad; current encoder fingerprint; post-integrity payload begin-end; resource check"
+    ],
+    "owner_metadata": "Scalar-only shape/dtype/numel/storage bytes/requires_grad/grad_fn labels for named live temporary and accumulator sets at their own boundaries; no tensor cloning, arbitrary heap census, locals snapshot or retained strong references in log structures.",
+    "limits": "At most128 boundary records, at most256KiB total added diagnostic log; no polling thread/process, no additional native/paid experiment or cap increase; observer overhead remains charged to original enclosing CPU600/8GiB unit.",
+    "decision": "First nonzero max delta brackets the violating section; concurrent anon/file/kernel and RSS distinguish residency category. Named live metadata supports candidate owners, not full attribution of native allocator workspaces. If first event precedes full-reference begin, reject blaming that reference; if within it, only then consider minimal lifetime reordering while retaining independent proof."
+  },
+  "actions": "Read-only filesystem/source/log inspection plus this audit artifact; no production edits, tests, commit, native execution, consultation or children."
+}
