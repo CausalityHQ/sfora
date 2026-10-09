@@ -1,0 +1,18 @@
+{
+  "base": "c73e814ce87f13536a88d8eedcd2bc6cfed98e68",
+  "head": "c73e814ce87f13536a88d8eedcd2bc6cfed98e68",
+  "source_sha256": {
+    "scripts/diagnose_connected_asymmetric_cache.py": "950d5dfd62e102b548b064f997cf74eba7f7bcbc08598c044f954f2a0fd9049a",
+    "scripts/test_connected_asymmetric_cache.py": "adb8af7bd7dbdc73016113233f98dff52ca43923bc98b48084218ae2581b8930"
+  },
+  "diff_sha256": "11fd0550d88b47fb17991ffab8b1b5efccc4c9629ff7ed5bfd12591a64515672",
+  "original_source_exact_inverse": true,
+  "old_test_methods": 86,
+  "new_test_methods": 11,
+  "old_test_methods_changed_only_by_explicit_inverse": [
+    "ExitPhaseObservation.test_whole_module_ast_inverse_preserves_every_original_operation"
+  ],
+  "syntax": "PASS",
+  "diff_check": "PASS",
+  "native_or_residency_claim": false
+}

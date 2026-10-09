@@ -1,0 +1,37 @@
+{
+  "evidence_kind": "preserved original harness exec output; no rerun",
+  "original_harness_chunk_id": "a049de",
+  "command": "rtk proxy timeout 30s bash -c 'ulimit -v 1048576; exec python3 scripts/test_cuda_sha256_source.py'",
+  "cwd": "/home/rb/worktrees/sfora-standalone-gpu-sha-source-20261009",
+  "base": "6ea5e22be106b6dde0283a02094ecb1d0cad8c23",
+  "exit_code": 0,
+  "tests": 7,
+  "failures": 0,
+  "runtime_seconds": 1.653,
+  "log": "/tmp/sfora-gpu-sha-source-check-20261009.log",
+  "log_provenance": "verbatim transcript copy of original tool result, not a separately redirected process log",
+  "checks": {
+    "staged_diff_check_exit": 0,
+    "script_syntax": "parsed/executed by python3 in original run",
+    "owned_files_exact": true,
+    "whole_connected_probe_inference_byte_identity": true
+  },
+  "sha256": {
+    "rust/sfora-cuda-sha256/sha256_occurrences.cu": "f4547f923c5cb3acf893ffc1186e8392c343a6e27951ea3812b430993e621fd1",
+    "scripts/test_cuda_sha256_source.py": "00905846398e2fb0428b30f4e2d6718c8d29380d57f22696131b5e9f06e1e7df",
+    "docs/gpu_sha256_source_contract_2026-10-09.md": "beb45576d5cea673f6ac2d8c45d40282a33290154ef28e8c34d1ef642351d545"
+  },
+  "verification_harness_chunk_id": "b32fa1",
+  "native_compilation": "UNRUN",
+  "device_kernel_and_control_loop_execution": "UNPROVEN",
+  "stream_race_lifetimes": "UNRUN",
+  "full_sequential_tree_performance": "UNRUN",
+  "thirdparty_repository_CI": "NOT RUN per parent disposition",
+  "full_required_scope": "exact seven stdlib source tests + syntax/byte/diff/check contract",
+  "commit_release": "Parent released after cache terminal; exact hashes reused",
+  "commit": "6c2e9120c9262843cfdf6d40cb333f9586d027a9",
+  "commit_harness_chunk_id": "7f0e12",
+  "clean_worktree": true,
+  "commit_attribution": "Roman Bartusiak <riomus@gmail.com>",
+  "merge_push": "NOT RUN"
+}

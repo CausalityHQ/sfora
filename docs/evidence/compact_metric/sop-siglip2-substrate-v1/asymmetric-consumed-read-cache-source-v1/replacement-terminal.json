@@ -1,0 +1,18 @@
+{
+  "exit_code": 0,
+  "tests_passed": 97,
+  "test_seconds": 6.522,
+  "elapsed_seconds": 6.71,
+  "max_rss_kib": 71728,
+  "swaps": 0,
+  "timeout_seconds": 120,
+  "address_space_limit_kib": 1048576,
+  "source_sha256": {
+    "scripts/diagnose_connected_asymmetric_cache.py": "950d5dfd62e102b548b064f997cf74eba7f7bcbc08598c044f954f2a0fd9049a",
+    "scripts/test_connected_asymmetric_cache.py": "adb8af7bd7dbdc73016113233f98dff52ca43923bc98b48084218ae2581b8930"
+  },
+  "original_red": "original-red.txt",
+  "first_full_run_preserved": true,
+  "native_run": false,
+  "residency_experiment": false
+}
