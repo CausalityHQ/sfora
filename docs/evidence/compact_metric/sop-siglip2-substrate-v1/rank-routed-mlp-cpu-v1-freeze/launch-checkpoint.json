@@ -1,0 +1,15 @@
+{
+  "controller_pid": 2300501,
+  "freeze_sha256": "291ec05f30f6eb96e66649ba32f44d0709fe4926daf66697a5d8419a92a46ce2",
+  "gpu_training_started": false,
+  "invocation_id": "c51642b05b624c6c8ff7091c15055285",
+  "main_pid": 2300517,
+  "observed_utc": "2026-10-09T11:58:36.441192+00:00",
+  "output": "/home/riomus/runs/sfora-rank-routed-mlp-cpu-v1",
+  "qualification": false,
+  "remote_preflight": "PASS both complete hash tables/current bytes/exact actual CLI/policies/outputabsent/no native imports",
+  "schema": "rank-routed-mlp-cpu-launch-checkpoint-v1",
+  "source_root": "/home/riomus/runs/sfora-rank-routed-mlp-train-source-v1",
+  "status": "RUNNING_TERMINAL_PENDING",
+  "unit": "sfora-rank-routed-mlp-cpu-v1"
+}
