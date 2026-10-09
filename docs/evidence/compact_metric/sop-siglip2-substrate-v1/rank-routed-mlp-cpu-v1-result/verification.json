@@ -1,4 +1,5 @@
 {
+  "complete_arm_work_seconds_before_failure": 138.72461766301421,
   "final_cgroup": {
     "command_exit_status": 1,
     "invocation_id": "c51642b05b624c6c8ff7091c15055285",
@@ -19,10 +20,12 @@
   "host_peak_bytes": 8589934592,
   "invocation_id": "c51642b05b624c6c8ff7091c15055285",
   "memory_events": "low 0\nhigh 0\nmax 1699\noom 0\noom_kill 0\noom_group_kill 0",
+  "native_peak_rss_kib": 8137520,
   "original_exit_status": 1,
   "original_log_sha256": "29c6d55abce2fca44155af6e13492fe7280f8e481d322b53d6563e7c38a6096c",
   "peak_phase_owner": "UNPROVEN; final memory.stat is post-cleanup",
   "quality_read": false,
+  "returned_update_row": false,
   "schema": "rank-routed-mlp-cpu-parent-result-v1",
   "secondary_rejection": "previous training A still alive in release/exit",
   "service_seconds": 244.234,
