@@ -1,0 +1,134 @@
+{
+  "candidate_status": "historical KILL retained",
+  "cause_limit": "First visible rejection is final_guard; no continuous phase memory samples establish first max event or exact retained owner. Postexit file4653793280/anon5844992 does not prove peak composition. No cap or predicate change.",
+  "exit": 1,
+  "invocation_id": "b892664054744c80867410b2b0fab8bb",
+  "memory_events": {
+    "high": 0,
+    "low": 0,
+    "max": 1442,
+    "oom": 0,
+    "oom_group_kill": 0,
+    "oom_kill": 0
+  },
+  "native_qualified": false,
+  "original_log_sha256": "3c59a901b0553966d1d01799c8d8021a4b992299c37715f4ca40569de9d05d6a",
+  "peak_cgroup_bytes": 8589934592,
+  "phases": [
+    {
+      "event": "PROTOTYPE_PHASE",
+      "phase": "old_exit_begin",
+      "seconds": 531.4149076830072
+    },
+    {
+      "event": "PROTOTYPE_PHASE",
+      "phase": "old_exit_end",
+      "seconds": 546.9290332719975
+    },
+    {
+      "event": "PROTOTYPE_PHASE",
+      "phase": "own_union_begin",
+      "seconds": 546.9290494000015
+    },
+    {
+      "event": "PROTOTYPE_PHASE",
+      "phase": "own_union_end",
+      "seconds": 559.6912256189971
+    },
+    {
+      "event": "PROTOTYPE_PHASE",
+      "phase": "closure_begin",
+      "seconds": 559.6912713950151
+    },
+    {
+      "event": "PROTOTYPE_PHASE",
+      "phase": "closure_end",
+      "seconds": 559.6926856950158
+    }
+  ],
+  "primary": "final_guard -> evaluator.resources -> genuine cgroup_memory: cgroup memory failure event",
+  "process_peak_rss_kib": 4370172,
+  "quality_numbers_accepted": false,
+  "raw_fs_wire_persisted_but_unaccepted": true,
+  "receipt_absent_verified": true,
+  "schema": "connected-asymmetric-first-terminal-v1",
+  "service_seconds": 634.098,
+  "snapshots": [
+    {
+      "diagnostic": "memory_snapshot",
+      "memory.current": 1533198336,
+      "memory.events.high": 0,
+      "memory.events.low": 0,
+      "memory.events.max": 0,
+      "memory.events.oom": 0,
+      "memory.events.oom_group_kill": 0,
+      "memory.events.oom_kill": 0,
+      "memory.peak": 1560817664,
+      "memory.stat.anon": 1037385728,
+      "memory.stat.file": 481927168,
+      "memory.stat.kernel": 6508544,
+      "memory.swap.current": 0,
+      "memory.swap.peak": 0,
+      "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-first-179061-v1.service",
+      "phase": "after_admission"
+    },
+    {
+      "diagnostic": "memory_snapshot",
+      "memory.current": 4603031552,
+      "memory.events.high": 0,
+      "memory.events.low": 0,
+      "memory.events.max": 0,
+      "memory.events.oom": 0,
+      "memory.events.oom_group_kill": 0,
+      "memory.events.oom_kill": 0,
+      "memory.peak": 4627996672,
+      "memory.stat.anon": 3751940096,
+      "memory.stat.file": 818020352,
+      "memory.stat.kernel": 17850368,
+      "memory.swap.current": 0,
+      "memory.swap.peak": 0,
+      "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-first-179061-v1.service",
+      "phase": "after_tail_replay"
+    },
+    {
+      "diagnostic": "memory_snapshot",
+      "memory.current": 4674850816,
+      "memory.events.high": 0,
+      "memory.events.low": 0,
+      "memory.events.max": 0,
+      "memory.events.oom": 0,
+      "memory.events.oom_group_kill": 0,
+      "memory.events.oom_kill": 0,
+      "memory.peak": 4730744832,
+      "memory.stat.anon": 3829833728,
+      "memory.stat.file": 811294720,
+      "memory.stat.kernel": 18042880,
+      "memory.swap.current": 0,
+      "memory.swap.peak": 0,
+      "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-first-179061-v1.service",
+      "phase": "before_native"
+    },
+    {
+      "diagnostic": "memory_snapshot",
+      "memory.current": 4784680960,
+      "memory.events.high": 0,
+      "memory.events.low": 0,
+      "memory.events.max": 0,
+      "memory.events.oom": 0,
+      "memory.events.oom_group_kill": 0,
+      "memory.events.oom_kill": 0,
+      "memory.peak": 4825366528,
+      "memory.stat.anon": 3889025024,
+      "memory.stat.file": 861577216,
+      "memory.stat.kernel": 18477056,
+      "memory.swap.current": 0,
+      "memory.swap.peak": 0,
+      "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-first-179061-v1.service",
+      "phase": "before_exit"
+    }
+  ],
+  "ssh": 62593,
+  "status": "FAIL_RESOURCE_UNACCEPTED",
+  "swap_peak_bytes": 0,
+  "unit": "sfora-connected-asymmetric-cache-first-179061-v1"
+}
