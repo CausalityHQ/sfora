@@ -1,0 +1,10 @@
+/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-control-v2/build.py: OK
+/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-control-v2/authority-v3.json: OK
+Running as unit: sfora-standalone-gpu-sha-compile-v3.service; invocation ID: da336a14c8ef4b249c0c41375075c3a1
+{"build_admitted": false, "compiler_exit": 0, "unknown_inputs": [], "resources": {"memory_peak_bytes": 79851520, "memory_events": {"low": "0", "high": "0", "max": "0", "oom": "0", "oom_kill": "0", "oom_group_kill": "0"}, "swap_current_bytes": 0, "wall_seconds": 1.9678793489874806}}
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 2.159s
+CPU time consumed: 1.722s
+Memory peak: 256.0K
+Memory swap peak: 0B

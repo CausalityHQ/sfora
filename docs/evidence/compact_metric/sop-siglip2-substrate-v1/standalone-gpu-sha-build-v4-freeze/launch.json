@@ -1,0 +1,26 @@
+{
+  "authority_sha256": "f96c2197415ad54e71b13b628229f1dbd6e751f61c0108988b50c702c85baa5d",
+  "command": [
+    "/usr/bin/systemd-run",
+    "--user",
+    "--unit=sfora-standalone-gpu-sha-compile-v4",
+    "--wait",
+    "--pipe",
+    "--collect",
+    "--property=RuntimeMaxSec=300",
+    "--property=MemoryMax=8589934592",
+    "--property=MemorySwapMax=0",
+    "--property=TasksMax=128",
+    "--property=KillMode=control-group",
+    "--property=OOMPolicy=stop",
+    "/usr/bin/python3.12",
+    "-I",
+    "-S",
+    "-B",
+    "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-control-v3/build.py",
+    "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-control-v3/authority-v4.json",
+    "f96c2197415ad54e71b13b628229f1dbd6e751f61c0108988b50c702c85baa5d"
+  ],
+  "native": false,
+  "source_selfcheck": "observed-input parser, fresh hash and mutation rejection passed; no compiler execution"
+}
