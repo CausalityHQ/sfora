@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import mlsentinel, numpy
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-immutable-publisher-cleanup-20261009/527f8de6-000e-4bd3-8a3f-b341f3e97e59/scratchpad/sentinel/mlsentinel.py", line 15, in find_spec
+    raise ImportError(f"ML import sentinel tripped: {name}")
+ImportError: ML import sentinel tripped: numpy

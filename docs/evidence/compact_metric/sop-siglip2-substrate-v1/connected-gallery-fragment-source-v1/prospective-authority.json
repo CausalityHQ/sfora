@@ -1,0 +1,61 @@
+{
+  "files": {
+    "conversion": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-fragment-source-v1/src/sfora/connected_gallery_conversion.py",
+      "sha256": "d361dd460a90bc078c3d175088831067f5e198997613c494a00a6dfaecd0d27f"
+    },
+    "driver": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-fragment-source-v1/qualify_connected_gallery_fragment.py",
+      "sha256": "e00576c482fd36973aa8acd21bbabf0a0bc7cfc42510119decf9399c063a883f"
+    },
+    "package_init": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-fragment-source-v1/src/sfora/__init__.py",
+      "sha256": "3c80a7bec9ecdb6f09a52c89b17ef3534f7b61d17e4c93fe4166cda15cdb19db"
+    },
+    "provenance": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-fragment-source-v1/src/sfora/connected_gallery_provenance.py",
+      "sha256": "0e552eb81c3a200bda4568b43a7955cef8018ca43d83c4b0172fc903debaa1ec"
+    },
+    "publication": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-fragment-source-v1/src/sfora/atomic_publication.py",
+      "sha256": "00ffdc28ecf47a90dc1e6b74427aa4da4c3d30f3698598c9074a31af61c1415f"
+    },
+    "test": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-fragment-source-v1/test_connected_gallery_fragment.py",
+      "sha256": "c1b03f597861a316e97d617f53ad58e4425d6f95ec096d67b3572b034b08c1ba"
+    }
+  },
+  "inputs": {
+    "bundle": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json",
+      "sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153"
+    },
+    "combined_wire": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/control-179061.packed.bin",
+      "sha256": "c2260ca93cedf8ae5c0840034d2ed06d10860539d33df562fe82a7eac30b1558"
+    },
+    "ownership_audit": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-fragment-source-v1/original-complete-record-owners.json",
+      "sha256": "8e38d2e503a44cdc1f2fe3cf4bf08c2a86dfb1f86603363aef5dcb262812f36f"
+    },
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/receipt.json",
+      "sha256": "db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407"
+    }
+  },
+  "output": "/home/riomus/runs/sfora-connected-gallery-fragment-control-179061-v1",
+  "python": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "reference": {
+    "gallery_count": 1715,
+    "ordered_ids_sha256": "df9fb988945811be1100b4b95166871a4f840974e6667ecdf249d75732405ad4",
+    "wire_sha256": "386f3b2289f74f7d154efc9d47838f26def6a8c7a18368faac1d3c690ec6bd28"
+  },
+  "resource_policy": {
+    "address_space_bytes": 1073741824,
+    "seconds": 120
+  },
+  "schema": "connected-gallery-fragment-authority-v1"
+}

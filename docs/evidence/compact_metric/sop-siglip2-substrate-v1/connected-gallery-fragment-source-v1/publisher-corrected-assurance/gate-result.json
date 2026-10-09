@@ -1,0 +1,275 @@
+{
+  "facts": {
+    "blob_sha256": {
+      "src/sfora/atomic_publication.py": "00ffdc28ecf47a90dc1e6b74427aa4da4c3d30f3698598c9074a31af61c1415f",
+      "tests/test_atomic_publication.py": "b7e7b49706fd2b3a642a55f7c741fb169b595f288fa3c9b2615fa935f54eced3"
+    },
+    "driver_maxrss_kb": 18904,
+    "head": "831ecdc30051fbf092ad7bacc5da378c6dbb8776",
+    "head_after": "831ecdc30051fbf092ad7bacc5da378c6dbb8776",
+    "mypy": {
+      "baseline_count": 8,
+      "baseline_exit": 1,
+      "current_count": 8,
+      "current_exit": 1,
+      "introduced": [],
+      "normalization": "key=(path,severity,code,message,stripped source text of the flagged line); line numbers ignored",
+      "normalized_multiset_identical": true,
+      "removed": [],
+      "verdict": "NO_NEW_OR_REMOVED_DIAGNOSTICS_VS_BASELINE (baseline pre-existing errors remain; this is NOT a mypy PASS)"
+    },
+    "parent": "fb0e1661416e77cc320e497da7bb8f4721f00237",
+    "rlimit_as_bytes": 1073741824,
+    "ruff_format_tests": {
+      "added_line_ranges": [
+        [
+          9,
+          4
+        ],
+        [
+          296,
+          438
+        ]
+      ],
+      "baseline_exit": 1,
+      "current_exit": 1,
+      "current_hunk_old_ranges": [
+        [
+          145,
+          14
+        ],
+        [
+          219,
+          32
+        ],
+        [
+          258,
+          15
+        ],
+        [
+          274,
+          23
+        ]
+      ],
+      "hunks_overlapping_added_lines": [
+        [
+          [
+            274,
+            23
+          ],
+          [
+            296,
+            438
+          ]
+        ]
+      ],
+      "normalized_diff_identical_to_baseline": false
+    },
+    "sentinel_selftest_blocked_numpy": true,
+    "status_porcelain_after": "",
+    "status_porcelain_before": "",
+    "total_wall_s": 10.697,
+    "version_mypy": "mypy 2.1.0 (compiled: yes)",
+    "version_python312": "Python 3.12.13",
+    "version_python314": "Python 3.14.4",
+    "version_ruff": "ruff 0.15.20",
+    "worktree_sha256": {
+      "src/sfora/atomic_publication.py": "00ffdc28ecf47a90dc1e6b74427aa4da4c3d30f3698598c9074a31af61c1415f",
+      "tests/test_atomic_publication.py": "b7e7b49706fd2b3a642a55f7c741fb169b595f288fa3c9b2615fa935f54eced3"
+    },
+    "worktree_sha256_after": {
+      "src/sfora/atomic_publication.py": "00ffdc28ecf47a90dc1e6b74427aa4da4c3d30f3698598c9074a31af61c1415f",
+      "tests/test_atomic_publication.py": "b7e7b49706fd2b3a642a55f7c741fb169b595f288fa3c9b2615fa935f54eced3"
+    }
+  },
+  "steps": [
+    {
+      "argv": [
+        "/usr/bin/python3.14",
+        "-c",
+        "import mlsentinel, numpy"
+      ],
+      "cwd": "/home/rb/worktrees/sfora-immutable-publisher-cleanup-20261009",
+      "exit": 1,
+      "log": "sentinel-selftest.log",
+      "log_bytes": 393,
+      "log_sha256": "b75e20d069545f09963941ac0e575f47d73d5ea215a74d3032874cb572e1287d",
+      "maxrss_kb": 33364,
+      "name": "sentinel-selftest",
+      "timed_out": false,
+      "wall_s": 0.109
+    },
+    {
+      "argv": [
+        "/usr/bin/python3.14",
+        "-m",
+        "pytest",
+        "-p",
+        "mlsentinel",
+        "-p",
+        "no:cacheprovider",
+        "-v",
+        "tests/test_atomic_publication.py"
+      ],
+      "cwd": "/home/rb/worktrees/sfora-immutable-publisher-cleanup-20261009",
+      "exit": 0,
+      "log": "pytest-py314.log",
+      "log_bytes": 7009,
+      "log_sha256": "dced0b2471f2294a6c0b5d083907121742d41a396fd0c15d8c2568bfc5f0f711",
+      "maxrss_kb": 48752,
+      "name": "pytest-py314",
+      "timed_out": false,
+      "wall_s": 0.99
+    },
+    {
+      "argv": [
+        "/home/rb/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/bin/python3.12",
+        "-m",
+        "pytest",
+        "-p",
+        "mlsentinel",
+        "-p",
+        "no:cacheprovider",
+        "-v",
+        "tests/test_atomic_publication.py"
+      ],
+      "cwd": "/home/rb/worktrees/sfora-immutable-publisher-cleanup-20261009",
+      "exit": 0,
+      "log": "pytest-py312.log",
+      "log_bytes": 7070,
+      "log_sha256": "2446a8ce48af3f12fafb53c44fee41e94661f50ea5b344750971ef6da50c4b13",
+      "maxrss_kb": 39268,
+      "name": "pytest-py312",
+      "timed_out": false,
+      "wall_s": 1.565
+    },
+    {
+      "argv": [
+        "/data/cache/uv/archive-v0/FGM38RAsHizKx-KP/bin/ruff",
+        "check",
+        "--no-cache",
+        "src/sfora/atomic_publication.py",
+        "tests/test_atomic_publication.py"
+      ],
+      "cwd": "/home/rb/worktrees/sfora-immutable-publisher-cleanup-20261009",
+      "exit": 0,
+      "log": "ruff-check.log",
+      "log_bytes": 19,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "maxrss_kb": 20948,
+      "name": "ruff-check",
+      "timed_out": false,
+      "wall_s": 0.011
+    },
+    {
+      "argv": [
+        "/data/cache/uv/archive-v0/FGM38RAsHizKx-KP/bin/ruff",
+        "format",
+        "--check",
+        "--no-cache",
+        "src/sfora/atomic_publication.py"
+      ],
+      "cwd": "/home/rb/worktrees/sfora-immutable-publisher-cleanup-20261009",
+      "exit": 0,
+      "log": "ruff-format-check-prod.log",
+      "log_bytes": 25,
+      "log_sha256": "fd2299c9f1c6dc869070883e281051bfe93aacf66c1a3b0069f45b4aa410ca50",
+      "maxrss_kb": 18904,
+      "name": "ruff-format-check-prod",
+      "timed_out": false,
+      "wall_s": 0.011
+    },
+    {
+      "argv": [
+        "/data/cache/uv/archive-v0/FGM38RAsHizKx-KP/bin/ruff",
+        "format",
+        "--diff",
+        "--no-cache",
+        "tests/test_atomic_publication.py"
+      ],
+      "cwd": "/home/rb/worktrees/sfora-immutable-publisher-cleanup-20261009",
+      "exit": 1,
+      "log": "ruff-format-diff-tests-current.log",
+      "log_bytes": 5027,
+      "log_sha256": "4f50760df903547a8cf38377aced92e8d437609fec4cf3130bba60e8ff9de9de",
+      "maxrss_kb": 18904,
+      "name": "ruff-format-diff-tests-current",
+      "timed_out": false,
+      "wall_s": 0.016
+    },
+    {
+      "argv": [
+        "/data/cache/uv/archive-v0/FGM38RAsHizKx-KP/bin/ruff",
+        "format",
+        "--diff",
+        "--no-cache",
+        "tests/test_atomic_publication.py"
+      ],
+      "cwd": "/tmp/claude-1001/-home-rb-worktrees-sfora-immutable-publisher-cleanup-20261009/527f8de6-000e-4bd3-8a3f-b341f3e97e59/scratchpad/gate-final/baseline-tree",
+      "exit": 1,
+      "log": "ruff-format-diff-tests-baseline.log",
+      "log_bytes": 5025,
+      "log_sha256": "2fd4878884520debe6a55bb866c49a68f11c199c5b37a50318cfaf06cf82c0a7",
+      "maxrss_kb": 18904,
+      "name": "ruff-format-diff-tests-baseline",
+      "timed_out": false,
+      "wall_s": 0.011
+    },
+    {
+      "argv": [
+        "/data/cache/uv/archive-v0/A5hAhU0uya3PTOGc/bin/mypy",
+        "--follow-imports=silent",
+        "--python-executable",
+        "/usr/bin/python3.14",
+        "--cache-dir=/tmp/claude-1001/-home-rb-worktrees-sfora-immutable-publisher-cleanup-20261009/527f8de6-000e-4bd3-8a3f-b341f3e97e59/scratchpad/gate-final/mypycache-current",
+        "src/sfora/atomic_publication.py",
+        "tests/test_atomic_publication.py"
+      ],
+      "cwd": "/home/rb/worktrees/sfora-immutable-publisher-cleanup-20261009",
+      "exit": 1,
+      "log": "mypy-current.log",
+      "log_bytes": 1047,
+      "log_sha256": "f7df3774da92cd33074bd90647435c3cccba799a716da20576378672e599c3ab",
+      "maxrss_kb": 183156,
+      "name": "mypy-current",
+      "timed_out": false,
+      "wall_s": 3.058
+    },
+    {
+      "argv": [
+        "/data/cache/uv/archive-v0/A5hAhU0uya3PTOGc/bin/mypy",
+        "--follow-imports=silent",
+        "--python-executable",
+        "/usr/bin/python3.14",
+        "--cache-dir=/tmp/claude-1001/-home-rb-worktrees-sfora-immutable-publisher-cleanup-20261009/527f8de6-000e-4bd3-8a3f-b341f3e97e59/scratchpad/gate-final/mypycache-baseline",
+        "src/sfora/atomic_publication.py",
+        "tests/test_atomic_publication.py"
+      ],
+      "cwd": "/tmp/claude-1001/-home-rb-worktrees-sfora-immutable-publisher-cleanup-20261009/527f8de6-000e-4bd3-8a3f-b341f3e97e59/scratchpad/gate-final/baseline-tree",
+      "exit": 1,
+      "log": "mypy-baseline.log",
+      "log_bytes": 1047,
+      "log_sha256": "3ca20c3cb87d465eb082d74c4f14bb615c9a21b704014e06579c0af85d49a305",
+      "maxrss_kb": 182700,
+      "name": "mypy-baseline",
+      "timed_out": false,
+      "wall_s": 3.323
+    },
+    {
+      "argv": [
+        "/usr/bin/python3.14",
+        "-I",
+        "/tmp/claude-1001/-home-rb-worktrees-sfora-immutable-publisher-cleanup-20261009/527f8de6-000e-4bd3-8a3f-b341f3e97e59/scratchpad/verify_inverse.py"
+      ],
+      "cwd": "/home/rb/worktrees/sfora-immutable-publisher-cleanup-20261009",
+      "exit": 0,
+      "log": "finite-inverse.log",
+      "log_bytes": 894,
+      "log_sha256": "4f1a124deb4b6c4f781335033afa720f0c46978fded682ce4a37377694aa4671",
+      "maxrss_kb": 23792,
+      "name": "finite-inverse",
+      "timed_out": false,
+      "wall_s": 0.147
+    }
+  ]
+}

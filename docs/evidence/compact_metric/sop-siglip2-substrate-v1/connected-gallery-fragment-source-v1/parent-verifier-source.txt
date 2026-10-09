@@ -1,0 +1,56 @@
+import os,stat,json,hashlib
+from pathlib import Path
+root=Path('/home/riomus/runs/sfora-connected-gallery-fragment-source-v1')
+def sha(b):return hashlib.sha256(b).hexdigest()
+def canon(v):return json.dumps(v,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+def pairs(items):
+ d={}
+ for k,v in items:
+  assert k not in d;d[k]=v
+ return d
+def parse(b):return json.loads(b,object_pairs_hook=pairs,parse_constant=lambda v:(_ for _ in ()).throw(ValueError(v)))
+def read(p,expected=None):
+ p=Path(p);assert p.resolve()==p and not p.is_symlink()
+ fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW)
+ try:
+  before=os.fstat(fd);assert stat.S_ISREG(before.st_mode) and before.st_nlink==1 and before.st_size<=16*1024*1024
+  data=b''
+  while len(data)<before.st_size:
+   chunk=os.read(fd,min(1024*1024,before.st_size-len(data)));assert chunk;data+=chunk
+  def stamp(v):return tuple(getattr(v,k) for k in ("st_dev","st_ino","st_size","st_mode","st_nlink","st_mtime_ns","st_ctime_ns"))
+  assert not os.read(fd,1) and stamp(before)==stamp(os.fstat(fd)) and stamp(before)==stamp(p.lstat())
+ finally:os.close(fd)
+ if expected is not None:assert sha(data)==expected
+ return data
+raw=read(root/'source-gate.stdout','f776f1038f7cfbe13176341f58bdb5d206590ddab19b2003bc460b150d8a1021');assert len(raw.splitlines())==1
+assert read(root/'source-gate.exit')==b'0\n'
+r=parse(raw);a=parse(read(root/'authority.json','99f819cf0fc826c6f8e0f5d3f5a9e209ceeff15f1718607ffe0ad563716bd7d3'))
+assert r['schema']=='connected-gallery-fragment-result-v1' and r['normal_terminal_required'] is True
+assert all(r[k] is False for k in ('native_verified','serving_accepted','quality_speed_goal_met'))
+assert 0<r['elapsed_seconds']<=120 and 0<r['peak_rss_bytes']<=1073741824 and r['resource_policy']==a['resource_policy']
+for section in ('sources','inputs'):
+ authority_section='files' if section=='sources' else section
+ assert r[section].keys()==a[authority_section].keys()
+ for role,f in r[section].items():
+  assert {k:f[k] for k in ('path','sha256')}==a[authority_section][role]
+  assert len(read(f['path'],f['sha256']))==f['bytes']
+assert {k:r['python'][k] for k in ('path','sha256')}==a['python']
+# Interpreter is larger than the metadata cap; the original gate already streamed it uncached.
+assert '3.13.9' in r['python']['version']
+assert r['output']==a['output'];out=Path(r['output']);assert out.resolve()==out and stat.S_IMODE(out.stat().st_mode)==0o700
+names={'origin.json','origin-export.json','origin-owners.json','gallery.bin','gallery-ids.json','gallery-provenance.json'}
+assert set(x.name for x in out.iterdir())==names==set(r['members'])
+data={}
+for name,f in r['members'].items():
+ assert f['path']==str(out/name);data[name]=read(out/name,f['sha256']);assert len(data[name])==f['bytes']
+for name,role in [('origin.json','bundle'),('origin-export.json','receipt'),('origin-owners.json','ownership_audit')]:assert data[name]==read(a['inputs'][role]['path'],a['inputs'][role]['sha256'])
+receipt=parse(data['origin-export.json']);batches=[b for b in receipt['images'] if b['role']=='gallery'];rows=[v for b in batches for v in b['rows']]
+assert len(rows)==1715 and [len(b['rows']) for b in batches]==[32]*53+[19]
+wire=read(a['inputs']['combined_wire']['path'],a['inputs']['combined_wire']['sha256']);assert len(wire)==3449*130
+for i,row in enumerate(rows):assert data['gallery.bin'][i*130:(i+1)*130]==wire[row['panel_ordinal']*130:(row['panel_ordinal']+1)*130]
+assert data['gallery-ids.json']==canon([row['relative_path'] for row in rows])
+p=parse(data['gallery-provenance.json']);assert p['producer']['gallery_wire_sha256'] is None and p['producer']['gallery_rows']==rows
+assert p['producer']['identity']['bundle_files']==parse(data['origin.json'])['files']
+assert p['gallery_wire_sha256']==a['reference']['wire_sha256']==sha(data['gallery.bin'])
+assert p['ordered_ids_sha256']==a['reference']['ordered_ids_sha256']==sha(data['gallery-ids.json'])
+print(json.dumps({'schema':'gallery-fragment-parent-verification-v1','gate_normal_exit':0,'report_sha256':sha(raw),'authority_sha256':sha(read(root/'authority.json')),'output':str(out),'member_files':r['members'],'all_selected_rows_independently_checked':len(rows),'original_three_bytes_unchanged':True,'producer_gallery_sha_still_null':True,'elapsed_seconds':r['elapsed_seconds'],'peak_rss_bytes':r['peak_rss_bytes'],'accepted_as_converted_fragment':True,'native_verified':False,'serving_accepted':False,'quality_speed_goal_met':False,'original_time':read(root/'source-gate.time').decode(),'original_stderr':read(root/'source-gate.stderr').decode()},sort_keys=True))

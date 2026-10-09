@@ -1,0 +1,8 @@
+production: 23 top-level nodes, 21 byte+AST identical, changed exactly: ['publish_writer_noreplace', 'publish_large_writer_noreplace']; added only: import sys
+  publish_large_writer_noreplace: signature, setup, and the 18 protocol statements before the return are AST-identical
+  publish_writer_noreplace: signature, setup, and the 18 protocol statements before the return are AST-identical
+production inverse (1 import edit + 2x[return-shape, finally, tail]) restores sha ee0870e4... exactly
+production sha256 now: 00ffdc28ecf47a90dc1e6b74427aa4da4c3d30f3698598c9074a31af61c1415f
+tests: all 9 existing test bodies byte+AST identical; new top-level defs: 17 functions/fixtures + helpers
+tests inverse (drop appended block + 4 import lines -> 'from pathlib import Path') restores sha 3b260e56b5f114b6... exactly
+tests sha256 now: b7e7b49706fd2b3a642a55f7c741fb169b595f288fa3c9b2615fa935f54eced3

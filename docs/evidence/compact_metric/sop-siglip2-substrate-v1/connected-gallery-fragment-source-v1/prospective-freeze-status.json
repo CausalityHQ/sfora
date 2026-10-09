@@ -1,0 +1,26 @@
+{
+  "accepted_as_converted_fragment": true,
+  "actual_gate_ssh_exit": 0,
+  "authority_sha256": "99f819cf0fc826c6f8e0f5d3f5a9e209ceeff15f1718607ffe0ad563716bd7d3",
+  "combined_gate": {
+    "driver_sha256": "e00576c482fd36973aa8acd21bbabf0a0bc7cfc42510119decf9399c063a883f",
+    "exit": 0,
+    "peak_rss_kib": 124196,
+    "publication_sha256": "00ffdc28ecf47a90dc1e6b74427aa4da4c3d30f3698598c9074a31af61c1415f",
+    "swap": 0,
+    "test_sha256": "c1b03f597861a316e97d617f53ad58e4425d6f95ec096d67b3572b034b08c1ba",
+    "tests_each_python": 19,
+    "whole_seconds": 16.63
+  },
+  "combined_source_gate_passed": true,
+  "launch_released": true,
+  "local_staging": "/tmp/sfora-connected-gallery-fragment-source-v1-prospective",
+  "native_verified": false,
+  "parent_verification_ssh_exit": 0,
+  "publisher_commit": "831ecdc30051fbf092ad7bacc5da378c6dbb8776",
+  "quality_speed_goal_met": false,
+  "remote_staged": true,
+  "schema": "gallery-fragment-prospective-freeze-v1",
+  "serving_accepted": false,
+  "source_authority_frozen": true
+}

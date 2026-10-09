@@ -1,0 +1,137 @@
+--- tests/test_atomic_publication.py
++++ tests/test_atomic_publication.py
+@@ -142,14 +142,16 @@
+     destination.parent.mkdir()
+     budget = {
+         "schema": "unicom-fepf-publication-budget-v1",
+-        "publications": [{
+-            "name": "stage:terminal",
+-            "path": "stage/terminal.json",
+-            "persistent_bytes": 4,
+-            "temporary_bytes": 4,
+-            "persistent_inodes": 1,
+-            "temporary_inodes": 1,
+-        }],
++        "publications": [
++            {
++                "name": "stage:terminal",
++                "path": "stage/terminal.json",
++                "persistent_bytes": 4,
++                "temporary_bytes": 4,
++                "persistent_inodes": 1,
++                "temporary_inodes": 1,
++            }
++        ],
+     }
+     payload = (json.dumps(budget, indent=2) + "\n").encode()
+     budget_path = root / "preflight/publication-budget.json"
+@@ -216,32 +218,30 @@
+                 ctypes.set_errno(errno.EPERM)
+                 return -1
+             return real_linkat(
+-                source_directory, source_name,
+-                destination_directory, destination_name, flags,
++                source_directory,
++                source_name,
++                destination_directory,
++                destination_name,
++                flags,
+             )
+ 
+-    monkeypatch.setattr(
+-        publication.ctypes, "CDLL", lambda *_args, **_kwargs: RestrictedLibc()
+-    )
++    monkeypatch.setattr(publication.ctypes, "CDLL", lambda *_args, **_kwargs: RestrictedLibc())
+     destination = tmp_path / "authority.json"
+     payload = b'{"registered":true}\n'
+     with publication.publish_bytes_noreplace(
+-        destination, payload,
++        destination,
++        payload,
+         validator=lambda candidate: candidate == payload or None,
+     ) as published:
+         assert published.payload == payload
+-        assert published.identity == (
+-            destination.lstat().st_dev, destination.lstat().st_ino
+-        )
++        assert published.identity == (destination.lstat().st_dev, destination.lstat().st_ino)
+     assert observed[0] == (b"", 0x1000)
+     assert observed[1][0].startswith(b"/proc/self/fd/")
+     assert observed[1][1] == 0x400
+ 
+     destination.write_bytes(b"racer")
+     with pytest.raises(FileExistsError):
+-        publication.publish_bytes_noreplace(
+-            destination, payload, validator=lambda _candidate: None
+-        )
++        publication.publish_bytes_noreplace(destination, payload, validator=lambda _candidate: None)
+     assert destination.read_bytes() == b"racer"
+ 
+ 
+@@ -255,15 +255,16 @@
+     stage.mkdir()
+     rows = [
+         {
+-            "name": f"stage:file-{index}", "path": f"stage/file-{index}.json",
+-            "persistent_bytes": 4, "temporary_bytes": 4,
+-            "persistent_inodes": 1, "temporary_inodes": 1,
++            "name": f"stage:file-{index}",
++            "path": f"stage/file-{index}.json",
++            "persistent_bytes": 4,
++            "temporary_bytes": 4,
++            "persistent_inodes": 1,
++            "temporary_inodes": 1,
+         }
+         for index in range(3)
+     ]
+-    budget = {
+-        "schema": "unicom-fepf-publication-budget-v1", "publications": rows
+-    }
++    budget = {"schema": "unicom-fepf-publication-budget-v1", "publications": rows}
+     payload = (json.dumps(budget, indent=2) + "\n").encode()
+     budget_path = root / "preflight/publication-budget.json"
+     budget_path.write_bytes(payload)
+@@ -271,22 +272,34 @@
+ 
+     def capacity(_root: Path):
+         available = next(capacities)
+-        return type("Capacity", (), {
+-            "f_bavail": available, "f_frsize": 1, "f_favail": available,
+-        })()
++        return type(
++            "Capacity",
++            (),
++            {
++                "f_bavail": available,
++                "f_frsize": 1,
++                "f_favail": available,
++            },
++        )()
+ 
+     publisher = publication.BudgetedPublisher(
+-        campaign_root=root, budget_path=budget_path,
+-        budget_sha256=hashlib.sha256(payload).hexdigest(), exact_budget=budget,
++        campaign_root=root,
++        budget_path=budget_path,
++        budget_sha256=hashlib.sha256(payload).hexdigest(),
++        exact_budget=budget,
+         statvfs=capacity,
+     )
+     first = publisher.publish_bytes(
+-        name="stage:file-0", destination=stage / "file-0.json", payload=b"1234",
++        name="stage:file-0",
++        destination=stage / "file-0.json",
++        payload=b"1234",
+         validator=lambda candidate: candidate == b"1234" or None,
+     )
+     first.close()
+     with pytest.raises(OSError, match="capacity|space"):
+         publisher.publish_bytes(
+-            name="stage:file-1", destination=stage / "file-1.json", payload=b"1234",
++            name="stage:file-1",
++            destination=stage / "file-1.json",
++            payload=b"1234",
+             validator=lambda candidate: candidate == b"1234" or None,
+         )
+
+1 file would be reformatted

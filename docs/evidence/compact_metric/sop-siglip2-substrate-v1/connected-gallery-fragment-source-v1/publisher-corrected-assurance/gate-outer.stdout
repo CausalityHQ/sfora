@@ -1,0 +1,145 @@
+{
+ "steps": [
+  {
+   "name": "sentinel-selftest",
+   "exit": 1,
+   "wall_s": 0.109,
+   "maxrss_kb": 33364,
+   "timed_out": false
+  },
+  {
+   "name": "pytest-py314",
+   "exit": 0,
+   "wall_s": 0.99,
+   "maxrss_kb": 48752,
+   "timed_out": false
+  },
+  {
+   "name": "pytest-py312",
+   "exit": 0,
+   "wall_s": 1.565,
+   "maxrss_kb": 39268,
+   "timed_out": false
+  },
+  {
+   "name": "ruff-check",
+   "exit": 0,
+   "wall_s": 0.011,
+   "maxrss_kb": 20948,
+   "timed_out": false
+  },
+  {
+   "name": "ruff-format-check-prod",
+   "exit": 0,
+   "wall_s": 0.011,
+   "maxrss_kb": 18904,
+   "timed_out": false
+  },
+  {
+   "name": "ruff-format-diff-tests-current",
+   "exit": 1,
+   "wall_s": 0.016,
+   "maxrss_kb": 18904,
+   "timed_out": false
+  },
+  {
+   "name": "ruff-format-diff-tests-baseline",
+   "exit": 1,
+   "wall_s": 0.011,
+   "maxrss_kb": 18904,
+   "timed_out": false
+  },
+  {
+   "name": "mypy-current",
+   "exit": 1,
+   "wall_s": 3.058,
+   "maxrss_kb": 183156,
+   "timed_out": false
+  },
+  {
+   "name": "mypy-baseline",
+   "exit": 1,
+   "wall_s": 3.323,
+   "maxrss_kb": 182700,
+   "timed_out": false
+  },
+  {
+   "name": "finite-inverse",
+   "exit": 0,
+   "wall_s": 0.147,
+   "maxrss_kb": 23792,
+   "timed_out": false
+  }
+ ],
+ "facts": {
+  "head": "831ecdc30051fbf092ad7bacc5da378c6dbb8776",
+  "parent": "fb0e1661416e77cc320e497da7bb8f4721f00237",
+  "status_porcelain_before": "",
+  "sentinel_selftest_blocked_numpy": true,
+  "version_ruff": "ruff 0.15.20",
+  "version_mypy": "mypy 2.1.0 (compiled: yes)",
+  "version_python314": "Python 3.14.4",
+  "version_python312": "Python 3.12.13",
+  "ruff_format_tests": {
+   "baseline_exit": 1,
+   "current_exit": 1,
+   "normalized_diff_identical_to_baseline": false,
+   "current_hunk_old_ranges": [
+    [
+     145,
+     14
+    ],
+    [
+     219,
+     32
+    ],
+    [
+     258,
+     15
+    ],
+    [
+     274,
+     23
+    ]
+   ],
+   "added_line_ranges": [
+    [
+     9,
+     4
+    ],
+    [
+     296,
+     438
+    ]
+   ],
+   "hunks_overlapping_added_lines": [
+    [
+     [
+      274,
+      23
+     ],
+     [
+      296,
+      438
+     ]
+    ]
+   ]
+  },
+  "mypy": {
+   "current_exit": 1,
+   "baseline_exit": 1,
+   "current_count": 8,
+   "baseline_count": 8,
+   "normalized_multiset_identical": true,
+   "introduced": [],
+   "removed": [],
+   "verdict": "NO_NEW_OR_REMOVED_DIAGNOSTICS_VS_BASELINE (baseline pre-existing errors remain; this is NOT a mypy PASS)",
+   "normalization": "key=(path,severity,code,message,stripped source text of the flagged line); line numbers ignored"
+  },
+  "status_porcelain_after": "",
+  "head_after": "831ecdc30051fbf092ad7bacc5da378c6dbb8776",
+  "total_wall_s": 10.697,
+  "driver_maxrss_kb": 18904,
+  "rlimit_as_bytes": 1073741824
+ }
+}

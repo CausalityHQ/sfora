@@ -1,0 +1,10 @@
+src/sfora/atomic_publication.py:155: error: "object" has no attribute "f_bavail"  [attr-defined]
+src/sfora/atomic_publication.py:155: error: "object" has no attribute "f_frsize"  [attr-defined]
+src/sfora/atomic_publication.py:156: error: "object" has no attribute "f_favail"  [attr-defined]
+src/sfora/atomic_publication.py:182: error: Unsupported operand types for > ("int" and "object")  [operator]
+src/sfora/atomic_publication.py:198: error: Unsupported operand types for > ("int" and "object")  [operator]
+tests/test_atomic_publication.py:59: error: Returning Any from function declared to return "int"  [no-any-return]
+tests/test_atomic_publication.py:218: error: Returning Any from function declared to return "int"  [no-any-return]
+tests/test_atomic_publication.py:272: error: Function is missing a return type annotation  [no-untyped-def]
+pyproject.toml: note: unused section(s): module = ['datasets', 'h5py', 'sentence_transformers', 'sklearn.*', 'torch', 'torchvision', 'torchvision.*']
+Found 8 errors in 2 files (checked 2 source files)
