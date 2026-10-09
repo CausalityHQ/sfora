@@ -1,0 +1,7 @@
+# First-stage pooling probe decision: KILL
+
+Original CPU-only score normal exit0, 498.048s, invocation d989bc31d8224a53a7211f4dcbf085c2, host1463074816B, CUDA0, zero swap/events. Parent exact-source decision replay agrees with original KILL. Complete production re-admission of both exports, source/concat archived per-query replay, updated wires and persisted scoring replay all ran before quality.
+
+DeepFashion In-Shop official TRAIN-derived selection:1734queries,1715gallery,498products, seed179061. Control R@1=96.77047289504037%, mAP@R=82.76572206037198%; candidate R@1=96.77047289504037%, mAP@R=82.76189978877909%. R@1 outcome is identical for every query; AP improves48, worsens54, unchanged1632. Candidate-minus-control AP=-0.0038222715928892775 percentage points. Source/concat floors and paired costs pass, but required positive R@1 and nonnegative AP fail.
+
+No seed179069, full selection, sealed VAL, official test, or continued pooling-probe arm is eligible. First-stage policy computes no confidence intervals (bootstrap_draws0); this is an early-stop decision, not an uncertainty-qualified superiority or equivalence claim. No official/SOTA/speed/release result follows. Preserve the negative arm and original receipts. Continue the production goal with accepted-control installed parity and ONE independently reviewed, causally distinct TRAIN-only next mechanism; no loss/architecture sweep.

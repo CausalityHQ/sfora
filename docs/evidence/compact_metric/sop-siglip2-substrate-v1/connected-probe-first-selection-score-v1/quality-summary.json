@@ -1,0 +1,98 @@
+{
+  "decision": "KILL",
+  "dataset": "DeepFashion In-Shop",
+  "split": "official TRAIN-derived selection",
+  "queries": 1734,
+  "gallery": 1715,
+  "products": 498,
+  "seed": 179061,
+  "service_seconds": 498.048,
+  "host_peak_bytes": 1463074816,
+  "cuda_peak_bytes": 0,
+  "arms": {
+    "control": {
+      "recall_at_1": 96.77047289504037,
+      "map_at_r": 82.76572206037198
+    },
+    "candidate": {
+      "recall_at_1": 96.77047289504037,
+      "map_at_r": 82.76189978877909
+    }
+  },
+  "source": {
+    "recall_at_1": 96.30911188004615,
+    "map_at_r": 80.57229533585297
+  },
+  "concat": {
+    "recall_at_1": 96.48212226066897,
+    "map_at_r": 81.77754035543956
+  },
+  "delta_pp": {
+    "per_query_ap": -0.0038222715928892775,
+    "per_query_r1": 0
+  },
+  "query_differences": {
+    "per_query_r1": {
+      "improved": 0,
+      "worse": 0,
+      "unchanged": 1734
+    },
+    "per_query_ap": {
+      "improved": 48,
+      "worse": 54,
+      "unchanged": 1632
+    }
+  },
+  "uncertainty": "No bootstrap intervals in frozen first-stage gate (draws0); no full paired seeds/product or query CI qualified",
+  "seed179069_admissible": false,
+  "official_or_serving_qualified": false,
+  "optimizer_observation": {
+    "candidate_parameter_names": [
+      "A",
+      "C",
+      "head.probe"
+    ],
+    "optimizer_groups": [
+      {
+        "amsgrad": false,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "capturable": false,
+        "decoupled_weight_decay": true,
+        "differentiable": false,
+        "eps": 1e-08,
+        "foreach": false,
+        "fused": false,
+        "lr": 0.0001,
+        "maximize": false,
+        "weight_decay": 0.05
+      },
+      {
+        "amsgrad": false,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "capturable": false,
+        "decoupled_weight_decay": true,
+        "differentiable": false,
+        "eps": 1e-08,
+        "foreach": false,
+        "fused": false,
+        "lr": 1e-05,
+        "maximize": false,
+        "weight_decay": 0.05
+      }
+    ],
+    "head_probe_gradient_norm": {
+      "first": 0.0014927504847208482,
+      "last": 0.00042106526497872655,
+      "min": 0.0003990616617329249,
+      "max": 0.0015399111765735931,
+      "median": 0.00099600313046229
+    },
+    "interpretation": "Source/receipt observation only; Adam gradient scaling and actual parameter/attention displacement not measured. Does not establish undertraining or failure cause."
+  }
+}
