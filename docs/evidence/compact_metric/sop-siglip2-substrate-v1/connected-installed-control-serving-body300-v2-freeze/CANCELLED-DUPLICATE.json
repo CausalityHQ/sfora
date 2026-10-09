@@ -1,0 +1,9 @@
+{
+  "status": "UNSTAGED_DUPLICATE_CANCELLED",
+  "native_launched": false,
+  "remote_mutation": false,
+  "stage_exit": 1,
+  "reason": "Exclusive remote mkdir rejected the already existing source-v2. Original accepted serving-v2 evidence was recovered; do not stage or launch this draft.",
+  "original_evidence": "connected-installed-control-serving-v2",
+  "original_invocation_id": "ef1296b6d08041048773e6c335aefd6d"
+}
