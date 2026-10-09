@@ -1,0 +1,8 @@
+set -e
+/usr/bin/sha256sum -c <<'PINS'
+9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b  /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13
+d0c6be735ea62a09cfab6430d5bbaa69ce9ab279d4e066c95ccd681fa85dbfb5  /home/riomus/runs/sfora-connected-mlp-displacement-source-v1/measure_connected_mlp_displacement.py
+f9cea09a3ed0a047eebfad9bc20b5d5ba76237f5da9690416e94566778d82990  /home/riomus/runs/sfora-connected-mlp-displacement-source-v1/pass201_pa_source_v2_contract.py
+f2655139389c2f212d0678449947b4110bdcc31f4015c6d5d3344a8af5c41e70  /home/riomus/runs/sfora-connected-mlp-displacement-source-v1/authority.json
+PINS
+test ! -e /home/riomus/runs/sfora-connected-mlp-displacement-179061-v1.json; /usr/bin/systemd-run --user --unit=sfora-connected-mlp-displacement-179061-v1 --wait --pipe --collect --property=RuntimeMaxSec=120 --property=MemoryMax=1073741824 --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop /home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13 -I -B /home/riomus/runs/sfora-connected-mlp-displacement-source-v1/measure_connected_mlp_displacement.py --authority /home/riomus/runs/sfora-connected-mlp-displacement-source-v1/authority.json --authority-sha256 f2655139389c2f212d0678449947b4110bdcc31f4015c6d5d3344a8af5c41e70 --output /home/riomus/runs/sfora-connected-mlp-displacement-179061-v1.json

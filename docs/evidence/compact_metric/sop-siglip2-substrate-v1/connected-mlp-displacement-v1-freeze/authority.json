@@ -1,0 +1,30 @@
+{
+  "arms": {
+    "candidate": {
+      "bundle": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/candidate-179061-bundle/bundle.json",
+        "sha256": "3f1aecec973f7e13f6aa2724db845999ae2afccb6b4a0a0f908f65838ac79e4b"
+      },
+      "endpoint": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/candidate-179061-bundle/endpoint.pt",
+        "sha256": "22fba403532308becc3cac21e3c1fa71bdf053b4d9be014956c02dd128229e38"
+      }
+    },
+    "control": {
+      "bundle": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json",
+        "sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153"
+      },
+      "endpoint": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/endpoint.pt",
+        "sha256": "9e27e088ba11f0e6c87af451f810f67ebd975445b1c9686cc816fdb29a6d01b7"
+      }
+    }
+  },
+  "helper_source": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-displacement-source-v1/pass201_pa_source_v2_contract.py",
+    "sha256": "f9cea09a3ed0a047eebfad9bc20b5d5ba76237f5da9690416e94566778d82990"
+  },
+  "own_source_sha256": "d0c6be735ea62a09cfab6430d5bbaa69ce9ab279d4e066c95ccd681fa85dbfb5",
+  "schema": "sfora-connected-mlp-displacement-authority-v1"
+}
