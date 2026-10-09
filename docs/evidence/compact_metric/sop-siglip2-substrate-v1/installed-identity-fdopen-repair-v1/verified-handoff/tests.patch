@@ -1,0 +1,354 @@
+diff --git a/scripts/test_connected_artifact_identity.py b/scripts/test_connected_artifact_identity.py
+index 600164c3..0bc2cdc4 100644
+--- a/scripts/test_connected_artifact_identity.py
++++ b/scripts/test_connected_artifact_identity.py
+@@ -3,17 +3,20 @@
+ 
+ import ast
+ import copy
++import errno
+ import hashlib
+ import importlib.abc
+ import importlib.util
+ import inspect
++import io
+ import json
+ import os
+ import subprocess
+ import sys
+ import tempfile
+ import unittest
+-from pathlib import Path
++from pathlib import Path, PurePosixPath
++from unittest import mock
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ SOURCE = ROOT / "src/sfora/connected_artifact_identity.py"
+@@ -43,6 +46,91 @@ def no_old_reads(event, args):
+ sys.addaudithook(no_old_reads)
+ sys.meta_path.insert(0, NoNativeImports())
+ 
++ORIGINAL_SOURCE_SHA256 = "3886a1e0c21824824f296f810dcdb89af25a7365b857f7a5afff6c91ece4abc3"
++ORIGINAL_HELPER = """\
++def _installed_sha(path: PurePosixPath) -> str:
++    # Walk open directory descriptors so no parent or leaf symlink is followed.
++    directory = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
++    try:
++        for part in path.parts[1:-1]:
++            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
++            os.close(directory)
++            directory = child
++        source = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
++        with os.fdopen(source, "rb") as stream:
++            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
++                raise ValueError("installed source must be a regular nonsymlink file")
++            digest = hashlib.sha256()
++            while block := stream.read(1024 * 1024):
++                digest.update(block)
++            return digest.hexdigest()
++    except OSError as error:
++        raise ValueError("installed source must exist beneath nonsymlink directories") from error
++    finally:
++        os.close(directory)
++"""
++
++
++def restore_original_helper(data):
++    """Finite inverse of the descriptor-ownership repair: swap back the one helper."""
++    helpers = [
++        node
++        for node in ast.parse(data).body
++        if isinstance(node, ast.FunctionDef) and node.name == "_installed_sha"
++    ]
++    assert len(helpers) == 1
++    lines = data.splitlines(keepends=True)
++    return (
++        b"".join(lines[: helpers[0].lineno - 1])
++        + ORIGINAL_HELPER.encode()
++        + b"".join(lines[helpers[0].end_lineno :])
++    )
++
++
++class InverseSource(type(Path())):
++    """Whole-source reads see the original helper, so the AST pin of the other code holds."""
++
++    def read_bytes(self):
++        return restore_original_helper(super().read_bytes())
++
++
++RAW_SOURCE = SOURCE
++SOURCE = InverseSource(RAW_SOURCE)
++
++
++def load_module(name, path):
++    spec = importlib.util.spec_from_file_location(name, path)
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def open_fds():
++    return set(os.listdir("/proc/self/fd"))
++
++
++def close_leaks(seen):
++    """Close, as test hygiene only, a descriptor still open on the exact file it was."""
++    for fd, info in seen:
++        if still_open(fd, info):
++            os.close(fd)
++
++
++def still_open(fd, info):
++    try:
++        now = os.fstat(fd)
++    except OSError:
++        return False
++    return (now.st_dev, now.st_ino) == (info.st_dev, info.st_ino)
++
++
++class StopRun(BaseException):
++    pass
++
++
++class StopCleanup(BaseException):
++    pass
++
+ 
+ class IdentityTests(unittest.TestCase):
+     @classmethod
+@@ -446,5 +534,235 @@ class IdentityTests(unittest.TestCase):
+                 self.materialize(projected, roots=roots)
+ 
+ 
++class InstalledSourceOwnershipTests(unittest.TestCase):
++    """Genuine helper over tiny opaque temp files; only os.fdopen/os.close are observed."""
++
++    CONTENT = b"\x00opaque\xff" * 7
++    TRANSLATED = "installed source must exist beneath nonsymlink directories"
++
++    @classmethod
++    def setUpClass(cls):
++        cls.api = load_module("artifact_identity_ownership_under_test", RAW_SOURCE)
++
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.addCleanup(self.temp.cleanup)
++        self.dir = Path(self.temp.name).resolve()
++        self.source = self.dir / "opaque.bin"
++        self.source.write_bytes(self.CONTENT)
++        self.digest = hashlib.sha256(self.CONTENT).hexdigest()
++
++    def variant(self, name, data):
++        path = self.dir / (name + ".py")
++        path.write_bytes(data)
++        return load_module("artifact_identity_" + name, path)
++
++    def sha(self, path=None, module=None):
++        return (module or self.api)._installed_sha(PurePosixPath(path or self.source))
++
++    def watch(self, build=None):
++        """Observe os.fdopen/os.close for this test; closes counted are those after fdopen."""
++        seen, closed = [], []
++        real_fdopen, real_close = os.fdopen, os.close
++
++        def fdopen(fd, mode="rb", **kwargs):
++            seen.append((fd, os.fstat(fd)))
++            closed.clear()
++            return (build or real_fdopen)(fd, mode, **kwargs)
++
++        def close(fd):
++            closed.append(fd)
++            real_close(fd)
++
++        self.addCleanup(close_leaks, seen)
++        self.enterContext(mock.patch.object(os, "fdopen", fdopen))
++        self.enterContext(mock.patch.object(os, "close", close))
++        return seen, closed
++
++    def fail_before_adoption(self, errors, expected, module=None):
++        """Fail os.fdopen on the live, unadopted source; report raised errors and leaks."""
++        seen = []
++        queue = iter(errors)
++
++        def failing(fd, *args, **kwargs):
++            seen.append((fd, os.fstat(fd)))
++            raise next(queue)
++
++        raised = []
++        before = open_fds()
++        try:
++            with mock.patch.object(os, "fdopen", failing):
++                for _ in errors:
++                    with self.assertRaises(expected) as caught:
++                        self.sha(module=module)
++                    raised.append(caught.exception)
++            leaked = open_fds() != before
++        finally:
++            close_leaks(seen)
++        self.assertEqual([info.st_size for _, info in seen], [len(self.CONTENT)] * len(errors))
++        return raised, leaked
++
++    def test_fdopen_failure_before_adoption_closes_the_source_descriptor(self):
++        os_error = OSError(errno.EMFILE, "injected")
++        for error, expected in (
++            (os_error, ValueError),
++            (MemoryError("injected"), MemoryError),
++            (StopRun("injected"), StopRun),
++        ):
++            with self.subTest(error=type(error).__name__):
++                (raised,), leaked = self.fail_before_adoption([error], expected)
++                self.assertFalse(leaked)
++                if error is os_error:
++                    self.assertEqual(str(raised), self.TRANSLATED)
++                    self.assertIs(raised.__cause__, error)
++                else:
++                    self.assertIs(raised, error)
++                    self.assertIsNone(raised.__cause__)
++                self.assertFalse(hasattr(error, "__notes__"))
++
++    def test_repeated_failed_adoption_leaves_no_descriptor(self):
++        errors = [OSError(errno.EMFILE, "injected") for _ in range(32)]
++        raised, leaked = self.fail_before_adoption(errors, ValueError)
++        self.assertFalse(leaked)
++        self.assertTrue(all(r.__cause__ is e for r, e in zip(raised, errors, strict=True)))
++        self.assertEqual(self.sha(), self.digest)
++
++    def test_successful_digest_closes_source_once_and_leaves_no_descriptor(self):
++        seen, closed = self.watch()
++        before = open_fds()
++        self.assertEqual(self.sha(), self.digest)
++        self.assertEqual(open_fds(), before)
++        self.assertLessEqual(closed.count(seen[0][0]), 1)
++
++    def test_read_failure_after_adoption_is_not_closed_twice(self):
++        class Unreadable(io.BufferedReader):
++            def read(self, size=-1):
++                raise failure
++
++        def build(fd, mode, **kwargs):
++            return Unreadable(io.FileIO(fd, mode, closefd=kwargs.get("closefd", True)))
++
++        seen, closed = self.watch(build)
++        for failure, expected in (
++            (OSError(errno.EIO, "injected read"), ValueError),
++            (RuntimeError("injected read"), RuntimeError),
++        ):
++            with self.subTest(failure=type(failure).__name__):
++                seen.clear()
++                before = open_fds()
++                with self.assertRaises(expected) as caught:
++                    self.sha()
++                self.assertEqual(open_fds(), before)
++                if expected is ValueError:
++                    self.assertEqual(str(caught.exception), self.TRANSLATED)
++                    self.assertIs(caught.exception.__cause__, failure)
++                else:
++                    self.assertIs(caught.exception, failure)
++                self.assertEqual(len(seen), 1)
++                self.assertFalse(still_open(*seen[0]))
++                self.assertLessEqual(closed.count(seen[0][0]), 1)
++
++    def test_rejections_keep_their_error_and_leave_no_descriptor(self):
++        link = self.dir / "link.bin"
++        link.symlink_to(self.source)
++        real = self.dir / "real"
++        real.mkdir()
++        (real / "leaf.bin").write_bytes(self.CONTENT)
++        alias = self.dir / "alias"
++        alias.symlink_to(real, target_is_directory=True)
++        directory = self.dir / "directory.bin"
++        directory.mkdir()
++        fifo = self.dir / "fifo.bin"
++        os.mkfifo(fifo)
++        self.watch()
++        for path, message in (
++            (link, self.TRANSLATED),
++            (alias / "leaf.bin", self.TRANSLATED),
++            (self.dir / "missing.bin", self.TRANSLATED),
++            (directory, self.TRANSLATED),
++            (fifo, "installed source must be a regular nonsymlink file"),
++        ):
++            with self.subTest(path=path.name):
++                before = open_fds()
++                with self.assertRaises(ValueError) as caught:
++                    self.sha(path)
++                self.assertEqual(str(caught.exception), message)
++                self.assertEqual(open_fds(), before)
++                # The unadopted source close succeeded, so it was neither leaked nor doubled.
++                self.assertEqual(getattr(caught.exception.__cause__, "__notes__", []), [])
++
++    def test_finite_inverse_restores_the_original_helper_bytes(self):
++        fixed = hashlib.sha256(Path.read_bytes(RAW_SOURCE)).hexdigest()
++        restored = restore_original_helper(Path.read_bytes(RAW_SOURCE))
++        self.assertNotEqual(fixed, ORIGINAL_SOURCE_SHA256)
++        self.assertEqual(hashlib.sha256(restored).hexdigest(), ORIGINAL_SOURCE_SHA256)
++        again = hashlib.sha256(restore_original_helper(restored)).hexdigest()
++        self.assertEqual(again, ORIGINAL_SOURCE_SHA256)
++
++    def test_original_helper_leaks_and_repaired_helper_does_not(self):
++        original = self.variant("original", restore_original_helper(Path.read_bytes(RAW_SOURCE)))
++        errors = [OSError(errno.EMFILE, "injected")]
++        self.assertTrue(self.fail_before_adoption(errors, ValueError, original)[1])
++        errors = [OSError(errno.EMFILE, "injected")]
++        self.assertFalse(self.fail_before_adoption(errors, ValueError)[1])
++        # A real directory leaf makes the genuine fdopen itself fail before adoption.
++        directory = self.dir / "directory.bin"
++        directory.mkdir()
++        seen, _ = self.watch()
++        for module, leaked in ((original, True), (self.api, False)):
++            before = open_fds()
++            with self.assertRaises(ValueError):
++                self.sha(directory, module)
++            changed = open_fds() != before
++            close_leaks(seen)
++            seen.clear()
++            self.assertEqual(changed, leaked)
++
++    def test_close_failure_after_failed_adoption_keeps_the_primary(self):
++        real_close = os.close
++        state = {}
++
++        def failing(fd, *args, **kwargs):
++            state["fd"] = fd
++            if state["released"]:
++                real_close(fd)  # as if io.open had already closed the raw stream
++            raise state["error"]
++
++        def close(fd):
++            real_close(fd)
++            if fd == state.get("fd") and not state["released"]:
++                raise state["cleanup"]
++
++        eio = OSError(errno.EIO, "injected close")
++        for released, error, expected, cleanup in (
++            (False, OSError(errno.EMFILE, "injected"), ValueError, eio),
++            (True, OSError(errno.EMFILE, "injected"), ValueError, None),
++            (False, MemoryError("injected"), MemoryError, eio),
++            (True, StopRun("injected"), StopRun, None),
++            (False, OSError(errno.EMFILE, "injected"), ValueError, StopCleanup("injected close")),
++            (False, StopRun("injected"), StopRun, StopCleanup("injected close")),
++        ):
++            with self.subTest(
++                released=released, error=type(error).__name__, cleanup=type(cleanup).__name__
++            ):
++                state.clear()
++                state.update(released=released, error=error, cleanup=cleanup)
++                before = open_fds()
++                with (
++                    mock.patch.object(os, "fdopen", failing),
++                    mock.patch.object(os, "close", close),
++                    self.assertRaises(expected) as caught,
++                ):
++                    self.sha()
++                self.assertEqual(open_fds(), before)
++                raised = caught.exception
++                if expected is ValueError:
++                    self.assertEqual(str(raised), self.TRANSLATED)
++                    raised = raised.__cause__
++                self.assertIs(raised, error)
++                (note,) = error.__notes__
++                self.assertIn("Bad file descriptor" if released else "injected close", note)
++
++
+ if __name__ == "__main__":
+     unittest.main()

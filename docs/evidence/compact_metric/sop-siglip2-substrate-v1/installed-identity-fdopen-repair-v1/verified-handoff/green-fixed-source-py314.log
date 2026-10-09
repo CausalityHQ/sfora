@@ -1,0 +1,17 @@
+test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) ... ok
+test_fdopen_failure_before_adoption_closes_the_source_descriptor (__main__.InstalledSourceOwnershipTests.test_fdopen_failure_before_adoption_closes_the_source_descriptor) ... ok
+test_finite_inverse_restores_the_original_helper_bytes (__main__.InstalledSourceOwnershipTests.test_finite_inverse_restores_the_original_helper_bytes) ... ok
+test_original_helper_leaks_and_repaired_helper_does_not (__main__.InstalledSourceOwnershipTests.test_original_helper_leaks_and_repaired_helper_does_not) ... ok
+test_read_failure_after_adoption_is_not_closed_twice (__main__.InstalledSourceOwnershipTests.test_read_failure_after_adoption_is_not_closed_twice) ... ok
+test_rejections_keep_their_error_and_leave_no_descriptor (__main__.InstalledSourceOwnershipTests.test_rejections_keep_their_error_and_leave_no_descriptor) ... ok
+test_repeated_failed_adoption_leaves_no_descriptor (__main__.InstalledSourceOwnershipTests.test_repeated_failed_adoption_leaves_no_descriptor) ... ok
+test_successful_digest_closes_source_once_and_leaves_no_descriptor (__main__.InstalledSourceOwnershipTests.test_successful_digest_closes_source_once_and_leaves_no_descriptor) ... ok
+test_typing_erasure_restores_original_whole_source_ast (__main__.IdentityTests.test_typing_erasure_restores_original_whole_source_ast) ... ok
+test_installed_source_symlink_directory_fifo_or_missing_rejects (__main__.IdentityTests.test_installed_source_symlink_directory_fifo_or_missing_rejects) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.029s
+
+OK
+wall=0.20s
+exit=0

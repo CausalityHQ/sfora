@@ -1,0 +1,38 @@
+{
+  "src_helper_changed": true,
+  "src_other_function_ast_identical": true,
+  "src_other_function_count": 7,
+  "src_prefix_identical": true,
+  "src_sha256_base": "3886a1e0c21824824f296f810dcdb89af25a7365b857f7a5afff6c91ece4abc3",
+  "src_sha256_new": "75b02e17324bbf588fbd3d4091cfb6b2044c50854718c8d3fc1a24e7873ffe1b",
+  "src_suffix_identical": true,
+  "test_base_toplevel_nodes_changed": [
+    "('ImportFrom', \"ImportFrom(module='pathlib', names=[alias(name='Path')], level=0)\")"
+  ],
+  "test_identitytests_members_base": 18,
+  "test_identitytests_members_identical": true,
+  "test_identitytests_members_new_only": [],
+  "test_line19_SOURCE_assignment_unchanged": true,
+  "test_new_toplevel_additions": [
+    "Assign(targets=[Name(id='ORIGINAL_HELPER', ctx=Store())], value=Constant(value='",
+    "Assign(targets=[Name(id='ORIGINAL_SOURCE_SHA256', ctx=Store())], value=Constant(",
+    "Assign(targets=[Name(id='RAW_SOURCE', ctx=Store())], value=Name(id='SOURCE', ctx",
+    "Assign(targets=[Name(id='SOURCE', ctx=Store())], value=Call(func=Name(id='Invers",
+    "Import(names=[alias(name='errno')])",
+    "Import(names=[alias(name='io')])",
+    "ImportFrom(module='pathlib', names=[alias(name='Path'), alias(name='PurePosixPat",
+    "ImportFrom(module='unittest', names=[alias(name='mock')], level=0)",
+    "InstalledSourceOwnershipTests",
+    "InverseSource",
+    "StopCleanup",
+    "StopRun",
+    "close_leaks",
+    "load_module",
+    "open_fds",
+    "restore_original_helper",
+    "still_open"
+  ],
+  "test_old_test_methods": 13,
+  "test_sha256_base": "50db870330ba0cf830483eae477f0b80ce5146439578eb415bb1419b98974f1f",
+  "test_sha256_new": "fc1320325d2e1afea5bcb753398781a83e5a502759725e89c11d9994e0a83b76"
+}

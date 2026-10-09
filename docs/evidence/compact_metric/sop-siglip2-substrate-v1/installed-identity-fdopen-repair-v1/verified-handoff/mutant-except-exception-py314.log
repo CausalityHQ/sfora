@@ -1,0 +1,61 @@
+test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) ... 
+  test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='OSError', cleanup='StopCleanup') ... ERROR
+  test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='StopRun', cleanup='StopCleanup') ... ERROR
+
+======================================================================
+ERROR: test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='OSError', cleanup='StopCleanup')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/src/sfora/connected_artifact_identity.py", line 180, in _installed_sha
+    stream = os.fdopen(source, "rb")
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/scripts/test_connected_artifact_identity.py", line 729, in failing
+    raise state["error"]
+OSError: [Errno 24] injected
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/scripts/test_connected_artifact_identity.py", line 756, in test_close_failure_after_failed_adoption_keeps_the_primary
+    self.sha()
+    ~~~~~~~~^^
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/scripts/test_connected_artifact_identity.py", line 561, in sha
+    return (module or self.api)._installed_sha(PurePosixPath(path or self.source))
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/src/sfora/connected_artifact_identity.py", line 184, in _installed_sha
+    os.close(source)
+    ~~~~~~~~^^^^^^^^
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/scripts/test_connected_artifact_identity.py", line 734, in close
+    raise state["cleanup"]
+StopCleanup: injected close
+
+======================================================================
+ERROR: test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='StopRun', cleanup='StopCleanup')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/src/sfora/connected_artifact_identity.py", line 180, in _installed_sha
+    stream = os.fdopen(source, "rb")
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/scripts/test_connected_artifact_identity.py", line 729, in failing
+    raise state["error"]
+StopRun: injected
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/scripts/test_connected_artifact_identity.py", line 756, in test_close_failure_after_failed_adoption_keeps_the_primary
+    self.sha()
+    ~~~~~~~~^^
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/scripts/test_connected_artifact_identity.py", line 561, in sha
+    return (module or self.api)._installed_sha(PurePosixPath(path or self.source))
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/src/sfora/connected_artifact_identity.py", line 184, in _installed_sha
+    os.close(source)
+    ~~~~~~~~^^^^^^^^
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mut/scripts/test_connected_artifact_identity.py", line 734, in close
+    raise state["cleanup"]
+StopCleanup: injected close
+
+----------------------------------------------------------------------
+Ran 1 test in 0.007s
+
+FAILED (errors=2)
+exit=1

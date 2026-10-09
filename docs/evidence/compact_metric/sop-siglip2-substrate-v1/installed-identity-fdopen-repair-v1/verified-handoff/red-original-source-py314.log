@@ -1,0 +1,146 @@
+test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) ... 
+  test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='OSError', cleanup='OSError') ... FAIL
+  test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=True, error='OSError', cleanup='NoneType') ... ERROR
+  test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='MemoryError', cleanup='OSError') ... FAIL
+  test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=True, error='StopRun', cleanup='NoneType') ... ERROR
+  test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='OSError', cleanup='StopCleanup') ... FAIL
+  test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='StopRun', cleanup='StopCleanup') ... FAIL
+test_fdopen_failure_before_adoption_closes_the_source_descriptor (__main__.InstalledSourceOwnershipTests.test_fdopen_failure_before_adoption_closes_the_source_descriptor) ... 
+  test_fdopen_failure_before_adoption_closes_the_source_descriptor (__main__.InstalledSourceOwnershipTests.test_fdopen_failure_before_adoption_closes_the_source_descriptor) (error='OSError') ... FAIL
+  test_fdopen_failure_before_adoption_closes_the_source_descriptor (__main__.InstalledSourceOwnershipTests.test_fdopen_failure_before_adoption_closes_the_source_descriptor) (error='MemoryError') ... FAIL
+  test_fdopen_failure_before_adoption_closes_the_source_descriptor (__main__.InstalledSourceOwnershipTests.test_fdopen_failure_before_adoption_closes_the_source_descriptor) (error='StopRun') ... FAIL
+test_finite_inverse_restores_the_original_helper_bytes (__main__.InstalledSourceOwnershipTests.test_finite_inverse_restores_the_original_helper_bytes) ... FAIL
+test_original_helper_leaks_and_repaired_helper_does_not (__main__.InstalledSourceOwnershipTests.test_original_helper_leaks_and_repaired_helper_does_not) ... FAIL
+test_read_failure_after_adoption_is_not_closed_twice (__main__.InstalledSourceOwnershipTests.test_read_failure_after_adoption_is_not_closed_twice) ... ok
+test_rejections_keep_their_error_and_leave_no_descriptor (__main__.InstalledSourceOwnershipTests.test_rejections_keep_their_error_and_leave_no_descriptor) ... 
+  test_rejections_keep_their_error_and_leave_no_descriptor (__main__.InstalledSourceOwnershipTests.test_rejections_keep_their_error_and_leave_no_descriptor) (path='directory.bin') ... FAIL
+test_repeated_failed_adoption_leaves_no_descriptor (__main__.InstalledSourceOwnershipTests.test_repeated_failed_adoption_leaves_no_descriptor) ... FAIL
+test_successful_digest_closes_source_once_and_leaves_no_descriptor (__main__.InstalledSourceOwnershipTests.test_successful_digest_closes_source_once_and_leaves_no_descriptor) ... ok
+
+======================================================================
+ERROR: test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=True, error='OSError', cleanup='NoneType')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 763, in test_close_failure_after_failed_adoption_keeps_the_primary
+    (note,) = error.__notes__
+              ^^^^^^^^^^^^^^^
+AttributeError: 'OSError' object has no attribute '__notes__'. Did you mean: '__ne__'?
+
+======================================================================
+ERROR: test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=True, error='StopRun', cleanup='NoneType')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 763, in test_close_failure_after_failed_adoption_keeps_the_primary
+    (note,) = error.__notes__
+              ^^^^^^^^^^^^^^^
+AttributeError: 'StopRun' object has no attribute '__notes__'. Did you mean: '__ne__'?
+
+======================================================================
+FAIL: test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='OSError', cleanup='OSError')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 757, in test_close_failure_after_failed_adoption_keeps_the_primary
+    self.assertEqual(open_fds(), before)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: Items in the first set but not the second:
+'4'
+
+======================================================================
+FAIL: test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='MemoryError', cleanup='OSError')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 757, in test_close_failure_after_failed_adoption_keeps_the_primary
+    self.assertEqual(open_fds(), before)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: Items in the first set but not the second:
+'5'
+
+======================================================================
+FAIL: test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='OSError', cleanup='StopCleanup')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 757, in test_close_failure_after_failed_adoption_keeps_the_primary
+    self.assertEqual(open_fds(), before)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: Items in the first set but not the second:
+'6'
+
+======================================================================
+FAIL: test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) (released=False, error='StopRun', cleanup='StopCleanup')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 757, in test_close_failure_after_failed_adoption_keeps_the_primary
+    self.assertEqual(open_fds(), before)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: Items in the first set but not the second:
+'7'
+
+======================================================================
+FAIL: test_fdopen_failure_before_adoption_closes_the_source_descriptor (__main__.InstalledSourceOwnershipTests.test_fdopen_failure_before_adoption_closes_the_source_descriptor) (error='OSError')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 614, in test_fdopen_failure_before_adoption_closes_the_source_descriptor
+    self.assertFalse(leaked)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_fdopen_failure_before_adoption_closes_the_source_descriptor (__main__.InstalledSourceOwnershipTests.test_fdopen_failure_before_adoption_closes_the_source_descriptor) (error='MemoryError')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 614, in test_fdopen_failure_before_adoption_closes_the_source_descriptor
+    self.assertFalse(leaked)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_fdopen_failure_before_adoption_closes_the_source_descriptor (__main__.InstalledSourceOwnershipTests.test_fdopen_failure_before_adoption_closes_the_source_descriptor) (error='StopRun')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 614, in test_fdopen_failure_before_adoption_closes_the_source_descriptor
+    self.assertFalse(leaked)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_finite_inverse_restores_the_original_helper_bytes (__main__.InstalledSourceOwnershipTests.test_finite_inverse_restores_the_original_helper_bytes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 697, in test_finite_inverse_restores_the_original_helper_bytes
+    self.assertNotEqual(fixed, ORIGINAL_SOURCE_SHA256)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '3886a1e0c21824824f296f810dcdb89af25a7365b857f7a5afff6c91ece4abc3' == '3886a1e0c21824824f296f810dcdb89af25a7365b857f7a5afff6c91ece4abc3'
+
+======================================================================
+FAIL: test_original_helper_leaks_and_repaired_helper_does_not (__main__.InstalledSourceOwnershipTests.test_original_helper_leaks_and_repaired_helper_does_not)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 707, in test_original_helper_leaks_and_repaired_helper_does_not
+    self.assertFalse(self.fail_before_adoption(errors, ValueError)[1])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_rejections_keep_their_error_and_leave_no_descriptor (__main__.InstalledSourceOwnershipTests.test_rejections_keep_their_error_and_leave_no_descriptor) (path='directory.bin')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 690, in test_rejections_keep_their_error_and_leave_no_descriptor
+    self.assertEqual(open_fds(), before)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError: Items in the first set but not the second:
+'8'
+
+======================================================================
+FAIL: test_repeated_failed_adoption_leaves_no_descriptor (__main__.InstalledSourceOwnershipTests.test_repeated_failed_adoption_leaves_no_descriptor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1001/-home-rb-worktrees-sfora-installed-identity-fdopen-repair-20261009/ede2eb20-0ae4-45f0-b21f-5f84ddc4e3b2/scratchpad/mirror/scripts/test_connected_artifact_identity.py", line 626, in test_repeated_failed_adoption_leaves_no_descriptor
+    self.assertFalse(leaked)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.018s
+
+FAILED (failures=11, errors=2)
+exit=1

@@ -1,0 +1,42 @@
+{
+  "base_commit": "c451be39b47f1cc20b1acae23c2fca5eb12b462d",
+  "baseline_evidence": "full 13-test run, py3.12 + py3.14, 13/13 OK, taken once before the narrow-only instruction; preserved, not repeated",
+  "committed_contract_read_before_code": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/installed-identity-fdopen-repair-v1/{contract.md,original-falsifier.json}",
+  "design": {
+    "fix": "os.fdopen(source, 'rb', closefd=False) inside try/finally os.close(source); the helper stays sole owner of the source fd on every path",
+    "known_ceiling": "an async exception between os.open returning and try entry cannot be closed in pure Python; the mid-walk os.close(directory)/child hand-off is untouched (out of scope)",
+    "preserved": "exact OSError->ValueError translation with cause; non-OSError BaseException propagates by identity; regular-file check; directory walk and directory close; digest; no sweep/GC/retry/rebinding",
+    "why_not_adopted_flag": "io.open closes the raw FileIO itself when a failure happens after FileIO creation (e.g. buffer allocation MemoryError) but leaves the fd open when FileIO init fails first. After a failed fdopen the helper cannot tell which, so close-on-failure either leaks or double-closes (EBADF masking the primary, or closing a reused fd number under threads). closefd=False removes the ambiguity: nothing is adopted, so nothing can be double-closed."
+  },
+  "finite_inverse": "in the test module: ast-locate the single module-level FunctionDef _installed_sha, replace exactly its line span with the embedded ORIGINAL_HELPER literal; a test asserts inverse(fixed source) sha256 == original_source_sha256 (so every other byte is identical) and inverse(original) == original",
+  "new_helper_sha256": "8efb650b95913668b354607204918ade757d443ca02e2abaccff88e290ed972b",
+  "new_helper_text": "def _installed_sha(path: PurePosixPath) -> str:\n    # Walk open directory descriptors so no parent or leaf symlink is followed.\n    directory = os.open(\"/\", os.O_RDONLY | os.O_DIRECTORY)\n    try:\n        for part in path.parts[1:-1]:\n            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)\n            os.close(directory)\n            directory = child\n        source = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)\n        try:\n            # closefd=False keeps this function the sole owner of source, whatever fdopen does.\n            with os.fdopen(source, \"rb\", closefd=False) as stream:\n                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):\n                    raise ValueError(\"installed source must be a regular nonsymlink file\")\n                digest = hashlib.sha256()\n                while block := stream.read(1024 * 1024):\n                    digest.update(block)\n                return digest.hexdigest()\n        finally:\n            os.close(source)\n    except OSError as error:\n        raise ValueError(\"installed source must exist beneath nonsymlink directories\") from error\n    finally:\n        os.close(directory)\n",
+  "new_tests": "new class InstalledSourceOwnershipTests (old IdentityTests untouched), own tmp dir of tiny opaque files, no mocks of the filesystem: fdopen failure before adoption with OSError(EMFILE) / MemoryError / BaseException subclass; each asserts captured source fd was live at injection, is closed after, /proc/self/fd set unchanged, OSError gives ValueError with __cause__ is injected, others propagate by identity; repeated x32 no leak; successful digest equals hashlib and no fd change; real stream whose read raises after adoption (OSError->ValueError+cause, other propagates) closes source exactly once (os.close recorder) without EBADF; symlink leaf, symlinked parent, directory, fifo, missing rejected with ValueError and no fd change; differential: original-restored helper leaks 1 per injected failure, fixed 0; mutant 'closefd default' fails the success path",
+  "not_touched": [
+    "projection",
+    "expected identities",
+    "schemas",
+    "hashes",
+    "native authorization",
+    "all other production functions",
+    "the 13 existing test bodies"
+  ],
+  "old_helper_sha256": "099730e3425cc5e8202e04fd107ccf91676962209928897046d922a247ae9a56",
+  "old_helper_text": "def _installed_sha(path: PurePosixPath) -> str:\n    # Walk open directory descriptors so no parent or leaf symlink is followed.\n    directory = os.open(\"/\", os.O_RDONLY | os.O_DIRECTORY)\n    try:\n        for part in path.parts[1:-1]:\n            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)\n            os.close(directory)\n            directory = child\n        source = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)\n        with os.fdopen(source, \"rb\") as stream:\n            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):\n                raise ValueError(\"installed source must be a regular nonsymlink file\")\n            digest = hashlib.sha256()\n            while block := stream.read(1024 * 1024):\n                digest.update(block)\n            return digest.hexdigest()\n    except OSError as error:\n        raise ValueError(\"installed source must exist beneath nonsymlink directories\") from error\n    finally:\n        os.close(directory)\n",
+  "old_test_1_compat": "old test 1 pins the whole erased AST to f81dd383 and any helper change would fail it. Its body stays byte-identical; a module-level InverseSource(Path) subclass bound AFTER the class definitions makes SOURCE.read_bytes() return the finite inverse, so test 1 now proves erasure + narrow inverse == original AST. Line 19 SOURCE assignment also unchanged. Alternative the root may prefer: a one-line edit of test 1.",
+  "original_source_sha256": "3886a1e0c21824824f296f810dcdb89af25a7365b857f7a5afff6c91ece4abc3",
+  "owned_files": [
+    "src/sfora/connected_artifact_identity.py",
+    "scripts/test_connected_artifact_identity.py"
+  ],
+  "provisioning": "sparse non-cone: pyproject.toml, src/sfora/__init__.py, the 2 owned files, installed-identity-fdopen-repair-v1/, and the single committed receipt.json that old test 3 reads (6.2MB); then exact ff-only to base",
+  "run_rules": {
+    "final": "full affected serial <=120s AS1GiB, ruff 0.15.20 + mypy 2.1 strict on the two owned files, exact 2 Roman commit, no trailers, HOLD for root review",
+    "green": "same selection after the fix",
+    "limits": "ulimit -v 1048576, timeout 15, python -I -B, py3.12 + py3.14",
+    "no_whole_module_run_until_final_release": true,
+    "red": "tests written first, run only InstalledSourceOwnershipTests against the unchanged original source"
+  },
+  "schema": "installed-identity-fdopen-repair-precode-contract-v1",
+  "superseded_by": "installed-identity-fdopen-repair-precode-contract-v2.json (root review: close source ONLY if adoption fails; stream owns fd afterwards)"
+}

@@ -1,0 +1,18 @@
+src/sfora/__init__.py:7: error: Cannot find implementation or library stub for module named "sfora.ablation"  [import-not-found]
+src/sfora/__init__.py:7: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+src/sfora/__init__.py:14: error: Cannot find implementation or library stub for module named "sfora.api"  [import-not-found]
+src/sfora/__init__.py:15: error: Cannot find implementation or library stub for module named "sfora.compose"  [import-not-found]
+src/sfora/__init__.py:28: error: Cannot find implementation or library stub for module named "sfora.data"  [import-not-found]
+src/sfora/__init__.py:40: error: Cannot find implementation or library stub for module named "sfora.encoder_ablation"  [import-not-found]
+src/sfora/__init__.py:47: error: Cannot find implementation or library stub for module named "sfora.encoder_training"  [import-not-found]
+src/sfora/__init__.py:55: error: Cannot find implementation or library stub for module named "sfora.evaluation"  [import-not-found]
+src/sfora/__init__.py:64: error: Cannot find implementation or library stub for module named "sfora.experiments"  [import-not-found]
+src/sfora/__init__.py:73: error: Cannot find implementation or library stub for module named "sfora.image_benchmark"  [import-not-found]
+src/sfora/__init__.py:84: error: Cannot find implementation or library stub for module named "sfora.losses"  [import-not-found]
+src/sfora/__init__.py:85: error: Cannot find implementation or library stub for module named "sfora.publication"  [import-not-found]
+src/sfora/__init__.py:92: error: Cannot find implementation or library stub for module named "sfora.remote"  [import-not-found]
+src/sfora/__init__.py:99: error: Cannot find implementation or library stub for module named "sfora.report"  [import-not-found]
+src/sfora/__init__.py:109: error: Cannot find implementation or library stub for module named "sfora.text_baselines"  [import-not-found]
+src/sfora/__init__.py:120: error: Cannot find implementation or library stub for module named "sfora.training"  [import-not-found]
+/home/rb/worktrees/sfora-installed-identity-fdopen-repair-20261009/pyproject.toml: note: unused section(s): module = ['datasets', 'h5py', 'sentence_transformers', 'sklearn.*', 'torch', 'torchvision', 'torchvision.*']
+Found 15 errors in 1 file (checked 1 source file)

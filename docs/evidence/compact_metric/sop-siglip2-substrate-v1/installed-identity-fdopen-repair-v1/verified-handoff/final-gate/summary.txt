@@ -1,0 +1,11 @@
+tests-py312 rc=0 wall_ms=170
+tests-py314 rc=0 wall_ms=175
+ruff-check rc=0 wall_ms=17
+ruff-format-check rc=0 wall_ms=17
+mypy-src-in-package-new rc=1 wall_ms=1073
+mypy-src-in-package-base rc=1 wall_ms=1042
+mypy-src-standalone-new rc=0 wall_ms=1044
+mypy-src-standalone-base rc=0 wall_ms=937
+mypy-tests-new rc=1 wall_ms=1548
+mypy-tests-base rc=1 wall_ms=1412
+done

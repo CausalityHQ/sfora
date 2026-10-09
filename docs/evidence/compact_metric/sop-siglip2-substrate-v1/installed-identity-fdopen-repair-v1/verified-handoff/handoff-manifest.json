@@ -1,0 +1,134 @@
+{
+  "author_committer": "Roman Bartusiak <riomus@gmail.com> (configured identity), no trailers, 2 files only",
+  "baseline_note": "baseline-full13 log predates the narrow-only instruction and is preserved as evidence; only the one released gate ran the whole module afterwards",
+  "branch": "devbox/installed-identity-fdopen-repair-20261009",
+  "commit": "acce797d82c85d2fd4b0f71989614e9c3d686bdf",
+  "files": {
+    "scripts/test_connected_artifact_identity.py": {
+      "base_sha256": "50db870330ba0cf830483eae477f0b80ce5146439578eb415bb1419b98974f1f",
+      "committed_sha256": "fc1320325d2e1afea5bcb753398781a83e5a502759725e89c11d9994e0a83b76",
+      "diffstat": "+319 -1 (the -1 is the pathlib import line)",
+      "git_blob": "0bc2cdc43df319c5256394a38fb8efafe3683540"
+    },
+    "src/sfora/connected_artifact_identity.py": {
+      "base_sha256": "3886a1e0c21824824f296f810dcdb89af25a7365b857f7a5afff6c91ece4abc3",
+      "committed_sha256": "75b02e17324bbf588fbd3d4091cfb6b2044c50854718c8d3fc1a24e7873ffe1b",
+      "diffstat": "+10 -1",
+      "git_blob": "e1137929f4176570d50813c14b954ebd5711fa9a"
+    }
+  },
+  "final_gate": {
+    "limits": "outer timeout 120, ulimit -v 1048576, python -I -B, py3.12.13 then py3.14, serial",
+    "mypy_2.1_strict_truthful_comparison": {
+      "source_in_package": "exit 1 for both base and new: IDENTICAL 15 errors, all in src/sfora/__init__.py (sparse checkout lacks the sibling modules it imports), 0 in the owned file",
+      "source_standalone": "exit 0 (no issues) for both base and new",
+      "tests_file": "exit 1 for both: base 84 errors -> new 158; untyped test file, same categories (no-untyped-call 41->79, no-untyped-def 27->54, attr-defined 6->9, union-attr 2->4, assignment 1->2, arg-type 2->3, index 5, plus misc 1 and var-annotated 1 new). Not strict-clean at base; no type error in production code"
+    },
+    "released_by": "root, one serial gate",
+    "ruff_0.15.20": "check and format --check clean on both owned files",
+    "tests": "21/21 (13 old + 8 new) OK on both Pythons",
+    "tools": {
+      "mypy-src-in-package-base": {
+        "exit_code": 1,
+        "raw_exit_file": "final-gate/mypy-src-in-package-base.exit",
+        "raw_log": "final-gate/mypy-src-in-package-base.log",
+        "wall_ms": 1042
+      },
+      "mypy-src-in-package-new": {
+        "exit_code": 1,
+        "raw_exit_file": "final-gate/mypy-src-in-package-new.exit",
+        "raw_log": "final-gate/mypy-src-in-package-new.log",
+        "wall_ms": 1073
+      },
+      "mypy-src-standalone-base": {
+        "exit_code": 0,
+        "raw_exit_file": "final-gate/mypy-src-standalone-base.exit",
+        "raw_log": "final-gate/mypy-src-standalone-base.log",
+        "wall_ms": 937
+      },
+      "mypy-src-standalone-new": {
+        "exit_code": 0,
+        "raw_exit_file": "final-gate/mypy-src-standalone-new.exit",
+        "raw_log": "final-gate/mypy-src-standalone-new.log",
+        "wall_ms": 1044
+      },
+      "mypy-tests-base": {
+        "exit_code": 1,
+        "raw_exit_file": "final-gate/mypy-tests-base.exit",
+        "raw_log": "final-gate/mypy-tests-base.log",
+        "wall_ms": 1412
+      },
+      "mypy-tests-new": {
+        "exit_code": 1,
+        "raw_exit_file": "final-gate/mypy-tests-new.exit",
+        "raw_log": "final-gate/mypy-tests-new.log",
+        "wall_ms": 1548
+      },
+      "ruff-check": {
+        "exit_code": 0,
+        "raw_exit_file": "final-gate/ruff-check.exit",
+        "raw_log": "final-gate/ruff-check.log",
+        "wall_ms": 17
+      },
+      "ruff-format-check": {
+        "exit_code": 0,
+        "raw_exit_file": "final-gate/ruff-format-check.exit",
+        "raw_log": "final-gate/ruff-format-check.log",
+        "wall_ms": 17
+      },
+      "tests-py312": {
+        "exit_code": 0,
+        "raw_exit_file": "final-gate/tests-py312.exit",
+        "raw_log": "final-gate/tests-py312.log",
+        "wall_ms": 170
+      },
+      "tests-py314": {
+        "exit_code": 0,
+        "raw_exit_file": "final-gate/tests-py314.exit",
+        "raw_log": "final-gate/tests-py314.log",
+        "wall_ms": 175
+      }
+    }
+  },
+  "fix": "stream = os.fdopen(source,'rb') in try; except BaseException as primary: try os.close(source) except BaseException as cleanup: primary.add_note(...); raise. Then the unchanged `with stream:` body. Outer OSError->ValueError translation and directory cleanup unchanged. This supersedes the earlier closefd=False manifest/design (rejected by root).",
+  "genuine_finding": "a real directory leaf makes the original os.fdopen raise IsADirectoryError before adoption and leaked the source fd with no injection; old test 12 only asserted ValueError",
+  "inverse_proof": "source-inverse.patch applied to the committed source -> 3886a1e0...; source-fix.patch applied to base -> 75b02e17...; test-embedded finite inverse also asserts inverse(new)==3886a1e0",
+  "narrow_evidence_logs": [
+    "baseline-full13-before-narrow-instruction.log",
+    "green-fixed-source-py312.log",
+    "green-fixed-source-py314.log",
+    "mutant-except-exception-py312.log",
+    "mutant-except-exception-py314.log",
+    "red-original-source-py312.log",
+    "red-original-source-py314.log"
+  ],
+  "old_test_1_mechanism": "test 1 body untouched; module-level InverseSource(Path).read_bytes() applies restore_original_helper (finite inverse of the helper span)",
+  "parent": "c451be39b47f1cc20b1acae23c2fca5eb12b462d",
+  "patches": {
+    "source-fix.patch": "b5f171ae677b72ef0022f5f93b412d391d5e555c6aef72f485fe8a513fd56ea1",
+    "source-inverse.patch": "577a74e41a5c10ec10ee5ee56c19935cde6249d7aa75789927aa05ddf2176c5e",
+    "tests.patch": "0571dd3a8973c7c8875f3638f19e0f990403ca8d419f5eca6bfa8c9239b0ae15"
+  },
+  "residual_ceilings": [
+    "fdopen failing after io.open built the raw stream: fd already closed, our close gets EBADF (noted, primary kept) or could close a reused fd number under threads",
+    "async exception between os.open returning and try entry",
+    "mid-walk os.close(directory)/child hand-off (out of scope)"
+  ],
+  "schema": "installed-identity-fdopen-repair-handoff-v3",
+  "sparse_note": "sparse worktree: pyproject, src/sfora/__init__.py, 2 owned files, installed-identity-fdopen-repair-v1/, plus the single 6.2MB receipt.json old test 3 reads",
+  "state": "COMMITTED, not merged, not pushed",
+  "static_verification": {
+    "src_other_function_ast_identical": true,
+    "src_other_function_count": 7,
+    "src_prefix_identical": true,
+    "src_suffix_identical": true,
+    "test_base_toplevel_nodes_changed": [
+      "('ImportFrom', \"ImportFrom(module='pathlib', names=[alias(name='Path')], level=0)\")"
+    ],
+    "test_identitytests_members_base": 18,
+    "test_identitytests_members_identical": true,
+    "test_line19_SOURCE_assignment_unchanged": true,
+    "test_old_test_methods": 13
+  },
+  "worktree": "/home/rb/worktrees/sfora-installed-identity-fdopen-repair-20261009"
+}

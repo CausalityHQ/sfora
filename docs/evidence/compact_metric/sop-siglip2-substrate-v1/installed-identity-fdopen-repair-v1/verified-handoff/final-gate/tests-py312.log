@@ -1,0 +1,26 @@
+test_committed_genuine_model_rows_have_exact_source_correspondence (__main__.IdentityTests.test_committed_genuine_model_rows_have_exact_source_correspondence) ... ok
+test_equal_installed_bytes_relocate_only_explicit_origins (__main__.IdentityTests.test_equal_installed_bytes_relocate_only_explicit_origins) ... ok
+test_installed_roots_are_independent_canonical_unambiguous_nonsymlinks (__main__.IdentityTests.test_installed_roots_are_independent_canonical_unambiguous_nonsymlinks) ... ok
+test_installed_source_symlink_directory_fifo_or_missing_rejects (__main__.IdentityTests.test_installed_source_symlink_directory_fifo_or_missing_rejects) ... ok
+test_inverse_rejects_changed_source_shape_path_package_and_hash (__main__.IdentityTests.test_inverse_rejects_changed_source_shape_path_package_and_hash) ... ok
+test_inverse_rejects_non_origin_values_types_and_module_order (__main__.IdentityTests.test_inverse_rejects_non_origin_values_types_and_module_order) ... ok
+test_json_only_no_coercion_or_nonfinite_values (__main__.IdentityTests.test_json_only_no_coercion_or_nonfinite_values) ... ok
+test_original_paths_must_be_canonical_component_contained (__main__.IdentityTests.test_original_paths_must_be_canonical_component_contained) ... ok
+test_projection_inverse_preserve_every_other_typed_member_and_input (__main__.IdentityTests.test_projection_inverse_preserve_every_other_typed_member_and_input) ... ok
+test_same_class_path_version_changed_bytes_reject_before_native_and_recheck (__main__.IdentityTests.test_same_class_path_version_changed_bytes_reject_before_native_and_recheck) ... ok
+test_typing_erasure_restores_original_whole_source_ast (__main__.IdentityTests.test_typing_erasure_restores_original_whole_source_ast) ... ok
+test_wrong_original_hash_cannot_authorize_installed_bytes (__main__.IdentityTests.test_wrong_original_hash_cannot_authorize_installed_bytes) ... ok
+test_wrong_unknown_ambiguous_roots_or_missing_hash_reject (__main__.IdentityTests.test_wrong_unknown_ambiguous_roots_or_missing_hash_reject) ... ok
+test_close_failure_after_failed_adoption_keeps_the_primary (__main__.InstalledSourceOwnershipTests.test_close_failure_after_failed_adoption_keeps_the_primary) ... ok
+test_fdopen_failure_before_adoption_closes_the_source_descriptor (__main__.InstalledSourceOwnershipTests.test_fdopen_failure_before_adoption_closes_the_source_descriptor) ... ok
+test_finite_inverse_restores_the_original_helper_bytes (__main__.InstalledSourceOwnershipTests.test_finite_inverse_restores_the_original_helper_bytes) ... ok
+test_original_helper_leaks_and_repaired_helper_does_not (__main__.InstalledSourceOwnershipTests.test_original_helper_leaks_and_repaired_helper_does_not) ... ok
+test_read_failure_after_adoption_is_not_closed_twice (__main__.InstalledSourceOwnershipTests.test_read_failure_after_adoption_is_not_closed_twice) ... ok
+test_rejections_keep_their_error_and_leave_no_descriptor (__main__.InstalledSourceOwnershipTests.test_rejections_keep_their_error_and_leave_no_descriptor) ... ok
+test_repeated_failed_adoption_leaves_no_descriptor (__main__.InstalledSourceOwnershipTests.test_repeated_failed_adoption_leaves_no_descriptor) ... ok
+test_successful_digest_closes_source_once_and_leaves_no_descriptor (__main__.InstalledSourceOwnershipTests.test_successful_digest_closes_source_once_and_leaves_no_descriptor) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.083s
+
+OK
