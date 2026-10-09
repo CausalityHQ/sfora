@@ -1,0 +1,14 @@
+{
+  "schema": "asymmetric-matched-oracle-source-preflight-v1",
+  "matched_evaluator": "scripts/evaluate_siglip2_connected_mlp.py",
+  "matched_sha256": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4",
+  "authority": "connected-mlp-evaluation-full-selection-score-v1/receipt.json input_guards pins /home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/evaluate_siglip2_connected_mlp.py",
+  "function": "fullfeature_oracle",
+  "function_ast_sha256": "08af8551a995c8e01e091d65c5b2af8281aa7b3912deadaa47a071f609ca7e5b",
+  "probe_evaluator_sha256": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+  "oracle_functions_ast_identical": true,
+  "helper": "t['trainer'].helper_guard(t).raw_features",
+  "disposition": "Prefer the actual matched historical MLP evaluator/oracle under its strictly admitted genuine context; an unrelated probe context is not required merely to obtain the identical oracle function. No proxy context or checkpoint substitution.",
+  "native_executed": false,
+  "context_admissibility_proven": false
+}
