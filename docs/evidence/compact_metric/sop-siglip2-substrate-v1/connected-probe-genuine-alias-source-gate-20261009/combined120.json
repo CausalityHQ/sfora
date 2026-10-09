@@ -1,0 +1,23 @@
+{
+  "session_id": 11575,
+  "exit_code": 124,
+  "timeout_seconds": 120,
+  "address_space_bytes": 1073741824,
+  "chunks": [
+    "3d1d81",
+    "f82bb0",
+    "cf900c",
+    "6a4228",
+    "006d02",
+    "9eae55",
+    "f30514",
+    "d023b2",
+    "402249"
+  ],
+  "first_output_utc": "2026-10-09T06:12:10.803Z",
+  "terminal_output_utc": "2026-10-09T06:14:10.833Z",
+  "prior_assertion_failures": [],
+  "transcript": "/home/rb/.codex/sessions/2026/10/09/rollout-2026-10-09T05-57-56-01a11f3d-4fa8-7d93-9788-e311100eb801.jsonl",
+  "log": "/data/orchestration/evidence/sfora-probe-genuine-alias-boundary-20261009/combined120.log",
+  "time_source": "original durable tool transcript output timestamps; external command timeout120"
+}

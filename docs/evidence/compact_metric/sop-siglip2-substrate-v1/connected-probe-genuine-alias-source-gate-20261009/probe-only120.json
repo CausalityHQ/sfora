@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "-I",
+    "-B",
+    "scripts/test_connected_probe_serving.py"
+  ],
+  "started_utc": "2026-10-09T06:17:31.033386+00:00",
+  "elapsed_seconds": 38.32714221801143,
+  "exit_code": 0,
+  "timeout_seconds": 120,
+  "address_space_bytes": 1073741824,
+  "log": "/data/orchestration/evidence/sfora-probe-genuine-alias-boundary-20261009/probe-only120.log",
+  "source_sha256": {
+    "scripts/qualify_connected_probe_serving.py": "02e44a35b5079e086fadb17e86931c802b880eef65224ccb92b1fd96910d9bd8",
+    "scripts/test_connected_probe_serving.py": "c25a00d3b337f139f522ab6f98bd6bae3ad0f498af15b39de57a9bc1a093ae2a"
+  }
+}

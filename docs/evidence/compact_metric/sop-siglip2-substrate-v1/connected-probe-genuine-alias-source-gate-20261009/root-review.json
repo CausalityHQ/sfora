@@ -1,0 +1,10 @@
+{
+  "worker_commit": "02599a53448dee402c156439b02c129d10e94e46",
+  "source_only": true,
+  "native_qualified": false,
+  "review": "Exact Denial+sole run seam; no module deletion/name whitelist, exact object/spec/current origin/guard digest and fresh genuine read_file. All unrelated production preserved by inverse. Original combined timeout retained; replacement affected138PASS38.327s/AS1GiB reused, no redundant root rerun.",
+  "source_hashes": {
+    "qualify_connected_probe_serving.py": "02e44a35b5079e086fadb17e86931c802b880eef65224ccb92b1fd96910d9bd8",
+    "test_connected_probe_serving.py": "c25a00d3b337f139f522ab6f98bd6bae3ad0f498af15b39de57a9bc1a093ae2a"
+  }
+}
