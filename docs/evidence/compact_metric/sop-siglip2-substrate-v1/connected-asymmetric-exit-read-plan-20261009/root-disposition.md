@@ -1,0 +1,5 @@
+GO for one source-owned fresh-read cache intervention, keep=False in authenticated only, after consumed digest updates. Preserve every read occurrence and all canonical/stat/SHA/conflict checks. The whole-file final advice and trailing consumed window are a hypothesis supported by the observed file-cache growth during context rehash.
+
+The consultation's local mincore/cache experiments and proposed diagnostic fractions are engineering evidence, not portable resource guarantees. Do not add 64 MiB cache-growth, 2x phase-time or predicted 4.4 GiB thresholds to scientific or native admission. Existing 700s/8GiB/noSwap/native/source/quality gates remain authoritative. Local disk-backed residency measurement can be inconclusive under shared cache/accounting; never turn a skipped causal test into qualification.
+
+Do not repeat the failed frozen experiment. Root must review exact source/falsifiers, issue new source hashes/authority and bind the short systemd unit to freeze/output/observer cgroup before one prospective native run. Preserve original wrong-unit attempt and all failures. Future service costs include advice/extra reads; no speed claim from source tests.

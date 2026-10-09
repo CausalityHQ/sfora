@@ -1,0 +1,332 @@
+{
+  "id": "93f4b9081c944a93",
+  "provider": "claude",
+  "model": "claude-opus-5-5",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791529975,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791531175,
+  "budget_usd": 4,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded causal exit-read plan, sfora exact master ac6bbfd7 (resolve full). Evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-exit-observation-v1-result/{original.log,root-review.json,samples.jsonl.gz}. Original native exit1 invf2dc68adb6204eb68020f904baa98af5 runtime634.541s, firstmaxsample794 during rehash.context; prior samples anon stable3892645888B, file rises4167057408\u21924563726336\u21924653924352; max237 then1443, noOOM/noSwap. Native attempt ALSO rootshortunitmismatch so UNACCEPTED. No repeat experiment. Audit scripts/diagnose_connected_asymmetric_cache.py authenticated/rehash/cleanup, actual accepted guard data, previous resource audit original. Determine smallest source-owned change to bound consumed page-cache of FRESH full-byte exit reads while preserving every file occurrence, digest, mutation/source/permission rejection and full uncached exit. Evaluate POSIX_FADV_DONTNEED only after successful hashing/read and aligned ranges vs ownership/other mappings/shared cache effects; do not assert all file cache belongs to this reader. Need exact contract, affected functions/callers/tests/freeze, causal falsifier using stdlib real files (no native), residual native/resource gate. DO NOT edit, import thirdparty/Torch, SSH/GPU/jobs/children/operator, change cap/science or skip/reuse hashes. Prefer one narrow intervention over memory speculation. Read bounded relevant ranges only; return GO/HOLD precise seam and strongest disproof.",
+  "prompt_sha256": "87b9a5a09382b0e0443068ccdb0737eef7d7062d8b59521b92f073153d1769df",
+  "prompt_bytes": 1786,
+  "fingerprint": "ab33692964399935e230388d52d154b352def751d5d8619ec261a53e339eb043",
+  "evidence": {
+    "git_commit": "ac6bbfd778e3c455f93f330a08d358488cb942b1",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "c7a74ea3f61a850a26ef760fc3380cea96460f2416f984f3fa51db03c5554983",
+  "reused": false,
+  "specialist_route": {
+    "model": "claude-opus-5-5",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "020c66a0-3fdf-446d-a7c3-d67bdbbca041"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-93f4b9081c944a93.service",
+  "pid": 2771681,
+  "pgid": 2771681,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "budget_usd": 4,
+      "timeout_seconds": 1200,
+      "started_at": 1791529975
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791530594,
+  "event_cursor": 62,
+  "events": [
+    {
+      "seq": 39,
+      "at": 1791530571,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 40,
+      "at": 1791530572,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 41,
+      "at": 1791530573,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 42,
+      "at": 1791530574,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 43,
+      "at": 1791530575,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 44,
+      "at": 1791530576,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 45,
+      "at": 1791530577,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 46,
+      "at": 1791530578,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 47,
+      "at": 1791530579,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 48,
+      "at": 1791530580,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 49,
+      "at": 1791530581,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 50,
+      "at": 1791530582,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 51,
+      "at": 1791530583,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 52,
+      "at": 1791530584,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 53,
+      "at": 1791530585,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 54,
+      "at": 1791530586,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 55,
+      "at": 1791530587,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 56,
+      "at": 1791530588,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 57,
+      "at": 1791530589,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 58,
+      "at": 1791530590,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 59,
+      "at": 1791530591,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 60,
+      "at": 1791530592,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 61,
+      "at": 1791530593,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 62,
+      "at": 1791530594,
+      "provider": "claude",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "claude": [
+      {
+        "seq": 55,
+        "at": 1791530587,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 56,
+        "at": 1791530588,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 57,
+        "at": 1791530589,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 58,
+        "at": 1791530590,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 59,
+        "at": 1791530591,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 60,
+        "at": 1791530592,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 61,
+        "at": 1791530593,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 62,
+        "at": 1791530594,
+        "provider": "claude",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Verdict:** GO for one source-only change. HOLD the native run until the root re-freezes the source and fixes the unit-name mismatch.\n\n## The cause, from the evidence (master ac6bbfd778e3)\n\n- **Where the cache grew.** Between the `rehash.context` entry (229023.52) and sample 794 (229030.0), file cache rose from 665 to 4438 MiB. Anon stayed flat at 3712 MiB and mapped files stayed at 482 MiB. Memory hit 8 GiB and the `max` events counter reached 237, then 1443. There was no OOM and no swap. The resource guard in `evaluate_siglip2_connected_mlp.py:937` then rejected the run because it requires `max == 0`.\n- **The reader that caused it.** `rehash.context` reads every file through `scripts/diagnose_connected_asymmetric_cache.py:136` `authenticated(keep=False)` at line 173. That function is a copy of the v5 observer's reader (`observe_connected_control_batch_execution.py:84`) without its `posix_fadvise` line. It is the only exit reader that never releases the cache it fills.\n- **Same-run comparison.** The combined evaluator exit read for 99 s through the pinned trainer `bound_file`, which does release cache after each block. File cache stayed between 554 and 822 MiB during that read.\n- **What the evidence does not prove.** It shows timing and which reader was running, not which individual file caused each page. The baseline ~650 MiB of file cache includes 482 MiB of mapped files that this reader does not own.\n\n## Measured locally (stdlib, real files, scratch files deleted, no repo edits)\n\nSetup: x86_64, kernel 7.0, `read_ahead_kb` 8192, 256 MiB file on a real disk.\n\n| What the reader does after reading | Peak cache | Left at end |\n|---|---|---|\n| Nothing (current code) | 256 MiB | 256 MiB |\n| Release each 1 MiB block just read (the v5/trainer pattern) | 156\u2013226 MiB | 141\u2013226 MiB (55\u201388%) |\n| Release the whole file once at the end | 256 MiB | 0 |\n| Release a trailing 2\u20138 MiB window after each block, plus the whole file at the end | 16\u201319 MiB | 0 |\n\n- **Why releasing per block isn't enough here.** Large readahead creates large page-cache chunks (folios) that cross the 1 MiB block edges. A release call only drops a chunk that lies entirely inside its range, so these are skipped.\n- **The target is probably different.** The flat evaluator exit suggests the target uses smaller readahead. The trailing window works either way.\n- **`/tmp` is tmpfs here.** On tmpfs the release call does nothing, so any test must run on a real disk.\n\n## The change: one function, `authenticated`, the `keep=False` branch only\n\n```python\n        else:\n            done = 0\n            while block := stream.read(1024**2):\n                digest.update(block)\n                done += len(block)\n                # Drop only consumed cache; the 8MiB lag also drops large folios straddling the 1MiB reads.\n                os.posix_fadvise(stream.fileno(), max(0, done-8*1024**2), min(done, 8*1024**2), os.POSIX_FADV_DONTNEED)\n            os.posix_fadvise(stream.fileno(), 0, done, os.POSIX_FADV_DONTNEED)   # complete read: nothing consumed stays\n```\n\nWhat the change guarantees:\n\n- **Only bytes already read are released.** Every release call comes after `digest.update` has seen all bytes in its range, and never covers bytes past `done`.\n- **Reads are unchanged.** Same 1 MiB read pattern including the final empty read, one fresh descriptor per occurrence, and no memoised, skipped or reused hashes.\n- **All checks are unchanged.** The stat comparison, SHA comparison, guard conflict check, and the symlink, relative-path and canonical-path rejections stay as they are.\n- **`keep=True` is unchanged.** It reads at most 64 MiB and is not used by the exit reads.\n- **Why a counter instead of `stream.tell()`.** `done` keeps the `Reader` test double at test line 2052 valid; that double has no `tell()`.\n- **Alignment.** Every range starts and ends on a MiB boundary, which is page-aligned. The kernel drops the last partial page at end-of-file.\n- **Why 8 MiB.** It is at least the largest page-cache chunk on 4K-page kernels (2 MiB). The GB10 log reports a 4096-byte page size. The final whole-file call catches anything larger.\n- **Failure mode.** If the release call raises `OSError`, the read is rejected (fails closed) and nothing is skipped.\n\nOwnership and side effects:\n\n- The change limits only the cache this reader brings in.\n- Pages that are mapped, dirty, under writeback or locked are skipped. For those files each call also triggers an all-CPU LRU drain, so mapped guarded libraries make it slower.\n- It can evict clean, unmapped pages of the same files that another process or cgroup cached. That costs them a re-read from disk but cannot affect correctness.\n- It does not touch the other ~650 MiB already in the cgroup.\n\n**Affected callers:**\n- `rehash`: the `driver_rehash`, `rehash.context` and `rehash.prospective` phases.\n- `prepare`: lines 272 and 282 (small files; they re-read from disk later at negligible cost).\n\n**Unaffected:**\n- Pinned readers: `v5.authenticated`, the v3 module's reader, and trainer `bound_file`.\n- `observer.file_bytes`.\n\n**Rejected alternatives:**\n- `memory.high`: a cap change.\n- `drop_caches`: system-wide and needs sudo.\n- `O_DIRECT`: a bigger diff and depends on the filesystem.\n- Releasing the whole file only at the end: the peak is still the largest file.\n- Reordering, or skipping/reusing hashes: forbidden.\n\n## Tests and freeze\n\n1. **Update** `test_rehash_reads_complete_fresh_bytes_repeatedly_and_rejects_same_stat_mutation` with a spy on `posix_fadvise` that wraps the real call. Check:\n   - The 2 MiB+17 streamed reads produce `[(0,1M),(0,2M),(0,2M+17),(0,2M+17)]` per call.\n   - `keep=True` makes no release calls.\n   - The read pattern and the five open counts are unchanged.\n2. **Add** `test_authenticated_advises_only_consumed_ranges_and_preserves_rejections`:\n   - Sizes 0, 1, 1 MiB and 9 MiB+17.\n   - Every range lies within the bytes read when the call was made, and together the ranges cover `[0,N)`.\n   - The last call is `(0,N)`.\n   - Wrong SHA, conflicting guard and same-stat mutation fail with the same messages.\n   - Symlink and relative paths cause no open and no release call.\n3. **Add the causal falsifier** (stdlib, real files, no native code):\n   - Use a fresh file of 256 MiB+17 in a real-disk directory under `Path.home()`. Do not use the frozen source root or a tmpfs `/tmp`.\n   - Before each run: fsync, release the whole file, confirm the SHA.\n   - Control: `d.authenticated` with `d.os.posix_fadvise` patched to do nothing. Treatment: the real function. The release call is the only difference.\n   - Measure: the `file` value in this process's own cgroup `memory.stat`, sampled every 1 ms for the peak, plus the end value.\n   - **PASS** only if all of these hold:\n     - control peak \u2265 0.75N\n     - treatment peak \u2264 0.125N\n     - treatment end \u2264 1 MiB\n     - digests are equal\n   - If the control peak is below 0.75N, report it as `skipTest('INCONCLUSIVE: not disk-backed/attributable')`, never as a pass.\n4. **Freeze (root's job):**\n   - The driver and test SHAs change (current `6a456248\u2026` and `2e13f715\u2026`).\n   - That requires a new source directory, `execution.json`, and authority `execution_sha256`, plus a successor to the exit-observation freeze, whose `source_files` pin the old SHAs.\n   - In the same freeze, `freeze.json` names unit `\u2026cache-exit-observation-179061-v1` but `launch.sh` ran `\u2026cache-first-179061-v1`. That is the root's short-unit-name mismatch and stays separate from this change.\n\n## What would disprove it, and what native run remains\n\n- **Fix fails:** the treatment arm keeps more than 12.5% at peak on a real disk. Then HOLD and look at `O_DIRECT`.\n- **Mechanism unproven:** the control arm stays below 0.75N. The result is inconclusive.\n- **Cause is elsewhere:** in the next frozen run (root's decision; I am not launching it), `max` is still above 0 while file cache during `rehash.context` stays within entry + 64 MiB.\n- **Acceptance for that run:**\n  - unit name matches the freeze\n  - `max`, `oom` and `oom_kill` stay 0 for the whole run\n  - `rehash.context` file growth \u2264 64 MiB\n  - `rehash.context` time \u2264 2\u00d7 the original 8.69 s\n  - total wall time < 700 s (the original used 634.5 s, so the margin is thin)\n  - digests and the stop rule are unchanged\n- **Predicted peak** \u2248 4.4 GiB (3712 MiB anon + ~650 MiB file + kernel + window), under the 8 GiB cap.\n\nI saved this finding to project memory as `sfora-exit-rehash-fadvise-window-plan`.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "claude": "**Verdict:** GO for one source-only change. HOLD the native run until the root re-freezes the source and fixes the unit-name mismatch.\n\n## The cause, from the evidence (master ac6bbfd778e3)\n\n- **Where the cache grew.** Between the `rehash.context` entry (229023.52) and sample 794 (229030.0), file cache rose from 665 to 4438 MiB. Anon stayed flat at 3712 MiB and mapped files stayed at 482 MiB. Memory hit 8 GiB and the `max` events counter reached 237, then 1443. There was no OOM and no swap. The resource guard in `evaluate_siglip2_connected_mlp.py:937` then rejected the run because it requires `max == 0`.\n- **The reader that caused it.** `rehash.context` reads every file through `scripts/diagnose_connected_asymmetric_cache.py:136` `authenticated(keep=False)` at line 173. That function is a copy of the v5 observer's reader (`observe_connected_control_batch_execution.py:84`) without its `posix_fadvise` line. It is the only exit reader that never releases the cache it fills.\n- **Same-run comparison.** The combined evaluator exit read for 99 s through the pinned trainer `bound_file`, which does release cache after each block. File cache stayed between 554 and 822 MiB during that read.\n- **What the evidence does not prove.** It shows timing and which reader was running, not which individual file caused each page. The baseline ~650 MiB of file cache includes 482 MiB of mapped files that this reader does not own.\n\n## Measured locally (stdlib, real files, scratch files deleted, no repo edits)\n\nSetup: x86_64, kernel 7.0, `read_ahead_kb` 8192, 256 MiB file on a real disk.\n\n| What the reader does after reading | Peak cache | Left at end |\n|---|---|---|\n| Nothing (current code) | 256 MiB | 256 MiB |\n| Release each 1 MiB block just read (the v5/trainer pattern) | 156\u2013226 MiB | 141\u2013226 MiB (55\u201388%) |\n| Release the whole file once at the end | 256 MiB | 0 |\n| Release a trailing 2\u20138 MiB window after each block, plus the whole file at the end | 16\u201319 MiB | 0 |\n\n- **Why releasing per block isn't enough here.** Large readahead creates large page-cache chunks (folios) that cross the 1 MiB block edges. A release call only drops a chunk that lies entirely inside its range, so these are skipped.\n- **The target is probably different.** The flat evaluator exit suggests the target uses smaller readahead. The trailing window works either way.\n- **`/tmp` is tmpfs here.** On tmpfs the release call does nothing, so any test must run on a real disk.\n\n## The change: one function, `authenticated`, the `keep=False` branch only\n\n```python\n        else:\n            done = 0\n            while block := stream.read(1024**2):\n                digest.update(block)\n                done += len(block)\n                # Drop only consumed cache; the 8MiB lag also drops large folios straddling the 1MiB reads.\n                os.posix_fadvise(stream.fileno(), max(0, done-8*1024**2), min(done, 8*1024**2), os.POSIX_FADV_DONTNEED)\n            os.posix_fadvise(stream.fileno(), 0, done, os.POSIX_FADV_DONTNEED)   # complete read: nothing consumed stays\n```\n\nWhat the change guarantees:\n\n- **Only bytes already read are released.** Every release call comes after `digest.update` has seen all bytes in its range, and never covers bytes past `done`.\n- **Reads are unchanged.** Same 1 MiB read pattern including the final empty read, one fresh descriptor per occurrence, and no memoised, skipped or reused hashes.\n- **All checks are unchanged.** The stat comparison, SHA comparison, guard conflict check, and the symlink, relative-path and canonical-path rejections stay as they are.\n- **`keep=True` is unchanged.** It reads at most 64 MiB and is not used by the exit reads.\n- **Why a counter instead of `stream.tell()`.** `done` keeps the `Reader` test double at test line 2052 valid; that double has no `tell()`.\n- **Alignment.** Every range starts and ends on a MiB boundary, which is page-aligned. The kernel drops the last partial page at end-of-file.\n- **Why 8 MiB.** It is at least the largest page-cache chunk on 4K-page kernels (2 MiB). The GB10 log reports a 4096-byte page size. The final whole-file call catches anything larger.\n- **Failure mode.** If the release call raises `OSError`, the read is rejected (fails closed) and nothing is skipped.\n\nOwnership and side effects:\n\n- The change limits only the cache this reader brings in.\n- Pages that are mapped, dirty, under writeback or locked are skipped. For those files each call also triggers an all-CPU LRU drain, so mapped guarded libraries make it slower.\n- It can evict clean, unmapped pages of the same files that another process or cgroup cached. That costs them a re-read from disk but cannot affect correctness.\n- It does not touch the other ~650 MiB already in the cgroup.\n\n**Affected callers:**\n- `rehash`: the `driver_rehash`, `rehash.context` and `rehash.prospective` phases.\n- `prepare`: lines 272 and 282 (small files; they re-read from disk later at negligible cost).\n\n**Unaffected:**\n- Pinned readers: `v5.authenticated`, the v3 module's reader, and trainer `bound_file`.\n- `observer.file_bytes`.\n\n**Rejected alternatives:**\n- `memory.high`: a cap change.\n- `drop_caches`: system-wide and needs sudo.\n- `O_DIRECT`: a bigger diff and depends on the filesystem.\n- Releasing the whole file only at the end: the peak is still the largest file.\n- Reordering, or skipping/reusing hashes: forbidden.\n\n## Tests and freeze\n\n1. **Update** `test_rehash_reads_complete_fresh_bytes_repeatedly_and_rejects_same_stat_mutation` with a spy on `posix_fadvise` that wraps the real call. Check:\n   - The 2 MiB+17 streamed reads produce `[(0,1M),(0,2M),(0,2M+17),(0,2M+17)]` per call.\n   - `keep=True` makes no release calls.\n   - The read pattern and the five open counts are unchanged.\n2. **Add** `test_authenticated_advises_only_consumed_ranges_and_preserves_rejections`:\n   - Sizes 0, 1, 1 MiB and 9 MiB+17.\n   - Every range lies within the bytes read when the call was made, and together the ranges cover `[0,N)`.\n   - The last call is `(0,N)`.\n   - Wrong SHA, conflicting guard and same-stat mutation fail with the same messages.\n   - Symlink and relative paths cause no open and no release call.\n3. **Add the causal falsifier** (stdlib, real files, no native code):\n   - Use a fresh file of 256 MiB+17 in a real-disk directory under `Path.home()`. Do not use the frozen source root or a tmpfs `/tmp`.\n   - Before each run: fsync, release the whole file, confirm the SHA.\n   - Control: `d.authenticated` with `d.os.posix_fadvise` patched to do nothing. Treatment: the real function. The release call is the only difference.\n   - Measure: the `file` value in this process's own cgroup `memory.stat`, sampled every 1 ms for the peak, plus the end value.\n   - **PASS** only if all of these hold:\n     - control peak \u2265 0.75N\n     - treatment peak \u2264 0.125N\n     - treatment end \u2264 1 MiB\n     - digests are equal\n   - If the control peak is below 0.75N, report it as `skipTest('INCONCLUSIVE: not disk-backed/attributable')`, never as a pass.\n4. **Freeze (root's job):**\n   - The driver and test SHAs change (current `6a456248\u2026` and `2e13f715\u2026`).\n   - That requires a new source directory, `execution.json`, and authority `execution_sha256`, plus a successor to the exit-observation freeze, whose `source_files` pin the old SHAs.\n   - In the same freeze, `freeze.json` names unit `\u2026cache-exit-observation-179061-v1` but `launch.sh` ran `\u2026cache-first-179061-v1`. That is the root's short-unit-name mismatch and stays separate from this change.\n\n## What would disprove it, and what native run remains\n\n- **Fix fails:** the treatment arm keeps more than 12.5% at peak on a real disk. Then HOLD and look at `O_DIRECT`.\n- **Mechanism unproven:** the control arm stays below 0.75N. The result is inconclusive.\n- **Cause is elsewhere:** in the next frozen run (root's decision; I am not launching it), `max` is still above 0 while file cache during `rehash.context` stays within entry + 64 MiB.\n- **Acceptance for that run:**\n  - unit name matches the freeze\n  - `max`, `oom` and `oom_kill` stay 0 for the whole run\n  - `rehash.context` file growth \u2264 64 MiB\n  - `rehash.context` time \u2264 2\u00d7 the original 8.69 s\n  - total wall time < 700 s (the original used 634.5 s, so the margin is thin)\n  - digests and the stop rule are unchanged\n- **Predicted peak** \u2248 4.4 GiB (3712 MiB anon + ~650 MiB file + kernel + window), under the 8 GiB cap.\n\nI saved this finding to project memory as `sfora-exit-rehash-fadvise-window-plan`."
+  },
+  "providers_used": [
+    "claude"
+  ],
+  "active_provider": "claude",
+  "phase": "Consultation completed",
+  "input_bytes": 1786,
+  "output_bytes": 8498,
+  "elapsed_seconds": 619,
+  "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)\ndevbox-ask: claude consult still running (8m 00s)\ndevbox-ask: claude consult still running (8m 30s)\ndevbox-ask: claude consult still running (9m 00s)\ndevbox-ask: claude consult still running (9m 30s)\ndevbox-ask: claude consult still running (10m 00s)",
+  "progress_truncated": false,
+  "result": "**Verdict:** GO for one source-only change. HOLD the native run until the root re-freezes the source and fixes the unit-name mismatch.\n\n## The cause, from the evidence (master ac6bbfd778e3)\n\n- **Where the cache grew.** Between the `rehash.context` entry (229023.52) and sample 794 (229030.0), file cache rose from 665 to 4438 MiB. Anon stayed flat at 3712 MiB and mapped files stayed at 482 MiB. Memory hit 8 GiB and the `max` events counter reached 237, then 1443. There was no OOM and no swap. The resource guard in `evaluate_siglip2_connected_mlp.py:937` then rejected the run because it requires `max == 0`.\n- **The reader that caused it.** `rehash.context` reads every file through `scripts/diagnose_connected_asymmetric_cache.py:136` `authenticated(keep=False)` at line 173. That function is a copy of the v5 observer's reader (`observe_connected_control_batch_execution.py:84`) without its `posix_fadvise` line. It is the only exit reader that never releases the cache it fills.\n- **Same-run comparison.** The combined evaluator exit read for 99 s through the pinned trainer `bound_file`, which does release cache after each block. File cache stayed between 554 and 822 MiB during that read.\n- **What the evidence does not prove.** It shows timing and which reader was running, not which individual file caused each page. The baseline ~650 MiB of file cache includes 482 MiB of mapped files that this reader does not own.\n\n## Measured locally (stdlib, real files, scratch files deleted, no repo edits)\n\nSetup: x86_64, kernel 7.0, `read_ahead_kb` 8192, 256 MiB file on a real disk.\n\n| What the reader does after reading | Peak cache | Left at end |\n|---|---|---|\n| Nothing (current code) | 256 MiB | 256 MiB |\n| Release each 1 MiB block just read (the v5/trainer pattern) | 156\u2013226 MiB | 141\u2013226 MiB (55\u201388%) |\n| Release the whole file once at the end | 256 MiB | 0 |\n| Release a trailing 2\u20138 MiB window after each block, plus the whole file at the end | 16\u201319 MiB | 0 |\n\n- **Why releasing per block isn't enough here.** Large readahead creates large page-cache chunks (folios) that cross the 1 MiB block edges. A release call only drops a chunk that lies entirely inside its range, so these are skipped.\n- **The target is probably different.** The flat evaluator exit suggests the target uses smaller readahead. The trailing window works either way.\n- **`/tmp` is tmpfs here.** On tmpfs the release call does nothing, so any test must run on a real disk.\n\n## The change: one function, `authenticated`, the `keep=False` branch only\n\n```python\n        else:\n            done = 0\n            while block := stream.read(1024**2):\n                digest.update(block)\n                done += len(block)\n                # Drop only consumed cache; the 8MiB lag also drops large folios straddling the 1MiB reads.\n                os.posix_fadvise(stream.fileno(), max(0, done-8*1024**2), min(done, 8*1024**2), os.POSIX_FADV_DONTNEED)\n            os.posix_fadvise(stream.fileno(), 0, done, os.POSIX_FADV_DONTNEED)   # complete read: nothing consumed stays\n```\n\nWhat the change guarantees:\n\n- **Only bytes already read are released.** Every release call comes after `digest.update` has seen all bytes in its range, and never covers bytes past `done`.\n- **Reads are unchanged.** Same 1 MiB read pattern including the final empty read, one fresh descriptor per occurrence, and no memoised, skipped or reused hashes.\n- **All checks are unchanged.** The stat comparison, SHA comparison, guard conflict check, and the symlink, relative-path and canonical-path rejections stay as they are.\n- **`keep=True` is unchanged.** It reads at most 64 MiB and is not used by the exit reads.\n- **Why a counter instead of `stream.tell()`.** `done` keeps the `Reader` test double at test line 2052 valid; that double has no `tell()`.\n- **Alignment.** Every range starts and ends on a MiB boundary, which is page-aligned. The kernel drops the last partial page at end-of-file.\n- **Why 8 MiB.** It is at least the largest page-cache chunk on 4K-page kernels (2 MiB). The GB10 log reports a 4096-byte page size. The final whole-file call catches anything larger.\n- **Failure mode.** If the release call raises `OSError`, the read is rejected (fails closed) and nothing is skipped.\n\nOwnership and side effects:\n\n- The change limits only the cache this reader brings in.\n- Pages that are mapped, dirty, under writeback or locked are skipped. For those files each call also triggers an all-CPU LRU drain, so mapped guarded libraries make it slower.\n- It can evict clean, unmapped pages of the same files that another process or cgroup cached. That costs them a re-read from disk but cannot affect correctness.\n- It does not touch the other ~650 MiB already in the cgroup.\n\n**Affected callers:**\n- `rehash`: the `driver_rehash`, `rehash.context` and `rehash.prospective` phases.\n- `prepare`: lines 272 and 282 (small files; they re-read from disk later at negligible cost).\n\n**Unaffected:**\n- Pinned readers: `v5.authenticated`, the v3 module's reader, and trainer `bound_file`.\n- `observer.file_bytes`.\n\n**Rejected alternatives:**\n- `memory.high`: a cap change.\n- `drop_caches`: system-wide and needs sudo.\n- `O_DIRECT`: a bigger diff and depends on the filesystem.\n- Releasing the whole file only at the end: the peak is still the largest file.\n- Reordering, or skipping/reusing hashes: forbidden.\n\n## Tests and freeze\n\n1. **Update** `test_rehash_reads_complete_fresh_bytes_repeatedly_and_rejects_same_stat_mutation` with a spy on `posix_fadvise` that wraps the real call. Check:\n   - The 2 MiB+17 streamed reads produce `[(0,1M),(0,2M),(0,2M+17),(0,2M+17)]` per call.\n   - `keep=True` makes no release calls.\n   - The read pattern and the five open counts are unchanged.\n2. **Add** `test_authenticated_advises_only_consumed_ranges_and_preserves_rejections`:\n   - Sizes 0, 1, 1 MiB and 9 MiB+17.\n   - Every range lies within the bytes read when the call was made, and together the ranges cover `[0,N)`.\n   - The last call is `(0,N)`.\n   - Wrong SHA, conflicting guard and same-stat mutation fail with the same messages.\n   - Symlink and relative paths cause no open and no release call.\n3. **Add the causal falsifier** (stdlib, real files, no native code):\n   - Use a fresh file of 256 MiB+17 in a real-disk directory under `Path.home()`. Do not use the frozen source root or a tmpfs `/tmp`.\n   - Before each run: fsync, release the whole file, confirm the SHA.\n   - Control: `d.authenticated` with `d.os.posix_fadvise` patched to do nothing. Treatment: the real function. The release call is the only difference.\n   - Measure: the `file` value in this process's own cgroup `memory.stat`, sampled every 1 ms for the peak, plus the end value.\n   - **PASS** only if all of these hold:\n     - control peak \u2265 0.75N\n     - treatment peak \u2264 0.125N\n     - treatment end \u2264 1 MiB\n     - digests are equal\n   - If the control peak is below 0.75N, report it as `skipTest('INCONCLUSIVE: not disk-backed/attributable')`, never as a pass.\n4. **Freeze (root's job):**\n   - The driver and test SHAs change (current `6a456248\u2026` and `2e13f715\u2026`).\n   - That requires a new source directory, `execution.json`, and authority `execution_sha256`, plus a successor to the exit-observation freeze, whose `source_files` pin the old SHAs.\n   - In the same freeze, `freeze.json` names unit `\u2026cache-exit-observation-179061-v1` but `launch.sh` ran `\u2026cache-first-179061-v1`. That is the root's short-unit-name mismatch and stays separate from this change.\n\n## What would disprove it, and what native run remains\n\n- **Fix fails:** the treatment arm keeps more than 12.5% at peak on a real disk. Then HOLD and look at `O_DIRECT`.\n- **Mechanism unproven:** the control arm stays below 0.75N. The result is inconclusive.\n- **Cause is elsewhere:** in the next frozen run (root's decision; I am not launching it), `max` is still above 0 while file cache during `rehash.context` stays within entry + 64 MiB.\n- **Acceptance for that run:**\n  - unit name matches the freeze\n  - `max`, `oom` and `oom_kill` stay 0 for the whole run\n  - `rehash.context` file growth \u2264 64 MiB\n  - `rehash.context` time \u2264 2\u00d7 the original 8.69 s\n  - total wall time < 700 s (the original used 634.5 s, so the margin is thin)\n  - digests and the stop rule are unchanged\n- **Predicted peak** \u2248 4.4 GiB (3712 MiB anon + ~650 MiB file + kernel + window), under the 8 GiB cap.\n\nI saved this finding to project memory as `sfora-exit-rehash-fadvise-window-plan`.",
+  "result_truncated": false
+}
