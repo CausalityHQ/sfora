@@ -1236,6 +1236,13 @@ class _InstalledIdentityBoundary:
                 for f,code,defaults,kw in functions) and all(vars(module)[k] == v for k,v in literals.items()),
             'original identity live helper binding changed')
         self.source = requests.Source(original,{'path':path,'sha256':pin})
+        self.live_values = dict(self.source.values)
+        self.live_literals = copy.deepcopy(self.source.literals)
+        self.live_spec = dict(self.source.spec_values)
+        self.live_classes = tuple((cls,dict(values)) for cls,values in self.source.classes)
+        self.live_functions = tuple((fn,code,fn.__globals__,copy.deepcopy(defaults),copy.deepcopy(kw),
+            dict(vars(fn)),tuple(c.cell_contents for c in fn.__closure__ or ()))
+            for fn,code,defaults,kw in self.source.functions)
         self.snapshot = snapshots[0]
         tree = ast.parse(raw)
         for node in tree.body:
@@ -1341,6 +1348,19 @@ class _InstalledIdentityBoundary:
             all(f.__code__ is code and f.__defaults__ == defaults and f.__kwdefaults__ == kw
                 for f,code,defaults,kw in functions) and all(vars(module)[k] == v for k,v in literals.items()),
             'original identity live helper binding changed')
+        # Source.check also reads source bytes, which the active bundle-only scope forbids.
+        require(vars(module).keys() == self.live_values.keys() and
+            all(vars(module)[k] is v for k,v in self.live_values.items()) and
+            all(vars(module)[k] == v for k,v in self.live_literals.items()) and
+            vars(module.__spec__) == self.live_spec and
+            all(vars(cls).keys() == values.keys() and all(vars(cls)[k] is v for k,v in values.items())
+                for cls,values in self.live_classes) and
+            all(fn.__code__ is code and fn.__globals__ is namespace and fn.__defaults__ == defaults and
+                fn.__kwdefaults__ == kw and vars(fn).keys() == values.keys() and
+                all(vars(fn)[k] is v for k,v in values.items()) and len(fn.__closure__ or ()) == len(cells) and
+                all(c.cell_contents is value for c,value in zip(fn.__closure__ or (),cells,strict=True))
+                for fn,code,namespace,defaults,kw,values,cells in self.live_functions),
+            'original identity authenticated live source changed')
         require(all(self.context[k] is v for k,v in self.bindings.items()) and
             self.context['required_guards'] == self.required and self.endpoint['bundle'] == self.endpoint_fact,
             'installed identity shared binding changed')

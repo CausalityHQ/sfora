@@ -2626,7 +2626,7 @@ class ObservationWorld:
 
 
 # BEGIN installed identity tests
-IDENTITY_BLOCK_SHA = '631ee9bdc93c75abb1ca34ac6dd7b425e9681152a7e0b0143b17f44b4b482df1'
+IDENTITY_BLOCK_SHA = '8dfaa419449c948649752e3fdf8770c632a87a421ee8c92f84531ca267a1eea6'
 
 
 def installed_identity_inverse(raw):
@@ -2681,6 +2681,7 @@ class InstalledIdentityBoundary(unittest.TestCase):
     def identity_world(self):
         import importlib.metadata as metadata
         from importlib.machinery import PathFinder
+        from types import FunctionType
         import sysconfig
         from concurrent.futures import ThreadPoolExecutor
         stdlib = Path(sysconfig.get_path('stdlib'))
@@ -2721,7 +2722,13 @@ class InstalledIdentityBoundary(unittest.TestCase):
             endpoint = {'bundle':fact(manifest)}
             environment = {'packages':{'torch':{'root':str(site/'torch')}},'files':{}}
             trainer = SimpleNamespace(admit_bundle=lambda *args: ({'environment':environment},{}))
-            snapshot = (original,Path(original.__file__),original.__spec__,dict(vars(original)),source.functions,source.literals)
+            # Match production guard_helpers: only module-level functions, including decorated wrappers.
+            values = dict(vars(original))
+            functions = [(f,f.__code__,f.__defaults__,copy.deepcopy(f.__kwdefaults__))
+                for f in values.values() if isinstance(f,FunctionType)]
+            literals = {k:copy.deepcopy(v) for k,v in values.items() if k != '__builtins__' and
+                isinstance(v,(dict,list,tuple,set,frozenset))}
+            snapshot = (original,Path(original.__file__),original.__spec__,values,functions,literals)
             context = {'evaluator_reference':original,'launch':{'evaluator_reference':{'root':str(source_path.parent),
                 'code':{'evaluate_siglip2_identity_diversity.py':source.fact['sha256']}}},'guards':dict(guards),
                 'required_guards':dict(guards),'trainer':trainer,'helper_snapshots':[snapshot],
@@ -2780,6 +2787,41 @@ class InstalledIdentityBoundary(unittest.TestCase):
         tests = Path(__file__).read_bytes()
         for changed in (tests+b'\nextra = 1\n',tests.replace(b'def diagnostic_inverse(raw):',b'def altered_inverse(raw):')):
             with self.assertRaises(ValueError): installed_identity_test_inverse(changed)
+
+    def test_active_original_function_tamper_rejected_before_restoration(self):
+        with self.identity_world() as w:
+            boundary = gate._InstalledIdentityBoundary(w.context,w.endpoint,w.wheel)
+            wrapper = w.original.bundle_reads_only
+            body = wrapper.__wrapped__
+            cell = wrapper.__closure__[0]
+            def foreign_body(*args,**kwargs): yield None
+            changes = ((body,'__code__',foreign_body.__code__),
+                (body,'__defaults__',('foreign',)),
+                (body,'__kwdefaults__',{'foreign':True}),
+                (wrapper,'__wrapped__',w.original.require),
+                (cell,'cell_contents',w.original.require),
+                (w.original.__spec__,'cached','foreign'))
+            refusals = []
+            def observe(label, action):
+                try: action()
+                except ValueError: refusals.append((label,True))
+                else: refusals.append((label,False))
+            with boundary.scope():
+                for target, name, value in changes:
+                    before = getattr(target,name)
+                    setattr(target,name,value)
+                    try:
+                        observe(name,boundary.check)
+                        observe('read '+name,(w.dist/'METADATA').read_bytes)
+                    finally: setattr(target,name,before)
+                with patch.dict(vars(body),{'foreign':True}):
+                    observe('attribute',boundary.check)
+                    observe('read attribute',(w.dist/'METADATA').read_bytes)
+                boundary.check()
+                self.assertEqual((w.dist/'METADATA').read_bytes(),b'Name: sfora\nVersion: 0.3.0rc4\n')
+            boundary.check()
+            for label, refused in refusals:
+                with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
 
     def test_identity_bytes_absence_guards_and_site_refusals(self):
         with self.identity_world() as w:
