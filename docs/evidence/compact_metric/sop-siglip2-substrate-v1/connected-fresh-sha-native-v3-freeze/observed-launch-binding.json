@@ -1,0 +1,14 @@
+{
+  "accepted": false,
+  "actual_invocation_id": "e0b5b55e7b024761916bd36a80f3ccde",
+  "actual_main_pid": 1964841,
+  "actual_unit": "sfora-connected-fresh-sha-native-v2",
+  "cause": "Template replaced full output/root paths but retained bare --unit=v2. One new invocation, old unit already collected/inactive, distinct new output; no second launch. Freeze and prior failure originals unchanged.",
+  "freeze_metadata_unit_mismatch": true,
+  "frozen_launcher_sha256": "bb541b88c1d6cc5050029cc95e4456f4df0014d5db4d1fef99b3dadf0324bac5",
+  "must_collect_exact_original": true,
+  "new_output": "/home/riomus/runs/sfora-connected-fresh-sha-native-v3",
+  "normal_terminal_required": true,
+  "schema": "fresh-sha-v3-observed-launch-binding-v1",
+  "ssh_session": 35033
+}
