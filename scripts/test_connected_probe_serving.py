@@ -203,7 +203,7 @@ class ReviewedPins(unittest.TestCase):
     def test_driver_literals_are_exact_policy_and_no_future_pin(self):
         self.assertEqual(gate.POLICY,{'body_seconds':300,'host_bytes':8*1024**3,'swap_bytes':0,
             'cuda_allocated_bytes_exclusive':10_000_000_000,'whole_process_seconds':1500,'exit_reserve_seconds':300})
-        digests = set(re.findall(r'[0-9a-f]{64}',DRIVER.read_text()))
+        digests = set(re.findall(r'[0-9a-f]{64}',installed_identity_inverse(DRIVER.read_bytes()).decode()))
         allowed = {gate.RUNTIME_SHA,gate.LEDGER_SHA,gate.BRIDGE_SHA,gate.PACKED_SHA,gate.ARCHIVED_BINARY_SHA,
             gate.ARCHIVED_BUILD_SHA,*(h for _,h in gate.HISTORICAL)}
         self.assertEqual(digests,allowed)
@@ -1882,7 +1882,7 @@ class DriverStructure(unittest.TestCase):
             self.assertIn("authority['wheel']['direct_url']",ast.unparse(functions[name]))
 
     def test_no_function_or_global_is_rebound_and_no_historical_execution(self):
-        text = DRIVER.read_text()
+        text = installed_identity_inverse(DRIVER.read_bytes()).decode()
         tree = ast.parse(text)
         for node in ast.walk(tree):
             if isinstance(node,ast.Assign):
@@ -2186,6 +2186,7 @@ OBSERVATION_CATCH = b"        _observation_emit({'event':'reference_catch_before
 
 
 def diagnostic_inverse(raw):
+    raw = installed_identity_inverse(raw)
     begin,end = b'# BEGIN bounded loader observation\n',b'# END bounded loader observation\n\n\n'
     if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('diagnostic block cardinality')
     start,stop = raw.index(begin),raw.index(end)+len(end)
@@ -2211,7 +2212,7 @@ def diagnostic_inverse(raw):
 
 class LoaderObservation(unittest.TestCase):
     def test_all_original_test_bytes_and_ast_are_preserved_except_authorized_inverse(self):
-        raw = Path(__file__).read_bytes()
+        raw = installed_identity_test_inverse(Path(__file__).read_bytes())
         start = raw.index(b'# BEGIN loader observation tests\n')
         end_marker = b'# END loader observation tests\n\n\n'
         end = raw.index(end_marker)+len(end_marker)
@@ -2622,6 +2623,335 @@ class ObservationWorld:
         return ObservationModel()
 
 # END loader observation tests
+
+
+# BEGIN installed identity tests
+IDENTITY_BLOCK_SHA = '631ee9bdc93c75abb1ca34ac6dd7b425e9681152a7e0b0143b17f44b4b482df1'
+
+
+def installed_identity_inverse(raw):
+    begin,end = b'# BEGIN installed identity boundary\n',b'# END installed identity boundary\n\n\n'
+    if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('identity block cardinality')
+    start,stop = raw.index(begin),raw.index(end)+len(end)
+    block = raw[start:stop]
+    if SHA(block) != IDENTITY_BLOCK_SHA: raise ValueError('identity definitions differ')
+    if [n.name for n in ast.parse(block).body] != ['_InstalledIdentityBoundary']:
+        raise ValueError('identity node inventory differs')
+    raw = raw[:start]+raw[stop:]
+    changes = (
+        (b"        identity_boundary = _InstalledIdentityBoundary(context,endpoint,authority['wheel'])\n",b''),
+        (b'            identity_boundary.check()\n',b''),
+        (b'            reads_only = identity_boundary.scope\n',
+            b"            def reads_only(): return context['evaluator_reference'].bundle_reads_only(context,endpoint)\n"))
+    for added, original in changes:
+        if raw.count(added) != 1: raise ValueError('identity dispatch cardinality')
+        raw = raw.replace(added,original)
+    if SHA(raw) != '81828ad4c0ed7bf2cebec57c46e0db7215f244ea4ae5f07aa699adaf971d1de1':
+        raise ValueError('complete original production bytes differ')
+    if SHA(ast.dump(ast.parse(raw),include_attributes=False).encode()) != '61ed2b38290f53b9dd1893dc7fed661c75d4a56af8d9185e95dfe71c75affcf8':
+        raise ValueError('complete original production AST differs')
+    return raw
+
+
+def installed_identity_test_inverse(raw):
+    begin,end = b'# BEGIN installed identity tests\n',b'# END installed identity tests\n\n\n'
+    if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('identity test block cardinality')
+    start,stop = raw.index(begin),raw.index(end)+len(end)
+    names = [n.name for n in ast.parse(raw[start:stop]).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))]
+    if names != ['installed_identity_inverse','installed_identity_test_inverse','InstalledIdentityBoundary']:
+        raise ValueError('identity test node inventory differs')
+    raw = raw[:start]+raw[stop:]
+    changes = ((b'def diagnostic_inverse(raw):\n    raw = installed_identity_inverse(raw)\n',b'def diagnostic_inverse(raw):\n'),
+        (b'        raw = installed_identity_test_inverse(Path(__file__).read_bytes())\n',b'        raw = Path(__file__).read_bytes()\n'),
+        (b"        digests = set(re.findall(r'[0-9a-f]{64}',installed_identity_inverse(DRIVER.read_bytes()).decode()))\n",
+            b"        digests = set(re.findall(r'[0-9a-f]{64}',DRIVER.read_text()))\n"),
+        (b'        text = installed_identity_inverse(DRIVER.read_bytes()).decode()\n',b'        text = DRIVER.read_text()\n'))
+    for added, original in changes:
+        if raw.count(added) != 1: raise ValueError('historical identity inverse normalization differs')
+        raw = raw.replace(added,original)
+    if SHA(raw) != '1adbc43bd9bf1a2b131bd9c8a04d39099c71d789f45898c8ab6bf717bd17f9e9':
+        raise ValueError('complete original test bytes differ')
+    if SHA(ast.dump(ast.parse(raw),include_attributes=False).encode()) != '03eb997161dae093cd2a0956c8bdc798bf5df8eeaf2999f3f7d8edf420e16f97':
+        raise ValueError('complete original test AST differs')
+    return raw
+
+
+class InstalledIdentityBoundary(unittest.TestCase):
+    @contextmanager
+    def identity_world(self):
+        import importlib.metadata as metadata
+        from importlib.machinery import PathFinder
+        import sysconfig
+        from concurrent.futures import ThreadPoolExecutor
+        stdlib = Path(sysconfig.get_path('stdlib'))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_path = root/'reference'/'evaluate_siglip2_identity_diversity.py'
+            source_path.parent.mkdir(); source_path.write_bytes((HERE/source_path.name).read_bytes())
+            source = requests.Source.load(fact(source_path))
+            original = source.module
+            site, installed = root/'original-site', root/'installed-site'
+            site.mkdir(); installed.mkdir()
+            guards = {source.fact['path']:source.fact['sha256']}
+            def row(path, raw):
+                path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(raw)
+                return [path.relative_to(path.parents[1] if path.parent.name.endswith('.dist-info') else site).as_posix(),
+                    'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).rstrip(b'=').decode(),str(len(raw))]
+            for distribution, names in original.RUNTIME_SOURCES.items():
+                rows = []
+                dist_name = next((n.split('/')[0] for n in names if n.endswith('/METADATA')),distribution+'-9.dist-info')
+                for name in sorted(names | {dist_name+'/METADATA'}):
+                    raw = ('Name: '+distribution+'\nVersion: 9\n').encode() if name.endswith('/METADATA') else b'# original pinned source\n'
+                    path = site/name
+                    path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(raw)
+                    rows.append([name,'sha256='+base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).rstrip(b'=').decode(),str(len(raw))])
+                record = site/dist_name/'RECORD'
+                stream = io.StringIO(); csv.writer(stream).writerows(rows); record.write_text(stream.getvalue())
+                guards[str(record)] = file_sha(record)
+            dist = installed/'sfora-0.3.0rc4.dist-info'
+            metadata_path = dist/'METADATA'
+            rows = [row(metadata_path,b'Name: sfora\nVersion: 0.3.0rc4\n'),
+                ['sfora/__init__.py','sha256='+base64.urlsafe_b64encode(hashlib.sha256(b'').digest()).rstrip(b'=').decode(),'0'],
+                [dist.name+'/RECORD','','']]
+            (installed/'sfora').mkdir(); (installed/'sfora'/'__init__.py').write_bytes(b'')
+            record = dist/'RECORD'
+            stream = io.StringIO(); csv.writer(stream).writerows(rows); record.write_text(stream.getvalue())
+            wheel = {'site_root':str(installed),'distribution':'sfora','version':'0.3.0rc4','record':fact(record),'direct_url':None}
+            bundle = root/'bundle'; bundle.mkdir(); manifest = bundle/'bundle.json'; manifest.write_text('{}')
+            endpoint = {'bundle':fact(manifest)}
+            environment = {'packages':{'torch':{'root':str(site/'torch')}},'files':{}}
+            trainer = SimpleNamespace(admit_bundle=lambda *args: ({'environment':environment},{}))
+            snapshot = (original,Path(original.__file__),original.__spec__,dict(vars(original)),source.functions,source.literals)
+            context = {'evaluator_reference':original,'launch':{'evaluator_reference':{'root':str(source_path.parent),
+                'code':{'evaluate_siglip2_identity_diversity.py':source.fact['sha256']}}},'guards':dict(guards),
+                'required_guards':dict(guards),'trainer':trainer,'helper_snapshots':[snapshot],
+                'training_context':{'legacy':{'selected':{'source_cpu':{'origins':{'files':{},'native_files':[]}}}}}}
+            # Discovery is authenticated before entry; the original boundary grants no installed directory scan.
+            list(metadata.distributions(path=[str(installed)]))
+            self.assertIsNotNone(PathFinder.find_spec('sfora',[str(installed)]))
+            try:
+                with patch.object(sys,'path',[str(installed),str(site),str(stdlib),str(stdlib/'lib-dynload')]):
+                    yield SimpleNamespace(root=root,source=source,original=original,context=context,endpoint=endpoint,
+                        wheel=wheel,site=site,installed=installed,dist=dist,metadata=metadata,rows=rows,record=record)
+            finally: sys.modules.pop(original.__name__,None)
+
+    def test_real_metadata_original_red_and_installed_green(self):
+        with self.identity_world() as w:
+            with w.original.bundle_reads_only(w.context,w.endpoint):
+                with self.assertRaisesRegex(ValueError,'bundle-only loader attempted external dependency.*top_level.txt'):
+                    w.metadata.packages_distributions()
+        with self.identity_world() as w:
+            self.assertTrue(hasattr(gate,'_InstalledIdentityBoundary'),'installed identity seam is missing')
+            boundary = gate._InstalledIdentityBoundary(w.context,w.endpoint,w.wheel)
+            required = dict(w.context['required_guards'])
+            with boundary.scope():
+                self.assertEqual(w.metadata.packages_distributions()['sfora'],['sfora'])
+            with boundary.scope():
+                self.assertEqual(w.metadata.packages_distributions()['sfora'],['sfora'])
+            boundary.check()
+            self.assertEqual(w.context['required_guards'],required)
+            self.assertEqual(w.context['guards'][str(w.record)],w.wheel['record']['sha256'])
+            self.assertEqual(w.context['guards'][str(w.dist/'METADATA')],file_sha(w.dist/'METADATA'))
+            w.source.check()
+
+    def test_exact_production_and_old_test_byte_ast_inverse(self):
+        raw = DRIVER.read_bytes()
+        original = installed_identity_inverse(raw)
+        installed_identity_test_inverse(Path(__file__).read_bytes())
+        original_pins = set(re.findall(r'[0-9a-f]{64}',original.decode()))
+        self.assertEqual(set(re.findall(r'[0-9a-f]{64}',raw.decode())),original_pins | {
+            '95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d',
+            '7bbd4303cb0724330e5074b859ec4d4a3d5b6f1d40d4182d16c5302ce54e4060'})
+        tree = ast.parse(raw)
+        execs = [n for n in ast.walk(tree) if isinstance(n,ast.Call) and ast.unparse(n.func) == 'exec']
+        self.assertEqual(len(execs),2)
+        added_execs = [n for n in ast.walk(function(tree,'__init__','_InstalledIdentityBoundary'))
+            if isinstance(n,ast.Call) and ast.unparse(n.func) == 'exec']
+        self.assertEqual(len(added_execs),1)
+        self.assertEqual(ast.unparse(added_execs[0].args[1]),'self.space')
+        self.assertEqual(len([n for n in ast.walk(function(tree,'derive_evaluator_loader'))
+            if isinstance(n,ast.Call) and ast.unparse(n.func) == 'exec']),1)
+        for changed in (raw.replace(b'identity_boundary.check()',b'identity_boundary.check()\n            pass'),
+                raw.replace(b'            reads_only = identity_boundary.scope\n',b''),
+                raw.replace(b'            reads_only = identity_boundary.scope\n',b'            reads_only = identity_boundary.scope\n'*2),
+                raw.replace(b'def clear_frames(',b'def altered_clear_frames('),raw+b'\nextra = 1\n',
+                raw.replace(b'    def read_identity(self):',b'    def extra_identity(self):')):
+            with self.assertRaises(ValueError): installed_identity_inverse(changed)
+        tests = Path(__file__).read_bytes()
+        for changed in (tests+b'\nextra = 1\n',tests.replace(b'def diagnostic_inverse(raw):',b'def altered_inverse(raw):')):
+            with self.assertRaises(ValueError): installed_identity_test_inverse(changed)
+
+    def test_identity_bytes_absence_guards_and_site_refusals(self):
+        with self.identity_world() as w:
+            boundary = gate._InstalledIdentityBoundary(w.context,w.endpoint,w.wheel)
+            top, metadata = w.dist/'top_level.txt', w.dist/'METADATA'
+            raw_record, raw_metadata = w.record.read_bytes(), metadata.read_bytes()
+            for label, path, value in (('new RECORD row',w.record,raw_record+b'x.py,,\n'),
+                    ('wrong metadata bytes',metadata,raw_metadata+b'bad'),
+                    ('present top',top,b'sfora\n')):
+                with self.subTest(label):
+                    path.write_bytes(value)
+                    try:
+                        with self.assertRaises(ValueError): boundary.check()
+                    finally:
+                        if path == top: path.unlink()
+                        else: path.write_bytes(raw_record if path == w.record else raw_metadata)
+            top.symlink_to(w.root/'missing')
+            try:
+                with self.assertRaises(ValueError): boundary.check()
+            finally: top.unlink()
+            for path in (w.record,metadata):
+                old = w.context['guards'][str(path)]
+                w.context['guards'][str(path)] = '0'*64
+                try:
+                    with self.subTest('wrong guard '+path.name), self.assertRaises(ValueError): boundary.check()
+                finally: w.context['guards'][str(path)] = old
+            wheel = copy.deepcopy(w.wheel); wheel['site_root'] = str(w.site)
+            with self.assertRaises(ValueError): gate._InstalledIdentityBoundary(w.context,w.endpoint,wheel)
+            boundary.check()
+
+    def test_record_hash_size_metadata_and_canonical_row_refusals(self):
+        with self.identity_world() as w:
+            for label, change in (
+                    ('hash',lambda r: r[0].__setitem__(1,'sha256='+'A'*43)),
+                    ('size',lambda r: r[0].__setitem__(2,str(int(r[0][2])+1))),
+                    ('noncanonical hash',lambda r: r[0].__setitem__(1,'sha256='+r[0][1][7:-1]+'B')),
+                    ('noncanonical size',lambda r: r[0].__setitem__(2,'0'+r[0][2])),
+                    ('missing METADATA',lambda r: r.pop(0)),
+                    ('duplicate row',lambda r: r.append(r[0].copy())),
+                    ('listed top',lambda r: r.append([w.dist.name+'/top_level.txt','',''])),
+                    ('RECORD row',lambda r: r[-1].__setitem__(2,'1'))):
+                rows = copy.deepcopy(w.rows); change(rows)
+                stream = io.StringIO(); csv.writer(stream).writerows(rows); w.record.write_text(stream.getvalue())
+                wheel = copy.deepcopy(w.wheel); wheel['record'] = fact(w.record)
+                with self.subTest(label), self.assertRaises(ValueError):
+                    gate._InstalledIdentityBoundary(w.context,w.endpoint,wheel)
+                w.context['guards'].pop(str(w.record),None); w.context['guards'].pop(str(w.dist/'METADATA'),None)
+            for field, replacement in (('Name: sfora','Name: foreign'),('Version: 0.3.0rc4','Version: wrong')):
+                path = w.dist/'METADATA'; path.write_text(('Name: sfora\nVersion: 0.3.0rc4\n').replace(field,replacement))
+                rows = copy.deepcopy(w.rows)
+                rows[0][1] = 'sha256='+base64.urlsafe_b64encode(hashlib.sha256(path.read_bytes()).digest()).rstrip(b'=').decode()
+                rows[0][2] = str(path.stat().st_size)
+                stream = io.StringIO(); csv.writer(stream).writerows(rows); w.record.write_text(stream.getvalue())
+                wheel = copy.deepcopy(w.wheel); wheel['record'] = fact(w.record)
+                with self.subTest(field), self.assertRaises(ValueError): gate._InstalledIdentityBoundary(w.context,w.endpoint,wheel)
+                w.context['guards'].pop(str(w.record),None); w.context['guards'].pop(str(path),None)
+
+    def test_original_authentication_and_no_stale_cache_adoption(self):
+        with self.identity_world() as w:
+            module, context = w.original, w.context
+            boundary = gate._InstalledIdentityBoundary(context,w.endpoint,w.wheel)
+            source_path = Path(w.source.fact['path']); source_raw = source_path.read_bytes()
+            source_path.write_bytes(source_raw+b'\n# extra\n')
+            try:
+                with self.assertRaises(ValueError): gate._InstalledIdentityBoundary(context,w.endpoint,w.wheel)
+            finally: source_path.write_bytes(source_raw)
+            with patch.object(module,'distribution_identity_files',lambda *a: ({},set(),set())), self.assertRaises(ValueError):
+                boundary.check()
+            original_defaults = module.check_file.__defaults__
+            module.check_file.__defaults__ = (None,)
+            try:
+                with self.assertRaises(ValueError): gate._InstalledIdentityBoundary(context,w.endpoint,w.wheel)
+            finally: module.check_file.__defaults__ = original_defaults
+            with patch.object(module,'__file__',str(w.root/'foreign.py')), self.assertRaises(ValueError): boundary.check()
+            with patch.object(module.__spec__,'origin',str(w.root/'foreign.py')), self.assertRaises(ValueError): boundary.check()
+            with patch.dict(sys.modules,{module.__name__:SimpleNamespace()}), self.assertRaises(ValueError): boundary.check()
+            with patch.dict(module.RUNTIME_SOURCES,{'foreign':set()}), self.assertRaises(ValueError): boundary.check()
+            original_code = module.distribution_identity_files.__code__
+            module.distribution_identity_files.__code__ = (lambda *args: ({},set(),set())).__code__
+            try:
+                with self.assertRaises(ValueError): boundary.check()
+            finally: module.distribution_identity_files.__code__ = original_code
+            context['portable_audits'] = {}
+            with self.assertRaises(ValueError): gate._InstalledIdentityBoundary(context,w.endpoint,w.wheel)
+            context.pop('portable_audits')
+            with boundary.scope(): pass
+            cache = context['portable_audits']
+            with self.assertRaises(ValueError): gate._InstalledIdentityBoundary(context,w.endpoint,w.wheel)
+            context['portable_audits'] = dict(cache)
+            with self.assertRaises(ValueError): boundary.check()
+            context['portable_audits'] = cache
+            entry = cache[boundary.identity]; cache[boundary.identity] = tuple(list(entry))
+            with self.assertRaises(ValueError): boundary.check()
+            cache[boundary.identity] = entry
+            runtime = dict(entry[1]); entry[1][w.root/'foreign.py'] = '0'*64
+            with self.assertRaises(ValueError): boundary.check()
+            entry[1].clear(); entry[1].update(runtime)
+            with patch.dict(boundary.space,{'_probe_distribution_identity_files':lambda *a: ({},set(),set())}), self.assertRaises(ValueError):
+                boundary.check()
+            with patch.object(boundary.boundary,'__defaults__',(None,)), self.assertRaises(ValueError): boundary.check()
+            fn = boundary.space['_probe_distribution_identity_files']
+            with patch.object(fn,'__defaults__',(None,)), self.assertRaises(ValueError): boundary.check()
+            seam_code = fn.__code__
+            # The replacement retains one closure cell, so Python permits it and the dispatch guard must reject it.
+            def same_closure():
+                value = None
+                def replacement(*args): return value
+                return replacement
+            fn.__code__ = same_closure().__code__
+            try:
+                with self.assertRaises(ValueError): boundary.check()
+            finally: fn.__code__ = seam_code
+            boundary.check()
+
+    def test_active_reads_writes_extra_paths_and_failed_exit(self):
+        with self.identity_world() as w:
+            boundary = gate._InstalledIdentityBoundary(w.context,w.endpoint,w.wheel)
+            unrelated = w.installed/'foreign.py'; unrelated.write_bytes(b'foreign')
+            native = w.installed/'foreign.so'; native.write_bytes(b'native')
+            direct = w.dist/'direct_url.json'; direct.write_bytes(b'{}')
+            import importlib.util
+            pyc = Path(importlib.util.cache_from_source(str(w.site/'packaging'/'__init__.py')))
+            pyc.parent.mkdir(exist_ok=True); pyc.write_bytes(b'unpinned')
+            with boundary.scope():
+                for path in (unrelated,native,direct,w.source.fact['path'],pyc):
+                    with self.subTest(str(path)), self.assertRaises((ValueError,FileNotFoundError)): Path(path).read_bytes()
+                with self.assertRaises(ValueError): os.listdir(w.installed)
+                with self.assertRaises(ValueError): (w.dist/'METADATA').open('wb')
+                with self.assertRaises(FileNotFoundError): (w.dist/'top_level.txt').read_text()
+                with self.assertRaises(ValueError):
+                    with boundary.scope(): pass
+                with patch.dict(w.context['guards'],{str(w.record):'0'*64}), self.assertRaises(ValueError): w.record.read_text()
+            with self.assertRaisesRegex(RuntimeError,'original body failure'):
+                with boundary.scope(): raise RuntimeError('original body failure')
+            self.assertFalse(boundary.active)
+            boundary.check()
+
+    def test_fresh_exit_absence_and_hash_failure_preserve_original_error(self):
+        for label, filename, data in (('absence','top_level.txt',b'sfora'),('metadata','METADATA',b'changed'),
+                ('record','RECORD',b'changed')):
+            with self.subTest(label), self.identity_world() as w:
+                boundary = gate._InstalledIdentityBoundary(w.context,w.endpoint,w.wheel)
+                fd = None if filename == 'top_level.txt' else os.open(w.dist/filename,os.O_WRONLY)
+                with self.assertRaises((ValueError,RuntimeError)) as raised:
+                    with boundary.scope():
+                        # A preopened fd or directory entry models an external change without bypassing either hook.
+                        if fd is None: (w.dist/filename).symlink_to(w.root/'missing')
+                        else:
+                            os.write(fd,data); os.ftruncate(fd,len(data)); os.close(fd)
+                        raise RuntimeError('original body failure')
+                errors = gate._observation_errors(raised.exception)
+                self.assertTrue(any(n['type'] == 'builtins.RuntimeError' and n['message'] == 'original body failure'
+                    for n in errors['nodes']))
+                self.assertTrue(raised.exception.__notes__)
+
+    def test_audit_hook_does_not_retain_context_owner(self):
+        class Owner: pass
+        for failure in (False,True):
+            with self.subTest(failure), self.identity_world() as w:
+                owner = Owner(); w.context['context_owner'] = owner
+                boundary = gate._InstalledIdentityBoundary(w.context,w.endpoint,w.wheel)
+                if failure:
+                    with self.assertRaisesRegex(RuntimeError,'body failure'):
+                        with boundary.scope(): raise RuntimeError('body failure')
+                else:
+                    with boundary.scope(): pass
+                reference, context_owner = weakref.ref(boundary), weakref.ref(owner)
+            del boundary, owner, w; gc.collect()
+            self.assertIsNone(reference())
+            self.assertIsNone(context_owner())
+
+# END installed identity tests
 
 
 if __name__ == '__main__':

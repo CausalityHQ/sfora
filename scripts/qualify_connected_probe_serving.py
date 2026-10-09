@@ -1059,6 +1059,7 @@ def run(args):
         context,exit_guard = evaluator.authority(eargs)
         context['training_context']['fit_context']['unit_started'] = STARTED
         endpoint,exported = admit_probe(evaluator,context,authority)
+        identity_boundary = _InstalledIdentityBoundary(context,endpoint,authority['wheel'])
         frozen = [authority_fact,native_fact['authority'],native_fact['library'],authority['evaluation_authority'],
             *sources.values(),bundle['manifest'],*bundle['code'].values(),authority['gallery']['file'],
             authority['train_export']['receipt'],authority['wheel']['record'],
@@ -1085,6 +1086,7 @@ def run(args):
         torch.random.default_generator.manual_seed(ep['seed']); torch.cuda.manual_seed_all(ep['seed'])
         rng,cuda_rng = torch.random.get_rng_state().clone(),torch.cuda.get_rng_state_all()
         def guard(*, reserve=True, deep=False):
+            identity_boundary.check()
             locks.check()
             for source in (self_source,request_source,observer_source,native_source,evaluator_source,
                 bridge_source,wrapper_source,packed_source,packing_source): source.check()
@@ -1119,7 +1121,7 @@ def run(args):
             wire = None
             batches = [(k,[Path(f['path']) for f in v]) for k,v in batches]
             t = context['training_context']
-            def reads_only(): return context['evaluator_reference'].bundle_reads_only(context,endpoint)
+            reads_only = identity_boundary.scope
             def loaded(state): t['live_model'] = weakref.ref(state['model'])
             def after(): t['trainer'].require_no_training(t)
             def reference(items, deadline):
@@ -1211,6 +1213,199 @@ def main(argv=None):
     parser.add_argument('--authority-sha256',required=True)
     parser.add_argument('--output',type=Path,required=True)
     return run(parser.parse_args(argv))
+
+
+# BEGIN installed identity boundary
+class _InstalledIdentityBoundary:
+    """Own one compiled call seam; the original module and its guards remain authoritative."""
+    def __init__(self, context, endpoint, wheel):
+        self.context, self.endpoint, self.wheel = context, endpoint, copy.deepcopy(wheel)
+        original = context['evaluator_reference']
+        descriptor = context['launch']['evaluator_reference']
+        path = str(Path(descriptor['root'])/'evaluate_siglip2_identity_diversity.py')
+        pin = '95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d'
+        require(descriptor['code']['evaluate_siglip2_identity_diversity.py'] == pin and
+            context['guards'].get(path) == pin, 'original identity source FILE guard required')
+        raw = requests.read_file({'path':path,'sha256':pin})
+        snapshots = [s for s in context['helper_snapshots'] if s[0] is original]
+        require(len(snapshots) == 1, 'original helper snapshot required')
+        module, origin, spec, values, functions, literals = snapshots[0]
+        require(module.__spec__ is spec and Path(module.__file__) == Path(spec.origin) == origin == Path(path) and
+            vars(module).keys() == values.keys() and all(vars(module)[k] is v for k,v in values.items()) and
+            all(f.__code__ is code and f.__defaults__ == defaults and f.__kwdefaults__ == kw
+                for f,code,defaults,kw in functions) and all(vars(module)[k] == v for k,v in literals.items()),
+            'original identity live helper binding changed')
+        self.source = requests.Source(original,{'path':path,'sha256':pin})
+        self.snapshot = snapshots[0]
+        tree = ast.parse(raw)
+        for node in tree.body:
+            if isinstance(node,ast.FunctionDef):
+                fn = getattr(vars(original)[node.name],'__wrapped__',vars(original)[node.name])
+                defaults = tuple(ast.literal_eval(v) for v in node.args.defaults) or None
+                keywords = {k.arg:ast.literal_eval(v) for k,v in zip(node.args.kwonlyargs,node.args.kw_defaults) if v is not None} or None
+                require(fn.__defaults__ == defaults and fn.__kwdefaults__ == keywords,
+                    'original identity source defaults differ')
+        nodes = [n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name == 'bundle_reads_only']
+        require(len(nodes) == 1 and hashlib.sha256(ast.dump(nodes[0],include_attributes=False).encode()).hexdigest() ==
+            '7bbd4303cb0724330e5074b859ec4d4a3d5b6f1d40d4182d16c5302ce54e4060', 'original bundle boundary AST differs')
+        derived = copy.deepcopy(nodes[0])
+        hits = [n for n in ast.walk(derived) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and
+            n.func.id == 'distribution_identity_files']
+        require(len(hits) == 1 and not hits[0].keywords and
+            ast.dump(hits[0].args[0]) == ast.dump(ast.Name(id='context',ctx=ast.Load())) and
+            ast.dump(hits[0].args[1]) == ast.dump(ast.Name(id='site',ctx=ast.Load())), 'sole exact identity call required')
+        hits[0].func.id = '_probe_distribution_identity_files'
+        inverse = copy.deepcopy(derived)
+        next(n for n in ast.walk(inverse) if isinstance(n,ast.Name) and n.id == '_probe_distribution_identity_files').id = 'distribution_identity_files'
+        require(ast.dump(inverse,include_attributes=False) == ast.dump(nodes[0],include_attributes=False),
+            'installed identity call inverse differs')
+        self.bindings = {k:context[k] for k in ('evaluator_reference','launch','guards','required_guards','training_context','trainer','helper_snapshots')}
+        self.required = dict(context['required_guards'])
+        self.endpoint_fact = copy.deepcopy(endpoint['bundle'])
+        require('portable_audits' not in context, 'preexisting original audit cache forbidden')
+        self.cache = self.entry = self.entry_values = None
+        self.active, self.reading = False, False
+        self.identity = (str(Path(endpoint['bundle']['path']).parent),endpoint['bundle']['sha256'])
+        self.space = dict(vars(original))
+        owner_ref = weakref.ref(self)
+        def identity_files(context, site):
+            owner = owner_ref()
+            require(owner is not None, 'installed identity owner released')
+            return owner.identity_files(context,site)
+        self.space['_probe_distribution_identity_files'] = identity_files
+        self.seam = (identity_files,identity_files.__code__,identity_files.__globals__,
+            tuple(c.cell_contents for c in identity_files.__closure__))
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[derived],type_ignores=[])),path,'exec',dont_inherit=True),self.space)
+        self.boundary = self.space['bundle_reads_only']
+        self.wrapper_code = self.boundary.__code__
+        self.wrapper_globals = self.boundary.__globals__
+        self.wrapper_values = dict(vars(self.boundary))
+        self.wrapper_cells = tuple(c.cell_contents for c in self.boundary.__closure__)
+        self.code = self.boundary.__wrapped__.__code__
+        self.space_values = dict(self.space)
+        self.installed = self.read_identity()
+        self.check()
+        def audit(event, args):
+            owner = owner_ref()
+            if owner is not None: owner.audit(event,args)
+        sys.addaudithook(audit)
+
+    def read_identity(self):
+        wheel, context = self.wheel, self.context
+        site = Path(wheel['site_root'])
+        dist = site/(wheel['distribution']+'-'+wheel['version']+'.dist-info')
+        record, metadata, top = dist/'RECORD', dist/'METADATA', dist/'top_level.txt'
+        require(site.is_absolute() and site.resolve() == site and site.is_dir() and
+            wheel['distribution'] == 'sfora' and wheel['record']['path'] == str(record), 'exact installed identity site required')
+        require(context['guards'].get(str(record),wheel['record']['sha256']) == wheel['record']['sha256'],
+            'installed identity RECORD guard differs')
+        raw = requests.read_file(wheel['record'])
+        rows = list(csv.reader(raw.decode('utf-8').splitlines()))
+        require(all(len(r) == 3 for r in rows) and len({r[0] for r in rows}) == len(rows),
+            'invalid/duplicate installed identity RECORD row')
+        require([r for r in rows if r[0] == dist.name+'/RECORD'] == [[dist.name+'/RECORD','','']] and
+            not any(r[0] == dist.name+'/top_level.txt' for r in rows) and
+            top.resolve() == top and not top.exists() and not top.is_symlink(), 'installed top_level must be canonically absent and unlisted')
+        selected = [r for r in rows if r[0] == dist.name+'/METADATA']
+        require(len(selected) == 1, 'exact installed METADATA row required')
+        _, encoded, size = selected[0]
+        require(re.fullmatch(r'sha256=[A-Za-z0-9_-]{43}',encoded) and re.fullmatch(r'0|[1-9][0-9]*',size),
+            'installed identity RECORD hash/size required')
+        value = base64.urlsafe_b64decode(encoded[7:]+'=')
+        require(base64.urlsafe_b64encode(value).decode().rstrip('=') == encoded[7:], 'noncanonical installed identity RECORD hash')
+        metadata_fact = {'path':str(metadata),'sha256':value.hex()}
+        data = requests.read_file(metadata_fact)
+        require(len(data) == int(size), 'installed identity METADATA size differs')
+        headers = data.decode('utf-8').split('\n\n',1)[0].splitlines()
+        require([s for s in headers if s.startswith('Name: ')] == ['Name: '+wheel['distribution']] and
+            [s for s in headers if s.startswith('Version: ')] == ['Version: '+wheel['version']],
+            'installed identity METADATA distribution/version differs')
+        for fact in (wheel['record'],metadata_fact):
+            require(context['guards'].setdefault(fact['path'],fact['sha256']) == fact['sha256'], 'installed identity FILE guard differs')
+        return {metadata:value.hex()}, {top}, {record}
+
+    def identity_files(self, context, site):
+        require(context is self.context, 'installed identity context differs')
+        files, absent, reads = self.source.module.distribution_identity_files(context,site)
+        added, missing, records = self.read_identity()
+        for path, sha in added.items():
+            require(files.setdefault(path,sha) == sha, 'installed identity conflicts with original authority')
+        return files, absent | missing, reads | records
+
+    def check(self):
+        if not self.active: self.source.check()
+        module, origin, spec, values, functions, literals = self.snapshot
+        require(sys.modules.get(module.__name__) is module and module.__spec__ is spec and
+            Path(module.__file__) == Path(spec.origin) == origin and vars(module).keys() == values.keys() and
+            all(vars(module)[k] is v for k,v in values.items()) and
+            all(f.__code__ is code and f.__defaults__ == defaults and f.__kwdefaults__ == kw
+                for f,code,defaults,kw in functions) and all(vars(module)[k] == v for k,v in literals.items()),
+            'original identity live helper binding changed')
+        require(all(self.context[k] is v for k,v in self.bindings.items()) and
+            self.context['required_guards'] == self.required and self.endpoint['bundle'] == self.endpoint_fact,
+            'installed identity shared binding changed')
+        fn, code, namespace, cells = self.seam
+        require(self.space.get('_probe_distribution_identity_files') is fn and fn.__code__ is code and
+            fn.__globals__ is namespace and fn.__defaults__ is None and fn.__kwdefaults__ is None and
+            not vars(fn) and len(fn.__closure__ or ()) == len(cells) and
+            all(c.cell_contents is v for c,v in zip(fn.__closure__ or (),cells,strict=True)),
+            'installed identity call seam changed')
+        require(self.space.keys() == self.space_values.keys() and
+            all(self.space[k] is v for k,v in self.space_values.items()) and
+            self.boundary is self.space['bundle_reads_only'] and self.boundary.__code__ is self.wrapper_code and
+            self.boundary.__globals__ is self.wrapper_globals and vars(self.boundary) == self.wrapper_values and
+            self.boundary.__defaults__ is None and self.boundary.__kwdefaults__ is None and
+            len(self.boundary.__closure__ or ()) == len(self.wrapper_cells) and
+            all(c.cell_contents is v for c,v in zip(self.boundary.__closure__ or (),self.wrapper_cells,strict=True)) and
+            self.boundary.__wrapped__.__globals__ is self.space and
+            self.boundary.__wrapped__.__code__ is self.code and self.boundary.__wrapped__.__defaults__ is None and
+            self.boundary.__wrapped__.__kwdefaults__ is None, 'installed identity dispatch changed')
+        if self.cache is None:
+            require('portable_audits' not in self.context, 'preexisting original audit cache forbidden')
+        else:
+            require(self.context.get('portable_audits') is self.cache and self.cache.keys() == {self.identity} and
+                self.cache[self.identity] is self.entry and len(self.entry) == 4 and
+                all(a is b for a,b in zip(self.entry,self.entry_values[0],strict=True)) and
+                self.entry[0] == [self.active] and
+                tuple(self.entry[1:]) == self.entry_values[1], 'installed identity audit cache ownership changed')
+        require(self.read_identity() == self.installed, 'installed identity bytes changed')
+
+    def audit(self, event, args):
+        if not self.active or self.reading or event != 'open' or type(args[0]) is int:
+            return
+        paths = set(self.installed[0]) | self.installed[1] | self.installed[2]
+        probe = Path(os.fsdecode(args[0])).absolute()
+        if probe in paths or probe.resolve() in paths:
+            mode, flags = args[1:3]
+            require((mode is None or not any(c in mode for c in 'wax+')) and
+                not flags & (os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC|os.O_APPEND), 'installed identity write forbidden')
+            self.reading = True
+            try: self.check()
+            finally: self.reading = False
+
+    @requests.contextmanager
+    def scope(self):
+        self.check()
+        require(not self.active, 'nested installed identity boundary forbidden')
+        failures = []
+        try:
+            with self.boundary(self.context,self.endpoint):
+                if self.cache is None:
+                    self.cache = self.context['portable_audits']
+                    self.entry = self.cache[self.identity]
+                    self.entry_values = (tuple(self.entry),copy.deepcopy(tuple(self.entry[1:])))
+                self.active = True
+                self.check()
+                try: yield
+                finally: self.active = False
+        except BaseException as error: failures.append(error)
+        finally:
+            self.active = False
+            try: self.check()
+            except BaseException as error: failures.append(error)
+        if failures: requests.raise_failures(failures)
+
+# END installed identity boundary
 
 
 # BEGIN bounded loader observation
