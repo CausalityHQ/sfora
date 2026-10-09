@@ -1,0 +1,50 @@
+{
+  "build_authority": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-native-v1/native-build-authority-v5.json",
+    "sha256": "1722dd618f5cfa77bff055664e4ab35c202fd22bea550aa19b453b17fb9752f2"
+  },
+  "exit_status": 0,
+  "library": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/libsha256_occurrences.so",
+    "sha256": "c9fcd633340e327d1330cd473277bec22bdf6444ed5171d874b5e0392015da19"
+  },
+  "logs": [
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/elf.log",
+      "sha256": "272c6465c223beeb9d7d442b2959845c13a250217aeefe2015522547539fe99b"
+    },
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/files.trace",
+      "sha256": "c6a0e85be5ceb59e8089add3f36e0870ef22b6642919d9cff6886bde4f24ed75"
+    },
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/observation.json",
+      "sha256": "d82b508f0980f6fa8bcd37bf57475d0e13efaa8d1e2902e548bea3cabf17d8ae"
+    },
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/ptx.log",
+      "sha256": "88376f2678a2cdbc7b6e32d5e14e67981b8d3040d07b5c2b2ac388826e241139"
+    },
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/sass.log",
+      "sha256": "6598a4ec822eddfcf63d61e4bdbe49d39ec1ead649e11f265bc7fd910e097ac3"
+    },
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/symbols.log",
+      "sha256": "aae98c1a2d83154140ab6ecc39a7d6a473e714630547d932ef947ebf32760a30"
+    }
+  ],
+  "ptx_images": 0,
+  "sass_targets": [
+    "sm_121"
+  ],
+  "schema": "cuda-sha256-build-receipt-v1"
+}

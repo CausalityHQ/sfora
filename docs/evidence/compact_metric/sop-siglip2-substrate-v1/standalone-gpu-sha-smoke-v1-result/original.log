@@ -1,0 +1,43 @@
+Running as unit: sfora-standalone-gpu-sha-smoke-v1.service; invocation ID: e1a612b64e2a44f6aaa02f990e3c4fa5
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/bootstrap.py", line 98, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/bootstrap.py", line 93, in main
+    module.raise_failures(failures)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_connected_serving_requests.py", line 226, in raise_failures
+    raise primary
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/bootstrap.py", line 76, in main
+    runpy.run_path(sys.argv[0], run_name='__main__')
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_cuda_sha256_native.py", line 968, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_cuda_sha256_native.py", line 964, in main
+    return STAGE_BODIES[args.stage](context, args.output)
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_cuda_sha256_native.py", line 918, in smoke
+    requests.raise_failures(failures)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_connected_serving_requests.py", line 226, in raise_failures
+    raise primary
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_cuda_sha256_native.py", line 893, in smoke
+    result = smoke_body(context, held, hashers, cdll, maps, body_started)
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_cuda_sha256_native.py", line 882, in smoke_body
+    result = smoke_checks(torch, device, function, [p[0] for p in prints], guard, hashers)
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_cuda_sha256_native.py", line 685, in smoke_checks
+    tree_prints.append([native_fingerprint(torch, hasher, original, tree) for tree in trees])
+                        ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_cuda_sha256_native.py", line 567, in native_fingerprint
+    result = original_fingerprint(value, frozen=cursor)
+TypeError: fingerprint() missing 1 required positional argument: 'value'
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 6.472s
+CPU time consumed: 4.195s
+Memory peak: 256.0K
+Memory swap peak: 0B
