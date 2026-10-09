@@ -1,0 +1,15 @@
+{
+  "schema": "grouped-md-known-set-source-falsifier-v1",
+  "exact_original_function": true,
+  "source": "scripts/evaluate_siglip2_identity_diversity.py:grouped_md_origin",
+  "H_only_reaches_later_authentication": true,
+  "H_plus_Cutile_rejects_before_library_reads": true,
+  "actual_native_culprit_proven": false,
+  "native_imports": false,
+  "exit": 0,
+  "limit_seconds": 15,
+  "address_space_limit_bytes": 1073741824,
+  "fixture": "Compile only the actual original FunctionDef in a separate stdlib namespace. Synthetic historical membership includes both original group members. A pure witness returns H plus a synthetic candidate.so path; original grouped rejection occurs before bound_file. H-only positive control reaches the first later authenticated source-byte read sentinel.",
+  "initial_fixture_failure": "Positive control omitted context guards; KeyError guards. Corrected fixture adds empty guards; original function unchanged.",
+  "disposition": "Mechanism supported, native attribution remains unproven. No new file or native authority granted; read-only specialist audit 1df5b44b16e14ab2 remains original."
+}
