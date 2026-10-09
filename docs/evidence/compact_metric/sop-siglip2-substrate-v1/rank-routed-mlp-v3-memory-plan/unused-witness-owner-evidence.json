@@ -1,0 +1,335 @@
+{
+  "live_bytes_vs_residency": "Storage inventory is not allocator residency; prior freed pages may remain resident. No automatic native-fit inference.",
+  "per_view": [
+    {
+      "MiB": 115.46868896484375,
+      "owners": {
+        "encoder_ranking": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 9921872,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 39687488
+        },
+        "original": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null
+          ],
+          "numel": 167936,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "storage_bytes": 671744
+        },
+        "ranking_view": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 10089808,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ],
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 40359232
+        },
+        "routed": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null
+          ],
+          "numel": 167936,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "storage_bytes": 671744
+        },
+        "unrouted": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 9921872,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 39687488
+        }
+      },
+      "per_view_unused_before_reference_bytes": 121077696,
+      "view": "canonical"
+    },
+    {
+      "MiB": 115.46868896484375,
+      "owners": {
+        "encoder_ranking": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 9921872,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 39687488
+        },
+        "original": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null
+          ],
+          "numel": 167936,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "storage_bytes": 671744
+        },
+        "ranking_view": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 10089808,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ],
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 40359232
+        },
+        "routed": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null
+          ],
+          "numel": 167936,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "storage_bytes": 671744
+        },
+        "unrouted": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 9921872,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 39687488
+        }
+      },
+      "per_view_unused_before_reference_bytes": 121077696,
+      "view": "augmented"
+    }
+  ],
+  "source_sha256": "69302dab4a808a259a381d9b649ac58bd1d7a3c5dffe2b8aa6982131dd45cd5d",
+  "status": "SOURCE_SUPPORTED_ORDERING_CANDIDATE_NATIVE_FIT_UNPROVEN"
+}
