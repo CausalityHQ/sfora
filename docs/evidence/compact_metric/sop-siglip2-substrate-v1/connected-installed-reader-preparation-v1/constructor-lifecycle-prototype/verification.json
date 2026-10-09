@@ -1,0 +1,23 @@
+{
+  "cases": 16,
+  "command": "ulimit -v 1048576; timeout 15 python3 -B -S docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/constructor-lifecycle-prototype/check.py",
+  "exit_code": 0,
+  "files": {
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/constructor-lifecycle-prototype/candidate.py": "70b63ad9863f9b46357fa643c83f54cec7b7bdcdaf5dd2ba31c360ccd0e65324",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/constructor-lifecycle-prototype/check.py": "cdef9f9405e931fdcd125e1c0e2e13569005b462c9485cd927160fb5d2096f42",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/constructor-lifecycle-prototype/scope.md": "956b5f18829b36065bee84ae6f68c62696ef3d2ab894cf4edfd212a3b52bd133"
+  },
+  "legacy_cleanup_ast_unchanged": true,
+  "native_run": false,
+  "numeric_try_ast_unchanged": true,
+  "observed_tool_wall_seconds": 0.007256671,
+  "original_constructor_sha256": "cc675a70b012a66d632a1f6cfa95f6b55fe41f9501f59bfd1ed2a3140a25384a",
+  "original_mode_exit_code": 1,
+  "original_mode_reason": "collection failure skips mapping check",
+  "original_runtime_sha256": "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8",
+  "product_go": false,
+  "production_integrated": false,
+  "raw_log_persisted": false,
+  "return_ast_unchanged": true,
+  "schema": "source-only-artifact-constructor-lifecycle-v1"
+}
