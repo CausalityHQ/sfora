@@ -1,0 +1,3 @@
+# Prospective control serving inputs
+
+Generated exclusively on DGX from the SHA-bound accepted control061 export receipt and its freshly verified packed wire: 1715 gallery rows, in the original export image metadata order; first32 query images and the actual six-image query tail. No images were decoded, no model imported, no metric calculated, and no embeddings were transferred to Devbox. Original serving bind_gallery/check_images must independently re-admit exact row membership at the native gate. The resulting gallery SHA matches the previously accepted MLP control gallery SHA; this byte identity does not qualify the new probe loader or installed wheel. Assets are engineering inputs only.

@@ -1,0 +1,3 @@
+# Probe wheel source artifact
+
+Two serial bounded offline builds completed exit0 and compare byte-identical (875115 bytes). Every unique archive member has a verified RECORD row; every sfora source member equals the current tracked source bytes; all six serving closure hashes are recorded. No model, Torch or package inference was imported, no historical training scripts, native binaries or .pth files are included. This verifies build contents and repeat-build identity only; installed wheel/native parity, model quality, public latency, dependency portability and relocation remain unqualified. The wheel version is an isolated engineering 0.3.0rc4 artifact, not a published release.

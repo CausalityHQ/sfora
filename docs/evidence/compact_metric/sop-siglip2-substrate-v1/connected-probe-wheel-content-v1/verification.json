@@ -1,0 +1,25 @@
+{
+  "schema": "connected-probe-wheel-content-verification-v1",
+  "wheel": "/tmp/sfora-connected-probe-wheel-ed890171/sfora-0.3.0rc4-py3-none-any.whl",
+  "wheel_sha256": "09c351b2573c6339baa71738fba28d6a28cc990243ca44522bba857313c5a0bb",
+  "wheel_bytes": 875115,
+  "archive_members": 117,
+  "all_record_rows_verified": true,
+  "all_package_source_bytes_match": true,
+  "serving_closure_bytes_match_source": {
+    "connected_probe_inference.py": "ea49b80d2d8c80aea54f71a1f01a58053f04858b9ffe03d168e0bd28c94fac44",
+    "_connected_probe_inference_authority.py": "0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab",
+    "connected_compact_serving.py": "d3ebfd9a575d7fb77ffbf3a3e1c2d01793edaa03eef0da63faf543596c1d68b3",
+    "packed_int8.py": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4",
+    "cutile_int8.py": "173eb393ed82d01281557b2f76edb1d50ffcc29faf85b9f9deb07d0df3c90d87",
+    "joint_relational_compaction.py": "0c0320787ee8d9e3a61bfd265859ec8785874b9727c686d6bd290fd4af19679d"
+  },
+  "native_or_model_imported": false,
+  "installed_wheel_native_qualification": "UNRUN",
+  "quality_or_speed_claim": false,
+  "build_backend": "hatchling==1.32.3 project pin",
+  "build_command": "RAYON_NUM_THREADS=1 UV_CONCURRENT_BUILDS=1 timeout60 prlimitAS1GiB uv build --wheel --offline",
+  "repeat_wheel_sha256": "09c351b2573c6339baa71738fba28d6a28cc990243ca44522bba857313c5a0bb",
+  "two_serial_builds_byte_identical": true,
+  "source_commit": "ed890171"
+}
