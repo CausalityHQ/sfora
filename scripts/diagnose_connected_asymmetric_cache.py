@@ -145,8 +145,15 @@ def authenticated(fact, guards, *, keep=False):
             require(len(raw) <= 64*1024**2, 'metadata/source FILE exceeds64MiB')
             digest.update(raw)
         else:
+            done = 0
             while block := stream.read(1024**2):
                 digest.update(block)
+                done += len(block)
+                # Revisit consumed pages so large cache folios crossing read boundaries can be released.
+                os.posix_fadvise(stream.fileno(), max(0, done-8*1024**2), min(done, 8*1024**2),
+                                 os.POSIX_FADV_DONTNEED)
+            if done > 0:
+                os.posix_fadvise(stream.fileno(), 0, done, os.POSIX_FADV_DONTNEED)
         after = os.fstat(stream.fileno())
     require((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) ==
             (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns), 'FILE changed while reading')

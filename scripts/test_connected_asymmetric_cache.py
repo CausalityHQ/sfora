@@ -50,6 +50,30 @@ def tree(path):
     return ast.parse(Path(path).read_bytes())
 
 
+def without_consumed_read_advice(source):
+    """Invert only the exact consumed-read block, then bind every original source byte."""
+    added = '''        else:
+            done = 0
+            while block := stream.read(1024**2):
+                digest.update(block)
+                done += len(block)
+                # Revisit consumed pages so large cache folios crossing read boundaries can be released.
+                os.posix_fadvise(stream.fileno(), max(0, done-8*1024**2), min(done, 8*1024**2),
+                                 os.POSIX_FADV_DONTNEED)
+            if done > 0:
+                os.posix_fadvise(stream.fileno(), 0, done, os.POSIX_FADV_DONTNEED)
+'''
+    original = '''        else:
+            while block := stream.read(1024**2):
+                digest.update(block)
+'''
+    assert source.count(added) == 1, 'exact consumed-read block required'
+    source = source.replace(added, original, 1)
+    assert hashlib.sha256(source.encode()).hexdigest() == \
+        '6a456248cd249e16f7f5b62eaae584cb226774a1acecf6ee8ff00ec9ff360f0f', 'original source changed'
+    return source
+
+
 def functions(node):
     return {n.name: n for n in node.body if isinstance(n, ast.FunctionDef)}
 
@@ -1907,7 +1931,7 @@ class ExitPhaseObservation(unittest.TestCase):
                     node.keywords = [k for k in node.keywords if k.arg != 'phase']
                 return node
 
-        original = Inverse().visit(tree(DRIVER))
+        original = Inverse().visit(ast.parse(without_consumed_read_advice(DRIVER.read_bytes().decode())))
         self.assertEqual(hashlib.sha256(ast.dump(original, include_attributes=False).encode()).hexdigest(),
                          'e16b6258e17a3a654b017d74d9d7c089da41ef6453fcdcc9b4e91fcb45d69350')
 
@@ -2087,6 +2111,270 @@ class ExitPhaseObservation(unittest.TestCase):
             streamed = [(1024**2, 1024**2), (1024**2, 1024**2), (1024**2, 17), (1024**2, 0)]
             self.assertEqual(reads, [streamed, streamed, [(64*1024**2+1, len(payload))],
                                     [(64*1024**2+1, len(payload))], streamed])
+
+
+class ConsumedReadAdvice(unittest.TestCase):
+    @contextlib.contextmanager
+    def traced_reads(self, d):
+        """Keep real reads, SHA and advice; observe only their ordering and consumed ranges."""
+        events, streams, digests = [], [], []
+        original_open, original_sha, original_advice = Path.open, hashlib.sha256, os.posix_fadvise
+
+        class Digest:
+            def __init__(self):
+                self.digest, self.done = original_sha(), 0
+                digests.append(self)
+            def update(self, raw):
+                self.digest.update(raw)
+                self.done += len(raw)
+                events.append(('digest', len(raw)))
+            def hexdigest(self):
+                return self.digest.hexdigest()
+
+        class Reader:
+            def __init__(self, stream):
+                self.stream = stream
+                streams.append(stream)
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                self.stream.close()
+            def fileno(self):
+                return self.stream.fileno()
+            def read(self, n):
+                raw = self.stream.read(n)
+                events.append(('read', n, len(raw)))
+                return raw
+
+        def opened(path, *args, **kwargs):
+            self.assertEqual(args, ('rb',))
+            events.append(('open', path))
+            return Reader(original_open(path, *args, **kwargs))
+
+        def advised(fd, offset, length, advice):
+            self.assertEqual(fd, streams[-1].fileno())
+            self.assertEqual(advice, os.POSIX_FADV_DONTNEED)
+            self.assertGreater(length, 0, 'zero length would advise unread bytes through EOF')
+            self.assertGreaterEqual(offset, 0)
+            self.assertLessEqual(offset+length, digests[-1].done, 'advice must follow successful digest.update')
+            self.assertIn(events[-1][0], ('digest', 'read'))
+            if events[-1][0] == 'read':
+                self.assertEqual(events[-1], ('read', 1024**2, 0), 'full advice follows EOF only')
+            events.append(('advice', offset, length))
+            original_advice(fd, offset, length, advice)
+
+        with patch.object(Path, 'open', opened), patch.object(d.hashlib, 'sha256', Digest), \
+                patch.object(d.os, 'posix_fadvise', advised):
+            try:
+                yield events
+            finally:
+                self.assertTrue(all(stream.closed for stream in streams))
+
+    def assert_consumed_reads(self, d):
+        mib = 1024**2
+        cases = ((0, []), (1, [(0, 1)]), (mib, [(0, mib)]),
+                 (9*mib+17, [(0, mib), (0, 2*mib), (0, 3*mib), (0, 4*mib), (0, 5*mib),
+                             (0, 6*mib), (0, 7*mib), (0, 8*mib), (mib, 8*mib), (mib+17, 8*mib)]))
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp).resolve()/'read.bin'
+            for size, ranges in cases:
+                payload = b'a'*size
+                path.write_bytes(payload)
+                fact = {'path': str(path), 'sha256': hashlib.sha256(payload).hexdigest()}
+                guards = {}
+                with self.traced_reads(d) as events:
+                    self.assertEqual(d.authenticated(fact, guards), path)
+                expected = [('open', path)]
+                for index, (offset, length) in enumerate(ranges):
+                    count = 17 if size == 9*mib+17 and index == 9 else min(size, mib)
+                    expected += [('read', mib, count), ('digest', count), ('advice', offset, length)]
+                expected.append(('read', mib, 0))
+                if size:
+                    expected.append(('advice', 0, size))
+                self.assertEqual(events, expected)
+                self.assertEqual(guards, {str(path): fact['sha256']})
+
+    def test_only_digested_trailing_ranges_then_full_consumed_range_after_eof(self):
+        self.assert_consumed_reads(load_driver())
+
+    def test_keep_true_reads_identical_bytes_without_advice(self):
+        d = load_driver()
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp).resolve()/'source.bin'
+            for payload in (b'', b'x', b'a'*(1024**2)+b'z'):
+                path.write_bytes(payload)
+                fact = {'path': str(path), 'sha256': hashlib.sha256(payload).hexdigest()}
+                guards = {}
+                with self.traced_reads(d) as events:
+                    self.assertEqual(d.authenticated(fact, guards, keep=True), payload)
+                self.assertEqual(events, [('open', path), ('read', 64*1024**2+1, len(payload)),
+                                          ('digest', len(payload))])
+                self.assertEqual(guards, {str(path): fact['sha256']})
+
+    def assert_rehash_reads(self, d):
+        with tempfile.TemporaryDirectory() as temp:
+            paths = [Path(temp).resolve()/name for name in ('a', 'b')]
+            guards = {}
+            for path, payload in zip(paths, (b'abc', b'defgh')):
+                path.write_bytes(payload)
+                guards[str(path)] = hashlib.sha256(payload).hexdigest()
+            with self.traced_reads(d) as events, contextlib.redirect_stdout(io.StringIO()):
+                d.rehash(guards, phase='rehash.context')
+                d.rehash(dict(guards), phase='rehash.prospective')
+            expected = []
+            for path, size in zip(paths*2, (3, 5, 3, 5)):
+                expected += [('open', path), ('read', 1024**2, size), ('digest', size), ('advice', 0, size),
+                             ('read', 1024**2, 0), ('advice', 0, size)]
+            self.assertEqual(events, expected)
+
+    def test_duplicate_rehash_occurrences_read_and_hash_every_byte_in_order(self):
+        self.assert_rehash_reads(load_driver())
+
+    def test_reduced_rehash_occurrences_are_rejected(self):
+        source = DRIVER.read_bytes().decode()
+        segment = ast.get_source_segment(source, functions(ast.parse(source))['rehash'])
+        mutated = segment.replace('tuple(guards.items())', 'tuple(guards.items())[:1]')
+        self.assertNotEqual(mutated, segment)
+        d = load_driver()
+        exec(compile(mutated, '<reduced-rehash-mutant>', 'exec'), d.__dict__)
+        with self.assertRaises(AssertionError):
+            self.assert_rehash_reads(d)
+        with self.assertRaisesRegex(AssertionError, 'original source changed'):
+            without_consumed_read_advice(source.replace(segment, mutated, 1))
+
+    def test_rejects_sha_conflict_foreign_bytes_and_same_stat_mutation(self):
+        d = load_driver()
+        with tempfile.TemporaryDirectory() as temp:
+            path, foreign = [Path(temp).resolve()/name for name in ('original', 'foreign')]
+            path.write_bytes(b'original')
+            foreign.write_bytes(b'foreign!')
+            fact = {'path': str(path), 'sha256': hashlib.sha256(b'original').hexdigest()}
+            cases = [({**fact, 'sha256': '0'*64}, {}, 'FILE SHA differs'),
+                     (fact, {str(path): '1'*64}, 'conflicting FILE authority'),
+                     ({**fact, 'path': str(foreign)}, {}, 'FILE SHA differs')]
+            for authority, guards, error in cases:
+                before = dict(guards)
+                with self.traced_reads(d) as events, self.assertRaisesRegex(ValueError, error):
+                    d.authenticated(authority, guards)
+                self.assertEqual(events[-2:], [('read', 1024**2, 0), ('advice', 0, 8)])
+                self.assertEqual(guards, before)
+            before = path.stat()
+            path.write_bytes(b'mutated!')
+            os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+            after = path.stat()
+            self.assertEqual((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns),
+                             (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns))
+            with self.traced_reads(d), self.assertRaisesRegex(ValueError, 'FILE SHA differs'):
+                d.authenticated(fact, {})
+
+    def test_noncanonical_and_symlink_paths_reject_before_open_or_advice(self):
+        d = load_driver()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            path = root/'file'
+            path.write_bytes(b'x')
+            (root/'link').symlink_to(path)
+            (root/'dirlink').symlink_to(root, target_is_directory=True)
+            paths = ('relative', str(root/'link'), str(root/'dirlink'/'file'), str(root)+'/./file',
+                     str(root), str(root/'missing'))
+            digest = hashlib.sha256(b'x').hexdigest()
+            for value in paths:
+                with self.subTest(path=value), self.traced_reads(d) as events, self.assertRaises(ValueError):
+                    d.authenticated({'path': value, 'sha256': digest}, {})
+                self.assertEqual(events, [])
+
+    def test_stat_change_during_consumed_read_is_still_rejected(self):
+        d = load_driver()
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp).resolve()/'file'
+            path.write_bytes(b'bytes')
+            fact = {'path': str(path), 'sha256': hashlib.sha256(b'bytes').hexdigest()}
+            before, guards = path.stat(), {}
+            with self.traced_reads(d) as events:
+                advice = d.os.posix_fadvise
+                def changed(*args):
+                    advice(*args)
+                    os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns+1_000_000_000))
+                with patch.object(d.os, 'posix_fadvise', changed), \
+                        self.assertRaisesRegex(ValueError, 'FILE changed while reading'):
+                    d.authenticated(fact, guards)
+            self.assertEqual(events[-2:], [('read', 1024**2, 0), ('advice', 0, 5)])
+            self.assertEqual(guards, {})
+
+    def test_advice_os_failure_is_primary_and_never_admits_or_retries(self):
+        d = load_driver()
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp).resolve()/'file'
+            path.write_bytes(b'bytes')
+            fact = {'path': str(path), 'sha256': hashlib.sha256(b'bytes').hexdigest()}
+            for fail_at in (1, 2):
+                failure, guards, calls = OSError('advice failed'), {}, []
+                with self.traced_reads(d) as events:
+                    advice = d.os.posix_fadvise
+                    def failed(*args):
+                        advice(*args)
+                        calls.append(args)
+                        if len(calls) == fail_at:
+                            raise failure
+                    with patch.object(d.os, 'posix_fadvise', failed), self.assertRaises(OSError) as caught:
+                        d.authenticated(fact, guards)
+                self.assertIs(caught.exception, failure)
+                self.assertEqual(guards, {})
+                self.assertEqual(len(calls), fail_at)
+                self.assertEqual(sum(e[0] == 'open' for e in events), 1)
+                self.assertEqual(sum(e == ('read', 1024**2, 0) for e in events), fail_at-1)
+
+    def test_failed_digest_never_advises_unhashed_bytes(self):
+        d = load_driver()
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp).resolve()/'file'
+            path.write_bytes(b'bytes')
+            fact = {'path': str(path), 'sha256': hashlib.sha256(b'bytes').hexdigest()}
+            failure, guards = RuntimeError('digest failed'), {}
+            def failed(raw):
+                raise failure
+            with patch.object(d.hashlib, 'sha256', return_value=SimpleNamespace(update=failed)), \
+                    patch.object(d.os, 'posix_fadvise', wraps=os.posix_fadvise) as advice, \
+                    self.assertRaises(RuntimeError) as caught:
+                d.authenticated(fact, guards)
+            self.assertIs(caught.exception, failure)
+            self.assertEqual(guards, {})
+            advice.assert_not_called()
+
+    def test_read_contract_rejects_advice_and_reduced_hash_mutants(self):
+        source = DRIVER.read_bytes().decode()
+        segment = ast.get_source_segment(source, functions(ast.parse(source))['authenticated'])
+        window = ('                os.posix_fadvise(stream.fileno(), max(0, done-8*1024**2), min(done, 8*1024**2),\n'
+                  '                                 os.POSIX_FADV_DONTNEED)\n')
+        update = '                digest.update(block)\n'
+        mutations = {
+            'missing window': segment.replace(window, ''),
+            'missing EOF': segment.replace('            if done > 0:\n'
+                '                os.posix_fadvise(stream.fileno(), 0, done, os.POSIX_FADV_DONTNEED)\n', ''),
+            'advice before digest': segment.replace(update, '').replace(window, window+update),
+            'unread range': segment.replace('min(done, 8*1024**2)', 'min(done, 8*1024**2)+1'),
+            'zero length': segment.replace('if done > 0:', 'if done >= 0:'),
+            'reduced digest': segment.replace('digest.update(block)', 'digest.update(block[:-1])'),
+        }
+        for label, mutated in mutations.items():
+            with self.subTest(mutation=label):
+                self.assertNotEqual(mutated, segment)
+                d = load_driver()
+                exec(compile(mutated, '<consumed-read-mutant>', 'exec'), d.__dict__)
+                with self.assertRaises((AssertionError, ValueError)):
+                    self.assert_consumed_reads(d)
+                with self.assertRaises(AssertionError):
+                    without_consumed_read_advice(source.replace(segment, mutated, 1))
+
+    def test_exact_inverse_rejects_changes_outside_the_added_block(self):
+        source = DRIVER.read_bytes().decode()
+        without_consumed_read_advice(source)
+        for before, after in (('700,', '701,'), ('700,', '700,\r'),
+                              ('    return raw if keep else path', '    return path'),
+                              ('        after = os.fstat(stream.fileno())', '        after = before')):
+            self.assertIn(before, source)
+            with self.assertRaisesRegex(AssertionError, 'original source changed'):
+                without_consumed_read_advice(source.replace(before, after, 1))
 
 
 if __name__ == '__main__':
