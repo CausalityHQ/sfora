@@ -1,0 +1,6 @@
+1
+551490d56c34b4b61fe543e12b76cc110ee239ecabbecabd697ae4a74ba84669  /home/riomus/runs/sfora-rank-routed-mlp-train-source-v4/cpu-v4-original.log
+4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865  /home/riomus/runs/sfora-rank-routed-mlp-train-source-v4/cpu-v4-terminal-status.txt
+MainPID=0
+ActiveState=inactive
+SubState=dead

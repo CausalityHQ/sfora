@@ -1,0 +1,271 @@
+{
+  "comparisons": [
+    {
+      "phase": "full_begin",
+      "v3": {
+        "anon": 2887958528,
+        "current": 3828973568,
+        "max_events": 0,
+        "micro": null,
+        "peak": 3830808576,
+        "phase": "full_begin",
+        "seconds": 134.50714588799747,
+        "view": "canonical"
+      },
+      "v4": {
+        "anon": 2762235904,
+        "current": 3700719616,
+        "max_events": 0,
+        "micro": null,
+        "peak": 3702816768,
+        "phase": "full_begin",
+        "seconds": 129.23523223798838,
+        "view": "canonical"
+      },
+      "view": "canonical"
+    },
+    {
+      "phase": "full_original_A_C_gradients",
+      "v3": {
+        "anon": 4343697408,
+        "current": 5311324160,
+        "max_events": 0,
+        "micro": null,
+        "peak": 7848603648,
+        "phase": "full_original_A_C_gradients",
+        "seconds": 155.09961616099463,
+        "view": "canonical"
+      },
+      "v4": {
+        "anon": 4183875584,
+        "current": 5146304512,
+        "max_events": 0,
+        "micro": null,
+        "peak": 7715643392,
+        "phase": "full_original_A_C_gradients",
+        "seconds": 155.00833515799604,
+        "view": "canonical"
+      },
+      "view": "canonical"
+    },
+    {
+      "phase": "full_total_gradients",
+      "v3": {
+        "anon": 4408672256,
+        "current": 5378957312,
+        "max_events": 0,
+        "micro": null,
+        "peak": 8058691584,
+        "phase": "full_total_gradients",
+        "seconds": 156.38258853799198,
+        "view": "canonical"
+      },
+      "v4": {
+        "anon": 4249223168,
+        "current": 5214441472,
+        "max_events": 0,
+        "micro": null,
+        "peak": 7894454272,
+        "phase": "full_total_gradients",
+        "seconds": 156.26874137698906,
+        "view": "canonical"
+      },
+      "view": "canonical"
+    },
+    {
+      "phase": "full_graph_released",
+      "v3": {
+        "anon": 3115491328,
+        "current": 4092538880,
+        "max_events": 0,
+        "micro": null,
+        "peak": 8318615552,
+        "phase": "full_graph_released",
+        "seconds": 181.61885808498482,
+        "view": "canonical"
+      },
+      "v4": {
+        "anon": 4521730048,
+        "current": 5494153216,
+        "max_events": 0,
+        "micro": null,
+        "peak": 8207269888,
+        "phase": "full_graph_released",
+        "seconds": 184.4266895519977,
+        "view": "canonical"
+      },
+      "view": "canonical"
+    },
+    {
+      "phase": "view_accumulators",
+      "v3": {
+        "anon": 2887958528,
+        "current": 3828973568,
+        "max_events": 0,
+        "micro": null,
+        "peak": 3830808576,
+        "phase": "view_accumulators",
+        "seconds": 133.63570567098213,
+        "view": "canonical"
+      },
+      "v4": {
+        "anon": 4543963136,
+        "current": 5516349440,
+        "max_events": 0,
+        "micro": null,
+        "peak": 8207269888,
+        "phase": "view_accumulators",
+        "seconds": 184.4350520230073,
+        "view": "canonical"
+      },
+      "view": "canonical"
+    },
+    {
+      "phase": "full_begin",
+      "v3": {
+        "anon": 3768397824,
+        "current": 4741988352,
+        "max_events": 0,
+        "micro": null,
+        "peak": 8318615552,
+        "phase": "full_begin",
+        "seconds": 216.92090999899665,
+        "view": "augmented"
+      },
+      "v4": {
+        "anon": 3799339008,
+        "current": 4774887424,
+        "max_events": 0,
+        "micro": null,
+        "peak": 8207269888,
+        "phase": "full_begin",
+        "seconds": 221.09864268198726,
+        "view": "augmented"
+      },
+      "view": "augmented"
+    },
+    {
+      "phase": "full_original_A_C_gradients",
+      "v3": {
+        "anon": 4867829760,
+        "current": 5844262912,
+        "max_events": 0,
+        "micro": null,
+        "peak": 8381071360,
+        "phase": "full_original_A_C_gradients",
+        "seconds": 240.85987792900414,
+        "view": "augmented"
+      },
+      "v4": {
+        "anon": 4891942912,
+        "current": 5864706048,
+        "max_events": 0,
+        "micro": null,
+        "peak": 8399921152,
+        "phase": "full_original_A_C_gradients",
+        "seconds": 244.4909307110065,
+        "view": "augmented"
+      },
+      "view": "augmented"
+    },
+    {
+      "phase": "full_total_gradients",
+      "v3": {
+        "anon": 4923150336,
+        "current": 5872398336,
+        "max_events": 105,
+        "micro": null,
+        "peak": 8589934592,
+        "phase": "full_total_gradients",
+        "seconds": 242.3517796949891,
+        "view": "augmented"
+      },
+      "v4": {
+        "anon": 4943929344,
+        "current": 5873606656,
+        "max_events": 156,
+        "micro": null,
+        "peak": 8589934592,
+        "phase": "full_total_gradients",
+        "seconds": 245.8687545779976,
+        "view": "augmented"
+      },
+      "view": "augmented"
+    },
+    {
+      "phase": "full_graph_released",
+      "v3": {
+        "anon": 4918222848,
+        "current": 5861568512,
+        "max_events": 132,
+        "micro": null,
+        "peak": 8589934592,
+        "phase": "full_graph_released",
+        "seconds": 268.266048622987,
+        "view": "augmented"
+      },
+      "v4": {
+        "anon": 4945444864,
+        "current": 5863383040,
+        "max_events": 206,
+        "micro": null,
+        "peak": 8589934592,
+        "phase": "full_graph_released",
+        "seconds": 270.9925223090104,
+        "view": "augmented"
+      },
+      "view": "augmented"
+    },
+    {
+      "phase": "view_accumulators",
+      "v3": {
+        "anon": 3768397824,
+        "current": 4742221824,
+        "max_events": 0,
+        "micro": null,
+        "peak": 8318615552,
+        "phase": "view_accumulators",
+        "seconds": 216.0452932699991,
+        "view": "augmented"
+      },
+      "v4": {
+        "anon": 4945444864,
+        "current": 5864431616,
+        "max_events": 206,
+        "micro": null,
+        "peak": 8589934592,
+        "phase": "view_accumulators",
+        "seconds": 271.0002404609986,
+        "view": "augmented"
+      },
+      "view": "augmented"
+    }
+  ],
+  "matched_by": "phase+view, never row order",
+  "post_reference_retention": [
+    {
+      "anon_delta_bytes": 227532800,
+      "current_delta_bytes": 263565312,
+      "run": "v3",
+      "view": "canonical"
+    },
+    {
+      "anon_delta_bytes": 1149825024,
+      "current_delta_bytes": 1119580160,
+      "run": "v3",
+      "view": "augmented"
+    },
+    {
+      "anon_delta_bytes": 1759494144,
+      "current_delta_bytes": 1793433600,
+      "run": "v4",
+      "view": "canonical"
+    },
+    {
+      "anon_delta_bytes": 1146105856,
+      "current_delta_bytes": 1088495616,
+      "run": "v4",
+      "view": "augmented"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "cleanup_completed": true,
+  "controller_exit": 1,
+  "controller_session": 39677,
+  "cpu_eligible": false,
+  "encoded_observation_bytes": 117199,
+  "exact_peak_allocation_owner": "UNPROVEN",
+  "first_positive_event_bracket": [
+    {
+      "anon": 4891942912,
+      "current": 5864706048,
+      "max_events": 0,
+      "micro": null,
+      "peak": 8399921152,
+      "phase": "full_original_A_C_gradients",
+      "seconds": 244.4909307110065,
+      "view": "augmented"
+    },
+    {
+      "anon": 4943929344,
+      "current": 5873606656,
+      "max_events": 156,
+      "micro": null,
+      "peak": 8589934592,
+      "phase": "full_total_gradients",
+      "seconds": 245.8687545779976,
+      "view": "augmented"
+    }
+  ],
+  "gpu_eligible": false,
+  "host_peak_bytes": 8589934592,
+  "invocation_id": "49432c141a34431f83f6cec0ca6075ba",
+  "max_events": 543,
+  "native_peak_rss_kib": 7927944,
+  "observations": 117,
+  "oom_events": 0,
+  "original_log_sha256": "551490d56c34b4b61fe543e12b76cc110ee239ecabbecabd697ae4a74ba84669",
+  "quality_speed_go": false,
+  "returned_connected_update": false,
+  "schema": "rank-routed-mlp-cpu-failure-verification-v1",
+  "source_exit_completed": true,
+  "status": "FAIL",
+  "swap_peak_bytes": 0,
+  "whole_service_seconds": 378.983
+}
