@@ -1,0 +1,20 @@
+{
+  "child_commit": "aa519d337dab5caad254a9e19979205acca7fabf",
+  "child_scope_parent_and_code_log_digests_verified": true,
+  "root_final_exit": 0,
+  "root_tests": {
+    "conversion": 6,
+    "provenance": 9,
+    "identity": 13,
+    "installed_environment": 11
+  },
+  "normal_isolated_package_import_with_native_sentinel": "PASS",
+  "initial_root_failure": "-I suppressed sibling fixture import; no tests ran; corrected no-site command passes",
+  "ci_addition_exact_inverse": true,
+  "source_files": {
+    "src/sfora/connected_gallery_conversion.py": "d361dd460a90bc078c3d175088831067f5e198997613c494a00a6dfaecd0d27f",
+    "scripts/test_connected_gallery_conversion.py": "ee8fb250b4d1819ba0dc4977b52008cd5f0953bf9f17c537488bcfb171c2b952"
+  },
+  "artifact_conversion_or_publication": false,
+  "native_serving_qualification": false
+}

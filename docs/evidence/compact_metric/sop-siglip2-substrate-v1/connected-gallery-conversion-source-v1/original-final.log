@@ -1,0 +1,18 @@
+Python 3.12.13
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.102s
+
+OK
+Python 3.14.4
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.051s
+
+OK
+ruff 0.15.20
+All checks passed!
+2 files already formatted
+mypy 2.1.0 (compiled: yes)
+pyproject.toml: note: unused section(s): module = ['datasets', 'h5py', 'sentence_transformers', 'sklearn.*', 'torch', 'torchvision', 'torchvision.*']
+Success: no issues found in 2 source files

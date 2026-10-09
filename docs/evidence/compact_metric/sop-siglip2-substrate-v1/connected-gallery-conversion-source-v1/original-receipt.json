@@ -1,0 +1,57 @@
+{
+  "actual_c226_wire_read_or_validated": false,
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "changed_files": {
+    "scripts/test_connected_gallery_conversion.py": "ee8fb250b4d1819ba0dc4977b52008cd5f0953bf9f17c537488bcfb171c2b952",
+    "src/sfora/connected_gallery_conversion.py": "d361dd460a90bc078c3d175088831067f5e198997613c494a00a6dfaecd0d27f"
+  },
+  "commit": "aa519d337dab5caad254a9e19979205acca7fabf",
+  "commit_trailers": [],
+  "committer": "Roman Bartusiak <riomus@gmail.com>",
+  "cpu12gib_authorized": false,
+  "final_gate": {
+    "address_space_kib": 1048576,
+    "elapsed_seconds": 7.51,
+    "exit_status": 0,
+    "maximum_rss_kib": 115976,
+    "mypy2.1.0_strict_own2": "PASS",
+    "mypy_options": [
+      "--strict",
+      "--follow-imports=skip",
+      "--no-incremental"
+    ],
+    "python3.12.13": {
+      "pass": true,
+      "tests": 6
+    },
+    "python3.14.4": {
+      "pass": true,
+      "tests": 6
+    },
+    "ruff0.15.20_check_and_format": "PASS",
+    "serial": true,
+    "session": 25562,
+    "timeout_seconds": 120
+  },
+  "logs": {
+    "/tmp/sfora-gallery-conversion-final.log": "e3bb57ff6e36ed637f42ea0e13c5677311e55c884bd0be9a2660d714d7ab2ffc",
+    "/tmp/sfora-gallery-conversion-final.time": "c8ad17b7524305dd97c974de6b90a75ea3e52bdeb7fa6be088f122e4d1fc21e8"
+  },
+  "merge_or_push": false,
+  "mlp_full": "KILL",
+  "native_verification": false,
+  "original_ff_only": {
+    "exit_status": 0,
+    "session": 81959
+  },
+  "original_helpers_tests_and_pins_unchanged": true,
+  "parent": "7dadb4f437479edb50f0575a8e4fcc2de4e33883",
+  "parent_release_message": "1791572824424050292-3160204",
+  "rank_cpu_v4": "FAIL",
+  "schema": "connected-gallery-conversion-source-receipt-v1",
+  "scientific_goal_met": false,
+  "scope": "source-only synthetic wire conversion; actual wire/native UNRUN",
+  "synthetic_wire_and_pins": true,
+  "working_tree_clean": true,
+  "worktree": "/home/rb/worktrees/sfora-gallery-wire-selection-20261009"
+}
