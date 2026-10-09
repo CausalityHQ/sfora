@@ -1,0 +1,332 @@
+{
+  "id": "7f48fd33b29243ae",
+  "provider": "claude",
+  "model": "claude-opus-5-5",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791512994,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791514194,
+  "budget_usd": 4,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded implementation plan under SAME Sfora goal. Repo /home/rb/worktrees/sfora-positive-causality master aa45cf54. Read /tmp/sfora-asymmetry-critique-20261009.json full separately labelled Opus/Astra results, scripts/diagnose_connected_gallery_freshness.py, scripts/observe_connected_control_batch_execution.py and committed connected-next-mechanism-research-v1/tail-original-group-role-audit.json. Pick smallest exact source design for ONE new asymmetric cache-gallery method falsifier, seed179061 first. Resolve reviewer divergence explicitly: preserve complete original comparisons; independent accepted selection B6 oracle for ONLY six query-tail rows (never original FIT batches containing14 sealedVAL images), gallery cache rows remain originalCUDA FP32, no tolerance/copying expected bytes/CPU substitution. Exact candidate A/C independent readout + actual Cutile native IDs/scorebits/ties before quality. Archived queryF/galleryS separate roles, no pure freshness causal claim. Two new scripts only proposed; reuse pinned source APIs/packing not current differing helper. Existing700swhole/8GiB/0swap/CUDA<10GB/locks/cleanup/fullfresh exit/scientific floors/cost and staged full productLCB unchanged; old symmetric/pooling KILL remains. Return exact APIs, authority keys, lifecycle, minimal falsifiers and admissibility blocker; no new research/sweeps. NO edits/Torch/SSH/images/native/jobs/children/consults. Current installed-library parity SSH82389 separately live; do not touch.",
+  "prompt_sha256": "0b92438f76a0a1d746385baaf0aab446d5adb4b98264af129569f9cb9b86997d",
+  "prompt_bytes": 1792,
+  "fingerprint": "46e31fb3f6c0d890e95f5a0177c7cf7675b9186b2f3f3d1e2c20b09849433192",
+  "evidence": {
+    "git_commit": "aa45cf549603286b3118949e348f3ea36bfd1a52",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "5a157775ecd531270ed72793eb701060db509cea8f107fe6c562e9b87f8adc7e",
+  "reused": false,
+  "specialist_route": {
+    "model": "claude-opus-5-5",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "09ebd757-1246-4eb7-97e8-41d2e3ded42c"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-7f48fd33b29243ae.service",
+  "pid": 346646,
+  "pgid": 346646,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "budget_usd": 4,
+      "timeout_seconds": 1199,
+      "started_at": 1791512995
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791513310,
+  "event_cursor": 60,
+  "events": [
+    {
+      "seq": 37,
+      "at": 1791513280,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 38,
+      "at": 1791513281,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 39,
+      "at": 1791513282,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 40,
+      "at": 1791513283,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 41,
+      "at": 1791513290,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 42,
+      "at": 1791513291,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 43,
+      "at": 1791513292,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 44,
+      "at": 1791513293,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 45,
+      "at": 1791513294,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 46,
+      "at": 1791513295,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 47,
+      "at": 1791513296,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 48,
+      "at": 1791513297,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 49,
+      "at": 1791513298,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 50,
+      "at": 1791513299,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 51,
+      "at": 1791513300,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 52,
+      "at": 1791513301,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 53,
+      "at": 1791513302,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 54,
+      "at": 1791513303,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 55,
+      "at": 1791513304,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 56,
+      "at": 1791513305,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 57,
+      "at": 1791513306,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 58,
+      "at": 1791513307,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 59,
+      "at": 1791513309,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 60,
+      "at": 1791513309,
+      "provider": "claude",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "claude": [
+      {
+        "seq": 53,
+        "at": 1791513302,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 54,
+        "at": 1791513303,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 55,
+        "at": 1791513304,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 56,
+        "at": 1791513305,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 57,
+        "at": 1791513306,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 58,
+        "at": 1791513307,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 59,
+        "at": 1791513309,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 60,
+        "at": 1791513309,
+        "provider": "claude",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "# Plan: a test of one asymmetric cache-gallery method (archived candidate queries, cache-built gallery), seed 179061 first\n\nThis is a read-only plan. I made no edits and ran no Torch, SSH, native code, jobs, children or consults, and I left SSH82389 alone.\n\n## Where the two reviewers disagreed, and the resolution\n\n| Question | Opus | Astra | Resolution |\n|---|---|---|---|\n| Control byte comparison | Check gallery rows only; let the six query-tail rows differ | Keep the full 3449-row equality and explain the six tail rows with a separate check | **Astra.** All 3449 rows are still compared byte for byte. 3443 rows must match exactly. The six tail rows must be reproduced exactly by an independent replay of the accepted batch of 6. No tolerance, and no expected bytes copied in. |\n| Re-encode the tail rows? | No (avoid the excluded image reads) | Yes, the six images only | **Re-encode only the six selection images** of accepted export batch `images[54]`: FIT rows `[13239,13240,13241,13242,13254,13257]`. Never decode FIT groups 13216 or 13248, because they contain 14 sealed VAL rows. |\n| Native check | CPU replay (`native_wire_quality`) | Real Cutile search | **Astra.** Real native IDs, score bits and tie order must match before any quality number is computed. |\n| \"Gallery-cache version must beat the symmetric version on R@1\" as a gate | Report only | Make it a gate | **Report only.** The frozen `decide()` gate stays unchanged; adding this gate now would change the scientific gate after the fact. |\n| Edit the old diagnostic or write new scripts | Edit `diagnose_connected_gallery_freshness.py` | New scripts | **Two new scripts.** The v3 script and v5 observer remain pinned historical sources. |\n| What a pass means | Engineering licence only | Next frozen stage | First stage CONTINUE \u2192 run stage 2. A full-stage GO only admits the method to selection; VAL is reached only through the existing gates. |\n\nNeither reviewer allows a claim that freshness causes the effect, and neither do I. The receipt hard-codes `causal_freshness_claim: False` and a `remaining_confound` field.\n\nTerms used below: F = the archived live-encoder export (queries); S = original FIT-cache features run through an endpoint's readout (head, A, means, C, mu); FS = F queries scored against an S gallery; FF = the symmetric version that already got KILL.\n\n## The new scripts\n\n**`scripts/diagnose_connected_asymmetric_cache.py`**\n- CLI is the same as v3 and the observer: `--execution-sha256 --authority --authority-sha256 --output NEWDIR`.\n- `execution.json` lists exactly the two new files.\n\n**`scripts/test_connected_asymmetric_cache.py`**\n- CPU-only tests of the stop conditions, listed under \"Minimal falsifiers\".\n\n**Parent decision replay**\n- A `parent-verifier.py` in the freeze or evidence directory, following the precedent at `connected-probe-first-selection-score-v1/parent-verifier.py`.\n- It is an evidence artifact, not a third file under `scripts/`.\n\n## Pinned functions to reuse (no new math)\n\nAll of these are loaded as pinned modules, the same way `observe_connected_control_batch_execution.py:543` loads the v3 diagnostic.\n\n**v3 diagnostic** (source `3b756bf9\u2026`, execution `6ef0482d\u2026`, authority `179275e4\u2026`):\n- `prepare`, `Sources.admit`, `terminal_admission` (6 UNITs) and `origin_audit`.\n- `fresh_values`, `scorer` (the original `packed_quality`, AST `717489\u2026`), `native_wire_quality` and `replay`.\n- `stale_values`, which runs CUDA FP32 with autocast off in B32/B6/B19 role batches. Its `mutant=` argument provides the omitted-C and wrong-mu negative checks.\n- `control_byte_differences`, `byte_differences`, `compose`, `output_bytes`, `exact_wire` and `final_state`.\n- Packing is `sources.modules['packing']` at the **archived pin**, not the current `joint_relational_compaction.py`, which differs.\n\n**Observer, frozen v5 copy:**\n- Pin its sha from `connected-control-batch-execution-v5-freeze/execution.json`.\n- Reuse `check_capture_ast(connected_raw, observer_raw=<v5 bytes>)`, `capture_inference_outputs`, `readout`, `check_endpoint`, `capture_workspace_owner`, `cuda_ownership_snapshot`, `memory_snapshot` and `tensor_bytes`.\n- Load the encoder with `connected.load_inference(bundle_dir, sha, 'cuda')`.\n\n**Independent candidate readout:**\n- `fullfeature_oracle` in `evaluate_siglip2_identity_diversity.py:1404` (concat plus an explicit centred residual), pinned through `EVALUATOR_PINS`.\n\n**Native search:**\n- Take the native authority from the v3 context: `launch['runtime']['native_authority']` and `exact_four`.\n- Search with `CutilePackedInt8Gallery.open_packed` / `search_packed` (k=10, at most 32 queries per call).\n- Capture outputs with `observe_connected_serving.native_snapshot` and check ties with `qualify_connected_serving_requests.native_ties`, both pinned by sha.\n\n## Authority keys\n\nSchema `connected-asymmetric-cache-launch-v1`:\n\n```\nLAUNCH_KEYS = {schema, execution_sha256, stage, seeds, historical, observer,\n  identity_evaluator, serving_ties, controls, tail_oracle, output,\n  resource_policy, both_locks_held, candidate_status,\n  qualification_eligible, state_reuse_eligible}\n```\n\n- **Stage and seeds:** `stage='first'` with `seeds=[179061]`. Stage 2 is a separately frozen authority with `'full'` and `[179061,179069]`.\n- **`controls`:** keyed by label.\n  - `control-179061` must be the bundle plus export with `EXPORT_SHA db63db82\u2026` and `CONNECTED_SHA 79efb320\u2026`.\n  - Stage 2 adds `control-179069`.\n- **`tail_oracle`** contains:\n  - `batch_index`: 54\n  - `selection_rows`: `[3439,3440,3441,3442,3445,3448]`\n  - `role_indices`: `[1728..1733]`\n  - `fit_rows`: the six FIT rows above\n  - six image FILEs, which must equal the rows of export `images[54]`.\n- **Fixed values:**\n  - `resource_policy` must equal the existing limits exactly: 700 s, 8 GiB, zero swap, CUDA device `'0'`, under 10 GB of CUDA.\n  - `both_locks_held=True`.\n  - `candidate_status='KILL'` (the symmetric KILL stands).\n  - `qualification_eligible` and `state_reuse_eligible` are both False.\n\n## Lifecycle (stage 1, run in this fixed order)\n\n1. **Admission.** Unchanged from v3/v5:\n   - authenticate the two new files and the historical v3 files;\n   - check the interpreter, a fresh `INVOCATION_ID` and `CUBLAS_WORKSPACE_CONFIG`;\n   - check the cgroup, numerical flags, RNG, that CUDA is not yet initialised, and `capture_workspace_owner`.\n2. **Archived replays.** For control-179061 and candidate-179061, run `fresh_values`, then the fixed scorer, `replay` and `native_wire_quality` replay. FF must reproduce the accepted candidate result.\n3. **Read the cache.** `features = baseline.cache_rows(context, panel['original_rows'])` gives 3449\u00d71152 FP32, followed by `mapping_absent`.\n4. **Control comparison.**\n   - Run `stale_values(control)` and `control_byte_differences`, then write `control-179061-tap.json`.\n   - Apply the new `require_tail_oracle_tap`. For all five outputs: lengths must be complete, localization must be AVAILABLE, and every differing row must be in the frozen six-row set with role query and batch size 6.\n   - Any difference in a gallery row (including the B19 gallery tail) or in a non-tail query row stops the run.\n   - Rerun for determinism and require exact equality. Run both mutants and require that each one is rejected.\n   - Composition check: `compose(ctrl_S, ctrl_F, 'FS')`, then pack, then `exact_wire` against the archived control wire.\n5. **Batch-of-6 replay.**\n   - `load_inference(control)` and `check_endpoint`.\n   - Decode **only** the six images. Deny any TRAIN/VAL row. The RGB hash must equal `images[54].rgb_sha256`.\n   - `capture_inference_outputs` at batch size 6. The pixels and outputs fingerprints must equal the batch-54 hashes, and the output bytes must equal archived control F rows 1728\u20131733 for all five outputs.\n   - Repeat once; the second run must match exactly.\n   - `readout(cache6)` at batch size 6 must equal the S tail rows.\n   - Record live-B6 features against cache features as description only.\n   - Release the encoder state and images.\n6. **Candidate.**\n   - Run `stale_values(candidate)` twice and require exact equality; run both mutants.\n   - `fullfeature_oracle` over the gallery rows, in the same B32/B19 batches, must be byte-equal to S for raw, unit, codes and inverse.\n   - If the candidate's S gallery bytes equal its F gallery bytes, stop with `NO_ASYMMETRY`: FS would just be FF again, so this is a KILL.\n7. **Build FS.**\n   - `compose(cand_S['unit'], cand_F['unit'], query, gallery, 'FS')`, then pack with the pinned packer.\n   - The query wire rows must equal the archived F rows, and the gallery rows must equal S.\n   - Write `fs-179061.packed.bin` and `roles.json` exclusively, then read them back and check the hashes.\n8. **Native check before quality.**\n   - Open a native gallery from the 1715 gallery rows. Search all 1734 queries in chunks of 32.\n   - Compare against a CPU top-10 reference: int32 dot product, then multiply by the query and gallery inverse norms in FP32, then a stable descending argsort. ID and score bits must be byte-exact. Also run `native_ties` and close the gallery.\n9. **Quality.**\n   - Run the fixed scorer on FS. It must equal `native_wire_quality(persisted wire)`, and the native top-1 must equal `per_query_r1`.\n   - Emit the FS per-query vectors, plus FS\u2212FF changes as description only. **No decision is written in the job.**\n10. **Cleanup.** CUDA memory back to zero, RNG and flags unchanged, rehash, cgroup check, `final_state`. Write the receipt only after everything has passed.\n\n**Parent replay:**\n- First reproduce the archived FF decision exactly.\n- Then run `decide(math_helper, {'179061': {control: accepted, candidate: FS}}, source, concat, 'first', 'selection', {}, archived training cost)`. The result is CONTINUE or KILL.\n- On CONTINUE, freeze stage 2 (adds the control-179069 comparison, its own batch-of-6 replay, and candidate 179069). Then run full `decide` with paired intervals (5000 draws, seed 179019).\n- Serving cost: the S gallery needs the original frozen encoder at indexing time. That cost is unmeasured and belongs to the later engineering gate.\n\n## Minimal falsifiers (the test file)\n\n1. **Comparison predicate.**\n   - Accept a difference only when it is confined to the six frozen rows and those rows pass the batch-of-6 replay.\n   - Stop on:\n     - a one-byte difference in any gallery row, including the B19 gallery tail;\n     - a difference in a query row outside the six;\n     - a truncated output;\n     - an oracle result off by one byte;\n     - a tail set that differs from the frozen six rows.\n2. **Image binding.** FIT row 13216, any VAL or TRAIN row, or any row outside `images[54]` is denied.\n3. **Composition and packing.**\n   - Flipping one gallery byte fails the control `exact_wire` check.\n   - FS query rows must be byte-identical to the archive.\n   - Only the FS and FF cells exist: no SS, SF or effects, and no `decision` key in the receipt.\n4. **Native check.**\n   - A fake gallery that swaps a tie, changes a score by 1 ulp, or takes a batch larger than 32 stops the run.\n   - The capture-AST check rejects a mutated observer body.\n5. **Vacuity.** Equal candidate S and F gallery bytes produce `NO_ASYMMETRY`.\n6. **Authority.**\n   - Wrong key set, `stage='first'` with seeds other than `[179061]`, `candidate_status != 'KILL'`, a resource policy that differs from the limits, or an existing output directory are all rejected.\n\n## Stop rule\n\n- **Instrument failure:** any failed gate stops the run and no FS number is released.\n- **KILL** at either stage closes asymmetric cache-gallery serving for these endpoints. There are no SS/SF cells, no LR or recipe retries, and the symmetric KILL stands.\n\n## What must be resolved before launch\n\n1. **Constructing the independent candidate readout.** `fullfeature_oracle` needs `trainer`/`training_context` from the pinned identity evaluator. If that context cannot be built from the existing pinned admission without new math, **the method cannot be run**, and no substitute readout is allowed. I have not verified this yet; it is the main risk.\n2. **Remote bytes have not been freshly checked**, as the input ledger itself states. The in-job rehash is the check.\n3. **Batch-54 hashes.** The accepted export receipt must carry `rgb`, `pixels` and `outputs` hashes for `images[54]`. I'm inferring this from how the observer used `images[53]`; it is unverified for 54.\n4. **Native install.** SSH82389 holds the DGX. Queue behind it. If it changes the installed native site, the `exact_four` check stops this run.\n5. **Root freeze.** The root must freeze `execution.json`, the authority, the tests and the parent verifier before launch.\n6. **Seed 179069.** Its control comparison has never run, so it belongs to stage 2 only.\n\n## Projections (not evidence)\n\n- **Runtime and memory:** about 200\u2013260 s and about 4.5 GB host memory at peak. This is based on v5 (161.6 s, 3.9 GB host, 2.07 GB CUDA, 44 image forwards); this job does only 12 forwards plus v3-style readouts and a top-10 search.\n- **Odds:** Opus's rough estimate is a 15\u201325% chance of passing. It is a hypothesis only.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "claude": "# Plan: a test of one asymmetric cache-gallery method (archived candidate queries, cache-built gallery), seed 179061 first\n\nThis is a read-only plan. I made no edits and ran no Torch, SSH, native code, jobs, children or consults, and I left SSH82389 alone.\n\n## Where the two reviewers disagreed, and the resolution\n\n| Question | Opus | Astra | Resolution |\n|---|---|---|---|\n| Control byte comparison | Check gallery rows only; let the six query-tail rows differ | Keep the full 3449-row equality and explain the six tail rows with a separate check | **Astra.** All 3449 rows are still compared byte for byte. 3443 rows must match exactly. The six tail rows must be reproduced exactly by an independent replay of the accepted batch of 6. No tolerance, and no expected bytes copied in. |\n| Re-encode the tail rows? | No (avoid the excluded image reads) | Yes, the six images only | **Re-encode only the six selection images** of accepted export batch `images[54]`: FIT rows `[13239,13240,13241,13242,13254,13257]`. Never decode FIT groups 13216 or 13248, because they contain 14 sealed VAL rows. |\n| Native check | CPU replay (`native_wire_quality`) | Real Cutile search | **Astra.** Real native IDs, score bits and tie order must match before any quality number is computed. |\n| \"Gallery-cache version must beat the symmetric version on R@1\" as a gate | Report only | Make it a gate | **Report only.** The frozen `decide()` gate stays unchanged; adding this gate now would change the scientific gate after the fact. |\n| Edit the old diagnostic or write new scripts | Edit `diagnose_connected_gallery_freshness.py` | New scripts | **Two new scripts.** The v3 script and v5 observer remain pinned historical sources. |\n| What a pass means | Engineering licence only | Next frozen stage | First stage CONTINUE \u2192 run stage 2. A full-stage GO only admits the method to selection; VAL is reached only through the existing gates. |\n\nNeither reviewer allows a claim that freshness causes the effect, and neither do I. The receipt hard-codes `causal_freshness_claim: False` and a `remaining_confound` field.\n\nTerms used below: F = the archived live-encoder export (queries); S = original FIT-cache features run through an endpoint's readout (head, A, means, C, mu); FS = F queries scored against an S gallery; FF = the symmetric version that already got KILL.\n\n## The new scripts\n\n**`scripts/diagnose_connected_asymmetric_cache.py`**\n- CLI is the same as v3 and the observer: `--execution-sha256 --authority --authority-sha256 --output NEWDIR`.\n- `execution.json` lists exactly the two new files.\n\n**`scripts/test_connected_asymmetric_cache.py`**\n- CPU-only tests of the stop conditions, listed under \"Minimal falsifiers\".\n\n**Parent decision replay**\n- A `parent-verifier.py` in the freeze or evidence directory, following the precedent at `connected-probe-first-selection-score-v1/parent-verifier.py`.\n- It is an evidence artifact, not a third file under `scripts/`.\n\n## Pinned functions to reuse (no new math)\n\nAll of these are loaded as pinned modules, the same way `observe_connected_control_batch_execution.py:543` loads the v3 diagnostic.\n\n**v3 diagnostic** (source `3b756bf9\u2026`, execution `6ef0482d\u2026`, authority `179275e4\u2026`):\n- `prepare`, `Sources.admit`, `terminal_admission` (6 UNITs) and `origin_audit`.\n- `fresh_values`, `scorer` (the original `packed_quality`, AST `717489\u2026`), `native_wire_quality` and `replay`.\n- `stale_values`, which runs CUDA FP32 with autocast off in B32/B6/B19 role batches. Its `mutant=` argument provides the omitted-C and wrong-mu negative checks.\n- `control_byte_differences`, `byte_differences`, `compose`, `output_bytes`, `exact_wire` and `final_state`.\n- Packing is `sources.modules['packing']` at the **archived pin**, not the current `joint_relational_compaction.py`, which differs.\n\n**Observer, frozen v5 copy:**\n- Pin its sha from `connected-control-batch-execution-v5-freeze/execution.json`.\n- Reuse `check_capture_ast(connected_raw, observer_raw=<v5 bytes>)`, `capture_inference_outputs`, `readout`, `check_endpoint`, `capture_workspace_owner`, `cuda_ownership_snapshot`, `memory_snapshot` and `tensor_bytes`.\n- Load the encoder with `connected.load_inference(bundle_dir, sha, 'cuda')`.\n\n**Independent candidate readout:**\n- `fullfeature_oracle` in `evaluate_siglip2_identity_diversity.py:1404` (concat plus an explicit centred residual), pinned through `EVALUATOR_PINS`.\n\n**Native search:**\n- Take the native authority from the v3 context: `launch['runtime']['native_authority']` and `exact_four`.\n- Search with `CutilePackedInt8Gallery.open_packed` / `search_packed` (k=10, at most 32 queries per call).\n- Capture outputs with `observe_connected_serving.native_snapshot` and check ties with `qualify_connected_serving_requests.native_ties`, both pinned by sha.\n\n## Authority keys\n\nSchema `connected-asymmetric-cache-launch-v1`:\n\n```\nLAUNCH_KEYS = {schema, execution_sha256, stage, seeds, historical, observer,\n  identity_evaluator, serving_ties, controls, tail_oracle, output,\n  resource_policy, both_locks_held, candidate_status,\n  qualification_eligible, state_reuse_eligible}\n```\n\n- **Stage and seeds:** `stage='first'` with `seeds=[179061]`. Stage 2 is a separately frozen authority with `'full'` and `[179061,179069]`.\n- **`controls`:** keyed by label.\n  - `control-179061` must be the bundle plus export with `EXPORT_SHA db63db82\u2026` and `CONNECTED_SHA 79efb320\u2026`.\n  - Stage 2 adds `control-179069`.\n- **`tail_oracle`** contains:\n  - `batch_index`: 54\n  - `selection_rows`: `[3439,3440,3441,3442,3445,3448]`\n  - `role_indices`: `[1728..1733]`\n  - `fit_rows`: the six FIT rows above\n  - six image FILEs, which must equal the rows of export `images[54]`.\n- **Fixed values:**\n  - `resource_policy` must equal the existing limits exactly: 700 s, 8 GiB, zero swap, CUDA device `'0'`, under 10 GB of CUDA.\n  - `both_locks_held=True`.\n  - `candidate_status='KILL'` (the symmetric KILL stands).\n  - `qualification_eligible` and `state_reuse_eligible` are both False.\n\n## Lifecycle (stage 1, run in this fixed order)\n\n1. **Admission.** Unchanged from v3/v5:\n   - authenticate the two new files and the historical v3 files;\n   - check the interpreter, a fresh `INVOCATION_ID` and `CUBLAS_WORKSPACE_CONFIG`;\n   - check the cgroup, numerical flags, RNG, that CUDA is not yet initialised, and `capture_workspace_owner`.\n2. **Archived replays.** For control-179061 and candidate-179061, run `fresh_values`, then the fixed scorer, `replay` and `native_wire_quality` replay. FF must reproduce the accepted candidate result.\n3. **Read the cache.** `features = baseline.cache_rows(context, panel['original_rows'])` gives 3449\u00d71152 FP32, followed by `mapping_absent`.\n4. **Control comparison.**\n   - Run `stale_values(control)` and `control_byte_differences`, then write `control-179061-tap.json`.\n   - Apply the new `require_tail_oracle_tap`. For all five outputs: lengths must be complete, localization must be AVAILABLE, and every differing row must be in the frozen six-row set with role query and batch size 6.\n   - Any difference in a gallery row (including the B19 gallery tail) or in a non-tail query row stops the run.\n   - Rerun for determinism and require exact equality. Run both mutants and require that each one is rejected.\n   - Composition check: `compose(ctrl_S, ctrl_F, 'FS')`, then pack, then `exact_wire` against the archived control wire.\n5. **Batch-of-6 replay.**\n   - `load_inference(control)` and `check_endpoint`.\n   - Decode **only** the six images. Deny any TRAIN/VAL row. The RGB hash must equal `images[54].rgb_sha256`.\n   - `capture_inference_outputs` at batch size 6. The pixels and outputs fingerprints must equal the batch-54 hashes, and the output bytes must equal archived control F rows 1728\u20131733 for all five outputs.\n   - Repeat once; the second run must match exactly.\n   - `readout(cache6)` at batch size 6 must equal the S tail rows.\n   - Record live-B6 features against cache features as description only.\n   - Release the encoder state and images.\n6. **Candidate.**\n   - Run `stale_values(candidate)` twice and require exact equality; run both mutants.\n   - `fullfeature_oracle` over the gallery rows, in the same B32/B19 batches, must be byte-equal to S for raw, unit, codes and inverse.\n   - If the candidate's S gallery bytes equal its F gallery bytes, stop with `NO_ASYMMETRY`: FS would just be FF again, so this is a KILL.\n7. **Build FS.**\n   - `compose(cand_S['unit'], cand_F['unit'], query, gallery, 'FS')`, then pack with the pinned packer.\n   - The query wire rows must equal the archived F rows, and the gallery rows must equal S.\n   - Write `fs-179061.packed.bin` and `roles.json` exclusively, then read them back and check the hashes.\n8. **Native check before quality.**\n   - Open a native gallery from the 1715 gallery rows. Search all 1734 queries in chunks of 32.\n   - Compare against a CPU top-10 reference: int32 dot product, then multiply by the query and gallery inverse norms in FP32, then a stable descending argsort. ID and score bits must be byte-exact. Also run `native_ties` and close the gallery.\n9. **Quality.**\n   - Run the fixed scorer on FS. It must equal `native_wire_quality(persisted wire)`, and the native top-1 must equal `per_query_r1`.\n   - Emit the FS per-query vectors, plus FS\u2212FF changes as description only. **No decision is written in the job.**\n10. **Cleanup.** CUDA memory back to zero, RNG and flags unchanged, rehash, cgroup check, `final_state`. Write the receipt only after everything has passed.\n\n**Parent replay:**\n- First reproduce the archived FF decision exactly.\n- Then run `decide(math_helper, {'179061': {control: accepted, candidate: FS}}, source, concat, 'first', 'selection', {}, archived training cost)`. The result is CONTINUE or KILL.\n- On CONTINUE, freeze stage 2 (adds the control-179069 comparison, its own batch-of-6 replay, and candidate 179069). Then run full `decide` with paired intervals (5000 draws, seed 179019).\n- Serving cost: the S gallery needs the original frozen encoder at indexing time. That cost is unmeasured and belongs to the later engineering gate.\n\n## Minimal falsifiers (the test file)\n\n1. **Comparison predicate.**\n   - Accept a difference only when it is confined to the six frozen rows and those rows pass the batch-of-6 replay.\n   - Stop on:\n     - a one-byte difference in any gallery row, including the B19 gallery tail;\n     - a difference in a query row outside the six;\n     - a truncated output;\n     - an oracle result off by one byte;\n     - a tail set that differs from the frozen six rows.\n2. **Image binding.** FIT row 13216, any VAL or TRAIN row, or any row outside `images[54]` is denied.\n3. **Composition and packing.**\n   - Flipping one gallery byte fails the control `exact_wire` check.\n   - FS query rows must be byte-identical to the archive.\n   - Only the FS and FF cells exist: no SS, SF or effects, and no `decision` key in the receipt.\n4. **Native check.**\n   - A fake gallery that swaps a tie, changes a score by 1 ulp, or takes a batch larger than 32 stops the run.\n   - The capture-AST check rejects a mutated observer body.\n5. **Vacuity.** Equal candidate S and F gallery bytes produce `NO_ASYMMETRY`.\n6. **Authority.**\n   - Wrong key set, `stage='first'` with seeds other than `[179061]`, `candidate_status != 'KILL'`, a resource policy that differs from the limits, or an existing output directory are all rejected.\n\n## Stop rule\n\n- **Instrument failure:** any failed gate stops the run and no FS number is released.\n- **KILL** at either stage closes asymmetric cache-gallery serving for these endpoints. There are no SS/SF cells, no LR or recipe retries, and the symmetric KILL stands.\n\n## What must be resolved before launch\n\n1. **Constructing the independent candidate readout.** `fullfeature_oracle` needs `trainer`/`training_context` from the pinned identity evaluator. If that context cannot be built from the existing pinned admission without new math, **the method cannot be run**, and no substitute readout is allowed. I have not verified this yet; it is the main risk.\n2. **Remote bytes have not been freshly checked**, as the input ledger itself states. The in-job rehash is the check.\n3. **Batch-54 hashes.** The accepted export receipt must carry `rgb`, `pixels` and `outputs` hashes for `images[54]`. I'm inferring this from how the observer used `images[53]`; it is unverified for 54.\n4. **Native install.** SSH82389 holds the DGX. Queue behind it. If it changes the installed native site, the `exact_four` check stops this run.\n5. **Root freeze.** The root must freeze `execution.json`, the authority, the tests and the parent verifier before launch.\n6. **Seed 179069.** Its control comparison has never run, so it belongs to stage 2 only.\n\n## Projections (not evidence)\n\n- **Runtime and memory:** about 200\u2013260 s and about 4.5 GB host memory at peak. This is based on v5 (161.6 s, 3.9 GB host, 2.07 GB CUDA, 44 image forwards); this job does only 12 forwards plus v3-style readouts and a top-10 search.\n- **Odds:** Opus's rough estimate is a 15\u201325% chance of passing. It is a hypothesis only."
+  },
+  "providers_used": [
+    "claude"
+  ],
+  "active_provider": "claude",
+  "phase": "Consultation completed",
+  "input_bytes": 1792,
+  "output_bytes": 13121,
+  "elapsed_seconds": 316,
+  "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)",
+  "progress_truncated": false,
+  "result": "# Plan: a test of one asymmetric cache-gallery method (archived candidate queries, cache-built gallery), seed 179061 first\n\nThis is a read-only plan. I made no edits and ran no Torch, SSH, native code, jobs, children or consults, and I left SSH82389 alone.\n\n## Where the two reviewers disagreed, and the resolution\n\n| Question | Opus | Astra | Resolution |\n|---|---|---|---|\n| Control byte comparison | Check gallery rows only; let the six query-tail rows differ | Keep the full 3449-row equality and explain the six tail rows with a separate check | **Astra.** All 3449 rows are still compared byte for byte. 3443 rows must match exactly. The six tail rows must be reproduced exactly by an independent replay of the accepted batch of 6. No tolerance, and no expected bytes copied in. |\n| Re-encode the tail rows? | No (avoid the excluded image reads) | Yes, the six images only | **Re-encode only the six selection images** of accepted export batch `images[54]`: FIT rows `[13239,13240,13241,13242,13254,13257]`. Never decode FIT groups 13216 or 13248, because they contain 14 sealed VAL rows. |\n| Native check | CPU replay (`native_wire_quality`) | Real Cutile search | **Astra.** Real native IDs, score bits and tie order must match before any quality number is computed. |\n| \"Gallery-cache version must beat the symmetric version on R@1\" as a gate | Report only | Make it a gate | **Report only.** The frozen `decide()` gate stays unchanged; adding this gate now would change the scientific gate after the fact. |\n| Edit the old diagnostic or write new scripts | Edit `diagnose_connected_gallery_freshness.py` | New scripts | **Two new scripts.** The v3 script and v5 observer remain pinned historical sources. |\n| What a pass means | Engineering licence only | Next frozen stage | First stage CONTINUE \u2192 run stage 2. A full-stage GO only admits the method to selection; VAL is reached only through the existing gates. |\n\nNeither reviewer allows a claim that freshness causes the effect, and neither do I. The receipt hard-codes `causal_freshness_claim: False` and a `remaining_confound` field.\n\nTerms used below: F = the archived live-encoder export (queries); S = original FIT-cache features run through an endpoint's readout (head, A, means, C, mu); FS = F queries scored against an S gallery; FF = the symmetric version that already got KILL.\n\n## The new scripts\n\n**`scripts/diagnose_connected_asymmetric_cache.py`**\n- CLI is the same as v3 and the observer: `--execution-sha256 --authority --authority-sha256 --output NEWDIR`.\n- `execution.json` lists exactly the two new files.\n\n**`scripts/test_connected_asymmetric_cache.py`**\n- CPU-only tests of the stop conditions, listed under \"Minimal falsifiers\".\n\n**Parent decision replay**\n- A `parent-verifier.py` in the freeze or evidence directory, following the precedent at `connected-probe-first-selection-score-v1/parent-verifier.py`.\n- It is an evidence artifact, not a third file under `scripts/`.\n\n## Pinned functions to reuse (no new math)\n\nAll of these are loaded as pinned modules, the same way `observe_connected_control_batch_execution.py:543` loads the v3 diagnostic.\n\n**v3 diagnostic** (source `3b756bf9\u2026`, execution `6ef0482d\u2026`, authority `179275e4\u2026`):\n- `prepare`, `Sources.admit`, `terminal_admission` (6 UNITs) and `origin_audit`.\n- `fresh_values`, `scorer` (the original `packed_quality`, AST `717489\u2026`), `native_wire_quality` and `replay`.\n- `stale_values`, which runs CUDA FP32 with autocast off in B32/B6/B19 role batches. Its `mutant=` argument provides the omitted-C and wrong-mu negative checks.\n- `control_byte_differences`, `byte_differences`, `compose`, `output_bytes`, `exact_wire` and `final_state`.\n- Packing is `sources.modules['packing']` at the **archived pin**, not the current `joint_relational_compaction.py`, which differs.\n\n**Observer, frozen v5 copy:**\n- Pin its sha from `connected-control-batch-execution-v5-freeze/execution.json`.\n- Reuse `check_capture_ast(connected_raw, observer_raw=<v5 bytes>)`, `capture_inference_outputs`, `readout`, `check_endpoint`, `capture_workspace_owner`, `cuda_ownership_snapshot`, `memory_snapshot` and `tensor_bytes`.\n- Load the encoder with `connected.load_inference(bundle_dir, sha, 'cuda')`.\n\n**Independent candidate readout:**\n- `fullfeature_oracle` in `evaluate_siglip2_identity_diversity.py:1404` (concat plus an explicit centred residual), pinned through `EVALUATOR_PINS`.\n\n**Native search:**\n- Take the native authority from the v3 context: `launch['runtime']['native_authority']` and `exact_four`.\n- Search with `CutilePackedInt8Gallery.open_packed` / `search_packed` (k=10, at most 32 queries per call).\n- Capture outputs with `observe_connected_serving.native_snapshot` and check ties with `qualify_connected_serving_requests.native_ties`, both pinned by sha.\n\n## Authority keys\n\nSchema `connected-asymmetric-cache-launch-v1`:\n\n```\nLAUNCH_KEYS = {schema, execution_sha256, stage, seeds, historical, observer,\n  identity_evaluator, serving_ties, controls, tail_oracle, output,\n  resource_policy, both_locks_held, candidate_status,\n  qualification_eligible, state_reuse_eligible}\n```\n\n- **Stage and seeds:** `stage='first'` with `seeds=[179061]`. Stage 2 is a separately frozen authority with `'full'` and `[179061,179069]`.\n- **`controls`:** keyed by label.\n  - `control-179061` must be the bundle plus export with `EXPORT_SHA db63db82\u2026` and `CONNECTED_SHA 79efb320\u2026`.\n  - Stage 2 adds `control-179069`.\n- **`tail_oracle`** contains:\n  - `batch_index`: 54\n  - `selection_rows`: `[3439,3440,3441,3442,3445,3448]`\n  - `role_indices`: `[1728..1733]`\n  - `fit_rows`: the six FIT rows above\n  - six image FILEs, which must equal the rows of export `images[54]`.\n- **Fixed values:**\n  - `resource_policy` must equal the existing limits exactly: 700 s, 8 GiB, zero swap, CUDA device `'0'`, under 10 GB of CUDA.\n  - `both_locks_held=True`.\n  - `candidate_status='KILL'` (the symmetric KILL stands).\n  - `qualification_eligible` and `state_reuse_eligible` are both False.\n\n## Lifecycle (stage 1, run in this fixed order)\n\n1. **Admission.** Unchanged from v3/v5:\n   - authenticate the two new files and the historical v3 files;\n   - check the interpreter, a fresh `INVOCATION_ID` and `CUBLAS_WORKSPACE_CONFIG`;\n   - check the cgroup, numerical flags, RNG, that CUDA is not yet initialised, and `capture_workspace_owner`.\n2. **Archived replays.** For control-179061 and candidate-179061, run `fresh_values`, then the fixed scorer, `replay` and `native_wire_quality` replay. FF must reproduce the accepted candidate result.\n3. **Read the cache.** `features = baseline.cache_rows(context, panel['original_rows'])` gives 3449\u00d71152 FP32, followed by `mapping_absent`.\n4. **Control comparison.**\n   - Run `stale_values(control)` and `control_byte_differences`, then write `control-179061-tap.json`.\n   - Apply the new `require_tail_oracle_tap`. For all five outputs: lengths must be complete, localization must be AVAILABLE, and every differing row must be in the frozen six-row set with role query and batch size 6.\n   - Any difference in a gallery row (including the B19 gallery tail) or in a non-tail query row stops the run.\n   - Rerun for determinism and require exact equality. Run both mutants and require that each one is rejected.\n   - Composition check: `compose(ctrl_S, ctrl_F, 'FS')`, then pack, then `exact_wire` against the archived control wire.\n5. **Batch-of-6 replay.**\n   - `load_inference(control)` and `check_endpoint`.\n   - Decode **only** the six images. Deny any TRAIN/VAL row. The RGB hash must equal `images[54].rgb_sha256`.\n   - `capture_inference_outputs` at batch size 6. The pixels and outputs fingerprints must equal the batch-54 hashes, and the output bytes must equal archived control F rows 1728\u20131733 for all five outputs.\n   - Repeat once; the second run must match exactly.\n   - `readout(cache6)` at batch size 6 must equal the S tail rows.\n   - Record live-B6 features against cache features as description only.\n   - Release the encoder state and images.\n6. **Candidate.**\n   - Run `stale_values(candidate)` twice and require exact equality; run both mutants.\n   - `fullfeature_oracle` over the gallery rows, in the same B32/B19 batches, must be byte-equal to S for raw, unit, codes and inverse.\n   - If the candidate's S gallery bytes equal its F gallery bytes, stop with `NO_ASYMMETRY`: FS would just be FF again, so this is a KILL.\n7. **Build FS.**\n   - `compose(cand_S['unit'], cand_F['unit'], query, gallery, 'FS')`, then pack with the pinned packer.\n   - The query wire rows must equal the archived F rows, and the gallery rows must equal S.\n   - Write `fs-179061.packed.bin` and `roles.json` exclusively, then read them back and check the hashes.\n8. **Native check before quality.**\n   - Open a native gallery from the 1715 gallery rows. Search all 1734 queries in chunks of 32.\n   - Compare against a CPU top-10 reference: int32 dot product, then multiply by the query and gallery inverse norms in FP32, then a stable descending argsort. ID and score bits must be byte-exact. Also run `native_ties` and close the gallery.\n9. **Quality.**\n   - Run the fixed scorer on FS. It must equal `native_wire_quality(persisted wire)`, and the native top-1 must equal `per_query_r1`.\n   - Emit the FS per-query vectors, plus FS\u2212FF changes as description only. **No decision is written in the job.**\n10. **Cleanup.** CUDA memory back to zero, RNG and flags unchanged, rehash, cgroup check, `final_state`. Write the receipt only after everything has passed.\n\n**Parent replay:**\n- First reproduce the archived FF decision exactly.\n- Then run `decide(math_helper, {'179061': {control: accepted, candidate: FS}}, source, concat, 'first', 'selection', {}, archived training cost)`. The result is CONTINUE or KILL.\n- On CONTINUE, freeze stage 2 (adds the control-179069 comparison, its own batch-of-6 replay, and candidate 179069). Then run full `decide` with paired intervals (5000 draws, seed 179019).\n- Serving cost: the S gallery needs the original frozen encoder at indexing time. That cost is unmeasured and belongs to the later engineering gate.\n\n## Minimal falsifiers (the test file)\n\n1. **Comparison predicate.**\n   - Accept a difference only when it is confined to the six frozen rows and those rows pass the batch-of-6 replay.\n   - Stop on:\n     - a one-byte difference in any gallery row, including the B19 gallery tail;\n     - a difference in a query row outside the six;\n     - a truncated output;\n     - an oracle result off by one byte;\n     - a tail set that differs from the frozen six rows.\n2. **Image binding.** FIT row 13216, any VAL or TRAIN row, or any row outside `images[54]` is denied.\n3. **Composition and packing.**\n   - Flipping one gallery byte fails the control `exact_wire` check.\n   - FS query rows must be byte-identical to the archive.\n   - Only the FS and FF cells exist: no SS, SF or effects, and no `decision` key in the receipt.\n4. **Native check.**\n   - A fake gallery that swaps a tie, changes a score by 1 ulp, or takes a batch larger than 32 stops the run.\n   - The capture-AST check rejects a mutated observer body.\n5. **Vacuity.** Equal candidate S and F gallery bytes produce `NO_ASYMMETRY`.\n6. **Authority.**\n   - Wrong key set, `stage='first'` with seeds other than `[179061]`, `candidate_status != 'KILL'`, a resource policy that differs from the limits, or an existing output directory are all rejected.\n\n## Stop rule\n\n- **Instrument failure:** any failed gate stops the run and no FS number is released.\n- **KILL** at either stage closes asymmetric cache-gallery serving for these endpoints. There are no SS/SF cells, no LR or recipe retries, and the symmetric KILL stands.\n\n## What must be resolved before launch\n\n1. **Constructing the independent candidate readout.** `fullfeature_oracle` needs `trainer`/`training_context` from the pinned identity evaluator. If that context cannot be built from the existing pinned admission without new math, **the method cannot be run**, and no substitute readout is allowed. I have not verified this yet; it is the main risk.\n2. **Remote bytes have not been freshly checked**, as the input ledger itself states. The in-job rehash is the check.\n3. **Batch-54 hashes.** The accepted export receipt must carry `rgb`, `pixels` and `outputs` hashes for `images[54]`. I'm inferring this from how the observer used `images[53]`; it is unverified for 54.\n4. **Native install.** SSH82389 holds the DGX. Queue behind it. If it changes the installed native site, the `exact_four` check stops this run.\n5. **Root freeze.** The root must freeze `execution.json`, the authority, the tests and the parent verifier before launch.\n6. **Seed 179069.** Its control comparison has never run, so it belongs to stage 2 only.\n\n## Projections (not evidence)\n\n- **Runtime and memory:** about 200\u2013260 s and about 4.5 GB host memory at peak. This is based on v5 (161.6 s, 3.9 GB host, 2.07 GB CUDA, 44 image forwards); this job does only 12 forwards plus v3-style readouts and a top-10 search.\n- **Odds:** Opus's rough estimate is a 15\u201325% chance of passing. It is a hypothesis only.",
+  "result_truncated": false
+}

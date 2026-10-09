@@ -1,0 +1,17 @@
+{
+  "status": "FAIL_UNQUALIFIED",
+  "terminal_exit": 1,
+  "invocation_id": "715802b9fa584d12bbdb79118dc11738",
+  "service_seconds": 337.435,
+  "host_peak_bytes": 3466694656,
+  "swap_events_zero": true,
+  "evidence_sha256": {
+    "original.log": "339544e5320bd3078dd2a5a518e88dc0d1151a048fd451164dfd60a436275d21",
+    "terminal-status.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  "primary_rejection": "checkpoint mapping survived independent copy/release in copied bundle load_inference finally",
+  "exit_rejection": "observed native difference must be exact four; all four cuDNN lazy libraries absent before first image forward",
+  "cause": "Primary ownership/caught-error cause UNPROVEN. Error masking possible, not established. Source-only causal audit before any prospective observation.",
+  "parity_qualified": false,
+  "repeat_same_job": false
+}
