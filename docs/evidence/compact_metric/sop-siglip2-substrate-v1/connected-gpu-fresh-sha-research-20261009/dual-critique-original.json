@@ -1,0 +1,713 @@
+{
+  "id": "fa99312f22044515",
+  "status": "completed",
+  "started_at": 1791528417,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal installed-probe v6 parity result f53d1208 now establishes installed public baseline; this review is a distinct proposed GPU SHA implementation/qualification route based on completed Fable970707, not a repeat of closed four-CPU-thread SHA or asymmetric exit review. Need reconcile exact native-authority/parity and scientific usefulness before implementation; no prior GPU SHA design critique is evidenced.",
+  "rolling_6h_count": 5,
+  "prompt_preview": "Read-only consequential design review, separate labelled answers. Repo /home/rb/worktrees/sfora-positive-causality master93f00446. Goal Sfora joint quality+image-to-topk speed. Read docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gpu-fresh-sha-research-20261009/original-result.json (Fable970707 result; estimates NOT native), src/sfora/connected_probe_inference.py fingerprint/_fingerprint_cuda_dict/encoder_facts, analogous MLP runtime, original exact serializer, and probe-installed-control-serving-diagnostic-v6 receipt/root-review. NEW v6 normal exit0 samebatch B1/B2/B32/tail exact installed outputs/search/ties/lifecycle/fulluncachedexit, parent acceptance UNRUN/all speedquality false. Prior CPU4 hash proposal REJECT_SLOWER originalpair1.57-1.60 vs6.05-6.11s; no retry/reuse. Proposed next speed intervention: standalone GPU SHA256 per-leaf byte-equivalent prototype, no model/package modification initially; native test seeded FP32 largest19832832B, empty/scalar/noncontiguous aliases/unchangedversion .data mutation/restore vs ORIGINAL serializer, 3 alternating engineering timings only. GPU one-chain-per-leaf with 892 leaf chains ultimately hypothesized .17-.45s UNMEASURED; no .35/.7 invented performance acceptance gate adopted. Existing exact every-occurrence no-cache/hashframing trust gates stay. Is this technically plausible enough for bounded source implementation? Identify largest hidden issue (SHA dependency/warp occupancy/memory/stream/endian/dtype+contiguity/lifetime/nativeauthority) and smallest falsifier/interface that could materially reduce actual B1latency without weakened validation. Require compile/binary/interpreter/runtime pinned original authority and no generic native root exemption. NO edits/SSH/Torch/native/images/downloads/children/consults or operator contact. No projections as measured or sweeping CPUhardware ceiling conclusions. Give source-supported GO source prototype or STOP with specific responsible-layer alternative; distinguish perleafSHA benchmark from fullpipeline matched10000pairedp99 proof. Existing asymmetric resource observer and parentadmission plan run independently; do not replan their scope.",
+  "prompt_sha256": "f795ea63aa0c41d148147ca6edc5e4faec5a022989baf4916e68bad96052d29a",
+  "prompt_bytes": 2180,
+  "fingerprint": "e35320da26146682d0b0b6231124e72de49cd2b9e7dd783a24d56717bf1dc3c4",
+  "evidence": {
+    "git_commit": "93f004469936d67a93a68cd152ddb8ad4a5c6c0e",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "8d5da06825b14de0",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791528417,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791529617,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only consequential design review, separate labelled answers. Repo /home/rb/worktrees/sfora-positive-causality master93f00446. Goal Sfora joint quality+image-to-topk speed. Read docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gpu-fresh-sha-research-20261009/original-result.json (Fable970707 result; estimates NOT native), src/sfora/connected_probe_inference.py fingerprint/_fingerprint_cuda_dict/encoder_facts, analogous MLP runtime, original exact serializer, and probe-installed-control-serving-diagnostic-v6 receipt/root-review. NEW v6 normal exit0 samebatch B1/B2/B32/tail exact installed outputs/search/ties/lifecycle/fulluncachedexit, parent acceptance UNRUN/all speedquality false. Prior CPU4 hash proposal REJECT_SLOWER originalpair1.57-1.60 vs6.05-6.11s; no retry/reuse. Proposed next speed intervention: standalone GPU SHA256 per-leaf byte-equivalent prototype, no model/package modification initially; native test seeded FP32 largest19832832B, empty/scalar/noncontiguous aliases/unchangedversion .data mutation/restore vs ORIGINAL serializer, 3 alternating engineering timings only. GPU one-chain-per-leaf with 892 leaf chains ultimately hypothesized .17-.45s UNMEASURED; no .35/.7 invented performance acceptance gate adopted. Existing exact every-occurrence no-cache/hashframing trust gates stay. Is this technically plausible enough for bounded source implementation? Identify largest hidden issue (SHA dependency/warp occupancy/memory/stream/endian/dtype+contiguity/lifetime/nativeauthority) and smallest falsifier/interface that could materially reduce actual B1latency without weakened validation. Require compile/binary/interpreter/runtime pinned original authority and no generic native root exemption. NO edits/SSH/Torch/native/images/downloads/children/consults or operator contact. No projections as measured or sweeping CPUhardware ceiling conclusions. Give source-supported GO source prototype or STOP with specific responsible-layer alternative; distinguish perleafSHA benchmark from fullpipeline matched10000pairedp99 proof. Existing asymmetric resource observer and parentadmission plan run independently; do not replan their scope.",
+      "prompt_sha256": "952e2eb57ca6c9e5eb02e83c93d652b16e7a0df489d1ba8cf88827f91ded39f1",
+      "prompt_bytes": 2550,
+      "fingerprint": "c7a74ea3f61a850a26ef760fc3380cea96460f2416f984f3fa51db03c5554983",
+      "evidence": {
+        "git_commit": "93f004469936d67a93a68cd152ddb8ad4a5c6c0e",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "199f715f49ef52b139724cbca918dd2625492f6b36ba90de2d864793c3f91e0c",
+      "reused": false,
+      "critique_id": "fa99312f22044515",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-8d5da06825b14de0.service",
+      "pid": 1867222,
+      "pgid": 1867222,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1791528417
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791528601,
+      "event_cursor": 39,
+      "events": [
+        {
+          "seq": 16,
+          "at": 1791528578,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1791528579,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1791528580,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1791528581,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1791528582,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1791528583,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1791528584,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 23,
+          "at": 1791528585,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 24,
+          "at": 1791528586,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 25,
+          "at": 1791528587,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 26,
+          "at": 1791528588,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 27,
+          "at": 1791528589,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 28,
+          "at": 1791528590,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 29,
+          "at": 1791528591,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 30,
+          "at": 1791528592,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 31,
+          "at": 1791528593,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 32,
+          "at": 1791528594,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 33,
+          "at": 1791528595,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 34,
+          "at": 1791528596,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 35,
+          "at": 1791528597,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 36,
+          "at": 1791528598,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1791528599,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 38,
+          "at": 1791528600,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1791528601,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 32,
+            "at": 1791528594,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 33,
+            "at": 1791528595,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 34,
+            "at": 1791528596,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 35,
+            "at": 1791528597,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 36,
+            "at": 1791528598,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 37,
+            "at": 1791528599,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 38,
+            "at": 1791528600,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 39,
+            "at": 1791528601,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "# Independent research and first-principles critique\n\n**Verdict: GO, but only for a standalone source prototype limited to engineering use.** Before any code is written, fix the latency model, because the proposal as framed overstates the payoff. Nothing here is measured. All numbers below are estimates unless marked as receipt values.\n\n## 1. Largest hidden issue: the pair is two sequential critical paths, not one\n\n`encoder_facts` (`src/sfora/connected_probe_inference.py:480-486`) calls `tensor_hash` twice in sequence:\n- first on frozen447, followed by a `require`;\n- then on the full `state_dict()` (448).\n\nFable's estimate of 0.17\u20130.45 s says \"critical path is the largest leaf\", with 892 chains in one launch. That only holds if both occurrences are hashed in a single launch. With the declared seam (swap only the `tensor_hash` dispatch), the floor is about **2 \u00d7 the largest-leaf chain plus 2 launch/sync round trips**. Fable's own pass rule (\"leaf \u2264 0.35 s gives pair \u2264 0.45 s\") contradicts that seam.\n\nHashing both occurrences in one launch would still read every occurrence. But it restructures `encoder_facts`, and that is a separate change needing its own review.\n\nThe seam is also not just a dispatch swap for authority purposes. `_connected_probe_inference_authority.py:2642-2670` and `_connected_inference_authority.py:2504-2508` pin those exact source lines. Any integration needs a new ledger and a new freeze. That is fine, but it should be stated up front.\n\n## 2. Second hidden issue: thread layout and memory latency\n\nThese can stop the lone-chain estimate from carrying over to 892 chains.\n\n- **One chain per warp hits an instruction-throughput floor.** The pair is 3.38 GB, about 52.8M compressions at roughly 1.5\u20132k instructions each. With one active lane per warp that is about 8\u201310\u00d710\u00b9\u2070 warp-instructions. Against GB10's public issue rate (48 SMs \u00d7 4 schedulers \u00d7 ~2 GHz, not verified here), that is a floor of about 0.2\u20130.3 s. That is the same size as the latency estimate, so latency and throughput will not overlap for free.\n- **The fix is one chain per lane, sorted largest-first.** About 108 fc1/fc2 chains of 19.8 MB fit in about 4 warps. The cost is uncoalesced, per-lane streaming loads.\n- **A lone serial thread needs explicit prefetch.** It must load block i+1 into registers while compressing block i. GB10 uses unified LPDDR5X, so an unhidden load latency per 64-byte block could be comparable to the compute per block (about 0.6\u20131 \u00b5s). A naive loop could roughly double the chain time.\n- **Consequence for the benchmark:** a single-leaf timing on its own does not test either effect. That is why the prototype benchmark in section 4 is a shaped dictionary, not one leaf.\n\n## 3. Remaining risk checklist\n\n| Risk | Status / required handling |\n|---|---|\n| SHA dependency | There is no SHA primitive to reuse on the GPU, so this is hand-written CUDA. The padding branch is the classic bug site. FP32 sizes are multiples of 4, so test numel 0, 1, 13, 14, 15, 16, 17 and 29\u201333 (byte lengths 52\u201364 and 116\u2013132 cross the 55/56/64 boundaries). Also test the largest leaf, 19,832,832 B. |\n| Endianness | Tensor bytes are little-endian on both CPU and GPU, so byte order matches the numpy view. SHA reads big-endian words, so the kernel must byte-swap (`__byte_perm`). Use asymmetric seeded values so a swap bug cannot cancel out. |\n| Alignment | The `data_ptr` of a view with a storage offset is only guaranteed 4-byte aligned for FP32. No 16-byte vector loads unless alignment is checked. Anything else goes to the original path. |\n| dtype / contiguity | Only real FP32 on the fast path; everything else goes to the original. A GPU `.contiguous()` gathers in the same logical order as the original's `.cpu().contiguous()`. Test a transpose, a stride-0 `expand`, and a narrowed view with a storage offset. Keep each temporary alive until sync. |\n| **Stream** | The original's `.cpu()` synchronises with the *current* stream. The kernel must launch on `torch.cuda.current_stream()` and sync it before digests are read. A private stream that does not wait first would race pending writes and could pass bytes that are about to change (a false accept). Test: enqueue a large op, then mutate `.data`, with no host sync, and require the digest to reflect the mutation. |\n| Lifetime / no-cache | Hold Python references to every leaf and temporary until sync, and drop them afterwards. No retained digests, pointers or tensors between calls. Keep the existing per-occurrence metadata reads (`data_ptr`, `_version`, \u2026). Whether the loaded code module may stay loaded across calls is a code-cache question, not a digest cache. The authority must decide it explicitly; it must not be assumed. |\n| Memory | A pointer/length table (~14 KB) plus digests (~29 KB), plus temporaries only for non-contiguous leaves. Negligible against the 10 GB cap. |\n| Native authority | **SASS-only fatbin/cubin for the exact GB10 target, with no PTX**. With PTX, the driver JIT-compiles and caches in `~/.nv/ComputeCache`, which is unpinned. Pin the nvcc version, flags, source SHA and output SHA, and the libcuda path and SHA. Load through the existing hash-the-descriptor-then-load pattern (`factorized_residual_native.py:150-163`), or `cuModuleLoadData` from the already-verified buffer. No `torch.utils.cpp_extension`/`load_inline`: its build directory and cache are not pinned. No reuse of native-authority-v5, as the root disposition says, and no generic native exemption. |\n\n**Why exact digests keep validation safe.** Every pin was produced by hashlib through the original serializer. So a GPU digest bug can only cause false rejects. A false accept needs a kernel that does not read the *current* bytes: a stale stream, a memoised result, or the wrong pointer. The mutation, pending-write and alias tests are therefore what carry the validation load, not the known-answer vectors.\n\n## 4. Smallest interface and falsifier\n\n**Interface:** one C function, `sha256_leaves(const void** ptrs, const uint64_t* nbytes, uint32_t n, uint8_t* out32n, CUstream s) -> int`.\n\n- The Python side replaces only `executor.submit(_sha_cpu_bytes, view)` with one batched call.\n- Typed-tree framing, key ordering and `fact_visit` stay byte-for-byte unchanged.\n\n**Correctness, standalone, no model or package changes:**\n- every seeded tensor and padding-boundary size above, compared against the unchanged `fingerprint`;\n- the empty tensor (null `data_ptr` must not be dereferenced);\n- a 0-d scalar;\n- the [4096, 6144] transpose;\n- the same tensor under two dictionary keys (tied weights, which must be hashed twice);\n- a `.data` mutation that leaves `_version` unchanged, then restore: both paths must move and return together;\n- the pending current-stream write.\n\n**Timing:** keep the three alternating repetitions, but measure two things.\n- **(a)** The largest leaf alone.\n- **(b)** A seeded synthetic dictionary with exactly the 447 and 448 FP32 shapes from `encoder_identity['inventory']`, hashed as **two sequential calls**, compared against the unchanged `_fingerprint_cuda_dict` on the same dictionary. Shapes come from JSON, so no model is needed. (b) is the smallest standalone measurement that reflects the real call structure; (a) alone cannot.\n- Record the SM clock alongside the timings.\n- Write down any continue/stop rule before running. I propose none: no 0.35/0.7-style thresholds.\n\n## 5. What a pass would and would not show\n\n- **Per-leaf and synthetic-dictionary benchmark:** this tests kernel correctness and how fast the hash alone is.\n- **It says nothing about** B1/B32 serving parity, cgroup/resource fit, lifecycle and full uncached exit under the installed path, or the paired 10,000-call p99. Those still need the integrated, newly frozen serving run and the matched 10,000-pair interleaved p99 with a confidence interval. The v6 receipt records `product_p99` as UNQUALIFIED and `speed_eligible` as false.\n\n## 6. If the prototype fails, which layer is responsible\n\n1. **One launch for both occurrences** (restructure `encoder_facts`). It keeps every-occurrence reads and removes one serial critical path. It is a new source review, not a kernel change.\n2. **A different identity definition**, such as a domain-separated, chunked SHA-256 Merkle tree. This removes the serial dependency entirely; the estimate is bandwidth-bound tens of milliseconds. It does **not** weaken validation (collision resistance carries over), but it is not byte-equivalent to the original serializer. It needs new pins and a new export freeze, so it is an authority decision, not a speed patch.\n3. **Read-only VMM weight ownership.** Already on HOLD from the prior review; not reopened here.\n\n**Open question for the goal owner (scope, not a conclusion):** receipt arithmetic, which is non-additive, puts non-hash B1 at about 0.1 s (1.6887 \u2212 ~1.59). Even an optimistic kernel leaves per-call hashing as most of B1. Whether B1 can match references that never re-hash weights per call is therefore decided by the every-call trust policy, not by this kernel. That framing should be settled before any p99 campaign.\n\nI made no edits, ran no native or GPU work, and contacted no one. The resource observer and parent-admission scope are untouched.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "# Independent research and first-principles critique\n\n**Verdict: GO, but only for a standalone source prototype limited to engineering use.** Before any code is written, fix the latency model, because the proposal as framed overstates the payoff. Nothing here is measured. All numbers below are estimates unless marked as receipt values.\n\n## 1. Largest hidden issue: the pair is two sequential critical paths, not one\n\n`encoder_facts` (`src/sfora/connected_probe_inference.py:480-486`) calls `tensor_hash` twice in sequence:\n- first on frozen447, followed by a `require`;\n- then on the full `state_dict()` (448).\n\nFable's estimate of 0.17\u20130.45 s says \"critical path is the largest leaf\", with 892 chains in one launch. That only holds if both occurrences are hashed in a single launch. With the declared seam (swap only the `tensor_hash` dispatch), the floor is about **2 \u00d7 the largest-leaf chain plus 2 launch/sync round trips**. Fable's own pass rule (\"leaf \u2264 0.35 s gives pair \u2264 0.45 s\") contradicts that seam.\n\nHashing both occurrences in one launch would still read every occurrence. But it restructures `encoder_facts`, and that is a separate change needing its own review.\n\nThe seam is also not just a dispatch swap for authority purposes. `_connected_probe_inference_authority.py:2642-2670` and `_connected_inference_authority.py:2504-2508` pin those exact source lines. Any integration needs a new ledger and a new freeze. That is fine, but it should be stated up front.\n\n## 2. Second hidden issue: thread layout and memory latency\n\nThese can stop the lone-chain estimate from carrying over to 892 chains.\n\n- **One chain per warp hits an instruction-throughput floor.** The pair is 3.38 GB, about 52.8M compressions at roughly 1.5\u20132k instructions each. With one active lane per warp that is about 8\u201310\u00d710\u00b9\u2070 warp-instructions. Against GB10's public issue rate (48 SMs \u00d7 4 schedulers \u00d7 ~2 GHz, not verified here), that is a floor of about 0.2\u20130.3 s. That is the same size as the latency estimate, so latency and throughput will not overlap for free.\n- **The fix is one chain per lane, sorted largest-first.** About 108 fc1/fc2 chains of 19.8 MB fit in about 4 warps. The cost is uncoalesced, per-lane streaming loads.\n- **A lone serial thread needs explicit prefetch.** It must load block i+1 into registers while compressing block i. GB10 uses unified LPDDR5X, so an unhidden load latency per 64-byte block could be comparable to the compute per block (about 0.6\u20131 \u00b5s). A naive loop could roughly double the chain time.\n- **Consequence for the benchmark:** a single-leaf timing on its own does not test either effect. That is why the prototype benchmark in section 4 is a shaped dictionary, not one leaf.\n\n## 3. Remaining risk checklist\n\n| Risk | Status / required handling |\n|---|---|\n| SHA dependency | There is no SHA primitive to reuse on the GPU, so this is hand-written CUDA. The padding branch is the classic bug site. FP32 sizes are multiples of 4, so test numel 0, 1, 13, 14, 15, 16, 17 and 29\u201333 (byte lengths 52\u201364 and 116\u2013132 cross the 55/56/64 boundaries). Also test the largest leaf, 19,832,832 B. |\n| Endianness | Tensor bytes are little-endian on both CPU and GPU, so byte order matches the numpy view. SHA reads big-endian words, so the kernel must byte-swap (`__byte_perm`). Use asymmetric seeded values so a swap bug cannot cancel out. |\n| Alignment | The `data_ptr` of a view with a storage offset is only guaranteed 4-byte aligned for FP32. No 16-byte vector loads unless alignment is checked. Anything else goes to the original path. |\n| dtype / contiguity | Only real FP32 on the fast path; everything else goes to the original. A GPU `.contiguous()` gathers in the same logical order as the original's `.cpu().contiguous()`. Test a transpose, a stride-0 `expand`, and a narrowed view with a storage offset. Keep each temporary alive until sync. |\n| **Stream** | The original's `.cpu()` synchronises with the *current* stream. The kernel must launch on `torch.cuda.current_stream()` and sync it before digests are read. A private stream that does not wait first would race pending writes and could pass bytes that are about to change (a false accept). Test: enqueue a large op, then mutate `.data`, with no host sync, and require the digest to reflect the mutation. |\n| Lifetime / no-cache | Hold Python references to every leaf and temporary until sync, and drop them afterwards. No retained digests, pointers or tensors between calls. Keep the existing per-occurrence metadata reads (`data_ptr`, `_version`, \u2026). Whether the loaded code module may stay loaded across calls is a code-cache question, not a digest cache. The authority must decide it explicitly; it must not be assumed. |\n| Memory | A pointer/length table (~14 KB) plus digests (~29 KB), plus temporaries only for non-contiguous leaves. Negligible against the 10 GB cap. |\n| Native authority | **SASS-only fatbin/cubin for the exact GB10 target, with no PTX**. With PTX, the driver JIT-compiles and caches in `~/.nv/ComputeCache`, which is unpinned. Pin the nvcc version, flags, source SHA and output SHA, and the libcuda path and SHA. Load through the existing hash-the-descriptor-then-load pattern (`factorized_residual_native.py:150-163`), or `cuModuleLoadData` from the already-verified buffer. No `torch.utils.cpp_extension`/`load_inline`: its build directory and cache are not pinned. No reuse of native-authority-v5, as the root disposition says, and no generic native exemption. |\n\n**Why exact digests keep validation safe.** Every pin was produced by hashlib through the original serializer. So a GPU digest bug can only cause false rejects. A false accept needs a kernel that does not read the *current* bytes: a stale stream, a memoised result, or the wrong pointer. The mutation, pending-write and alias tests are therefore what carry the validation load, not the known-answer vectors.\n\n## 4. Smallest interface and falsifier\n\n**Interface:** one C function, `sha256_leaves(const void** ptrs, const uint64_t* nbytes, uint32_t n, uint8_t* out32n, CUstream s) -> int`.\n\n- The Python side replaces only `executor.submit(_sha_cpu_bytes, view)` with one batched call.\n- Typed-tree framing, key ordering and `fact_visit` stay byte-for-byte unchanged.\n\n**Correctness, standalone, no model or package changes:**\n- every seeded tensor and padding-boundary size above, compared against the unchanged `fingerprint`;\n- the empty tensor (null `data_ptr` must not be dereferenced);\n- a 0-d scalar;\n- the [4096, 6144] transpose;\n- the same tensor under two dictionary keys (tied weights, which must be hashed twice);\n- a `.data` mutation that leaves `_version` unchanged, then restore: both paths must move and return together;\n- the pending current-stream write.\n\n**Timing:** keep the three alternating repetitions, but measure two things.\n- **(a)** The largest leaf alone.\n- **(b)** A seeded synthetic dictionary with exactly the 447 and 448 FP32 shapes from `encoder_identity['inventory']`, hashed as **two sequential calls**, compared against the unchanged `_fingerprint_cuda_dict` on the same dictionary. Shapes come from JSON, so no model is needed. (b) is the smallest standalone measurement that reflects the real call structure; (a) alone cannot.\n- Record the SM clock alongside the timings.\n- Write down any continue/stop rule before running. I propose none: no 0.35/0.7-style thresholds.\n\n## 5. What a pass would and would not show\n\n- **Per-leaf and synthetic-dictionary benchmark:** this tests kernel correctness and how fast the hash alone is.\n- **It says nothing about** B1/B32 serving parity, cgroup/resource fit, lifecycle and full uncached exit under the installed path, or the paired 10,000-call p99. Those still need the integrated, newly frozen serving run and the matched 10,000-pair interleaved p99 with a confidence interval. The v6 receipt records `product_p99` as UNQUALIFIED and `speed_eligible` as false.\n\n## 6. If the prototype fails, which layer is responsible\n\n1. **One launch for both occurrences** (restructure `encoder_facts`). It keeps every-occurrence reads and removes one serial critical path. It is a new source review, not a kernel change.\n2. **A different identity definition**, such as a domain-separated, chunked SHA-256 Merkle tree. This removes the serial dependency entirely; the estimate is bandwidth-bound tens of milliseconds. It does **not** weaken validation (collision resistance carries over), but it is not byte-equivalent to the original serializer. It needs new pins and a new export freeze, so it is an authority decision, not a speed patch.\n3. **Read-only VMM weight ownership.** Already on HOLD from the prior review; not reopened here.\n\n**Open question for the goal owner (scope, not a conclusion):** receipt arithmetic, which is non-additive, puts non-hash B1 at about 0.1 s (1.6887 \u2212 ~1.59). Even an optimistic kernel leaves per-call hashing as most of B1. Whether B1 can match references that never re-hash weights per call is therefore decided by the every-call trust policy, not by this kernel. That framing should be settled before any p99 campaign.\n\nI made no edits, ran no native or GPU work, and contacted no one. The resource observer and parent-admission scope are untouched."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 2550,
+      "output_bytes": 9270,
+      "elapsed_seconds": 184,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)",
+      "progress_truncated": false,
+      "result": "# Independent research and first-principles critique\n\n**Verdict: GO, but only for a standalone source prototype limited to engineering use.** Before any code is written, fix the latency model, because the proposal as framed overstates the payoff. Nothing here is measured. All numbers below are estimates unless marked as receipt values.\n\n## 1. Largest hidden issue: the pair is two sequential critical paths, not one\n\n`encoder_facts` (`src/sfora/connected_probe_inference.py:480-486`) calls `tensor_hash` twice in sequence:\n- first on frozen447, followed by a `require`;\n- then on the full `state_dict()` (448).\n\nFable's estimate of 0.17\u20130.45 s says \"critical path is the largest leaf\", with 892 chains in one launch. That only holds if both occurrences are hashed in a single launch. With the declared seam (swap only the `tensor_hash` dispatch), the floor is about **2 \u00d7 the largest-leaf chain plus 2 launch/sync round trips**. Fable's own pass rule (\"leaf \u2264 0.35 s gives pair \u2264 0.45 s\") contradicts that seam.\n\nHashing both occurrences in one launch would still read every occurrence. But it restructures `encoder_facts`, and that is a separate change needing its own review.\n\nThe seam is also not just a dispatch swap for authority purposes. `_connected_probe_inference_authority.py:2642-2670` and `_connected_inference_authority.py:2504-2508` pin those exact source lines. Any integration needs a new ledger and a new freeze. That is fine, but it should be stated up front.\n\n## 2. Second hidden issue: thread layout and memory latency\n\nThese can stop the lone-chain estimate from carrying over to 892 chains.\n\n- **One chain per warp hits an instruction-throughput floor.** The pair is 3.38 GB, about 52.8M compressions at roughly 1.5\u20132k instructions each. With one active lane per warp that is about 8\u201310\u00d710\u00b9\u2070 warp-instructions. Against GB10's public issue rate (48 SMs \u00d7 4 schedulers \u00d7 ~2 GHz, not verified here), that is a floor of about 0.2\u20130.3 s. That is the same size as the latency estimate, so latency and throughput will not overlap for free.\n- **The fix is one chain per lane, sorted largest-first.** About 108 fc1/fc2 chains of 19.8 MB fit in about 4 warps. The cost is uncoalesced, per-lane streaming loads.\n- **A lone serial thread needs explicit prefetch.** It must load block i+1 into registers while compressing block i. GB10 uses unified LPDDR5X, so an unhidden load latency per 64-byte block could be comparable to the compute per block (about 0.6\u20131 \u00b5s). A naive loop could roughly double the chain time.\n- **Consequence for the benchmark:** a single-leaf timing on its own does not test either effect. That is why the prototype benchmark in section 4 is a shaped dictionary, not one leaf.\n\n## 3. Remaining risk checklist\n\n| Risk | Status / required handling |\n|---|---|\n| SHA dependency | There is no SHA primitive to reuse on the GPU, so this is hand-written CUDA. The padding branch is the classic bug site. FP32 sizes are multiples of 4, so test numel 0, 1, 13, 14, 15, 16, 17 and 29\u201333 (byte lengths 52\u201364 and 116\u2013132 cross the 55/56/64 boundaries). Also test the largest leaf, 19,832,832 B. |\n| Endianness | Tensor bytes are little-endian on both CPU and GPU, so byte order matches the numpy view. SHA reads big-endian words, so the kernel must byte-swap (`__byte_perm`). Use asymmetric seeded values so a swap bug cannot cancel out. |\n| Alignment | The `data_ptr` of a view with a storage offset is only guaranteed 4-byte aligned for FP32. No 16-byte vector loads unless alignment is checked. Anything else goes to the original path. |\n| dtype / contiguity | Only real FP32 on the fast path; everything else goes to the original. A GPU `.contiguous()` gathers in the same logical order as the original's `.cpu().contiguous()`. Test a transpose, a stride-0 `expand`, and a narrowed view with a storage offset. Keep each temporary alive until sync. |\n| **Stream** | The original's `.cpu()` synchronises with the *current* stream. The kernel must launch on `torch.cuda.current_stream()` and sync it before digests are read. A private stream that does not wait first would race pending writes and could pass bytes that are about to change (a false accept). Test: enqueue a large op, then mutate `.data`, with no host sync, and require the digest to reflect the mutation. |\n| Lifetime / no-cache | Hold Python references to every leaf and temporary until sync, and drop them afterwards. No retained digests, pointers or tensors between calls. Keep the existing per-occurrence metadata reads (`data_ptr`, `_version`, \u2026). Whether the loaded code module may stay loaded across calls is a code-cache question, not a digest cache. The authority must decide it explicitly; it must not be assumed. |\n| Memory | A pointer/length table (~14 KB) plus digests (~29 KB), plus temporaries only for non-contiguous leaves. Negligible against the 10 GB cap. |\n| Native authority | **SASS-only fatbin/cubin for the exact GB10 target, with no PTX**. With PTX, the driver JIT-compiles and caches in `~/.nv/ComputeCache`, which is unpinned. Pin the nvcc version, flags, source SHA and output SHA, and the libcuda path and SHA. Load through the existing hash-the-descriptor-then-load pattern (`factorized_residual_native.py:150-163`), or `cuModuleLoadData` from the already-verified buffer. No `torch.utils.cpp_extension`/`load_inline`: its build directory and cache are not pinned. No reuse of native-authority-v5, as the root disposition says, and no generic native exemption. |\n\n**Why exact digests keep validation safe.** Every pin was produced by hashlib through the original serializer. So a GPU digest bug can only cause false rejects. A false accept needs a kernel that does not read the *current* bytes: a stale stream, a memoised result, or the wrong pointer. The mutation, pending-write and alias tests are therefore what carry the validation load, not the known-answer vectors.\n\n## 4. Smallest interface and falsifier\n\n**Interface:** one C function, `sha256_leaves(const void** ptrs, const uint64_t* nbytes, uint32_t n, uint8_t* out32n, CUstream s) -> int`.\n\n- The Python side replaces only `executor.submit(_sha_cpu_bytes, view)` with one batched call.\n- Typed-tree framing, key ordering and `fact_visit` stay byte-for-byte unchanged.\n\n**Correctness, standalone, no model or package changes:**\n- every seeded tensor and padding-boundary size above, compared against the unchanged `fingerprint`;\n- the empty tensor (null `data_ptr` must not be dereferenced);\n- a 0-d scalar;\n- the [4096, 6144] transpose;\n- the same tensor under two dictionary keys (tied weights, which must be hashed twice);\n- a `.data` mutation that leaves `_version` unchanged, then restore: both paths must move and return together;\n- the pending current-stream write.\n\n**Timing:** keep the three alternating repetitions, but measure two things.\n- **(a)** The largest leaf alone.\n- **(b)** A seeded synthetic dictionary with exactly the 447 and 448 FP32 shapes from `encoder_identity['inventory']`, hashed as **two sequential calls**, compared against the unchanged `_fingerprint_cuda_dict` on the same dictionary. Shapes come from JSON, so no model is needed. (b) is the smallest standalone measurement that reflects the real call structure; (a) alone cannot.\n- Record the SM clock alongside the timings.\n- Write down any continue/stop rule before running. I propose none: no 0.35/0.7-style thresholds.\n\n## 5. What a pass would and would not show\n\n- **Per-leaf and synthetic-dictionary benchmark:** this tests kernel correctness and how fast the hash alone is.\n- **It says nothing about** B1/B32 serving parity, cgroup/resource fit, lifecycle and full uncached exit under the installed path, or the paired 10,000-call p99. Those still need the integrated, newly frozen serving run and the matched 10,000-pair interleaved p99 with a confidence interval. The v6 receipt records `product_p99` as UNQUALIFIED and `speed_eligible` as false.\n\n## 6. If the prototype fails, which layer is responsible\n\n1. **One launch for both occurrences** (restructure `encoder_facts`). It keeps every-occurrence reads and removes one serial critical path. It is a new source review, not a kernel change.\n2. **A different identity definition**, such as a domain-separated, chunked SHA-256 Merkle tree. This removes the serial dependency entirely; the estimate is bandwidth-bound tens of milliseconds. It does **not** weaken validation (collision resistance carries over), but it is not byte-equivalent to the original serializer. It needs new pins and a new export freeze, so it is an authority decision, not a speed patch.\n3. **Read-only VMM weight ownership.** Already on HOLD from the prior review; not reopened here.\n\n**Open question for the goal owner (scope, not a conclusion):** receipt arithmetic, which is non-additive, puts non-hash B1 at about 0.1 s (1.6887 \u2212 ~1.59). Even an optimistic kernel leaves per-call hashing as most of B1. Whether B1 can match references that never re-hash weights per call is therefore decided by the every-call trust policy, not by this kernel. That framing should be settled before any p99 campaign.\n\nI made no edits, ran no native or GPU work, and contacted no one. The resource observer and parent-admission scope are untouched.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "d3dd03b904df431f",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791528417,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791529617,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only consequential design review, separate labelled answers. Repo /home/rb/worktrees/sfora-positive-causality master93f00446. Goal Sfora joint quality+image-to-topk speed. Read docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gpu-fresh-sha-research-20261009/original-result.json (Fable970707 result; estimates NOT native), src/sfora/connected_probe_inference.py fingerprint/_fingerprint_cuda_dict/encoder_facts, analogous MLP runtime, original exact serializer, and probe-installed-control-serving-diagnostic-v6 receipt/root-review. NEW v6 normal exit0 samebatch B1/B2/B32/tail exact installed outputs/search/ties/lifecycle/fulluncachedexit, parent acceptance UNRUN/all speedquality false. Prior CPU4 hash proposal REJECT_SLOWER originalpair1.57-1.60 vs6.05-6.11s; no retry/reuse. Proposed next speed intervention: standalone GPU SHA256 per-leaf byte-equivalent prototype, no model/package modification initially; native test seeded FP32 largest19832832B, empty/scalar/noncontiguous aliases/unchangedversion .data mutation/restore vs ORIGINAL serializer, 3 alternating engineering timings only. GPU one-chain-per-leaf with 892 leaf chains ultimately hypothesized .17-.45s UNMEASURED; no .35/.7 invented performance acceptance gate adopted. Existing exact every-occurrence no-cache/hashframing trust gates stay. Is this technically plausible enough for bounded source implementation? Identify largest hidden issue (SHA dependency/warp occupancy/memory/stream/endian/dtype+contiguity/lifetime/nativeauthority) and smallest falsifier/interface that could materially reduce actual B1latency without weakened validation. Require compile/binary/interpreter/runtime pinned original authority and no generic native root exemption. NO edits/SSH/Torch/native/images/downloads/children/consults or operator contact. No projections as measured or sweeping CPUhardware ceiling conclusions. Give source-supported GO source prototype or STOP with specific responsible-layer alternative; distinguish perleafSHA benchmark from fullpipeline matched10000pairedp99 proof. Existing asymmetric resource observer and parentadmission plan run independently; do not replan their scope.",
+      "prompt_sha256": "b7307e3d0f604322b44a5f2387ae26319b0d65f3118e076c001fc1465f410560",
+      "prompt_bytes": 2584,
+      "fingerprint": "073c7dc667d3bd9f88a3529228b4cfc32a1bb87f39cfc8c41687fee6bf828e1d",
+      "evidence": {
+        "git_commit": "93f004469936d67a93a68cd152ddb8ad4a5c6c0e",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "c7a74ea3f61a850a26ef760fc3380cea96460f2416f984f3fa51db03c5554983",
+      "reused": false,
+      "critique_id": "fa99312f22044515",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-d3dd03b904df431f.service",
+      "pid": 1867292,
+      "pgid": 1867292,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1791528417
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791528754,
+      "event_cursor": 76,
+      "events": [
+        {
+          "seq": 53,
+          "at": 1791528570,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 54,
+          "at": 1791528570,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 55,
+          "at": 1791528570,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 56,
+          "at": 1791528570,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 57,
+          "at": 1791528570,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 58,
+          "at": 1791528579,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 59,
+          "at": 1791528581,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 60,
+          "at": 1791528587,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 61,
+          "at": 1791528589,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 62,
+          "at": 1791528628,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 63,
+          "at": 1791528638,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 64,
+          "at": 1791528638,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 65,
+          "at": 1791528638,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 66,
+          "at": 1791528643,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 67,
+          "at": 1791528645,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 68,
+          "at": 1791528648,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 69,
+          "at": 1791528648,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 70,
+          "at": 1791528650,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 71,
+          "at": 1791528658,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 72,
+          "at": 1791528658,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 73,
+          "at": 1791528669,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 74,
+          "at": 1791528675,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 75,
+          "at": 1791528753,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 76,
+          "at": 1791528754,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 69,
+            "at": 1791528648,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 70,
+            "at": 1791528650,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Web search completed"
+          },
+          {
+            "seq": 71,
+            "at": 1791528658,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 72,
+            "at": 1791528658,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 1"
+          },
+          {
+            "seq": 73,
+            "at": 1791528669,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 74,
+            "at": 1791528675,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 75,
+            "at": 1791528753,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 76,
+            "at": 1791528754,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Independent engineering verdict: GO for a bounded source prototype only.** Exact GPU SHA-256 could remove repeated device-to-host tensor copies and parallelize independent leaves. The evidence does not establish a speedup, a CPU hardware ceiling, or the projected 0.17\u20130.45 s pair latency.\n\nThe consequential design findings are:\n\n1. **Largest hidden issue: the proposed concurrency does not match the serving seam.** The probe hashes **447 frozen leaves, checks that result, then hashes all 448**. The MLP uses 444+448. These are sequential dictionary calls, not 892 simultaneously available chains. See [probe encoder_facts](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:480) and [MLP encoder_facts](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:522).\n\n   The largest leaf requires **309,889 SHA compression blocks including padding**. Its compression states remain sequential. With densely packed one-thread-per-leaf execution, each dictionary supplies only about **14 warps**; block placement, unequal leaf lengths, scattered loads, and register spills can further limit utilization. This is an inference from the workload and [CUDA\u2019s execution model](https://docs.nvidia.com/cuda/cuda-programming-guide/01-introduction/programming-model.html#warps-and-simt), not measured occupancy. A cooperative schedule might improve execution, but cannot eliminate SHA\u2019s inter-block dependency. [SHA specification](https://datatracker.ietf.org/doc/html/rfc6234#section-6.2)\n\n   **Consequence:** single-leaf timing is a useful mechanism test, not a pair-latency predictor. Conversely, losing to CPU on one isolated leaf does not by itself disprove a cross-leaf GPU benefit.\n\n2. **Direct GPU reads need an explicit completion and lifetime contract.** The original hashes a completed CPU snapshot. A kernel launched on the wrong stream can read before a `.data` mutation completes; returning before completion can expose unfinished digests or release/recycle storage still being read. A globally synchronized benchmark could conceal both errors.\n\n   The smallest safe interface uses the caller\u2019s current CUDA stream, retains input and scratch owners until completion, and returns host-readable digests only after checking completion errors. Include a non-default-stream mutation/hash case without a global barrier before the candidate call. Preserve existing synchronization responsibilities for other producer streams; do not claim an atomic model snapshot. [Original snapshot operation](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:753), [PyTorch stream and lifetime semantics](https://docs.pytorch.org/docs/main/notes/cuda.html#cuda-streams)\n\n3. **The proposed fixtures leave a concrete SHA padding hole.** The largest leaf, empty tensor, scalar, and cited large transpose do not exercise the two-block padding boundary. Add FP32 vectors of **13, 14, 15, 16, and 17 elements**: 52/56/60/64/68 bytes. Include offset views and explicit bit patterns so native-word endian mistakes, signed-zero normalization, or numeric conversion cannot pass unnoticed. SHA uses big-endian message-word interpretation and length encoding; tensor input must remain the original byte sequence. [Padding specification](https://datatracker.ietf.org/doc/html/rfc6234#section-4.1)\n\n   A raw leaf SHA is also **not** the outer `fingerprint(tensor)`. Require both raw digest equality and complete typed-tree equality, retaining dtype, shape, lowercase hex representation, key ordering, and length framing. I verified that both runtime serializers are AST-equivalent to the original; the probe serializer is also byte-identical. [Original serializer](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:1055)\n\n4. **The existing native authority cannot admit this binary.** It explicitly binds the archived Cutile binary/build and exact supplemental files. Neither its compiler admission nor a trusted directory grants permission to load a new SHA library. [Authority checks](/home/rb/worktrees/sfora-positive-causality/scripts/connected_control_native_authority.py:111)\n\n   Before any native trial, require independently frozen compiler/toolchain inputs and flags, resulting ELF/cubin bytes, original interpreter/oracle identity, and actual CUDA driver/runtime dependencies. Account for any JIT-produced device code; a host-library hash or `/proc` mapping inventory alone does not identify arbitrary loaded device code. **No generic native-root exemption.** Standalone source implementation can proceed without changing model, package, or authority rules.\n\n**Smallest useful interface and falsifier.** Use one bounded batch interface: ordered leaf occurrences plus byte lengths and current stream \u2192 one completed 32-byte digest per occurrence. Keep the existing CPU tree framing and the two sequential dictionary checks. Start with contiguous CUDA FP32; handle noncontiguous views through the exact original fallback or an explicitly bounded logical-order gather. Never hash backing-storage gaps or deduplicate aliases. Caller-owned scratch/output buffers keep allocations and lifetimes visible.\n\nThe standalone test should cover the seeded 19,832,832-byte leaf, padding cases above, empty/scalar, transposed/offset/shared aliases, unchanged-version `.data` byte mutation and exact restoration, stream ordering, and retained-error cleanup followed by a healthy call. Label fallback cases explicitly.\n\nRun only the proposed **three alternating engineering timing pairs**, measuring completed wall time including wrapper work and digest transfer; report compilation separately. Compare against the **ORIGINAL serializer**, not the currently installed four-worker helper. That helper remains selected by the [serving dispatch](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:480), despite its [6.05\u20136.11 s rejection against 1.57\u20131.60 s original](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-fresh-sha-native-v3/decision.md:3). Beating that rejected helper would establish little. Do not adopt the unapproved 0.35/0.7 s thresholds.\n\n**Independent release verdict: STOP release and performance qualification.** I verified the v6 receipt/log/terminal hashes against its root review. Its same-batch B1/B2/B32/tail parity, ties, lifecycle, normal exit, and full uncached exit are useful evidence. Parent acceptance remains **UNRUN**, and speed, quality, and release eligibility remain false. [Root review](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/probe-installed-control-serving-diagnostic-v6/root-review.json:8)\n\nA successful leaf benchmark would justify examining the complete dictionary workload. It would not prove reduced public B1 image-to-top-k latency. That requires matched full-pipeline evidence; the product p99 claim still requires **10,000 interleaved paired calls and a confidence interval**. Batching throughput cannot substitute for B1 response latency. The independent observer and parent-admission plans retain their existing scope.\n\nNot checked: compilation, Torch/native execution, or hardware performance; no files were edited.  \nRisk: an exact, correct kernel may still lose at the complete serving boundary.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Independent engineering verdict: GO for a bounded source prototype only.** Exact GPU SHA-256 could remove repeated device-to-host tensor copies and parallelize independent leaves. The evidence does not establish a speedup, a CPU hardware ceiling, or the projected 0.17\u20130.45 s pair latency.\n\nThe consequential design findings are:\n\n1. **Largest hidden issue: the proposed concurrency does not match the serving seam.** The probe hashes **447 frozen leaves, checks that result, then hashes all 448**. The MLP uses 444+448. These are sequential dictionary calls, not 892 simultaneously available chains. See [probe encoder_facts](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:480) and [MLP encoder_facts](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:522).\n\n   The largest leaf requires **309,889 SHA compression blocks including padding**. Its compression states remain sequential. With densely packed one-thread-per-leaf execution, each dictionary supplies only about **14 warps**; block placement, unequal leaf lengths, scattered loads, and register spills can further limit utilization. This is an inference from the workload and [CUDA\u2019s execution model](https://docs.nvidia.com/cuda/cuda-programming-guide/01-introduction/programming-model.html#warps-and-simt), not measured occupancy. A cooperative schedule might improve execution, but cannot eliminate SHA\u2019s inter-block dependency. [SHA specification](https://datatracker.ietf.org/doc/html/rfc6234#section-6.2)\n\n   **Consequence:** single-leaf timing is a useful mechanism test, not a pair-latency predictor. Conversely, losing to CPU on one isolated leaf does not by itself disprove a cross-leaf GPU benefit.\n\n2. **Direct GPU reads need an explicit completion and lifetime contract.** The original hashes a completed CPU snapshot. A kernel launched on the wrong stream can read before a `.data` mutation completes; returning before completion can expose unfinished digests or release/recycle storage still being read. A globally synchronized benchmark could conceal both errors.\n\n   The smallest safe interface uses the caller\u2019s current CUDA stream, retains input and scratch owners until completion, and returns host-readable digests only after checking completion errors. Include a non-default-stream mutation/hash case without a global barrier before the candidate call. Preserve existing synchronization responsibilities for other producer streams; do not claim an atomic model snapshot. [Original snapshot operation](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:753), [PyTorch stream and lifetime semantics](https://docs.pytorch.org/docs/main/notes/cuda.html#cuda-streams)\n\n3. **The proposed fixtures leave a concrete SHA padding hole.** The largest leaf, empty tensor, scalar, and cited large transpose do not exercise the two-block padding boundary. Add FP32 vectors of **13, 14, 15, 16, and 17 elements**: 52/56/60/64/68 bytes. Include offset views and explicit bit patterns so native-word endian mistakes, signed-zero normalization, or numeric conversion cannot pass unnoticed. SHA uses big-endian message-word interpretation and length encoding; tensor input must remain the original byte sequence. [Padding specification](https://datatracker.ietf.org/doc/html/rfc6234#section-4.1)\n\n   A raw leaf SHA is also **not** the outer `fingerprint(tensor)`. Require both raw digest equality and complete typed-tree equality, retaining dtype, shape, lowercase hex representation, key ordering, and length framing. I verified that both runtime serializers are AST-equivalent to the original; the probe serializer is also byte-identical. [Original serializer](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:1055)\n\n4. **The existing native authority cannot admit this binary.** It explicitly binds the archived Cutile binary/build and exact supplemental files. Neither its compiler admission nor a trusted directory grants permission to load a new SHA library. [Authority checks](/home/rb/worktrees/sfora-positive-causality/scripts/connected_control_native_authority.py:111)\n\n   Before any native trial, require independently frozen compiler/toolchain inputs and flags, resulting ELF/cubin bytes, original interpreter/oracle identity, and actual CUDA driver/runtime dependencies. Account for any JIT-produced device code; a host-library hash or `/proc` mapping inventory alone does not identify arbitrary loaded device code. **No generic native-root exemption.** Standalone source implementation can proceed without changing model, package, or authority rules.\n\n**Smallest useful interface and falsifier.** Use one bounded batch interface: ordered leaf occurrences plus byte lengths and current stream \u2192 one completed 32-byte digest per occurrence. Keep the existing CPU tree framing and the two sequential dictionary checks. Start with contiguous CUDA FP32; handle noncontiguous views through the exact original fallback or an explicitly bounded logical-order gather. Never hash backing-storage gaps or deduplicate aliases. Caller-owned scratch/output buffers keep allocations and lifetimes visible.\n\nThe standalone test should cover the seeded 19,832,832-byte leaf, padding cases above, empty/scalar, transposed/offset/shared aliases, unchanged-version `.data` byte mutation and exact restoration, stream ordering, and retained-error cleanup followed by a healthy call. Label fallback cases explicitly.\n\nRun only the proposed **three alternating engineering timing pairs**, measuring completed wall time including wrapper work and digest transfer; report compilation separately. Compare against the **ORIGINAL serializer**, not the currently installed four-worker helper. That helper remains selected by the [serving dispatch](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:480), despite its [6.05\u20136.11 s rejection against 1.57\u20131.60 s original](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-fresh-sha-native-v3/decision.md:3). Beating that rejected helper would establish little. Do not adopt the unapproved 0.35/0.7 s thresholds.\n\n**Independent release verdict: STOP release and performance qualification.** I verified the v6 receipt/log/terminal hashes against its root review. Its same-batch B1/B2/B32/tail parity, ties, lifecycle, normal exit, and full uncached exit are useful evidence. Parent acceptance remains **UNRUN**, and speed, quality, and release eligibility remain false. [Root review](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/probe-installed-control-serving-diagnostic-v6/root-review.json:8)\n\nA successful leaf benchmark would justify examining the complete dictionary workload. It would not prove reduced public B1 image-to-top-k latency. That requires matched full-pipeline evidence; the product p99 claim still requires **10,000 interleaved paired calls and a confidence interval**. Batching throughput cannot substitute for B1 response latency. The independent observer and parent-admission plans retain their existing scope.\n\nNot checked: compilation, Torch/native execution, or hardware performance; no files were edited.  \nRisk: an exact, correct kernel may still lose at the complete serving boundary."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 2584,
+      "output_bytes": 7402,
+      "elapsed_seconds": 337,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)",
+      "progress_truncated": false,
+      "result": "**Independent engineering verdict: GO for a bounded source prototype only.** Exact GPU SHA-256 could remove repeated device-to-host tensor copies and parallelize independent leaves. The evidence does not establish a speedup, a CPU hardware ceiling, or the projected 0.17\u20130.45 s pair latency.\n\nThe consequential design findings are:\n\n1. **Largest hidden issue: the proposed concurrency does not match the serving seam.** The probe hashes **447 frozen leaves, checks that result, then hashes all 448**. The MLP uses 444+448. These are sequential dictionary calls, not 892 simultaneously available chains. See [probe encoder_facts](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:480) and [MLP encoder_facts](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:522).\n\n   The largest leaf requires **309,889 SHA compression blocks including padding**. Its compression states remain sequential. With densely packed one-thread-per-leaf execution, each dictionary supplies only about **14 warps**; block placement, unequal leaf lengths, scattered loads, and register spills can further limit utilization. This is an inference from the workload and [CUDA\u2019s execution model](https://docs.nvidia.com/cuda/cuda-programming-guide/01-introduction/programming-model.html#warps-and-simt), not measured occupancy. A cooperative schedule might improve execution, but cannot eliminate SHA\u2019s inter-block dependency. [SHA specification](https://datatracker.ietf.org/doc/html/rfc6234#section-6.2)\n\n   **Consequence:** single-leaf timing is a useful mechanism test, not a pair-latency predictor. Conversely, losing to CPU on one isolated leaf does not by itself disprove a cross-leaf GPU benefit.\n\n2. **Direct GPU reads need an explicit completion and lifetime contract.** The original hashes a completed CPU snapshot. A kernel launched on the wrong stream can read before a `.data` mutation completes; returning before completion can expose unfinished digests or release/recycle storage still being read. A globally synchronized benchmark could conceal both errors.\n\n   The smallest safe interface uses the caller\u2019s current CUDA stream, retains input and scratch owners until completion, and returns host-readable digests only after checking completion errors. Include a non-default-stream mutation/hash case without a global barrier before the candidate call. Preserve existing synchronization responsibilities for other producer streams; do not claim an atomic model snapshot. [Original snapshot operation](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:753), [PyTorch stream and lifetime semantics](https://docs.pytorch.org/docs/main/notes/cuda.html#cuda-streams)\n\n3. **The proposed fixtures leave a concrete SHA padding hole.** The largest leaf, empty tensor, scalar, and cited large transpose do not exercise the two-block padding boundary. Add FP32 vectors of **13, 14, 15, 16, and 17 elements**: 52/56/60/64/68 bytes. Include offset views and explicit bit patterns so native-word endian mistakes, signed-zero normalization, or numeric conversion cannot pass unnoticed. SHA uses big-endian message-word interpretation and length encoding; tensor input must remain the original byte sequence. [Padding specification](https://datatracker.ietf.org/doc/html/rfc6234#section-4.1)\n\n   A raw leaf SHA is also **not** the outer `fingerprint(tensor)`. Require both raw digest equality and complete typed-tree equality, retaining dtype, shape, lowercase hex representation, key ordering, and length framing. I verified that both runtime serializers are AST-equivalent to the original; the probe serializer is also byte-identical. [Original serializer](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:1055)\n\n4. **The existing native authority cannot admit this binary.** It explicitly binds the archived Cutile binary/build and exact supplemental files. Neither its compiler admission nor a trusted directory grants permission to load a new SHA library. [Authority checks](/home/rb/worktrees/sfora-positive-causality/scripts/connected_control_native_authority.py:111)\n\n   Before any native trial, require independently frozen compiler/toolchain inputs and flags, resulting ELF/cubin bytes, original interpreter/oracle identity, and actual CUDA driver/runtime dependencies. Account for any JIT-produced device code; a host-library hash or `/proc` mapping inventory alone does not identify arbitrary loaded device code. **No generic native-root exemption.** Standalone source implementation can proceed without changing model, package, or authority rules.\n\n**Smallest useful interface and falsifier.** Use one bounded batch interface: ordered leaf occurrences plus byte lengths and current stream \u2192 one completed 32-byte digest per occurrence. Keep the existing CPU tree framing and the two sequential dictionary checks. Start with contiguous CUDA FP32; handle noncontiguous views through the exact original fallback or an explicitly bounded logical-order gather. Never hash backing-storage gaps or deduplicate aliases. Caller-owned scratch/output buffers keep allocations and lifetimes visible.\n\nThe standalone test should cover the seeded 19,832,832-byte leaf, padding cases above, empty/scalar, transposed/offset/shared aliases, unchanged-version `.data` byte mutation and exact restoration, stream ordering, and retained-error cleanup followed by a healthy call. Label fallback cases explicitly.\n\nRun only the proposed **three alternating engineering timing pairs**, measuring completed wall time including wrapper work and digest transfer; report compilation separately. Compare against the **ORIGINAL serializer**, not the currently installed four-worker helper. That helper remains selected by the [serving dispatch](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_probe_inference.py:480), despite its [6.05\u20136.11 s rejection against 1.57\u20131.60 s original](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-fresh-sha-native-v3/decision.md:3). Beating that rejected helper would establish little. Do not adopt the unapproved 0.35/0.7 s thresholds.\n\n**Independent release verdict: STOP release and performance qualification.** I verified the v6 receipt/log/terminal hashes against its root review. Its same-batch B1/B2/B32/tail parity, ties, lifecycle, normal exit, and full uncached exit are useful evidence. Parent acceptance remains **UNRUN**, and speed, quality, and release eligibility remain false. [Root review](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/probe-installed-control-serving-diagnostic-v6/root-review.json:8)\n\nA successful leaf benchmark would justify examining the complete dictionary workload. It would not prove reduced public B1 image-to-top-k latency. That requires matched full-pipeline evidence; the product p99 claim still requires **10,000 interleaved paired calls and a confidence interval**. Batching throughput cannot substitute for B1 response latency. The independent observer and parent-admission plans retain their existing scope.\n\nNot checked: compilation, Torch/native execution, or hardware performance; no files were edited.  \nRisk: an exact, correct kernel may still lose at the complete serving boundary.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1791529109,
+  "elapsed_seconds": 337,
+  "input_bytes": 2180,
+  "output_bytes": 16672
+}
