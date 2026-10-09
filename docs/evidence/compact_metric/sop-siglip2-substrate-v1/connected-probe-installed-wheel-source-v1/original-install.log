@@ -1,0 +1,32 @@
+/snap/astral-uv/1779/bin/uv: OK
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-connected-probe-installed-wheel-stage-v1/sfora-0.3.0rc4-py3-none-any.whl: OK
+Using CPython 3.13.9 interpreter at: group-learning/.venv/bin/python
+Resolved 1 package in 3ms
+Prepared 1 package in 14ms
+Installed 1 package in 3ms
+ + sfora==0.3.0rc4 (from file:///home/riomus/runs/sfora-connected-probe-installed-wheel-stage-v1/sfora-0.3.0rc4-py3-none-any.whl)
+	Command being timed: "/usr/bin/timeout 30 /usr/bin/prlimit --as=1073741824 /snap/astral-uv/1779/bin/uv pip install --offline --no-deps --no-cache --python /home/riomus/group-learning/.venv/bin/python --target /home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages /home/riomus/runs/sfora-connected-probe-installed-wheel-stage-v1/sfora-0.3.0rc4-py3-none-any.whl"
+	User time (seconds): 0.03
+	System time (seconds): 0.06
+	Percent of CPU this job got: 95%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.10
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 36904
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 7
+	Minor (reclaiming a frame) page faults: 5482
+	Voluntary context switches: 56
+	Involuntary context switches: 1
+	Swaps: 0
+	File system inputs: 1290
+	File system outputs: 7152
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+{"decision": "PASS_WHEEL_INSTALL_SOURCE_BYTES_ONLY", "files": 112, "manifest_sha256": "4e1dcb8d73c6bafe740a68fec97ad49a5515a1131c3810ee2101eb05c810dd50", "metadata_files": 8, "native_qualified": false}

@@ -1,0 +1,1 @@
+Isolated probe wheel installed on authenticated DGX with offline/no-dependencies installer, original terminal exit0. All112 package source files match wheel bytes. Existing model environment untouched. Native public-library parity, performance and production qualification remain UNRUN. Next gate uses accepted control; pooling candidate remains scientific KILL.
