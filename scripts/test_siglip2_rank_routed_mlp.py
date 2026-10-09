@@ -24,6 +24,7 @@ import math
 from pathlib import Path
 import sys
 import tempfile
+import textwrap
 import time
 from types import FunctionType, ModuleType, SimpleNamespace
 from unittest.mock import patch
@@ -42,6 +43,37 @@ ROUTE_BLOCK_SHA = '3fab2d333f38dda0f9ce600edc0ae98edcd93c387da799521574e9b762fd4
 
 OBSERVATION_BASE_SHA = '940d37fb12e4a6cc3f53c023ee31d50f8316d801fe8a6db93af929b7028bb3f1'
 OBSERVATION_BLOCK_SHA = 'bc27d7d122f3456198dfaec0312e29e3be2847095b3472402c6b85cb7cbd61f4'
+
+# Only storage scheduling may differ from the immutable CPU-v3 trainer.
+SCHEDULING_BASE_SHA = '69302dab4a808a259a381d9b649ac58bd1d7a3c5dffe2b8aa6982131dd45cd5d'
+SCHEDULING_BASE_AST_SHA = '5eaf64ef2da836fe4d3770c303721cff58cb82eff4384b5d344b1bae1744925d'
+SCHEDULING_INVERSE_EDITS = (
+    (b"""        if candidate and step == 1 and state['device'] == 'cpu':
+            full_reference = route_full_reference(torch,context,state,identity,members,batch,K,view)
+        ranking = [torch.zeros_like(p) for p in members] if step == 1 else None
+        route = route_accumulators(torch,members) if candidate and step == 1 else None
+        if route is not None and state['device'] == 'cpu':
+            route['full'] = full_reference
+            del full_reference
+            phase_observe(context,'view_accumulators',view=view,groups=(('ranking_total',ranking_total),('routed_total',routed_total),
+                ('ranking_view',ranking),('routed',route['routed']),('original',route['original']),
+                ('unrouted',route['unrouted']),('encoder_ranking',route['ranking'])))
+""", b"""        ranking = [torch.zeros_like(p) for p in members] if step == 1 else None
+        route = route_accumulators(torch,members) if candidate and step == 1 else None
+        if route is not None and state['device'] == 'cpu':
+            phase_observe(context,'view_accumulators',view=view,groups=(('ranking_total',ranking_total),('routed_total',routed_total),
+                ('ranking_view',ranking),('routed',route['routed']),('original',route['original']),
+                ('unrouted',route['unrouted']),('encoder_ranking',route['ranking'])))
+            route['full'] = route_full_reference(torch,context,state,identity,members,batch,K,view)
+"""),
+    (b"""            facts = {'pixels':fingerprint(context,temporary['pixels'])}
+            if pass_index:
+                require(facts['pixels'] == replay['pixels'], 'full B64 replay pixels/features differ')
+""", b''),
+    (b"                del temporary['pixels']\n", b''),
+    (b"                facts['features'] = fingerprint(context,temporary['features'])\n",
+     b"                facts = {name:fingerprint(context,temporary[name]) for name in ('pixels','features')}\n"),
+)
 
 # Enumerated observer/error-cleanup seams; applied before the historical repair inverse.
 OBSERVATION_INVERSE_EDITS = (
@@ -231,7 +263,34 @@ def cut(raw, start, end, pin):
     return raw[:i] + raw[j:]
 
 
+def scheduling_inverse(raw):
+    """Independently invert statement lists and bytes before the historical inverses."""
+    tree = ast.parse(raw)
+    dump = lambda node: ast.dump(node,include_attributes=False)
+    for new,old in SCHEDULING_INVERSE_EDITS:
+        before = ast.parse(textwrap.dedent(new.decode())).body
+        after = ast.parse(textwrap.dedent(old.decode())).body
+        wanted, matches = [dump(n) for n in before], []
+        for node in ast.walk(tree):
+            for _,value in ast.iter_fields(node):
+                if isinstance(value,list) and value and all(isinstance(n,ast.stmt) for n in value):
+                    for i in range(len(value)-len(before)+1):
+                        if [dump(n) for n in value[i:i+len(before)]] == wanted:
+                            matches.append((value,i))
+        assert len(matches) == 1, 'exact scheduling AST seam differs'
+        body,index = matches[0]
+        body[index:index+len(before)] = after
+    assert sha(dump(tree).encode()) == SCHEDULING_BASE_AST_SHA, 'unrelated scheduling production AST edit'
+    for new,old in SCHEDULING_INVERSE_EDITS:
+        assert raw.count(new) == 1, 'exact scheduling byte seam differs'
+        raw = raw.replace(new,old)
+    assert sha(raw) == SCHEDULING_BASE_SHA, 'scheduling inverse does not reproduce 69302dab source'
+    assert dump(ast.parse(raw)) == dump(tree), 'scheduling byte/AST inverses disagree'
+    return raw
+
+
 def sequential_inverse(raw):
+    raw = scheduling_inverse(raw)
     base = (HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/'
             'rank-routed-mlp-cpu-v2-freeze/train_siglip2_rank_routed_mlp.py').read_bytes()
     assert sha(base) == '2fb4f237345f346080e499cc99d97fbc40c7087f255027ed810ef02b56537b1f'
@@ -1034,6 +1093,219 @@ def sequential_reference_falsifier(d):
     print('PASS genuine total/rank calls on distinct released B64 graphs; native memory fit UNRUN')
 
 
+def allocation_schedule_falsifier(d):
+    """Reverting the prelude must put 18 unused tensors back beside the reference."""
+    import gc
+    import weakref
+    base = (HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/'
+            'rank-routed-mlp-cpu-v3-freeze/train_siglip2_rank_routed_mlp.py').read_bytes()
+    assert sha(base) == '69302dab4a808a259a381d9b649ac58bd1d7a3c5dffe2b8aa6982131dd45cd5d'
+
+    def probe(raw, arm, device, step, delayed, fault=False):
+        update = function(ast.parse(raw), 'update')
+        view = next(n for n in update.body if isinstance(n, ast.For) and ast.unparse(n.iter) == 'VIEWS')
+        end = next(i for i,n in enumerate(view.body) if isinstance(n, ast.For))
+        code = compile(ast.Module(body=view.body[:end], type_ignores=[]), '<actual per-view prelude>', 'exec')
+        sc, refs, events, result_refs, result_ids = Scenario(), [], [], [], []
+        members = [Vec(range(i+1)) for i in range(6 if arm == 'candidate' else 2)]
+        outer = [Vec([7.] * len(p.v)) for p in members]
+        routed = [Vec([11.] * len(p.v)) for p in members[:2]] if arm == 'candidate' else None
+        outer_values = [list(t.v) for t in outer + (routed or [])]
+
+        def zero(p):
+            value = FakeTorch.zeros_like(p)
+            refs.append(weakref.ref(value))
+            events.append('allocate')
+            return value
+
+        def reference(*args):
+            events.append('reference')
+            assert args == (sc.torch, ns['context'], ns['state'], ns['identity'], members, ns['batch'], 1, ns['view'])
+            alive = sum(ref() is not None for ref in refs)
+            assert alive == (0 if delayed else 18), 'unused per-view buffers live during reference: %d' % alive
+            if fault:
+                raise ValueError('reference fault')
+            result = sc.full()
+            result_ids.append(id(result))
+            result_refs.extend(weakref.ref(t) for t in (*result['gradients'], *result['scalars'].values()))
+            return result
+
+        def observe(context, name, **kw):
+            events.append(name)
+            assert [key for key,_ in kw['groups']] == ['ranking_total','routed_total','ranking_view',
+                                                     'routed','original','unrouted','encoder_ranking']
+            assert kw['groups'][0][1] is outer and kw['groups'][1][1] is routed
+
+        def optimizer_work(*args, **kw):
+            raise AssertionError('prelude performed optimizer work')
+
+        sc.torch.zeros_like = zero
+        ns = {**vars(d), 'torch':sc.torch, 'context':{}, 'state':{'device':device,'arm':arm}, 'identity':{},
+              'candidate':arm == 'candidate', 'step':step, 'members':members, 'batch':list(range(64)), 'K':1,
+              'ranking_total':outer, 'routed_total':routed, 'route_full_reference':reference,
+              'phase_observe':observe, 'optimizer':SimpleNamespace(step=optimizer_work,zero_grad=optimizer_work),
+              'scaler':SimpleNamespace(step=optimizer_work,unscale_=optimizer_work)}
+        for name in d.VIEWS:
+            ns['view'] = name
+            refs.clear(), events.clear(), result_refs.clear(), result_ids.clear()
+            if fault:
+                rejects(lambda: exec(code, ns), 'reference fault')
+                assert not refs and events == ['reference'] and not {'route','ranking'} & ns.keys()
+                continue
+            exec(code, ns)
+            assert [t.v for t in outer + (routed or [])] == outer_values
+            expected = len(members) + (12 if arm == 'candidate' else 0) if step == 1 else 0
+            assert len(refs) == expected and all(ref() is not None for ref in refs)
+            if step == 1:
+                assert [t.shape for t in ns['ranking']] == [p.shape for p in members]
+                assert all(t.v == [0.] * len(p.v) for t,p in zip(ns['ranking'],members,strict=True))
+            else:
+                assert ns['ranking'] is None
+            if arm == 'candidate' and step == 1:
+                route = ns['route']
+                assert route.keys() == {'micro','nonzero','routed','original','unrouted','ranking','scalars','worst','split','full'}
+                for key, params in (('routed',members[:2]),('original',members[:2]),
+                                    ('unrouted',members[2:]),('ranking',members[2:])):
+                    assert [t.shape for t in route[key]] == [p.shape for p in params]
+                    assert all(t.v == [0.] * len(p.v) for t,p in zip(route[key],params,strict=True))
+                assert route['micro'] == route['nonzero'] == 0 and route['split'] is None
+                assert route['scalars'] == {'mse':0.,'rank':0.,'loss':0.} and route['worst'] == {'A':0.,'C':0.}
+                if device == 'cpu':
+                    assert id(route['full']) == result_ids[0], 'returned full dictionary was replaced'
+                    assert events == (['reference'] + ['allocate']*18 + ['view_accumulators'] if delayed else
+                                      ['allocate']*18 + ['view_accumulators','reference'])
+                    route['full'] = None
+                    gc.collect()
+                    assert all(ref() is None for ref in result_refs), 'transient full reference alias survived'
+                else:
+                    assert route['full'] is None and events == ['allocate']*18
+                del route
+            else:
+                assert ns['route'] is None and events == ['allocate']*expected
+            del ns['ranking'], ns['route']
+            gc.collect()
+            assert all(ref() is None for ref in refs)
+        return events
+
+    probe(base, 'candidate', 'cpu', 1, False)
+    probe(DRIVER.read_bytes(), 'candidate', 'cpu', 1, True)
+    probe(DRIVER.read_bytes(), 'candidate', 'cpu', 1, True, fault=True)
+    for arm,device,step in (('candidate','cuda',1),('control','cpu',1),('control','cuda',1),
+                            ('candidate','cpu',2),('candidate','cuda',2),('control','cpu',2)):
+        assert probe(base,arm,device,step,False) == probe(DRIVER.read_bytes(),arm,device,step,True)
+    print('PASS actual view prelude: baseline 18 live buffers -> zero during reference; same buffers/full identity; failure/control/GPU')
+
+
+def pixel_schedule_falsifier(d):
+    """A fake forward with no saved input exposes the helper's caller ownership."""
+    import gc
+    import weakref
+
+    def probe(mode=None, reference=None, scheduled=True):
+        m = Micro(d, step=1, record=False)
+        sc,context,state = m.sc,m.ns['context'],m.sc.state
+        state['counter'] = 0
+        rng,pixels,kept,forwards,hashes,gradients = [23.],[],[],[],[],[]
+        sc.torch.random = SimpleNamespace(get_rng_state=lambda: Vec(rng),
+            set_rng_state=lambda t: rng.__setitem__(slice(None),t.v))
+        def pixels_for(trainer,context,state,processor,anchors,view):
+            value = Vec(anchors).detach()
+            if mode == 'pixels' and forwards:
+                value.v[0] += 1.
+            if mode == 'input':
+                raise ValueError('input fault')
+            pixels.append(weakref.ref(value))
+            return value, []
+        context['witness'].pixels_for = pixels_for
+        def cat(chunks,dim):
+            assert all(not t.requires_grad for t in chunks)
+            value = FakeTorch.cat(chunks,dim).detach()
+            pixels.append(weakref.ref(value))
+            return value
+        sc.torch.cat = cat
+        def model(pixel_values):
+            assert not pixel_values.requires_grad and len(pixel_values.v) == 64
+            if scheduled:
+                assert hashes and hashes[-1] == ('pixels',tuple(pixel_values.v)), 'pixel fingerprint must precede forward'
+            forwards.append(tuple(pixel_values.v))
+            rng[0] += 7.
+            if mode == 'external':
+                kept.append(pixel_values)
+            if mode == 'forward':
+                raise ValueError('forward fault')
+            features = Vec(pixel_values.v)
+            if mode == 'saved_input':
+                features.saved_input = pixel_values
+            return SimpleNamespace(pooler_output=features)
+        state['model'] = model
+        raw_features = context['connected'].raw_features
+        def connected(features,*args):
+            value = raw_features(features,*args)
+            value.graph = features
+            return value
+        context['connected'].raw_features = connected
+        genuine_grad = sc.torch.autograd.grad
+        def grad(out,inputs,**kw):
+            gc.collect()
+            if scheduled and mode not in ('external','saved_input'):
+                assert all(ref() is None for ref in pixels), 'caller pixels survived until gradients'
+            if mode == 'saved_input':
+                assert pixels[-1]() is not None, 'stand-in graph did not retain its saved input'
+            gradients.append(len(inputs))
+            if mode == 'gradient':
+                raise ValueError('gradient fault')
+            return genuine_grad(out,inputs,**kw)
+        sc.torch.autograd.grad = grad
+        def fact(context,value):
+            if isinstance(value,(Vec,Out)):
+                hashes.append(('pixels' if any(ref() is value for ref in pixels) else 'other',tuple(value.v)))
+                return repr((value.shape,value.dtype,value.v))
+            return repr(value)
+        functional = ModuleType('torch.nn.functional')
+        functional.normalize = lambda t,dim:t
+        nn = ModuleType('torch.nn')
+        nn.functional = functional
+        saved = lambda context,state,identity: {'A':state['A'].v,'C':state['C'].v,'counter':state['counter'],'rng':list(rng)}
+        with patch.dict(sys.modules, {'torch':sc.torch,'torch.nn':nn,'torch.nn.functional':functional}), \
+                patch.object(d,'payload',saved), patch.object(d,'fingerprint',fact):
+            try:
+                result = (reference or d.route_full_reference)(sc.torch,context,state,{},sc.members,list(range(64)),1,d.VIEWS[0])
+            except ValueError as error:
+                expected = {'pixels':'full B64 replay pixels/features differ','input':'input fault','forward':'forward fault',
+                            'gradient':'gradient fault','external':'full B64 graph lifetime survived release'}
+                assert mode in expected and expected[mode] in str(error), str(error)
+                assert rng == [23.]
+                assert len(forwards) == (0 if mode == 'input' else 1), 'input fault reached another forward'
+                if mode == 'pixels':
+                    assert gradients == [6,2,6], 'replay pixel mismatch reached gradients'
+                if mode == 'external':
+                    assert any(ref() is not None for ref in pixels), 'external owner unexpectedly removed'
+                else:
+                    assert all(ref() is None for ref in pixels), 'pixels survived retained error traceback'
+            else:
+                assert mode in (None,'saved_input') and rng == [23.]
+                assert forwards == [tuple(float(i) for i in range(64))]*2 and gradients == [6,2,6,6]
+                assert [g.v for g in result['gradients']] == [g.v for g in sc.full()['gradients']]
+                assert {k:v.value for k,v in result['scalars'].items()} == {'mse':5.,'rank':2.,'loss':7.}
+                assert [v for k,v in hashes if k == 'pixels'] == forwards
+            finally:
+                kept.clear()
+        gc.collect()
+        assert all(ref() is None for ref in pixels)
+        return hashes,gradients
+    base = (HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/'
+            'rank-routed-mlp-cpu-v3-freeze/train_siglip2_rank_routed_mlp.py').read_bytes()
+    assert sha(base) == SCHEDULING_BASE_SHA
+    ns = {}
+    exec(compile(ast.Module(body=[function(ast.parse(base),'route_full_reference')],type_ignores=[]),
+                 '<frozen CPU-v3 full reference>', 'exec'), ns)
+    original = FunctionType(ns['route_full_reference'].__code__,vars(d))
+    assert probe() == probe(reference=original,scheduled=False), 'fingerprints or gradient calls changed'
+    for mode in ('saved_input','pixels','input','forward','gradient','external'):
+        probe(mode)
+    print('PASS caller pixels released before gradients; exact hashes/results; replay-before-forward/input/fault/external-owner rejects')
+
+
 def full_reference_source_falsifier(d):
     def probe(mutate=False, leak=False, fault=False):
         m = Micro(d, step=1, record=False)
@@ -1396,7 +1668,7 @@ def check_steps_falsifiers(d):
 def main():
     p = argparse.ArgumentParser(allow_abbrev=False)
     p.add_argument('--source-only', action='store_true', required=True)
-    p.add_argument('--layer', choices=('sequential', 'cleanup', 'observer', 'observer-guard', 'observer-source', 'split', 'live', 'reference', 'full-source', 'optimizer', 'regression', 'routing', 'dataflow', 'inverse', 'steps', 'identity', 'seams'))
+    p.add_argument('--layer', choices=('allocation', 'pixels', 'sequential', 'cleanup', 'observer', 'observer-guard', 'observer-source', 'split', 'live', 'reference', 'full-source', 'optimizer', 'regression', 'routing', 'dataflow', 'inverse', 'steps', 'identity', 'seams'))
     args = p.parse_args()
     assert DRIVER.exists(), 'rank-routed trainer missing'
     started = time.perf_counter()
@@ -1405,7 +1677,8 @@ def main():
     c = load('_connected_source_for_rank_routing', CONNECTED)
     assert not {n.split('.')[0] for n in set(sys.modules) - before} & d.NATIVE
     if args.layer:
-        layers = {'sequential': sequential_reference_falsifier, 'split': split_lifetime_falsifier, 'live': live_runtime_falsifier, 'reference': independent_reference_falsifier,
+        layers = {'allocation': allocation_schedule_falsifier, 'pixels': pixel_schedule_falsifier,
+                  'sequential': sequential_reference_falsifier, 'split': split_lifetime_falsifier, 'live': live_runtime_falsifier, 'reference': independent_reference_falsifier,
                   'cleanup': exceptional_arm_falsifier,
                   'observer': observer_falsifier,
                   'observer-guard': observer_guard_falsifier,
@@ -1420,6 +1693,8 @@ def main():
         assert not {n.split('.')[0] for n in set(sys.modules)} & d.NATIVE
         return
     inverse_contract()
+    allocation_schedule_falsifier(d)
+    pixel_schedule_falsifier(d)
     exceptional_arm_falsifier(d)
     observer_falsifier(d)
     observer_guard_falsifier(d)

@@ -1163,13 +1163,16 @@ def update(context, state, identity, step):
     accumulator_refs = [weakref.ref(t) for t in (*ranking_total,*routed_total)] if routed_total is not None else []
     phase_observe(context,'outer_accumulators',groups=(('ranking_total',ranking_total),('routed_total',routed_total)))
     for view in VIEWS:
+        if candidate and step == 1 and state['device'] == 'cpu':
+            full_reference = route_full_reference(torch,context,state,identity,members,batch,K,view)
         ranking = [torch.zeros_like(p) for p in members] if step == 1 else None
         route = route_accumulators(torch,members) if candidate and step == 1 else None
         if route is not None and state['device'] == 'cpu':
+            route['full'] = full_reference
+            del full_reference
             phase_observe(context,'view_accumulators',view=view,groups=(('ranking_total',ranking_total),('routed_total',routed_total),
                 ('ranking_view',ranking),('routed',route['routed']),('original',route['original']),
                 ('unrouted',route['unrouted']),('encoder_ranking',route['ranking'])))
-            route['full'] = route_full_reference(torch,context,state,identity,members,batch,K,view)
         for offset in range(0,64,16):
             anchors = batch[offset:offset+16]
             cpu_pixels,facts = context['witness'].pixels_for(trainer,context,state,state['processor_object'],anchors,view)
@@ -1354,11 +1357,15 @@ def route_full_reference(torch, context, state, identity, members, batch, K, vie
             temporary['pixels'] = keep(torch.cat(temporary.pop('chunks'),dim=0))
             phase_observe(context,'full_pixels' if pass_index == 0 else 'replay_pixels',view=view,
                 groups=(('pixels',(temporary['pixels'],)),))
+            facts = {'pixels':fingerprint(context,temporary['pixels'])}
+            if pass_index:
+                require(facts['pixels'] == replay['pixels'], 'full B64 replay pixels/features differ')
             with torch.autocast('cpu',enabled=False):
                 temporary['features'] = keep(F.normalize(state['model'](pixel_values=temporary['pixels']).pooler_output.float(),dim=1))
+                del temporary['pixels']
                 phase_observe(context,'full_forward' if pass_index == 0 else 'replay_forward',view=view,
                     groups=(('features',(temporary['features'],)),))
-                facts = {name:fingerprint(context,temporary[name]) for name in ('pixels','features')}
+                facts['features'] = fingerprint(context,temporary['features'])
                 if pass_index:
                     require(all(facts[name] == replay[name] for name in facts), 'full B64 replay pixels/features differ')
                 temporary['raw'] = keep(connected.raw_features(temporary['features'],state['head_object'],state['A'],state['means'],
