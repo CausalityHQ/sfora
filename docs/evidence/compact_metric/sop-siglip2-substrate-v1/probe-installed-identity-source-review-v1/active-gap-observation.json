@@ -1,0 +1,13 @@
+{
+  "schema": "installed-active-source-gap-falsifier-v1",
+  "candidate_commit": "2b867853ad4277dd1d5b3af1c2c2a82879ec403a",
+  "production_shaped_snapshot": true,
+  "temporary_wrapped_body_mutation_accepted": true,
+  "metadata_read_accepted": true,
+  "restored_before_exit": true,
+  "native_imports": false,
+  "exit_code": 0,
+  "wall_seconds": 0.765401512,
+  "scope": "stdlib fixture using actual boundary and production snapshot; no numerical consequence established",
+  "procedure": "Replace fixture helper_snapshots with module-level FunctionType inventory and production literal inventory. Enter actual boundary scope, temporarily replace bundle_reads_only.__wrapped__.__code__, run boundary.check and read installed METADATA, restore code in finally before exit, then boundary.check again."
+}
