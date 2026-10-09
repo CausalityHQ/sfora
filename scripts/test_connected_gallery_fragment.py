@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Tiny synthetic opaque bytes only; these pins are never producer evidence."""
 
+import ast
 import hashlib
 import importlib.abc
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -768,6 +770,103 @@ class FragmentTests(unittest.TestCase):
             self.assertIn(str(p), errors)
         self.assertFalse(self.output.exists())
         self.assert_clean(before)
+
+    def test_alarm_between_cleanup_attempts_preserves_primary_and_releases_owners(self) -> None:
+        previous_handler = signal.getsignal(signal.SIGALRM)
+        previous_trace = sys.gettrace()
+        previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, set())
+        for failure in (False, True):
+            self.fixture(1)
+            api = self.api()
+            tree = ast.parse(Path(api.__file__).read_bytes())
+            run = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "run")
+            close_line = next(
+                n.lineno
+                for n in ast.walk(run)
+                if isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Name)
+                and n.func.id == "attempt"
+                and len(n.args) == 1
+                and isinstance(n.args[0], ast.Attribute)
+                and isinstance(n.args[0].value, ast.Name)
+                and n.args[0].value.id == "modules"
+                and n.args[0].attr == "close"
+            )
+            if failure:
+                invalid = json.loads(self.inputs["receipt"])
+                invalid["schema"] = "invalid-synthetic-schema"
+                self.repin_input("receipt", encoded(invalid))
+            captured: list[Any] = []
+            modules: Any = None
+            output: Any = None
+            fd_owners: dict[int, tuple[int, int]] = {}
+            fired = False
+
+            def trace(
+                frame: types.FrameType,
+                event: str,
+                arg: object,
+                api: Any = api,
+                close_line: int = close_line,
+                fd_owners: dict[int, tuple[int, int]] = fd_owners,
+            ) -> Any:
+                nonlocal fired, captured, modules, output
+                if (
+                    frame.f_code is api.run.__code__
+                    and event == "line"
+                    and frame.f_lineno == close_line
+                    and not fired
+                ):
+                    fired = True
+                    captured = list(frame.f_locals["captured"])
+                    modules = frame.f_locals["modules"]
+                    output = frame.f_locals["output"]
+                    descriptors = [item.fd for item in captured]
+                    if output is not None:
+                        descriptors += [output.parent, output.fd]
+                        descriptors += [item.descriptor for item in output.owned.values()]
+                    for fd in descriptors:
+                        info = os.fstat(fd)
+                        fd_owners[fd] = (info.st_dev, info.st_ino)
+                    signal.raise_signal(signal.SIGALRM)
+                return trace
+
+            before = set(os.listdir("/proc/self/fd"))
+            signal.signal(signal.SIGALRM, api.expired)
+            sys.settrace(trace)
+            try:
+                expected = ValueError if failure else TimeoutError
+                with self.subTest(original_failure=failure), self.assertRaises(expected) as caught:
+                    self.invoke(api)
+                sys.settrace(previous_trace)
+                self.assertTrue(fired)
+                if failure:
+                    self.assertIn("original export role/schema", str(caught.exception))
+                    self.assertIn(
+                        "deadline exceeded", " ".join(getattr(caught.exception, "__notes__", []))
+                    )
+                self.assertFalse(self.output.exists())
+                self.assert_clean(before)
+                self.assertEqual(signal.pthread_sigmask(signal.SIG_BLOCK, set()), previous_mask)
+            finally:
+                sys.settrace(previous_trace)
+                signal.signal(signal.SIGALRM, previous_handler)
+                signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+                if modules is not None:
+                    modules.close()
+                # RED cleanup touches only identities captured from this actual run.
+                for fd, owner in fd_owners.items():
+                    try:
+                        info = os.fstat(fd)
+                    except OSError:
+                        continue
+                    if (info.st_dev, info.st_ino) == owner:
+                        os.close(fd)
+                if output is not None:
+                    for item in output.owned.values():
+                        item.descriptor = -1
+                if self.output.exists():
+                    shutil.rmtree(self.output)
 
     def test_foreign_file_or_symlink_created_before_publish_is_preserved(self) -> None:
         self.fixture(1)

@@ -1,0 +1,31 @@
+{
+  "confirmed_red": "SIGALRM immediately before modules.close leaves output; original RED assertion output.exists",
+  "files": {
+    "scripts/qualify_connected_gallery_fragment.py": {
+      "all_preexisting_unrelated_function_bytes_identical": true,
+      "baseline_sha256": "92e1561053babd1e601c3ed308724d0a4219349a8038ab28a8f0cd6dfb1b883e",
+      "current_sha256": "e00576c482fd36973aa8acd21bbabf0a0bc7cfc42510119decf9399c063a883f",
+      "whole_ast_inverse_pass": true
+    },
+    "scripts/test_connected_gallery_fragment.py": {
+      "all_preexisting_unrelated_function_bytes_identical": true,
+      "baseline_sha256": "6860f7e403e7049fc3808ec691f7006051c886be60ada023415a15ff272f506d",
+      "current_sha256": "c1b03f597861a316e97d617f53ad58e4425d6f95ec096d67b3572b034b08c1ba",
+      "whole_ast_inverse_pass": true
+    }
+  },
+  "full_dependent_suite": "Held until publisher repair",
+  "limits_unchanged": true,
+  "native_unrun": true,
+  "repair": "Block SIGALRM during cleanup; record pending deadline inside attempt before output abort; restore original mask after owned cleanup inside attempt",
+  "residual": "An alarm after output cleanup can leave diagnostic-only files; parent requires normal terminal. Arbitrary signal at first mask opcode not covered.",
+  "schema": "gallery-alarm-cleanup-source-v1",
+  "scope": "Only run finally signal mask/pending detection and one regression",
+  "targeted_checks": {
+    "diffcheck": "PASS",
+    "mypy2.1.0_strict": "PASS",
+    "python3.12.13": "PASS",
+    "python3.14.4": "PASS",
+    "ruff0.15.20": "PASS"
+  }
+}

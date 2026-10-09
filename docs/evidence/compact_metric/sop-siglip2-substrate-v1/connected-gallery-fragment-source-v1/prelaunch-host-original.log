@@ -1,0 +1,13 @@
+Fri Oct  9 20:05:12 UTC 2026
+2026/10/09 22:05:12.559, 0 %, [N/A]
+  dbus.service                                                     loaded active running D-Bus User Message Bus
+  filter-chain.service                                             loaded active running PipeWire filter chain daemon
+  pipewire-pulse.service                                           loaded active running PipeWire PulseAudio
+  pipewire.service                                                 loaded active running PipeWire Multimedia Service
+  snap.snapd-desktop-integration.snapd-desktop-integration.service loaded active running Service for snap application snapd-desktop-integration.snapd-desktop-integration
+  wireplumber.service                                              loaded active running Multimedia Service Session Manager
+  xdg-document-portal.service                                      loaded active running flatpak document portal service
+  xdg-permission-store.service                                     loaded active running sandboxed app permission store
+700 directory /home/riomus/runs
+Filesystem         1B-blocks          Used     Available Use% Mounted on
+/dev/nvme0n1p2 4031871553536 1894684049408 1932346654720  50% /

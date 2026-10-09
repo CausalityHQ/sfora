@@ -1,0 +1,16 @@
+{
+  "available_disk_bytes": 1932346654720,
+  "gpu_memory_used": "N/A",
+  "gpu_utilization_percent": 0,
+  "host": "riomus@spark-2751",
+  "launch_released": false,
+  "model_or_artifact_execution": false,
+  "note": "Read-only snapshot; fresh identity/source and process checks required at launch",
+  "raw_sha256": "b73fc45db6b4adeb339a95b6e854fe8efce0e4d369c790049668fde81c1f0746",
+  "runs_parent_mode": "0700",
+  "runs_parent_setgid": false,
+  "schema": "gallery-fragment-host-preflight-v1",
+  "sfora_running_user_service_observed": false,
+  "ssh_exit": 0,
+  "utc": "2026-10-09 20:05:12 UTC"
+}

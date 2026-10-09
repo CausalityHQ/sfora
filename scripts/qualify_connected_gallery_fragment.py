@@ -549,6 +549,7 @@ def run(authority_path: str, authority_sha256: str, started: float) -> dict[str,
     except BaseException as error:
         primary = error
     finally:
+        previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGALRM})
         for original in captured:
             attempt(original.fresh)
         if modules.owned:
@@ -559,6 +560,12 @@ def run(authority_path: str, authority_sha256: str, started: float) -> dict[str,
         attempt(modules.close)
         for original in captured:
             attempt(original.close)
+
+        def pending_deadline() -> None:
+            if signal.SIGALRM in signal.sigpending():
+                raise TimeoutError("source fragment deadline exceeded")
+
+        attempt(pending_deadline)
         if output is not None:
             already_failed = primary is not None
             if already_failed:
@@ -570,6 +577,7 @@ def run(authority_path: str, authority_sha256: str, started: float) -> dict[str,
             if output.fd >= 0:
                 attempt(lambda: os.close(output.fd))
             attempt(lambda: os.close(output.parent))
+        attempt(lambda: signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask))
     if primary is not None:
         raise primary
     deadline(started)
