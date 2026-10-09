@@ -1,0 +1,17 @@
+{
+  "schema": "actual-serving-artifact-filesystem-parent-verification-v1",
+  "ssh_session": 4255,
+  "ssh_exit": 0,
+  "original_stdout_sha256": "588c730f12b98a27394003977199a77d15212888aa3c61095459f1e70039817c",
+  "source_sha256": "452ede40af0a807ff30db98d60ffa7490059f7a8a0e6109dad296494b53bd605",
+  "manifest_sha256": "eb064ddfc8d845c60e932ba543625f3e13a39ec32117e7d29db14df8cd22e6ab",
+  "directory": "/home/riomus/runs/sfora-connected-serving-artifact-control-179061-v1",
+  "member_count": 10,
+  "total_bytes": 1763691451,
+  "elapsed_seconds": 2.0018840639968403,
+  "peak_rss_kib": 48612,
+  "filesystem_admission_pass": true,
+  "typed_payload_verified": false,
+  "native_serving_verified": false,
+  "quality_speed_goal_met": false
+}
