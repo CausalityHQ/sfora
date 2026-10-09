@@ -1,0 +1,22 @@
+{
+  "body_seconds": 261.22511699597817,
+  "files": {
+    "original.log": "444a1642670039e0d00796da1b5ac27d3e8295dab3487a8ded3c6cf70a0d6db7",
+    "receipt.json": "77f6a4853aa4236828a7243b93f0403b524bf778f781fe06f86889e1c1b729a7",
+    "terminal-status.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  "full_uncached_exit_pass": true,
+  "installed_public_parity_pass": true,
+  "invocation_id": "986cdff0ab0940a98fcafa8115d5334b",
+  "native_modules_local": [],
+  "normal_exit": 0,
+  "parent_remote_accept_unit": "UNRUN; fresh evaluator/wheel/original export admission still required",
+  "product_go": false,
+  "quality_eligible": false,
+  "receipt_validation_pass": true,
+  "receipt_validator": "exact frozen validate_receipt",
+  "schema": "root-installed-probe-v6-review-v1",
+  "service_seconds": 685.95,
+  "speed_eligible": false,
+  "whole_process_seconds": 683.7727483419876
+}
