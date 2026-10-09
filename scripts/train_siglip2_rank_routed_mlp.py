@@ -209,6 +209,73 @@ def timed(context, name):
         print(json.dumps({'event':'CONNECTED_PHASE','phase':name,'seconds':delta}),flush=True)
 
 
+OBSERVATION_LIMITS = {'records':128,'record_bytes':4096,'bytes':256*1024}
+
+
+def phase_observe(context, phase, *, view=None, micro=None, groups=(), close=False):
+    """Bounded scalar CPU diagnostics; errors are admitted only after original guards."""
+    # Storage capacity is summed per tensor; aliases can count the same storage again.
+    if getattr(context.get('connected_args'),'phase',None) != 'cpu':
+        return
+    tracker = context.get('phase_observation')
+    if tracker is None or tracker['closed'] or tracker['failed']:
+        return
+    try:
+        def read(path):
+            with Path(path).open() as stream:
+                raw = stream.read(4097)
+            require(len(raw.encode()) <= 4096, 'observation file too large')
+            return raw
+        unified = [line[3:] for line in read('/proc/self/cgroup').splitlines() if line.startswith('0::')]
+        require(len(unified) == 1 and unified[0].startswith('/') and unified[0] != '/' and
+                '..' not in Path(unified[0]).parts, 'observation cgroup differs')
+        root = Path('/sys/fs/cgroup')/unified[0].lstrip('/')
+        events = dict((k,int(v)) for k,v in (line.split() for line in read(root/'memory.events').splitlines()))
+        stats = dict((k,int(v)) for k,v in (line.split() for line in read(root/'memory.stat').splitlines()))
+        status = dict(line.split(':',1) for line in read('/proc/self/status').splitlines() if ':' in line)
+        owners = {}
+        for name,tensors in groups:
+            facts = {'shapes':[],'dtypes':[],'numel':0,'storage_bytes':0,'requires_grad':0,'grad_fns':[]}
+            for tensor in tensors:
+                if tensor is not None:
+                    facts['shapes'].append(list(tensor.shape))
+                    facts['dtypes'].append(str(tensor.dtype))
+                    facts['numel'] += tensor.numel()
+                    facts['storage_bytes'] += tensor.untyped_storage().nbytes()
+                    facts['requires_grad'] += int(tensor.requires_grad)
+                    facts['grad_fns'].append(type(tensor.grad_fn).__name__ if tensor.grad_fn is not None else None)
+            owners[name] = facts
+        row = {'event':'CONNECTED_OBSERVATION','phase':phase,'view':view,'micro':micro,
+               'pid':os.getpid(),'invocation_id':os.environ['INVOCATION_ID'],
+               'source_sha256':context['connected_code']['train_siglip2_rank_routed_mlp.py'],
+               'seconds':time.perf_counter()-context['started'],'cgroup':str(root),
+               'memory':{'current':int(read(root/'memory.current')),'peak':int(read(root/'memory.peak')),
+                         'max':int(read(root/'memory.max')),'events':events,
+                         'stat':{k:v for k,v in stats.items() if k in ('anon','file','kernel','file_mapped','slab',
+                             'active_anon','inactive_anon','active_file','inactive_file','pgscan_direct','pgsteal_direct','pgmajfault')}},
+               'process':{'rss_kib':int(status['VmRSS'].split()[0]),'hwm_kib':int(status['VmHWM'].split()[0])},
+               'owners':owners}
+        line = json.dumps(row,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n'
+        size = len(line.encode())
+        require(tracker['records'] < OBSERVATION_LIMITS['records'] and size <= OBSERVATION_LIMITS['record_bytes'] and
+                tracker['bytes']+size <= OBSERVATION_LIMITS['bytes'], 'observation output bound exceeded')
+        tracker['records'] += 1
+        tracker['bytes'] += size
+        require(sys.stdout.write(line) == len(line), 'observation short write')
+        sys.stdout.flush()
+    except BaseException as error:
+        tracker['failed'] = True
+        tracker['error'] = type(error).__name__
+    finally:
+        if close:
+            tracker['closed'] = True
+
+
+def observation_guard(context):
+    if sys.exc_info()[1] is None:
+        require(not context.get('phase_observation',{}).get('failed',False), 'bounded phase observation failed')
+
+
 def mapping_absent(path):
     stat = Path(path).stat()
     for line in Path('/proc/self/maps').read_text().splitlines():
@@ -798,7 +865,9 @@ def fresh(context, arm, seed, device):
     trainer,legacy = context['trainer'],context['legacy']
     trainer.require_no_training(context)
     qualification = select_initializer(context['original_cpu_record'],seed)
+    phase_observe(context,'initializer_begin')
     state,initial_ident = load_initializer(context,qualification)
+    phase_observe(context,'initializer_end',groups=(('A_C',(state['A'],state['C'])),))
     context.get('A_owners',{}).pop(id(state),None)
     context.get('C_owners',{}).pop(id(state),None)
     for key in ('teachers','target','means','classifier','mu_train'):
@@ -811,8 +880,10 @@ def fresh(context, arm, seed, device):
     base = {'checkpoint':copy.deepcopy(state['provenance']['encoder']['checkpoint'])}
     config_path = legacy['prior']['entry']['input']['preprocessor']['path']
     factory = {**legacy['prior'],'guards':context['guards']}
+    phase_observe(context,'model_begin')
     model,processor,cache,base,structure = construct_encoder(legacy['source_driver'],legacy['original'],factory,
         state['config'],state['buffers'],config_path,base,source_runtime=state['provenance']['encoder']['source_proof']['runtime'])
+    phase_observe(context,'model_constructed')
     state['base_vision'] = base
     state['encoder_identity'] = {'inventory':{n:list(p.shape) for n,p in model.named_parameters()},
         'initial_four_sha256':{n:fingerprint(context,dict(model.named_parameters())[n]) for n in MLP},
@@ -843,6 +914,7 @@ def fresh(context, arm, seed, device):
         'optimizer_groups':[{k:v for k,v in g.items() if k != 'params'} for g in state['optimizer_object'].param_groups],
         'initial_scaler':copy.deepcopy(state['scaler_object'].state_dict()),'numerical_flags':copy.deepcopy(context['flags'])}
     integrity(context,state,state['identity'])
+    phase_observe(context,'fresh_complete')
     return state
 
 
@@ -940,6 +1012,8 @@ def resource_check(context):
             resource.getrusage(resource.RUSAGE_SELF).ru_maxrss <= p['host_bytes']//1024 and
             (not torch.cuda.is_initialized() or torch.cuda.max_memory_allocated() < p['cuda_allocated_bytes_exclusive']),
             'whole new phase resource/deadline exceeded')
+    phase_observe(context,'resource_checked')
+    observation_guard(context)
     return cgroup
 
 
@@ -966,7 +1040,10 @@ def integrity(context, state, identity):
         require(all(optimizer.state[p][k].device == p.device for p in params for k in ('exp_avg','exp_avg_sq')),
                 'moments must follow active parameter devices')
     require(legacy['source_driver'].numerical_flags() == context['flags'], 'original numerical flags changed')
+    phase_observe(context,'integrity_payload_begin')
     check_payload(context,payload(context,state,identity),identity,state['counter'])
+    phase_observe(context,'integrity_payload_end')
+    phase_observe(context,'resource_begin')
     resource_check(context)
 
 
@@ -1066,7 +1143,9 @@ def update(context, state, identity, step):
             'admitted connected helper live function changed')
     bound_file({},connected.__file__,context['guards'][connected.__file__])
     require(type(step) is int and state['counter'] == step-1 and 1 <= step <= 128, 'fixed complete update required')
+    phase_observe(context,'update_integrity_begin')
     integrity(context,state,identity)
+    phase_observe(context,'update_integrity_end')
     candidate = state['arm'] == 'candidate'
     batch = state['schedules'][str(state['seed'])][step-1].tolist()
     full = trainer.ranking_membership(state['ranking_bank'],batch)
@@ -1082,14 +1161,19 @@ def update(context, state, identity, step):
     ranking_total = [torch.zeros_like(p) for p in members] if step == 1 else None
     routed_total = [torch.zeros_like(p) for p in members[:2]] if candidate and step == 1 else None
     accumulator_refs = [weakref.ref(t) for t in (*ranking_total,*routed_total)] if routed_total is not None else []
+    phase_observe(context,'outer_accumulators',groups=(('ranking_total',ranking_total),('routed_total',routed_total)))
     for view in VIEWS:
         ranking = [torch.zeros_like(p) for p in members] if step == 1 else None
         route = route_accumulators(torch,members) if candidate and step == 1 else None
         if route is not None and state['device'] == 'cpu':
+            phase_observe(context,'view_accumulators',view=view,groups=(('ranking_total',ranking_total),('routed_total',routed_total),
+                ('ranking_view',ranking),('routed',route['routed']),('original',route['original']),
+                ('unrouted',route['unrouted']),('encoder_ranking',route['ranking'])))
             route['full'] = route_full_reference(torch,context,state,identity,members,batch,K,view)
         for offset in range(0,64,16):
             anchors = batch[offset:offset+16]
             cpu_pixels,facts = context['witness'].pixels_for(trainer,context,state,state['processor_object'],anchors,view)
+            phase_observe(context,'micro_pixels',view=view,micro=offset,groups=(('pixels',(cpu_pixels,)),))
             with torch.autocast(state['device'],enabled=False):
                 pixels = cpu_pixels.to(state['device'])
                 features = F.normalize(state['model'](pixel_values=pixels).pooler_output.float(),dim=1)
@@ -1104,12 +1188,14 @@ def update(context, state, identity, step):
                 else:
                     raw = trainer.raw_features(context,state,features)
                 require(raw.requires_grad, 'live objective graph detached')
+                phase_observe(context,'micro_forward',view=view,micro=offset,groups=(('features',(features,)),('raw',(raw,detached))))
                 mse,rank,selected = trainer.loss_terms(context,state,raw,anchors,K)
                 if candidate:
                     original = mse
                     mse = routed_regression(context,state,detached,anchors,K)
                     require(torch.equal(mse.detach(),original.detach()), 'rank-routed regression scalar differs from pinned original')
                     parity_checks += 1
+                phase_observe(context,'micro_loss',view=view,micro=offset,groups=(('loss',(mse,rank,original)),))
                 if step == 1:
                     gradients = torch.autograd.grad(rank,members,retain_graph=True,allow_unused=True)
                     for accumulator,gradient in zip(ranking,gradients,strict=True):
@@ -1119,19 +1205,23 @@ def update(context, state, identity, step):
                     if candidate:
                         route_micro(torch,context,state,members,route,gradients,original,mse,rank,features,anchors,K,selected,offset == 0)
                     del accumulator,gradient,gradients
+                phase_observe(context,'micro_witness_end',view=view,micro=offset)
                 loss = mse+rank
                 scaler.scale(loss).backward()
+                phase_observe(context,'micro_backward_end',view=view,micro=offset)
             mse_sum += float(mse.detach())
             rank_sum += float(rank.detach())
             membership.append({'view':view,'batch':anchors,**selected})
             if candidate and step == 1:
                 released.extend(weakref.ref(v) for v in (features,raw,detached,original,mse,rank,loss))
             del pixels,cpu_pixels,features,raw,detached,original,mse,rank,loss,facts
+            phase_observe(context,'micro_released',view=view,micro=offset)
         if step == 1:
             norms = {n:float(g.double().norm()) for n,g in zip(names,ranking,strict=True)}
             require(all(math.isfinite(v) and v > 0 for v in norms.values()), 'both-view actual SmoothAP gradients must be nonzero')
             view_gradients.append({'view':view,'ranking_gradient_norms':norms,
                                    **({'routing':route_view(torch,context,route)} if candidate else {})})
+            phase_observe(context,'view_correspondence_end',view=view)
             for total,part in zip(ranking_total,ranking,strict=True):
                 total.add_(part)
             del total,part
@@ -1151,21 +1241,25 @@ def update(context, state, identity, step):
                 gc.collect()
                 require(all(ref() is None for ref in route_refs), 'routing view accumulator lifetime survived release')
                 del route_refs
+            phase_observe(context,'view_reference_accumulators_released',view=view)
     if released:
         gc.collect()
         require(all(ref() is None for ref in released), 'rank-routing micro graph/tensor lifetime survived release')
         del released
     scaler.unscale_(optimizer)
     optimizer_routing = route_optimizer(torch,context,members,names,ranking_total,routed_total) if routed_total is not None else None
+    phase_observe(context,'actual_unscaled_gradients',groups=(('ranking_total',ranking_total),('routed_total',routed_total)))
     del routed_total
     gradient_norms = {n:float(p.grad.double().norm()) if p.grad is not None else 0. for n,p in zip(names,members,strict=True)}
     require(all(p.grad is not None and p.grad.dtype == torch.float32 and torch.isfinite(p.grad).all().item()
                 for p in members) and all(math.isfinite(v) and v > 0 for v in gradient_norms.values()),
             'finite nonzero total gradients for all active members required')
     norm = torch.nn.utils.clip_grad_norm_(members,1.,error_if_nonfinite=True)
+    phase_observe(context,'clip_end')
     scale = scaler.get_scale()
     scaler.step(optimizer)
     scaler.update()
+    phase_observe(context,'optimizer_step_end')
     require(scaler.get_scale() == scale == (128. if state['device'] == 'cuda' else 1.) and
             all(float(optimizer.state[p]['step']) == step for p in members), 'skipped/rescaled optimizer step forbidden')
     state['counter'] = step
@@ -1173,8 +1267,10 @@ def update(context, state, identity, step):
     require(all(before[n] != after[n] for n in names), 'genuine all-active parameter update required')
     trainer.own_A(context,state,advanced=True)
     optimizer.zero_grad(set_to_none=True)
+    phase_observe(context,'optimizer_gradients_cleared')
     state['current_encoder'] = encoder_facts(state,context['legacy']['original'],context['legacy']['source_driver'],
                                             context['legacy']['selected']['packages'])
+    phase_observe(context,'current_encoder_end')
     integrity(context,state,identity)
     digest = fingerprint(context,payload(context,state,identity))
     ranking_gradient_norm = float(ranking_total[0].double().norm()) if step == 1 else None
@@ -1185,6 +1281,8 @@ def update(context, state, identity, step):
         require(all(ref() is None for ref in accumulator_refs), 'routing optimizer accumulator lifetime survived release')
     del accumulator_refs
     preclip_norm = float(norm)
+    phase_observe(context,'update_complete',close=True)
+    observation_guard(context)
     if state['device'] == 'cuda':
         torch.cuda.synchronize()
     seconds = time.perf_counter()-tick
@@ -1220,12 +1318,15 @@ def route_full_reference(torch, context, state, identity, members, batch, K, vie
     before = fingerprint(context,payload(context,state,identity))
     rng = torch.random.get_rng_state().clone()
     temporary,refs = {},[]
+    phase_observe(context,'full_begin',view=view)
     try:
         temporary['chunks'] = [context['witness'].pixels_for(trainer,context,state,state['processor_object'],
             batch[offset:offset+16],view)[0] for offset in range(0,64,16)]
         temporary['pixels'] = torch.cat(temporary.pop('chunks'),dim=0)
+        phase_observe(context,'full_pixels',view=view,groups=(('pixels',(temporary['pixels'],)),))
         with torch.autocast('cpu',enabled=False):
             temporary['features'] = F.normalize(state['model'](pixel_values=temporary['pixels']).pooler_output.float(),dim=1)
+            phase_observe(context,'full_forward',view=view,groups=(('features',(temporary['features'],)),))
             temporary['raw'] = connected.raw_features(temporary['features'],state['head_object'],state['A'],state['means'],
                 state['C'],state['mu_train'],context['legacy']['quadratic'],trainer.helper_guard(context))
             temporary['detached'] = trainer.raw_features(context,state,temporary['features'].detach())
@@ -1236,13 +1337,22 @@ def route_full_reference(torch, context, state, identity, members, batch, K, vie
             temporary['mse'] = routed_regression(context,state,temporary['detached'],batch,K)
             require(torch.equal(temporary['mse'].detach(),temporary['original'].detach()), 'full regression scalar differs')
             temporary['loss'] = temporary['mse']+temporary['rank']
+            phase_observe(context,'full_loss',view=view,groups=(('raw',(temporary['raw'],temporary['detached'])),
+                ('loss',(temporary['mse'],temporary['rank'],temporary['original'],temporary['loss']))))
             temporary['regression'] = torch.autograd.grad(temporary['mse'],members,retain_graph=True,allow_unused=True)
+            phase_observe(context,'full_regression_gradients',view=view,groups=(('regression',temporary['regression']),))
             require(all(g is None or torch.count_nonzero(g).item() == 0 for g in temporary['regression'][2:]),
                     'full routed regression reached encoder')
             temporary['ranking'] = torch.autograd.grad(temporary['rank'],members,retain_graph=True)
+            phase_observe(context,'full_ranking_gradients',view=view,groups=(('regression',temporary['regression']),
+                ('ranking',temporary['ranking'])))
             temporary['original_loss'] = temporary['original']+temporary['rank']
             temporary['original_A_C'] = torch.autograd.grad(temporary['original_loss'],members[:2],retain_graph=True)
+            phase_observe(context,'full_original_A_C_gradients',view=view,groups=(('regression',temporary['regression']),
+                ('ranking',temporary['ranking']),('original_A_C',temporary['original_A_C'])))
             temporary['total'] = torch.autograd.grad(temporary['loss'],members)
+            phase_observe(context,'full_total_gradients',view=view,groups=(('regression',temporary['regression']),
+                ('ranking',temporary['ranking']),('original_A_C',temporary['original_A_C']),('total',temporary['total'])))
             for i,name in enumerate(('A','C')):
                 route_close(torch,context,temporary['total'][i],temporary['original_A_C'][i],'full original '+name)
             for i,name in enumerate(MLP,2):
@@ -1268,6 +1378,8 @@ def route_full_reference(torch, context, state, identity, members, batch, K, vie
         except Exception:
             if not failed:
                 raise
+        finally:
+            phase_observe(context,'full_graph_released',view=view)
 
 
 def route_close(torch, context, left, right, label):
@@ -1288,6 +1400,7 @@ def route_optimizer(torch, context, members, names, ranking, routed):
 def route_split(torch, context, state, members, features, rank, ranking, anchors, K, selected):
     """CPU witness: independent equal A/C copies separate query and gallery routes."""
     trainer,connected = context['trainer'],context['connected']
+    phase_observe(context,'split_begin')
     query,gallery = dict(state),dict(state)
     for name in ('A','C'):
         query[name] = torch.nn.Parameter(state[name].detach().clone())
@@ -1310,6 +1423,7 @@ def route_split(torch, context, state, members, features, rank, ranking, anchors
     del query,gallery,split_raw,split_mse,split_rank,parts
     gc.collect()
     require(all(ref() is None for ref in refs), 'query/gallery split lifetime survived release')
+    phase_observe(context,'split_released')
     return result
 
 
@@ -1317,6 +1431,7 @@ def route_micro(torch, context, state, members, route, ranking, original, mse, r
     """Step-1 micro witness over the live routed graph; retains every graph for the real backward."""
     routed = torch.autograd.grad(mse,members,retain_graph=True,allow_unused=True)
     unrouted = torch.autograd.grad(original,members,retain_graph=True,allow_unused=True)
+    phase_observe(context,'micro_regression_gradients',groups=(('routed',routed),('unrouted',unrouted),('ranking',ranking)))
     nonzero = sum(0 if g is None else torch.count_nonzero(g).item() for g in routed[2:])
     require(nonzero == 0, 'routed regression reached the encoder')
     require(all(g is not None and torch.isfinite(g).all().item() for g in (*routed[:2],*unrouted)) and
@@ -1853,6 +1968,9 @@ def qualify_bundle(context, directory, digest, witness):
 def arm_run(context, arm, seed, device, *, discarded_update=False):
     tick = time.perf_counter()
     args = context['connected_args']
+    if args.phase == 'cpu' and arm == 'candidate' and discarded_update:
+        context['phase_observation'] = {'records':0,'bytes':0,'failed':False,'closed':False}
+    phase_observe(context,'arm_fresh_begin')
     state = fresh(context,arm,seed,device)
     identity = copy.deepcopy(state['identity'])
     prefix = context['connected_args'].output/(arm+'-'+str(seed))
@@ -1900,8 +2018,20 @@ def arm_run(context, arm, seed, device, *, discarded_update=False):
                   'arm_work_seconds':time.perf_counter()-tick}
         return result
     finally:
-        if state:
-            release(context,state)
+        primary = sys.exc_info()[1]
+        phase_observe(context,'arm_cleanup_begin')
+        if primary is not None:
+            import traceback
+            traceback.clear_frames(primary.__traceback__)
+        try:
+            if state:
+                release(context,state)
+        except BaseException as cleanup:
+            if primary is None:
+                raise
+            raise primary from cleanup
+        finally:
+            phase_observe(context,'arm_cleanup_end',close=True)
 
 
 def check_steps(context, rows, identity):

@@ -11,12 +11,15 @@ schedule128, AdamW/scaler/clip, caps, restore, bundle, exit) is unchanged by
 construction; the committed connected seam tests are reused against the new driver.
 Tensors/autograd here are stdlib stand-ins: they establish the source contract only,
 never native forward/gradient parity.
+The fixed phase observer and exceptional cleanup seams invert first to the exact
+940d37fb committed source; the historical inverse then runs without changing pins.
 """
 import argparse
 import ast
 import copy
 import hashlib
 import importlib.util
+import json
 import math
 from pathlib import Path
 import sys
@@ -36,6 +39,93 @@ ORIGINAL = (HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/'
 ORIGINAL_SHA = '840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8'
 RUNTIME_BLOCK_SHA = '4a983d2c105b672cbe29dea9e3ee0d0fbf486c4d1a197d46009b4c096797a702'
 ROUTE_BLOCK_SHA = '3fab2d333f38dda0f9ce600edc0ae98edcd93c387da799521574e9b762fd4b41'
+
+OBSERVATION_BASE_SHA = '940d37fb12e4a6cc3f53c023ee31d50f8316d801fe8a6db93af929b7028bb3f1'
+OBSERVATION_BLOCK_SHA = 'bc27d7d122f3456198dfaec0312e29e3be2847095b3472402c6b85cb7cbd61f4'
+
+# Enumerated observer/error-cleanup seams; applied before the historical repair inverse.
+OBSERVATION_INVERSE_EDITS = (
+    (b"    finally:\n        primary = sys.exc_info()[1]\n        phase_observe(context,'arm_cleanup_begin')\n        if primary is not None:\n            import traceback\n            traceback.clear_frames(primary.__traceback__)\n        try:\n            if state:\n                release(context,state)\n        except BaseException as cleanup:\n            if primary is None:\n                raise\n            raise primary from cleanup\n        finally:\n            phase_observe(context,'arm_cleanup_end',close=True)\n\n",
+     b'    finally:\n        if state:\n            release(context,state)\n\n'),
+    (b"    args = context['connected_args']\n    if args.phase == 'cpu' and arm == 'candidate' and discarded_update:\n        context['phase_observation'] = {'records':0,'bytes':0,'failed':False,'closed':False}\n    phase_observe(context,'arm_fresh_begin')\n    state = fresh(context,arm,seed,device)\n",
+     b"    args = context['connected_args']\n    state = fresh(context,arm,seed,device)\n"),
+    (b"    unrouted = torch.autograd.grad(original,members,retain_graph=True,allow_unused=True)\n    phase_observe(context,'micro_regression_gradients',groups=(('routed',routed),('unrouted',unrouted),('ranking',ranking)))\n    nonzero = sum(0 if g is None else torch.count_nonzero(g).item() for g in routed[2:])\n",
+     b'    unrouted = torch.autograd.grad(original,members,retain_graph=True,allow_unused=True)\n    nonzero = sum(0 if g is None else torch.count_nonzero(g).item() for g in routed[2:])\n'),
+    (b"    require(all(ref() is None for ref in refs), 'query/gallery split lifetime survived release')\n    phase_observe(context,'split_released')\n    return result\n",
+     b"    require(all(ref() is None for ref in refs), 'query/gallery split lifetime survived release')\n    return result\n"),
+    (b"    trainer,connected = context['trainer'],context['connected']\n    phase_observe(context,'split_begin')\n    query,gallery = dict(state),dict(state)\n",
+     b"    trainer,connected = context['trainer'],context['connected']\n    query,gallery = dict(state),dict(state)\n"),
+    (b"                raise\n        finally:\n            phase_observe(context,'full_graph_released',view=view)\n\n",
+     b'                raise\n\n'),
+    (b"            temporary['total'] = torch.autograd.grad(temporary['loss'],members)\n            phase_observe(context,'full_total_gradients',view=view,groups=(('regression',temporary['regression']),\n                ('ranking',temporary['ranking']),('original_A_C',temporary['original_A_C']),('total',temporary['total'])))\n            for i,name in enumerate(('A','C')):\n",
+     b"            temporary['total'] = torch.autograd.grad(temporary['loss'],members)\n            for i,name in enumerate(('A','C')):\n"),
+    (b"            temporary['original_A_C'] = torch.autograd.grad(temporary['original_loss'],members[:2],retain_graph=True)\n            phase_observe(context,'full_original_A_C_gradients',view=view,groups=(('regression',temporary['regression']),\n                ('ranking',temporary['ranking']),('original_A_C',temporary['original_A_C'])))\n            temporary['total'] = torch.autograd.grad(temporary['loss'],members)\n",
+     b"            temporary['original_A_C'] = torch.autograd.grad(temporary['original_loss'],members[:2],retain_graph=True)\n            temporary['total'] = torch.autograd.grad(temporary['loss'],members)\n"),
+    (b"            temporary['ranking'] = torch.autograd.grad(temporary['rank'],members,retain_graph=True)\n            phase_observe(context,'full_ranking_gradients',view=view,groups=(('regression',temporary['regression']),\n                ('ranking',temporary['ranking'])))\n            temporary['original_loss'] = temporary['original']+temporary['rank']\n",
+     b"            temporary['ranking'] = torch.autograd.grad(temporary['rank'],members,retain_graph=True)\n            temporary['original_loss'] = temporary['original']+temporary['rank']\n"),
+    (b"            temporary['regression'] = torch.autograd.grad(temporary['mse'],members,retain_graph=True,allow_unused=True)\n            phase_observe(context,'full_regression_gradients',view=view,groups=(('regression',temporary['regression']),))\n            require(all(g is None or torch.count_nonzero(g).item() == 0 for g in temporary['regression'][2:]),\n",
+     b"            temporary['regression'] = torch.autograd.grad(temporary['mse'],members,retain_graph=True,allow_unused=True)\n            require(all(g is None or torch.count_nonzero(g).item() == 0 for g in temporary['regression'][2:]),\n"),
+    (b"            temporary['loss'] = temporary['mse']+temporary['rank']\n            phase_observe(context,'full_loss',view=view,groups=(('raw',(temporary['raw'],temporary['detached'])),\n                ('loss',(temporary['mse'],temporary['rank'],temporary['original'],temporary['loss']))))\n            temporary['regression'] = torch.autograd.grad(temporary['mse'],members,retain_graph=True,allow_unused=True)\n",
+     b"            temporary['loss'] = temporary['mse']+temporary['rank']\n            temporary['regression'] = torch.autograd.grad(temporary['mse'],members,retain_graph=True,allow_unused=True)\n"),
+    (b"            temporary['features'] = F.normalize(state['model'](pixel_values=temporary['pixels']).pooler_output.float(),dim=1)\n            phase_observe(context,'full_forward',view=view,groups=(('features',(temporary['features'],)),))\n            temporary['raw'] = connected.raw_features(temporary['features'],state['head_object'],state['A'],state['means'],\n",
+     b"            temporary['features'] = F.normalize(state['model'](pixel_values=temporary['pixels']).pooler_output.float(),dim=1)\n            temporary['raw'] = connected.raw_features(temporary['features'],state['head_object'],state['A'],state['means'],\n"),
+    (b"        temporary['pixels'] = torch.cat(temporary.pop('chunks'),dim=0)\n        phase_observe(context,'full_pixels',view=view,groups=(('pixels',(temporary['pixels'],)),))\n        with torch.autocast('cpu',enabled=False):\n",
+     b"        temporary['pixels'] = torch.cat(temporary.pop('chunks'),dim=0)\n        with torch.autocast('cpu',enabled=False):\n"),
+    (b"    temporary,refs = {},[]\n    phase_observe(context,'full_begin',view=view)\n    try:\n",
+     b'    temporary,refs = {},[]\n    try:\n'),
+    (b"    preclip_norm = float(norm)\n    phase_observe(context,'update_complete',close=True)\n    observation_guard(context)\n    if state['device'] == 'cuda':\n",
+     b"    preclip_norm = float(norm)\n    if state['device'] == 'cuda':\n"),
+    (b"                                            context['legacy']['selected']['packages'])\n    phase_observe(context,'current_encoder_end')\n    integrity(context,state,identity)\n",
+     b"                                            context['legacy']['selected']['packages'])\n    integrity(context,state,identity)\n"),
+    (b"    optimizer.zero_grad(set_to_none=True)\n    phase_observe(context,'optimizer_gradients_cleared')\n    state['current_encoder'] = encoder_facts(state,context['legacy']['original'],context['legacy']['source_driver'],\n",
+     b"    optimizer.zero_grad(set_to_none=True)\n    state['current_encoder'] = encoder_facts(state,context['legacy']['original'],context['legacy']['source_driver'],\n"),
+    (b"    scaler.update()\n    phase_observe(context,'optimizer_step_end')\n    require(scaler.get_scale() == scale == (128. if state['device'] == 'cuda' else 1.) and\n",
+     b"    scaler.update()\n    require(scaler.get_scale() == scale == (128. if state['device'] == 'cuda' else 1.) and\n"),
+    (b"    norm = torch.nn.utils.clip_grad_norm_(members,1.,error_if_nonfinite=True)\n    phase_observe(context,'clip_end')\n    scale = scaler.get_scale()\n",
+     b'    norm = torch.nn.utils.clip_grad_norm_(members,1.,error_if_nonfinite=True)\n    scale = scaler.get_scale()\n'),
+    (b"    optimizer_routing = route_optimizer(torch,context,members,names,ranking_total,routed_total) if routed_total is not None else None\n    phase_observe(context,'actual_unscaled_gradients',groups=(('ranking_total',ranking_total),('routed_total',routed_total)))\n    del routed_total\n",
+     b'    optimizer_routing = route_optimizer(torch,context,members,names,ranking_total,routed_total) if routed_total is not None else None\n    del routed_total\n'),
+    (b"                del route_refs\n            phase_observe(context,'view_reference_accumulators_released',view=view)\n    if released:\n",
+     b'                del route_refs\n    if released:\n'),
+    (b"                                   **({'routing':route_view(torch,context,route)} if candidate else {})})\n            phase_observe(context,'view_correspondence_end',view=view)\n            for total,part in zip(ranking_total,ranking,strict=True):\n",
+     b"                                   **({'routing':route_view(torch,context,route)} if candidate else {})})\n            for total,part in zip(ranking_total,ranking,strict=True):\n"),
+    (b"            del pixels,cpu_pixels,features,raw,detached,original,mse,rank,loss,facts\n            phase_observe(context,'micro_released',view=view,micro=offset)\n        if step == 1:\n",
+     b'            del pixels,cpu_pixels,features,raw,detached,original,mse,rank,loss,facts\n        if step == 1:\n'),
+    (b"                scaler.scale(loss).backward()\n                phase_observe(context,'micro_backward_end',view=view,micro=offset)\n            mse_sum += float(mse.detach())\n",
+     b'                scaler.scale(loss).backward()\n            mse_sum += float(mse.detach())\n'),
+    (b"                    del accumulator,gradient,gradients\n                phase_observe(context,'micro_witness_end',view=view,micro=offset)\n                loss = mse+rank\n",
+     b'                    del accumulator,gradient,gradients\n                loss = mse+rank\n'),
+    (b"                    parity_checks += 1\n                phase_observe(context,'micro_loss',view=view,micro=offset,groups=(('loss',(mse,rank,original)),))\n                if step == 1:\n",
+     b'                    parity_checks += 1\n                if step == 1:\n'),
+    (b"                require(raw.requires_grad, 'live objective graph detached')\n                phase_observe(context,'micro_forward',view=view,micro=offset,groups=(('features',(features,)),('raw',(raw,detached))))\n                mse,rank,selected = trainer.loss_terms(context,state,raw,anchors,K)\n",
+     b"                require(raw.requires_grad, 'live objective graph detached')\n                mse,rank,selected = trainer.loss_terms(context,state,raw,anchors,K)\n"),
+    (b"            cpu_pixels,facts = context['witness'].pixels_for(trainer,context,state,state['processor_object'],anchors,view)\n            phase_observe(context,'micro_pixels',view=view,micro=offset,groups=(('pixels',(cpu_pixels,)),))\n            with torch.autocast(state['device'],enabled=False):\n",
+     b"            cpu_pixels,facts = context['witness'].pixels_for(trainer,context,state,state['processor_object'],anchors,view)\n            with torch.autocast(state['device'],enabled=False):\n"),
+    (b"        if route is not None and state['device'] == 'cpu':\n            phase_observe(context,'view_accumulators',view=view,groups=(('ranking_total',ranking_total),('routed_total',routed_total),\n                ('ranking_view',ranking),('routed',route['routed']),('original',route['original']),\n                ('unrouted',route['unrouted']),('encoder_ranking',route['ranking'])))\n            route['full'] = route_full_reference(torch,context,state,identity,members,batch,K,view)\n",
+     b"        if route is not None and state['device'] == 'cpu':\n            route['full'] = route_full_reference(torch,context,state,identity,members,batch,K,view)\n"),
+    (b"    accumulator_refs = [weakref.ref(t) for t in (*ranking_total,*routed_total)] if routed_total is not None else []\n    phase_observe(context,'outer_accumulators',groups=(('ranking_total',ranking_total),('routed_total',routed_total)))\n    for view in VIEWS:\n",
+     b'    accumulator_refs = [weakref.ref(t) for t in (*ranking_total,*routed_total)] if routed_total is not None else []\n    for view in VIEWS:\n'),
+    (b"    integrity(context,state,identity)\n    phase_observe(context,'update_integrity_end')\n    candidate = state['arm'] == 'candidate'\n",
+     b"    integrity(context,state,identity)\n    candidate = state['arm'] == 'candidate'\n"),
+    (b"    require(type(step) is int and state['counter'] == step-1 and 1 <= step <= 128, 'fixed complete update required')\n    phase_observe(context,'update_integrity_begin')\n    integrity(context,state,identity)\n",
+     b"    require(type(step) is int and state['counter'] == step-1 and 1 <= step <= 128, 'fixed complete update required')\n    integrity(context,state,identity)\n"),
+    (b"    check_payload(context,payload(context,state,identity),identity,state['counter'])\n    phase_observe(context,'integrity_payload_end')\n    phase_observe(context,'resource_begin')\n    resource_check(context)\n",
+     b"    check_payload(context,payload(context,state,identity),identity,state['counter'])\n    resource_check(context)\n"),
+    (b"    require(legacy['source_driver'].numerical_flags() == context['flags'], 'original numerical flags changed')\n    phase_observe(context,'integrity_payload_begin')\n    check_payload(context,payload(context,state,identity),identity,state['counter'])\n",
+     b"    require(legacy['source_driver'].numerical_flags() == context['flags'], 'original numerical flags changed')\n    check_payload(context,payload(context,state,identity),identity,state['counter'])\n"),
+    (b"            'whole new phase resource/deadline exceeded')\n    phase_observe(context,'resource_checked')\n    observation_guard(context)\n    return cgroup\n",
+     b"            'whole new phase resource/deadline exceeded')\n    return cgroup\n"),
+    (b"    integrity(context,state,state['identity'])\n    phase_observe(context,'fresh_complete')\n    return state\n",
+     b"    integrity(context,state,state['identity'])\n    return state\n"),
+    (b"        state['config'],state['buffers'],config_path,base,source_runtime=state['provenance']['encoder']['source_proof']['runtime'])\n    phase_observe(context,'model_constructed')\n    state['base_vision'] = base\n",
+     b"        state['config'],state['buffers'],config_path,base,source_runtime=state['provenance']['encoder']['source_proof']['runtime'])\n    state['base_vision'] = base\n"),
+    (b"    factory = {**legacy['prior'],'guards':context['guards']}\n    phase_observe(context,'model_begin')\n    model,processor,cache,base,structure = construct_encoder(legacy['source_driver'],legacy['original'],factory,\n",
+     b"    factory = {**legacy['prior'],'guards':context['guards']}\n    model,processor,cache,base,structure = construct_encoder(legacy['source_driver'],legacy['original'],factory,\n"),
+    (b"    state,initial_ident = load_initializer(context,qualification)\n    phase_observe(context,'initializer_end',groups=(('A_C',(state['A'],state['C'])),))\n    context.get('A_owners',{}).pop(id(state),None)\n",
+     b"    state,initial_ident = load_initializer(context,qualification)\n    context.get('A_owners',{}).pop(id(state),None)\n"),
+    (b"    qualification = select_initializer(context['original_cpu_record'],seed)\n    phase_observe(context,'initializer_begin')\n    state,initial_ident = load_initializer(context,qualification)\n",
+     b"    qualification = select_initializer(context['original_cpu_record'],seed)\n    state,initial_ident = load_initializer(context,qualification)\n"),
+)
 
 # Exact repair splices back to the reviewed draft, before its historical byte inverse.
 REPAIR_INVERSE_EDITS = (
@@ -141,8 +231,19 @@ def cut(raw, start, end, pin):
     return raw[:i] + raw[j:]
 
 
+def observation_inverse(raw):
+    """Only fixed observation/error cleanup seams may differ from the committed source base."""
+    raw = cut(raw, b'OBSERVATION_LIMITS =', b'def mapping_absent(', OBSERVATION_BLOCK_SHA)
+    for new, old in OBSERVATION_INVERSE_EDITS:
+        assert raw.count(new) == 1, 'exact observation/cleanup seam differs'
+        raw = raw.replace(new, old)
+    assert sha(raw) == OBSERVATION_BASE_SHA, 'observation inverse does not reproduce 940d37fb source'
+    return raw
+
+
 def rank_routing_inverse(raw):
     """Invert the whole prospective delta; the result must be the committed connected trainer."""
+    raw = observation_inverse(raw)
     for new, old in REPAIR_INVERSE_EDITS:
         assert raw.count(new) == 1, 'exact repair delta differs'
         raw = raw.replace(new, old)
@@ -162,7 +263,10 @@ def inverse_contract():
     # Unrelated or partial mutations of the prospective delta must not invert.
     for before, after in ((b"<= 1.50", b"<= 1.51"), (b"features.detach()", b"features"),
                           (b"'seconds':600 if phase", b"'seconds':601 if phase"),
-                          (b"mse = routed_regression(", b"mse = foreign_regression(")):
+                          (b"mse = routed_regression(", b"mse = foreign_regression("),
+                          (b"traceback.clear_frames(primary.__traceback__)", b"pass"),
+                          (b"phase_observe(context,'micro_backward_end'", b"phase_observe(context,'other_phase'"),
+                          (b"'records':128", b"'records':129")):
         assert raw.count(before) >= 1, before
         try:
             rank_routing_inverse(raw.replace(before, after, 1))
@@ -170,7 +274,7 @@ def inverse_contract():
             continue
         raise AssertionError('inverse accepted unrelated mutation: ' + repr(before))
     assert sha(CONNECTED_TEST.read_bytes()) == CONNECTED_TEST_SHA, 'committed connected seam tests changed'
-    print('PASS exact delta inverse: driver bytes -> committed connected trainer; mutants rejected')
+    print('PASS exact delta inverse: observer/cleanup -> 940d37fb -> committed connected trainer; mutants rejected')
 
 
 def load(name, path):
@@ -808,6 +912,188 @@ def live_runtime_falsifier(d):
     print('PASS live callable replacement after step17 rejected before regression/backward')
 
 
+def exceptional_arm_falsifier(d):
+    import gc
+    import traceback
+    import weakref
+    def run(leak=False):
+        node = copy.deepcopy(function(ast.parse(DRIVER.read_text()), 'arm_run'))
+        state = {'identity':{}, 'A':Vec([1.])}
+        reference = weakref.ref(state['A'])
+        kept = [state['A']] if leak else []
+        context = {'connected_args':SimpleNamespace(phase='cpu',output=Path('/tmp/unused-source-seam'))}
+        calls = []
+        def failed_update(context,state,identity,step):
+            members = [state['A']]
+            optimizer = SimpleNamespace(params=members)
+            raise ValueError('primary native cap event')
+        def release(context,state):
+            calls.append('release')
+            state.clear()
+            gc.collect()
+            d.require(reference() is None, 'previous training A still alive')
+        ns = {**vars(d), 'fresh':lambda *a:state, 'update':failed_update, 'release':release}
+        exec(compile(ast.Module(body=[node],type_ignores=[]),str(DRIVER),'exec'),ns)
+        try:
+            ns['arm_run'](context,'candidate',d.SEEDS[0],'cpu',discarded_update=True)
+        except ValueError as error:
+            assert str(error) == 'primary native cap event', 'cleanup replaced the original failure: '+str(error)
+            assert any(frame.name == 'failed_update' for frame in traceback.extract_tb(error.__traceback__)), 'original location lost'
+            if leak:
+                assert str(error.__cause__) == 'previous training A still alive', 'genuine cleanup failure ignored'
+                assert reference() is kept[0]
+            else:
+                assert error.__cause__ is None and reference() is None
+        else:
+            raise AssertionError('exceptional update became successful')
+        assert calls == ['release'] and state == {}, 'original cleanup skipped or repeated'
+    run()
+    run(leak=True)
+    node = copy.deepcopy(function(ast.parse(DRIVER.read_text()),'arm_run'))
+    cleanup = next(n.finalbody for n in node.body if isinstance(n,ast.Try))
+    seam = ast.fix_missing_locations(ast.Module(body=[ast.Try(body=[ast.Pass()],handlers=[],orelse=[],finalbody=cleanup)],type_ignores=[]))
+    rejects(lambda: exec(compile(seam,str(DRIVER),'exec'),{**vars(d),'context':{},'state':{'A':Vec([1.])},
+        'release':lambda *a:d.require(False,'genuine normal lifetime failure')}),'genuine normal lifetime failure')
+    print('PASS extracted exceptional arm_run: traceback owners released; primary/location retained; genuine lifetime failure chained')
+
+
+def observer_falsifier(d):
+    import io
+    import gc
+    import weakref
+    assert hasattr(d,'phase_observe'), 'fixed scalar phase observer missing'
+    files = {'/proc/self/cgroup':'0::/test-unit\n', '/proc/self/status':'VmRSS:\t123 kB\nVmHWM:\t456 kB\n',
+        '/sys/fs/cgroup/test-unit/memory.current':'789', '/sys/fs/cgroup/test-unit/memory.peak':'999',
+        '/sys/fs/cgroup/test-unit/memory.max':'8589934592',
+        '/sys/fs/cgroup/test-unit/memory.events':'max 7\noom 0\noom_kill 0\n',
+        '/sys/fs/cgroup/test-unit/memory.stat':'anon 500\nfile 200\nkernel 89\n'}
+    context = {'connected_args':SimpleNamespace(phase='cpu'), 'started':time.perf_counter(),
+               'connected_code':{'train_siglip2_rank_routed_mlp.py':'1'*64},
+               'phase_observation':{'records':0,'bytes':0,'failed':False,'closed':False}}
+    class Owner:
+        shape,dtype,requires_grad,grad_fn = (2,3),'float32',True,None
+        def numel(self): return 6
+        def untyped_storage(self): return SimpleNamespace(nbytes=lambda:24)
+    owner = Owner()
+    reference = weakref.ref(owner)
+    sink = io.StringIO()
+    with patch.object(Path,'open',lambda p,*a,**kw:io.StringIO(files[str(p)])), \
+            patch.dict(d.os.environ,INVOCATION_ID='a'*32), patch.object(d.sys,'stdout',sink):
+        d.phase_observe(context,'full_forward',view='canonical',groups=(('query',(owner,owner)),))
+        row = json.loads(sink.getvalue())
+        assert row['memory']['events']['max'] == 7, 'observer reset/accepted existing max events'
+        assert row['process']['rss_kib'] == 123 and row['process']['hwm_kib'] == 456
+        assert row['owners']['query']['storage_bytes'] == 48, 'per-tensor capacity must disclose repeated aliases'
+        assert row['owners']['query']['shapes'] == [[2,3],[2,3]]
+        del owner
+        gc.collect()
+        assert reference() is None, 'observer retained a tensor owner'
+        for _ in range(127):
+            d.phase_observe(context,'micro_released')
+        assert context['phase_observation']['records'] == 128
+        d.phase_observe(context,'overflow')
+        assert context['phase_observation']['failed'] and len(sink.getvalue().encode()) <= 256*1024
+    failed = {**context,'phase_observation':{'records':0,'bytes':0,'failed':False,'closed':False}}
+    with patch.object(Path,'open',side_effect=OSError('observation IO failed')):
+        d.phase_observe(failed,'probe')
+    assert failed['phase_observation']['failed'], 'diagnostic IO silently admitted'
+    interrupted = {**context,'phase_observation':{'records':0,'bytes':0,'failed':False,'closed':False}}
+    with patch.object(Path,'open',side_effect=SystemExit('observer failure')):
+        d.phase_observe(interrupted,'probe')
+    assert interrupted['phase_observation']['error'] == 'SystemExit'
+    assert context['phase_observation']['bytes'] == len(sink.getvalue().encode())
+    for changes in ({'records':128},{'bytes':256*1024-1}):
+        limited = {**context,'phase_observation':{'records':0,'bytes':0,'failed':False,'closed':False,**changes}}
+        output = io.StringIO()
+        with patch.object(Path,'open',lambda p,*a,**kw:io.StringIO(files[str(p)])), \
+                patch.dict(d.os.environ,INVOCATION_ID='a'*32), patch.object(d.sys,'stdout',output):
+            d.phase_observe(limited,'limited')
+        assert limited['phase_observation']['failed'] and output.getvalue() == ''
+    oversized = {**context,'phase_observation':{'records':0,'bytes':0,'failed':False,'closed':False}}
+    output = io.StringIO()
+    with patch.object(Path,'open',lambda p,*a,**kw:io.StringIO(files[str(p)])), \
+            patch.dict(d.os.environ,INVOCATION_ID='a'*32), patch.object(d.sys,'stdout',output):
+        d.phase_observe(oversized,'x'*4096)
+    assert oversized['phase_observation']['failed'] and output.getvalue() == '', 'oversized row emitted'
+    for sink_ in (SimpleNamespace(write=lambda s:len(s)-1,flush=lambda:None),
+                  SimpleNamespace(write=lambda s:(_ for _ in ()).throw(OSError('stdout failure')))):
+        broken = {**context,'phase_observation':{'records':0,'bytes':0,'failed':False,'closed':False}}
+        with patch.object(Path,'open',lambda p,*a,**kw:io.StringIO(files[str(p)])), \
+                patch.dict(d.os.environ,INVOCATION_ID='a'*32), patch.object(d.sys,'stdout',sink_):
+            d.phase_observe(broken,'broken')
+        assert broken['phase_observation']['failed']
+    print('PASS scalar observer: raw max unchanged, scalar owners/released weakref, IO failure recorded, record/byte bounds')
+
+
+def observer_guard_falsifier(d):
+    calls=[]
+    source=SimpleNamespace(cgroup_memory=lambda:(calls.append('cgroup') or {'path':'/sys/fs/cgroup/unit.service'}))
+    context={'connected_args':SimpleNamespace(phase='cpu'),'started':time.perf_counter(),
+        'phase_observation':{'records':0,'bytes':0,'failed':True,'closed':False},
+        'old':SimpleNamespace(zero_events=lambda v:calls.append('zero_events')),
+        'legacy':{'source_driver':source,'selected':{'genuine':{'reference':SimpleNamespace(admit_cgroup=lambda *a:calls.append('admit'))}}}}
+    torch=SimpleNamespace(cuda=SimpleNamespace(is_initialized=lambda:False))
+    with patch.dict(sys.modules,{'torch':torch}):
+        rejects(lambda:d.resource_check(context),'bounded phase observation failed')
+        assert calls == ['cgroup','zero_events','admit'], 'observer skipped original guards'
+        source.cgroup_memory=lambda: d.require(False,'primary cap event')
+        rejects(lambda:d.resource_check(context),'primary cap event')
+        try:
+            raise ValueError('pending primary')
+        except ValueError:
+            d.observation_guard(context)
+    print('PASS observer error follows original guards; primary cap/pending exception unchanged')
+
+
+def observer_source_contract(d):
+    tree = ast.parse(DRIVER.read_text())
+    expected = {'fresh':(5,5),'resource_check':(1,1),'integrity':(3,3),'update':(18,63),
+                'route_full_reference':(9,9),'route_split':(2,2),'route_micro':(1,1),'arm_run':(3,3)}
+    actual = {}
+    for node in tree.body:
+        if not isinstance(node,ast.FunctionDef):
+            continue
+        sites = []
+        def walk(item,weight=1):
+            if isinstance(item,ast.For):
+                loop = ast.unparse(item.iter)
+                if loop == 'VIEWS': weight *= len(d.VIEWS)
+                elif loop == 'range(0, 64, 16)': weight *= len(range(0,64,16))
+                else:
+                    assert not any(isinstance(c,ast.Call) and ast.unparse(c.func) == 'phase_observe'
+                                   for c in ast.walk(item)), 'unbounded observation loop'
+            if isinstance(item,ast.Call) and ast.unparse(item.func) == 'phase_observe':
+                assert isinstance(item.args[1],ast.Constant) and type(item.args[1].value) is str
+                sites.append((item.args[1].value,weight))
+            for child in ast.iter_child_nodes(item): walk(child,weight)
+        walk(node)
+        if sites: actual[node.name] = (len(sites),sum(w for _,w in sites))
+    assert actual == expected and len(d.VIEWS) == 2
+    # Fresh integrity once, update integrity twice; each still calls the original resource check.
+    def calls(name,target):
+        return [c for c in ast.walk(function(tree,name)) if isinstance(c,ast.Call) and ast.unparse(c.func) == target]
+    assert len(calls('fresh','integrity')) == 1 and len(calls('update','integrity')) == 2
+    assert len(calls('integrity','resource_check')) == 1
+    assert len(calls('update','route_full_reference')) == len(calls('update','route_micro')) == 1
+    assert len(calls('route_micro','route_split')) == 1
+    assert "if first and state['device'] == 'cpu':" in ast.unparse(function(tree,'route_micro'))
+    assert 'offset == 0' in ast.unparse(function(tree,'update'))
+    # Conservative union includes both normal completion and exceptional cleanup (two extra rows).
+    upper = actual['arm_run'][1] + actual['fresh'][1] + 3*(actual['integrity'][1]+actual['resource_check'][1])
+    upper += actual['update'][1] + 2*actual['route_full_reference'][1] + 8*actual['route_micro'][1] + 2*actual['route_split'][1]
+    assert sum(v[0] for v in actual.values()) == 42 and upper == 113 <= d.OBSERVATION_LIMITS['records']
+    assert d.OBSERVATION_LIMITS == {'records':128,'record_bytes':4096,'bytes':256*1024}
+    observer = function(tree,'phase_observe')
+    assert not any(isinstance(n,(ast.Import,ast.ImportFrom,ast.AsyncFunctionDef)) for n in ast.walk(observer))
+    call_names = {ast.unparse(c.func) for c in ast.walk(observer) if isinstance(c,ast.Call)}
+    assert not any(any(word in c for word in ('clone','detach','collect','thread','reset','unlink')) for c in call_names)
+    assert not any(isinstance(c.func,ast.Attribute) and c.func.attr == 'open' and (c.args or c.keywords)
+                   for c in ast.walk(observer) if isinstance(c,ast.Call)), 'diagnostic file write added'
+    update_text = ast.unparse(function(tree,'update'))
+    assert update_text.index("phase_observe(context, 'update_complete', close=True)") < update_text.index('seconds = time.perf_counter() - tick')
+    print('PASS observer source: 42 fixed call sites; conservative window <=113/128 rows; hard per-row4096/total262144 byte bounds; overhead timed')
+
+
 def update_dataflow_falsifiers(d):
     # Structure of the real update(): one pinned loss_terms call, one derived regression call, one live connected call.
     tree = ast.parse(DRIVER.read_text())
@@ -923,7 +1209,7 @@ def check_steps_falsifiers(d):
 def main():
     p = argparse.ArgumentParser(allow_abbrev=False)
     p.add_argument('--source-only', action='store_true', required=True)
-    p.add_argument('--layer', choices=('split', 'live', 'reference', 'full-source', 'optimizer', 'regression', 'routing', 'dataflow', 'inverse', 'steps', 'identity', 'seams'))
+    p.add_argument('--layer', choices=('cleanup', 'observer', 'observer-guard', 'observer-source', 'split', 'live', 'reference', 'full-source', 'optimizer', 'regression', 'routing', 'dataflow', 'inverse', 'steps', 'identity', 'seams'))
     args = p.parse_args()
     assert DRIVER.exists(), 'rank-routed trainer missing'
     started = time.perf_counter()
@@ -933,6 +1219,10 @@ def main():
     assert not {n.split('.')[0] for n in set(sys.modules) - before} & d.NATIVE
     if args.layer:
         layers = {'split': split_lifetime_falsifier, 'live': live_runtime_falsifier, 'reference': independent_reference_falsifier,
+                  'cleanup': exceptional_arm_falsifier,
+                  'observer': observer_falsifier,
+                  'observer-guard': observer_guard_falsifier,
+                  'observer-source': observer_source_contract,
                   'optimizer': optimizer_gradient_falsifier,
                   'full-source': full_reference_source_falsifier,
                   'regression': regression_falsifiers,
@@ -943,6 +1233,10 @@ def main():
         assert not {n.split('.')[0] for n in set(sys.modules)} & d.NATIVE
         return
     inverse_contract()
+    exceptional_arm_falsifier(d)
+    observer_falsifier(d)
+    observer_guard_falsifier(d)
+    observer_source_contract(d)
     identity_contract(d, c)
     regression_falsifiers(d)
     split_lifetime_falsifier(d)
