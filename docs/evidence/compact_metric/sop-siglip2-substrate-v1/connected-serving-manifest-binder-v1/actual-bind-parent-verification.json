@@ -1,0 +1,11 @@
+{
+  "schema": "actual-serving-manifest-bind-parent-verification-v1",
+  "ssh_exit": 0,
+  "metadata_bind_pass": true,
+  "source_sha256": "0ce457c9c596c4ba7ab5e38321c5661f5fbe14ca285ee7306d41fb5e701a32c5",
+  "original_stdout_sha256": "a0920bbdf63a53f84b5c941a5d834750381be88250ca1fd227381fc6e8ea5afc",
+  "scope": "Read-only actual six-file byte pins and pending manifest association. No payload tensors, model construction, imports or GPU work.",
+  "limits": "AS 1 GiB, alarm 120 seconds. Exact previously pinned interpreter path used; interpreter bytes not independently rehashed by this observation.",
+  "native_serving_verified": false,
+  "quality_speed_goal_met": false
+}
