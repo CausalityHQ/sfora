@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "<stdin>", line 22, in <module>
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_rank_routed_mlp.py", line 960, in sequential_reference_falsifier
+    result = d.route_full_reference(sc.torch, context, state, {}, sc.members, list(range(64)), 1, view)
+  File "<original_AC>", line 7, in route_full_reference
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_rank_routed_mlp.py", line 923, in payload
+    saved = trainer.payload(context,state,identity)
+            ^^^^^^^^^^^^^^^
+AttributeError: 'types.SimpleNamespace' object has no attribute 'payload'

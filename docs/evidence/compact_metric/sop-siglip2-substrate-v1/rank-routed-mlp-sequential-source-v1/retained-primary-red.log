@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<retained-primary-error>", line 81, in sequential_reference_falsifier
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_rank_routed_mlp.py", line 1385, in route_full_reference
+    temporary['total'] = keep(torch.autograd.grad(temporary['loss'],members,retain_graph=False))
+                              ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<retained-primary-error>", line 44, in grad
+ValueError: primary total backward fault
+full reference cleanup: independent full B64 graph lifetime survived release
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<stdin>", line 16, in <module>
+  File "<retained-primary-error>", line 85, in sequential_reference_falsifier
+AssertionError: graph survived while primary traceback retained

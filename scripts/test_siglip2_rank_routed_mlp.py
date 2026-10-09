@@ -231,6 +231,20 @@ def cut(raw, start, end, pin):
     return raw[:i] + raw[j:]
 
 
+def sequential_inverse(raw):
+    base = (HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/'
+            'rank-routed-mlp-cpu-v2-freeze/train_siglip2_rank_routed_mlp.py').read_bytes()
+    assert sha(base) == '2fb4f237345f346080e499cc99d97fbc40c7087f255027ed810ef02b56537b1f'
+    start,end = b'def route_full_reference(',b'def route_close('
+    i,j = raw.index(start),raw.index(end)
+    assert raw.count(start) == raw.count(end) == 1
+    assert sha(raw[i:j]) == '6daeacf539a327826b92e70839ac686fb99ea59fd104189d66cf927723cc0cc7', 'sequential full reference bytes differ'
+    a,b = base.index(start),base.index(end)
+    restored = raw[:i]+base[a:b]+raw[j:]
+    assert sha(restored) == sha(base), 'unrelated sequential production edit'
+    return restored
+
+
 def observation_inverse(raw):
     """Only fixed observation/error cleanup seams may differ from the committed source base."""
     raw = cut(raw, b'OBSERVATION_LIMITS =', b'def mapping_absent(', OBSERVATION_BLOCK_SHA)
@@ -243,7 +257,7 @@ def observation_inverse(raw):
 
 def rank_routing_inverse(raw):
     """Invert the whole prospective delta; the result must be the committed connected trainer."""
-    raw = observation_inverse(raw)
+    raw = observation_inverse(sequential_inverse(raw))
     for new, old in REPAIR_INVERSE_EDITS:
         assert raw.count(new) == 1, 'exact repair delta differs'
         raw = raw.replace(new, old)
@@ -847,6 +861,179 @@ class Micro:
         self.last_features = None
 
 
+def sequential_reference_falsifier(d):
+    """Execute the helper; two independent graphs must each see one encoder backward."""
+    import gc
+    import weakref
+    m = Micro(d, step=1, record=False)
+    sc, context, state = m.sc, m.ns['context'], m.sc.state
+    state['counter'] = 0
+    rng, graphs, calls, injected, phases, ac_calls, kept, audits = [23.], [], [], {}, [], [], [], []
+    sc.torch.random = SimpleNamespace(get_rng_state=lambda: Vec(rng),
+        set_rng_state=lambda t: rng.__setitem__(slice(None), t.v))
+    context['witness'].pixels_for = lambda trainer, context, state, processor, anchors, view: (Vec(anchors), [])
+    def model(pixel_values):
+        gc.collect()
+        assert all(ref() is None for ref in graphs), 'previous B64 graph survived replay'
+        assert len(pixel_values.v) == 64
+        features = Vec(pixel_values.v)
+        features.forward_id = len(graphs)
+        if injected.get("replay") and len(graphs) == 1:
+            features.v[0] += 1.
+        graphs.append(weakref.ref(features))
+        rng[0] += 7.
+        return SimpleNamespace(pooler_output=features)
+    state['model'] = model
+    raw = context['connected'].raw_features
+    def connected(features, *args):
+        result = raw(features, *args)
+        result.graph = features
+        if injected.get('raw') and features.forward_id == 1:
+            result.v[0] += 1.
+        return result
+    context['connected'].raw_features = connected
+    genuine_loss = context['trainer'].loss_terms
+    def loss_terms(*args):
+        original,rank,selected = genuine_loss(*args)
+        original.provenance,rank.provenance = 'original','rank'
+        if args[2].graph.forward_id == 1:
+            if injected.get('rank'):
+                rank.value += 1.
+                rank.v[0] += 1.
+            if injected.get('membership'):
+                selected = {**selected,'active':selected['active']+1}
+        return original,rank,selected
+    context['trainer'].loss_terms = loss_terms
+    binding = list(context['routing_binding'])
+    binding[6] = dict(vars(context['trainer']))
+    context['routing_binding'] = tuple(binding)
+    genuine_grad = sc.torch.autograd.grad
+    def grad(out, inputs, retain_graph=False, allow_unused=False):
+        def reachable(value):
+            if hasattr(value, 'graph'):
+                return {value.graph.forward_id}
+            return set().union(*(reachable(p) for p in (getattr(value, 'parts', None) or ())))
+        owners = reachable(out)
+        if len(inputs) == 2:
+            assert tuple(inputs) == tuple(sc.members[:2]) and retain_graph is True
+            assert getattr(out.parts[0],'provenance',None) == 'original' and getattr(out.parts[1],'provenance',None) == 'rank', 'original A/C objective substituted'
+            assert len(owners) == 1 and next(iter(owners)) % 2 == 0, 'A/C reference did not use first graph'
+            ac_calls.append(next(iter(owners)))
+        encoder = any(p is member for p in inputs for member in sc.members[2:]) and bool(owners)
+        if encoder:
+            assert len(owners) == 1
+            owner = next(iter(owners))
+            assert not any(c[0] == owner for c in calls), 'one encoder backward per B64 graph required'
+            calls.append((owner, 'total' if out.grads is None else 'rank', retain_graph))
+            if injected.get('total') or injected.get('total_state') or injected.get('leak_state'):
+                if injected.get('total_state') or injected.get('leak_state'):
+                    state['A'].v[0] += 1.
+                if injected.get('leak_state'):
+                    kept.append(graphs[owner]())
+                raise ValueError('primary total backward fault')
+            if injected.get('replay_backward') and owner == 1:
+                raise ValueError('primary replay backward fault')
+        result = genuine_grad(out, inputs, retain_graph=retain_graph, allow_unused=allow_unused)
+        if encoder and owner == 1 and (injected.get('gradient') or injected.get('zero')):
+            for value in result[2:]:
+                value.v = [0. if injected.get('zero') else x*2. for x in value.v]
+        if encoder and owner % 2 == 0:
+            for value in result:
+                value.reference_total = True
+        return result
+    sc.torch.autograd.grad = grad
+    functional = ModuleType('torch.nn.functional')
+    functional.normalize = lambda t, dim: t
+    nn = ModuleType('torch.nn')
+    nn.functional = functional
+    def saved(context, state, identity):
+        audits.append(tuple(state['A'].v))
+        return {'A': state['A'].v, 'C': state['C'].v, 'counter': state['counter'], 'rng': list(rng)}
+    def fact(context, value):
+        if isinstance(value, (Vec, Out)):
+            return repr((value.shape, value.dtype, value.v))
+        return repr(value)
+    with patch.dict(sys.modules, {'torch': sc.torch, 'torch.nn': nn, 'torch.nn.functional': functional}), \
+            patch.object(d, 'payload', saved), patch.object(d, 'fingerprint', fact), \
+            patch.object(d,'phase_observe',lambda context,name,**kw:phases.append(name)):
+        for view in d.VIEWS:
+            result = d.route_full_reference(sc.torch, context, state, {}, sc.members, list(range(64)), 1, view)
+            assert rng == [23.]
+            assert result['scalars']['loss'].value == 7.
+            assert [g.v for g in result['gradients']] == [g.v for g in sc.full()['gradients']]
+            gc.collect()
+            assert all(ref() is None for ref in graphs)
+    assert ac_calls == [0,2], 'original A/C reference provenance missing'
+    assert calls == [(i, kind, False) for i, kind in enumerate(('total', 'rank', 'total', 'rank'))]
+    assert phases == ['full_begin','full_pixels','full_forward','full_loss','full_original_A_C_gradients',
+                      'full_total_gradients','full_pass_released','replay_pixels','replay_forward',
+                      'replay_ranking_gradients','replay_pass_released','full_graph_released'] * 2
+    assert 113-2*9+len(phases) == 119 <= d.OBSERVATION_LIMITS['records']
+    result_refs = []
+    vec_detach,out_detach = Vec.detach,Out.detach
+    def detached_vec(value):
+        result = vec_detach(value)
+        if getattr(value,'reference_total',False):
+            result_refs.append(weakref.ref(result))
+        return result
+    def detached_out(value):
+        result = out_detach(value)
+        result_refs.append(weakref.ref(result))
+        return result
+    for mode,message in (('replay','full B64 replay pixels/features differ'),
+                         ('raw','full B64 replay raw differs'),
+                         ('rank','full B64 replay ranking/membership differs'),
+                         ('membership','full B64 replay ranking/membership differs'),
+                         ('gradient','full encoder ranking-only'),
+                         ('zero','full ranking encoder gradient absent'),
+                         ('replay_backward','primary replay backward fault'),
+                         ('total','primary total backward fault'),
+                         ('total_state','primary total backward fault'),
+                         ('leak_state','primary total backward fault')):
+        graphs.clear()
+        calls.clear()
+        ac_calls.clear()
+        audits.clear()
+        result_refs.clear()
+        injected.clear()
+        injected[mode] = True
+        original_A = list(state['A'].v)
+        with patch.dict(sys.modules, {'torch':sc.torch,'torch.nn':nn,'torch.nn.functional':functional}), \
+                patch.object(d,'payload',saved), patch.object(d,'fingerprint',fact), \
+                patch.object(Vec,'detach',detached_vec), patch.object(Out,'detach',detached_out):
+            try:
+                d.route_full_reference(sc.torch,context,state,{},sc.members,list(range(64)),1,d.VIEWS[0])
+            except ValueError as retained_error:
+                assert message in str(retained_error), str(retained_error)
+                assert rng == [23.], 'failed replay did not restore RNG'
+                gc.collect()
+                if mode == 'leak_state':
+                    assert any(ref() is not None for ref in graphs), 'external owner unexpectedly removed'
+                    assert audits[-1] == tuple(state['A'].v) != tuple(original_A), 'lifetime failure skipped state audit'
+                else:
+                    assert all(ref() is None for ref in graphs), 'graph survived while primary traceback retained'
+                assert all(ref() is None for ref in result_refs), 'detached result survived a failed second pass'
+                notes = '\n'.join(getattr(retained_error,'__notes__',()))
+                if mode == 'leak_state':
+                    assert 'graph lifetime survived' in notes, 'external owner lifetime rejection missing'
+                if mode in ('total_state','leak_state'):
+                    assert 'changed initialized state/RNG' in notes, 'state mutation audit missing'
+                else:
+                    assert not notes, 'cleanup falsely labelled traceback ownership as a leak: '+notes
+            else:
+                raise AssertionError('injected failure accepted')
+            finally:
+                state['A'].v = original_A
+                kept.clear()
+        first_fault = mode in ('total','total_state','leak_state')
+        assert len(graphs) == (1 if first_fault else 2), 'failure continued into another graph'
+        if mode in ('replay','raw','rank','membership'):
+            assert calls == [(0,'total',False)], 'mismatch reached replay backward'
+        gc.collect()
+        assert all(ref() is None for ref in graphs), 'failed graph retained after outer error release'
+    print('PASS genuine total/rank calls on distinct released B64 graphs; native memory fit UNRUN')
+
+
 def full_reference_source_falsifier(d):
     def probe(mutate=False, leak=False, fault=False):
         m = Micro(d, step=1, record=False)
@@ -877,7 +1064,7 @@ def full_reference_source_falsifier(d):
         def saved(context,state,identity):
             return {'A':state['A'].v,'C':state['C'].v,'counter':state['counter'],'rng':list(rng)}
         with patch.dict(sys.modules, {'torch':sc.torch,'torch.nn':nn,'torch.nn.functional':functional}), \
-                patch.object(d,'payload',saved), patch.object(d,'fingerprint',lambda c,v:repr(v)):
+                patch.object(d,'payload',saved), patch.object(d,'fingerprint',lambda c,v:repr((v.shape,v.dtype,v.v)) if isinstance(v,(Vec,Out)) else repr(v)):
             for view in d.VIEWS:
                 try:
                     full = d.route_full_reference(sc.torch,context,state,{},sc.members,list(range(64)),1,view)
@@ -891,7 +1078,7 @@ def full_reference_source_falsifier(d):
                 route['full'] = full
                 fact = d.route_view(sc.torch,context,route)
                 assert fact['full_micro']['scalars'] == {'mse':0.,'rank':0.,'loss':0.}
-        assert seen == [(v,list(range(i,i+16))) for v in d.VIEWS for i in range(0,64,16)]
+        assert seen == [(v,list(range(i,i+16))) for v in d.VIEWS for replay in range(2) for i in range(0,64,16)]
     probe()
     rejects(lambda: probe(mutate=True), 'changed initialized state/RNG')
     rejects(lambda: probe(leak=True), 'full B64 graph lifetime survived')
@@ -1046,7 +1233,7 @@ def observer_guard_falsifier(d):
 
 
 def observer_source_contract(d):
-    tree = ast.parse(DRIVER.read_text())
+    tree = ast.parse(sequential_inverse(DRIVER.read_bytes()))
     expected = {'fresh':(5,5),'resource_check':(1,1),'integrity':(3,3),'update':(18,63),
                 'route_full_reference':(9,9),'route_split':(2,2),'route_micro':(1,1),'arm_run':(3,3)}
     actual = {}
@@ -1209,7 +1396,7 @@ def check_steps_falsifiers(d):
 def main():
     p = argparse.ArgumentParser(allow_abbrev=False)
     p.add_argument('--source-only', action='store_true', required=True)
-    p.add_argument('--layer', choices=('cleanup', 'observer', 'observer-guard', 'observer-source', 'split', 'live', 'reference', 'full-source', 'optimizer', 'regression', 'routing', 'dataflow', 'inverse', 'steps', 'identity', 'seams'))
+    p.add_argument('--layer', choices=('sequential', 'cleanup', 'observer', 'observer-guard', 'observer-source', 'split', 'live', 'reference', 'full-source', 'optimizer', 'regression', 'routing', 'dataflow', 'inverse', 'steps', 'identity', 'seams'))
     args = p.parse_args()
     assert DRIVER.exists(), 'rank-routed trainer missing'
     started = time.perf_counter()
@@ -1218,7 +1405,7 @@ def main():
     c = load('_connected_source_for_rank_routing', CONNECTED)
     assert not {n.split('.')[0] for n in set(sys.modules) - before} & d.NATIVE
     if args.layer:
-        layers = {'split': split_lifetime_falsifier, 'live': live_runtime_falsifier, 'reference': independent_reference_falsifier,
+        layers = {'sequential': sequential_reference_falsifier, 'split': split_lifetime_falsifier, 'live': live_runtime_falsifier, 'reference': independent_reference_falsifier,
                   'cleanup': exceptional_arm_falsifier,
                   'observer': observer_falsifier,
                   'observer-guard': observer_guard_falsifier,
@@ -1242,6 +1429,7 @@ def main():
     split_lifetime_falsifier(d)
     live_runtime_falsifier(d)
     independent_reference_falsifier(d)
+    sequential_reference_falsifier(d)
     full_reference_source_falsifier(d)
     optimizer_gradient_falsifier(d)
     routing_witness_falsifiers(d)

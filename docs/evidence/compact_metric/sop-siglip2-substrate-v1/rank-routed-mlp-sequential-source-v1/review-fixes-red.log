@@ -1,0 +1,32 @@
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_rank_routed_mlp.py", line 989, in sequential_reference_falsifier
+    d.route_full_reference(sc.torch,context,state,{},sc.members,list(range(64)),1,d.VIEWS[0])
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_rank_routed_mlp.py", line 1368, in route_full_reference
+    route_close(torch,context,result['gradients'][i],temporary['ranking'][i],'full encoder ranking-only '+name)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_rank_routed_mlp.py", line 1414, in route_close
+    require(left.shape == right.shape and left.dtype == right.dtype and torch.isfinite(left).all().item() and
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            torch.isfinite(right).all().item() and torch.allclose(left,right,rtol=witness.RTOL,atol=witness.ATOL),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            'rank-routing correspondence differs: '+label)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_rank_routed_mlp.py", line 123, in require
+    raise ValueError(message)
+ValueError: rank-routing correspondence differs: full encoder ranking-only encoder.layers.26.mlp.fc1.weight
+full reference cleanup: independent full B64 graph lifetime survived release
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_rank_routed_mlp.py", line 1425, in <module>
+    main()
+    ~~~~^^
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_rank_routed_mlp.py", line 1400, in main
+    layers[args.layer](d)
+    ~~~~~~~~~~~~~~~~~~^^^
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_rank_routed_mlp.py", line 1003, in sequential_reference_falsifier
+    assert not notes, 'cleanup falsely labelled traceback ownership as a leak: '+notes
+           ^^^^^^^^^
+AssertionError: cleanup falsely labelled traceback ownership as a leak: full reference cleanup: independent full B64 graph lifetime survived release

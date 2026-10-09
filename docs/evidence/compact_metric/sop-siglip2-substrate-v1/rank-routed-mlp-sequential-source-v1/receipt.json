@@ -1,0 +1,89 @@
+{
+  "artifact_sha256": {
+    "final-stdlib-receipt.json": "7efee5324ad249540251232a4202c37eb7945d96977c172a821f5d2d05d73e1c",
+    "final-stdlib.log": "e5fcee127546e588fd2cfddab07c3d235b4cc378e927215808bf8841f3746b9f",
+    "implementation-critique-astra.md": "78914e6cff3f21f68c597e7c5a4f0aa34ac18e5464938c2a96f7112623d2ee13",
+    "implementation-critique-opus.md": "ab7a57ba1f6b0d251670aa2e190c117d927cec50527790066804e6af6a891f44",
+    "retained-primary-red.log": "0fc7eb75d32d5763778f34173a9f294709ab63d742594c58120efb6a418d348d",
+    "review-fixes-green.log": "e5ec3505c8dfcb51874f7f1e3def53c4e5e5b41d5dccb29eff599a9d5abe9476",
+    "review-fixes-red.log": "584eccb740d2dea0e097fc1d54cb5325aabd68cef4a45f3b4db2a1362620d889",
+    "same-graph-red.log": "973d825ec20a57192b7e8ee9404272ec173a713a67616fe2e71a9c8f35e73da5",
+    "targeted-mutants-setup-failure.log": "87b88062e4bdac656de10df727e199a3d8813879d886e3b076898227e24cf809",
+    "targeted-mutants.log": "a2bc2672d4eda47f0e67e14692b4f74b0579161590d87def1de4ca728ffab5fd"
+  },
+  "final_ast_ledger": {
+    "test_siglip2_rank_routed_mlp.py": {
+      "added": [
+        "sequential_inverse",
+        "sequential_reference_falsifier"
+      ],
+      "baseline_sha256": "8f61921da94679231da41734aa73375b9dad311b74adc04fa9c86a2376a9e15a",
+      "changed": [
+        "rank_routing_inverse",
+        "full_reference_source_falsifier",
+        "observer_source_contract",
+        "main"
+      ],
+      "sha256": "5bd677cb03328d30e65e9f1a1a46f31064ad72489c0c8021e17ec2df4621bbe3",
+      "unchanged_count": 27
+    },
+    "train_siglip2_rank_routed_mlp.py": {
+      "added": [],
+      "baseline_sha256": "2fb4f237345f346080e499cc99d97fbc40c7087f255027ed810ef02b56537b1f",
+      "changed": [
+        "route_full_reference"
+      ],
+      "sha256": "69302dab4a808a259a381d9b649ac58bd1d7a3c5dffe2b8aa6982131dd45cd5d",
+      "unchanged_count": 75
+    }
+  },
+  "final_suite": {
+    "address_limit": [
+      1073741824,
+      1073741824
+    ],
+    "command": [
+      "timeout",
+      "120",
+      "/usr/bin/python3",
+      "-B",
+      "scripts/test_siglip2_rank_routed_mlp.py",
+      "--source-only"
+    ],
+    "exit": 0,
+    "file_sha256": {
+      "scripts/test_siglip2_rank_routed_mlp.py": "5bd677cb03328d30e65e9f1a1a46f31064ad72489c0c8021e17ec2df4621bbe3",
+      "scripts/train_siglip2_rank_routed_mlp.py": "69302dab4a808a259a381d9b649ac58bd1d7a3c5dffe2b8aa6982131dd45cd5d"
+    },
+    "native_unrun": true,
+    "peak_rss_kib": 70636,
+    "review_group": "9ae6d9b64719462a",
+    "wall_seconds": 2.5112112290225923
+  },
+  "native_unrun": true,
+  "next_native_predictions": {
+    "augmented_and_micros": "record first new event and memory at both augmented passes and subsequent micros; no assumption these fit",
+    "bitwise_replay": "fresh B64 pixels/features/raw/rank/membership must compare exactly; any mismatch rejects, no tolerance change",
+    "canonical_total": "A passing full CPU gate must retain original zero-event predicate; first positive event before/at total localizes residual full-pass pressure",
+    "release_boundaries": "record memory.current/anon/events at full_pass_released and replay_pass_released; weakref success is not allocator release"
+  },
+  "original_cpu_v2": "FAIL; max-events1643; original output/receipts preserved",
+  "quality_or_speed_claim": false,
+  "review_group": "9ae6d9b64719462a",
+  "review_reconciliation": {
+    "independent_audits": "lifetime and full payload/state audit both attempted; genuine external owner and state mutation remain rejecting, notes preserved",
+    "observer": "12 fixed records/call; conservative119<=128, original4096/256KiB bounds unchanged",
+    "optional_labels": "combined pixels/features rejection retained; K equality not independent evidence; native determinism unproven",
+    "original_AC": "actual original objective identity, exact A/C inputs, first graph and retained flag checked; substitution mutant killed",
+    "replay": "exact raw/rank/membership drift rejects before ranking backward; cross-graph rank mutation/nonzero and second-backward failure tested",
+    "result_release": "weakrefs to genuine fake detach outputs dead while primary retained after second-pass rejection",
+    "traceback_owners": "RED reproduced while primary retained; clear only completed primary traceback frames before helper release; original exception preserved"
+  },
+  "reviewed_initial_sha256": {
+    "test": "f0b09499a10d9960c2955def3cbf30e03ec2158669a162fcf848c7666c9afbe4",
+    "train": "12fa0b7c35be146808a38fbb852ec3b85f654d94cdd3936ac3671fd183107b6d"
+  },
+  "schema": "rank-routed-sequential-reference-source-v1",
+  "source_commit_pending": true,
+  "status": "SOURCE_ONLY_NATIVE_UNQUALIFIED"
+}

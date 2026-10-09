@@ -1310,74 +1310,116 @@ def route_accumulators(torch, members):
 
 
 def route_full_reference(torch, context, state, identity, members, batch, K, view):
-    """Independent CPU B64 graph, destroyed before the four live micro16 graphs."""
+    """Independent total/rank B64 graphs, released serially before live micro16 graphs."""
     from torch.nn import functional as F
     require(state['device'] == 'cpu' and state['arm'] == 'candidate' and state['counter'] == 0 and len(batch) == 64,
             'initialized CPU first B64 reference required')
     trainer,connected = context['trainer'],context['connected']
     before = fingerprint(context,payload(context,state,identity))
     rng = torch.random.get_rng_state().clone()
-    temporary,refs = {},[]
-    phase_observe(context,'full_begin',view=view)
-    try:
-        temporary['chunks'] = [context['witness'].pixels_for(trainer,context,state,state['processor_object'],
-            batch[offset:offset+16],view)[0] for offset in range(0,64,16)]
-        temporary['pixels'] = torch.cat(temporary.pop('chunks'),dim=0)
-        phase_observe(context,'full_pixels',view=view,groups=(('pixels',(temporary['pixels'],)),))
-        with torch.autocast('cpu',enabled=False):
-            temporary['features'] = F.normalize(state['model'](pixel_values=temporary['pixels']).pooler_output.float(),dim=1)
-            phase_observe(context,'full_forward',view=view,groups=(('features',(temporary['features'],)),))
-            temporary['raw'] = connected.raw_features(temporary['features'],state['head_object'],state['A'],state['means'],
-                state['C'],state['mu_train'],context['legacy']['quadratic'],trainer.helper_guard(context))
-            temporary['detached'] = trainer.raw_features(context,state,temporary['features'].detach())
-            require(temporary['features'].requires_grad and temporary['raw'].requires_grad and
-                    temporary['detached'].requires_grad and
-                    torch.equal(temporary['raw'].detach(),temporary['detached'].detach()), 'full routed raw forward differs')
-            temporary['original'],temporary['rank'],selected = trainer.loss_terms(context,state,temporary['raw'],batch,K)
-            temporary['mse'] = routed_regression(context,state,temporary['detached'],batch,K)
-            require(torch.equal(temporary['mse'].detach(),temporary['original'].detach()), 'full regression scalar differs')
-            temporary['loss'] = temporary['mse']+temporary['rank']
-            phase_observe(context,'full_loss',view=view,groups=(('raw',(temporary['raw'],temporary['detached'])),
-                ('loss',(temporary['mse'],temporary['rank'],temporary['original'],temporary['loss']))))
-            temporary['regression'] = torch.autograd.grad(temporary['mse'],members,retain_graph=True,allow_unused=True)
-            phase_observe(context,'full_regression_gradients',view=view,groups=(('regression',temporary['regression']),))
-            require(all(g is None or torch.count_nonzero(g).item() == 0 for g in temporary['regression'][2:]),
-                    'full routed regression reached encoder')
-            temporary['ranking'] = torch.autograd.grad(temporary['rank'],members,retain_graph=True)
-            phase_observe(context,'full_ranking_gradients',view=view,groups=(('regression',temporary['regression']),
-                ('ranking',temporary['ranking'])))
-            temporary['original_loss'] = temporary['original']+temporary['rank']
-            temporary['original_A_C'] = torch.autograd.grad(temporary['original_loss'],members[:2],retain_graph=True)
-            phase_observe(context,'full_original_A_C_gradients',view=view,groups=(('regression',temporary['regression']),
-                ('ranking',temporary['ranking']),('original_A_C',temporary['original_A_C'])))
-            temporary['total'] = torch.autograd.grad(temporary['loss'],members)
-            phase_observe(context,'full_total_gradients',view=view,groups=(('regression',temporary['regression']),
-                ('ranking',temporary['ranking']),('original_A_C',temporary['original_A_C']),('total',temporary['total'])))
-            for i,name in enumerate(('A','C')):
-                route_close(torch,context,temporary['total'][i],temporary['original_A_C'][i],'full original '+name)
-            for i,name in enumerate(MLP,2):
-                require(torch.count_nonzero(temporary['ranking'][i]).item() > 0, 'full ranking encoder gradient absent')
-                route_close(torch,context,temporary['total'][i],temporary['ranking'][i],'full encoder ranking-only '+name)
-            result = {'scalars':{n:temporary[n].detach() for n in ('mse','rank','loss')},
-                      'gradients':[g.detach() for g in temporary['total']]}
-            require(all(t.dtype == torch.float32 and not t.requires_grad and t.grad_fn is None and
-                        torch.isfinite(t).all().item() for t in (*result['scalars'].values(),*result['gradients'])),
-                    'full reference must own finite detached FP32 tensors only')
-        refs = [weakref.ref(t) for value in temporary.values() for t in
-                (value if isinstance(value,tuple) else (value,)) if t is not None]
-        return result
-    finally:
-        failed = sys.exc_info()[0] is not None
+    temporary,refs,result = {},[],{}
+    replay = None
+    def keep(value):
+        if isinstance(value,(tuple,list)):
+            for member in value:
+                keep(member)
+        elif value is not None:
+            refs.append(weakref.ref(value))
+        return value
+    def release_pass():
         try:
             temporary.clear()
             gc.collect()
+        finally:
             torch.random.set_rng_state(rng)
+        failures = []
+        try:
             require(all(ref() is None for ref in refs), 'independent full B64 graph lifetime survived release')
+        except Exception as error:
+            failures.append(error)
+        try:
             require(fingerprint(context,payload(context,state,identity)) == before,
                     'independent full reference changed initialized state/RNG')
-        except Exception:
-            if not failed:
+        except Exception as error:
+            failures.append(error)
+        if failures:
+            for error in failures[1:]:
+                failures[0].add_note(str(error))
+            raise failures[0]
+    phase_observe(context,'full_begin',view=view)
+    try:
+        for pass_index in range(2):
+            temporary['chunks'] = keep([context['witness'].pixels_for(trainer,context,state,state['processor_object'],
+                batch[offset:offset+16],view)[0] for offset in range(0,64,16)])
+            temporary['pixels'] = keep(torch.cat(temporary.pop('chunks'),dim=0))
+            phase_observe(context,'full_pixels' if pass_index == 0 else 'replay_pixels',view=view,
+                groups=(('pixels',(temporary['pixels'],)),))
+            with torch.autocast('cpu',enabled=False):
+                temporary['features'] = keep(F.normalize(state['model'](pixel_values=temporary['pixels']).pooler_output.float(),dim=1))
+                phase_observe(context,'full_forward' if pass_index == 0 else 'replay_forward',view=view,
+                    groups=(('features',(temporary['features'],)),))
+                facts = {name:fingerprint(context,temporary[name]) for name in ('pixels','features')}
+                if pass_index:
+                    require(all(facts[name] == replay[name] for name in facts), 'full B64 replay pixels/features differ')
+                temporary['raw'] = keep(connected.raw_features(temporary['features'],state['head_object'],state['A'],state['means'],
+                    state['C'],state['mu_train'],context['legacy']['quadratic'],trainer.helper_guard(context)))
+                facts['raw'] = fingerprint(context,temporary['raw'])
+                if pass_index:
+                    require(facts['raw'] == replay['raw'], 'full B64 replay raw differs')
+                temporary['original'],temporary['rank'],selected = trainer.loss_terms(context,state,temporary['raw'],batch,K)
+                keep((temporary['original'],temporary['rank']))
+                if pass_index:
+                    require(selected == replay['selected'] and K == replay['K'] and
+                            fingerprint(context,temporary['rank']) == replay['rank'], 'full B64 replay ranking/membership differs')
+                    del temporary['original']
+                    temporary['ranking'] = keep(torch.autograd.grad(temporary['rank'],members,retain_graph=False))
+                    phase_observe(context,'replay_ranking_gradients',view=view,groups=(('ranking',temporary['ranking']),))
+                    for i,name in enumerate(MLP,2):
+                        require(torch.count_nonzero(temporary['ranking'][i]).item() > 0, 'full ranking encoder gradient absent')
+                        route_close(torch,context,result['gradients'][i],temporary['ranking'][i],'full encoder ranking-only '+name)
+                else:
+                    temporary['detached'] = keep(trainer.raw_features(context,state,temporary['features'].detach()))
+                    require(temporary['features'].requires_grad and temporary['raw'].requires_grad and
+                            temporary['detached'].requires_grad and
+                            torch.equal(temporary['raw'].detach(),temporary['detached'].detach()), 'full routed raw forward differs')
+                    temporary['mse'] = keep(routed_regression(context,state,temporary['detached'],batch,K))
+                    require(torch.equal(temporary['mse'].detach(),temporary['original'].detach()), 'full regression scalar differs')
+                    temporary['loss'] = keep(temporary['mse']+temporary['rank'])
+                    phase_observe(context,'full_loss',view=view,groups=(('loss',(temporary['mse'],temporary['rank'],temporary['loss'])),))
+                    temporary['regression'] = keep(torch.autograd.grad(temporary['mse'],members,retain_graph=True,allow_unused=True))
+                    require(all(g is None or torch.count_nonzero(g).item() == 0 for g in temporary['regression'][2:]),
+                            'full routed regression reached encoder')
+                    del temporary['regression']
+                    temporary['original_loss'] = keep(temporary['original']+temporary['rank'])
+                    temporary['original_A_C'] = keep(torch.autograd.grad(temporary['original_loss'],members[:2],retain_graph=True))
+                    phase_observe(context,'full_original_A_C_gradients',view=view,groups=(('original_A_C',temporary['original_A_C']),))
+                    temporary['total'] = keep(torch.autograd.grad(temporary['loss'],members,retain_graph=False))
+                    phase_observe(context,'full_total_gradients',view=view,groups=(('total',temporary['total']),))
+                    for i,name in enumerate(('A','C')):
+                        route_close(torch,context,temporary['total'][i],temporary['original_A_C'][i],'full original '+name)
+                    result = {'scalars':{n:temporary[n].detach() for n in ('mse','rank','loss')},
+                              'gradients':[g.detach() for g in temporary['total']]}
+                    require(all(t.dtype == torch.float32 and not t.requires_grad and t.grad_fn is None and
+                                torch.isfinite(t).all().item() for t in (*result['scalars'].values(),*result['gradients'])),
+                            'full reference must own finite detached FP32 tensors only')
+                    replay = {**facts,'rank':fingerprint(context,temporary['rank']),'selected':copy.deepcopy(selected),'K':K}
+            release_pass()
+            phase_observe(context,'full_pass_released' if pass_index == 0 else 'replay_pass_released',view=view)
+        return result
+    finally:
+        primary = sys.exc_info()[1]
+        if primary is not None:
+            result.clear()
+            import traceback
+            traceback.clear_frames(primary.__traceback__)
+        try:
+            release_pass()
+        except Exception as cleanup_error:
+            if primary is None:
                 raise
+            primary.add_note('full reference cleanup: '+str(cleanup_error))
+            for note in getattr(cleanup_error,'__notes__',()):
+                primary.add_note('full reference cleanup: '+note)
         finally:
             phase_observe(context,'full_graph_released',view=view)
 

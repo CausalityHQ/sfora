@@ -1,0 +1,10 @@
+KILLED original_AC AssertionError original A/C objective substituted
+KILLED ranking_self_compare AssertionError injected failure accepted
+KILLED retain_encoder_graph AssertionError 
+KILLED retained_traceback AssertionError detached result survived a failed second pass
+KILLED retained_result AssertionError detached result survived a failed second pass
+KILLED skip_state_audit AssertionError state mutation audit missing
+KILLED skip_raw_replay AssertionError injected failure accepted
+KILLED skip_rank_membership AssertionError injected failure accepted
+KILLED skip_rank_nonzero AssertionError rank-routing correspondence differs: full encoder ranking-only encoder.layers.26.mlp.fc1.weight
+PASS 9/9 targeted review mutants; repository files unchanged

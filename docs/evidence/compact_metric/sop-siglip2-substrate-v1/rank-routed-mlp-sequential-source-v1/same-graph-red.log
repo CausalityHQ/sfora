@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_rank_routed_mlp.py", line 905, in sequential_reference_falsifier
+    result = d.route_full_reference(sc.torch, context, state, {}, sc.members, list(range(64)), 1, view)
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_rank_routed_mlp.py", line 1353, in route_full_reference
+    temporary['total'] = torch.autograd.grad(temporary['loss'],members)
+                         ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_siglip2_rank_routed_mlp.py", line 888, in grad
+    assert not any(c[0] == owner for c in calls), 'one encoder backward per B64 graph required'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: one encoder backward per B64 graph required
