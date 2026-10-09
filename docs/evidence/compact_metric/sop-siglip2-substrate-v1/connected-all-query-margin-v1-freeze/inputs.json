@@ -1,0 +1,51 @@
+{
+  "accepted_receipt": {
+    "path": "/home/riomus/runs/sfora-connected-exact-torch-census-source-v2/accepted-selection-receipt.json",
+    "sha256": "01ae023cb89b828c029817582cdb48204ff8177e76047ccec0773e5d90aafbfa"
+  },
+  "files": {
+    "candidate-179061.packed.bin": {
+      "bytes": 448370,
+      "original_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-candidate-179061-v2/candidate-179061.packed.bin",
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-candidate-179061-v2/candidate-179061.packed.bin",
+      "sha256": "42ab74a72877dc96d46eaa5a424cee8259024a999cea442a001a22080361f697"
+    },
+    "candidate-179069.packed.bin": {
+      "bytes": 448370,
+      "original_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-candidate-179069-v2/candidate-179069.packed.bin",
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-candidate-179069-v2/candidate-179069.packed.bin",
+      "sha256": "7dc4935ff39aed8ef1840aa425695bb083421659ff70935e3325545da5947aae"
+    },
+    "control-179061.packed.bin": {
+      "bytes": 448370,
+      "original_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/control-179061.packed.bin",
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/control-179061.packed.bin",
+      "sha256": "c2260ca93cedf8ae5c0840034d2ed06d10860539d33df562fe82a7eac30b1558"
+    },
+    "control-179069.packed.bin": {
+      "bytes": 448370,
+      "original_path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179069-v2/control-179069.packed.bin",
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179069-v2/control-179069.packed.bin",
+      "sha256": "f61ae0e313aba2884d9c19004560c71b58332061555d35e15343b6d9d57483fd"
+    },
+    "fit.json": {
+      "bytes": 3321612,
+      "original_path": "/home/riomus/runs/sfora-native256-source-cpu-v4/fit.json",
+      "path": "/home/riomus/runs/sfora-native256-source-cpu-v4/fit.json",
+      "sha256": "d32fa6f099a5432d25916594a8439d826ff979e18abd3bb6fde150aff36e0251"
+    }
+  },
+  "images_read": 0,
+  "metadata_correction": "Reuses original DGX files with unchanged admitted hashes; accepted receipt staged as byte-identical copy. Original local scalar census remains FAIL.",
+  "model_executions": 0,
+  "original_fetch_exit": 1,
+  "original_fetch_session": 13199,
+  "partition": {
+    "original_path": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json",
+    "path": "/home/riomus/runs/sfora-so400-genuine-view-export-source-v2/partition.json",
+    "sha256": "702f763eab7138491450eb6a0c58a2aeabc57b194ed8edbb4db2a5abd95c676c"
+  },
+  "schema": "sfora-existing-core-census-inputs-v1",
+  "scientific_gate_changed": false,
+  "transfer_and_verify_seconds": null
+}
