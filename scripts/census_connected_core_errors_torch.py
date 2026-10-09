@@ -50,6 +50,7 @@ from pathlib import Path
 import re
 import resource
 import stat
+import statistics
 import struct
 import sys
 import tempfile
@@ -200,11 +201,11 @@ def cleanup_error(error, callbacks):
         raise failures[0]
 
 
-def read_authority(path, digest):
+def read_authority(path, digest, schema=LAUNCH_SCHEMA, keys=LAUNCH_KEYS):
     """Strict root authority: exact keys, exact FILE roles, accepted pins, current bytes."""
     guards = {}
     authority = read_json({'path': str(path), 'sha256': digest}, guards)
-    require(type(authority) is dict and authority.keys() == LAUNCH_KEYS and authority['schema'] == LAUNCH_SCHEMA and
+    require(type(authority) is dict and authority.keys() == keys and authority['schema'] == schema and
             authority['resource_policy'] == LIMITS and authority['both_locks_held'] is True and
             authority['candidate_status'] == 'KILL' and authority['qualification_eligible'] is False and
             authority['state_reuse_eligible'] is False, 'exact diagnostic-only KILL authority and limits required')
@@ -715,18 +716,274 @@ def run(args):
     return ctx.payload
 
 
+# --------------------------------------------------------------------------------------------------------------
+# All-query margin mode (--mode all-query). Strictly additive: everything above is the core mode, and this mode
+# reuses its scorer, adapter, capture, exact replay, geometry, exit and publication code unchanged. Only the query
+# selection (all 1734 queries instead of the core44), the authority (+ the accepted core44 census as a pinned FILE)
+# and the published geometry differ. Descriptive actual R@1 transitions and margins: no projection, interval,
+# threshold or training release.
+# --------------------------------------------------------------------------------------------------------------
+ALL_QUERY_LAUNCH_SCHEMA = 'connected-all-query-margin-launch-v1'
+ALL_QUERY_RESULT_SCHEMA = 'sfora-connected-all-query-margin-census-torch-v1'
+ALL_QUERY_KEYS = LAUNCH_KEYS | {'prior_census'}
+# The accepted exact core44 census: connected-exact-torch-census-v1/receipt.json (parent verification receipt_sha256).
+PRIOR_CENSUS_SHA = '931425db03a67c02c909326162e2f16786b89ee32a99cdc0ef42bb41b0d567e4'
+PRIOR_TRUE = ('full_uncached_exit_pass', 'exit_rehash_pass', 'cleanup_pass',
+              'terminal_exit_and_both_locks_require_parent_receipt')
+QUERY_COUNT = 1734
+SEEDS = ('179061', '179069')
+ENDPOINT_KEYS = tuple(f'{arm}-{seed}' for seed in SEEDS for arm in ('control', 'candidate'))
+# Actual transitions of the accepted FULL receipt's per-query R@1 arrays; the exact replay must reproduce them.
+FROZEN_TRANSITIONS = {'179061': {'gains': 11, 'losses': 5, 'control_correct': 1678},
+                      '179069': {'gains': 12, 'losses': 6, 'control_correct': 1677},
+                      'shared': {'gains': 9, 'losses': 5}}
+TRANSITION = {(1, 1): 'both_correct', (0, 0): 'both_wrong', (0, 1): 'gain', (1, 0): 'loss'}
+
+
+def strictly(function, *args):
+    """A malformed authenticated record is a rejection (ValueError), never a bare KeyError/TypeError."""
+    try:
+        return function(*args)
+    except (KeyError, TypeError, IndexError, AttributeError) as error:
+        raise ValueError(f'malformed authenticated record: {error!r}') from error
+
+
+def admit_prior_census(prior):
+    """State-free predicates of the accepted exact core44 census (its FILE bytes are already SHA256-pinned)."""
+    require(type(prior) is dict and prior['schema'] == RESULT_SCHEMA and prior['candidate_status'] == 'KILL unchanged' and
+            prior['original_decision'] == 'KILL' and prior['scientific_gate_changed'] is False and
+            prior['qualification_eligible'] is False and prior['state_reuse_eligible'] is False and
+            all(prior[k] is True for k in PRIOR_TRUE), 'accepted exact core44 census status differs')
+    exact_policy(prior['resource_policy'])
+    core = prior['core_query_indices']
+    require(type(core) is list and core and all(type(i) is int and 0 <= i < QUERY_COUNT for i in core) and
+            core == sorted(set(core)) and len(core) == prior['scored_queries'] == len(prior['queries']),
+            'accepted core44 selection differs')
+    require(prior['replay'] == {'queries': QUERY_COUNT, 'endpoints': 4, 'per_query_pairs': QUERY_COUNT * 4,
+                                'exact': True, 'tolerance': None, 'batch_sizes': list(BATCHES), 'width': WIDTH,
+                                'falsifier': {**FALSIFIER, 'actual_ap': FALSIFIER['expected_ap'], 'exact': True}} and
+            prior['scorer']['ast_sha256'] == SCORER_AST and prior['scorer']['device'] == 'cpu',
+            'accepted exact replay facts differ')
+    digests = prior['core_score_rows_sha256']
+    require(digests.keys() == set(ENDPOINT_KEYS) and all(re.fullmatch('[0-9a-f]{64}', v) for v in digests.values()) and
+            [q['query_index'] for q in prior['queries']] == core and
+            all(q['endpoints'].keys() == set(ENDPOINT_KEYS) for q in prior['queries']),
+            'accepted core44 endpoint inventory differs')
+
+
+def read_all_query_authority(path, digest):
+    """The core authority schema plus the accepted core44 census as an authenticated, pinned FILE."""
+    authority, guards = read_authority(path, digest, schema=ALL_QUERY_LAUNCH_SCHEMA, keys=ALL_QUERY_KEYS)
+    raw = read_file(authority['prior_census'], guards)
+    require(authority['prior_census']['sha256'] == PRIOR_CENSUS_SHA, 'prior census FILE is not the accepted exact core44 census')
+    strictly(admit_prior_census, strict_json(raw))
+    return authority, guards
+
+
+def selection_mapping_sha256(rows):
+    return hashlib.sha256(json.dumps(rows, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def fetch_identity(record):
+    """The bytes-and-origin identity of every metadata input a fetch record names (local staging paths excluded)."""
+    return {'accepted': record['accepted_receipt']['sha256'],
+            'partition': (record['partition']['original_path'], record['partition']['sha256']),
+            'files': {name: (f['original_path'], f['sha256'], f['bytes']) for name, f in record['files'].items()}}
+
+
+def bind_prior(prior, state):
+    """The accepted core44 census must describe exactly this run's inputs, mapping and core selection."""
+    require(prior['core_query_indices'] == state['core'], 'prior core44 selection differs from this run')
+    require(prior['provenance']['ordered_selection_mapping_sha256'] == selection_mapping_sha256(state['rows']),
+            'prior ordered selection mapping differs from this run')
+    require(fetch_identity(prior['provenance']['fetch_record']) == fetch_identity(state['record']),
+            'prior input identity differs from this run')
+
+
+def margin_r1(values):
+    """Endpoint R@1 from the margin alone: strictly positive, or an exact tie the positive wins by lower gallery index."""
+    margin = values['positive_minus_impostor_margin']
+    return int(margin > 0 or (margin == 0 and values['best_positive_gallery_index'] < values['top_impostor_gallery_index']))
+
+
+def spread(values):
+    return {'min': min(values), 'median': statistics.median(values), 'max': max(values)}
+
+
+def movement(deltas):
+    require(deltas, 'non-empty cohort required')
+    return {'improved': sum(d > 0 for d in deltas), 'worsened': sum(d < 0 for d in deltas),
+            'zero': sum(d == 0 for d in deltas), **spread(deltas), 'mean': math.fsum(deltas) / len(deltas)}
+
+
+def cohort_summary(indices, seed, queries):
+    """Actual transitions and margin movement of one cohort for one seed (candidate minus control)."""
+    rows, control, candidate = [queries[i] for i in indices], f'control-{seed}', f'candidate-{seed}'
+    margin = lambda key: [r['endpoints'][key]['positive_minus_impostor_margin'] for r in rows]
+    return {'queries': len(rows), 'gains': sum(r['r1_transitions'][seed] == 'gain' for r in rows),
+            'losses': sum(r['r1_transitions'][seed] == 'loss' for r in rows),
+            'margin_delta': movement([r['margin_deltas'][seed] for r in rows]),
+            'control_margin': spread(margin(control)), 'candidate_margin': spread(margin(candidate))}
+
+
+def build_all_query_census(state, retained, results, scorer_facts, budget, prior):
+    """Geometry of all 1734 queries from retained native rows; only reachable after complete exact replay."""
+    census = state['census']
+    panel = state['partition']['panels']['selection']
+    query, gallery, rows, core = panel['query'], panel['gallery'], state['rows'], state['core']
+    keys, n = [f'{arm}-{seed}' for seed, arm in census.ENDPOINTS], len(query)
+    require(n == QUERY_COUNT and tuple(keys) == ENDPOINT_KEYS and retained.keys() == results.keys() == set(keys),
+            'exact all-query endpoint inventory required')
+    require(all(retained[k].keys() == set(range(n)) and results[k].keys() == {'per_query_r1', 'per_query_ap'} and
+                all(len(results[k][a]) == n for a in results[k]) for k in keys),
+            'complete all-query score and replay rows required')
+    by_query = {q['query_index']: q['endpoints'] for q in prior['queries']}
+    require(sorted(by_query) == core == prior['core_query_indices'], 'prior core44 selection differs from this run')
+    require([i for i in range(n) if all(results[k]['per_query_r1'][i] == 0 for k in keys)] == core,
+            'core44 is not the all-endpoint-wrong set of the replayed R1 arrays')
+    labels, core_set = [r['product'] for r in rows], set(core)
+    ties = {k: {'zero_margin': 0, 'positive_wins': 0, 'impostor_wins': 0} for k in keys}
+    queries = []
+    for index in range(n):
+        budget.check()
+        endpoints = {}
+        for key in keys:
+            replayed = {k: results[key][k][index] for k in ('per_query_r1', 'per_query_ap')}
+            values = describe_scores(retained[key][index], labels, query[index], gallery, replayed)
+            if index in core_set:
+                values['best_positive'] = rows[values['best_positive_panel_ordinal']]
+                values['top_impostor'] = rows[values['top_impostor_panel_ordinal']]
+                require(values == by_query[index][key], f'{key} query {index}: core44 geometry differs from the accepted census')
+            values['margin_rule_r1'] = margin_r1(values)
+            require(values['margin_rule_r1'] == replayed['per_query_r1'], f'{key} query {index}: margin rule differs from replayed R1')
+            if values['positive_minus_impostor_margin'] == 0:
+                ties[key]['zero_margin'] += 1
+                ties[key]['positive_wins' if values['margin_rule_r1'] else 'impostor_wins'] += 1
+            endpoints[key] = values
+        queries.append({
+            'query_index': index, 'query_panel_ordinal': query[index], 'endpoints': endpoints,
+            'margin_deltas': {s: endpoints[f'candidate-{s}']['positive_minus_impostor_margin'] -
+                                 endpoints[f'control-{s}']['positive_minus_impostor_margin'] for s in SEEDS},
+            'r1_transitions': {s: TRANSITION[(endpoints[f'control-{s}']['per_query_r1'],
+                                              endpoints[f'candidate-{s}']['per_query_r1'])] for s in SEEDS}})
+    budget.check()
+    which = lambda seed, move: [q['query_index'] for q in queries if q['r1_transitions'][seed] == move]
+    transitions = {s: {'gains': len(which(s, 'gain')), 'losses': len(which(s, 'loss')),
+                       'both_correct': len(which(s, 'both_correct')), 'both_wrong': len(which(s, 'both_wrong')),
+                       'control_correct': len(which(s, 'both_correct')) + len(which(s, 'loss')),
+                       'candidate_correct': len(which(s, 'both_correct')) + len(which(s, 'gain')),
+                       'gain_queries': which(s, 'gain'), 'loss_queries': which(s, 'loss')} for s in SEEDS}
+    shared = {m: sorted(set(transitions[SEEDS[0]][f'{m}_queries']) & set(transitions[SEEDS[1]][f'{m}_queries']))
+              for m in ('gain', 'loss')}
+    transitions['shared'] = {'gains': len(shared['gain']), 'losses': len(shared['loss']),
+                             'gain_queries': shared['gain'], 'loss_queries': shared['loss']}
+    require(all({k: transitions[s][k] for k in FROZEN_TRANSITIONS[s]} == FROZEN_TRANSITIONS[s]
+                for s in (*SEEDS, 'shared')), 'actual transitions differ from the accepted receipt')
+    cohorts = {s: {'control_correct': cohort_summary(
+                       [q['query_index'] for q in queries if q['endpoints'][f'control-{s}']['per_query_r1'] == 1], s, queries),
+                   'control_wrong': cohort_summary(
+                       [q['query_index'] for q in queries if q['endpoints'][f'control-{s}']['per_query_r1'] == 0], s, queries)}
+               for s in SEEDS}
+    cohorts['core44'] = {s: cohort_summary(core, s, queries) for s in SEEDS}
+    core_digests = {k: score_digest(retained[k], core) for k in keys}
+    require(core_digests == prior['core_score_rows_sha256'], 'core44 score digests differ from the accepted census')
+    all_digests = {k: score_digest(retained[k], range(n)) for k in keys}
+    budget.check()
+    focus = results[FALSIFIER['endpoint']]['per_query_ap'][FALSIFIER['query_index']]
+    return {'schema': ALL_QUERY_RESULT_SCHEMA,
+            'scope': 'descriptive previously exposed TRAIN-selection all-query endpoint margins and actual R@1 transitions; '
+                     'exact original Torch CPU scorer arithmetic; no projection, interval, threshold or training release',
+            'original_decision': state['receipt']['decision'], 'candidate_status': 'KILL unchanged',
+            'close_fs_status': 'unchanged', 'scientific_gate_changed': False, 'qualification_eligible': False,
+            'state_reuse_eligible': False, 'training_release': False,
+            'query_range': {'start': 0, 'stop': n, 'count': n}, 'core_query_indices': core, 'queries': queries,
+            'transitions': transitions, 'cohorts': cohorts, 'margin_ties': ties,
+            'scored_queries': n, 'gallery_rows': len(gallery), 'endpoints': len(keys),
+            'scored_pairs': n * len(gallery) * len(keys),
+            'replay': {'queries': n, 'endpoints': len(keys), 'per_query_pairs': n * len(keys), 'exact': True,
+                       'tolerance': None, 'batch_sizes': list(BATCHES), 'width': WIDTH,
+                       'falsifier': {**FALSIFIER, 'actual_ap': focus, 'exact': focus == FALSIFIER['expected_ap']}},
+            'core_score_rows_sha256': core_digests, 'score_rows_sha256': all_digests,
+            'prior_census_binding': {'schema': prior['schema'], 'core_queries': len(core), 'core_geometry_equal': True,
+                                     'core_score_rows_sha256_equal': True},
+            'scorer': scorer_facts}
+
+
+def replay_all_query(ctx):
+    """replay() with every query's score row retained; a complete exact replay still precedes all geometry."""
+    torch, state, budget, census = ctx.torch, ctx.state, ctx.budget, ctx.state['census']
+    scorer = ctx.authority['sources']['scorer']
+    raw = read_file(scorer, ctx.guards)
+    panel = state['partition']['panels']['selection']
+    query, gallery, labels = panel['query'], panel['gallery'], tuple(r['product'] for r in state['rows'])
+    require(len(query) == QUERY_COUNT, 'all-query range must be exactly the 1734 selection queries')
+    prior = read_json(ctx.authority['prior_census'], ctx.guards)
+    strictly(bind_prior, prior, state)
+    gallery_counts = Counter(labels[i] for i in gallery)
+    require(max(gallery_counts[labels[i]] for i in query) == WIDTH, 'original panel-wide AP width differs')
+    everything, results, retained = set(range(len(query))), {}, {}
+    for seed, arm in census.ENDPOINTS:
+        key = f'{arm}-{seed}'
+        budget.check()
+        ctx.guard()
+        retained[key] = {}
+        fn = compile_scorer(torch, raw, scorer['path'], make_capture(everything, retained[key], budget),
+                            lambda start: budget.check())
+        packed = packed_input(torch, state['wires'][key])
+        budget.check()
+        results[key] = fn(packed, labels, query, gallery, device=torch.device('cpu'))
+        require(retained[key].keys() == everything and all(len(r) == len(gallery) for r in retained[key].values()),
+                'query score rows were not all captured')
+    expected = {f'{a}-{s}': state['receipt']['quality'][s][a] for s, a in census.ENDPOINTS}
+    require(expected[FALSIFIER['endpoint']]['per_query_ap'][FALSIFIER['query_index']] == FALSIFIER['expected_ap'],
+            'accepted falsifier AP differs from the frozen plan')
+    replay_exact(results, expected)
+    ctx.budget.check()
+    facts = {'source_sha256': scorer['sha256'], 'ast_sha256': SCORER_AST, 'device': 'cpu', 'width': WIDTH,
+             'torch_version': torch.__version__, 'numerical_flags': ctx.flags,
+             'adapter': 'packed input, read-only capture, no np aggregates; exact AST inverse verified'}
+    ctx.payload = build_all_query_census(state, retained, results, facts, ctx.budget, prior)
+
+
+def run_all_query(args):
+    require(sys.flags.optimize == 0 and sys.dont_write_bytecode and sys.getprofile() is None,
+            'unoptimized -B unprofiled startup required')
+    require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native imports must follow explicit admission')
+    require(os.environ.get('CUDA_VISIBLE_DEVICES') == '', 'CUDA must be explicitly hidden')
+    require(re.fullmatch('[0-9a-f]{32}', os.environ.get('INVOCATION_ID', '')), 'enclosing systemd invocation required')
+    output = Path(args.output)
+    require(output.is_absolute() and str(output) == args.output and output.parent.resolve() == output.parent and
+            not os.path.lexists(output), 'exclusive canonical NEWFILE required')
+    ctx = SimpleNamespace(budget=Budget(), owned=[], own=None, modules=None, locks=None, state=None, proof=None,
+                          torch=None, audit=None, payload=None, origins={}, flags=None, before=None, unit=None)
+    ctx.authority, ctx.guards = read_all_query_authority(args.authority, args.authority_sha256)
+    ctx.guard = lambda: guard(ctx)
+    error = None
+    try:
+        admit(ctx)
+        replay_all_query(ctx)
+    except BaseException as failure:
+        error = failure
+    cleanup_error(error, exit_checks(ctx))
+    finalize(args, ctx)
+    publish_census(ctx.state['census'], args.output, ctx.payload, ctx.state['guards'], ctx.budget)
+    return ctx.payload
+
+
 def parser():
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument('--authority', required=True)
     p.add_argument('--authority-sha256', required=True)
     p.add_argument('--output', required=True)
+    p.add_argument('--mode', choices=('core', 'all-query'), default='core',
+                   help='core: the original 44-query census; all-query: the all-1734-query margin capture')
     return p
 
 
 def main(argv=None):
     args = parser().parse_args(argv)
     try:
-        payload = run(args)
+        payload = (run_all_query if args.mode == 'all-query' else run)(args)
     except Exception as error:
         print(f'exact Torch core census rejected: {type(error).__name__}: {error}', file=sys.stderr)
         return 1
