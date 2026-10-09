@@ -1,0 +1,34 @@
+{
+  "schema": "connected-probe-train-query-throughput-derived-v1",
+  "dataset": "DeepFashion In-Shop",
+  "split": "official TRAIN-derived frozen control scope; seed179061",
+  "scope": "Only the 128 main updates\u2019 decoded query image-views; excludes initializer, qualification, bundle/parity image calls. Core includes decode/encoder/loss/backward/optimizer/integrity; service includes full admission and exit. Not inference QPS or serving latency.",
+  "arms": {
+    "control": {
+      "decoded_update_image_views": 16384,
+      "updates": 128,
+      "views": [
+        "augmented",
+        "canonical"
+      ],
+      "update_core_seconds": 1678.500399681041,
+      "whole_service_seconds": 2169.42,
+      "decoded_update_image_views_per_core_second": 9.761093892568264,
+      "decoded_update_image_views_per_service_second": 7.55224898820883,
+      "receipt_sha256": "9390fc680d862243c6a2661f0fd57a3c4b8181d2d280f407856ed66a308e01ec"
+    },
+    "candidate": {
+      "decoded_update_image_views": 16384,
+      "updates": 128,
+      "views": [
+        "augmented",
+        "canonical"
+      ],
+      "update_core_seconds": 1677.2712674752693,
+      "whole_service_seconds": 2222.92,
+      "decoded_update_image_views_per_core_second": 9.768246984080395,
+      "decoded_update_image_views_per_service_second": 7.370485667500405,
+      "receipt_sha256": "d89f6f590189c0c587240d2ebcbf670b45181e4609aca01463539e8e1b0239d7"
+    }
+  }
+}
