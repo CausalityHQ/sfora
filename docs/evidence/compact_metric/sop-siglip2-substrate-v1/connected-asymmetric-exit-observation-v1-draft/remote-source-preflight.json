@@ -1,0 +1,25 @@
+{
+  "authority_sha256": "3e83bb12d2a598255a87a7b5dac796b52e277b0d0e2273f7e29d65972ecc58df",
+  "experiment_launched": false,
+  "files": [
+    {
+      "compile_only": true,
+      "path": "/home/riomus/runs/sfora-connected-asymmetric-cache-source-v2/diagnose_connected_asymmetric_cache.py",
+      "sha256": "6a456248cd249e16f7f5b62eaae584cb226774a1acecf6ee8ff00ec9ff360f0f"
+    },
+    {
+      "compile_only": true,
+      "path": "/home/riomus/runs/sfora-connected-asymmetric-cache-source-v2/test_connected_asymmetric_cache.py",
+      "sha256": "2e13f715c860d32da729bee5e4e51e7150f526ec96dbc92a640b184c81c8c893"
+    },
+    {
+      "compile_only": false,
+      "path": "/home/riomus/runs/sfora-connected-asymmetric-cache-source-v2/execution.json",
+      "sha256": "33ebabcaab0c2a392ad6850676f68f12f02eaec02167b6897714325428fb960d"
+    }
+  ],
+  "hold": "External sampler/final controller review pending",
+  "native_imports": [],
+  "python_version": "3.13.9 (main, Oct 14 2025, 21:26:54) [Clang 20.1.4 ]",
+  "schema": "asymmetric-exit-source-preflight-v1"
+}
