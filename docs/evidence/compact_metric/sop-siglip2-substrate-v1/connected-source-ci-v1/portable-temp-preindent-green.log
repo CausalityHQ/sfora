@@ -1,0 +1,2 @@
+PASS: connected bridge source-only admission, exact wire, failure cleanup, registry ownership, lifecycle lock; mode=mlp
+PASS: connected bridge source-only admission, exact wire, failure cleanup, registry ownership, lifecycle lock; mode=probe

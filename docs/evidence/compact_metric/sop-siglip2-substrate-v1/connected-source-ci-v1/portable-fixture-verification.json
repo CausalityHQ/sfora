@@ -1,0 +1,24 @@
+{
+  "artifacts": {
+    "hosted-original-failure-annotations.json": "82593729e371cb6c20ed78beb74ebaf1221f17eca849f59a679add62eda7374e",
+    "portable-temp-final-green.log": "01734a29feba5c3f2e4f3ffc72ed179f2263e1678e3e3350fb6904a19c6396a3",
+    "portable-temp-preindent-green.log": "01734a29feba5c3f2e4f3ffc72ed179f2263e1678e3e3350fb6904a19c6396a3"
+  },
+  "ci_replacement_pending": true,
+  "correction": "Remove only the test fixture absolute temporary-directory parent; tempfile default is portable. Product serving code and authority unchanged.",
+  "entire_test_byte_inverse_pass": true,
+  "initial_commit_limitation": "Preindent local tests passed but whole-byte inverse failed; commit ran despite verification error. Indentation corrected, complete both-mode gate and byte inverse passed before corrective commit/push. Original local log preserved.",
+  "initial_local_commit": "5df23133",
+  "local_command": "timeout 120 bash -c 'ulimit -v 1048576; python3 -B -S scripts/test_connected_compact_serving.py && python3 -B -S scripts/test_connected_compact_serving.py --probe-only'",
+  "local_exit": 0,
+  "native_unrun": true,
+  "new_test_sha256": "78a082bb12f4d31c9e5c692f6d430e18550c9355cfe5ee20e069d09a979838ea",
+  "old_test_sha256": "9589dae6a5b77d500c313559ec613669e71b6e66ae127498c033a649012016d3",
+  "original_error": "FileNotFoundError: /home/rb/agents/handoffs/connected-bridge-*",
+  "original_failed_job": 113904982602,
+  "original_failed_run": 37955539281,
+  "original_local_controller": 79658,
+  "python_version": "3.14.4",
+  "quality_speed_go": false,
+  "schema": "connected-source-ci-portable-fixture-v1"
+}
