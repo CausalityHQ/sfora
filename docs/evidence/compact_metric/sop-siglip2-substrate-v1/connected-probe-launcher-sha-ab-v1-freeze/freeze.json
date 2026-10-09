@@ -1,0 +1,28 @@
+{
+  "files": {
+    "bounded-command.sh": "158458cadbae83ba10587fc21eede5a9c1a24f193fd4cb4aef9ad69f3ce3814a",
+    "bounded-controller.sh": "0ed5b3f5efe7c843203c52bc6a96ca13142b62d0900f34a71f38871792d8c4da",
+    "bounded-launch.sh": "58ceaa91f7a547ed887fc95c9b49a41bd3d0a4a030e2ef328b10cb2da53a1722",
+    "inputs.sha256": "ad9efe3876aba7fa35f418a5e224ea8692d99a2876e02e60722edfa254249831",
+    "original-command.sh": "25cf255b569e14a0aa363aa9a8ac9be9e7d4c5102f0faff56888a86a7580c315",
+    "original-controller.sh": "b5aa3a9f9422bc8edafabbe39f33a30e3feccbdac4cd992e34cb115d1777f1d2",
+    "original-launch.sh": "f336fe677a4752005fffce32971543a00b519a56cc073aa414d9c29ad0eab836",
+    "residency_sampler.py": "53409094fbbffd51eb8d7f38b47e6248d60b9e6346ed1ec184cf5a1574639922",
+    "verify_fresh_sha_table.py": "f99170e5c728cb07b8825ec325b56d1c3baf8a455c3143edebbcc939a61b01fb"
+  },
+  "limits": {
+    "cuda": "hidden",
+    "host_bytes": 8589934592,
+    "seconds": 700,
+    "swap_bytes": 0
+  },
+  "ordered_arms": [
+    "original",
+    "bounded"
+  ],
+  "remote": "/home/riomus/runs/sfora-connected-probe-launcher-sha-ab-source-v1",
+  "rows": 18810,
+  "schema": "connected-probe-launcher-sha-ab-freeze-v1",
+  "source_commit": "2b62e3a9",
+  "stop_rule": "Sequential cold-start exact first table only, no evaluator/native imports. Any bounded-arm memory event falsifies launcher-only sufficiency. Original pressure + clean bounded supports scan mechanism only; clean original leaves attribution unresolved. Complete evaluator CPU must still independently pass. Sampler watchdog550 may yield incomplete coverage; no qualification from incomplete samples. Prior CPU FAIL preserved; no quality/speed claim."
+}
