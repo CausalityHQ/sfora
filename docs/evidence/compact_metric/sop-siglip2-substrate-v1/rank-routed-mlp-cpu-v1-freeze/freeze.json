@@ -1,0 +1,30 @@
+{
+  "authority_sha256": "091a28fe28a783d615eca82ec196f6fcaf3eac06696aa17f2def12b4037103ee",
+  "execution_sha256": "0c0483b16a95cc3f823fcab52aff800b541fb5be3adf2e623b9d4765d7b6b385",
+  "files": {
+    "authority-cpu-v1.json": "091a28fe28a783d615eca82ec196f6fcaf3eac06696aa17f2def12b4037103ee",
+    "cpu-v1-command.sh": "2f421dcadca84d37c06ae72e389fc372d1f7510dbf365517912736229dbb07de",
+    "cpu-v1-controller.sh": "87409fcdf66f95e8c9313e39ecb41a98908bcc9bfcfb15c925df839260dc0286",
+    "cpu-v1-launch.sh": "f2527c465d046fa5beb382487e932065cc41a8ded35816a0b0419141d316cbbb",
+    "execution.json": "0c0483b16a95cc3f823fcab52aff800b541fb5be3adf2e623b9d4765d7b6b385",
+    "source-preflight.py": "1b359f670592a8343be77f592ba49b3fe695bb5005c1408260531d2a363fa92e",
+    "source-repair-final.log": "ba75390d640801d65452e052a105bb91c8f666179e52ca21fd1d425d99eca26b",
+    "source-repair-receipt.json": "01b89250350a17d1a3779863b350f090cbd68ff55e1fcec9924618fa1232de8b",
+    "test_siglip2_rank_routed_mlp.py": "ca947811c0d9f2b709ce9d28832fb49fa79f4428d64804a6b00dd3e02f87de3b",
+    "train_siglip2_rank_routed_mlp.py": "940d37fb12e4a6cc3f53c023ee31d50f8316d801fe8a6db93af929b7028bb3f1"
+  },
+  "native_unrun_at_freeze": true,
+  "output": "/home/riomus/runs/sfora-rank-routed-mlp-cpu-v1",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "schema": "rank-routed-mlp-parent-freeze-v1",
+  "source_commit": "32dd386baedfc72db6507229652cb80523699a00",
+  "source_root": "/home/riomus/runs/sfora-rank-routed-mlp-train-source-v1",
+  "stop_rule": "ONE fresh CPU600 engineering gate; both views independent B64/micro16, actual optimizer gradient routing, full updated448, restore, bundle, lifetime, source/native uncached exit, both locks and normal terminal. Any failure prevents GPU mechanics/training; no partial reuse or cap change.",
+  "unit": "sfora-rank-routed-mlp-cpu-v1",
+  "worker_commit": "d64782f3e88bcd68b36909e3b8a1b334bbb33bd2"
+}

@@ -1,0 +1,27 @@
+{
+  "status": "SOURCE_COMMITTED_NATIVE_UNRUN_HOLD_SAME_WORKER",
+  "base": "6b9c590350a104a25f83931e96b39dc00295c1d5",
+  "commit": "d64782f3e88bcd68b36909e3b8a1b334bbb33bd2",
+  "files": {
+    "scripts/train_siglip2_rank_routed_mlp.py": "940d37fb12e4a6cc3f53c023ee31d50f8316d801fe8a6db93af929b7028bb3f1",
+    "scripts/test_siglip2_rank_routed_mlp.py": "ca947811c0d9f2b709ce9d28832fb49fa79f4428d64804a6b00dd3e02f87de3b"
+  },
+  "suite": {
+    "command": "python3 -B scripts/test_siglip2_rank_routed_mlp.py --source-only",
+    "timeout_seconds": 120,
+    "configured_rlimit_as_bytes": 1073741824,
+    "exit_code": 0,
+    "elapsed_seconds": 1.9,
+    "max_rss_kib": 67304,
+    "log": "/tmp/rank-routing-repair-final-suite-a0001.log",
+    "log_sha256": "ba75390d640801d65452e052a105bb91c8f666179e52ca21fd1d425d99eca26b",
+    "output": "PASS exact delta inverse: driver bytes -> committed connected trainer; mutants rejected\nPASS identity: new schemas/FILES/CLI/recipe+routing pins in typed method; frozen constants equal connected\nPASS regression derivation: pinned loss_terms == derived mse (executed), statement-by-statement, guards/mutants\nPASS split MSE owns raw/query A/C graph and dies before the lifetime gate\nPASS live callable replacement after step17 rejected before regression/backward\nPASS equal micro accumulator perturbation fails independent full reference\nPASS executed independent B64 source reference: bothviews/full-vs-micro/state+RNG/lifetime/primary-error; native UNRUN\nPASS actual optimizer encoder/A/C gradient mutants fail with independent witnesses unchanged\nPASS routing witness: routed/original A/C correspondence, encoder-regression absent, unrouted reaches encoder, query/gallery split, full-view sums, retain_graph, lifetime, receipt mutants\nPASS update dataflow: real micro loop on stand-ins (routed mse -> backward, detached branch, control unchanged, step1 witness, lifetime gate) + one loss_terms/one regression/retain_graph structure\nPASS check_steps: per-micro parity count and step1 routing witness required for candidate, forbidden for control\nPASS executed producer-shaped full mechanics receipt: first17/steps/missing/tamper negatives\nPASS reused connected seams on rank-routed driver (source/authority/lifetime/overlay/loader/restore/encoder/processor/cost)\nPASS source-only rank-routed connected MLP contracts/falsifiers; native UNRUN; 1.7s\n\tCommand being timed: \"timeout 120s python3 -B scripts/test_siglip2_rank_routed_mlp.py --source-only\"\n\tUser time (seconds): 1.73\n\tSystem time (seconds): 0.06\n\tPercent of CPU this job got: 94%\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 0:01.90\n\tAverage shared text size (kbytes): 0\n\tAverage unshared data size (kbytes): 0\n\tAverage stack size (kbytes): 0\n\tAverage total size (kbytes): 0\n\tMaximum resident set size (kbytes): 67304\n\tAverage resident set size (kbytes): 0\n\tMajor (requiring I/O) page faults: 0\n\tMinor (reclaiming a frame) page faults: 17775\n\tVoluntary context switches: 40\n\tInvoluntary context switches: 304\n\tSwaps: 0\n\tFile system inputs: 3760\n\tFile system outputs: 0\n\tSocket messages sent: 0\n\tSocket messages received: 0\n\tSignals delivered: 0\n\tPage size (bytes): 4096\n\tExit status: 0\nEXIT=0\n"
+  },
+  "clean_worktree": true,
+  "exact_own2_scope": true,
+  "historical_whole_byte_inverse": "PASS",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "trailers": [],
+  "native_correctness_parity_quality_resource_fit": "UNRUN_ROOT_OWNED",
+  "merge_push_archive": "NOT_PERFORMED"
+}
