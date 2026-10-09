@@ -28,6 +28,27 @@ def encoded(raw):
 
 
 class EnvironmentTests(unittest.TestCase):
+    def test_rejected_directory_leaves_close_descriptors(self):
+        for relative in (
+            "torch-1.0.dist-info/RECORD",
+            "torch-1.0.dist-info/METADATA",
+            "torch/__init__.py",
+        ):
+            with self.subTest(relative=relative):
+                path = self.target / relative
+                original = path.read_bytes()
+                path.unlink()
+                path.mkdir()
+                try:
+                    before = len(os.listdir("/proc/self/fd"))
+                    for _ in range(3):
+                        with self.assertRaises(ValueError):
+                            self.verify()
+                    self.assertEqual(len(os.listdir("/proc/self/fd")), before)
+                finally:
+                    path.rmdir()
+                    path.write_bytes(original)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

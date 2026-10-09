@@ -1,0 +1,32 @@
+{
+  "base": "17b0e03cb12d29c0b16a4ad0e8d77f8abadc391a",
+  "critique_id": "337f6c479de14eb2",
+  "files": {
+    "scripts/test_connected_installed_environment.py": "9d950a44b9bcd1764b898df0b0d91ebf1961b16475b5bf4aaded052593a8b965",
+    "src/sfora/connected_installed_environment.py": "120326f51d609da1c79aeda0655da607be674cab85262d41499143cdb6041467"
+  },
+  "final": {
+    "address_space_bytes": 1073741824,
+    "exit_code": 0,
+    "extraction_mlp_probe_and_bridge_mlp_probe": "PASS",
+    "identity_tests": 13,
+    "max_rss_kib": 116396,
+    "python312_tests": 11,
+    "python314_tests": 11,
+    "ruff_01520": "PASS",
+    "session_id": 12398,
+    "strict_mypy_210": "PASS",
+    "swaps": 0,
+    "timeout_seconds": 120,
+    "wall_seconds": 91.05
+  },
+  "logs": {
+    "ast-inverse.json": "91c5916eb0d2b998fb105ca1497c59c3639e17e763542fc7044f72781ac9dea4",
+    "final.log": "9e7e41e23f3f10ec1b5ca5a87791d5c8b49e5341ad7fb56c0d90daa190bdf916",
+    "green.log": "3230caf5bcf7b75210d6ff84024c594754689765ada21013297a85b6f4fb1f1f",
+    "red.log": "a9cc664eff34146a70abfb0476bdd685e85dcd1ca0bbd703e05b3526b7049458"
+  },
+  "native_execution": false,
+  "product_go": false,
+  "schema": "connected-installed-descriptor-correction-verification-v1"
+}

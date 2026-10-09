@@ -1,0 +1,8 @@
+{
+  "exact_changes": "closefd=False plus descriptor-owning try/finally os.close(fd) around original with; complete inverse equals HEAD AST",
+  "new_source_sha256": "120326f51d609da1c79aeda0655da607be674cab85262d41499143cdb6041467",
+  "original_source_sha256": "07e8cd2074ee1d22aef0de2541efe9ce336623e2df00d1ba3b7457306a7468bb",
+  "pass": true,
+  "restored_full_ast_sha256": "1a59eca01c1d420fb8a6e6fc884ad7bea4b5095e2a0cbfd4eb368fe66a642e1e",
+  "schema": "installed-directory-fd-ownership-inverse-v1"
+}

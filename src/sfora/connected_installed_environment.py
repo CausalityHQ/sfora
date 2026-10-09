@@ -354,47 +354,50 @@ def _read_file(
             os.close(directory)
             directory = child
         fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
-        with os.fdopen(fd, "rb") as stream:
-            before = os.fstat(stream.fileno())
-            _require(stat.S_ISREG(before.st_mode), "regular installed file required")
-            if size is not None:
-                _require(before.st_size == size, "installed byte count differs")
-            if capture:
-                _require(before.st_size <= _METADATA_LIMIT, "metadata exceeds byte bound")
-            digest = hashlib.sha256()
-            count = 0
-            chunks = []
-            while block := stream.read(1024 * 1024):
-                digest.update(block)
-                count += len(block)
+        try:
+            with os.fdopen(fd, "rb", closefd=False) as stream:
+                before = os.fstat(stream.fileno())
+                _require(stat.S_ISREG(before.st_mode), "regular installed file required")
+                if size is not None:
+                    _require(before.st_size == size, "installed byte count differs")
                 if capture:
-                    _require(count <= _METADATA_LIMIT, "metadata exceeds byte bound")
-                    chunks.append(block)
-            after = os.fstat(stream.fileno())
-            _require(
-                (
-                    before.st_dev,
-                    before.st_ino,
-                    before.st_size,
-                    before.st_mtime_ns,
-                    before.st_ctime_ns,
+                    _require(before.st_size <= _METADATA_LIMIT, "metadata exceeds byte bound")
+                digest = hashlib.sha256()
+                count = 0
+                chunks = []
+                while block := stream.read(1024 * 1024):
+                    digest.update(block)
+                    count += len(block)
+                    if capture:
+                        _require(count <= _METADATA_LIMIT, "metadata exceeds byte bound")
+                        chunks.append(block)
+                after = os.fstat(stream.fileno())
+                _require(
+                    (
+                        before.st_dev,
+                        before.st_ino,
+                        before.st_size,
+                        before.st_mtime_ns,
+                        before.st_ctime_ns,
+                    )
+                    == (
+                        after.st_dev,
+                        after.st_ino,
+                        after.st_size,
+                        after.st_mtime_ns,
+                        after.st_ctime_ns,
+                    ),
+                    "installed file changed while reading",
                 )
-                == (
-                    after.st_dev,
-                    after.st_ino,
-                    after.st_size,
-                    after.st_mtime_ns,
-                    after.st_ctime_ns,
-                ),
-                "installed file changed while reading",
-            )
-            _require(
-                count == before.st_size
-                and (size is None or count == size)
-                and digest.hexdigest() == expected,
-                "fresh installed SHA/size differs",
-            )
-            return b"".join(chunks) if capture else b""
+                _require(
+                    count == before.st_size
+                    and (size is None or count == size)
+                    and digest.hexdigest() == expected,
+                    "fresh installed SHA/size differs",
+                )
+                return b"".join(chunks) if capture else b""
+        finally:
+            os.close(fd)
     except OSError as error:
         raise ValueError("nonsymlink installed path required") from error
     finally:

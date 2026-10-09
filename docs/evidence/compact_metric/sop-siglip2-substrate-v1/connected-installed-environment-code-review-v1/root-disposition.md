@@ -1,0 +1,9 @@
+# Implemented verifier review and correction
+
+Original dual critique `337f6c479de14eb2` completed. Opus `7ab463d0273d436d` and Astra `12a1f54df57f4ad0` independently identified the same descriptor leak in the original `2775cc31` implementation. Their full separately labelled results are retained in original-results.json. No other blocking implementation bug was established; native execution and product qualification were not reviewed or performed.
+
+A directory replacement at a leaf makes os.open succeed and os.fdopen raise without closing the descriptor. The new public-API regression reproduces three leaked descriptors at each of RECORD, METADATA and selected-source leaves. The correction gives the raw descriptor explicit try/finally ownership and uses closefd=False for its stream. Parent directory ownership and every original parse/hash/size/stability/path/ownership predicate remain unchanged.
+
+The narrow RED and GREEN are separate original logs. The complete AST inverse removes only the descriptor-owning try/finally and the closefd keyword, reproducing the entire original helper AST. The new regression checks all three leaf categories across repeated rejected calls and restores the fixture files in finally. The final serial source gate and its terminal/resource receipt are retained alongside this disposition; prior source receipts remain valid only for their original bytes.
+
+This corrects a resource leak, not a new serving or scientific result. System anchors remain unread and separately gated. Gallery conversion, installed loader execution, full typed payload and packed top-k/tie parity, official quality and matched latency remain unqualified. The stopped correspondence specialist was archived preserving its transcript/worktree after root completed its task; the separate gallery binder owns only its two new files.
