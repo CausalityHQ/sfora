@@ -1069,6 +1069,7 @@ def run(args):
         runtime_authority = native_module.CombinedAuthority(context['training_context'],native_fact['authority'],observer,requests)
         evaluator.merge_guards(context['guards'],{f['path']:f['sha256'] for f in runtime_authority.provenance_facts()})
         api = runtime_authority.install(evaluator_source,context)
+        identity_boundary.bind_native(runtime_authority,api,native_source)
         policy = authority['resource_policy']
         require(policy['whole_process_seconds'] <= evaluator.policy('export')['seconds'] and
             time.perf_counter()-STARTED+policy['body_seconds']+policy['exit_reserve_seconds'] < policy['whole_process_seconds'],
@@ -1218,6 +1219,11 @@ def main(argv=None):
 # BEGIN installed identity boundary
 class _InstalledIdentityBoundary:
     """Own one compiled call seam; the original module and its guards remain authoritative."""
+    NATIVE_AUTHORITY = ('/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json',
+        'cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1')
+    NATIVE_FILES = (('/home/riomus/runs/sfora-cutile-threads-v1/candidate.so',ARCHIVED_BINARY_SHA),
+        ('/usr/lib/aarch64-linux-gnu/libnvidia-gpucomp.so.580.159.03',
+         'f9e19c3c4805ee72b3a9a04bbce65a8645b7501147584322b5c3663de22b1745'))
     def __init__(self, context, endpoint, wheel):
         self.context, self.endpoint, self.wheel = context, endpoint, copy.deepcopy(wheel)
         original = context['evaluator_reference']
@@ -1262,16 +1268,37 @@ class _InstalledIdentityBoundary:
             ast.dump(hits[0].args[0]) == ast.dump(ast.Name(id='context',ctx=ast.Load())) and
             ast.dump(hits[0].args[1]) == ast.dump(ast.Name(id='site',ctx=ast.Load())), 'sole exact identity call required')
         hits[0].func.id = '_probe_distribution_identity_files'
+        grouped_calls = [n for n in ast.walk(derived) if isinstance(n,ast.Call) and
+            isinstance(n.func,ast.Name) and n.func.id == 'grouped_md_origin']
+        require(len(grouped_calls) == 1 and ast.dump(grouped_calls[0],include_attributes=False) ==
+            ast.dump(ast.parse('grouped_md_origin(context)',mode='eval').body,include_attributes=False),
+            'sole exact grouped origin call required')
+        grouped_calls[0].func.id = '_probe_grouped_md_origin'
         inverse = copy.deepcopy(derived)
         next(n for n in ast.walk(inverse) if isinstance(n,ast.Name) and n.id == '_probe_distribution_identity_files').id = 'distribution_identity_files'
+        next(n for n in ast.walk(inverse) if isinstance(n,ast.Name) and n.id == '_probe_grouped_md_origin').id = 'grouped_md_origin'
         require(ast.dump(inverse,include_attributes=False) == ast.dump(nodes[0],include_attributes=False),
             'installed identity call inverse differs')
+        grouped_original = next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name == 'grouped_md_origin')
+        grouped = copy.deepcopy(grouped_original)
+        predicate = ast.parse("require(set(map(str,group)) <= mapped and str(alias) not in mapped and mapped <= known, "
+            "'grouped md mapped native witness differs')").body[0]
+        positions = [i for i,n in enumerate(grouped.body) if ast.dump(n,include_attributes=False) ==
+            ast.dump(predicate,include_attributes=False)]
+        require(len(positions) == 1, 'sole exact grouped map predicate required')
+        addition = ast.parse('known |= _probe_grouped_native_paths(context, mapped, group, alias, known)').body[0]
+        grouped.body.insert(positions[0],addition)
+        inverse = copy.deepcopy(grouped)
+        require(ast.dump(inverse.body.pop(positions[0]),include_attributes=False) == ast.dump(addition,include_attributes=False) and
+            ast.dump(inverse,include_attributes=False) == ast.dump(grouped_original,include_attributes=False),
+            'grouped native composition inverse differs')
         self.bindings = {k:context[k] for k in ('evaluator_reference','launch','guards','required_guards','training_context','trainer','helper_snapshots')}
         self.required = dict(context['required_guards'])
         self.endpoint_fact = copy.deepcopy(endpoint['bundle'])
         require('portable_audits' not in context, 'preexisting original audit cache forbidden')
         self.cache = self.entry = self.entry_values = None
         self.active, self.reading = False, False
+        self.native = None
         self.identity = (str(Path(endpoint['bundle']['path']).parent),endpoint['bundle']['sha256'])
         self.space = dict(vars(original))
         owner_ref = weakref.ref(self)
@@ -1282,6 +1309,16 @@ class _InstalledIdentityBoundary:
         self.space['_probe_distribution_identity_files'] = identity_files
         self.seam = (identity_files,identity_files.__code__,identity_files.__globals__,
             tuple(c.cell_contents for c in identity_files.__closure__))
+        def native_paths(context, mapped, group, alias, known):
+            owner = owner_ref()
+            require(owner is not None, 'grouped native owner released')
+            return owner.native_paths(context,mapped,group,alias,known)
+        self.grouped_space = dict(vars(original),_probe_grouped_native_paths=native_paths)
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[grouped],type_ignores=[])),path,'exec',dont_inherit=True),self.grouped_space)
+        self.space['_probe_grouped_md_origin'] = self.grouped_space['grouped_md_origin']
+        self.grouped_values = dict(self.grouped_space)
+        self.grouped_functions = tuple(self.function_binding(fn) for fn in
+            (native_paths,self.grouped_space['grouped_md_origin']))
         exec(compile(ast.fix_missing_locations(ast.Module(body=[derived],type_ignores=[])),path,'exec',dont_inherit=True),self.space)
         self.boundary = self.space['bundle_reads_only']
         self.wrapper_code = self.boundary.__code__
@@ -1296,6 +1333,158 @@ class _InstalledIdentityBoundary:
             owner = owner_ref()
             if owner is not None: owner.audit(event,args)
         sys.addaudithook(audit)
+
+    @staticmethod
+    def function_binding(fn):
+        return (fn,fn.__code__,fn.__globals__,fn.__defaults__,copy.deepcopy(fn.__kwdefaults__),
+            dict(vars(fn)),fn.__closure__,tuple(c.cell_contents for c in fn.__closure__ or ()),
+            fn.__builtins__,(fn.__module__,fn.__name__,fn.__qualname__),
+            tuple((value,dict(value)) for value in fn.__defaults__ or () if type(value) is dict))
+
+    @staticmethod
+    def check_functions(functions):
+        for fn,code,namespace,defaults,kw,values,closure,cells,builtins,metadata,registries in functions:
+            require(fn.__code__ is code and fn.__globals__ is namespace and fn.__defaults__ is defaults and
+                fn.__kwdefaults__ == kw and vars(fn).keys() == values.keys() and
+                all(vars(fn)[k] is v for k,v in values.items()) and fn.__closure__ is closure and
+                all(c.cell_contents is v for c,v in zip(fn.__closure__ or (),cells,strict=True)) and
+                fn.__builtins__ is builtins and (fn.__module__,fn.__name__,fn.__qualname__) == metadata and
+                all(registry.keys() == entries.keys() and all(registry[k] is v for k,v in entries.items())
+                    for registry,entries in registries),
+                'grouped native function binding changed')
+
+    def bind_native(self, owner, api, source):
+        require(self.native is None and not self.active and type(source) is requests.Source,
+            'single authenticated grouped native binding required')
+        source.check()
+        requests.Source(source.module,source.fact).check()
+        require(self.context['guards'].get(source.fact['path']) == source.fact['sha256'] and
+            type(owner) is source.module.CombinedAuthority and owner.context is self.context['training_context'] and
+            owner.request is requests, 'grouped native source/owner differs')
+        authority_path,authority_sha = self.NATIVE_AUTHORITY
+        require(owner.fact == {'path':authority_path,'sha256':authority_sha} and
+            owner.record['library'] == {'path':self.NATIVE_FILES[0][0],'sha256':self.NATIVE_FILES[0][1]} and
+            owner.files == dict(self.NATIVE_FILES), 'exact frozen grouped native authority required')
+        owned = owner.context.get('control_native_owned')
+        require(type(owned) is dict and owned.keys() == {'owner','api','authenticate'} and
+            owned['owner'] is owner and owned['api'] is api and owned['authenticate'] is api.authenticate,
+            'grouped native ownership differs')
+        # Pin the nested authenticator to independent source bytes before inspecting its bindings.
+        codes = [compile(requests.read_file(source.fact),source.fact['path'],'exec',dont_inherit=True)]
+        for code in codes:
+            codes.extend(c for c in code.co_consts if isinstance(c,type(code)))
+        expected = next(c for c in codes if c.co_qualname == 'CombinedAuthority.install.<locals>.authenticate')
+        auth = api.authenticate
+        require(type(auth) is type(self.identity_files.__func__) and auth.__code__ == expected and
+            auth.__globals__ is vars(source.module), 'grouped native authenticator source differs')
+        cells = dict(zip(auth.__code__.co_freevars,(c.cell_contents for c in auth.__closure__),strict=True))
+        require(cells['self'] is owner and cells['api'] is api and cells['owned'] is owned and
+            cells['context'] is owner.context and cells['evaluation_context'] is self.context and
+            cells['legacy'] is owner.context['legacy'] and cells['request'] is requests and
+            cells['own_source'].module is source.module, 'grouped native authenticator ownership differs')
+        functions = []
+        for fn,code,defaults,kw,namespace,closure in cells['functions']:
+            require(fn.__code__ is code and fn.__globals__ is namespace and fn.__defaults__ == defaults and
+                fn.__kwdefaults__ == kw and len(fn.__closure__ or ()) == len(closure) and
+                all(c.cell_contents is v for c,v in zip(fn.__closure__ or (),closure,strict=True)),
+                'grouped native initial function binding differs')
+            functions.append(self.function_binding(fn))
+        spaces = tuple((ns,dict(snapshot)) for ns,snapshot in cells['namespaces'])
+        require(all(ns.keys() == snap.keys() and all(ns[k] is v for k,v in snap.items()) for ns,snap in spaces) and
+            vars(api).keys() == cells['exported'].keys() and
+            all(vars(api)[k] is v for k,v in cells['exported'].items()), 'grouped native initial namespace differs')
+        sources = [source,cells['request_source'],cells['observer_source'],cells['nearest_source']]
+        # The evaluator's authenticated wrapper closes over its underlying Source.
+        evaluator_check = cells['evaluator_check']
+        if type(cells['evaluator_source']) is requests.Source: sources.append(cells['evaluator_source'])
+        pending = [getattr(evaluator_check,'__func__',evaluator_check)]
+        seen = set()
+        while pending:
+            fn = pending.pop()
+            if id(fn) in seen: continue
+            seen.add(id(fn)); functions.append(self.function_binding(fn))
+            for c in fn.__closure__ or ():
+                value = c.cell_contents
+                if type(value) is requests.Source: sources.append(value)
+                elif type(value) is type(auth): pending.append(value)
+        live = []
+        for item in sources:
+            item.check()
+            module = item.module
+            live.append((item,dict(vars(item)),copy.deepcopy(item.fact),module,module.__spec__,
+                dict(vars(module.__spec__)) if module.__spec__ else None,dict(vars(module)),
+                copy.deepcopy(item.literals),tuple((cls,dict(values)) for cls,values in item.classes)))
+            functions.extend(self.function_binding(fn) for fn,*_ in item.functions)
+        bindings = {n:v for n,v in vars(owner).items() if n not in {'admitted','inventory'}}
+        require(bindings.keys() == cells['bindings'].keys() and
+            all(bindings[k] is v for k,v in cells['bindings'].items()) and
+            (owner.record,owner.files,owner.identities,owner.historical) == owner.frozen,
+            'grouped native initial authority differs')
+        site = Path(owner.context['legacy']['selected']['source_cpu']['origins']['packages']['torch']['root']).parent
+        require(not any(Path(p).is_relative_to(site) for p in owner.files),
+            'grouped native supplemental site authority forbidden')
+        self.native = (owner,api,owned,bindings,dict(vars(api)),spaces,tuple(functions),tuple(live),
+            copy.deepcopy((owner.fact,owner.record,owner.files,owner.identities,owner.historical,owner.frozen,
+                {kind:dict(values) for kind,values in owner.supplement.items()})),
+            owner.context['legacy'],copy.deepcopy((owner.context['legacy']['selected']['source_cpu']['origins'],
+                owner.context['legacy']['warm_record']['origins'])))
+        self.check_native()
+
+    def check_native(self):
+        require(self.native is not None, 'grouped native authority not bound')
+        owner,api,owned,bindings,exports,spaces,functions,sources,frozen,legacy,origins = self.native
+        require(self.context['training_context'] is owner.context and owner.context['legacy'] is legacy and
+            owner.context.get('control_native_owned') is owned and owned.keys() == {'owner','api','authenticate'} and
+            owned['owner'] is owner and owned['api'] is api and owned['authenticate'] is exports['authenticate'] and
+            vars(owner).keys() == bindings.keys() | {'admitted','inventory'} and
+            all(vars(owner)[k] is v for k,v in bindings.items()) and type(owner.admitted) is bool and
+            (owner.fact,owner.record,owner.files,owner.identities,owner.historical,owner.frozen,owner.supplement) == frozen and
+            (legacy['selected']['source_cpu']['origins'],legacy['warm_record']['origins']) == origins and
+            vars(api).keys() == exports.keys() and all(vars(api)[k] is v for k,v in exports.items()),
+            'grouped native authority binding changed')
+        for source,source_values,fact,module,spec,spec_values,values,literals,classes in sources:
+            require(vars(source).keys() == source_values.keys() and
+                all(vars(source)[k] is v for k,v in source_values.items()) and source.fact == fact and
+                sys.modules.get(module.__name__) is module and module.__spec__ is spec and
+                (vars(spec) if spec else None) == spec_values and vars(module).keys() == values.keys() and
+                all(vars(module)[k] is v for k,v in values.items()) and
+                all(vars(module)[k] == v for k,v in literals.items()) and
+                all(vars(cls).keys() == vals.keys() and all(vars(cls)[k] is v for k,v in vals.items())
+                    for cls,vals in classes), 'grouped native live source changed')
+        require(all(ns.keys() == snap.keys() and all(ns[k] is v for k,v in snap.items()) for ns,snap in spaces),
+            'grouped native private namespace changed')
+        self.check_functions(functions)
+
+    def native_paths(self, context, mapped, group, alias, known):
+        require(context is self.context and not self.active, 'grouped native preflight context differs')
+        self.check_native()
+        owner,api,_,_,_,_,_,_,frozen,legacy,_ = self.native
+        _,record,files,identities,historical,_,_ = frozen
+        supplemental = frozenset(files)
+        original = legacy['selected']['source_cpu']['origins']
+        require(set(map(str,group)) <= mapped and str(alias) not in mapped and
+            all(str(alias) not in values for values in (original['native_files'],original['files'],
+                context['guards'],context['required_guards'])) and mapped <= known | supplemental and
+            mapped <= historical['files'].keys() | supplemental,
+            'grouped native preflight map differs')
+        rows = {}
+        for line in Path('/proc/self/maps').read_text().splitlines():
+            if '.so' not in line: continue
+            require(re.fullmatch(r'[0-9a-fA-F]+-[0-9a-fA-F]+\s+[r-][w-][x-][ps]\s+[0-9a-fA-F]+\s+'
+                r'[0-9a-fA-F]+:[0-9a-fA-F]+\s+[0-9]+\s+/.*',line), 'malformed native mapping row')
+            fields = line.split(maxsplit=5)
+            identity = os.makedev(*(int(v,16) for v in fields[3].split(':'))),int(fields[4])
+            require(rows.setdefault(fields[5],identity) == identity, 'conflicting grouped native mapping row')
+        snapshot = owner.mappings()
+        require(snapshot == rows and snapshot.keys() == mapped and
+            all(snapshot[p] == identities[p] for p in mapped & supplemental),
+            'grouped native preflight identity differs')
+        require(not (owner.admitted or record['library']['path'] in mapped) or supplemental <= mapped,
+            'grouped native complete supplemental map required')
+        api.authenticate()
+        self.check_native()
+        require(owner.mappings() == snapshot, 'grouped native mapping changed during authentication')
+        return supplemental
 
     def read_identity(self):
         wheel, context = self.wheel, self.context
@@ -1341,6 +1530,10 @@ class _InstalledIdentityBoundary:
 
     def check(self):
         if not self.active: self.source.check()
+        if self.native is not None: self.check_native()
+        require(self.grouped_space.keys() == self.grouped_values.keys() and
+            all(self.grouped_space[k] is v for k,v in self.grouped_values.items()), 'grouped native namespace changed')
+        self.check_functions(self.grouped_functions)
         module, origin, spec, values, functions, literals = self.snapshot
         require(sys.modules.get(module.__name__) is module and module.__spec__ is spec and
             Path(module.__file__) == Path(spec.origin) == origin and vars(module).keys() == values.keys() and

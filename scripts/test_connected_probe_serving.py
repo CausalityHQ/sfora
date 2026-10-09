@@ -2626,7 +2626,7 @@ class ObservationWorld:
 
 
 # BEGIN installed identity tests
-IDENTITY_BLOCK_SHA = '8dfaa419449c948649752e3fdf8770c632a87a421ee8c92f84531ca267a1eea6'
+IDENTITY_BLOCK_SHA = '7870ea3c5a51f0e26052a772b57115fae24bb6d0b503dda6266ab4b94d8e4988'
 
 
 def installed_identity_inverse(raw):
@@ -2640,6 +2640,7 @@ def installed_identity_inverse(raw):
     raw = raw[:start]+raw[stop:]
     changes = (
         (b"        identity_boundary = _InstalledIdentityBoundary(context,endpoint,authority['wheel'])\n",b''),
+        (b'        identity_boundary.bind_native(runtime_authority,api,native_source)\n',b''),
         (b'            identity_boundary.check()\n',b''),
         (b'            reads_only = identity_boundary.scope\n',
             b"            def reads_only(): return context['evaluator_reference'].bundle_reads_only(context,endpoint)\n"))
@@ -2658,7 +2659,7 @@ def installed_identity_test_inverse(raw):
     if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('identity test block cardinality')
     start,stop = raw.index(begin),raw.index(end)+len(end)
     names = [n.name for n in ast.parse(raw[start:stop]).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))]
-    if names != ['installed_identity_inverse','installed_identity_test_inverse','InstalledIdentityBoundary']:
+    if names != ['installed_identity_inverse','installed_identity_test_inverse','InstalledIdentityBoundary','GroupedNativeComposition']:
         raise ValueError('identity test node inventory differs')
     raw = raw[:start]+raw[stop:]
     changes = ((b'def diagnostic_inverse(raw):\n    raw = installed_identity_inverse(raw)\n',b'def diagnostic_inverse(raw):\n'),
@@ -2761,6 +2762,15 @@ class InstalledIdentityBoundary(unittest.TestCase):
             self.assertEqual(w.context['guards'][str(w.dist/'METADATA')],file_sha(w.dist/'METADATA'))
             w.source.check()
 
+    def test_grouped_derivative_retains_original_without_alias(self):
+        with self.identity_world() as w:
+            original = w.original.grouped_md_origin
+            boundary = gate._InstalledIdentityBoundary(w.context,w.endpoint,w.wheel)
+            self.assertTrue('_probe_grouped_md_origin' in boundary.space)
+            self.assertIsNone(boundary.space['_probe_grouped_md_origin'](w.context))
+            self.assertIs(w.original.grouped_md_origin,original)
+            w.source.check()
+
     def test_exact_production_and_old_test_byte_ast_inverse(self):
         raw = DRIVER.read_bytes()
         original = installed_identity_inverse(raw)
@@ -2768,14 +2778,16 @@ class InstalledIdentityBoundary(unittest.TestCase):
         original_pins = set(re.findall(r'[0-9a-f]{64}',original.decode()))
         self.assertEqual(set(re.findall(r'[0-9a-f]{64}',raw.decode())),original_pins | {
             '95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d',
+            'cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1',
+            'f9e19c3c4805ee72b3a9a04bbce65a8645b7501147584322b5c3663de22b1745',
             '7bbd4303cb0724330e5074b859ec4d4a3d5b6f1d40d4182d16c5302ce54e4060'})
         tree = ast.parse(raw)
         execs = [n for n in ast.walk(tree) if isinstance(n,ast.Call) and ast.unparse(n.func) == 'exec']
-        self.assertEqual(len(execs),2)
+        self.assertEqual(len(execs),3)
         added_execs = [n for n in ast.walk(function(tree,'__init__','_InstalledIdentityBoundary'))
             if isinstance(n,ast.Call) and ast.unparse(n.func) == 'exec']
-        self.assertEqual(len(added_execs),1)
-        self.assertEqual(ast.unparse(added_execs[0].args[1]),'self.space')
+        self.assertEqual(len(added_execs),2)
+        self.assertEqual({ast.unparse(n.args[1]) for n in added_execs},{'self.space','self.grouped_space'})
         self.assertEqual(len([n for n in ast.walk(function(tree,'derive_evaluator_loader'))
             if isinstance(n,ast.Call) and ast.unparse(n.func) == 'exec']),1)
         for changed in (raw.replace(b'identity_boundary.check()',b'identity_boundary.check()\n            pass'),
@@ -2992,6 +3004,391 @@ class InstalledIdentityBoundary(unittest.TestCase):
             del boundary, owner, w; gc.collect()
             self.assertIsNone(reference())
             self.assertIsNone(context_owner())
+
+class GroupedNativeComposition(unittest.TestCase):
+    identity_world = InstalledIdentityBoundary.identity_world
+
+    @contextmanager
+    def native_world(self):
+        """Real install/collect/maps/Source and extracted original predicates; fixture files only."""
+        import importlib.util
+        from contextlib import ExitStack
+        from types import MappingProxyType
+        with self.identity_world() as w, ExitStack() as stack:
+            stack.enter_context(patch.dict(sys.modules))
+            def module(name, raw):
+                path = w.root/(name+'.py'); path.write_text(raw)
+                spec = importlib.util.spec_from_file_location(name,path)
+                value = importlib.util.module_from_spec(spec); sys.modules[name] = value
+                exec(compile(raw,str(path),'exec',dont_inherit=True),vars(value))
+                return value
+            def extracted(filename, name):
+                return ast.unparse(function(tree_of(HERE/filename),name))+'\n'
+            def write_json(name, value):
+                path = w.root/name; path.write_text(json.dumps(value)); return fact(path)
+            native = module('_grouped_native',(HERE/'connected_control_native_authority.py').read_text())
+            binary = w.root/'candidate.so'; binary.write_bytes(b'fixture candidate')
+            runtime = w.root/'runtime.so'; runtime.write_bytes(b'fixture runtime')
+            compiler = w.root/'tileiras'; compiler.write_bytes(b'never executed'); compiler.chmod(0o755)
+            manifest = write_json('source-manifest.json',{'ffi.rs':'a'*64})
+            binaries = write_json('binaries.json',{'candidate.so':file_sha(binary)})
+            evidence = {'source-manifest.json':manifest,'binaries.json':binaries}
+            build = write_json('build.json',{'schema':'sfora-cutile-threads-v1','claim_eligible':False,
+                'decision':'PASS_SEQUENTIAL_THREAD_EXACTNESS_CACHE_GATE','files_sha256':{n:v['sha256'] for n,v in evidence.items()}})
+            provenance = write_json('candidate-proof.json',{'schema':'connected-control-native-file-provenance-v1',
+                'file':fact(binary),'kind':'archived-cutile-build','origin':'fixture','evidence':[build,binaries,manifest]})
+            runtime_proof = write_json('runtime-proof.json',{'schema':'connected-control-native-file-provenance-v1',
+                'file':fact(runtime),'kind':'root-frozen-runtime','origin':'fixture','evidence':[manifest]})
+            record = {'schema':'connected-control-native-authority-v2','library':fact(binary),
+                'runtime_compiler':fact(compiler),'build_receipt':build,'build_evidence':evidence,'source_manifest':manifest,
+                'supplemental':[{'file':fact(binary),'provenance':provenance},{'file':fact(runtime),'provenance':runtime_proof}]}
+            authority_fact = write_json('authority.json',record)
+            # Substitute only immutable FILE descriptors for tiny local fixtures, never callable code.
+            stack.enter_context(patch.object(gate._InstalledIdentityBoundary,'NATIVE_AUTHORITY',
+                (authority_fact['path'],authority_fact['sha256'])))
+            stack.enter_context(patch.object(gate._InstalledIdentityBoundary,'NATIVE_FILES',
+                ((str(binary),file_sha(binary)),(str(runtime),file_sha(runtime)))))
+            # Synthetic runtime pins only; every native method retains the real source code.
+            native.BINARY_SHA, native.ARCHIVE_SHA = file_sha(binary),build['sha256']
+            native_source = requests.Source(native,fact(Path(native.__file__)))
+            stack.enter_context(patch.dict(os.environ,{'CUTILE_TILEIRAS_PATH':str(compiler)}))
+            group = {w.site/n:h for n,h in w.original.GROUPED_MD_NATIVE_SHA256.items()}
+            for p in group: p.parent.mkdir(exist_ok=True); p.write_bytes(b'group fixture')
+            four = {}
+            for n in ('engines_precompiled','engines_runtime_compiled','graph','heuristic'):
+                p = w.site/('libcudnn_'+n+'.so.9'); p.write_bytes(n.encode()); four[str(p)] = file_sha(p)
+            mapped = [*map(str,group),*four,str(binary),str(runtime)]
+            original = {'packages':{'torch':{'root':str(w.site/'torch')}},'files':dict((str(p),h) for p,h in group.items()),
+                'modules':{},'native_files':list(map(str,group))}
+            supplement = MappingProxyType({'files':MappingProxyType(dict(four)),'modules':MappingProxyType({})})
+            collector = module('qualify_siglip2_substrate_cpu',
+                'from pathlib import Path\nimport hashlib\n'+extracted('qualify_connected_probe_serving.py','require')+
+                'def imported_origins(extract, packages):\n'
+                '    return extract(packages)\n')
+            nearest_node = function(tree_of(HERE/'train_siglip2_nearest_ranking.py'),'native_source_api')
+            nearest_raw = extracted('qualify_connected_probe_serving.py','require')+'\nNATIVE_MEMBERS = '+repr(set(Path(p).name for p in four))+'\n'
+            nearest_raw += 'def native_source_api(context, _owned={}):\n    return _owned[id(context)][2]\n'
+            for name in ('audit_origins','exit_rehash'):
+                node = next(n for n in nearest_node.body if isinstance(n,ast.FunctionDef) and n.name == name)
+                nearest_raw += '\n'.join('    '+line for line in ast.unparse(node).splitlines())+'\n'
+            nearest_raw += 'def original_authenticate():\n    pass\n'
+            nearest = module('_grouped_nearest',nearest_raw)
+            old = module('_grouped_old','from pathlib import Path\n'+extracted('qualify_connected_probe_serving.py','require')+
+                extracted('train_siglip2_quadratic_readout.py','audit_origins')+
+                extracted('train_siglip2_quadratic_readout.py','exit_rehash')+
+                'def bound_file(guards,path,sha):\n    require(guards.setdefault(path,sha) == sha,"fixture guard mismatch")\n')
+            fitter = module('_grouped_fitter','def exit_rehash(context):\n    context["old"].exit_rehash(context["legacy"])\n')
+            evaluator = module('evaluate_siglip2_connected_mlp',
+                '_SOURCE_BUILTINS = tuple(vars(__import__("builtins")).items())\n'
+                'def exit_rehash(context,guard):\n    t=context["training_context"]\n    return t["nearest"].native_source_api(t)\n')
+            evaluator_source = native.load_evaluator_source(fact(Path(evaluator.__file__)),requests)
+            evaluator = evaluator_source.module
+            private_ns = {'_nearest_supplement':supplement}
+            exec('def audit_origins(*args,**kwargs): pass',private_ns)
+            def wrapped(audit_origins):
+                def audit(*args,**kwargs): return audit_origins(*args,**kwargs)
+                return audit
+            original_api = SimpleNamespace(audit_origins=wrapped(private_ns['audit_origins']))
+            counters = SimpleNamespace(auth=0,libraries=0,collect=0)
+            def collect(packages):
+                counters.collect += 1
+                files = {}
+                for name in mapped:
+                    counters.libraries += 1
+                    files[name] = group.get(Path(name),file_sha(Path(name)))
+                return {'packages':packages,'files':files,'modules':{},'native_files':list(mapped)}
+            legacy = {'selected':{'packages':original['packages'],'source_cpu':{'origins':original}},
+                'warm_record':{'origins':{'files':{},'modules':{},'native_files':[]}},'source_driver':collector,
+                'extract':collect,'prior':{'guards':{}},'guards':{}}
+            t = w.context['training_context']; t.clear(); t.update(legacy=legacy,nearest=nearest,old=old,fitter=fitter,
+                fit_context={},guards={},native_source_owned={'api':original_api,'authenticate':nearest.original_authenticate})
+            class OpaqueOwner:
+                def __deepcopy__(self,memo): raise AssertionError('live owner graph copied')
+            t['opaque_owner'] = OpaqueOwner()
+            nearest.native_source_api.__defaults__[0][id(t)] = (t,nearest.original_authenticate,original_api)
+            for mod in (native,requests,observer,nearest,old,fitter,evaluator):
+                f = fact(Path(mod.__file__)); w.context['guards'][f['path']] = t['guards'][f['path']] = f['sha256']
+            w.context['required_guards'].update({**original['files'],**four,str(Path(collector.__file__)):
+                'eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38'})
+            md_record = w.site/'charset_normalizer-3.4.7.dist-info'/'RECORD'; md_record.parent.mkdir(exist_ok=True)
+            md_record.write_text('charset_normalizer/md.cpython-313-aarch64-linux-gnu.so,sha256=EYzysjLHjG1gl9fj8mFGIRrs0HPeSgwZw5AWcSxih7A,201304\n')
+            w.context['required_guards'][str(md_record)] = file_sha(md_record)
+            alias = w.site/'charset_normalizer'/'md.cpython-313-aarch64-linux-gnu.so'
+            md = SimpleNamespace(__file__=str(alias),__spec__=SimpleNamespace(origin=str(alias)))
+            stack.enter_context(patch.dict(sys.modules,{'charset_normalizer.md':md}))
+            actual_open = Path.open; maps_override = [None]
+            def maps():
+                return '\n'.join('1000-2000 r-xp 0 %x:%x %d %s' %
+                    (os.major(Path(p).stat().st_dev),os.minor(Path(p).stat().st_dev),Path(p).stat().st_ino,p) for p in mapped)
+            def open_file(path,*args,**kwargs):
+                if str(path) == '/proc/self/maps': return io.StringIO(maps_override[0] if maps_override[0] is not None else maps())
+                if str(path) == authority_fact['path']: counters.auth += 1
+                if '.so' in path.name: counters.libraries += 1
+                return actual_open(path,*args,**kwargs)
+            stack.enter_context(patch.object(Path,'open',open_file))
+            owner = native.CombinedAuthority(t,authority_fact,observer,requests)
+            api = owner.install(evaluator_source,w.context)
+            boundary = gate._InstalledIdentityBoundary(w.context,w.endpoint,w.wheel)
+            boundary.bind_native(owner,api,native_source)
+            # Only the unavailable remote source/group bytes have fixture stand-ins.
+            bound = boundary.grouped_space['bound_file']
+            def bound_group(guards,path,sha):
+                if Path(path) in group:
+                    counters.libraries += 1
+                    gate.require(sha == group[Path(path)],'fixture group digest differs')
+                    return Path(path)
+                if Path(path) == Path(collector.__file__):
+                    gate.require(sha == 'eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38','fixture source digest differs')
+                    return Path(path)
+                return bound(guards,path,sha)
+            boundary.grouped_space['bound_file'] = bound_group
+            boundary.grouped_values['bound_file'] = bound_group
+            counters.auth = counters.libraries = counters.collect = 0
+            yield SimpleNamespace(w=w,boundary=boundary,owner=owner,api=api,source=native_source,group=group,
+                mapped=mapped,maps=maps,maps_override=maps_override,alias=alias,counters=counters,
+                binary=binary,runtime=runtime,record=md_record,provenance=Path(provenance['path']),four=four)
+
+    def test_exact_s_and_historical_only_authenticate_without_collecting(self):
+        with self.native_world() as g:
+            callback = g.boundary.space['_probe_grouped_md_origin']
+            g.api.audit_origins(g.owner.context['legacy'])
+            inventory,origins = g.owner.inventory,g.owner.context['legacy']['origins']
+            g.counters.auth = g.counters.collect = 0
+            self.assertEqual(callback(g.w.context),str(g.alias))
+            self.assertEqual(g.counters.collect,0)
+            self.assertGreater(g.counters.auth,0)
+            self.assertEqual(set(g.owner.inventory['native_files']),set(g.mapped))
+            self.assertTrue(g.owner.admitted)
+            self.assertEqual(callback(g.w.context),str(g.alias))
+            self.assertEqual(g.counters.collect,0)
+            self.assertIs(g.owner.inventory,inventory)
+            self.assertIs(g.owner.context['legacy']['origins'],origins)
+        with self.native_world() as g:
+            g.mapped.remove(str(g.binary)); g.mapped.remove(str(g.runtime))
+            self.assertEqual(g.boundary.space['_probe_grouped_md_origin'](g.w.context),str(g.alias))
+            self.assertEqual(g.counters.collect,0)
+            self.assertFalse(g.owner.admitted)
+
+    def test_map_mutants_reject_before_authentication_or_library_reads(self):
+        with self.native_world() as g:
+            original = list(g.mapped)
+            extra = g.w.site/'unknown.so'; extra.write_bytes(b'unknown')
+            g.w.context['guards'][str(extra)] = file_sha(extra)
+            foreign = g.w.site/'other'/'libcudnn_graph.so.9'; foreign.parent.mkdir(); foreign.write_bytes(b'foreign')
+            g.w.context['required_guards'][str(foreign)] = file_sha(foreign)
+            cases = ('group','alias','unknown','guard basename','deleted','noncanonical','inode','device','missing S',
+                'admitted S','malformed','truncated','replaced S')
+            for case in cases:
+                with self.subTest(case):
+                    g.mapped[:] = original; g.maps_override[0] = None; g.owner.admitted = False
+                    if case == 'group': g.mapped.remove(str(next(iter(g.group))))
+                    elif case == 'alias': g.alias.write_bytes(b'forbidden'); g.mapped.append(str(g.alias))
+                    elif case == 'unknown': g.mapped.append(str(extra))
+                    elif case == 'guard basename': g.mapped.append(str(foreign))
+                    elif case == 'missing S': g.mapped.remove(str(g.runtime))
+                    elif case == 'admitted S':
+                        g.owner.admitted = True; g.mapped.remove(str(g.binary)); g.mapped.remove(str(g.runtime))
+                    elif case == 'replaced S':
+                        g.runtime.rename(g.runtime.with_suffix('.saved')); g.runtime.write_bytes(b'fixture runtime')
+                    elif case == 'malformed': g.maps_override[0] = g.maps()+'\nnot-a-map /foreign.so'
+                    elif case == 'truncated': g.maps_override[0] = g.maps()+'\n1000-2000 r-xp 0 0:0 /foreign.so'
+                    else:
+                        lines = g.maps().splitlines(); parts = lines[-1].split(maxsplit=5)
+                        if case == 'deleted': parts[5] += ' (deleted)'
+                        elif case == 'noncanonical': parts[5] = str(g.runtime.parent)+'/./'+g.runtime.name
+                        elif case == 'inode': parts[4] = str(int(parts[4])+1)
+                        elif case == 'device': parts[3] = '0:0'
+                        lines[-1] = ' '.join(parts); g.maps_override[0] = '\n'.join(lines)
+                    g.counters.auth = g.counters.libraries = g.counters.collect = 0
+                    try:
+                        with self.assertRaises((ValueError,FileNotFoundError)):
+                            g.boundary.space['_probe_grouped_md_origin'](g.w.context)
+                        self.assertEqual((g.counters.auth,g.counters.libraries,g.counters.collect),(0,0,0))
+                    finally:
+                        if g.alias.exists() or g.alias.is_symlink(): g.alias.unlink()
+                        if case == 'replaced S':
+                            g.runtime.unlink(); g.runtime.with_suffix('.saved').rename(g.runtime)
+
+    def test_unmapped_md_presence_does_not_grant_bytes_or_native_authority(self):
+        with self.native_world() as g:
+            g.alias.write_bytes(b'physical wrapper remains untrusted')
+            self.assertEqual(g.boundary.space['_probe_grouped_md_origin'](g.w.context),str(g.alias))
+            self.assertNotIn(str(g.alias),g.owner.files)
+            self.assertNotIn(str(g.alias),g.w.context['guards'])
+            self.assertEqual(g.counters.collect,0)
+
+    def test_owned_binding_mutants_reject_before_library_reads(self):
+        from types import FunctionType
+        with self.native_world() as g:
+            auth = g.api.authenticate
+            cells = dict(zip(auth.__code__.co_freevars,auth.__closure__,strict=True))
+            owned = g.owner.context['control_native_owned']
+            checker_source = g.boundary.native[7][0][0]
+            counterfeit = FunctionType(auth.__code__,dict(auth.__globals__),auth.__name__,auth.__defaults__,auth.__closure__)
+            cases = [
+                ('owner',owned,'owner',SimpleNamespace()),('api',owned,'api',SimpleNamespace()),
+                ('authentication',owned,'authenticate',lambda:None),
+                ('export',vars(g.api),'audit_origins',lambda *a:None),
+                ('globals',vars(g.api),'authenticate',counterfeit),
+                ('source path',checker_source.fact,'path',str(g.w.root/'foreign.py')),
+                ('files',g.owner.files,str(g.runtime),'0'*64),
+                ('supplement',vars(g.owner),'supplement',dict(g.owner.supplement)),
+                ('registry',g.owner.context['nearest'].native_source_api.__defaults__[0],id(g.owner.context),
+                    (g.owner.context,g.owner.context['nearest'].original_authenticate,SimpleNamespace())),
+                ('literal',g.source.module.__dict__,'BINARY_SHA','0'*64),
+                ('source globals',g.source.module.__dict__,'Path',lambda *a:None),
+                ('namespace',g.api.audit_origins.__globals__,'private_audit',lambda *a:None),
+                ('legacy native set',g.owner.context['legacy']['selected']['source_cpu']['origins'],
+                    'native_files',[*g.mapped,str(g.w.root/'unknown.so')])]
+            for label,values,key,replacement in cases:
+                with self.subTest(label):
+                    before = values[key]; values[key] = replacement
+                    g.counters.auth = g.counters.libraries = 0
+                    try:
+                        with self.assertRaises(ValueError): g.boundary.space['_probe_grouped_md_origin'](g.w.context)
+                        self.assertEqual((g.counters.auth,g.counters.libraries),(0,0))
+                    finally: values[key] = before
+            for target,key,value in ((auth,'__defaults__',(None,)),(auth,'__kwdefaults__',{'bad':1}),
+                    (auth,'__name__','forged'),(cells['self'],'cell_contents',SimpleNamespace()),
+                    (g.owner.mappings.__func__,'__code__',(lambda self:{}).__code__)):
+                before = getattr(target,key); setattr(target,key,value)
+                g.counters.auth = g.counters.libraries = 0
+                try:
+                    with self.assertRaises(ValueError): g.boundary.space['_probe_grouped_md_origin'](g.w.context)
+                    self.assertEqual((g.counters.auth,g.counters.libraries),(0,0))
+                finally: setattr(target,key,before)
+            auth.foreign = True
+            try:
+                with self.assertRaises(ValueError): g.boundary.check_native()
+            finally: del auth.foreign
+            g.boundary.check_native()
+
+    def test_initial_owner_api_and_source_forgery_is_not_captured_as_authority(self):
+        with self.native_world() as g:
+            original = g.boundary.native
+            g.boundary.native = None
+            for values,key,replacement in ((g.owner.fact,'sha256','0'*64),
+                    (g.owner.record['library'],'path','/foreign/candidate.so'),
+                    (g.owner.files,'/foreign/additional.so','0'*64)):
+                present,before = key in values,values.get(key); values[key] = replacement
+                try:
+                    with self.assertRaisesRegex(ValueError,'exact frozen grouped native authority'):
+                        g.boundary.bind_native(g.owner,g.api,g.source)
+                finally:
+                    if present: values[key] = before
+                    else: del values[key]
+            for owner,api,source in ((SimpleNamespace(),g.api,g.source),
+                    (g.owner,SimpleNamespace(**vars(g.api)),g.source),
+                    (g.owner,g.api,SimpleNamespace(**vars(g.source)))):
+                g.boundary.native = None
+                with self.assertRaises(ValueError): g.boundary.bind_native(owner,api,source)
+            g.boundary.native = None
+            code = g.api.authenticate.__code__
+            g.api.authenticate.__code__ = code.replace(co_name='forged')
+            try:
+                with self.assertRaisesRegex(ValueError,'authenticator source'):
+                    g.boundary.bind_native(g.owner,g.api,g.source)
+            finally: g.api.authenticate.__code__ = code
+            # Removing a callable from the supplied Source's cached list cannot admit new code.
+            fn = g.owner.mappings.__func__; code = fn.__code__
+            table = g.source.functions
+            g.source.functions = [row for row in table if row[0] is not fn]
+            fn.__code__ = (lambda self:{}).__code__
+            try:
+                with self.assertRaisesRegex(ValueError,'live source code'):
+                    g.boundary.bind_native(g.owner,g.api,g.source)
+            finally: fn.__code__ = code; g.source.functions = table
+            g.boundary.native = original
+            g.boundary.check_native()
+
+    def test_fresh_provenance_digest_source_and_record_failures(self):
+        with self.native_world() as g:
+            for path in (g.provenance,g.binary,g.record,Path(g.source.fact['path'])):
+                original = path.read_bytes(); path.write_bytes(original+b'changed')
+                try:
+                    with self.subTest(path.name), self.assertRaises(ValueError):
+                        g.boundary.space['_probe_grouped_md_origin'](g.w.context)
+                finally: path.write_bytes(original)
+            # An unchanged digest cannot authorize a different exact grouped RECORD row.
+            original = g.record.read_bytes(); g.record.write_bytes(original.replace(b'201304',b'201305'))
+            try:
+                g.w.context['required_guards'][str(g.record)] = file_sha(g.record)
+                g.w.context['guards'][str(g.record)] = file_sha(g.record)
+                with self.assertRaisesRegex(ValueError,'exact RECORD'):
+                    g.boundary.space['_probe_grouped_md_origin'](g.w.context)
+            finally: g.record.write_bytes(original)
+
+    def test_original_exact_four_remains_required_and_audit_called_once(self):
+        with self.native_world() as g:
+            calls = []
+            audit_code = g.api.audit_origins.__code__
+            auth_code = g.api.authenticate.__code__
+            previous = sys.getprofile()
+            def profile(frame,event,arg):
+                if event == 'call' and frame.f_code in (audit_code,auth_code): calls.append(frame.f_code)
+            sys.setprofile(profile)
+            try: g.boundary.space['_probe_grouped_md_origin'](g.w.context)
+            finally: sys.setprofile(previous)
+            self.assertEqual(calls.count(audit_code),0)
+            self.assertEqual(calls.count(auth_code),1)
+            g.api.audit_origins(g.owner.context['legacy'],require_exact=True)
+            g.mapped.remove(next(iter(g.four)))
+            # Grouped admission does not silently strengthen the old optional exact-four flag.
+            g.boundary.space['_probe_grouped_md_origin'](g.w.context)
+            with self.assertRaisesRegex(ValueError,'exact four'):
+                g.api.audit_origins(g.owner.context['legacy'],require_exact=True)
+
+    def test_private_callbacks_release_owner_and_ast_inverses(self):
+        with self.native_world() as g:
+            callback = g.boundary.grouped_space['_probe_grouped_native_paths']
+            reference = weakref.ref(g.boundary)
+            native_owner = weakref.ref(g.owner)
+            opaque_owner = weakref.ref(g.owner.context['opaque_owner'])
+            g.boundary.space['_probe_grouped_md_origin'](g.w.context)
+        del g; gc.collect()
+        self.assertIsNone(reference())
+        self.assertIsNone(native_owner())
+        self.assertIsNone(opaque_owner())
+        with self.assertRaisesRegex(ValueError,'owner released'): callback(None,None,None,None,None)
+        with self.identity_world() as w:
+            original = tree_of(HERE/'evaluate_siglip2_identity_diversity.py')
+            boundary = gate._InstalledIdentityBoundary(w.context,w.endpoint,w.wheel)
+            grouped = copy.deepcopy(function(original,'grouped_md_origin'))
+            addition = ast.parse('known |= _probe_grouped_native_paths(context, mapped, group, alias, known)').body[0]
+            pos = next(i for i,n in enumerate(grouped.body) if 'grouped md mapped native witness differs' in ast.unparse(n))
+            grouped.body.insert(pos,addition)
+            code = compile(ast.fix_missing_locations(ast.Module(body=[grouped],type_ignores=[])),w.original.__file__,'exec',dont_inherit=True)
+            self.assertEqual(next(c for c in code.co_consts if isinstance(c,type(code))),
+                boundary.space['_probe_grouped_md_origin'].__code__)
+            del grouped.body[pos]
+            self.assertEqual(ast.dump(grouped),ast.dump(function(original,'grouped_md_origin')))
+            derived = copy.deepcopy(function(original,'bundle_reads_only'))
+            for n in ast.walk(derived):
+                if isinstance(n,ast.Name) and n.id in ('grouped_md_origin','distribution_identity_files'): n.id = '_probe_'+n.id
+            code = compile(ast.fix_missing_locations(ast.Module(body=[derived],type_ignores=[])),w.original.__file__,'exec',dont_inherit=True)
+            self.assertEqual(next(c for c in code.co_consts if isinstance(c,type(code))),boundary.boundary.__wrapped__.__code__)
+            for n in ast.walk(derived):
+                if isinstance(n,ast.Name) and n.id in ('_probe_grouped_md_origin','_probe_distribution_identity_files'): n.id = n.id[7:]
+            self.assertEqual(ast.dump(derived),ast.dump(function(original,'bundle_reads_only')))
+
+    def test_only_owned_derivative_and_install_binding_change_original_bytes(self):
+        frozen = ROOT/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-probe-installed-control-serving-v4-freeze'
+        raw, original = DRIVER.read_bytes(),(frozen/DRIVER.name).read_bytes()
+        self.assertEqual(SHA(original),'11019603d8cb88c339ab034c713cd8bce5a03ed429a5c4e960900aefd69467e3')
+        begin,end = b'# BEGIN installed identity boundary\n',b'# END installed identity boundary\n'
+        restored = raw[:raw.index(begin)]+original[original.index(begin):original.index(end)]+raw[raw.index(end):]
+        binding = b'        identity_boundary.bind_native(runtime_authority,api,native_source)\n'
+        self.assertEqual(restored.count(binding),1)
+        self.assertEqual(restored.replace(binding,b''),original)
+        self.assertEqual(SHA((HERE/'evaluate_siglip2_identity_diversity.py').read_bytes()),
+            '95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d')
+        authority_raw = (frozen.parent/'connected-control-serving-v4-freeze/native-native-authority.json').read_bytes()
+        self.assertEqual(SHA(authority_raw),'cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1')
+        authority = json.loads(authority_raw)
+        self.assertEqual(gate._InstalledIdentityBoundary.NATIVE_AUTHORITY,
+            ('/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json',SHA(authority_raw)))
+        self.assertEqual(dict(gate._InstalledIdentityBoundary.NATIVE_FILES),
+            {v['file']['path']:v['file']['sha256'] for v in authority['supplemental']})
 
 # END installed identity tests
 
