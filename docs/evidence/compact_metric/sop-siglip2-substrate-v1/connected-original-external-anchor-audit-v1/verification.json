@@ -1,0 +1,15 @@
+{
+  "actual_snapshot_only": true,
+  "all_rows_match_authenticated_original_bundle": true,
+  "exact_original_anchor_count": 13,
+  "fresh_aggregate_bytes": 104487672,
+  "mapped_native_membership_verified": false,
+  "native_qualification": false,
+  "quality_speed_goal_met": false,
+  "raw_result_sha256": "e2198f8c31e4a42386981ab6959103ddc8d03bcddf88c1d3e8462981f5ead5e1",
+  "raw_source_sha256": "3200bea5942b4347cc51e5fac3032c63337bc2f8bf6222ade8964214094615cd",
+  "schema": "original-external-anchor-byte-parent-verification-v1",
+  "serving_accepted": false,
+  "source_only_elapsed_seconds": 0.18999885499943048,
+  "ssh_exit": 0
+}
