@@ -1,0 +1,210 @@
+{
+  "cleanup_completed": true,
+  "controller_exit": 1,
+  "cpu_eligible": false,
+  "encoded_observation_bytes": 117180,
+  "first_positive_event_bracket": [
+    {
+      "cgroup": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-rank-routed-mlp-cpu-v3.service",
+      "event": "CONNECTED_OBSERVATION",
+      "invocation_id": "71fc37efaa944339bf636df38a5d468c",
+      "memory": {
+        "current": 5844262912,
+        "events": {
+          "high": 0,
+          "low": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0
+        },
+        "max": 8589934592,
+        "peak": 8381071360,
+        "stat": {
+          "active_anon": 4887498752,
+          "active_file": 590848000,
+          "anon": 4867829760,
+          "file": 835969024,
+          "file_mapped": 388857856,
+          "inactive_anon": 0,
+          "inactive_file": 245121024,
+          "kernel": 118087680,
+          "pgmajfault": 6814,
+          "pgscan_direct": 0,
+          "pgsteal_direct": 0,
+          "slab": 105413416
+        }
+      },
+      "micro": null,
+      "owners": {
+        "original_A_C": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null
+          ],
+          "numel": 167936,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ]
+          ],
+          "storage_bytes": 671744
+        }
+      },
+      "phase": "full_original_A_C_gradients",
+      "pid": 2361597,
+      "process": {
+        "hwm_kib": 7609380,
+        "rss_kib": 5137256
+      },
+      "seconds": 240.85987792900414,
+      "source_sha256": "69302dab4a808a259a381d9b649ac58bd1d7a3c5dffe2b8aa6982131dd45cd5d",
+      "view": "augmented"
+    },
+    {
+      "cgroup": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-rank-routed-mlp-cpu-v3.service",
+      "event": "CONNECTED_OBSERVATION",
+      "invocation_id": "71fc37efaa944339bf636df38a5d468c",
+      "memory": {
+        "current": 5872398336,
+        "events": {
+          "high": 0,
+          "low": 0,
+          "max": 105,
+          "oom": 0,
+          "oom_group_kill": 0,
+          "oom_kill": 0
+        },
+        "max": 8589934592,
+        "peak": 8589934592,
+        "stat": {
+          "active_anon": 4943032320,
+          "active_file": 604020736,
+          "anon": 4923150336,
+          "file": 810479616,
+          "file_mapped": 388788224,
+          "inactive_anon": 0,
+          "inactive_file": 206458880,
+          "kernel": 117489664,
+          "pgmajfault": 6815,
+          "pgscan_direct": 9440,
+          "pgsteal_direct": 6256,
+          "slab": 104813008
+        }
+      },
+      "micro": null,
+      "owners": {
+        "total": {
+          "dtypes": [
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32",
+            "torch.float32"
+          ],
+          "grad_fns": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "numel": 10089808,
+          "requires_grad": 0,
+          "shapes": [
+            [
+              128,
+              160
+            ],
+            [
+              128,
+              1152
+            ],
+            [
+              4304,
+              1152
+            ],
+            [
+              4304
+            ],
+            [
+              1152,
+              4304
+            ],
+            [
+              1152
+            ]
+          ],
+          "storage_bytes": 40359232
+        }
+      },
+      "phase": "full_total_gradients",
+      "pid": 2361597,
+      "process": {
+        "hwm_kib": 7838500,
+        "rss_kib": 5191212
+      },
+      "seconds": 242.3517796949891,
+      "source_sha256": "69302dab4a808a259a381d9b649ac58bd1d7a3c5dffe2b8aa6982131dd45cd5d",
+      "view": "augmented"
+    }
+  ],
+  "full_replay_bothviews_reached_release": true,
+  "gpu_eligible": false,
+  "invocation_id": "71fc37efaa944339bf636df38a5d468c",
+  "limitation": "Phase bracket localizes augmented total-gradient pressure; exact native allocation/owner is unproven. Both-view replay/micros and numerical gates precede sticky-event rejection, but no returned update or accepted CPU receipt exists.",
+  "max_rss_kib": 7905400,
+  "observations": 117,
+  "original_controller_session": 51958,
+  "original_log_sha256": "4d4d1c113320ccb3a24a4825e3636bf25d634aecc7928620cd7367ef312bdb2d",
+  "outer_final": {
+    "command_exit_status": 1,
+    "invocation_id": "71fc37efaa944339bf636df38a5d468c",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-rank-routed-mlp-cpu-v3.service",
+    "values": {
+      "memory.current": "770920448",
+      "memory.events": "low 0\nhigh 0\nmax 424\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "8589934592",
+      "memory.stat": "anon 6004736\nfile 659230720\nkernel 103854080\nkernel_stack 65536\npagetables 339968\nsec_pagetables 0\npercpu 2112\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 8192\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5844992\ninactive_file 132665344\nactive_file 526565376\nunevictable 0\nslab_reclaimable 103305544\nslab_unreclaimable 132760\nslab 103438304\nworkingset_refault_anon 0\nworkingset_refault_file 2224\nworkingset_activate_anon 0\nworkingset_activate_file 32\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 26326\npgsteal 22940\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 26326\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 22940\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 29458192\npgmajfault 8605\npgrefill 8335\npgactivate 603\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 2884\nthp_collapse_alloc 2\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "outer_terminal": {
+    "exit_code": "exited",
+    "exit_status": "1",
+    "invocation_id": "71fc37efaa944339bf636df38a5d468c",
+    "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-rank-routed-mlp-cpu-v3.service",
+    "service_result": "exit-code",
+    "values": {
+      "memory.current": "769613824",
+      "memory.events": "low 0\nhigh 0\nmax 424\noom 0\noom_kill 0\noom_group_kill 0",
+      "memory.max": "8589934592",
+      "memory.peak": "8589934592",
+      "memory.stat": "anon 5443584\nfile 659238912\nkernel 103464960\nkernel_stack 0\npagetables 98304\nsec_pagetables 0\npercpu 1056\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 12288\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5324800\ninactive_file 132673536\nactive_file 526565376\nunevictable 0\nslab_reclaimable 103299344\nslab_unreclaimable 53608\nslab 103352952\nworkingset_refault_anon 0\nworkingset_refault_file 2224\nworkingset_activate_anon 0\nworkingset_activate_file 32\nworkingset_restore_anon 0\nworkingset_restore_file 0\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 26326\npgsteal 22940\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 26326\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 22940\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 29459714\npgmajfault 8605\npgrefill 8335\npgactivate 603\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 2884\nthp_collapse_alloc 2\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0",
+      "memory.swap.current": "0",
+      "memory.swap.max": "0",
+      "memory.swap.peak": "0"
+    }
+  },
+  "quality_measured": false,
+  "schema": "rank-routed-cpu-diagnostic-result-v3",
+  "service_seconds": 371.987,
+  "source_exit_rehash_end_observed": true,
+  "speed_claim": false,
+  "status": "FAIL"
+}

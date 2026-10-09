@@ -1,0 +1,515 @@
+[
+  {
+    "anon": 2887958528,
+    "current": 3828973568,
+    "max_events": 0,
+    "micro": null,
+    "owners": {},
+    "peak": 3830808576,
+    "phase": "full_begin",
+    "seconds": 134.50714588799747,
+    "view": "canonical"
+  },
+  {
+    "anon": 4247273472,
+    "current": 5204566016,
+    "max_events": 0,
+    "micro": null,
+    "owners": {
+      "features": {
+        "dtypes": [
+          "torch.float32"
+        ],
+        "grad_fns": [
+          "DivBackward0"
+        ],
+        "numel": 73728,
+        "requires_grad": 1,
+        "shapes": [
+          [
+            64,
+            1152
+          ]
+        ],
+        "storage_bytes": 294912
+      }
+    },
+    "peak": 7848603648,
+    "phase": "full_forward",
+    "seconds": 154.7419098120008,
+    "view": "canonical"
+  },
+  {
+    "anon": 4343697408,
+    "current": 5311324160,
+    "max_events": 0,
+    "micro": null,
+    "owners": {
+      "original_A_C": {
+        "dtypes": [
+          "torch.float32",
+          "torch.float32"
+        ],
+        "grad_fns": [
+          null,
+          null
+        ],
+        "numel": 167936,
+        "requires_grad": 0,
+        "shapes": [
+          [
+            128,
+            160
+          ],
+          [
+            128,
+            1152
+          ]
+        ],
+        "storage_bytes": 671744
+      }
+    },
+    "peak": 7848603648,
+    "phase": "full_original_A_C_gradients",
+    "seconds": 155.09961616099463,
+    "view": "canonical"
+  },
+  {
+    "anon": 4408672256,
+    "current": 5378957312,
+    "max_events": 0,
+    "micro": null,
+    "owners": {
+      "total": {
+        "dtypes": [
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32"
+        ],
+        "grad_fns": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "numel": 10089808,
+        "requires_grad": 0,
+        "shapes": [
+          [
+            128,
+            160
+          ],
+          [
+            128,
+            1152
+          ],
+          [
+            4304,
+            1152
+          ],
+          [
+            4304
+          ],
+          [
+            1152,
+            4304
+          ],
+          [
+            1152
+          ]
+        ],
+        "storage_bytes": 40359232
+      }
+    },
+    "peak": 8058691584,
+    "phase": "full_total_gradients",
+    "seconds": 156.38258853799198,
+    "view": "canonical"
+  },
+  {
+    "anon": 4425138176,
+    "current": 5396434944,
+    "max_events": 0,
+    "micro": null,
+    "owners": {},
+    "peak": 8058691584,
+    "phase": "full_pass_released",
+    "seconds": 157.40717782999855,
+    "view": "canonical"
+  },
+  {
+    "anon": 4558237696,
+    "current": 5534928896,
+    "max_events": 0,
+    "micro": null,
+    "owners": {
+      "features": {
+        "dtypes": [
+          "torch.float32"
+        ],
+        "grad_fns": [
+          "DivBackward0"
+        ],
+        "numel": 73728,
+        "requires_grad": 1,
+        "shapes": [
+          [
+            64,
+            1152
+          ]
+        ],
+        "storage_bytes": 294912
+      }
+    },
+    "peak": 8154374144,
+    "phase": "replay_forward",
+    "seconds": 177.768051068997,
+    "view": "canonical"
+  },
+  {
+    "anon": 4624797696,
+    "current": 5600542720,
+    "max_events": 0,
+    "micro": null,
+    "owners": {
+      "ranking": {
+        "dtypes": [
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32"
+        ],
+        "grad_fns": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "numel": 10089808,
+        "requires_grad": 0,
+        "shapes": [
+          [
+            128,
+            160
+          ],
+          [
+            128,
+            1152
+          ],
+          [
+            4304,
+            1152
+          ],
+          [
+            4304
+          ],
+          [
+            1152,
+            4304
+          ],
+          [
+            1152
+          ]
+        ],
+        "storage_bytes": 40359232
+      }
+    },
+    "peak": 8318615552,
+    "phase": "replay_ranking_gradients",
+    "seconds": 179.36858729697997,
+    "view": "canonical"
+  },
+  {
+    "anon": 3115491328,
+    "current": 4092538880,
+    "max_events": 0,
+    "micro": null,
+    "owners": {},
+    "peak": 8318615552,
+    "phase": "replay_pass_released",
+    "seconds": 180.61497495000367,
+    "view": "canonical"
+  },
+  {
+    "anon": 3115491328,
+    "current": 4092538880,
+    "max_events": 0,
+    "micro": null,
+    "owners": {},
+    "peak": 8318615552,
+    "phase": "full_graph_released",
+    "seconds": 181.61885808498482,
+    "view": "canonical"
+  },
+  {
+    "anon": 3768397824,
+    "current": 4741988352,
+    "max_events": 0,
+    "micro": null,
+    "owners": {},
+    "peak": 8318615552,
+    "phase": "full_begin",
+    "seconds": 216.92090999899665,
+    "view": "augmented"
+  },
+  {
+    "anon": 4838453248,
+    "current": 5813174272,
+    "max_events": 0,
+    "micro": null,
+    "owners": {
+      "features": {
+        "dtypes": [
+          "torch.float32"
+        ],
+        "grad_fns": [
+          "DivBackward0"
+        ],
+        "numel": 73728,
+        "requires_grad": 1,
+        "shapes": [
+          [
+            64,
+            1152
+          ]
+        ],
+        "storage_bytes": 294912
+      }
+    },
+    "peak": 8381071360,
+    "phase": "full_forward",
+    "seconds": 240.53993380398606,
+    "view": "augmented"
+  },
+  {
+    "anon": 4867829760,
+    "current": 5844262912,
+    "max_events": 0,
+    "micro": null,
+    "owners": {
+      "original_A_C": {
+        "dtypes": [
+          "torch.float32",
+          "torch.float32"
+        ],
+        "grad_fns": [
+          null,
+          null
+        ],
+        "numel": 167936,
+        "requires_grad": 0,
+        "shapes": [
+          [
+            128,
+            160
+          ],
+          [
+            128,
+            1152
+          ]
+        ],
+        "storage_bytes": 671744
+      }
+    },
+    "peak": 8381071360,
+    "phase": "full_original_A_C_gradients",
+    "seconds": 240.85987792900414,
+    "view": "augmented"
+  },
+  {
+    "anon": 4923150336,
+    "current": 5872398336,
+    "max_events": 105,
+    "micro": null,
+    "owners": {
+      "total": {
+        "dtypes": [
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32"
+        ],
+        "grad_fns": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "numel": 10089808,
+        "requires_grad": 0,
+        "shapes": [
+          [
+            128,
+            160
+          ],
+          [
+            128,
+            1152
+          ],
+          [
+            4304,
+            1152
+          ],
+          [
+            4304
+          ],
+          [
+            1152,
+            4304
+          ],
+          [
+            1152
+          ]
+        ],
+        "storage_bytes": 40359232
+      }
+    },
+    "peak": 8589934592,
+    "phase": "full_total_gradients",
+    "seconds": 242.3517796949891,
+    "view": "augmented"
+  },
+  {
+    "anon": 4918890496,
+    "current": 5868728320,
+    "max_events": 105,
+    "micro": null,
+    "owners": {},
+    "peak": 8589934592,
+    "phase": "full_pass_released",
+    "seconds": 243.39808893299778,
+    "view": "augmented"
+  },
+  {
+    "anon": 4898684928,
+    "current": 5849882624,
+    "max_events": 105,
+    "micro": null,
+    "owners": {
+      "features": {
+        "dtypes": [
+          "torch.float32"
+        ],
+        "grad_fns": [
+          "DivBackward0"
+        ],
+        "numel": 73728,
+        "requires_grad": 1,
+        "shapes": [
+          [
+            64,
+            1152
+          ]
+        ],
+        "storage_bytes": 294912
+      }
+    },
+    "peak": 8589934592,
+    "phase": "replay_forward",
+    "seconds": 264.66164667598787,
+    "view": "augmented"
+  },
+  {
+    "anon": 4922781696,
+    "current": 5867249664,
+    "max_events": 132,
+    "micro": null,
+    "owners": {
+      "ranking": {
+        "dtypes": [
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32",
+          "torch.float32"
+        ],
+        "grad_fns": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "numel": 10089808,
+        "requires_grad": 0,
+        "shapes": [
+          [
+            128,
+            160
+          ],
+          [
+            128,
+            1152
+          ],
+          [
+            4304,
+            1152
+          ],
+          [
+            4304
+          ],
+          [
+            1152,
+            4304
+          ],
+          [
+            1152
+          ]
+        ],
+        "storage_bytes": 40359232
+      }
+    },
+    "peak": 8589934592,
+    "phase": "replay_ranking_gradients",
+    "seconds": 266.1775884089875,
+    "view": "augmented"
+  },
+  {
+    "anon": 4918222848,
+    "current": 5861568512,
+    "max_events": 132,
+    "micro": null,
+    "owners": {},
+    "peak": 8589934592,
+    "phase": "replay_pass_released",
+    "seconds": 267.2350991400017,
+    "view": "augmented"
+  },
+  {
+    "anon": 4918222848,
+    "current": 5861568512,
+    "max_events": 132,
+    "micro": null,
+    "owners": {},
+    "peak": 8589934592,
+    "phase": "full_graph_released",
+    "seconds": 268.266048622987,
+    "view": "augmented"
+  },
+  {
+    "anon": 2635829248,
+    "current": 3561328640,
+    "max_events": 424,
+    "micro": null,
+    "owners": {},
+    "peak": 8589934592,
+    "phase": "arm_cleanup_end",
+    "seconds": 303.571949848003,
+    "view": null
+  }
+]
