@@ -1,0 +1,31 @@
+{
+  "authority_sha256": "c990b890af4ada872b2b13f6a6d195dcbd4c29a679f7de9a770b3217511349b8",
+  "execution_sha256": "bb2a904e730d122aada41c6084733cbf7e08ff9ca08ca4869f99b295c871b135",
+  "files": {
+    "authority-cpu-v3.json": "c990b890af4ada872b2b13f6a6d195dcbd4c29a679f7de9a770b3217511349b8",
+    "cpu-v3-command.sh": "a7015ce57f91b2195a13ed9b68178a8d9d2ce27d788de020ba2131a4e7c512fe",
+    "cpu-v3-controller.sh": "0c326152a09634895f12d46b386de892fb029df016ff92019819e1db557967c4",
+    "cpu-v3-launch.sh": "61733a648501b77130a9a8d4bbeb2e64ea4a6485bfc099c2b0062d109d4035a9",
+    "execution.json": "bb2a904e730d122aada41c6084733cbf7e08ff9ca08ca4869f99b295c871b135",
+    "source-final-stdlib-receipt.json": "7efee5324ad249540251232a4202c37eb7945d96977c172a821f5d2d05d73e1c",
+    "source-final-stdlib.log": "e5fcee127546e588fd2cfddab07c3d235b4cc378e927215808bf8841f3746b9f",
+    "source-preflight.py": "73cb5a4c360aaac99816aee4ef777e47b0fc1d7e6fdde6d7b2303fdc81db0e95",
+    "source-receipt.json": "c9311264db4c712dc7aebf335dee6bdaffd613e7d6455ae27e5ae5851c3a89ce",
+    "source-reconciliation.md": "5e83e06dd6928919a4d14200f2598af047800ed156d81b8cd81104ff07550c3c",
+    "test_siglip2_rank_routed_mlp.py": "5bd677cb03328d30e65e9f1a1a46f31064ad72489c0c8021e17ec2df4621bbe3",
+    "train_siglip2_rank_routed_mlp.py": "69302dab4a808a259a381d9b649ac58bd1d7a3c5dffe2b8aa6982131dd45cd5d"
+  },
+  "native_unrun_at_freeze": true,
+  "output": "/home/riomus/runs/sfora-rank-routed-mlp-cpu-v3",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "schema": "rank-routed-mlp-parent-freeze-v3",
+  "source_commit": "e29d14fbb2ef9aa8a39e2ffbe239601cbcec3977",
+  "source_root": "/home/riomus/runs/sfora-rank-routed-mlp-train-source-v3",
+  "stop_rule": "ONE fresh CPU600 gate on exact committed sequential-B64 source. Original CPUv1/v2 FAIL preserved. Existing zero memory events/swap, both locks, original fullB64/micro16/scalars/AC/encoder gradients, real unscaled optimizer correspondence, full state/RNG/roles/lifetime/normal terminal/full uncached source/native exit are mandatory. Exact B64 replay has no tolerance exception. Record canonical total/release/replay and augmented/micro memory/current/anon/events localization; weakref release does not imply allocator release. Rejection yields no CPU/GPU or quality/speed eligibility; no unchanged retry/cap adjustment.",
+  "unit": "sfora-rank-routed-mlp-cpu-v3"
+}

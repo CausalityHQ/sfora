@@ -1,0 +1,19 @@
+PASS exact delta inverse: observer/cleanup -> 940d37fb -> committed connected trainer; mutants rejected
+PASS extracted exceptional arm_run: traceback owners released; primary/location retained; genuine lifetime failure chained
+PASS scalar observer: raw max unchanged, scalar owners/released weakref, IO failure recorded, record/byte bounds
+PASS observer error follows original guards; primary cap/pending exception unchanged
+PASS observer source: 42 fixed call sites; conservative window <=113/128 rows; hard per-row4096/total262144 byte bounds; overhead timed
+PASS identity: new schemas/FILES/CLI/recipe+routing pins in typed method; frozen constants equal connected
+PASS regression derivation: pinned loss_terms == derived mse (executed), statement-by-statement, guards/mutants
+PASS split MSE owns raw/query A/C graph and dies before the lifetime gate
+PASS live callable replacement after step17 rejected before regression/backward
+PASS equal micro accumulator perturbation fails independent full reference
+PASS genuine total/rank calls on distinct released B64 graphs; native memory fit UNRUN
+PASS executed independent B64 source reference: bothviews/full-vs-micro/state+RNG/lifetime/primary-error; native UNRUN
+PASS actual optimizer encoder/A/C gradient mutants fail with independent witnesses unchanged
+PASS routing witness: routed/original A/C correspondence, encoder-regression absent, unrouted reaches encoder, query/gallery split, full-view sums, retain_graph, lifetime, receipt mutants
+PASS update dataflow: real micro loop on stand-ins (routed mse -> backward, detached branch, control unchanged, step1 witness, lifetime gate) + one loss_terms/one regression/retain_graph structure
+PASS check_steps: per-micro parity count and step1 routing witness required for candidate, forbidden for control
+PASS executed producer-shaped full mechanics receipt: first17/steps/missing/tamper negatives
+PASS reused connected seams on rank-routed driver (source/authority/lifetime/overlay/loader/restore/encoder/processor/cost)
+PASS source-only rank-routed connected MLP contracts/falsifiers; native UNRUN; 2.4s
