@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_installed_environment.py", line 18, in <module>
+    spec.loader.exec_module(helper)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 755, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 892, in get_code
+  File "<frozen importlib._bootstrap_external>", line 950, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: '/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_installed_environment.py'

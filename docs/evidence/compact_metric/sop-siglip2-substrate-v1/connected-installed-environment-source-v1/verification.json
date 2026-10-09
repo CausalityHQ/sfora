@@ -1,0 +1,33 @@
+{
+  "base": "653b60d15927c2f43f78401c461ea5068e83b23e",
+  "files": {
+    ".github/workflows/ci.yml": "326c6e9fc23b0df630dbd0223ae153cc3649d87f39ac6dd8055790b383e3e26f",
+    "scripts/test_connected_installed_environment.py": "1dc048aaf0db388d4de6235822821c694e5e4afbcfd6341d318f6c5209e61058",
+    "src/sfora/connected_installed_environment.py": "07e8cd2074ee1d22aef0de2541efe9ce336623e2df00d1ba3b7457306a7468bb"
+  },
+  "final": {
+    "address_space_bytes": 1073741824,
+    "exit_code": 0,
+    "max_rss_kib": 116396,
+    "session_id": 30535,
+    "swaps": 0,
+    "timeout_seconds": 120,
+    "wall_seconds": 20.85
+  },
+  "limitations": [
+    "System anchors remain unread; separate original native admission required.",
+    "Target native binary hashing and installed runtime execution not performed.",
+    "Full product CI and scientific goal remain unmet."
+  ],
+  "logs": {
+    "final.log": "7263058979d5b365517a70155575a4bdb6d5c6f09f136e186c99daf311990ffd",
+    "narrow.log": "6edf65cf3b484b04a45de0ec1cf6566b618d62750bcf98020676e8cafa9fc4d0",
+    "red.log": "705438ca6860529aefef39cce74bcc9a4b274e76797824fadd7981418567ea73"
+  },
+  "native_execution": false,
+  "product_go": false,
+  "python312_new_tests": 10,
+  "quality_qualified": false,
+  "schema": "connected-installed-environment-source-verification-v1",
+  "speed_qualified": false
+}
