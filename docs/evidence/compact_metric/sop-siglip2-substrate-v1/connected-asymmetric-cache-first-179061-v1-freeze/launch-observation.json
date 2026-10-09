@@ -1,0 +1,14 @@
+{
+  "schema": "asymmetric-launch-observation-v1",
+  "ssh_session": 62593,
+  "unit": "sfora-connected-asymmetric-cache-first-179061-v1",
+  "invocation_id": "b892664054744c80867410b2b0fab8bb",
+  "main_pid": 2094370,
+  "driver_pid": 2094375,
+  "state": "original active/running observation",
+  "source_preflight": "PASS CPython3.13.9/30 canonical SHA exact files/no native imports/no image reads",
+  "measured_early_process_cpu_percent": 61.8,
+  "measured_early_cgroup_peak_bytes": 788500480,
+  "measured_early_gpu_utilization_percent": 0,
+  "claim": "No quality/latency/throughput result at this checkpoint"
+}
