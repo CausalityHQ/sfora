@@ -44,7 +44,7 @@ def barrier_energy_loss(
     positive_unit = normalize(positive_array)
     proxy_unit = normalize(proxy_array)
     values = []
-    for anchor, positive, label in zip(anchor_unit, positive_unit, label_array):
+    for anchor, positive, label in zip(anchor_unit, positive_unit, label_array, strict=False):
         ts = np.linspace(0.0, 1.0, path_points)
         path = (1.0 - ts[:, None]) * anchor[None, :] + ts[:, None] * positive[None, :]
         path = normalize(path)
