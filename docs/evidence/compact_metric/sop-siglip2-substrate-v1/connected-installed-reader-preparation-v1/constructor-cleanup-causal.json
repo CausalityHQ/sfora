@@ -1,0 +1,36 @@
+{
+  "address_space_bytes": 1073741824,
+  "dependencies_replaced_by_stdlib_standins": [
+    "torch",
+    "transformers",
+    "CheckpointPages",
+    "bound_file",
+    "construct",
+    "fingerprint",
+    "load_vision",
+    "mapping_absent"
+  ],
+  "function_segment_sha256": "cc675a70b012a66d632a1f6cfa95f6b55fe41f9501f59bfd1ed2a3140a25384a",
+  "mapping_checks_attempted": 2,
+  "ml_native_modules_imported": [],
+  "native_root_cause_claim": false,
+  "original_test_exit": 0,
+  "rows": [
+    {
+      "cleanup_failed": false,
+      "cleanup_identity_surfaced": false,
+      "original_primary_in_context": false,
+      "primary_identity_preserved": true
+    },
+    {
+      "cleanup_failed": true,
+      "cleanup_identity_surfaced": true,
+      "original_primary_in_context": true,
+      "primary_identity_preserved": false
+    }
+  ],
+  "schema": "reader-constructor-cleanup-causal-v1",
+  "source_only": true,
+  "source_sha256": "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8",
+  "timeout_seconds": 15
+}
