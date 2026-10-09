@@ -933,7 +933,7 @@ def accept_unit(context, unit, authority_fact):
         observer_source = requests.Source.load(sources['observer']); owned.append(observer_source)
         observer = observer_source.module
         require(record['wheel_evidence'] == check_wheel(authority['wheel'],sources,observer,
-            Path(sources['probe_driver']['path']).parent.parent),'installed wheel evidence changed before parent acceptance')
+            Path(sources['probe_driver']['path']).parent),'installed wheel evidence changed before parent acceptance')
         native_source = requests.Source.load(sources['control_native']); owned.append(native_source)
         native = native_source.module.CombinedAuthority(context['training_context'],authority['native']['authority'],observer,requests)
         require(native.record['library'] == authority['native']['library'],'terminal native FILE differs')
@@ -1029,7 +1029,7 @@ def run(args):
         for fact in sources.values(): observer.file_bytes(fact)
         bundle, native_fact = authority['bundle'], authority['native']
         check_installed(sources,bundle,observer)
-        wheel = check_wheel(authority['wheel'],sources,observer,here.parent.parent)
+        wheel = check_wheel(authority['wheel'],sources,observer,here.parent)
         native_source = requests.Source.load(sources['control_native']); owned.append(native_source)
         native_module = native_source.module
         require(native_module.BINARY_SHA == ARCHIVED_BINARY_SHA == native_fact['library']['sha256'] and
@@ -1174,7 +1174,7 @@ def run(args):
             try:
                 record['combined_native'] = api.evidence()
                 final_resources = guard(reserve=False,deep=True)
-                require(check_wheel(authority['wheel'],sources,observer,here.parent.parent) == wheel,
+                require(check_wheel(authority['wheel'],sources,observer,here.parent) == wheel,
                     'installed wheel evidence changed before exit')
                 record['full_uncached_exit_pass'] = True
                 record['resources'] = final_resources

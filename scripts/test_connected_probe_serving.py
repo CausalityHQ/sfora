@@ -2082,6 +2082,89 @@ class RunAdmission(unittest.TestCase):
             gate.run(args)
 
 
+class WheelBoundaryCallsites(unittest.TestCase):
+    """The checkout argument of every production check_wheel call is the frozen source directory.
+
+    Frozen source folder and separately installed wheel are siblings under a shared, non-Git parent (/runs
+    stand-in). Arguments are extracted from the real call sites and executed, then given to the real check_wheel.
+    """
+    BASE_DRIVER_SHA = 'bf8d63d4ba0a9e852f0da33fe6cf14b844e89c3d79a8c3824a9ec3ed77b71c94'  # 36dec573 bytes
+
+    @staticmethod
+    def callsites():
+        tree = tree_of(DRIVER)
+        found = []
+        for name in ('run','accept_unit'):
+            for node in ast.walk(function(tree,name)):
+                if isinstance(node,ast.Call) and ast.unparse(node.func) == 'check_wheel':
+                    found.append((name,node.args[3]))
+        return found
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.runs = Path(self.tmp.name).resolve()/'runs'
+        self.source = self.runs/'source-v1'
+        self.source.mkdir(parents=True)
+        self.driver = self.source/'qualify_connected_probe_serving.py'
+        self.driver.write_bytes(DRIVER.read_bytes())
+        self.w = World(self.runs/'wheel-v1')
+
+    def checkout(self, node, driver=None):
+        driver = driver or self.driver
+        namespace = {'Path':Path,'here':Path(driver).absolute(),'sources':{'probe_driver':{'path':str(driver)}}}
+        return eval(compile(ast.Expression(node),'<callsite>','eval'),namespace)
+
+    def check(self, node, driver=None):
+        return gate.check_wheel(self.w.wheel(),self.w.sources(),observer,self.checkout(node,driver))
+
+    def test_there_are_exactly_three_callsites_and_each_names_the_frozen_source_directory(self):
+        sites = self.callsites()
+        self.assertEqual([n for n,_ in sites],['run','run','accept_unit'])
+        for name,node in sites:
+            with self.subTest(name): self.assertEqual(self.checkout(node),self.source)
+
+    def test_sibling_wheel_outside_the_source_directory_is_admitted_at_every_callsite(self):
+        self.assertFalse((self.runs/'.git').exists())
+        for name,node in self.callsites():
+            with self.subTest(name): self.assertEqual(self.check(node)['site_root'],str(self.w.site))
+
+    def test_genuine_git_ancestor_nested_equal_and_editable_layouts_still_fail_at_every_callsite(self):
+        site = self.w.site
+        for name,node in self.callsites():
+            with self.subTest(name):
+                for label,driver in (('source equals wheel root',site/'d.py'),('source inside wheel root',site/'sfora'/'d.py'),
+                        ('source contains wheel root',self.runs/'d.py'),('source contains wheel root deeper',self.w.root/'d.py')):
+                    with self.subTest(label), self.assertRaises(ValueError): self.check(node,driver)
+                (self.runs/'.git').mkdir()
+                try:
+                    with self.assertRaises(ValueError): self.check(node)
+                finally: (self.runs/'.git').rmdir()
+                (self.w.site/'x.pth').write_text(str(self.source)+'\n')
+                try:
+                    with self.assertRaises(ValueError): self.check(node)
+                finally: (self.w.site/'x.pth').unlink()
+                (self.w.site/'__editable__.sfora-9.9.9.pth').write_text('x')
+                try:
+                    with self.assertRaises(ValueError): self.check(node)
+                finally: (self.w.site/'__editable__.sfora-9.9.9.pth').unlink()
+                self.check(node)
+
+    def test_the_three_argument_edits_are_the_whole_production_change(self):
+        data = DRIVER.read_bytes()
+        lines = data.splitlines(keepends=True)
+        starts = [sum(map(len,lines[:i])) for i in range(len(lines)+1)]
+        ends = []
+        for _,node in self.callsites():
+            self.assertIsInstance(node,ast.Attribute)
+            self.assertEqual(node.attr,'parent')
+            self.assertNotIsInstance(node.value,ast.Attribute)
+            ends.append(starts[node.end_lineno-1]+node.end_col_offset)
+        self.assertEqual(len(ends),3)
+        for end in sorted(ends,reverse=True): data = data[:end]+b'.parent'+data[end:]
+        self.assertEqual(hashlib.sha256(data).hexdigest(),self.BASE_DRIVER_SHA)
+
+
 if __name__ == '__main__':
     limit = 1024**3
     soft,hard = resource.getrlimit(resource.RLIMIT_AS)
