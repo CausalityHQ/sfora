@@ -741,7 +741,7 @@ class Fake:
             'expected_native_library_sha256':'c'*64}
         return factory
 
-    def reference(self, items):
+    def reference(self, items, deadline):
         registry = {}
         fake = self
 
@@ -754,11 +754,12 @@ class Fake:
             return portable
         rows = gate.reference_outputs(name='_connected_probe_gate_reference_x',directory=Path('/b'),bundle_sha='a'*64,
             loader=loader,pin='d'*64,guards={},reads_only=lambda: io.StringIO(),batches=items,decode=self.decode,
-            rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda state: None,after=lambda: None,registry=registry)
+            rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda state: None,after=lambda: None,deadline=deadline,
+            registry=registry)
         if self.reference_leak: sys.modules['_connected_probe_gate_reference_leak'] = Obj()
         return rows
 
-    def native(self, ref):
+    def native(self, ref, deadline):
         cls = self
         out = {}
         for kind,row in ref.items():
@@ -788,12 +789,14 @@ def body_for(fake, **override):
     mutant = [('flip',lambda: None,lambda: None,'current')]
     values = dict(batches=batches,ordinals=[7,9,11,13,15],persisted_tail=lambda w: w == tail_wire,reference=reference,
         native=fake.native,factory=factory,decode=fake.decode,rgb=gate.rgb_digest,capture=capture,
-        mutants=lambda index: gate.run_mutants([(n,a,r,m) for n in sorted(gate.MUTANT_NAMES) for a,r,m in
-            [(lambda: setattr(fake,'tamper_current',True),lambda: setattr(fake,'tamper_current',False),'current')]],
-            lambda mode: index._check_current()),
-        lifecycle_check=lambda index: gate.lifecycle(index,fake.decode,[Path('/i/0')],Path('/b'),lambda: 'no mappings\n'),
+        mutants=lambda index,deadline: gate.run_mutants([(n,lambda: setattr(fake,'tamper_current',True),
+            lambda: setattr(fake,'tamper_current',False),'guard' if n.endswith('_rng') else 'current')
+            for n in sorted(gate.MUTANT_NAMES)],lambda mode: index._check_current() if mode == 'current' else
+            gate.require(not fake.tamper_current,'whole-unit RNG changed'),deadline),
+        lifecycle_check=lambda index,deadline: gate.lifecycle(index,fake.decode,[Path('/i/0')],Path('/b'),
+            lambda: 'no mappings\n',deadline),
         denial=FakeDenial(),guard=lambda **kw: None,started=gate.time.perf_counter(),
-        mutant_factory=lambda: gate.factory_mutants(factory))
+        mutant_factory=lambda deadline: gate.factory_mutants(factory,deadline))
     values.update(override)
     return values
 
@@ -860,23 +863,28 @@ class CaptureSeam(unittest.TestCase):
             self.assertIsNone(sys.getprofile())
 
     def test_snapshot_failure_keeps_only_bounded_scalar_facts_and_pins_nothing_native(self):
-        marker, holder = weakref.WeakSet(), Obj()
-        marker.add(holder)
-        self.fake.output_edit = lambda out,calls: {**out,'native_reference':holder}
-        holder = None
+        refs, alive = [], []
+        def produce(out, calls):
+            marker = Obj()  # created during output production, like a live native tensor
+            refs.append(weakref.ref(marker))
+            return {**out,'native_reference':marker}
+        self.fake.output_edit = produce
         def bad(value):
             tensor = value['native_reference']  # the traceback frame of this call would pin it
+            alive.append(tensor is refs[-1]())
             raise TypeError('snapshot failed '+'x'*1000)
         kept = None
         try: self.search(snapshot=bad)
         except ValueError as error: kept = error  # deliberately retained, with its traceback
         self.assertIsNotNone(kept)
+        self.assertEqual((len(refs),alive),(1,[True]))  # the marker was live at the failing snapshot
+        gc.collect()
+        self.assertIsNone(refs[0]())  # ...and is released while the outward exception is retained
+        self.assertIsNotNone(kept.__traceback__)
         self.assertIsNone(kept.__cause__)
         self.assertIsNone(kept.__context__)
         self.assertLessEqual(len(str(kept)),400)
         self.assertIn('TypeError',str(kept))
-        gc.collect()
-        self.assertEqual(len(marker),0)  # the retained exception holds no output/model reference
         self.assertIsNone(sys.getprofile())
         self.fake.output_edit = None
 
@@ -960,7 +968,7 @@ class LeafMutant(unittest.TestCase):
             before = list(value.store)
             mutant = gate.leaf_mutant(FAKE_TORCH,'leaf',value)
             with self.subTest(kwargs), self.assertRaisesRegex(ValueError,'real storage and bypass versions'):
-                gate.run_mutants([mutant],lambda mode: (_ for _ in ()).throw(ValueError('rejected')))
+                gate.run_mutants([mutant],lambda mode: (_ for _ in ()).throw(ValueError('rejected')),lambda: None)
             self.assertEqual(value.store,before)
 
     def test_restore_mismatch_is_reported(self):
@@ -1026,7 +1034,8 @@ class FailureFrames(unittest.TestCase):
         try:
             gate.reference_outputs(name='_connected_probe_gate_reference_k',directory=Path('/b'),bundle_sha='a'*64,loader=loader,
                 pin='d'*64,guards={},reads_only=lambda: io.StringIO(),batches=[('B1',[Path('/i/0')])],decode=fake.decode,
-                rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda s: None,after=lambda: None,registry=registry)
+                rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda s: None,after=lambda: None,deadline=lambda: None,
+                registry=registry)
         except RuntimeError as error: kept = error
         self.assertIsNotNone(kept)
         gc.collect()
@@ -1047,11 +1056,43 @@ class FailureFrames(unittest.TestCase):
         try:
             gate.reference_outputs(name='_connected_probe_gate_reference_m',directory=Path('/b'),bundle_sha='a'*64,loader=loader,
                 pin='d'*64,guards={},reads_only=lambda: io.StringIO(),batches=[('B1',[Path('/i/0')])],decode=fake.decode,
-                rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda s: None,after=lambda: None,registry=registry)
+                rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda s: None,after=lambda: None,deadline=lambda: None,
+                registry=registry)
         except RuntimeError as error: kept = error
         self.assertIsNotNone(kept)
         self.assertIsInstance(kept.__cause__,BaseExceptionGroup)
         self.assertEqual(sorted(type(e).__name__ for e in kept.__cause__.exceptions) or [],['OSError'])
+
+
+    def test_release_failure_still_runs_after_and_registry_removal_and_pins_nothing(self):
+        fake, registry, refs, calls = Fake(), {}, [], []
+        def loader(name, path, pin, guards):
+            portable = Obj()
+            def load(directory, sha, device):
+                model = Obj()
+                refs.append(weakref.ref(model))
+                return {'model':model}
+            def release(state):
+                held = state['model']  # the failing release frame would pin the model
+                raise OSError('release failed')
+            portable.load_inference = load
+            portable.inference_outputs = lambda state,images: (_ for _ in ()).throw(RuntimeError('forward failed'))
+            portable.release_inference = release
+            registry[name] = portable
+            return portable
+        kept = None
+        try:
+            gate.reference_outputs(name='_connected_probe_gate_reference_r',directory=Path('/b'),bundle_sha='a'*64,loader=loader,
+                pin='d'*64,guards={},reads_only=lambda: io.StringIO(),batches=[('B1',[Path('/i/0')])],decode=fake.decode,
+                rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda s: None,after=lambda: calls.append('after'),
+                deadline=lambda: None,registry=registry)
+        except RuntimeError as error: kept = error
+        self.assertIsNotNone(kept)
+        self.assertEqual((calls,registry),(['after'],{}))  # attempted independently of the failed release
+        self.assertEqual([type(e) for e in kept.__cause__.exceptions],[OSError])
+        gc.collect()
+        self.assertIsNone(refs[0]())  # nothing pinned while the aggregated error is retained
+        self.assertTrue(all(i.closed for i in fake.images))
 
 
 class ParityBody(unittest.TestCase):
@@ -1071,8 +1112,11 @@ class ParityBody(unittest.TestCase):
         self.assertEqual([r['owner'] for r in result['installed']].count('A'),8)
         self.assertEqual(len(result['installed']),14)
         self.assertEqual(result['owner_order'],['reference','installed_A','installed_B'])
-        self.assertEqual(result['factory_mutants'],dict.fromkeys(gate.FACTORY_NAMES,'rejected'))
-        self.assertEqual(result['live_mutants'],dict.fromkeys(gate.MUTANT_NAMES,'rejected'))
+        self.assertEqual(result['factory_mutants'],{**dict.fromkeys(gate.FACTORY_NAMES,
+            {'type':'ValueError','message':'pinned input differs'}),
+            'mlp_factory_on_probe_bundle':{'type':'ValueError','message':'unsupported connected bundle schema/closure'}})
+        self.assertEqual(result['live_mutants'],{n:{'type':'ValueError','message':'whole-unit RNG changed' if n.endswith('_rng')
+            else 'installed state changed'} for n in gate.MUTANT_NAMES})
         self.assertEqual(result['lifecycle']['post_close_rejected'],True)
         self.assertEqual(result['denial']['checks'],3)
         self.assertEqual(self.fake.live,0)
@@ -1147,13 +1191,13 @@ class ParityBody(unittest.TestCase):
             original()
         index.close = close
         with self.assertRaises(RuntimeError):
-            gate.lifecycle(index,self.fake.decode,[Path('/i/0')],Path('/b'),lambda: '')
+            gate.lifecycle(index,self.fake.decode,[Path('/i/0')],Path('/b'),lambda: '',lambda: None)
         original()
 
     def lifecycle(self, fake=None, maps=lambda: ''):
         fake = fake or self.fake
         index = fake.factory()()
-        try: return gate.lifecycle(index,fake.decode,[Path('/i/0')],Path('/b'),maps)
+        try: return gate.lifecycle(index,fake.decode,[Path('/i/0')],Path('/b'),maps,lambda: None)
         finally: index.close()
 
     def test_each_lifecycle_predicate_is_isolated(self):
@@ -1174,8 +1218,8 @@ class ParityBody(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'processor cache'): self.lifecycle()
 
     def test_registry_pollution_between_owners_blocks_the_reload_owner(self):
-        def polluted(index):
-            result = gate.lifecycle(index,self.fake.decode,[Path('/i/0')],Path('/b'),lambda: '')
+        def polluted(index, deadline):
+            result = gate.lifecycle(index,self.fake.decode,[Path('/i/0')],Path('/b'),lambda: '',deadline)
             sys.modules['_connected_serving_leaked_after_close'] = Obj()
             return result
         with self.assertRaisesRegex(ValueError,'second encoder owner preceded complete release'):
@@ -1187,22 +1231,22 @@ class ParityBody(unittest.TestCase):
         self.fake = Fake()
         index = self.fake.factory()()
         index._endpoint.pop('processor_cache')
-        with self.assertRaises(ValueError): gate.lifecycle(index,self.fake.decode,[Path('/i/0')],Path('/b'),lambda: '')
+        with self.assertRaises(ValueError): gate.lifecycle(index,self.fake.decode,[Path('/i/0')],Path('/b'),lambda: '',lambda: None)
         index.close()
 
     def test_bundle_mapping_survival_is_rejected(self):
-        self.rejects(lifecycle_check=lambda index: gate.lifecycle(index,self.fake.decode,[Path('/i/0')],Path('/b'),
-            lambda: '7f00 r--s /b/endpoint.pt\n'))
+        self.rejects(lifecycle_check=lambda index,deadline: gate.lifecycle(index,self.fake.decode,[Path('/i/0')],Path('/b'),
+            lambda: '7f00 r--s /b/endpoint.pt\n',deadline))
 
     def test_accepted_live_or_factory_mutant_is_rejected(self):
-        accepted = lambda index: gate.run_mutants([('accepted',lambda: None,lambda: None,'current')],lambda mode: None)  # noqa: E731
+        accepted = lambda index,deadline: gate.run_mutants([('accepted',lambda: None,lambda: None,'current')],lambda mode: None,deadline)  # noqa: E731
         self.rejects(mutants=accepted)
         self.fake = Fake()
         factory = self.fake.factory()
         index_type = self.fake.make()
         def lax(*, method='from_probe_bundle', **overrides): return index_type()
         lax.base = factory.base
-        with self.assertRaises(ValueError): gate.factory_mutants(lax)
+        with self.assertRaises(ValueError): gate.factory_mutants(lax,lambda: None)
 
     def test_factory_mutant_that_leaks_the_registry_is_rejected(self):
         fake = self.fake
@@ -1210,7 +1254,7 @@ class ParityBody(unittest.TestCase):
             sys.modules['_sfora_connected_compact_leak'] = Obj()
             raise ValueError('rejected but leaked')
         leaky.base = fake.factory().base
-        with self.assertRaises(ValueError): gate.factory_mutants(leaky)
+        with self.assertRaises(ValueError): gate.factory_mutants(leaky,lambda: None)
         del sys.modules['_sfora_connected_compact_leak']
 
     def test_restore_failure_is_reported_with_the_rejection_preserved(self):
@@ -1218,8 +1262,8 @@ class ParityBody(unittest.TestCase):
         def restore_bad(): raise RuntimeError('restore failed')
         reject = lambda mode: (_ for _ in ()).throw(ValueError('rejected'))  # noqa: E731
         with self.assertRaisesRegex(RuntimeError,'restore failed'):
-            gate.run_mutants([('a',lambda: order.append('a'),restore_bad,'x')],reject)
-        gate.run_mutants([('c',lambda: order.append('c'),lambda: order.append('restored-c'),'x')],reject)
+            gate.run_mutants([('a',lambda: order.append('a'),restore_bad,'x')],reject,lambda: None)
+        gate.run_mutants([('c',lambda: order.append('c'),lambda: order.append('restored-c'),'x')],reject,lambda: None)
         self.assertEqual(order,['a','c','restored-c'])
 
     def test_partial_apply_failure_still_restores_and_preserves_the_original_error(self):
@@ -1229,13 +1273,13 @@ class ParityBody(unittest.TestCase):
             raise RuntimeError('apply failed after mutating')
         def restore(): state['value'] = 1
         with self.assertRaisesRegex(RuntimeError,'apply failed after mutating'):
-            gate.run_mutants([('partial',apply,restore,'x')],lambda mode: None)
+            gate.run_mutants([('partial',apply,restore,'x')],lambda mode: None,lambda: None)
         self.assertEqual(state['value'],1)
         def restore_bad():
             state['value'] = 1
             raise OSError('restore failed too')
         kept = None
-        try: gate.run_mutants([('partial',apply,restore_bad,'x')],lambda mode: None)
+        try: gate.run_mutants([('partial',apply,restore_bad,'x')],lambda mode: None,lambda: None)
         except RuntimeError as error: kept = error
         self.assertIsNotNone(kept)  # the original apply error stays primary
         self.assertTrue(any('restore failed too' in n for n in kept.__notes__))
@@ -1246,16 +1290,16 @@ class ParityBody(unittest.TestCase):
         calls = []
         def apply(): raise RuntimeError('apply failed')
         with self.assertRaises(RuntimeError):
-            gate.run_mutants([('a',apply,lambda: calls.append('restore'),'x')],lambda mode: None)
+            gate.run_mutants([('a',apply,lambda: calls.append('restore'),'x')],lambda mode: None,lambda: None)
         self.assertEqual(calls,['restore'])
         def interrupt(): raise KeyboardInterrupt()
         with self.assertRaises(KeyboardInterrupt):
-            gate.run_mutants([('a',interrupt,lambda: (_ for _ in ()).throw(RuntimeError('r')),'x')],lambda mode: None)
+            gate.run_mutants([('a',interrupt,lambda: (_ for _ in ()).throw(RuntimeError('r')),'x')],lambda mode: None,lambda: None)
 
     def test_unrejected_mutant_is_still_restored_before_the_failure(self):
         state = {'value':1}
         with self.assertRaisesRegex(ValueError,'live mutant accepted'):
-            gate.run_mutants([('m',lambda: state.update(value=2),lambda: state.update(value=1),'x')],lambda mode: None)
+            gate.run_mutants([('m',lambda: state.update(value=2),lambda: state.update(value=1),'x')],lambda mode: None,lambda: None)
         self.assertEqual(state['value'],1)
 
     def test_persisted_tail_body_cap_and_denial_failures_are_rejected(self):
@@ -1291,7 +1335,8 @@ class ParityBody(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             gate.reference_outputs(name='_connected_probe_gate_reference_y',directory=Path('/b'),bundle_sha='a'*64,loader=loader,
                 pin='d'*64,guards={},reads_only=lambda: io.StringIO(),batches=[('B1',[Path('/i/0')])],decode=self.fake.decode,
-                rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda s: None,after=lambda: None,registry=registry)
+                rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda s: None,after=lambda: None,deadline=lambda: None,
+                registry=registry)
         self.assertEqual((released,registry),([1],{}))
         self.assertTrue(all(i.closed for i in self.fake.images))
 
@@ -1308,16 +1353,247 @@ class ParityBody(unittest.TestCase):
         with self.assertRaises(ValueError):
             gate.reference_outputs(name='_connected_probe_gate_reference_z',directory=Path('/b'),bundle_sha='a'*64,loader=loader,
                 pin='d'*64,guards={},reads_only=lambda: io.StringIO(),batches=[('B1',[Path('/i/0')])],decode=self.fake.decode,
-                rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda s: None,after=lambda: None,registry=registry)
+                rgb=gate.rgb_digest,snapshot=copy.deepcopy,loaded=lambda s: None,after=lambda: None,deadline=lambda: None,
+                registry=registry)
+
+
+    def test_fake_clock_crossing_during_an_expensive_call_prevents_the_next_call(self):
+        # produce calls: reference 1..8, installed A 9..16, A_restored 17..18, reload B 19..22
+        for at in (1,2,8,9,12,16,17,19):
+            self.fake, clock = Fake(), [0.0]
+            produce = self.fake.produce
+            def timed(index, images, produce=produce, fake=self.fake, clock=clock, at=at):
+                out = produce(index,images)
+                if fake.calls == at: clock[0] = 301.0  # this call crossed body300
+                return out
+            self.fake.produce = timed
+            with self.subTest(at), patch.object(gate.time,'perf_counter',lambda clock=clock: clock[0]):
+                kept = self.rejects(started=0.0)  # cleanup (release, registry, owner close, images) still ran
+                self.assertIn('body300',str(kept))
+                self.assertEqual(self.fake.calls,at)  # the NEXT expensive call never ran
+
+    def test_mutant_deadline_is_between_mutants_and_never_a_rejection(self):
+        expired, order = [False], []
+        deadline = lambda: gate.require(not expired[0],'diagnostic body300 cap exceeded')  # noqa: E731
+        def crossing(mode):
+            expired[0] = True  # the clock crosses inside the expensive detection
+            raise ValueError('genuine rejection')
+        mutants = [(n,lambda n=n: order.append('apply-'+n),lambda n=n: order.append('restore-'+n),'outputs') for n in 'ab']
+        with self.assertRaisesRegex(ValueError,'body300'): gate.run_mutants(mutants,crossing,deadline)
+        self.assertEqual(order,['apply-a','restore-a'])  # restored even though expired; b never applied
+        order.clear()
+        with self.assertRaisesRegex(ValueError,'body300'): gate.run_mutants(mutants,lambda mode: None,deadline)
+        self.assertEqual(order,[])
+        expired[0] = False
+        def accepting(mode): expired[0] = True
+        with self.assertRaisesRegex(ValueError,'live mutant accepted'): gate.run_mutants(mutants[:1],accepting,deadline)
+
+    def test_only_an_exact_valueerror_is_a_live_rejection_with_bounded_evidence(self):
+        class Sub(ValueError): pass
+        for error in (TypeError('bad call'),MemoryError(),RuntimeError('CUDA error: out of memory'),Sub('subclass')):
+            restored = []
+            with self.subTest(type(error).__name__), self.assertRaises(type(error)):
+                gate.run_mutants([('m',lambda: None,lambda: restored.append(1),'outputs')],
+                    lambda mode, error=error: (_ for _ in ()).throw(error),lambda: None)
+            self.assertEqual(restored,[1])
+        result = gate.run_mutants([('m',lambda: None,lambda: None,'outputs')],
+            lambda mode: (_ for _ in ()).throw(ValueError('x'*1000)),lambda: None)
+        self.assertEqual(result,{'m':{'type':'ValueError','message':'x'*256}})
+
+    def test_factory_negatives_accept_only_an_exact_valueerror_and_the_clock_stops_the_next(self):
+        factory = self.fake.factory()
+        result = gate.factory_mutants(factory,lambda: None)
+        self.assertEqual(result['mlp_factory_on_probe_bundle'],{'type':'ValueError','message':'unsupported connected bundle schema/closure'})
+        self.assertEqual(result['gallery_count'],{'type':'ValueError','message':'pinned input differs'})
+        for error in (TypeError('unexpected keyword'),MemoryError()):
+            def crashing(*, method='from_probe_bundle', error=error, **overrides): raise error
+            crashing.base = factory.base
+            with self.subTest(type(error).__name__), self.assertRaises(type(error)): gate.factory_mutants(crashing,lambda: None)
+        calls, expired = [], [False]
+        def slow(*, method='from_probe_bundle', **overrides):
+            calls.append(method)
+            expired[0] = True
+            raise ValueError('rejected')
+        slow.base = factory.base
+        with self.assertRaisesRegex(ValueError,'body300'):
+            gate.factory_mutants(slow,lambda: gate.require(not expired[0],'diagnostic body300 cap exceeded'))
+        self.assertEqual(calls,['from_probe_bundle'])
+
+    def test_native_search_crossing_prevents_the_next_search_and_still_closes(self):
+        with tempfile.TemporaryDirectory() as raw:
+            library = Path(raw)/'lib.so'
+            library.write_bytes(b'x')
+            calls, closed, expired = [], [], [False]
+
+            class Gallery:
+                @staticmethod
+                def open_packed(path, packed): return Gallery()
+
+                def search_packed(self, packed, k):
+                    calls.append(k)
+                    expired[0] = True
+                    return (memoryview(struct.pack('<10q',*range(10))).cast('q',shape=[1,10]),
+                        memoryview(struct.pack('<10f',*([1.]*10))).cast('f',shape=[1,10]))
+
+                def close(self): closed.append(1)
+            packed = SimpleNamespace(from_bytes=lambda wire,count,dimensions: wire)
+            ref = {k:{'outputs':Witnesses.outputs(1,i)} for i,k in enumerate(('B1','B2'),start=1)}
+            with self.assertRaisesRegex(ValueError,'body300'):
+                gate.reference_native(packed,Gallery,fact(library),b'',10,ref,observer,
+                    lambda: gate.require(not expired[0],'diagnostic body300 cap exceeded'))
+        self.assertEqual((calls,closed),([10],[1]))
+
+    def test_live_mutant_failure_releases_gate_references_before_owner_teardown(self):
+        at_close = []
+        index_type = self.fake.make()
+        def factory():
+            index = index_type()
+            factory.ref = weakref.ref(index._endpoint['model'])
+            close = index.close
+            def checked():
+                close()  # drops the endpoint, like the genuine release
+                gc.collect()
+                at_close.append(factory.ref() is None)  # the genuine release requires this lifetime
+            index.close = checked
+            return index
+        def build(index, torch):
+            model, backup = index._endpoint['model'], Obj()  # closure-held parameter and tensor backup
+            def apply():
+                held = (model,backup)  # partial apply mutates, then fails
+                raise RuntimeError('apply failed after mutating')
+            def restore():
+                held = (model,backup)
+                raise OSError('restore failed')
+            return [('partial',apply,restore,'outputs')]
+        kept = None
+        with patch.object(gate,'native_live_mutants',build):
+            try:
+                with requests.owner(factory,lambda: None,{}) as index:
+                    gate.live_mutants(index,None,[],lambda: None,lambda: None)
+            except RuntimeError as error: kept = error  # retained, as a caller would
+        self.assertIsNotNone(kept)
+        self.assertEqual(str(kept),'apply failed after mutating')
+        self.assertEqual([type(e) for e in kept.__cause__.exceptions],[OSError])
+        self.assertEqual(at_close,[True])  # released BEFORE the owner's teardown, not merely afterwards
+        gc.collect()
+        self.assertIsNone(factory.ref())
+        self.assertIsNotNone(kept.__traceback__)
+
+    def test_real_denial_audit_hook_through_the_body(self):
+        with tempfile.TemporaryDirectory() as raw:
+            historical, bare = str(Path(raw)/gate.TRAINER), gate.TRAINER.removesuffix('.py')
+            denial = gate.Denial(raw)
+            result = self.run_body(denial=denial)  # green with the genuine audit hook
+            self.assertEqual(result['denial'],{'checks':3,'historical_modules_absent':True})
+            self.assertFalse(denial.active)
+            compile('x = 1',historical,'exec')  # inactive after the body: allowed
+            self.fake = Fake()
+            produce = self.fake.produce
+            def compiling(index, images):
+                if index is not None: compile('x = 1',historical,'exec')  # installed inference only
+                return produce(index,images)
+            self.fake.produce = compiling
+            kept = self.rejects(denial=denial)
+            self.assertIn('execute a historical source',str(kept))
+            self.assertFalse(denial.active)
+            self.fake = Fake()
+            factory = self.fake.factory()
+            def leaking(**overrides):
+                sys.modules[bare] = SimpleNamespace(__file__=None)  # bare historical module name
+                return factory(**overrides)
+            leaking.base = factory.base
+            try: kept = self.rejects(denial=denial,factory=leaking)
+            finally: sys.modules.pop(bare,None)
+            self.assertIn('historical source module is live: '+bare,str(kept))
+            self.assertFalse(denial.active)
+            compile('x = 1',historical,'exec')
+
+
+class LiveMutantIdentity(unittest.TestCase):
+    """Stdlib stand-ins run the real native_live_mutants: every restore returns the exact original object."""
+    def world(self, tensor=FakeTensor):
+        class Tensor(tensor):
+            is_leaf, requires_grad = True, False
+
+            def numel(self): return len(self.store)
+
+            def reshape(self, shape): return FakeTensor(shape,self.store)
+
+            def requires_grad_(self, flag):
+                self.requires_grad = flag
+                return self
+
+        class State(int):
+            def clone(self): return self
+        params = {'head.probe':Tensor((2,)),'encoder.w':Tensor((2,),[5.,6.])}
+        head_weight, readout_c, mu = Tensor((2,)), Tensor((3,)), Tensor((1,))
+        config = SimpleNamespace(_attn_implementation='sdpa')
+        registration = {'position_ids'}
+        model = SimpleNamespace(named_parameters=lambda: iter(params.items()),config=config,
+            embeddings=SimpleNamespace(_non_persistent_buffers_set=registration))
+        processor = SimpleNamespace(image_mean=(0.5,0.5,0.5))
+        module = type(sys)('_gate_identity_runtime')
+        exec("PROBE = ('head.probe',)\nARMS = ('control', 'candidate')\n"
+            "def owned_copy(value, device='cpu'): return value\ndef inference_outputs(endpoint, images): return None\n",vars(module))
+        index = SimpleNamespace(_module=module,_apis={'inference_outputs':(module.inference_outputs,module.inference_outputs.__code__)},
+            _endpoint={'model':model,'head_object':SimpleNamespace(parameters=lambda: iter([head_weight])),'C':readout_c,
+                'mu_train':mu,'processor_object':processor})
+        rng, flags = {'cpu':State(7),'cuda':[State(9)]}, {'precision':'highest'}
+        def rand(*shape, device='cpu'):
+            if device == 'cpu': rng['cpu'] = State(rng['cpu']+1)
+            else: rng['cuda'] = [State(rng['cuda'][0]+1)]
+        torch = SimpleNamespace(equal=FAKE_TORCH.equal,rand=rand,
+            get_float32_matmul_precision=lambda: flags['precision'],set_float32_matmul_precision=lambda v: flags.update(precision=v),
+            random=SimpleNamespace(get_rng_state=lambda: rng['cpu'],set_rng_state=lambda v: rng.update(cpu=v)),
+            cuda=SimpleNamespace(get_rng_state_all=lambda: list(rng['cuda']),set_rng_state_all=lambda v: rng.update(cuda=list(v))))
+        tensors = [*params.values(),head_weight,readout_c,mu]
+        def snapshot():
+            return (processor.image_mean,config._attn_implementation,frozenset(registration),module.inference_outputs.__code__,
+                module.owned_copy.__defaults__,module.ARMS,frozenset(vars(module)),flags['precision'],rng['cpu'],
+                tuple(rng['cuda']),[list(t.store) for t in tensors],head_weight.requires_grad)
+        return index,torch,snapshot
+
+    def test_every_live_mutant_changes_state_and_restores_the_original_objects(self):
+        index,torch,snapshot = self.world()
+        module, processor = index._module, index._endpoint['processor_object']
+        before, mean = snapshot(), processor.image_mean
+        mutants = gate.native_live_mutants(index,torch)
+        self.assertEqual({m[0] for m in mutants},gate.MUTANT_NAMES)
+        for name,apply,restore,mode in mutants:
+            with self.subTest(name):
+                apply()
+                self.assertNotEqual(snapshot(),before)
+                restore()
+                self.assertEqual(snapshot(),before)
+                self.assertIs(processor.image_mean,mean)  # the original object itself, not an equal copy
+                self.assertIs(module.inference_outputs.__code__,before[3])
+                self.assertIs(module.owned_copy.__defaults__,before[4])
+                self.assertIs(module.ARMS,before[5])
+
+    def test_failed_backup_clone_leaves_no_earlier_backup_pinned_by_the_retained_error(self):
+        clones = []
+        class Failing(FakeTensor):
+            def clone(self):
+                if clones: raise MemoryError('CUDA out of memory')  # second leaf backup fails
+                copy_ = FakeTensor(self.shape,list(self.store))
+                clones.append(weakref.ref(copy_))
+                return copy_
+        index,torch,_ = self.world(Failing)
+        kept = None
+        try: gate.live_mutants(index,torch,[],lambda: None,lambda: None)
+        except MemoryError as error: kept = error  # retained, as the owner would while closing
+        self.assertIsNotNone(kept)
+        self.assertEqual(len(clones),1)
+        gc.collect()
+        self.assertIsNone(clones[0]())
 
 
 class ReceiptValidation(unittest.TestCase):
     @classmethod
     def build(cls, active=None):
         if active is None:
-            with world() as w:
-                authority = w.authority()
-        else: authority = active.authority()
+            with world() as w: return cls.build(w)
+        authority = active.authority()
         fake = Fake()
         parity = gate.parity_body(**body_for(fake))
         afact = {'path':'/a/authority.json','sha256':'a'*64}
@@ -1325,13 +1601,17 @@ class ReceiptValidation(unittest.TestCase):
             'native':[Witnesses.native(1),Witnesses.native(32)]}
         record = {'schema':gate.RECEIPT,'status':'ENGINEERING_PARITY_DIAGNOSTIC','engineering_only':True,'authority':afact,
             'sources':authority['sources'],**{k:authority[k] for k in ('evaluator','evaluation_authority','endpoint','train_export',
-                'bundle','gallery','images','native','wheel')},'wheel_evidence':{},'native_runtime':authority['native']['authority'],
+                'bundle','gallery','images','native','wheel')},
+            'wheel_evidence':gate.check_wheel(authority['wheel'],authority['sources'],observer,ROOT),
+            'native_runtime':authority['native']['authority'],
             'native_scope':gate.NATIVE_SCOPE,'output':'/o/new','ties':ties,**parity,'installed_public_parity_pass':True,
             'full_uncached_exit_pass':True,**dict.fromkeys(('quality_read','quality_eligible','speed_eligible','release_eligible',
                 'qualification_eligible','deployment_eligible','state_reuse_eligible','optimization_eligible','product_go',
                 'native_launch_authorized_by_source_pass'),False),'resource_policy':dict(gate.POLICY),
             'normal_terminal_required':True,'owned_cleanup_requires_terminal':True,
-            'invocation':{'argv':gate.cli(afact,'/o/new',authority['sources']['probe_driver']['path']),'optimize':0,
+            'combined_native':{},'resources':{},'input_guards':{},'whole_process_seconds':1.0,
+            'invocation':{'argv':gate.cli(afact,'/o/new',authority['sources']['probe_driver']['path']),'python':sys.executable,
+                'python_sha256':'e'*64,'python_version':sys.version,'pid':1,'invocation_id':'d'*32,'optimize':0,
                 'cuda_visible_devices':'0','cublas_workspace_config':':4096:8'}}
         return record,authority,afact
 
@@ -1391,7 +1671,21 @@ class ReceiptValidation(unittest.TestCase):
             'charge over body':lambda r: r['owners'][0].__setitem__('admission_seconds',r['body_seconds']+1),
             'ties false':lambda r: r['ties'].__setitem__('ascending_ordinal_score_bits_exact',False),
             'ties bits':lambda r: r['ties']['native'][1][1].__setitem__('hex',struct.pack('<320f',*([2.]*320)).hex()),
-            'terminal false':lambda r: r.__setitem__('normal_terminal_required',False)})
+            'terminal false':lambda r: r.__setitem__('normal_terminal_required',False),
+            'receipt extra key':lambda r: r.__setitem__('foreign',1),
+            'receipt missing key':lambda r: r.pop('whole_process_seconds'),
+            'invocation extra key':lambda r: r['invocation'].__setitem__('foreign',1),
+            'invocation missing id':lambda r: r['invocation'].pop('invocation_id'),
+            'mutant bare string':lambda r: r['factory_mutants'].__setitem__('gallery_count','rejected'),
+            'mutant other type':lambda r: r['live_mutants']['frozen_leaf'].__setitem__('type','TypeError'),
+            'mutant long message':lambda r: r['live_mutants']['readout_C'].__setitem__('message','x'*257),
+            'mutant empty message':lambda r: r['factory_mutants']['native_sha256'].__setitem__('message',''),
+            'mutant extra evidence':lambda r: r['live_mutants']['readout_C'].__setitem__('traceback','frames'),
+            'rng other message':lambda r: r['live_mutants']['cuda_rng'].__setitem__('message','installed state changed'),
+            'wheel evidence site':lambda r: r['wheel_evidence'].__setitem__('site_root','/elsewhere'),
+            'wheel evidence direct url':lambda r: r['wheel_evidence'].__setitem__('direct_url',{'path':'/x','sha256':'1'*64}),
+            'wheel evidence rows':lambda r: r['wheel_evidence']['rows'].pop('bridge'),
+            'wheel evidence extra':lambda r: r['wheel_evidence'].__setitem__('editable',False)})
         for name,edit in edits.items():
             value = copy.deepcopy(self.record)
             edit(value)
@@ -1435,6 +1729,7 @@ class AcceptUnitEarly(unittest.TestCase):
         (out/'receipt.json').write_text(json.dumps(record or self.record))
         unit = copy.deepcopy(self.authority['train_export'])
         unit['receipt'] = fact(out/'receipt.json')
+        unit['invocation_id'] = (record or self.record)['invocation']['invocation_id']
         if receipt_path:
             Path(receipt_path).write_text(json.dumps(record or self.record))
             unit['receipt'] = fact(receipt_path)
@@ -1453,6 +1748,52 @@ class AcceptUnitEarly(unittest.TestCase):
             gate.accept_unit({},self.unit(),{'path':self.afact['path'],'sha256':'0'*64})
         self.assertEqual(set(sys.modules)-self.before,set())
 
+    def rebind(self, direct_url):
+        """Admission-time wheel evidence for a declared direct_url FILE (or canonical absence)."""
+        self.authority['wheel'] = self.record['wheel'] = self.w.wheel(direct_url)
+        self.record['wheel_evidence'] = gate.check_wheel(self.authority['wheel'],self.authority['sources'],observer,ROOT)
+        path = self.root/'authority.json'
+        path.write_text(json.dumps(self.authority))
+        self.afact = self.record['authority'] = fact(path)
+        self.record['invocation']['argv'] = gate.cli(self.afact,self.record['output'],self.authority['sources']['probe_driver']['path'])
+
+    def reaches_native(self):
+        with self.assertRaises(KeyError) as caught: gate.accept_unit({},self.unit(),self.afact)
+        self.assertEqual(caught.exception.args,('training_context',))  # past the fresh wheel check
+        self.assertEqual([n for n in set(sys.modules)-self.before if n.startswith('_connected_requests_')],[])
+
+    def test_receipt_invocation_must_be_the_diagnostic_unit(self):
+        unit = self.unit()
+        unit['invocation_id'] = 'f'*32
+        with self.assertRaisesRegex(ValueError,'invocation roles differ'): gate.accept_unit({},unit,self.afact)
+        self.assertEqual(set(sys.modules)-self.before,set())
+
+    def test_wheel_changes_after_admission_are_rejected_fresh_at_parent_acceptance(self):
+        self.reaches_native()
+        dist = self.w.site/'sfora-9.9.9.dist-info'
+        for name,change,undo in (
+                ('direct_url created after declared absence',lambda: (dist/'direct_url.json').write_text('{}'),
+                    lambda: (dist/'direct_url.json').unlink()),
+                ('editable .pth',lambda: (self.w.site/'sfora.pth').write_text(str(ROOT)+'\n'),
+                    lambda: (self.w.site/'sfora.pth').unlink()),
+                ('editable finder',lambda: (self.w.site/'__editable___sfora_finder.py').write_text(''),
+                    lambda: (self.w.site/'__editable___sfora_finder.py').unlink())):
+            change()
+            try:
+                with self.subTest(name), self.assertRaises(ValueError) as caught: gate.accept_unit({},self.unit(),self.afact)
+                self.assertNotIn('training_context',str(caught.exception))
+            finally: undo()
+        self.reaches_native()
+        direct = dist/'direct_url.json'
+        direct.write_text(json.dumps({'url':'file:///x.whl','archive_info':{}}))
+        self.rebind(fact(direct))
+        self.reaches_native()
+        for name,change in (('declared direct_url edited',lambda: direct.write_text(json.dumps({'dir_info':{'editable':True}}))),
+                ('declared direct_url removed',lambda: direct.unlink())):
+            change()
+            with self.subTest(name), self.assertRaises((ValueError,OSError)): gate.accept_unit({},self.unit(),self.afact)
+        self.assertEqual([n for n in set(sys.modules)-self.before if n.startswith('_connected_requests_')],[])
+
     def test_valid_receipt_reaches_the_native_reader_and_cleans_every_owned_source_on_failure(self):
         with self.assertRaises((KeyError,ValueError,FileNotFoundError,OSError)):
             gate.accept_unit({'training_context':{}},self.unit(),self.afact)
@@ -1470,15 +1811,17 @@ class DriverStructure(unittest.TestCase):
             'evaluator.endpoint_scope','evaluator.authenticate_payloads','select_batches','bind_gallery','parity_body','api.evaluator_exit',
             'evaluator.exit_rehash','api.evidence','validate_receipt',"context['helper'].publish",'requests.raise_failures'},
         'parity_body':{'guard','owned_names','requests.owner','denial.check','reference','native','persisted_tail','mutant_factory',
-            'mutants','lifecycle_check','installed_pass'},
+            'mutants','lifecycle_check','installed_pass','deadline'},
         'reference_outputs':{'reads_only','loader','portable.load_inference','loaded','portable.release_inference','after','registry.pop',
-            'close_all','requests.raise_failures','check_outputs'},
-        'installed_pass':{'decode','rgb','capture','close_all','check_outputs','digest'},
+            'close_all','requests.raise_failures','check_outputs','deadline','clear_frames'},
+        'reference_native':{'deadline','gallery.search_packed','gallery.close','requests.raise_failures'},
+        'installed_pass':{'decode','rgb','capture','close_all','check_outputs','digest','deadline'},
         'captured_search':{'sys.getprofile','sys.setprofile','index.search_images','native_snapshot'},
-        'lifecycle':{'index.close','index.search_images','gc.collect','owned_names','mappings_absent','ref'},
-        'factory_mutants':{'make','index.close','owned_names'},
-        'run_mutants':{'apply','restore','detect','requests.raise_failures'},
-        'accept_unit':{'check_shape','validate_receipt',"context['terminal_reader']","context['helper'].zero_events",
+        'lifecycle':{'index.close','index.search_images','gc.collect','owned_names','mappings_absent','ref','deadline'},
+        'factory_mutants':{'make','index.close','owned_names','deadline','rejection'},
+        'run_mutants':{'apply','restore','detect','requests.raise_failures','deadline','rejection'},
+        'live_mutants':{'native_live_mutants','run_mutants','clear_frames','index._check_current'},
+        'accept_unit':{'check_shape','validate_receipt','check_wheel',"context['terminal_reader']","context['helper'].zero_events",
             'requests.check_resources','requests.Source.load','native_source.module.CombinedAuthority','derive_evaluator_loader',
             'evaluator.closure','evaluator.check_code','admit_probe',"legacy['invocations'].add",'observer.file_bytes'},
         'admit_probe':{'evaluator.accept_unit'},
@@ -1530,6 +1873,13 @@ class DriverStructure(unittest.TestCase):
         run = self.functions(tree_of(DRIVER))['run']
         count = sum(isinstance(n,ast.Call) and ast.unparse(n.func) == 'locks.check' for n in ast.walk(run))
         self.assertGreaterEqual(count,3)
+
+    def test_wheel_is_rechecked_at_exit_and_declared_direct_url_is_a_guarded_input(self):
+        functions = self.functions(tree_of(DRIVER))
+        run = functions['run']
+        self.assertEqual(sum(isinstance(n,ast.Call) and ast.unparse(n.func) == 'check_wheel' for n in ast.walk(run)),2)
+        for name in ('run','accept_unit'):
+            self.assertIn("authority['wheel']['direct_url']",ast.unparse(functions[name]))
 
     def test_no_function_or_global_is_rebound_and_no_historical_execution(self):
         text = DRIVER.read_text()

@@ -405,16 +405,19 @@ def rgb_digest(images):
 
 
 def clear_frames(error):
-    """Drop locals of FINISHED frames pinned by a retained exception chain; active frames are untouched."""
-    seen = set()
-    while error is not None and id(error) not in seen:
+    """Drop locals of FINISHED frames pinned by a retained exception graph (causes, contexts and
+    exception-group members); active frames are untouched."""
+    seen, pending = set(), [error]
+    while pending:
+        error = pending.pop()
+        if error is None or id(error) in seen: continue
         seen.add(id(error))
         trace = error.__traceback__
         while trace is not None:
             try: trace.tb_frame.clear()
             except RuntimeError: pass
             trace = trace.tb_next
-        error = error.__cause__ or error.__context__
+        pending += [error.__cause__,error.__context__,*(error.exceptions if isinstance(error,BaseExceptionGroup) else ())]
 
 
 def close_all(images, failures):
@@ -452,15 +455,17 @@ def bind_gallery(wire, rows, mapping, gallery):
 
 
 def reference_outputs(*, name, directory, bundle_sha, loader, pin, guards, reads_only, batches, decode, rgb,
-        snapshot, loaded, after, registry=None):
+        snapshot, loaded, after, deadline, registry=None):
     """Mirror the evaluator's copied-loader ownership and fully release it before returning."""
     registry = sys.modules if registry is None else registry
     portable = state = None
     failures, rows = [], {}
     try:
+        deadline()
         with reads_only():
             portable = loader(name,Path(directory)/TRAINER,pin,guards)
             state = portable.load_inference(Path(directory),bundle_sha,'cuda')
+        deadline()
         loaded(state)
         for kind,paths in batches:
             images = decode(paths)
@@ -468,7 +473,9 @@ def reference_outputs(*, name, directory, bundle_sha, loader, pin, guards, reads
                 pixels = rgb(images)
                 with reads_only():
                     first = snapshot(portable.inference_outputs(state,images))
+                    deadline()
                     second = snapshot(portable.inference_outputs(state,images))
+                deadline()
             finally: close_all(images,failures)
             require(first == second,'reference same-batch repeat differs: '+kind)
             check_outputs(first,len(paths))
@@ -477,28 +484,36 @@ def reference_outputs(*, name, directory, bundle_sha, loader, pin, guards, reads
         clear_frames(error)
         failures.append(error)
     finally:
-        try:
-            if state is not None: portable.release_inference(state)
-            state = None
-            after()
-            if portable is not None: require(registry.pop(name,None) is portable,'owned loader registry changed')
+        # Each cleanup step is attempted independently, even after an earlier one (or the deadline) failed.
+        if state is not None:
+            try: portable.release_inference(state)
+            except BaseException as error: failures.append(error)
+        state = None
+        try: after()
         except BaseException as error: failures.append(error)
+        if portable is not None:
+            try: require(registry.pop(name,None) is portable,'owned loader registry changed')
+            except BaseException as error: failures.append(error)
         portable = None
+        for error in failures: clear_frames(error)
     if failures: requests.raise_failures(failures)
     return rows
 
 
-def reference_native(packed, gallery_type, native, gallery_wire, count, reference, observer):
+def reference_native(packed, gallery_type, native, gallery_wire, count, reference, observer, deadline):
     """Independent resident gallery searches the reference wires; closed before any installed owner."""
+    deadline()
     observer.file_bytes(native)
     gallery = gallery_type.open_packed(Path(native['path']),packed.from_bytes(gallery_wire,count=count,dimensions=128))
     failures, rows = [], {}
     try:
         for kind,row in reference.items():
+            deadline()
             wire = bytes.fromhex(row['outputs']['wire_hex'])
             result = gallery.search_packed(packed.from_bytes(wire,count=len(wire)//130,dimensions=128),k=10)
             rows[kind] = observer.native_snapshot(result)
             result = None
+        deadline()
     except BaseException as error: failures.append(error)
     finally:
         try: gallery.close()
@@ -508,10 +523,11 @@ def reference_native(packed, gallery_type, native, gallery_wire, count, referenc
     return rows
 
 
-def installed_pass(index, batches, reference, native, decode, rgb, capture, owner, repeats):
+def installed_pass(index, batches, reference, native, decode, rgb, capture, owner, repeats, deadline):
     rows, failures = [], []
     for kind,paths in batches:
         for call in range(repeats):
+            deadline()
             images = decode(paths)
             try:
                 require(rgb(images) == reference[kind]['rgb_sha256'],'identical image membership/order/preprocessing differs: '+kind)
@@ -522,6 +538,7 @@ def installed_pass(index, batches, reference, native, decode, rgb, capture, owne
             require(output == reference[kind]['outputs'],'installed raw/unit/codes/inverse_norms/wire differs: '+kind)
             require(found == native[kind],'installed native top10 ID/score bits differ: '+kind)
             rows.append({'owner':owner,'kind':kind,'call':call,'outputs_sha256':digest(output),'native_sha256':digest(found)})
+    deadline()
     return rows
 
 
@@ -529,8 +546,15 @@ def flip(sha):
     return ('0' if sha[0] != '0' else '1')+sha[1:]
 
 
-def factory_mutants(make):
-    """Cheap hash/count/schema failures; none may leak an owned registry entry."""
+def rejection(error):
+    """Bounded scalar evidence of an expected genuine ValueError rejection; keeps no exception or frame."""
+    return {'type':type(error).__name__,'message':str(error)[:256]}
+
+
+def factory_mutants(make, deadline):
+    """Cheap hash/count/schema failures; none may leak an owned registry entry.
+
+    Only an exact ValueError (the bridge/runtime/packed rejection type) counts; any other error fails the gate."""
     base = make.base
     cases = (('bundle_sha256','from_probe_bundle',{'expected_bundle_sha256':flip(base['expected_bundle_sha256'])}),
         ('gallery_sha256','from_probe_bundle',{'expected_gallery_sha256':flip(base['expected_gallery_sha256'])}),
@@ -539,35 +563,46 @@ def factory_mutants(make):
         ('mlp_factory_on_probe_bundle','from_bundle',{}))
     results = {}
     for name,method,overrides in cases:
+        deadline()
         before = owned_names()
         try: index = make(method=method,**overrides)
-        except Exception: results[name] = 'rejected'
+        except ValueError as error:
+            if type(error) is not ValueError: raise
+            results[name] = rejection(error)
         else:
             index.close()
             raise ValueError('factory mutant accepted: '+name)
         require(owned_names() == before,'factory mutant leaked owned registry entries: '+name)
+    deadline()
     return results
 
 
-def run_mutants(mutants, detect):
-    """Apply, require rejection, restore: every restore is attempted and reported."""
+def run_mutants(mutants, detect, deadline):
+    """Apply, require rejection, restore: every restore is attempted and reported.
+
+    The body deadline runs only between mutants (never while mutated, never inside the rejection
+    handler); only an exact ValueError counts as rejection, anything else fails the gate."""
     results = {}
     for name,apply,restore,mode in mutants:
-        rejected = False
+        deadline()
+        rejected = None
         failures = []
         try:
             # Ownership first: a partial apply that raises must still be restored.
             try:
                 apply()
                 try: detect(mode)
-                except Exception: rejected = True
+                except ValueError as error:
+                    if type(error) is not ValueError: raise
+                    rejected = rejection(error)
             except BaseException as error: failures.append(error)
         finally:
             try: restore()
             except BaseException as error: failures.append(error)
         if failures: requests.raise_failures(failures)
-        require(rejected,'live mutant accepted: '+name)
-        results[name] = 'rejected'
+        require(rejected is not None,'live mutant accepted: '+name)
+        results[name] = rejected
+    deadline()
     return results
 
 
@@ -588,17 +623,16 @@ def leaf_mutant(torch, name, value):
 
 
 def native_live_mutants(index, torch):
-    """Reversible live mutants of the installed owner; detection is the genuine runtime/bridge."""
+    """Reversible live mutants of the installed owner; detection is the genuine runtime/bridge, except
+    cpu_rng/cuda_rng, which the qualifier's own whole-unit RNG guard detects."""
     endpoint, module = index._endpoint, index._module
     model, head = endpoint['model'], endpoint['head_object']
-    params, mutants = dict(model.named_parameters()), []
-    def leaf(name, value):
-        mutants.append(leaf_mutant(torch,name,value))
-    for n in module.PROBE: leaf('probe_leaf:'+n,params[n])
-    leaf('frozen_leaf',next(p for n,p in params.items() if n not in module.PROBE))
-    leaf('head_parameter',next(head.parameters()))
-    leaf('readout_C',endpoint['C'])
-    leaf('readout_mu_train',endpoint['mu_train'])
+    params = dict(model.named_parameters())
+    leaves = [*[('probe_leaf:'+n,params[n]) for n in module.PROBE],
+        ('frozen_leaf',next(p for n,p in params.items() if n not in module.PROBE)),('head_parameter',next(head.parameters())),
+        ('readout_C',endpoint['C']),('readout_mu_train',endpoint['mu_train'])]
+    # No nested closure owns the list: a failed backup clone leaves no earlier backup reachable from its traceback.
+    mutants = [leaf_mutant(torch,name,value) for name,value in leaves]
     config = model.config
     prior = config._attn_implementation
     other = 'eager' if prior != 'eager' else 'sdpa'
@@ -616,7 +650,7 @@ def native_live_mutants(index, torch):
     first = next(head.parameters())
     mutants.append(('head_requires_grad',lambda: first.requires_grad_(True),lambda: first.requires_grad_(False),'outputs'))
     processor = endpoint['processor_object']
-    mean = list(processor.image_mean)
+    mean = processor.image_mean  # restore the original object itself, not a copy
     mutants.append(('processor_config',lambda: setattr(processor,'image_mean',[v+.125 for v in mean]),
         lambda: setattr(processor,'image_mean',mean),'outputs'))
     precision = torch.get_float32_matmul_precision()
@@ -641,13 +675,24 @@ def native_live_mutants(index, torch):
     return mutants
 
 
-def live_mutants(index, torch, images, guard):
+def live_mutants(index, torch, images, guard, deadline):
     def detect(mode):
         if mode == 'outputs': index._apis['inference_outputs'][0](index._endpoint,images)
         elif mode == 'current': index._check_current()
         else: guard()
-    mutants = native_live_mutants(index,torch)
-    result = run_mutants(mutants,detect)
+    mutants = None
+    try:
+        mutants = native_live_mutants(index,torch)
+        result = run_mutants(mutants,detect,deadline)
+    except BaseException as error:
+        # Drop closures/tensor backups and finished gate frames BEFORE requests.owner tears the index down.
+        # A retained traceback keeps each failed apply/restore frame and, through it, the function and its
+        # closure, so the gate-owned cells (parameters, backups) are emptied, not merely unreferenced.
+        for _,apply,restore,_ in mutants or ():
+            for cell in (*(apply.__closure__ or ()),*(restore.__closure__ or ())): cell.cell_contents = None
+        mutants = detect = None
+        clear_frames(error)
+        raise
     mutants = detect = None
     index._check_current()
     return result
@@ -657,8 +702,9 @@ def mappings_absent(directory, text):
     return all(str(directory) not in line for line in text.splitlines())
 
 
-def lifecycle(index, decode, paths, directory, maps):
+def lifecycle(index, decode, paths, directory, maps, deadline):
     """Close/double-close/post-close plus finished-reference, registry and mapping cleanup."""
+    deadline()
     endpoint = index._endpoint
     refs = [weakref.ref(endpoint[k]) for k in ('model','processor_object','head_object','A','C','mu_train')]
     cache = endpoint.get('processor_cache')
@@ -679,6 +725,7 @@ def lifecycle(index, decode, paths, directory, maps):
     require(cache is not None and cache.cache_info().currsize == 0,'closed index retained processor cache entries')
     cache = None
     require(mappings_absent(directory,maps()),'closed index retained bundle mappings')
+    deadline()
     return {'double_close_safe':True,'post_close_rejected':True,'weakrefs_released':True,
         'processor_cache_empty':True,'registry_clean':True,'mappings_absent':True}
 
@@ -712,35 +759,38 @@ class Denial:
 def parity_body(*, batches, ordinals, persisted_tail, reference, native, factory, decode, rgb, capture, mutants,
         lifecycle_check, denial, guard, started, mutant_factory):
     """Sequential owners R, A (parity+mutants+lifecycle), B (reload); full costs counted."""
+    def deadline():
+        # Lightweight exact body300 check between expensive calls: no guard/source/deep work.
+        require(time.perf_counter()-started < POLICY['body_seconds'],'diagnostic body300 cap exceeded')
     def bounded():
         guard()
-        require(time.perf_counter()-started < POLICY['body_seconds'],'diagnostic body300 cap exceeded')
+        deadline()
     charges, installed = [{},{}], []
     bounded()
-    ref = reference(batches)
+    ref = reference(batches,deadline)
     require(ref.keys() == set(KINDS) and owned_names() == [],'one encoder owner at a time: reference registry survived')
     bounded()
-    found = native(ref)
+    found = native(ref,deadline)
     bounded()
     tail = bytes.fromhex(ref['TAIL']['outputs']['wire_hex'])
     require(persisted_tail(tail),'reference export tail differs from the persisted export wire rows')
     denial.active = True
     try:
-        rejected = mutant_factory()
+        rejected = mutant_factory(deadline)
         bounded()
         with requests.owner(factory,bounded,charges[0]) as index:
             denial.check()
-            installed += installed_pass(index,batches,ref,found,decode,rgb,capture,'A',2)
-            live = mutants(index)
+            installed += installed_pass(index,batches,ref,found,decode,rgb,capture,'A',2,deadline)
+            live = mutants(index,deadline)
             bounded()
-            installed += installed_pass(index,[batches[0],batches[-1]],ref,found,decode,rgb,capture,'A_restored',1)
-            life = lifecycle_check(index)
+            installed += installed_pass(index,[batches[0],batches[-1]],ref,found,decode,rgb,capture,'A_restored',1,deadline)
+            life = lifecycle_check(index,deadline)
         index = None
         require(owned_names() == [],'second encoder owner preceded complete release')
         bounded()
         with requests.owner(factory,bounded,charges[1]) as index:
             denial.check()
-            installed += installed_pass(index,batches,ref,found,decode,rgb,capture,'B',1)
+            installed += installed_pass(index,batches,ref,found,decode,rgb,capture,'B',1,deadline)
         index = None
         require(owned_names() == [],'reload owner registry survived')
         bounded()
@@ -761,6 +811,16 @@ MUTANT_NAMES = {'probe_leaf:head.probe','frozen_leaf','head_parameter','readout_
     'processor_config','numerical_flags','cpu_rng','cuda_rng','runtime_function_code','runtime_function_defaults',
     'runtime_global_rebind','runtime_global_added'}
 FACTORY_NAMES = {'bundle_sha256','gallery_sha256','native_sha256','gallery_count','mlp_factory_on_probe_bundle'}
+FLAGS = ('quality_read','quality_eligible','speed_eligible','release_eligible','qualification_eligible',
+    'deployment_eligible','state_reuse_eligible','optimization_eligible','product_go','native_launch_authorized_by_source_pass')
+RECEIPT_KEYS = {'schema','status','engineering_only','authority','sources','evaluator','evaluation_authority','endpoint',
+    'train_export','bundle','gallery','images','native','wheel','wheel_evidence','native_runtime','native_scope','output','ties',
+    'batches','installed','factory_mutants','live_mutants','lifecycle','denial','persisted_tail_exact','owners','body_seconds',
+    'owner_order','same_batch_exact_only','timing_semantics','product_p99','installed_public_parity_pass',*FLAGS,
+    'resource_policy','normal_terminal_required','owned_cleanup_requires_terminal','invocation','combined_native',
+    'full_uncached_exit_pass','resources','input_guards','whole_process_seconds'}
+INVOCATION_KEYS = {'argv','python','python_sha256','python_version','pid','invocation_id','optimize','cuda_visible_devices',
+    'cublas_workspace_config'}
 
 
 def cli(authority, output, driver):
@@ -771,13 +831,13 @@ def validate_receipt(record, authority, authority_fact):
     def seconds(value):
         require(type(value) in (int,float) and math.isfinite(value) and value >= 0,'finite nonnegative measurement required')
         return value
-    flags = ('quality_read','quality_eligible','speed_eligible','release_eligible','qualification_eligible',
-        'deployment_eligible','state_reuse_eligible','optimization_eligible','product_go','native_launch_authorized_by_source_pass')
+    require(type(record) is dict and record.keys() == RECEIPT_KEYS and type(record['invocation']) is dict and
+        record['invocation'].keys() == INVOCATION_KEYS,'exact probe receipt/invocation keyset required')
     require(record['schema'] == RECEIPT and record['status'] == 'ENGINEERING_PARITY_DIAGNOSTIC' and
         record['engineering_only'] is True and record['authority'] == authority_fact and
         record['sources'] == authority['sources'] and
         all(record[k] == authority[k] for k in ('evaluator','evaluation_authority','endpoint','train_export','bundle',
-            'gallery','images','native','wheel')) and all(record[k] is False for k in flags) and
+            'gallery','images','native','wheel')) and all(record[k] is False for k in FLAGS) and
         record['installed_public_parity_pass'] is True and record['full_uncached_exit_pass'] is True and
         record['native_scope'] == NATIVE_SCOPE and record['same_batch_exact_only'] is True and
         record['persisted_tail_exact'] is True, 'complete engineering-only probe receipt required')
@@ -806,8 +866,16 @@ def validate_receipt(record, authority, authority_fact):
             r['outputs_sha256'] == digest(by_kind[r['kind']]['outputs']) and
             r['native_sha256'] == digest(by_kind[r['kind']]['native']) for r in rows),
         'every installed call must equal the same-batch reference exactly')
-    require(record['factory_mutants'] == dict.fromkeys(FACTORY_NAMES,'rejected') and
-        record['live_mutants'] == dict.fromkeys(MUTANT_NAMES,'rejected'),'complete mutant rejection matrix required')
+    def rejected(value, names):
+        return type(value) is dict and value.keys() == names and all(type(v) is dict and v.keys() == {'type','message'} and
+            v['type'] == 'ValueError' and type(v['message']) is str and 0 < len(v['message']) <= 256 for v in value.values())
+    require(rejected(record['factory_mutants'],FACTORY_NAMES) and rejected(record['live_mutants'],MUTANT_NAMES) and
+        all(record['live_mutants'][n]['message'] == 'whole-unit RNG changed' for n in ('cpu_rng','cuda_rng')),
+        'complete bounded ValueError mutant rejection matrix required')
+    evidence, wheel = record['wheel_evidence'], authority['wheel']
+    require(type(evidence) is dict and evidence.keys() == {'site_root','distribution','version','record','direct_url','rows'} and
+        all(evidence[k] == wheel[k] for k in ('site_root','distribution','version','record','direct_url')) and
+        type(evidence['rows']) is dict and evidence['rows'].keys() == set(INSTALLED),'exact installed wheel evidence required')
     require(record['lifecycle'] == {'double_close_safe':True,'post_close_rejected':True,'weakrefs_released':True,
         'processor_cache_empty':True,'registry_clean':True,'mappings_absent':True},'complete lifecycle evidence required')
     denial = record['denial']
@@ -831,7 +899,10 @@ def validate_receipt(record, authority, authority_fact):
 
 
 def admit_probe(evaluator, context, authority):
-    """Original export launch/UNIT admission for exactly this arm/seed; nothing historical is reused."""
+    """Original export launch/UNIT admission for exactly this arm/seed; nothing historical is reused.
+
+    evaluator.accept_unit CONSUMES the export UNIT invocation (legacy['invocations']), so the context must be
+    a fresh export-phase context that has not already accepted that export UNIT ('reused terminal invocation')."""
     ep, launch = authority['endpoint'], context['launch']
     require(ep['arm'] in evaluator.ARMS and ep['seed'] in evaluator.SEEDS and launch['phase'] == 'export' and
         (launch['stage'],launch['panel'],launch['arm'],launch['seed']) == (ep['stage'],ep['panel'],ep['arm'],ep['seed']),
@@ -844,18 +915,25 @@ def admit_probe(evaluator, context, authority):
 
 
 def accept_unit(context, unit, authority_fact):
-    """Parent's original normal-terminal analogue; prospective pins are the authority's dynamic facts."""
+    """Parent's original normal-terminal analogue; prospective pins are the authority's dynamic facts.
+
+    The parent context must be a FRESH export-phase evaluator context: admit_probe re-runs evaluator.accept_unit
+    on the export UNIT, which consumes its invocation, so a context that already accepted that export UNIT
+    fails closed. The installed wheel (including direct_url presence/absence) is re-checked fresh here."""
     authority = requests.strict_json(requests.read_file(authority_fact))
     check_shape(authority)
     record = requests.strict_json(requests.read_file(unit['receipt']))
     validate_receipt(record,authority,authority_fact)
     require(unit['receipt']['path'] == str(Path(record['output'])/'receipt.json') and
-        record['native_runtime'] == authority['native']['authority'],'diagnostic receipt FILE/output roles differ')
+        record['native_runtime'] == authority['native']['authority'] and
+        record['invocation']['invocation_id'] == unit['invocation_id'],'diagnostic receipt FILE/output/invocation roles differ')
     sources = authority['sources']
     owned,failures = [],[]
     try:
         observer_source = requests.Source.load(sources['observer']); owned.append(observer_source)
         observer = observer_source.module
+        require(record['wheel_evidence'] == check_wheel(authority['wheel'],sources,observer,
+            Path(sources['probe_driver']['path']).parent.parent),'installed wheel evidence changed before parent acceptance')
         native_source = requests.Source.load(sources['control_native']); owned.append(native_source)
         native = native_source.module.CombinedAuthority(context['training_context'],authority['native']['authority'],observer,requests)
         require(native.record['library'] == authority['native']['library'],'terminal native FILE differs')
@@ -881,7 +959,8 @@ def accept_unit(context, unit, authority_fact):
         required = [authority_fact,authority['native']['authority'],authority['evaluation_authority'],
             *sources.values(),*native.provenance_facts(),authority['bundle']['manifest'],*authority['bundle']['code'].values(),
             *authority['bundle']['files'].values(),authority['gallery']['file'],authority['train_export']['receipt'],
-            *authority['images']['fixed32'],*authority['images']['tail']['files'],authority['wheel']['record']]
+            *authority['images']['fixed32'],*authority['images']['tail']['files'],authority['wheel']['record'],
+            *[f for f in (authority['wheel']['direct_url'],) if f is not None]]
         for file in required:
             observer.file_bytes(file)
             require(record['input_guards'].get(file['path']) == file['sha256'], 'terminal omits frozen probe FILE guards')
@@ -976,6 +1055,7 @@ def run(args):
         frozen = [authority_fact,native_fact['authority'],native_fact['library'],authority['evaluation_authority'],
             *sources.values(),bundle['manifest'],*bundle['code'].values(),authority['gallery']['file'],
             authority['train_export']['receipt'],authority['wheel']['record'],
+            *[f for f in (authority['wheel']['direct_url'],) if f is not None],
             *authority['images']['fixed32'],*authority['images']['tail']['files']]
         evaluator.merge_guards(context['guards'],{f['path']:f['sha256'] for f in frozen})
         runtime_authority = native_module.CombinedAuthority(context['training_context'],native_fact['authority'],observer,requests)
@@ -1035,15 +1115,15 @@ def run(args):
             def reads_only(): return context['evaluator_reference'].bundle_reads_only(context,endpoint)
             def loaded(state): t['live_model'] = weakref.ref(state['model'])
             def after(): t['trainer'].require_no_training(t)
-            def reference(items):
+            def reference(items, deadline):
                 return reference_outputs(name='_connected_probe_gate_reference_'+uuid.uuid4().hex,directory=directory,
                     bundle_sha=endpoint['bundle']['sha256'],loader=evaluator.load_authenticated,
                     pin=bundle['code'][TRAINER]['sha256'],guards=context['guards'],reads_only=reads_only,batches=items,
                     decode=decode,rgb=rgb_digest,snapshot=lambda v: snapshot_outputs(v,observer.tensor_snapshot),
-                    loaded=loaded,after=after)
-            def native_search(ref):
+                    loaded=loaded,after=after,deadline=deadline)
+            def native_search(ref, deadline):
                 return reference_native(joint_relational_compaction.PackedInt8Embeddings,cutile_int8.CutilePackedInt8Gallery,
-                    native_fact['library'],gallery_wire,authority['gallery']['count'],ref,observer)
+                    native_fact['library'],gallery_wire,authority['gallery']['count'],ref,observer,deadline)
             def factory(*, method='from_probe_bundle', **overrides):
                 values = dict(factory.base,**overrides)
                 return getattr(bridge_source.module.ConnectedCompactIndex,method)(**values)
@@ -1054,29 +1134,28 @@ def run(args):
             denial = Denial(directory)
             def capture(index, images):
                 return captured_search(index,images,lambda v: snapshot_outputs(v,observer.tensor_snapshot),observer.native_snapshot)
-            def mutate(index):
+            def mutate(index, deadline):
                 images, closing = decode(batches[0][1]), []
-                try: return live_mutants(index,torch,images,guard)
+                try: return live_mutants(index,torch,images,guard,deadline)
                 finally:
                     close_all(images,closing)
                     if closing: requests.raise_failures(closing)
-            def life(index):
-                return lifecycle(index,decode,batches[0][1],directory,lambda: Path('/proc/self/maps').read_text())
+            def life(index, deadline):
+                return lifecycle(index,decode,batches[0][1],directory,lambda: Path('/proc/self/maps').read_text(),deadline)
             require(time.perf_counter()-STARTED+policy['body_seconds']+policy['exit_reserve_seconds'] < policy['whole_process_seconds'],
                 'insufficient whole-process body/exit headroom')
             diagnostic = parity_body(batches=batches,ordinals=ordinals,persisted_tail=lambda w: w == tail_wire,
                 reference=reference,native=native_search,factory=factory,decode=decode,rgb=rgb_digest,capture=capture,
                 mutants=mutate,
-                lifecycle_check=life,denial=denial,guard=guard,started=time.perf_counter(),mutant_factory=lambda: factory_mutants(factory))
+                lifecycle_check=life,denial=denial,guard=guard,started=time.perf_counter(),
+                mutant_factory=lambda deadline: factory_mutants(factory,deadline))
         guard(deep=True)
         prior = context['training_context']['legacy']['selected']['source_cpu']['invocation']
         record = {'schema':RECEIPT,'status':'ENGINEERING_PARITY_DIAGNOSTIC','engineering_only':True,'authority':authority_fact,
             'sources':sources,**{k:authority[k] for k in ('evaluator','evaluation_authority','endpoint','train_export','bundle',
                 'gallery','images','native','wheel')},'wheel_evidence':wheel,'native_runtime':native_fact['authority'],
             'native_scope':NATIVE_SCOPE,'output':str(output),'ties':ties,**diagnostic,'installed_public_parity_pass':True,
-            **dict.fromkeys(('quality_read','quality_eligible','speed_eligible','release_eligible','qualification_eligible',
-                'deployment_eligible','state_reuse_eligible','optimization_eligible','product_go',
-                'native_launch_authorized_by_source_pass'),False),'resource_policy':policy,
+            **dict.fromkeys(FLAGS,False),'resource_policy':policy,
             'normal_terminal_required':True,'owned_cleanup_requires_terminal':True,
             'invocation':{'argv':sys.argv,'python':str(Path(sys.executable).resolve()),'python_sha256':prior['python_sha256'],
                 'python_version':sys.version,'pid':os.getpid(),'invocation_id':os.environ['INVOCATION_ID'],
@@ -1095,6 +1174,8 @@ def run(args):
             try:
                 record['combined_native'] = api.evidence()
                 final_resources = guard(reserve=False,deep=True)
+                require(check_wheel(authority['wheel'],sources,observer,here.parent.parent) == wheel,
+                    'installed wheel evidence changed before exit')
                 record['full_uncached_exit_pass'] = True
                 record['resources'] = final_resources
                 record['input_guards'] = dict(context['guards'])
