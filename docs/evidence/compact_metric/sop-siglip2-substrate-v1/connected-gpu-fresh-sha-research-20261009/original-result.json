@@ -1,0 +1,333 @@
+{
+  "id": "970707db241f47c3",
+  "provider": "fable",
+  "model": "claude-fable-5-1",
+  "effort": "max",
+  "fallbacks": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791516377,
+  "timeout_seconds": 1800,
+  "deadline_at": 1791518177,
+  "budget_usd": 6,
+  "prompt_preview": "Read-only NEW research, no edits/imports/native/GPU/downloads/children. Repo /home/rb/worktrees/sfora-positive-causality master ecd08afa. Goal publishable SOP+InShop metric retrieval library with matched quality+full image-to-top-k speed. Current independent DGX loader-owner observation SSH6188 is root-owned; do not touch it. Question is distinct from CLOSED CPU parallel-SHA proposal: can fresh EXACT original per-leaf SHA256 of CUDA FP32 vision tensors be computed materially faster on authenticated DGX Spark (aarch64 unified memory) using GPU or existing accelerated facilities, preserving identical typed-tree SHA, same-version .data mutation detection, every original occurrence, and complete lifetimes? Evidence src/sfora/connected_probe_inference.py fingerprint741/_fingerprint_cuda_dict657; src/sfora/connected_inference.py analogous; docs/connected_parallel_tensor_hash_plan_2026-10-08.md; docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-fresh-sha-native-v3/{receipt.json,original.log} (locate exact names). Measured original frozen444+full448 1.5700-1.6018s vs proposed4CPUworker6.0545-6.1081s median3.8451x slower REJECT_SLOWER, ~3.3GB pair; largestleaf19832832B,448leaves. B1 serving median1.688723501s and B32batch1.996471292s from8calls/arm, NOT p99. Do NOT propose version caches, metadata/VMM immunity, load-only validation, changing hash identity, approximate hashes, omitted bytes/predicates, weakening security/resource/science/quality/cost gates or relabeling slowerproposal. Original resource ceiling8GiB/zeroSwap/CUDA<10GB and exact input digest remain. Research only at this stage: source/paper citations if applicable, SHA256 sequential dependency vs parallel leaves tradeoff, hardware bounds honestly estimated, actual operator/toolchain constraints (CUDA13.4 existing Cutile toolchain; native authority admission needed for any new binary). Compare no more than3 concrete paths, pick smallest falsifying native test and likely no-go conditions. If exact SHA serial chains make meaningful win implausible say so and identify a better ORIGINAL-GATE-PRESERVING performance layer using measured evidence (not new objective sweep). Output concise decision, exact seam, bounded correctness falsifier and measured-vs-estimated labeling. No benchmark or implementation claim.",
+  "prompt_sha256": "666ee8ec498fecb0c00164b2bf67c5858020dd6a58073aa060bc91c308acb86b",
+  "prompt_bytes": 2489,
+  "fingerprint": "e27ec47c82690e82bf72907d57b880f29956256b34dd0f51d6e66b1dc5261341",
+  "evidence": {
+    "git_commit": "ecd08afa8481d921d8de50d00911c4d06f178ccb",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "46e31fb3f6c0d890e95f5a0177c7cf7675b9186b2f3f3d1e2c20b09849433192",
+  "reused": false,
+  "systemd_unit": "devbox-consult-970707db241f47c3.service",
+  "pid": 2521272,
+  "pgid": 2521272,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1",
+      "budget_usd": 6,
+      "timeout_seconds": 1796,
+      "started_at": 1791516381
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791517001,
+  "event_cursor": 46,
+  "events": [
+    {
+      "seq": 23,
+      "at": 1791516814,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 24,
+      "at": 1791516818,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 25,
+      "at": 1791516834,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 26,
+      "at": 1791516837,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 27,
+      "at": 1791516839,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 28,
+      "at": 1791516953,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 29,
+      "at": 1791516967,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 30,
+      "at": 1791516984,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 31,
+      "at": 1791516985,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 32,
+      "at": 1791516986,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 33,
+      "at": 1791516987,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 34,
+      "at": 1791516988,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 35,
+      "at": 1791516989,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 36,
+      "at": 1791516990,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 37,
+      "at": 1791516991,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 38,
+      "at": 1791516992,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 39,
+      "at": 1791516993,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 40,
+      "at": 1791516994,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 41,
+      "at": 1791516995,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 42,
+      "at": 1791516996,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 43,
+      "at": 1791516997,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 44,
+      "at": 1791516999,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 45,
+      "at": 1791517000,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 46,
+      "at": 1791517001,
+      "provider": "fable",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "fable": [
+      {
+        "seq": 39,
+        "at": 1791516993,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 40,
+        "at": 1791516994,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 41,
+        "at": 1791516995,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 42,
+        "at": 1791516996,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 43,
+        "at": 1791516997,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 44,
+        "at": 1791516999,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 45,
+        "at": 1791517000,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 46,
+        "at": 1791517001,
+        "provider": "fable",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Decision: a material win is possible only on the GPU, is unproven, and hinges on one measurable number.** The CPU single chain is already at hardware ceiling, and no other accelerated facility on the DGX Spark can compute SHA-256. The deciding test is a single-leaf native falsifier, not a pair benchmark.\n\n**Measured facts (DGX, v3 receipt and serving diagnostic)**\n\n| Quantity | Value | Status |\n|---|---|---|\n| Pair bytes (frozen444 + full448) | 1,671,864,768 + 1,711,552,256 B, 892 leaves | measured |\n| Largest leaf | 19,832,832 B (fc1/fc2, 4304x1152 FP32) | measured |\n| Original pair time | 1.5700 to 1.6018 s, about 2.1 GB/s end to end | measured |\n| Instrumented hash-only share | 1.377 s, about 2.5 GB/s | measured, non-additive |\n| Closed 4-thread helper | 6.05 to 6.11 s, median ratio 3.845 | measured |\n| B1 / B32 serving medians | 1.6887 s / 1.9965 s, 8 calls per arm, not p99 | measured |\n\nThe native unit set only RuntimeMaxSec, MemoryMax and MemorySwapMax, no CPUQuota or affinity. The receipt does not attribute the thread slowdown to copy or hash. I am not relabeling that proposal. It stays closed.\n\n**Why the serial chain caps the CPU.** SHA-256 (FIPS 180-4) chains each 64-byte compression on the previous output, so a leaf cannot be split without changing the digest. Public `openssl speed` figures for ARMv8 SHA2-extension cores (Graviton3/4, Apple M-series) are 1.9 to 2.6 GB/s per core at 16 KiB blocks. The measured 2.1 to 2.5 GB/s matches that ceiling and rules out the portable HACL* fallback (estimate, not measured here). The only remaining lever is cross-leaf parallelism, which on the CPU is the closed proposal's domain.\n\n**Three paths**\n\n1. **CPU single chain.** At ceiling. No headroom. Closed.\n2. **Existing accelerated facilities.** None apply. The GB10 GPU has no SHA units. ConnectX-7 crypto offload covers IPsec/TLS packet flows, not host-buffer digests. cuTile is a tile-dataflow compiler with no fit for a 310k-step scalar dependency chain. Torch elementwise ops would need roughly 3x10^8 launches. Dead.\n3. **GPU one-chain-per-lane kernel.** 892 lanes each hash one leaf's device bytes in place on the current stream. No D2H copy, no host snapshot, every byte read twice as today, per-leaf hex digest composed through the unchanged tree framing. Critical path is the largest leaf at lone-warp serial rate. Estimate: 1,100 to 2,500 cycles per block at roughly 1.5 to 2.0 GHz gives 25 to 110 MB/s per chain, so 0.17 to 0.45 s for the pair if the dependent-op latency (~4 cycles per published Volta/Turing microbenchmarks) and clock hold. A 16-lane cooperative message schedule sits at the fast end. Bandwidth is irrelevant (3.38 GB at 273 GB/s is ~12 ms). Bitcoin and hashcat throughput figures are many-message numbers and do not predict this single-chain latency. This is a new cubin or `.so` and needs the same native-authority admission the Cutile library has (ctypes.CDLL plus SHA pin under native-authority-v5); nvcc 13.4 and nvrtc 13.0.88 both exist on the box.\n\n**Exact seam.** The `tensor_hash` dispatch in `encoder_facts`, at src/sfora/connected_inference.py:522 and the analogous probe line. Only the serving=True CUDA dictionary branch changes. The original `fingerprint` stays byte and AST identical for buffers, readout, MLP and probe per-parameter hashes and every non-serving occurrence.\n\n**Smallest falsifying native test.** A standalone unit with no model and no serving process, under the unchanged 8 GiB, zero-swap, CUDA under 10 GB envelope. Seeded CUDA FP32 leaves: one [4304,1152], an empty tensor, a scalar, and a [4096,6144] transpose with stride [1,4096]. Require digest equality against the unchanged `fingerprint` on each, then a `.data` byte mutation that leaves `_version` unchanged must move both digests identically and restore. Clock three alternating pairs around `torch.cuda.synchronize` on the single largest leaf and report MB/s.\n\n**Go and no-go.** GO to a full-pair prospective only if the 19,832,832-byte chain takes at most 0.35 s (projected pair ≤0.45 s, at least 3.5x) and every digest is exact. NO-GO if it takes 0.7 s or more (projected pair ≥0.8 s, under 2x, not worth a new admitted binary plus the B1/B32 parity and 10,000-pair p99 gates), on any digest mismatch, or if the admission path cannot pin the compiled kernel bytes. Non-contiguous leaves must route to the original function or be gathered exactly.\n\n**If the kernel fails.** With the gate fixed, the per-call floor is the pair hash, which is over 90% of B1 by measurement. The only measured gate-preserving lever left is paying it once per batched call: B32 is 62 ms per image versus 1.69 s at B1, a 27x throughput difference in the same diagnostic. That improves throughput, not single-query latency. The frozen444 leaves are re-hashed inside full448 every call; reusing them is excluded by your no-cache and no-omitted-bytes rule, so I do not propose it.\n\nNo benchmark or implementation claim is made. Nothing was edited. A memory note of this verdict was saved and the operator was told the deliverable is complete.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "fable": "**Decision: a material win is possible only on the GPU, is unproven, and hinges on one measurable number.** The CPU single chain is already at hardware ceiling, and no other accelerated facility on the DGX Spark can compute SHA-256. The deciding test is a single-leaf native falsifier, not a pair benchmark.\n\n**Measured facts (DGX, v3 receipt and serving diagnostic)**\n\n| Quantity | Value | Status |\n|---|---|---|\n| Pair bytes (frozen444 + full448) | 1,671,864,768 + 1,711,552,256 B, 892 leaves | measured |\n| Largest leaf | 19,832,832 B (fc1/fc2, 4304x1152 FP32) | measured |\n| Original pair time | 1.5700 to 1.6018 s, about 2.1 GB/s end to end | measured |\n| Instrumented hash-only share | 1.377 s, about 2.5 GB/s | measured, non-additive |\n| Closed 4-thread helper | 6.05 to 6.11 s, median ratio 3.845 | measured |\n| B1 / B32 serving medians | 1.6887 s / 1.9965 s, 8 calls per arm, not p99 | measured |\n\nThe native unit set only RuntimeMaxSec, MemoryMax and MemorySwapMax, no CPUQuota or affinity. The receipt does not attribute the thread slowdown to copy or hash. I am not relabeling that proposal. It stays closed.\n\n**Why the serial chain caps the CPU.** SHA-256 (FIPS 180-4) chains each 64-byte compression on the previous output, so a leaf cannot be split without changing the digest. Public `openssl speed` figures for ARMv8 SHA2-extension cores (Graviton3/4, Apple M-series) are 1.9 to 2.6 GB/s per core at 16 KiB blocks. The measured 2.1 to 2.5 GB/s matches that ceiling and rules out the portable HACL* fallback (estimate, not measured here). The only remaining lever is cross-leaf parallelism, which on the CPU is the closed proposal's domain.\n\n**Three paths**\n\n1. **CPU single chain.** At ceiling. No headroom. Closed.\n2. **Existing accelerated facilities.** None apply. The GB10 GPU has no SHA units. ConnectX-7 crypto offload covers IPsec/TLS packet flows, not host-buffer digests. cuTile is a tile-dataflow compiler with no fit for a 310k-step scalar dependency chain. Torch elementwise ops would need roughly 3x10^8 launches. Dead.\n3. **GPU one-chain-per-lane kernel.** 892 lanes each hash one leaf's device bytes in place on the current stream. No D2H copy, no host snapshot, every byte read twice as today, per-leaf hex digest composed through the unchanged tree framing. Critical path is the largest leaf at lone-warp serial rate. Estimate: 1,100 to 2,500 cycles per block at roughly 1.5 to 2.0 GHz gives 25 to 110 MB/s per chain, so 0.17 to 0.45 s for the pair if the dependent-op latency (~4 cycles per published Volta/Turing microbenchmarks) and clock hold. A 16-lane cooperative message schedule sits at the fast end. Bandwidth is irrelevant (3.38 GB at 273 GB/s is ~12 ms). Bitcoin and hashcat throughput figures are many-message numbers and do not predict this single-chain latency. This is a new cubin or `.so` and needs the same native-authority admission the Cutile library has (ctypes.CDLL plus SHA pin under native-authority-v5); nvcc 13.4 and nvrtc 13.0.88 both exist on the box.\n\n**Exact seam.** The `tensor_hash` dispatch in `encoder_facts`, at src/sfora/connected_inference.py:522 and the analogous probe line. Only the serving=True CUDA dictionary branch changes. The original `fingerprint` stays byte and AST identical for buffers, readout, MLP and probe per-parameter hashes and every non-serving occurrence.\n\n**Smallest falsifying native test.** A standalone unit with no model and no serving process, under the unchanged 8 GiB, zero-swap, CUDA under 10 GB envelope. Seeded CUDA FP32 leaves: one [4304,1152], an empty tensor, a scalar, and a [4096,6144] transpose with stride [1,4096]. Require digest equality against the unchanged `fingerprint` on each, then a `.data` byte mutation that leaves `_version` unchanged must move both digests identically and restore. Clock three alternating pairs around `torch.cuda.synchronize` on the single largest leaf and report MB/s.\n\n**Go and no-go.** GO to a full-pair prospective only if the 19,832,832-byte chain takes at most 0.35 s (projected pair ≤0.45 s, at least 3.5x) and every digest is exact. NO-GO if it takes 0.7 s or more (projected pair ≥0.8 s, under 2x, not worth a new admitted binary plus the B1/B32 parity and 10,000-pair p99 gates), on any digest mismatch, or if the admission path cannot pin the compiled kernel bytes. Non-contiguous leaves must route to the original function or be gathered exactly.\n\n**If the kernel fails.** With the gate fixed, the per-call floor is the pair hash, which is over 90% of B1 by measurement. The only measured gate-preserving lever left is paying it once per batched call: B32 is 62 ms per image versus 1.69 s at B1, a 27x throughput difference in the same diagnostic. That improves throughput, not single-query latency. The frozen444 leaves are re-hashed inside full448 every call; reusing them is excluded by your no-cache and no-omitted-bytes rule, so I do not propose it.\n\nNo benchmark or implementation claim is made. Nothing was edited. A memory note of this verdict was saved and the operator was told the deliverable is complete."
+  },
+  "providers_used": [
+    "fable"
+  ],
+  "active_provider": "fable",
+  "phase": "Consultation completed",
+  "input_bytes": 2489,
+  "output_bytes": 5074,
+  "elapsed_seconds": 624,
+  "progress": "devbox-ask: fable consult still running (1m 00s)\ndevbox-ask: fable consult still running (1m 30s)\ndevbox-ask: fable consult still running (2m 00s)\ndevbox-ask: fable consult still running (2m 30s)\ndevbox-ask: fable consult still running (3m 00s)\ndevbox-ask: fable consult still running (3m 30s)\ndevbox-ask: fable consult still running (4m 00s)\ndevbox-ask: fable consult still running (4m 30s)\ndevbox-ask: fable consult still running (5m 00s)\ndevbox-ask: fable consult still running (5m 30s)\ndevbox-ask: fable consult still running (6m 00s)\ndevbox-ask: fable consult still running (6m 30s)\ndevbox-ask: fable consult still running (7m 00s)\ndevbox-ask: fable consult still running (7m 30s)\ndevbox-ask: fable consult still running (8m 00s)\ndevbox-ask: fable consult still running (8m 30s)\ndevbox-ask: fable consult still running (9m 00s)\ndevbox-ask: fable consult still running (9m 30s)\ndevbox-ask: fable consult still running (10m 00s)",
+  "progress_truncated": false,
+  "result": "**Decision: a material win is possible only on the GPU, is unproven, and hinges on one measurable number.** The CPU single chain is already at hardware ceiling, and no other accelerated facility on the DGX Spark can compute SHA-256. The deciding test is a single-leaf native falsifier, not a pair benchmark.\n\n**Measured facts (DGX, v3 receipt and serving diagnostic)**\n\n| Quantity | Value | Status |\n|---|---|---|\n| Pair bytes (frozen444 + full448) | 1,671,864,768 + 1,711,552,256 B, 892 leaves | measured |\n| Largest leaf | 19,832,832 B (fc1/fc2, 4304x1152 FP32) | measured |\n| Original pair time | 1.5700 to 1.6018 s, about 2.1 GB/s end to end | measured |\n| Instrumented hash-only share | 1.377 s, about 2.5 GB/s | measured, non-additive |\n| Closed 4-thread helper | 6.05 to 6.11 s, median ratio 3.845 | measured |\n| B1 / B32 serving medians | 1.6887 s / 1.9965 s, 8 calls per arm, not p99 | measured |\n\nThe native unit set only RuntimeMaxSec, MemoryMax and MemorySwapMax, no CPUQuota or affinity. The receipt does not attribute the thread slowdown to copy or hash. I am not relabeling that proposal. It stays closed.\n\n**Why the serial chain caps the CPU.** SHA-256 (FIPS 180-4) chains each 64-byte compression on the previous output, so a leaf cannot be split without changing the digest. Public `openssl speed` figures for ARMv8 SHA2-extension cores (Graviton3/4, Apple M-series) are 1.9 to 2.6 GB/s per core at 16 KiB blocks. The measured 2.1 to 2.5 GB/s matches that ceiling and rules out the portable HACL* fallback (estimate, not measured here). The only remaining lever is cross-leaf parallelism, which on the CPU is the closed proposal's domain.\n\n**Three paths**\n\n1. **CPU single chain.** At ceiling. No headroom. Closed.\n2. **Existing accelerated facilities.** None apply. The GB10 GPU has no SHA units. ConnectX-7 crypto offload covers IPsec/TLS packet flows, not host-buffer digests. cuTile is a tile-dataflow compiler with no fit for a 310k-step scalar dependency chain. Torch elementwise ops would need roughly 3x10^8 launches. Dead.\n3. **GPU one-chain-per-lane kernel.** 892 lanes each hash one leaf's device bytes in place on the current stream. No D2H copy, no host snapshot, every byte read twice as today, per-leaf hex digest composed through the unchanged tree framing. Critical path is the largest leaf at lone-warp serial rate. Estimate: 1,100 to 2,500 cycles per block at roughly 1.5 to 2.0 GHz gives 25 to 110 MB/s per chain, so 0.17 to 0.45 s for the pair if the dependent-op latency (~4 cycles per published Volta/Turing microbenchmarks) and clock hold. A 16-lane cooperative message schedule sits at the fast end. Bandwidth is irrelevant (3.38 GB at 273 GB/s is ~12 ms). Bitcoin and hashcat throughput figures are many-message numbers and do not predict this single-chain latency. This is a new cubin or `.so` and needs the same native-authority admission the Cutile library has (ctypes.CDLL plus SHA pin under native-authority-v5); nvcc 13.4 and nvrtc 13.0.88 both exist on the box.\n\n**Exact seam.** The `tensor_hash` dispatch in `encoder_facts`, at src/sfora/connected_inference.py:522 and the analogous probe line. Only the serving=True CUDA dictionary branch changes. The original `fingerprint` stays byte and AST identical for buffers, readout, MLP and probe per-parameter hashes and every non-serving occurrence.\n\n**Smallest falsifying native test.** A standalone unit with no model and no serving process, under the unchanged 8 GiB, zero-swap, CUDA under 10 GB envelope. Seeded CUDA FP32 leaves: one [4304,1152], an empty tensor, a scalar, and a [4096,6144] transpose with stride [1,4096]. Require digest equality against the unchanged `fingerprint` on each, then a `.data` byte mutation that leaves `_version` unchanged must move both digests identically and restore. Clock three alternating pairs around `torch.cuda.synchronize` on the single largest leaf and report MB/s.\n\n**Go and no-go.** GO to a full-pair prospective only if the 19,832,832-byte chain takes at most 0.35 s (projected pair ≤0.45 s, at least 3.5x) and every digest is exact. NO-GO if it takes 0.7 s or more (projected pair ≥0.8 s, under 2x, not worth a new admitted binary plus the B1/B32 parity and 10,000-pair p99 gates), on any digest mismatch, or if the admission path cannot pin the compiled kernel bytes. Non-contiguous leaves must route to the original function or be gathered exactly.\n\n**If the kernel fails.** With the gate fixed, the per-call floor is the pair hash, which is over 90% of B1 by measurement. The only measured gate-preserving lever left is paying it once per batched call: B32 is 62 ms per image versus 1.69 s at B1, a 27x throughput difference in the same diagnostic. That improves throughput, not single-query latency. The frozen444 leaves are re-hashed inside full448 every call; reusing them is excluded by your no-cache and no-omitted-bytes rule, so I do not propose it.\n\nNo benchmark or implementation claim is made. Nothing was edited. A memory note of this verdict was saved and the operator was told the deliverable is complete.",
+  "result_truncated": false
+}
