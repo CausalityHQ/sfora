@@ -1,0 +1,332 @@
+{
+  "id": "2607a334d1e940b4",
+  "provider": "claude",
+  "model": "claude-opus-5-5",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791524296,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791525496,
+  "budget_usd": 4,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nREAD-ONLY bounded source causal/design audit. Repo /home/rb/worktrees/sfora-positive-causality master exact 5f9ab76 (get full SHA); goal production installed image-to-top-k parity, preserve all current jobs/gates. Original DGX installed-control v5 terminal FAIL exit1/481.282s/6232305664B peak/events0/swap0 invb044dd93611947d2884db26bb5fc12a8; docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-probe-installed-control-serving-v5/{original.log,result.json} are committed. Trace parity_body line789 Denial.check -> historical source module is live: qualify_siglip2_substrate_cpu, after reference/native/tail proof and installed factory returned, before first installed_pass. No accepted parity; no actual module __file__/spec.origin logged. Read scripts/qualify_connected_probe_serving.py Denial740/parity_body766/run1019/reference_outputs462; original train_siglip2_substrate_adaptation.FlatAdmission.initializer around715 deliberately load_bare bare qualifier+extract; train_siglip2_quadratic_readout.authority preserves selected source_driver/extract. Independent tests currently fake reference lack these genuine admission aliases. QUESTION: prove the source-owned admission namespace conflict vs copied serving-helper leakage as far as source permits; identify exact genuine context module/provenance/guards available without fresh native. Design the SMALLEST complete boundary preserving prohibition on installed serving execution/import of copied historical files and genuine original admission/live guards, with an actual extracted-source stdlib falsifier. Do not simply delete/rename live original modules, ignore all historical names, add generic basename/namespace whitelists, drop execution denial or alter source globals/resources/math. If real origin remains unknowable, state exact missing observation, don't speculate. Read ONLY relevant files/ranges; no Torch/native/third-party imports/SSH/GPU/images/tests/jobs/children/consults/operator/edits. Return concrete causal/type ledger, minimal seam and negatives; no broader research or new experiment.",
+  "prompt_sha256": "f356650ca524a3dec1a02825f1a45c20015f48b528e9aaa88851c6e41d00715e",
+  "prompt_bytes": 2369,
+  "fingerprint": "f4241cb35dd2623c906a38e7ce878dfc1024d6b803cbda94743dece2d16c514a",
+  "evidence": {
+    "git_commit": "5f9ab763e3d18d2f24835a31b113d36ee79a3717",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "cc2015297ba2073854b33eaec86cd839a7d3a206eed46be61b2ddf193ac4f055",
+  "reused": false,
+  "specialist_route": {
+    "model": "claude-opus-5-5",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "5d2993f8-aef2-4446-813a-72cc08aa611a"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-2607a334d1e940b4.service",
+  "pid": 3402575,
+  "pgid": 3402575,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "budget_usd": 4,
+      "timeout_seconds": 1199,
+      "started_at": 1791524297
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791524836,
+  "event_cursor": 79,
+  "events": [
+    {
+      "seq": 56,
+      "at": 1791524805,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 57,
+      "at": 1791524807,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 58,
+      "at": 1791524808,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 59,
+      "at": 1791524809,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 60,
+      "at": 1791524810,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 61,
+      "at": 1791524812,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 62,
+      "at": 1791524813,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 63,
+      "at": 1791524814,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 64,
+      "at": 1791524815,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 65,
+      "at": 1791524817,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 66,
+      "at": 1791524818,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 67,
+      "at": 1791524819,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 68,
+      "at": 1791524820,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 69,
+      "at": 1791524821,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 70,
+      "at": 1791524822,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 71,
+      "at": 1791524823,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 72,
+      "at": 1791524825,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 73,
+      "at": 1791524827,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 74,
+      "at": 1791524828,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 75,
+      "at": 1791524830,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 76,
+      "at": 1791524832,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 77,
+      "at": 1791524833,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 78,
+      "at": 1791524835,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 79,
+      "at": 1791524835,
+      "provider": "claude",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "claude": [
+      {
+        "seq": 72,
+        "at": 1791524825,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 73,
+        "at": 1791524827,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 74,
+        "at": 1791524828,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 75,
+        "at": 1791524830,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 76,
+        "at": 1791524832,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 77,
+        "at": 1791524833,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 78,
+        "at": 1791524835,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 79,
+        "at": 1791524835,
+        "provider": "claude",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "The v5 FAIL comes from a namespace conflict owned by the original admission code, not from a copied serving helper leaking. The bare-name test in `Denial.check` ignores where a module came from. It is certain to fire once the genuine original admission has loaded in the process, and `run()` always loads it before `parity_body`. So, given the source as it stands, v5 could not have passed line 789 whatever the installed serving did.\n\nWhat the source can't settle is the live module's actual `__file__`, `__spec__.origin` and object identity at line 789. That wasn't logged. Nothing was edited or run: no Torch, no native code, no tests.\n\nCommit: `5f9ab763e3d18d2f24835a31b113d36ee79a3717`.\n\n## Causal and type ledger\n\n1. **What happened.** In invocation `b044dd93…`, the first `denial.check()` inside installed owner A (`qualify_connected_probe_serving.py:789`) failed at `Denial.check:761`. Several steps had already passed:\n   - the reference ran;\n   - `owned_names() == []` at `:776`;\n   - native search and the persisted-tail check;\n   - factory mutants;\n   - the factory had returned an index.\n\n   No `installed_pass` ran.\n2. **The check has two independent rejection clauses** (`:757-763`), and both produce the same message:\n   - **N (name):** `name.split('.')[0] in self.names`. It looks only at the module's name, not its origin.\n   - **P (path):** `__file__ in self.paths`, where the paths are `<bundle directory>/<each HISTORICAL file>`.\n\n   The name reported is the `sys.modules` key: exactly `qualify_siglip2_substrate_cpu`, with no prefix and no dot.\n3. **Only two places in the admitted chain register a historical file under its bare name:**\n   - `export_siglip2_substrate_fit.load_source` (`:117-131`). It runs `sys.path.insert(0, SOURCE_ROOT)` and registers `qualify_siglip2_substrate_cpu` from `SOURCE_ROOT=/home/riomus/runs/sfora-native256-source-cpu-v4` (`:49`). Then `qualify_siglip2_substrate_cpu.bootstrap` (`:78-89`) registers `extract_siglip2_vision_source` from the same root. Order: qualify, then extract.\n   - `FlatAdmission.pca_authority` `load_bare` (`train_siglip2_substrate_adaptation.py:715-716`). Order: extract, then qualify. It also requires `name not in sys.modules`, so it can't run after the first path.\n\n   No other file I scanned in the chain registers a bare historical name. (I grepped literal-name loads and the two known loops; I did not read every chain file end to end.)\n4. **Copied loaders always use prefixed names.** The copied trainer's `load_inference` (`train_siglip2_connected_probe.py:1306-1308`) uses `_connected_serving_<ns>_<stem>`, and the reference uses `_connected_probe_gate_reference_<uuid>`. Both prefixes are in `OWNED_PREFIXES`, and `:776` proved none of them survived. A leaked copy would also be reported by clause P under its prefixed name, never as the bare name.\n5. **The module order points to the inserter.** `check()` walks `sys.modules` in insertion order and raises on the first offender. Qualify being reported first matches `load_source`; `pca_authority` would have put extract first. Either way, both inserters load from the original closure, not the bundle.\n6. **How the genuine module reaches the evaluator context.** `train_siglip2_quadratic_readout.authority:267-291` → `train_siglip2_genuine_views.authority:342-375` → `export_siglip2_genuine_views.authority:210-227` (loads the exporter as `_genuine_fit_reference`) → `export_siglip2_substrate_fit.authority:259`. The result is that `legacy['source_driver']` is the bare qualify module and `legacy['extract']` is the bare extract module.\n7. **These aliases are used throughout the body.** That rules out removing or renaming them:\n   - `guard()` → `evaluator.resources` (`evaluate_siglip2_connected_probe.py:939`) → `source_driver.cgroup_memory()`;\n   - `CombinedAuthority.collect` (`connected_control_native_authority.py:247`) → `source_driver.imported_origins`;\n   - `run():1005` → `legacy['extract'].sha`.\n8. **File hashes can't tell the genuine files from the bundle copies.** The committed `connected-probe-cpu-v2/receipt.json` `input_guards` list `…source-cpu-v4/qualify_siglip2_substrate_cpu.py = eacd32d2…` and `extract… = a184b538…`. Those are byte-for-byte the `HISTORICAL` pins (`:104-113`). Only path plus object identity separates them.\n9. **Why the tests stayed green.** The fake legacy context (`test_connected_probe_serving.py:3064,3101`) never registers bare aliases in `sys.modules`, and its `extract` is a function. The existing negative test (`:1960`) requires a bare `train_siglip2_connected_probe` with `__file__=None` to be rejected.\n\n**What the source can't establish:** that at `:789`, `sys.modules['qualify_siglip2_substrate_cpu']` is the same object as `legacy['source_driver']`, with `__file__ == __spec__.origin == SOURCE_ROOT/qualify_siglip2_substrate_cpu.py`. It also can't establish whether extract is present later in the order. A write by native or third-party code is ruled out only because no reviewed source does one. The seam below makes this observable and fails closed.\n\n## Minimal seam\n\nThe change is in `qualify_connected_probe_serving.py`: the `Denial` class plus the arguments of its single existing call. The exemption is tied to specific objects captured from the genuine context. It is not a list of allowed names.\n\n```python\nclass Denial:\n    def __init__(self, directory, genuine=(), guards=None):\n        self.paths = {str(Path(directory)/n) for n,_ in HISTORICAL}\n        self.names = {n.removesuffix('.py') for n,_ in HISTORICAL}\n        self.aliases = {}\n        for module in genuine:\n            name, spec = getattr(module,'__name__',None), getattr(module,'__spec__',None)\n            origin = getattr(spec,'origin',None)\n            require(name in self.names and name not in self.aliases and sys.modules.get(name) is module and\n                isinstance(origin,str) and module.__file__ == origin and Path(origin).is_absolute() and\n                origin not in self.paths and not Path(origin).is_relative_to(directory) and\n                guards is not None and origin in guards, 'genuine admission alias binding differs: '+str(name))\n            self.aliases[name] = (module, spec, origin)\n        self.active, self.checks = False, 0\n        sys.addaudithook(self)\n    # __call__ unchanged\n    def check(self):\n        self.checks += 1\n        for name,module in list(sys.modules.items()):\n            file, alias = getattr(module,'__file__',None), self.aliases.get(name)\n            genuine = alias is not None and module is alias[0] and getattr(module,'__spec__',None) is alias[1] and file == alias[2]\n            require((genuine or name.split('.')[0] not in self.names) and\n                not (isinstance(file,str) and file in self.paths),'historical source module is live: '+name)\n        return {'checks':self.checks,'historical_modules_absent':True}\n```\n\nThe call in `run()` (`:1144`) becomes:\n\n```python\nlegacy = context['training_context']['legacy']\ndenial = Denial(directory, genuine=(legacy['source_driver'], legacy['extract']), guards=context['guards'])\n```\n\nWhat this keeps unchanged:\n- **The audit hook.** Running or importing a copied file under the bundle directory is still rejected while the hook is active.\n- **Clause P.** It still applies to every module, including the aliases.\n- **Clause N.** It still applies to every other bare or dotted historical name, including modules with `__file__=None`.\n- **Everything else:** guards, globals, resources, maths, and the receipt shape.\n\nWhat it adds: the construction-time `require` is the missing observation turned into an early failure. If the bare entry isn't the genuine context object at its guarded original origin, the run stops before any installed owner, and the message names the module.\n\n## Stdlib falsifier\n\nRun with `python3 -I -B` and stdlib only. Use `ast` to extract `require`, `HISTORICAL` and `Denial` from `scripts/qualify_connected_probe_serving.py` and `exec` them with `Path`, `os` and `sys`. Make two separate temp directories, `bundle/` and `source-cpu-v4/`. Load `qualify_siglip2_substrate_cpu` and then `extract_siglip2_vision_source` from `source-cpu-v4/` with `spec_from_file_location`, under their bare names.\n\n- **F1, at HEAD.** `Denial(bundle).check()` must raise exactly `historical source module is live: qualify_siglip2_substrate_cpu`. That reproduces v5 with no native code.\n- **F1b.** Insert extract first instead: the message must name extract. This shows the order identifies the inserter.\n- **F2, with the seam.** `Denial(bundle, genuine=(q, e), guards={q.__file__: 'x', e.__file__: 'x'}).check()` passes.\n- **Each of these must raise `ValueError`:**\n  1. a bare `train_siglip2_connected_probe` with `SimpleNamespace(__file__=None)`;\n  2. `_leaked` with `__file__ = bundle/TRAINER`;\n  3. `sys.modules[qualify]` swapped for a fresh module loaded from the same genuine path;\n  4. the same object with `__file__` set to the bundle copy;\n  5. the same object with `__spec__` replaced;\n  6. a key `qualify_siglip2_substrate_cpu.x`;\n  7. construction with a module loaded from `bundle/qualify_siglip2_substrate_cpu.py` under the bare name;\n  8. construction with a genuine module whose name isn't historical;\n  9. construction with the object missing from `sys.modules`;\n  10. construction with its origin missing from `guards`;\n  11. while active, `compile('x=1', bundle/<historical>)`.\n\nPut this in `DenialHook`. Also give the `world()`/run-through fixture real bare-registered `source_driver` and `extract` modules from a separate root, so the existing run-through test goes red at HEAD and green with the seam.\n\n## Risks\n\n- **Fail-closed on presence.** If production lacks the extract alias, or `legacy` differs, the run stops at construction. That costs a run, but the message is exact. The source supports both aliases being present, and the probe CPU receipt guards contain both origins.\n- **A blind spot the old check also had.** If installed code reaches a genuine alias through a cached import, nothing detects it. That isn't the prohibited event (running a copied file) and is out of scope.\n- **Refreezing.** Editing the driver and its test changes the frozen source SHAs, so the authority needs refreezing. The call-graph pin test (`test:1806-1813`) should stay green because `Denial(...)` is already called there; check it.\n\n**Rejected alternatives:**\n- Popping or renaming the aliases breaks the guard and the native collector (item 7).\n- A path-only check loses the `__file__=None` negative.\n- A hash check can't tell the files apart (item 8).",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "claude": "The v5 FAIL comes from a namespace conflict owned by the original admission code, not from a copied serving helper leaking. The bare-name test in `Denial.check` ignores where a module came from. It is certain to fire once the genuine original admission has loaded in the process, and `run()` always loads it before `parity_body`. So, given the source as it stands, v5 could not have passed line 789 whatever the installed serving did.\n\nWhat the source can't settle is the live module's actual `__file__`, `__spec__.origin` and object identity at line 789. That wasn't logged. Nothing was edited or run: no Torch, no native code, no tests.\n\nCommit: `5f9ab763e3d18d2f24835a31b113d36ee79a3717`.\n\n## Causal and type ledger\n\n1. **What happened.** In invocation `b044dd93…`, the first `denial.check()` inside installed owner A (`qualify_connected_probe_serving.py:789`) failed at `Denial.check:761`. Several steps had already passed:\n   - the reference ran;\n   - `owned_names() == []` at `:776`;\n   - native search and the persisted-tail check;\n   - factory mutants;\n   - the factory had returned an index.\n\n   No `installed_pass` ran.\n2. **The check has two independent rejection clauses** (`:757-763`), and both produce the same message:\n   - **N (name):** `name.split('.')[0] in self.names`. It looks only at the module's name, not its origin.\n   - **P (path):** `__file__ in self.paths`, where the paths are `<bundle directory>/<each HISTORICAL file>`.\n\n   The name reported is the `sys.modules` key: exactly `qualify_siglip2_substrate_cpu`, with no prefix and no dot.\n3. **Only two places in the admitted chain register a historical file under its bare name:**\n   - `export_siglip2_substrate_fit.load_source` (`:117-131`). It runs `sys.path.insert(0, SOURCE_ROOT)` and registers `qualify_siglip2_substrate_cpu` from `SOURCE_ROOT=/home/riomus/runs/sfora-native256-source-cpu-v4` (`:49`). Then `qualify_siglip2_substrate_cpu.bootstrap` (`:78-89`) registers `extract_siglip2_vision_source` from the same root. Order: qualify, then extract.\n   - `FlatAdmission.pca_authority` `load_bare` (`train_siglip2_substrate_adaptation.py:715-716`). Order: extract, then qualify. It also requires `name not in sys.modules`, so it can't run after the first path.\n\n   No other file I scanned in the chain registers a bare historical name. (I grepped literal-name loads and the two known loops; I did not read every chain file end to end.)\n4. **Copied loaders always use prefixed names.** The copied trainer's `load_inference` (`train_siglip2_connected_probe.py:1306-1308`) uses `_connected_serving_<ns>_<stem>`, and the reference uses `_connected_probe_gate_reference_<uuid>`. Both prefixes are in `OWNED_PREFIXES`, and `:776` proved none of them survived. A leaked copy would also be reported by clause P under its prefixed name, never as the bare name.\n5. **The module order points to the inserter.** `check()` walks `sys.modules` in insertion order and raises on the first offender. Qualify being reported first matches `load_source`; `pca_authority` would have put extract first. Either way, both inserters load from the original closure, not the bundle.\n6. **How the genuine module reaches the evaluator context.** `train_siglip2_quadratic_readout.authority:267-291` → `train_siglip2_genuine_views.authority:342-375` → `export_siglip2_genuine_views.authority:210-227` (loads the exporter as `_genuine_fit_reference`) → `export_siglip2_substrate_fit.authority:259`. The result is that `legacy['source_driver']` is the bare qualify module and `legacy['extract']` is the bare extract module.\n7. **These aliases are used throughout the body.** That rules out removing or renaming them:\n   - `guard()` → `evaluator.resources` (`evaluate_siglip2_connected_probe.py:939`) → `source_driver.cgroup_memory()`;\n   - `CombinedAuthority.collect` (`connected_control_native_authority.py:247`) → `source_driver.imported_origins`;\n   - `run():1005` → `legacy['extract'].sha`.\n8. **File hashes can't tell the genuine files from the bundle copies.** The committed `connected-probe-cpu-v2/receipt.json` `input_guards` list `…source-cpu-v4/qualify_siglip2_substrate_cpu.py = eacd32d2…` and `extract… = a184b538…`. Those are byte-for-byte the `HISTORICAL` pins (`:104-113`). Only path plus object identity separates them.\n9. **Why the tests stayed green.** The fake legacy context (`test_connected_probe_serving.py:3064,3101`) never registers bare aliases in `sys.modules`, and its `extract` is a function. The existing negative test (`:1960`) requires a bare `train_siglip2_connected_probe` with `__file__=None` to be rejected.\n\n**What the source can't establish:** that at `:789`, `sys.modules['qualify_siglip2_substrate_cpu']` is the same object as `legacy['source_driver']`, with `__file__ == __spec__.origin == SOURCE_ROOT/qualify_siglip2_substrate_cpu.py`. It also can't establish whether extract is present later in the order. A write by native or third-party code is ruled out only because no reviewed source does one. The seam below makes this observable and fails closed.\n\n## Minimal seam\n\nThe change is in `qualify_connected_probe_serving.py`: the `Denial` class plus the arguments of its single existing call. The exemption is tied to specific objects captured from the genuine context. It is not a list of allowed names.\n\n```python\nclass Denial:\n    def __init__(self, directory, genuine=(), guards=None):\n        self.paths = {str(Path(directory)/n) for n,_ in HISTORICAL}\n        self.names = {n.removesuffix('.py') for n,_ in HISTORICAL}\n        self.aliases = {}\n        for module in genuine:\n            name, spec = getattr(module,'__name__',None), getattr(module,'__spec__',None)\n            origin = getattr(spec,'origin',None)\n            require(name in self.names and name not in self.aliases and sys.modules.get(name) is module and\n                isinstance(origin,str) and module.__file__ == origin and Path(origin).is_absolute() and\n                origin not in self.paths and not Path(origin).is_relative_to(directory) and\n                guards is not None and origin in guards, 'genuine admission alias binding differs: '+str(name))\n            self.aliases[name] = (module, spec, origin)\n        self.active, self.checks = False, 0\n        sys.addaudithook(self)\n    # __call__ unchanged\n    def check(self):\n        self.checks += 1\n        for name,module in list(sys.modules.items()):\n            file, alias = getattr(module,'__file__',None), self.aliases.get(name)\n            genuine = alias is not None and module is alias[0] and getattr(module,'__spec__',None) is alias[1] and file == alias[2]\n            require((genuine or name.split('.')[0] not in self.names) and\n                not (isinstance(file,str) and file in self.paths),'historical source module is live: '+name)\n        return {'checks':self.checks,'historical_modules_absent':True}\n```\n\nThe call in `run()` (`:1144`) becomes:\n\n```python\nlegacy = context['training_context']['legacy']\ndenial = Denial(directory, genuine=(legacy['source_driver'], legacy['extract']), guards=context['guards'])\n```\n\nWhat this keeps unchanged:\n- **The audit hook.** Running or importing a copied file under the bundle directory is still rejected while the hook is active.\n- **Clause P.** It still applies to every module, including the aliases.\n- **Clause N.** It still applies to every other bare or dotted historical name, including modules with `__file__=None`.\n- **Everything else:** guards, globals, resources, maths, and the receipt shape.\n\nWhat it adds: the construction-time `require` is the missing observation turned into an early failure. If the bare entry isn't the genuine context object at its guarded original origin, the run stops before any installed owner, and the message names the module.\n\n## Stdlib falsifier\n\nRun with `python3 -I -B` and stdlib only. Use `ast` to extract `require`, `HISTORICAL` and `Denial` from `scripts/qualify_connected_probe_serving.py` and `exec` them with `Path`, `os` and `sys`. Make two separate temp directories, `bundle/` and `source-cpu-v4/`. Load `qualify_siglip2_substrate_cpu` and then `extract_siglip2_vision_source` from `source-cpu-v4/` with `spec_from_file_location`, under their bare names.\n\n- **F1, at HEAD.** `Denial(bundle).check()` must raise exactly `historical source module is live: qualify_siglip2_substrate_cpu`. That reproduces v5 with no native code.\n- **F1b.** Insert extract first instead: the message must name extract. This shows the order identifies the inserter.\n- **F2, with the seam.** `Denial(bundle, genuine=(q, e), guards={q.__file__: 'x', e.__file__: 'x'}).check()` passes.\n- **Each of these must raise `ValueError`:**\n  1. a bare `train_siglip2_connected_probe` with `SimpleNamespace(__file__=None)`;\n  2. `_leaked` with `__file__ = bundle/TRAINER`;\n  3. `sys.modules[qualify]` swapped for a fresh module loaded from the same genuine path;\n  4. the same object with `__file__` set to the bundle copy;\n  5. the same object with `__spec__` replaced;\n  6. a key `qualify_siglip2_substrate_cpu.x`;\n  7. construction with a module loaded from `bundle/qualify_siglip2_substrate_cpu.py` under the bare name;\n  8. construction with a genuine module whose name isn't historical;\n  9. construction with the object missing from `sys.modules`;\n  10. construction with its origin missing from `guards`;\n  11. while active, `compile('x=1', bundle/<historical>)`.\n\nPut this in `DenialHook`. Also give the `world()`/run-through fixture real bare-registered `source_driver` and `extract` modules from a separate root, so the existing run-through test goes red at HEAD and green with the seam.\n\n## Risks\n\n- **Fail-closed on presence.** If production lacks the extract alias, or `legacy` differs, the run stops at construction. That costs a run, but the message is exact. The source supports both aliases being present, and the probe CPU receipt guards contain both origins.\n- **A blind spot the old check also had.** If installed code reaches a genuine alias through a cached import, nothing detects it. That isn't the prohibited event (running a copied file) and is out of scope.\n- **Refreezing.** Editing the driver and its test changes the frozen source SHAs, so the authority needs refreezing. The call-graph pin test (`test:1806-1813`) should stay green because `Denial(...)` is already called there; check it.\n\n**Rejected alternatives:**\n- Popping or renaming the aliases breaks the guard and the native collector (item 7).\n- A path-only check loses the `__file__=None` negative.\n- A hash check can't tell the files apart (item 8)."
+  },
+  "providers_used": [
+    "claude"
+  ],
+  "active_provider": "claude",
+  "phase": "Consultation completed",
+  "input_bytes": 2369,
+  "output_bytes": 10580,
+  "elapsed_seconds": 540,
+  "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (8m 00s)\ndevbox-ask: claude consult still running (8m 30s)",
+  "progress_truncated": false,
+  "result": "The v5 FAIL comes from a namespace conflict owned by the original admission code, not from a copied serving helper leaking. The bare-name test in `Denial.check` ignores where a module came from. It is certain to fire once the genuine original admission has loaded in the process, and `run()` always loads it before `parity_body`. So, given the source as it stands, v5 could not have passed line 789 whatever the installed serving did.\n\nWhat the source can't settle is the live module's actual `__file__`, `__spec__.origin` and object identity at line 789. That wasn't logged. Nothing was edited or run: no Torch, no native code, no tests.\n\nCommit: `5f9ab763e3d18d2f24835a31b113d36ee79a3717`.\n\n## Causal and type ledger\n\n1. **What happened.** In invocation `b044dd93…`, the first `denial.check()` inside installed owner A (`qualify_connected_probe_serving.py:789`) failed at `Denial.check:761`. Several steps had already passed:\n   - the reference ran;\n   - `owned_names() == []` at `:776`;\n   - native search and the persisted-tail check;\n   - factory mutants;\n   - the factory had returned an index.\n\n   No `installed_pass` ran.\n2. **The check has two independent rejection clauses** (`:757-763`), and both produce the same message:\n   - **N (name):** `name.split('.')[0] in self.names`. It looks only at the module's name, not its origin.\n   - **P (path):** `__file__ in self.paths`, where the paths are `<bundle directory>/<each HISTORICAL file>`.\n\n   The name reported is the `sys.modules` key: exactly `qualify_siglip2_substrate_cpu`, with no prefix and no dot.\n3. **Only two places in the admitted chain register a historical file under its bare name:**\n   - `export_siglip2_substrate_fit.load_source` (`:117-131`). It runs `sys.path.insert(0, SOURCE_ROOT)` and registers `qualify_siglip2_substrate_cpu` from `SOURCE_ROOT=/home/riomus/runs/sfora-native256-source-cpu-v4` (`:49`). Then `qualify_siglip2_substrate_cpu.bootstrap` (`:78-89`) registers `extract_siglip2_vision_source` from the same root. Order: qualify, then extract.\n   - `FlatAdmission.pca_authority` `load_bare` (`train_siglip2_substrate_adaptation.py:715-716`). Order: extract, then qualify. It also requires `name not in sys.modules`, so it can't run after the first path.\n\n   No other file I scanned in the chain registers a bare historical name. (I grepped literal-name loads and the two known loops; I did not read every chain file end to end.)\n4. **Copied loaders always use prefixed names.** The copied trainer's `load_inference` (`train_siglip2_connected_probe.py:1306-1308`) uses `_connected_serving_<ns>_<stem>`, and the reference uses `_connected_probe_gate_reference_<uuid>`. Both prefixes are in `OWNED_PREFIXES`, and `:776` proved none of them survived. A leaked copy would also be reported by clause P under its prefixed name, never as the bare name.\n5. **The module order points to the inserter.** `check()` walks `sys.modules` in insertion order and raises on the first offender. Qualify being reported first matches `load_source`; `pca_authority` would have put extract first. Either way, both inserters load from the original closure, not the bundle.\n6. **How the genuine module reaches the evaluator context.** `train_siglip2_quadratic_readout.authority:267-291` → `train_siglip2_genuine_views.authority:342-375` → `export_siglip2_genuine_views.authority:210-227` (loads the exporter as `_genuine_fit_reference`) → `export_siglip2_substrate_fit.authority:259`. The result is that `legacy['source_driver']` is the bare qualify module and `legacy['extract']` is the bare extract module.\n7. **These aliases are used throughout the body.** That rules out removing or renaming them:\n   - `guard()` → `evaluator.resources` (`evaluate_siglip2_connected_probe.py:939`) → `source_driver.cgroup_memory()`;\n   - `CombinedAuthority.collect` (`connected_control_native_authority.py:247`) → `source_driver.imported_origins`;\n   - `run():1005` → `legacy['extract'].sha`.\n8. **File hashes can't tell the genuine files from the bundle copies.** The committed `connected-probe-cpu-v2/receipt.json` `input_guards` list `…source-cpu-v4/qualify_siglip2_substrate_cpu.py = eacd32d2…` and `extract… = a184b538…`. Those are byte-for-byte the `HISTORICAL` pins (`:104-113`). Only path plus object identity separates them.\n9. **Why the tests stayed green.** The fake legacy context (`test_connected_probe_serving.py:3064,3101`) never registers bare aliases in `sys.modules`, and its `extract` is a function. The existing negative test (`:1960`) requires a bare `train_siglip2_connected_probe` with `__file__=None` to be rejected.\n\n**What the source can't establish:** that at `:789`, `sys.modules['qualify_siglip2_substrate_cpu']` is the same object as `legacy['source_driver']`, with `__file__ == __spec__.origin == SOURCE_ROOT/qualify_siglip2_substrate_cpu.py`. It also can't establish whether extract is present later in the order. A write by native or third-party code is ruled out only because no reviewed source does one. The seam below makes this observable and fails closed.\n\n## Minimal seam\n\nThe change is in `qualify_connected_probe_serving.py`: the `Denial` class plus the arguments of its single existing call. The exemption is tied to specific objects captured from the genuine context. It is not a list of allowed names.\n\n```python\nclass Denial:\n    def __init__(self, directory, genuine=(), guards=None):\n        self.paths = {str(Path(directory)/n) for n,_ in HISTORICAL}\n        self.names = {n.removesuffix('.py') for n,_ in HISTORICAL}\n        self.aliases = {}\n        for module in genuine:\n            name, spec = getattr(module,'__name__',None), getattr(module,'__spec__',None)\n            origin = getattr(spec,'origin',None)\n            require(name in self.names and name not in self.aliases and sys.modules.get(name) is module and\n                isinstance(origin,str) and module.__file__ == origin and Path(origin).is_absolute() and\n                origin not in self.paths and not Path(origin).is_relative_to(directory) and\n                guards is not None and origin in guards, 'genuine admission alias binding differs: '+str(name))\n            self.aliases[name] = (module, spec, origin)\n        self.active, self.checks = False, 0\n        sys.addaudithook(self)\n    # __call__ unchanged\n    def check(self):\n        self.checks += 1\n        for name,module in list(sys.modules.items()):\n            file, alias = getattr(module,'__file__',None), self.aliases.get(name)\n            genuine = alias is not None and module is alias[0] and getattr(module,'__spec__',None) is alias[1] and file == alias[2]\n            require((genuine or name.split('.')[0] not in self.names) and\n                not (isinstance(file,str) and file in self.paths),'historical source module is live: '+name)\n        return {'checks':self.checks,'historical_modules_absent':True}\n```\n\nThe call in `run()` (`:1144`) becomes:\n\n```python\nlegacy = context['training_context']['legacy']\ndenial = Denial(directory, genuine=(legacy['source_driver'], legacy['extract']), guards=context['guards'])\n```\n\nWhat this keeps unchanged:\n- **The audit hook.** Running or importing a copied file under the bundle directory is still rejected while the hook is active.\n- **Clause P.** It still applies to every module, including the aliases.\n- **Clause N.** It still applies to every other bare or dotted historical name, including modules with `__file__=None`.\n- **Everything else:** guards, globals, resources, maths, and the receipt shape.\n\nWhat it adds: the construction-time `require` is the missing observation turned into an early failure. If the bare entry isn't the genuine context object at its guarded original origin, the run stops before any installed owner, and the message names the module.\n\n## Stdlib falsifier\n\nRun with `python3 -I -B` and stdlib only. Use `ast` to extract `require`, `HISTORICAL` and `Denial` from `scripts/qualify_connected_probe_serving.py` and `exec` them with `Path`, `os` and `sys`. Make two separate temp directories, `bundle/` and `source-cpu-v4/`. Load `qualify_siglip2_substrate_cpu` and then `extract_siglip2_vision_source` from `source-cpu-v4/` with `spec_from_file_location`, under their bare names.\n\n- **F1, at HEAD.** `Denial(bundle).check()` must raise exactly `historical source module is live: qualify_siglip2_substrate_cpu`. That reproduces v5 with no native code.\n- **F1b.** Insert extract first instead: the message must name extract. This shows the order identifies the inserter.\n- **F2, with the seam.** `Denial(bundle, genuine=(q, e), guards={q.__file__: 'x', e.__file__: 'x'}).check()` passes.\n- **Each of these must raise `ValueError`:**\n  1. a bare `train_siglip2_connected_probe` with `SimpleNamespace(__file__=None)`;\n  2. `_leaked` with `__file__ = bundle/TRAINER`;\n  3. `sys.modules[qualify]` swapped for a fresh module loaded from the same genuine path;\n  4. the same object with `__file__` set to the bundle copy;\n  5. the same object with `__spec__` replaced;\n  6. a key `qualify_siglip2_substrate_cpu.x`;\n  7. construction with a module loaded from `bundle/qualify_siglip2_substrate_cpu.py` under the bare name;\n  8. construction with a genuine module whose name isn't historical;\n  9. construction with the object missing from `sys.modules`;\n  10. construction with its origin missing from `guards`;\n  11. while active, `compile('x=1', bundle/<historical>)`.\n\nPut this in `DenialHook`. Also give the `world()`/run-through fixture real bare-registered `source_driver` and `extract` modules from a separate root, so the existing run-through test goes red at HEAD and green with the seam.\n\n## Risks\n\n- **Fail-closed on presence.** If production lacks the extract alias, or `legacy` differs, the run stops at construction. That costs a run, but the message is exact. The source supports both aliases being present, and the probe CPU receipt guards contain both origins.\n- **A blind spot the old check also had.** If installed code reaches a genuine alias through a cached import, nothing detects it. That isn't the prohibited event (running a copied file) and is out of scope.\n- **Refreezing.** Editing the driver and its test changes the frozen source SHAs, so the authority needs refreezing. The call-graph pin test (`test:1806-1813`) should stay green because `Denial(...)` is already called there; check it.\n\n**Rejected alternatives:**\n- Popping or renaming the aliases breaks the guard and the native collector (item 7).\n- A path-only check loses the `__file__=None` negative.\n- A hash check can't tell the files apart (item 8).",
+  "result_truncated": false
+}
