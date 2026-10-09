@@ -1,0 +1,20 @@
+{
+  "bash_syntax_pass": true,
+  "cases": [
+    {
+      "fixture_exit": 37,
+      "original_exit": 37,
+      "calls": 1,
+      "stdout": "fixture%trace\nnextline\n::error title=Connected source contract failure::fixture%25trace%0Anextline%0A\n"
+    },
+    {
+      "fixture_exit": 0,
+      "original_exit": 0,
+      "calls": 4,
+      "stdout": "fixture%trace\nnextline\nfixture%trace\nnextline\nfixture%trace\nnextline\nfixture%trace\nnextline\n"
+    }
+  ],
+  "purpose": "Bounded 4096-character error annotation preserves original failing status and stops after first failure; successful path invokes four unchanged source contracts.",
+  "fixture_repairs": "Initial scratch printf percent escaping fixed; local python name absent, so scratch-only python symlink points to actual interpreter to match setup-python PATH. No workflow behavior changed by either fixture repair.",
+  "native_unrun": true
+}

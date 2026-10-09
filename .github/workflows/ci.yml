@@ -30,10 +30,27 @@ jobs:
         # source correspondence and stand-ins, not native serving or performance.
         run: |
           ulimit -v 1048576
-          timeout 120 python -B -S scripts/test_connected_inference_extraction.py
-          timeout 120 python -B -S scripts/test_connected_probe_inference_extraction.py
-          timeout 120 python -B -S scripts/test_connected_compact_serving.py
-          timeout 120 python -B -S scripts/test_connected_compact_serving.py --probe-only
+          check_source_contract() {
+            contract_log="$RUNNER_TEMP/connected-source-contract.log"
+            if timeout 120 python -B -S "$@" > "$contract_log" 2>&1; then
+              cat "$contract_log"
+            else
+              contract_status=$?
+              cat "$contract_log"
+              python - "$contract_log" <<'PY'
+          import sys
+          from pathlib import Path
+          text = Path(sys.argv[1]).read_text(errors="replace")[-4096:]
+          text = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+          print("::error title=Connected source contract failure::" + text)
+          PY
+              return "$contract_status"
+            fi
+          }
+          check_source_contract scripts/test_connected_inference_extraction.py
+          check_source_contract scripts/test_connected_probe_inference_extraction.py
+          check_source_contract scripts/test_connected_compact_serving.py
+          check_source_contract scripts/test_connected_compact_serving.py --probe-only
 
   test:
     name: Format, lint, type-check, and test

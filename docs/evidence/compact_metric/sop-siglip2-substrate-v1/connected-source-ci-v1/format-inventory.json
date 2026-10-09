@@ -1,0 +1,30 @@
+{
+  "address_space_bytes": 1073741824,
+  "already_formatted_count": 639,
+  "categories": {
+    "docs": 531,
+    "reports": 2,
+    "scratch_cub_local_metric_oracle.py": 1,
+    "scratch_met_local_adc_gap_codebooks.py": 1,
+    "scratch_met_native_noise_shaped_pq.py": 1,
+    "scratch_met_powered_opq64_baseline.py": 1,
+    "scratch_met_product_residual_codec.py": 1,
+    "scratch_met_radial_bias_adc.py": 1,
+    "scratch_met_second_moment_precoder.py": 1,
+    "scratch_shortlist_graph_panel.py": 1,
+    "scratch_sop_direct_head_guard.py": 1,
+    "scratch_stanford_dogs_cld_gate.py": 1,
+    "scripts": 522,
+    "src": 32,
+    "tests": 93
+  },
+  "changed_python_files": 0,
+  "command_scope": "ruff format --check on git ls-files *.py; excludes untracked local scratch, read-only",
+  "exit_code": 1,
+  "original_log_sha256": "e6386e24d678d5eb1f407ad3a609a5ec745b41a2f949f8d2d78273a746b35619",
+  "policy": "No mass formatting, exclusion, formatter-version change or scientific source/authority reissue authorized by this audit. Existing product CI remains failing; package not release-qualified.",
+  "ruff_version": "0.15.20",
+  "schema": "connected-source-ci-format-inventory-v1",
+  "timeout_seconds": 120,
+  "would_reformat_count": 1190
+}
