@@ -1,0 +1,33 @@
+{
+  "cpu_eligible": false,
+  "execution_sha256": "bb2a904e730d122aada41c6084733cbf7e08ff9ca08ca4869f99b295c871b135",
+  "freeze_commit": "33729908cf574af8778b2a1ded1ddd13f0a3c6bf",
+  "freeze_sha256": "60539a826bd5fec961576fd4fefdbc5012c9e212687539a8c73bce96c9078e0f",
+  "gpu_eligible": false,
+  "invocation_id": "71fc37efaa944339bf636df38a5d468c",
+  "latest_snapshot": {
+    "active_state": "active",
+    "last_log_phase": "independent_reload begin",
+    "last_log_phase_seconds": 109.52053392698872,
+    "memory_current_bytes": 1471578112,
+    "memory_peak_bytes": 1471578112,
+    "sub_state": "running"
+  },
+  "main_pid": 2361587,
+  "next": "Collect SAME original controller terminal/log/footer and independently admit complete CPU receipt; otherwise preserve FAIL and localize exact first event/replay/cleanup failure. No duplicate/cap change.",
+  "observed_at_utc": "2026-10-09T13:51:48.003466+00:00",
+  "original_controller_session": 51958,
+  "original_cpu_v1_v2_fail_preserved": true,
+  "quality_or_speed_claim": false,
+  "remote_preflight": "PASS complete actual freeze and both current-byte hash tables/exact CLI/output absence/no native imports",
+  "resource_policy": {
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "schema": "rank-routed-parent-active-checkpoint-v3",
+  "snapshot_is_terminal": false,
+  "source_commit": "e29d14fbb2ef9aa8a39e2ffbe239601cbcec3977",
+  "status": "RUNNING_NOT_QUALIFIED",
+  "unit": "sfora-rank-routed-mlp-cpu-v3"
+}
