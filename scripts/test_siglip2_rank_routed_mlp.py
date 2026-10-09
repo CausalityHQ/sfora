@@ -1371,6 +1371,64 @@ def live_runtime_falsifier(d):
     print('PASS live callable replacement after step17 rejected before regression/backward')
 
 
+def allocation_error_cleanup_falsifier(d):
+    """A successful reference followed by allocation failure uses genuine arm cleanup."""
+    import gc
+    import weakref
+    tree = ast.parse(DRIVER.read_text())
+    view = next(n for n in function(tree,'update').body if isinstance(n,ast.For) and ast.unparse(n.iter) == 'VIEWS')
+    end = next(i for i,n in enumerate(view.body) if isinstance(n,ast.For))
+    for failure_at,leak in ((1,False),(8,False),(8,True)):
+        sc,refs,kept,calls = Scenario(),[],[],[]
+        state = {'identity':{},'device':'cpu','A':Vec([1.])}
+        primary = MemoryError('delayed allocation fault')
+        def reference(*args):
+            result = sc.full()
+            refs.extend(weakref.ref(t) for t in (*result['gradients'],*result['scalars'].values()))
+            if leak:
+                kept.append(result['gradients'][0])
+            calls.append('reference')
+            return result
+        def zero(parameter):
+            calls.append('allocate')
+            if calls.count('allocate') == failure_at:
+                raise primary
+            result = FakeTorch.zeros_like(parameter)
+            refs.append(weakref.ref(result))
+            return result
+        sc.torch.zeros_like = zero
+        def release(context,state):
+            calls.append('release')
+            state.clear()
+            gc.collect()
+            d.require(all(ref() is None for ref in refs),'delayed allocation owner survived release')
+        ns = {**vars(d),'torch':sc.torch,'candidate':True,'members':sc.members,'batch':list(range(64)),
+              'K':1,'view':d.VIEWS[0],'ranking_total':None,'routed_total':None,
+              'route_full_reference':reference,'fresh':lambda *args:state,'release':release}
+        failed = ast.parse('def failed_update(context,state,identity,step):\n    pass').body[0]
+        failed.body = copy.deepcopy(view.body[:end])
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[failed,copy.deepcopy(function(tree,'arm_run'))],
+             type_ignores=[])),str(DRIVER),'exec'),ns)
+        ns['update'] = ns['failed_update']
+        context = {'connected_args':SimpleNamespace(phase='cpu',output=Path('/tmp/unused-allocation-seam'))}
+        try:
+            ns['arm_run'](context,'candidate',d.SEEDS[0],'cpu',discarded_update=True)
+        except MemoryError as error:
+            assert error is primary and calls == ['reference']+['allocate']*failure_at+['release']
+            assert state == {}
+            if leak:
+                assert str(error.__cause__) == 'delayed allocation owner survived release'
+                assert sum(ref() is not None for ref in refs) == 1
+            else:
+                assert error.__cause__ is None and all(ref() is None for ref in refs)
+        else:
+            raise AssertionError('delayed allocation failure became successful')
+        kept.clear()
+        gc.collect()
+        assert all(ref() is None for ref in refs)
+    print('PASS actual delayed-allocation prelude/arm cleanup: primary retained, witness/buffers released, external owner rejects')
+
+
 def exceptional_arm_falsifier(d):
     import gc
     import traceback
@@ -1668,7 +1726,7 @@ def check_steps_falsifiers(d):
 def main():
     p = argparse.ArgumentParser(allow_abbrev=False)
     p.add_argument('--source-only', action='store_true', required=True)
-    p.add_argument('--layer', choices=('allocation', 'pixels', 'sequential', 'cleanup', 'observer', 'observer-guard', 'observer-source', 'split', 'live', 'reference', 'full-source', 'optimizer', 'regression', 'routing', 'dataflow', 'inverse', 'steps', 'identity', 'seams'))
+    p.add_argument('--layer', choices=('allocation-cleanup', 'allocation', 'pixels', 'sequential', 'cleanup', 'observer', 'observer-guard', 'observer-source', 'split', 'live', 'reference', 'full-source', 'optimizer', 'regression', 'routing', 'dataflow', 'inverse', 'steps', 'identity', 'seams'))
     args = p.parse_args()
     assert DRIVER.exists(), 'rank-routed trainer missing'
     started = time.perf_counter()
@@ -1677,7 +1735,7 @@ def main():
     c = load('_connected_source_for_rank_routing', CONNECTED)
     assert not {n.split('.')[0] for n in set(sys.modules) - before} & d.NATIVE
     if args.layer:
-        layers = {'allocation': allocation_schedule_falsifier, 'pixels': pixel_schedule_falsifier,
+        layers = {'allocation-cleanup': allocation_error_cleanup_falsifier, 'allocation': allocation_schedule_falsifier, 'pixels': pixel_schedule_falsifier,
                   'sequential': sequential_reference_falsifier, 'split': split_lifetime_falsifier, 'live': live_runtime_falsifier, 'reference': independent_reference_falsifier,
                   'cleanup': exceptional_arm_falsifier,
                   'observer': observer_falsifier,
@@ -1694,6 +1752,7 @@ def main():
         return
     inverse_contract()
     allocation_schedule_falsifier(d)
+    allocation_error_cleanup_falsifier(d)
     pixel_schedule_falsifier(d)
     exceptional_arm_falsifier(d)
     observer_falsifier(d)
