@@ -1,0 +1,22 @@
+test_ast_inverse_is_original (__main__.ExitMarkerObserver.test_ast_inverse_is_original) ... ok
+test_clock_700_through_750_is_sampled_then_watchdog (__main__.ExitMarkerObserver.test_clock_700_through_750_is_sampled_then_watchdog) ... ok
+test_exit_marker_wire_accepted_raw_and_partial (__main__.ExitMarkerObserver.test_exit_marker_wire_accepted_raw_and_partial) ... ok
+test_final_sleep_is_clamped_to_750 (__main__.ExitMarkerObserver.test_final_sleep_is_clamped_to_750) ... ok
+test_last_phase_field_keeps_raw_line_for_both_wires (__main__.ExitMarkerObserver.test_last_phase_field_keeps_raw_line_for_both_wires) ... ok
+test_malformed_markers_ignored (__main__.ExitMarkerObserver.test_malformed_markers_ignored) ... ok
+test_output_cap_16mib_is_unchanged (__main__.ExitMarkerObserver.test_output_cap_16mib_is_unchanged) ... ok
+test_sample_cap_1500_before_watchdog (__main__.ExitMarkerObserver.test_sample_cap_1500_before_watchdog) ... ok
+test_source_surface_is_stdlib_read_only (__main__.ExitMarkerObserver.test_source_surface_is_stdlib_read_only) ... ok
+test_target_and_log_are_only_read (__main__.ExitMarkerObserver.test_target_and_log_are_only_read) ... ok
+test_unreadable_log_is_recorded_and_not_fatal (__main__.ExitMarkerObserver.test_unreadable_log_is_recorded_and_not_fatal) ... ok
+test_bounded_exclusive_output_and_target_lifecycle (__main__.SamplerFixtures.test_bounded_exclusive_output_and_target_lifecycle) ... ok
+test_partial_log_and_last_phase (__main__.SamplerFixtures.test_partial_log_and_last_phase) ... ok
+test_raw_resource_event_and_pid_status_are_observed_without_admission (__main__.SamplerFixtures.test_raw_resource_event_and_pid_status_are_observed_without_admission) ... ok
+test_watchdog_without_unit_creation (__main__.SamplerFixtures.test_watchdog_without_unit_creation) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.232s
+
+OK
+exit=0
+wall_seconds=.411259825

@@ -1,0 +1,135 @@
+EFFFFFFFEFF
+======================================================================
+ERROR: test_ast_inverse_is_original (__main__.ExitMarkerObserver.test_ast_inverse_is_original)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 144, in test_ast_inverse_is_original
+    original, production = ast.parse(ORIGINAL.read_text()), ast.parse(SCRIPT.read_text())
+                                                                      ~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 788, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 772, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/observe_asymmetric_exit_residency.py'
+
+======================================================================
+ERROR: test_source_surface_is_stdlib_read_only (__main__.ExitMarkerObserver.test_source_surface_is_stdlib_read_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 301, in test_source_surface_is_stdlib_read_only
+    tree = ast.parse(SCRIPT.read_text())
+                     ~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 788, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 772, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/observe_asymmetric_exit_residency.py'
+
+======================================================================
+FAIL: test_clock_700_through_750_is_sampled_then_watchdog (__main__.ExitMarkerObserver.test_clock_700_through_750_is_sampled_then_watchdog)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 213, in test_clock_700_through_750_is_sampled_then_watchdog
+    sampler = load()
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 29, in load
+    assert SCRIPT.is_file(), 'observer artifact missing'
+           ~~~~~~~~~~~~~~^^
+AssertionError: observer artifact missing
+
+======================================================================
+FAIL: test_exit_marker_wire_accepted_raw_and_partial (__main__.ExitMarkerObserver.test_exit_marker_wire_accepted_raw_and_partial)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 158, in test_exit_marker_wire_accepted_raw_and_partial
+    sampler = load()
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 29, in load
+    assert SCRIPT.is_file(), 'observer artifact missing'
+           ~~~~~~~~~~~~~~^^
+AssertionError: observer artifact missing
+
+======================================================================
+FAIL: test_final_sleep_is_clamped_to_750 (__main__.ExitMarkerObserver.test_final_sleep_is_clamped_to_750)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 241, in test_final_sleep_is_clamped_to_750
+    sampler = load()
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 29, in load
+    assert SCRIPT.is_file(), 'observer artifact missing'
+           ~~~~~~~~~~~~~~^^
+AssertionError: observer artifact missing
+
+======================================================================
+FAIL: test_last_phase_field_keeps_raw_line_for_both_wires (__main__.ExitMarkerObserver.test_last_phase_field_keeps_raw_line_for_both_wires)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 199, in test_last_phase_field_keeps_raw_line_for_both_wires
+    sampler = load()
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 29, in load
+    assert SCRIPT.is_file(), 'observer artifact missing'
+           ~~~~~~~~~~~~~~^^
+AssertionError: observer artifact missing
+
+======================================================================
+FAIL: test_malformed_markers_ignored (__main__.ExitMarkerObserver.test_malformed_markers_ignored)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 173, in test_malformed_markers_ignored
+    sampler = load()
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 29, in load
+    assert SCRIPT.is_file(), 'observer artifact missing'
+           ~~~~~~~~~~~~~~^^
+AssertionError: observer artifact missing
+
+======================================================================
+FAIL: test_output_cap_16mib_is_unchanged (__main__.ExitMarkerObserver.test_output_cap_16mib_is_unchanged)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 268, in test_output_cap_16mib_is_unchanged
+    sampler = load()
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 29, in load
+    assert SCRIPT.is_file(), 'observer artifact missing'
+           ~~~~~~~~~~~~~~^^
+AssertionError: observer artifact missing
+
+======================================================================
+FAIL: test_sample_cap_1500_before_watchdog (__main__.ExitMarkerObserver.test_sample_cap_1500_before_watchdog)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 231, in test_sample_cap_1500_before_watchdog
+    sampler = load()
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 29, in load
+    assert SCRIPT.is_file(), 'observer artifact missing'
+           ~~~~~~~~~~~~~~^^
+AssertionError: observer artifact missing
+
+======================================================================
+FAIL: test_target_and_log_are_only_read (__main__.ExitMarkerObserver.test_target_and_log_are_only_read)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 282, in test_target_and_log_are_only_read
+    sampler = load()
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 29, in load
+    assert SCRIPT.is_file(), 'observer artifact missing'
+           ~~~~~~~~~~~~~~^^
+AssertionError: observer artifact missing
+
+======================================================================
+FAIL: test_unreadable_log_is_recorded_and_not_fatal (__main__.ExitMarkerObserver.test_unreadable_log_is_recorded_and_not_fatal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 251, in test_unreadable_log_is_recorded_and_not_fatal
+    sampler = load()
+  File "/home/rb/worktrees/sfora-asymmetric-external-residency-observer-20261009/scripts/test_asymmetric_exit_residency.py", line 29, in load
+    assert SCRIPT.is_file(), 'observer artifact missing'
+           ~~~~~~~~~~~~~~^^
+AssertionError: observer artifact missing
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.005s
+
+FAILED (failures=9, errors=2)
+exit=1

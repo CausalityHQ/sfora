@@ -1,0 +1,17 @@
+{
+  "cause": "UNPROVEN",
+  "files": {
+    "observe_asymmetric_exit_residency.py": "c11363abb8719207ddf75b5ed67e9728f9849395ea3faca57213491324fbac70",
+    "test_asymmetric_exit_residency.py": "8accba3e6e50f0190ffa7eb21326cd92ae27826770279f7cff80ff8de703d770"
+  },
+  "full_suite": {
+    "authority": "original final.log persisted exit=0; reused same exact committed bytes",
+    "exit": 0,
+    "tests": 15,
+    "wall_seconds": 0.411259825
+  },
+  "native": "UNRUN",
+  "review": "Read whole160-line stdlib source; original read-only CLI/snapshot/output/signals unchanged. Finite exact new marker predicate and750s/1500sample diagnostic bounds only; original experiment700s untouched. Root-owned external controller still needs freeze/preflight.",
+  "schema": "root-asymmetric-external-observer-source-review-v1",
+  "worker_commit": "d67a3c635b361aaf24854432b5bde21b1118843d"
+}
