@@ -1,0 +1,12 @@
+{
+  "final_suite_wall_seconds": 37.36,
+  "historical_native_frozen_files_unchanged": true,
+  "integration_commit": "3b3b7963c5f1935a68151d9f4e06bd4bc0816900",
+  "measured_new_speedup": false,
+  "native_qualified": false,
+  "next": "Rebuild reproducible installed wheel and qualify fresh complete serving boundaries before speed claim.",
+  "peak_rss_kib": 116092,
+  "probe_tests": 138,
+  "root_verification": "All10 committed and integrated blobs match tested hashes; original persisted exit0/log/command/resource/diff hashes and exact parent verified; only encoder_facts changed in runtime definitions, original fingerprint and archived helpers byte-identical.",
+  "worker_commit": "797326e1701a50c158502bbb0e4cd6651373c187"
+}

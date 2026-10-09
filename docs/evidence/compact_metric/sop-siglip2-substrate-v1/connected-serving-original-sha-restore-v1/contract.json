@@ -1,0 +1,147 @@
+{
+ "base": "003a9863ef21e5ab8cdb63b402041871dd923d78",
+ "worktree": "/home/rb/worktrees/sfora-restore-original-serving-sha-20261009",
+ "branch": "devbox/restore-original-serving-sha-20261009",
+ "state": "FINAL: verified; committed by the commit recorded in final_serial_run.committed_as (see git log on branch)",
+ "diff_path": "/tmp/sfora-restore-original-serving-sha-20261009/changes.diff",
+ "diff_sha256": "e7fceee707461a08d65ea72de01b0d6749e759d01845cb27d720812b85b30899",
+ "contract": "encoder_facts default = ORIGINAL fingerprint for frozen+full trees on every device incl. CUDA serving, both installed runtimes; _sha_cpu_bytes/_fingerprint_cuda_dict byte-identical, still defined+accessible, referenced by no code; fingerprint bytes/math/framing untouched",
+ "final_file_sha256": {
+  "scripts/extract_connected_probe_inference.py": "7f7872fd988fe65d1bee1ed4c479cd8d237983a5274fca7b120d2328b54885fb",
+  "scripts/qualify_connected_probe_serving.py": "4e8dd7e55d528b9522e3daa0d91d1ed59a2a4312d49d8843cb03f0175d37ce62",
+  "scripts/test_connected_inference_extraction.py": "500364238fd29f9786868c410875267f112cc245325d4e7056c931f57ed04157",
+  "scripts/test_connected_probe_inference_extraction.py": "c18566649da23ff835c4548d048180bed415d255b9c34e8f835046f05e78dda9",
+  "scripts/test_connected_probe_serving.py": "7a8061fbfec6fcfac2af4789940ba1501e09eb51f6b321488fddc1d493961aa2",
+  "src/sfora/_connected_inference_authority.py": "0098f835e48f2b93cfa0621c23199e43ea7eea9a09de8c3f48aa589a20e62c6d",
+  "src/sfora/_connected_probe_inference_authority.py": "26891b010c3e013d1d6132fea08617113563a8451da2b7703ca09fa391d219c1",
+  "src/sfora/connected_compact_serving.py": "fae70ec668ef1b24316c3d4554062bee5873fbd7cc2883fd1c6f2375e6a96cd9",
+  "src/sfora/connected_inference.py": "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8",
+  "src/sfora/connected_probe_inference.py": "f6e6796df5931a7c1b384509839320719ce0804ecbebf3630ab643643c64aef4"
+ },
+ "pin_chain": {
+  "mlp_runtime": [
+   "ea73430a5cc1a7f7ee769dbd37d27dc9379b03896bcab7e9ae3a7b771a42b9eb",
+   "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8"
+  ],
+  "mlp_authority": [
+   "d1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b",
+   "0098f835e48f2b93cfa0621c23199e43ea7eea9a09de8c3f48aa589a20e62c6d"
+  ],
+  "probe_runtime": [
+   "ea49b80d2d8c80aea54f71a1f01a58053f04858b9ffe03d168e0bd28c94fac44",
+   "f6e6796df5931a7c1b384509839320719ce0804ecbebf3630ab643643c64aef4"
+  ],
+  "probe_authority": [
+   "0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab",
+   "26891b010c3e013d1d6132fea08617113563a8451da2b7703ca09fa391d219c1"
+  ],
+  "bridge": [
+   "d3ebfd9a575d7fb77ffbf3a3e1c2d01793edaa03eef0da63faf543596c1d68b3",
+   "fae70ec668ef1b24316c3d4554062bee5873fbd7cc2883fd1c6f2375e6a96cd9"
+  ],
+  "whole_bridge_inverse_pin_in_inference_extraction_test": [
+   "3d395a8fd7779bdae9145a3195785fc428b74fb53a8c0e2e47237fd8b22ed3ce",
+   "e61cdc721a82766191258508dd06d5b5cf6ae1d2dea0e17960b49dd485097b08"
+  ],
+  "unchanged_historical_bases": {
+   "base_runtime": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+   "base_authority": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+   "base_bridge": "7c9713d3356c32f0c86feca788f53f299dc386b97964cec11016f88688c91932"
+  },
+  "mlp_encoder_facts_now_original": [
+   "58a9907a7b932573d428c0a67744e5a364636d9e76c27981ce5fd9235c94f683",
+   "8750228126fd93a10ffce9dd31545ae74ffb0e502bd63aad2098fc564e7238d4"
+  ],
+  "probe_encoder_facts_now_original": [
+   "7a44aae2fff54cbcf1e8fee1e9b6d0a217e3556470a80ed38221bd908c7191e3",
+   "a10b5c66173fd33138d4339c0d7b13e9222fa771d7f6182458fa3c7629961b6a"
+  ]
+ },
+ "record_change": "_fresh_cpu_sha_pipeline entry kept (label/keys/helper pins unchanged): replacements=(), encoder_diff=\"\", encoder = original encoder_facts hashes",
+ "generator": "scripts/extract_connected_probe_inference.py: PINS repinned; replacement step removed; asserts _fingerprint_cuda_dict absent from MLP+probe encoder_facts and referenced nowhere (count==1); --check matches",
+ "driver_inverse": "scripts/test_connected_probe_serving.py: finite 3-line RUNTIME/LEDGER/BRIDGE literal inverse (serving_pin_inverse) inside the genuine-alias block + exact one-line normalizations of 2 outer test lines; frozen docs/evidence untouched",
+ "verification_ran": [
+  "extract_connected_probe_inference.py --check: matches",
+  "MLP: pipeline_contract_check, dependency_check, correspondence, ledger_check, literal_pin_check, pipeline_routing_check, fresh_sha_check(explicit helper) ok",
+  "scripts/test_connected_probe_inference_extraction.py full: passed (14.7s)",
+  "test_connected_probe_serving -k inverse|ReviewedPins|test_exact_production|test_all_original|no_future_pin|GenuineAliases.test_exact: 12 ok",
+  "test_connected_compact_serving.py mlp + --probe-only: PASS",
+  "mutation: old slow default restored in MLP runtime -> routing + contract checks FAIL; in probe runtime -> correspondence + routing FAIL"
+ ],
+ "limits": "all runs stdlib, <=120s, ulimit -v 1GiB; torch/native absent",
+ "pin_classes": {
+  "CHANGED_current_bridge_intermediate_inverse_pin": {
+   "where": "scripts/test_connected_inference_extraction.py bridge_factory_inverse whole-bridge assert",
+   "meaning": "sha256 of the connected_compact_serving.py after the finite factory inverse while it still embeds the CURRENT MLP-authority pin; it moves whenever that authority pin moves",
+   "old": "3d395a8fd7779bdae9145a3195785fc428b74fb53a8c0e2e47237fd8b22ed3ce",
+   "new": "e61cdc721a82766191258508dd06d5b5cf6ae1d2dea0e17960b49dd485097b08",
+   "check": "old authority pin literal restored in the inverted bytes reproduces 3d395a8f exactly"
+  },
+  "CHANGED_current_pins": {
+   "mlp_runtime": [
+    "ea73430a5cc1a7f7ee769dbd37d27dc9379b03896bcab7e9ae3a7b771a42b9eb",
+    "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8"
+   ],
+   "mlp_authority": [
+    "d1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b",
+    "0098f835e48f2b93cfa0621c23199e43ea7eea9a09de8c3f48aa589a20e62c6d"
+   ],
+   "probe_runtime": [
+    "ea49b80d2d8c80aea54f71a1f01a58053f04858b9ffe03d168e0bd28c94fac44",
+    "f6e6796df5931a7c1b384509839320719ce0804ecbebf3630ab643643c64aef4"
+   ],
+   "probe_authority": [
+    "0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab",
+    "26891b010c3e013d1d6132fea08617113563a8451da2b7703ca09fa391d219c1"
+   ],
+   "bridge": [
+    "d3ebfd9a575d7fb77ffbf3a3e1c2d01793edaa03eef0da63faf543596c1d68b3",
+    "fae70ec668ef1b24316c3d4554062bee5873fbd7cc2883fd1c6f2375e6a96cd9"
+   ]
+  },
+  "UNCHANGED_historical_original_bases": {
+   "base_runtime_sha256": "52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512",
+   "base_authority_sha256": "538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e",
+   "base_bridge_sha256": "7c9713d3356c32f0c86feca788f53f299dc386b97964cec11016f88688c91932",
+   "alias_baseline_v5_driver": "374ffa6331152940e9935ab561af76954ddbfbdf99e90cedba22b37ed4940b3c",
+   "alias_baseline_v5_test": "2b9ed1da8daab9bed82d51b4fca9c9d9a5bd22aed74cb5cbae37e55f4f1656cf",
+   "note": "docs/evidence frozen copies untouched; no generic normalization"
+  }
+ },
+ "final_serial_run": {
+  "command": "/tmp/sfora-restore-original-serving-sha-20261009/final_run.sh  (ulimit -v 1048576; /usr/bin/time -v timeout 120 bash -c \"python3 scripts/test_connected_inference_extraction.py && python3 scripts/test_connected_probe_serving.py\")",
+  "exit": 0,
+  "wall": "0:37.36 (start 2026-10-09T07:25:56Z end 2026-10-09T07:26:33Z)",
+  "max_rss_kb": 116092,
+  "results": "test_connected_inference_extraction main: \"connected inference source-only checks passed\"; test_connected_probe_serving: Ran 138 tests in 34.297s OK",
+  "artifacts_sha256": {
+   "final_run.log": "2660e1a2c34ff0afafb10db6e313878d8fb1b0130837437f6bc9816b9a307138",
+   "final_run.sh": "961b2f91ea7a9641cf4e51e85d79f97b0453b26dbb0eec4eb44022c7e38201af",
+   "final_run.time": "9166497e8e5dac3f69892768c684ab335bafd4f66d834a8da6184e13e6ba38fe",
+   "changes.diff": "e7fceee707461a08d65ea72de01b0d6749e759d01845cb27d720812b85b30899"
+  },
+  "post_run": "ast.parse all 10 files ok; git diff sha unchanged (e7fceee7\u2026); per-file SHAs unchanged vs pre_files.sha; git diff --check clean; no untracked files",
+  "reused_unchanged_evidence": [
+   "probe extraction test full pass",
+   "compact serving mlp + --probe-only PASS",
+   "generator --check matches",
+   "narrow 12 serving-gate tests"
+  ],
+  "not_rerun": "observe/control/fresh-SHA suites (production files unchanged)",
+  "committed_as": "797326e1701a50c158502bbb0e4cd6651373c187"
+ },
+ "verification_not_run_before_release": [
+  "full test_connected_inference_extraction.py main",
+  "full test_connected_probe_serving.py",
+  "test_observe_connected_serving / test_connected_control_serving / fresh_sha suites",
+  "any torch/native/GPU/remote"
+ ],
+ "commit": {
+  "sha": "797326e1701a50c158502bbb0e4cd6651373c187",
+  "parent": "003a9863ef21e5ab8cdb63b402041871dd923d78",
+  "author_committer": "Roman Bartusiak <riomus@gmail.com>",
+  "trailers": "none",
+  "tree": "clean",
+  "diff_base_to_head_sha256": "e7fceee707461a08d65ea72de01b0d6749e759d01845cb27d720812b85b30899"
+ }
+}
