@@ -1,0 +1,95 @@
+{
+  "artifact_gate_in_progress": true,
+  "native_qualification": false,
+  "observations": [
+    {
+      "fact": "Current _from_bundle opens bundle.json, not the prospective serving.json envelope.",
+      "line": 244,
+      "path": "src/sfora/connected_compact_serving.py"
+    },
+    {
+      "fact": "Current loader hashes historical code and tensor files beneath bundle_dir.",
+      "line": 263,
+      "path": "src/sfora/connected_compact_serving.py"
+    },
+    {
+      "fact": "Current encoder_facts requires live model config/runtime/module origins equal original identity.",
+      "line": 508,
+      "path": "src/sfora/connected_inference.py"
+    }
+  ],
+  "quality_speed_goal_met": false,
+  "remaining_requirements": [
+    "Consume the prospective nine-member envelope without rewriting original three JSON records or tensor bytes.",
+    "Authenticate original full/fixed typed payload before materializing expected installed origins.",
+    "Independently observe live model and processor identities; expected metadata alone is insufficient.",
+    "Retain complete installed source and native-anchor admission, exact packed score/tie parity and lifetime/exit gates.",
+    "Run matched installed image-to-top-k quality and latency evaluation after native qualification."
+  ],
+  "schema": "connected-serving-boundary-source-audit-v1",
+  "serving_reader_implemented": false,
+  "source_files": [
+    {
+      "functions": [
+        {
+          "line": 203,
+          "name": "_from_bundle"
+        }
+      ],
+      "path": "src/sfora/connected_compact_serving.py",
+      "sha256": "fae70ec668ef1b24316c3d4554062bee5873fbd7cc2883fd1c6f2375e6a96cd9"
+    },
+    {
+      "functions": [
+        {
+          "line": 469,
+          "name": "encoder_facts"
+        },
+        {
+          "line": 622,
+          "name": "load_inference"
+        }
+      ],
+      "path": "src/sfora/connected_inference.py",
+      "sha256": "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8"
+    },
+    {
+      "functions": [
+        {
+          "line": 106,
+          "name": "project_identity"
+        },
+        {
+          "line": 138,
+          "name": "restore_identity"
+        },
+        {
+          "line": 192,
+          "name": "materialize_identity"
+        }
+      ],
+      "path": "src/sfora/connected_artifact_identity.py",
+      "sha256": "3886a1e0c21824824f296f810dcdb89af25a7365b857f7a5afff6c91ece4abc3"
+    },
+    {
+      "functions": [
+        {
+          "line": 415,
+          "name": "verify_installed_environment"
+        }
+      ],
+      "path": "src/sfora/connected_installed_environment.py",
+      "sha256": "120326f51d609da1c79aeda0655da607be674cab85262d41499143cdb6041467"
+    },
+    {
+      "functions": [
+        {
+          "line": 22,
+          "name": "extract_gallery_members"
+        }
+      ],
+      "path": "src/sfora/connected_gallery_conversion.py",
+      "sha256": "d361dd460a90bc078c3d175088831067f5e198997613c494a00a6dfaecd0d27f"
+    }
+  ]
+}
