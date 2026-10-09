@@ -1,0 +1,71 @@
+{
+  "schema": "serving-reader-next-seam-source-audit-v1",
+  "base": "5f141ed3890d16c93a71f1f067f03d7843cb01b1",
+  "runtime_sha256": "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8",
+  "functions": {
+    "_bind_runtime": {
+      "line": 90,
+      "source_sha256": "f40637db3e2dee6984e5de99a608df5b5519d28eddef4cca7a9af4bbb4e8da72"
+    },
+    "_check_runtime": {
+      "line": 121,
+      "source_sha256": "0f367b412dd3183a44ad0a0ee207fe693da2a099d941c78b2030af349aca771e"
+    },
+    "model_structure": {
+      "line": 358,
+      "source_sha256": "6c18427c86f514aaa7b5ffb59b15aa2b09c353965f84ae7ed5d0595732b58fa9"
+    },
+    "construct_encoder": {
+      "line": 402,
+      "source_sha256": "cc675a70b012a66d632a1f6cfa95f6b55fe41f9501f59bfd1ed2a3140a25384a"
+    },
+    "encoder_facts": {
+      "line": 469,
+      "source_sha256": "58a9907a7b932573d428c0a67744e5a364636d9e76c27981ce5fd9235c94f683"
+    },
+    "admit_bundle": {
+      "line": 530,
+      "source_sha256": "895ac2137e3bafdb5ef2bb990d82216c35bc47c8c1fc154c7c2c8ea932cf889f"
+    },
+    "load_inference": {
+      "line": 622,
+      "source_sha256": "de67835260b83be46e43cf9df6aea4f644c39bf083d2a8591080c467201935bb"
+    },
+    "inference_outputs": {
+      "line": 727,
+      "source_sha256": "dfeee9ab198b92b302311bbc01aa533e84351d0d32108c7a1c218f718a5154ef"
+    }
+  },
+  "implemented_prerequisites": [
+    "pure serving manifest provenance binder",
+    "actual DGX six-file metadata bind"
+  ],
+  "active_work": "sfora/connected-serving-file-admission-20261009 owns actual ten-file filesystem admission, full gate/commit held",
+  "concrete_blockers": [
+    {
+      "location": "admit_bundle",
+      "cause": "Reads historical code members and original absolute environment; cannot be called by new artifact route.",
+      "resolution": "New explicit admission route, legacy unchanged."
+    },
+    {
+      "location": "_bind_runtime",
+      "cause": "Exactly three installed runtime guard members; new helper imports are outside current authenticated closure.",
+      "resolution": "Explicit separately authenticated artifact-route helper closure; no silent len relaxation or helper rebinding."
+    },
+    {
+      "location": "load_inference",
+      "cause": "Full/fixed original typed payload authentication correctly precedes constructor, but genuine runtime structure comparison expects historical source origin paths.",
+      "resolution": "Preserve all original typed identity checks first; project/materialize only expected model/processor file leaves after authenticated installation; compare independently observed live metadata."
+    },
+    {
+      "location": "inference_outputs",
+      "cause": "Every call reopens historical SERVING_FILES in artifact directory.",
+      "resolution": "Artifact route carries freshly verified installed guards at the same use boundary; legacy path retained."
+    }
+  ],
+  "following_native_gate": "Different-root noneditable installed closure, separate import/interpreter/native admission, unchanged typed payload and full448/444/4 overlay, identical-batch B1/B2/B32 raw/unit/codes/invnorm/wire and exact top10 score/tie parity, rejection cleanup and full fresh exit normal0.",
+  "source_only": true,
+  "typed_payload_verified": false,
+  "native_serving_verified": false,
+  "quality_speed_goal_met": false
+}
