@@ -1,0 +1,716 @@
+{
+  "id": "ba7eb52314934461",
+  "status": "completed",
+  "started_at": 1791582286,
+  "agent": "sfora/emafactorial",
+  "force_reason": "Genuinely new executable/native-loading trust boundary and per-request freshness design; previous dual reviewed only immutable bytes-to-metadata binder. New reader contract introduces installed origin relocation, helper executable capability and lifecycle integration. This is not a repeat binder review.",
+  "rolling_6h_count": 4,
+  "prompt_preview": "READ ONLY hard design review, no edits/tests/ML/native/SSH/jobs/consults/children. Repo /home/rb/worktrees/sfora-positive-causality currentmaster (read exactHEAD); frozen proposal docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/worker-precode-contract-v1.md SHAe75485ccb731e8b2843fc347a71eb3b01a91944a2f833231ebd9cde43edd28cb and root-contract-review-v1.md. Review BOTH; root corrections override worker v1 where stated. Read actual src/sfora/{connected_inference.py,connected_compact_serving.py,_connected_inference_authority.py,connected_serving_admission.py,connected_serving_artifact.py,connected_gallery_provenance.py,connected_artifact_identity.py,connected_installed_environment.py}. Existing genuine bridge compiles runtime under private syntheticname, binds exactly3 oldruntimeguards, snapshots authenticated code/globals/defaults/registry, preservesrelease via saved globals and identity-only registry disposition. New one runtimeAPI load_serving_inference shall admit exact10artifact, original full/fixed/scope typed endpoint BEFORE expected-only origin projection, full selectedwheel+externalanchorfreshchecks beforegenuineconstructor, old448/444/4overlay/math/packing/cache/RNG/roles preserved. Explicit futurebridge helper capability modules5/guards5/check_current; no ordinaryrelative runtimeimports, pyc trust, globals rebinding/genericloader or nativepermissionsfromJSON. Futurebridge implementation separate, currentbridge pin cannot admit newauthority untilprospectiveupdate. Root rejects new~5.9GBdisk rehash/request: fullartifact+wheel startupanduncachedexit; perrequestfresh executableclosure+existingbackend/livebytes/roles atsameoldboundary, no crosscalldigestcache. No payloadfile rehash was an oldrequestpredicate. Exact insertedspan/finitepatch inverse mustreconstructfulloldsource/authority/tests, notsuppressmath checks. Primaryexceptionpreserved, all ownedcleanup attempted, foreignretainedowner remainsrejection. Decide contract ACCEPT or concreteBLOCK with function/line/minimalfalsifier. Specifically assess executablecapabilityABI and independentexpectedidentity, phase freshnesscorrespondence, source/helper/native authority separation, lifetime+registry failure semantics, and any hidden necessary changes outside OWN4(runtime,authority,oldextractiontest,newstdlibtest). Do not demand newscientificcaps/genericthreatframework or inventedruntimepermission; rootfuture different-rootnoneditable/nativeB1/B2/B32exactparity+13anchor/liveaudits normalexit0 UNRUN. Library source-only proofs neverSOTA/speed claim; fullgoal UNMET. Distinguish mandatory defect from futureintegration requirement and optionalhardening. Return separately auditable source-supported decision; no paid duplicate or model selection.",
+  "prompt_sha256": "28189c13dc6ffaba8613bbf8594a5304a1ecc34afc8cf750e4c185e0e6dc0e3c",
+  "prompt_bytes": 2788,
+  "fingerprint": "76cbe0c14293a781795c126daa639e1c79e6f95fb491947da33e03468cf95258",
+  "evidence": {
+    "git_commit": "de10686aae86add683fe7daa4fd8931dac19fc39",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "5bdcac38251942c4",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791582286,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791583486,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY hard design review, no edits/tests/ML/native/SSH/jobs/consults/children. Repo /home/rb/worktrees/sfora-positive-causality currentmaster (read exactHEAD); frozen proposal docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/worker-precode-contract-v1.md SHAe75485ccb731e8b2843fc347a71eb3b01a91944a2f833231ebd9cde43edd28cb and root-contract-review-v1.md. Review BOTH; root corrections override worker v1 where stated. Read actual src/sfora/{connected_inference.py,connected_compact_serving.py,_connected_inference_authority.py,connected_serving_admission.py,connected_serving_artifact.py,connected_gallery_provenance.py,connected_artifact_identity.py,connected_installed_environment.py}. Existing genuine bridge compiles runtime under private syntheticname, binds exactly3 oldruntimeguards, snapshots authenticated code/globals/defaults/registry, preservesrelease via saved globals and identity-only registry disposition. New one runtimeAPI load_serving_inference shall admit exact10artifact, original full/fixed/scope typed endpoint BEFORE expected-only origin projection, full selectedwheel+externalanchorfreshchecks beforegenuineconstructor, old448/444/4overlay/math/packing/cache/RNG/roles preserved. Explicit futurebridge helper capability modules5/guards5/check_current; no ordinaryrelative runtimeimports, pyc trust, globals rebinding/genericloader or nativepermissionsfromJSON. Futurebridge implementation separate, currentbridge pin cannot admit newauthority untilprospectiveupdate. Root rejects new~5.9GBdisk rehash/request: fullartifact+wheel startupanduncachedexit; perrequestfresh executableclosure+existingbackend/livebytes/roles atsameoldboundary, no crosscalldigestcache. No payloadfile rehash was an oldrequestpredicate. Exact insertedspan/finitepatch inverse mustreconstructfulloldsource/authority/tests, notsuppressmath checks. Primaryexceptionpreserved, all ownedcleanup attempted, foreignretainedowner remainsrejection. Decide contract ACCEPT or concreteBLOCK with function/line/minimalfalsifier. Specifically assess executablecapabilityABI and independentexpectedidentity, phase freshnesscorrespondence, source/helper/native authority separation, lifetime+registry failure semantics, and any hidden necessary changes outside OWN4(runtime,authority,oldextractiontest,newstdlibtest). Do not demand newscientificcaps/genericthreatframework or inventedruntimepermission; rootfuture different-rootnoneditable/nativeB1/B2/B32exactparity+13anchor/liveaudits normalexit0 UNRUN. Library source-only proofs neverSOTA/speed claim; fullgoal UNMET. Distinguish mandatory defect from futureintegration requirement and optionalhardening. Return separately auditable source-supported decision; no paid duplicate or model selection.",
+      "prompt_sha256": "6b9f47eb2b27ede23ea13508662bb7c1dc4713c96c01a874056f736ee5db60f9",
+      "prompt_bytes": 3158,
+      "fingerprint": "80f9094cc97221bf68b46bb9d8eb8f4858012212ca32533494cfa97b4ed2b2c6",
+      "evidence": {
+        "git_commit": "de10686aae86add683fe7daa4fd8931dac19fc39",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "cb3cfae3ca712106d558fd14559bde34444ffa3a82e88e2e5d8b70a960f43355",
+      "reused": false,
+      "critique_id": "ba7eb52314934461",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-5bdcac38251942c4.service",
+      "pid": 3110253,
+      "pgid": 3110253,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1791582286
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791582764,
+      "event_cursor": 58,
+      "events": [
+        {
+          "seq": 35,
+          "at": 1791582731,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 36,
+          "at": 1791582741,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1791582742,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 38,
+          "at": 1791582743,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1791582744,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 40,
+          "at": 1791582745,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 41,
+          "at": 1791582746,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 42,
+          "at": 1791582747,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 43,
+          "at": 1791582748,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 44,
+          "at": 1791582749,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 45,
+          "at": 1791582750,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 46,
+          "at": 1791582751,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 47,
+          "at": 1791582753,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 48,
+          "at": 1791582754,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 49,
+          "at": 1791582755,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 50,
+          "at": 1791582756,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 51,
+          "at": 1791582757,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 52,
+          "at": 1791582758,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 53,
+          "at": 1791582759,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 54,
+          "at": 1791582760,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 55,
+          "at": 1791582761,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 56,
+          "at": 1791582762,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 57,
+          "at": 1791582763,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 58,
+          "at": 1791582764,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 51,
+            "at": 1791582757,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 52,
+            "at": 1791582758,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 53,
+            "at": 1791582759,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 54,
+            "at": 1791582760,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 55,
+            "at": 1791582761,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 56,
+            "at": 1791582762,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 57,
+            "at": 1791582763,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 58,
+            "at": 1791582764,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "# Review of the installed-serving reader pre-code contract (HEAD `de10686a`)\n\n**Decision: BLOCK the contract as frozen.** The design direction is sound, but three defects must be fixed in the contract text first. Each fix is small and none needs a new design. Once they are fixed, I would ACCEPT.\n\nI made no edits and ran no tests. The falsifiers below are derived from reading the source and have not been run. Inputs:\n- `worker-precode-contract-v1.md`: hash matches `e75485cc…`.\n- `root-contract-review-v1.md`: `d06b799b…`.\n- The runtime, authority and extraction-test baselines match the contract (`33fae50e…`, `0098f835…`, `50036423…`).\n\n## Mandatory defects\n\n**M1. The change needs a fifth file beyond OWN4, or CI fails.**\n- `scripts/test_connected_probe_inference_extraction.py` is part of the CI connected-source job (`ci.yml:51`).\n- It reads the live MLP runtime at line 72: `current = oracle.RUNTIME.read_text()`.\n- At line 90 it builds its expected order from every definition in that file: `order = list(original_defs)`.\n- At line 92 it looks up `expected[name] for name in order`, and `expected` only holds the closure names plus six extras. So adding `load_serving_inference`, which the contract requires, raises `KeyError`.\n- Line 85 takes the MLP header verbatim, so any new import or constant also breaks it.\n- The test also reuses the MLP test's `expected_definition`, `PLUMBING`, `ledger_check` and `dependency_check` (around lines 63–64 and 94–106). Edits to those in the MLP test therefore leak into the probe test.\n- **Falsifier:** in a scratch copy, insert `def load_serving_inference(): pass` into `connected_inference.py` and run the probe extraction test. It should fail at line 92 with `KeyError`.\n- **Fix:** add a finite edit to the probe test as a fifth owned file. It should derive `current` through an authenticated seam inverse exported by the MLP test. Also forbid any change to `expected_definition`, `PLUMBING` and `CLOSURE`.\n\n**M2. \"The primary exception survives\" cannot hold inside the unchanged `construct_encoder`.**\n- `connected_inference.py:462-465` runs `finally: del disk; gc.collect(); mapping_absent(path)` while the error is still propagating.\n- At that point the traceback still holds finished inner frames that reference the private-mmap tensors: `fingerprint` (called at line 422), `load_vision` (line 426) and Torch's `load_state_dict` frames.\n- So `mapping_absent` raises a new `ValueError(\"checkpoint mapping survived…\")`. The real error ends up only as its `__context__`.\n- The worker contract promises the primary exception survives with notes attached, and root correction 4 asks to keep the original error identity. Neither is achievable here without changing `construct_encoder`, which the contract forbids and which would break the legacy-route and probe pins.\n- **Falsifier:** use a stand-in `load_vision` that raises `RuntimeError` while its frame holds a real small mmap. The caller receives the `ValueError`, not the `RuntimeError`.\n- **Fix:** limit the identity promise to the new loader's own boundaries. For failures inside `construct_encoder`, keep the legacy chaining and have the test assert that `__context__ is primary`. The new loader must not copy the `finally: mapping_absent` pattern from lines 715–718; it should catch, add a note, and re-raise the same exception.\n\n**M3. One public API leaves the pre-native ordering unspecified.**\n- The legacy bridge calls the runtime's `admit_bundle` (`connected_compact_serving.py:342`) before importing `cutile_int8` (line 363). `cutile_int8.py:12` imports numpy at module level.\n- Root correction 2 requires the external anchors to be freshly authenticated before any native import. Worker v1 step 3 hands the anchors to the bridge instead.\n- **Fix:** the reconciled contract must state the order:\n  - The runtime does the following inside `load_serving_inference`, before its first `import torch`:\n    1. Validate argument shapes, then run `_check_runtime` and `check_current`.\n    2. Authenticate the installed-environment authority bytes.\n    3. Call `admit_serving_artifact`.\n    4. Read the origin and owner bytes.\n    5. Call `verify_installed_environment` and compare its result exactly, with types.\n    6. Run `bound_file` on every anchor. The anchors are the environment files outside the site root (`files − selected`). `_prepare` guarantees they are native files and leaves them unread.\n  - The future bridge must call `load_serving_inference` before any packing, `cutile` or numpy import.\n  - The alternative is a second, pre-native runtime API.\n\n## Assessments you asked for\n\n- **Executable capability ABI.** The runtime can only check the shape of `(modules, guards, check_current)`. It cannot authenticate any of them, so the trust is the same as for the existing caller of `_bind_runtime`. That is sufficient only if:\n  - the future bridge pins all five helper hashes and raw-loads them;\n  - it extends `_snapshot` and `_check_current` to cover them;\n  - it is the only caller.\n\n  The helper pins cannot go in the authority file (its key set is frozen), so they must be bridge literals. The current `_snapshot` already copes with the helpers' structure: the `_Owned` class, set literals such as `_MEMBERS`, and alias imports. The no-path private package resolves the helpers' relative imports only from modules it has already registered.\n\n  Optional narrowing: pass only the five functions actually called plus their guards; the module tuple adds no capability.\n- **Independent expected identity: sound.**\n  - The installed-environment authority is pinned by the caller.\n  - Its bundle and owner pins are cross-checked against the fragment pins.\n  - The fresh verifier result is compared with exact types.\n  - Installed roots come only from `expected_environment`, and expected copies are never derived from live observations.\n- **Source, helper and native separation: sound.** Helper verification and the environment verifier explicitly grant no native permission.\n- **Lifetime and registry: sound apart from M2.** The bridge empties `endpoint[\"modules\"]` before calling the release (`connected_compact_serving.py:634`). Foreign-owner rejection is preserved.\n- **Inverse plan: workable, all inside the owned files.**\n  - Inserting the new record before the pipeline record forces edits to the MLP test at lines 130, 192–200 and 307. Line 307 currently asserts `SUBSTITUTIONS[:-1] == differences`.\n  - `literal_pin_check` (around line 893) asserts the bridge pin equals the current authority bytes, so it must be rewritten to check against the reconstructed baseline authority. The contract anticipates this as its point (b).\n\n## Must decide before code is released (clarifications, not defects)\n\n- **C1.** Worker v1 re-materializes expected identity on every request. That calls `materialize_identity`, which re-hashes every model and processor source file (via `_installed_sha`) per request; the legacy request path only re-hashes the processor backend source. Root correction 1 does not require this. I recommend comparing each request against the expected copy retained at startup, and re-materializing only at exit.\n- **C2.** The legacy request path re-hashes seven historical code files that are evidence only and never executed (lines 734–736). The new artifact has no such files. Either record that this check is dropped, or re-hash the small `serving.json`, `origin.json` and `origin-owners.json` as the analogue.\n- **C3.** The admission \"descriptor readers\" (`_walk`, `_read`, `_Owned`) are private. `admit_serving_artifact` returns file facts, not bytes. I recommend a runtime-owned bounded read: the independent SHA pin is the real authentication, and the environment verifier's `_prepare` re-checks it anyway.\n- **C4.** Step 4's \"where supplied\" association comparisons need either a finite list or deletion.\n- **C5.** The release text must say which checks run before the release body and which after. The ~5.9 GB re-hash should run after the release body. The legacy branch of `release_inference` must not look up any new global names, because these tests embed the real release source into fixtures that lack them:\n  - `test_connected_compact_serving.py:20-27,139` (in CI)\n  - `test_connected_serving_requests.py:60-62`\n\n  A dispatch line at the top of the function satisfies this.\n\n## Future integration requirements (not OWN4 defects)\n\n- As soon as OWN4 lands, the unchanged legacy bridge fails closed: its authority pin `0098f835` no longer matches. `test_connected_control_serving.py:588-593` and `observe_connected_serving.py:134-139` reject in the same way. Do not deploy the OWN4 commit before the bridge pin is updated.\n- The bridge's `_capture_failure` only recognizes the `load_inference` frame, so it must also learn `load_serving_inference`.\n- The bridge needs the helper loader and helper pins.\n- The new stdlib test needs an entry in `ci.yml`.\n\n**Not demanded:** new caps, a threat framework, or new runtime permissions. Native B1/B2/B32 parity, the 13-anchor live audit and normal exit 0 remain unrun, and the full goal remains unmet.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "# Review of the installed-serving reader pre-code contract (HEAD `de10686a`)\n\n**Decision: BLOCK the contract as frozen.** The design direction is sound, but three defects must be fixed in the contract text first. Each fix is small and none needs a new design. Once they are fixed, I would ACCEPT.\n\nI made no edits and ran no tests. The falsifiers below are derived from reading the source and have not been run. Inputs:\n- `worker-precode-contract-v1.md`: hash matches `e75485cc…`.\n- `root-contract-review-v1.md`: `d06b799b…`.\n- The runtime, authority and extraction-test baselines match the contract (`33fae50e…`, `0098f835…`, `50036423…`).\n\n## Mandatory defects\n\n**M1. The change needs a fifth file beyond OWN4, or CI fails.**\n- `scripts/test_connected_probe_inference_extraction.py` is part of the CI connected-source job (`ci.yml:51`).\n- It reads the live MLP runtime at line 72: `current = oracle.RUNTIME.read_text()`.\n- At line 90 it builds its expected order from every definition in that file: `order = list(original_defs)`.\n- At line 92 it looks up `expected[name] for name in order`, and `expected` only holds the closure names plus six extras. So adding `load_serving_inference`, which the contract requires, raises `KeyError`.\n- Line 85 takes the MLP header verbatim, so any new import or constant also breaks it.\n- The test also reuses the MLP test's `expected_definition`, `PLUMBING`, `ledger_check` and `dependency_check` (around lines 63–64 and 94–106). Edits to those in the MLP test therefore leak into the probe test.\n- **Falsifier:** in a scratch copy, insert `def load_serving_inference(): pass` into `connected_inference.py` and run the probe extraction test. It should fail at line 92 with `KeyError`.\n- **Fix:** add a finite edit to the probe test as a fifth owned file. It should derive `current` through an authenticated seam inverse exported by the MLP test. Also forbid any change to `expected_definition`, `PLUMBING` and `CLOSURE`.\n\n**M2. \"The primary exception survives\" cannot hold inside the unchanged `construct_encoder`.**\n- `connected_inference.py:462-465` runs `finally: del disk; gc.collect(); mapping_absent(path)` while the error is still propagating.\n- At that point the traceback still holds finished inner frames that reference the private-mmap tensors: `fingerprint` (called at line 422), `load_vision` (line 426) and Torch's `load_state_dict` frames.\n- So `mapping_absent` raises a new `ValueError(\"checkpoint mapping survived…\")`. The real error ends up only as its `__context__`.\n- The worker contract promises the primary exception survives with notes attached, and root correction 4 asks to keep the original error identity. Neither is achievable here without changing `construct_encoder`, which the contract forbids and which would break the legacy-route and probe pins.\n- **Falsifier:** use a stand-in `load_vision` that raises `RuntimeError` while its frame holds a real small mmap. The caller receives the `ValueError`, not the `RuntimeError`.\n- **Fix:** limit the identity promise to the new loader's own boundaries. For failures inside `construct_encoder`, keep the legacy chaining and have the test assert that `__context__ is primary`. The new loader must not copy the `finally: mapping_absent` pattern from lines 715–718; it should catch, add a note, and re-raise the same exception.\n\n**M3. One public API leaves the pre-native ordering unspecified.**\n- The legacy bridge calls the runtime's `admit_bundle` (`connected_compact_serving.py:342`) before importing `cutile_int8` (line 363). `cutile_int8.py:12` imports numpy at module level.\n- Root correction 2 requires the external anchors to be freshly authenticated before any native import. Worker v1 step 3 hands the anchors to the bridge instead.\n- **Fix:** the reconciled contract must state the order:\n  - The runtime does the following inside `load_serving_inference`, before its first `import torch`:\n    1. Validate argument shapes, then run `_check_runtime` and `check_current`.\n    2. Authenticate the installed-environment authority bytes.\n    3. Call `admit_serving_artifact`.\n    4. Read the origin and owner bytes.\n    5. Call `verify_installed_environment` and compare its result exactly, with types.\n    6. Run `bound_file` on every anchor. The anchors are the environment files outside the site root (`files − selected`). `_prepare` guarantees they are native files and leaves them unread.\n  - The future bridge must call `load_serving_inference` before any packing, `cutile` or numpy import.\n  - The alternative is a second, pre-native runtime API.\n\n## Assessments you asked for\n\n- **Executable capability ABI.** The runtime can only check the shape of `(modules, guards, check_current)`. It cannot authenticate any of them, so the trust is the same as for the existing caller of `_bind_runtime`. That is sufficient only if:\n  - the future bridge pins all five helper hashes and raw-loads them;\n  - it extends `_snapshot` and `_check_current` to cover them;\n  - it is the only caller.\n\n  The helper pins cannot go in the authority file (its key set is frozen), so they must be bridge literals. The current `_snapshot` already copes with the helpers' structure: the `_Owned` class, set literals such as `_MEMBERS`, and alias imports. The no-path private package resolves the helpers' relative imports only from modules it has already registered.\n\n  Optional narrowing: pass only the five functions actually called plus their guards; the module tuple adds no capability.\n- **Independent expected identity: sound.**\n  - The installed-environment authority is pinned by the caller.\n  - Its bundle and owner pins are cross-checked against the fragment pins.\n  - The fresh verifier result is compared with exact types.\n  - Installed roots come only from `expected_environment`, and expected copies are never derived from live observations.\n- **Source, helper and native separation: sound.** Helper verification and the environment verifier explicitly grant no native permission.\n- **Lifetime and registry: sound apart from M2.** The bridge empties `endpoint[\"modules\"]` before calling the release (`connected_compact_serving.py:634`). Foreign-owner rejection is preserved.\n- **Inverse plan: workable, all inside the owned files.**\n  - Inserting the new record before the pipeline record forces edits to the MLP test at lines 130, 192–200 and 307. Line 307 currently asserts `SUBSTITUTIONS[:-1] == differences`.\n  - `literal_pin_check` (around line 893) asserts the bridge pin equals the current authority bytes, so it must be rewritten to check against the reconstructed baseline authority. The contract anticipates this as its point (b).\n\n## Must decide before code is released (clarifications, not defects)\n\n- **C1.** Worker v1 re-materializes expected identity on every request. That calls `materialize_identity`, which re-hashes every model and processor source file (via `_installed_sha`) per request; the legacy request path only re-hashes the processor backend source. Root correction 1 does not require this. I recommend comparing each request against the expected copy retained at startup, and re-materializing only at exit.\n- **C2.** The legacy request path re-hashes seven historical code files that are evidence only and never executed (lines 734–736). The new artifact has no such files. Either record that this check is dropped, or re-hash the small `serving.json`, `origin.json` and `origin-owners.json` as the analogue.\n- **C3.** The admission \"descriptor readers\" (`_walk`, `_read`, `_Owned`) are private. `admit_serving_artifact` returns file facts, not bytes. I recommend a runtime-owned bounded read: the independent SHA pin is the real authentication, and the environment verifier's `_prepare` re-checks it anyway.\n- **C4.** Step 4's \"where supplied\" association comparisons need either a finite list or deletion.\n- **C5.** The release text must say which checks run before the release body and which after. The ~5.9 GB re-hash should run after the release body. The legacy branch of `release_inference` must not look up any new global names, because these tests embed the real release source into fixtures that lack them:\n  - `test_connected_compact_serving.py:20-27,139` (in CI)\n  - `test_connected_serving_requests.py:60-62`\n\n  A dispatch line at the top of the function satisfies this.\n\n## Future integration requirements (not OWN4 defects)\n\n- As soon as OWN4 lands, the unchanged legacy bridge fails closed: its authority pin `0098f835` no longer matches. `test_connected_control_serving.py:588-593` and `observe_connected_serving.py:134-139` reject in the same way. Do not deploy the OWN4 commit before the bridge pin is updated.\n- The bridge's `_capture_failure` only recognizes the `load_inference` frame, so it must also learn `load_serving_inference`.\n- The bridge needs the helper loader and helper pins.\n- The new stdlib test needs an entry in `ci.yml`.\n\n**Not demanded:** new caps, a threat framework, or new runtime permissions. Native B1/B2/B32 parity, the 13-anchor live audit and normal exit 0 remain unrun, and the full goal remains unmet."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3158,
+      "output_bytes": 9121,
+      "elapsed_seconds": 478,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)",
+      "progress_truncated": false,
+      "result": "# Review of the installed-serving reader pre-code contract (HEAD `de10686a`)\n\n**Decision: BLOCK the contract as frozen.** The design direction is sound, but three defects must be fixed in the contract text first. Each fix is small and none needs a new design. Once they are fixed, I would ACCEPT.\n\nI made no edits and ran no tests. The falsifiers below are derived from reading the source and have not been run. Inputs:\n- `worker-precode-contract-v1.md`: hash matches `e75485cc…`.\n- `root-contract-review-v1.md`: `d06b799b…`.\n- The runtime, authority and extraction-test baselines match the contract (`33fae50e…`, `0098f835…`, `50036423…`).\n\n## Mandatory defects\n\n**M1. The change needs a fifth file beyond OWN4, or CI fails.**\n- `scripts/test_connected_probe_inference_extraction.py` is part of the CI connected-source job (`ci.yml:51`).\n- It reads the live MLP runtime at line 72: `current = oracle.RUNTIME.read_text()`.\n- At line 90 it builds its expected order from every definition in that file: `order = list(original_defs)`.\n- At line 92 it looks up `expected[name] for name in order`, and `expected` only holds the closure names plus six extras. So adding `load_serving_inference`, which the contract requires, raises `KeyError`.\n- Line 85 takes the MLP header verbatim, so any new import or constant also breaks it.\n- The test also reuses the MLP test's `expected_definition`, `PLUMBING`, `ledger_check` and `dependency_check` (around lines 63–64 and 94–106). Edits to those in the MLP test therefore leak into the probe test.\n- **Falsifier:** in a scratch copy, insert `def load_serving_inference(): pass` into `connected_inference.py` and run the probe extraction test. It should fail at line 92 with `KeyError`.\n- **Fix:** add a finite edit to the probe test as a fifth owned file. It should derive `current` through an authenticated seam inverse exported by the MLP test. Also forbid any change to `expected_definition`, `PLUMBING` and `CLOSURE`.\n\n**M2. \"The primary exception survives\" cannot hold inside the unchanged `construct_encoder`.**\n- `connected_inference.py:462-465` runs `finally: del disk; gc.collect(); mapping_absent(path)` while the error is still propagating.\n- At that point the traceback still holds finished inner frames that reference the private-mmap tensors: `fingerprint` (called at line 422), `load_vision` (line 426) and Torch's `load_state_dict` frames.\n- So `mapping_absent` raises a new `ValueError(\"checkpoint mapping survived…\")`. The real error ends up only as its `__context__`.\n- The worker contract promises the primary exception survives with notes attached, and root correction 4 asks to keep the original error identity. Neither is achievable here without changing `construct_encoder`, which the contract forbids and which would break the legacy-route and probe pins.\n- **Falsifier:** use a stand-in `load_vision` that raises `RuntimeError` while its frame holds a real small mmap. The caller receives the `ValueError`, not the `RuntimeError`.\n- **Fix:** limit the identity promise to the new loader's own boundaries. For failures inside `construct_encoder`, keep the legacy chaining and have the test assert that `__context__ is primary`. The new loader must not copy the `finally: mapping_absent` pattern from lines 715–718; it should catch, add a note, and re-raise the same exception.\n\n**M3. One public API leaves the pre-native ordering unspecified.**\n- The legacy bridge calls the runtime's `admit_bundle` (`connected_compact_serving.py:342`) before importing `cutile_int8` (line 363). `cutile_int8.py:12` imports numpy at module level.\n- Root correction 2 requires the external anchors to be freshly authenticated before any native import. Worker v1 step 3 hands the anchors to the bridge instead.\n- **Fix:** the reconciled contract must state the order:\n  - The runtime does the following inside `load_serving_inference`, before its first `import torch`:\n    1. Validate argument shapes, then run `_check_runtime` and `check_current`.\n    2. Authenticate the installed-environment authority bytes.\n    3. Call `admit_serving_artifact`.\n    4. Read the origin and owner bytes.\n    5. Call `verify_installed_environment` and compare its result exactly, with types.\n    6. Run `bound_file` on every anchor. The anchors are the environment files outside the site root (`files − selected`). `_prepare` guarantees they are native files and leaves them unread.\n  - The future bridge must call `load_serving_inference` before any packing, `cutile` or numpy import.\n  - The alternative is a second, pre-native runtime API.\n\n## Assessments you asked for\n\n- **Executable capability ABI.** The runtime can only check the shape of `(modules, guards, check_current)`. It cannot authenticate any of them, so the trust is the same as for the existing caller of `_bind_runtime`. That is sufficient only if:\n  - the future bridge pins all five helper hashes and raw-loads them;\n  - it extends `_snapshot` and `_check_current` to cover them;\n  - it is the only caller.\n\n  The helper pins cannot go in the authority file (its key set is frozen), so they must be bridge literals. The current `_snapshot` already copes with the helpers' structure: the `_Owned` class, set literals such as `_MEMBERS`, and alias imports. The no-path private package resolves the helpers' relative imports only from modules it has already registered.\n\n  Optional narrowing: pass only the five functions actually called plus their guards; the module tuple adds no capability.\n- **Independent expected identity: sound.**\n  - The installed-environment authority is pinned by the caller.\n  - Its bundle and owner pins are cross-checked against the fragment pins.\n  - The fresh verifier result is compared with exact types.\n  - Installed roots come only from `expected_environment`, and expected copies are never derived from live observations.\n- **Source, helper and native separation: sound.** Helper verification and the environment verifier explicitly grant no native permission.\n- **Lifetime and registry: sound apart from M2.** The bridge empties `endpoint[\"modules\"]` before calling the release (`connected_compact_serving.py:634`). Foreign-owner rejection is preserved.\n- **Inverse plan: workable, all inside the owned files.**\n  - Inserting the new record before the pipeline record forces edits to the MLP test at lines 130, 192–200 and 307. Line 307 currently asserts `SUBSTITUTIONS[:-1] == differences`.\n  - `literal_pin_check` (around line 893) asserts the bridge pin equals the current authority bytes, so it must be rewritten to check against the reconstructed baseline authority. The contract anticipates this as its point (b).\n\n## Must decide before code is released (clarifications, not defects)\n\n- **C1.** Worker v1 re-materializes expected identity on every request. That calls `materialize_identity`, which re-hashes every model and processor source file (via `_installed_sha`) per request; the legacy request path only re-hashes the processor backend source. Root correction 1 does not require this. I recommend comparing each request against the expected copy retained at startup, and re-materializing only at exit.\n- **C2.** The legacy request path re-hashes seven historical code files that are evidence only and never executed (lines 734–736). The new artifact has no such files. Either record that this check is dropped, or re-hash the small `serving.json`, `origin.json` and `origin-owners.json` as the analogue.\n- **C3.** The admission \"descriptor readers\" (`_walk`, `_read`, `_Owned`) are private. `admit_serving_artifact` returns file facts, not bytes. I recommend a runtime-owned bounded read: the independent SHA pin is the real authentication, and the environment verifier's `_prepare` re-checks it anyway.\n- **C4.** Step 4's \"where supplied\" association comparisons need either a finite list or deletion.\n- **C5.** The release text must say which checks run before the release body and which after. The ~5.9 GB re-hash should run after the release body. The legacy branch of `release_inference` must not look up any new global names, because these tests embed the real release source into fixtures that lack them:\n  - `test_connected_compact_serving.py:20-27,139` (in CI)\n  - `test_connected_serving_requests.py:60-62`\n\n  A dispatch line at the top of the function satisfies this.\n\n## Future integration requirements (not OWN4 defects)\n\n- As soon as OWN4 lands, the unchanged legacy bridge fails closed: its authority pin `0098f835` no longer matches. `test_connected_control_serving.py:588-593` and `observe_connected_serving.py:134-139` reject in the same way. Do not deploy the OWN4 commit before the bridge pin is updated.\n- The bridge's `_capture_failure` only recognizes the `load_inference` frame, so it must also learn `load_serving_inference`.\n- The bridge needs the helper loader and helper pins.\n- The new stdlib test needs an entry in `ci.yml`.\n\n**Not demanded:** new caps, a threat framework, or new runtime permissions. Native B1/B2/B32 parity, the 13-anchor live audit and normal exit 0 remain unrun, and the full goal remains unmet.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "8cd181e219154c5e",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791582286,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791583486,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY hard design review, no edits/tests/ML/native/SSH/jobs/consults/children. Repo /home/rb/worktrees/sfora-positive-causality currentmaster (read exactHEAD); frozen proposal docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/worker-precode-contract-v1.md SHAe75485ccb731e8b2843fc347a71eb3b01a91944a2f833231ebd9cde43edd28cb and root-contract-review-v1.md. Review BOTH; root corrections override worker v1 where stated. Read actual src/sfora/{connected_inference.py,connected_compact_serving.py,_connected_inference_authority.py,connected_serving_admission.py,connected_serving_artifact.py,connected_gallery_provenance.py,connected_artifact_identity.py,connected_installed_environment.py}. Existing genuine bridge compiles runtime under private syntheticname, binds exactly3 oldruntimeguards, snapshots authenticated code/globals/defaults/registry, preservesrelease via saved globals and identity-only registry disposition. New one runtimeAPI load_serving_inference shall admit exact10artifact, original full/fixed/scope typed endpoint BEFORE expected-only origin projection, full selectedwheel+externalanchorfreshchecks beforegenuineconstructor, old448/444/4overlay/math/packing/cache/RNG/roles preserved. Explicit futurebridge helper capability modules5/guards5/check_current; no ordinaryrelative runtimeimports, pyc trust, globals rebinding/genericloader or nativepermissionsfromJSON. Futurebridge implementation separate, currentbridge pin cannot admit newauthority untilprospectiveupdate. Root rejects new~5.9GBdisk rehash/request: fullartifact+wheel startupanduncachedexit; perrequestfresh executableclosure+existingbackend/livebytes/roles atsameoldboundary, no crosscalldigestcache. No payloadfile rehash was an oldrequestpredicate. Exact insertedspan/finitepatch inverse mustreconstructfulloldsource/authority/tests, notsuppressmath checks. Primaryexceptionpreserved, all ownedcleanup attempted, foreignretainedowner remainsrejection. Decide contract ACCEPT or concreteBLOCK with function/line/minimalfalsifier. Specifically assess executablecapabilityABI and independentexpectedidentity, phase freshnesscorrespondence, source/helper/native authority separation, lifetime+registry failure semantics, and any hidden necessary changes outside OWN4(runtime,authority,oldextractiontest,newstdlibtest). Do not demand newscientificcaps/genericthreatframework or inventedruntimepermission; rootfuture different-rootnoneditable/nativeB1/B2/B32exactparity+13anchor/liveaudits normalexit0 UNRUN. Library source-only proofs neverSOTA/speed claim; fullgoal UNMET. Distinguish mandatory defect from futureintegration requirement and optionalhardening. Return separately auditable source-supported decision; no paid duplicate or model selection.",
+      "prompt_sha256": "fe06bb3174fef59a4725b6f82bd921a23774d591c68fde79eccebe8f2cad5e4f",
+      "prompt_bytes": 3192,
+      "fingerprint": "7bcdd4f233f11569e99c8aa66fdaabe4da8cbb696dd27d2a8bdea4b68c28b0f6",
+      "evidence": {
+        "git_commit": "de10686aae86add683fe7daa4fd8931dac19fc39",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "80f9094cc97221bf68b46bb9d8eb8f4858012212ca32533494cfa97b4ed2b2c6",
+      "reused": false,
+      "critique_id": "ba7eb52314934461",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-8cd181e219154c5e.service",
+      "pid": 3110342,
+      "pgid": 3110342,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1791582286
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791582644,
+      "event_cursor": 88,
+      "events": [
+        {
+          "seq": 65,
+          "at": 1791582435,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 66,
+          "at": 1791582435,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 67,
+          "at": 1791582436,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 68,
+          "at": 1791582452,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 69,
+          "at": 1791582452,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 70,
+          "at": 1791582452,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 71,
+          "at": 1791582454,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 72,
+          "at": 1791582454,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 73,
+          "at": 1791582455,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 74,
+          "at": 1791582489,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 75,
+          "at": 1791582494,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 76,
+          "at": 1791582494,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 77,
+          "at": 1791582494,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 78,
+          "at": 1791582494,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 79,
+          "at": 1791582494,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 80,
+          "at": 1791582494,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 81,
+          "at": 1791582564,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 82,
+          "at": 1791582564,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 83,
+          "at": 1791582564,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 84,
+          "at": 1791582566,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 85,
+          "at": 1791582567,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 86,
+          "at": 1791582567,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 87,
+          "at": 1791582642,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 88,
+          "at": 1791582643,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 81,
+            "at": 1791582564,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 82,
+            "at": 1791582564,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 83,
+            "at": 1791582564,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 84,
+            "at": 1791582566,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 85,
+            "at": 1791582567,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 86,
+            "at": 1791582567,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 87,
+            "at": 1791582642,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 88,
+            "at": 1791582643,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Decision: BLOCK — two required reconciliations.**\n\nReviewed HEAD `de10686aae86add683fe7daa4fd8931dac19fc39`. The worker contract matches `e75485cc…`; root corrections match `d06b799b…` and take precedence. The eight named sources match HEAD. Findings below are source-derived; no falsifier was executed.\n\n1. **OWN4 omits a live CI dependency.**  \n   [`correspondence()` in the probe extraction test](/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_probe_inference_extraction.py:72) reads the current MLP runtime, then uses **every definition name** to reconstruct the unchanged probe runtime at line 92. Its `expected` table contains historical definitions and six explicit helpers—not `load_serving_inference`.\n\n   **Minimal falsifier:** add the proposed API to the MLP runtime. The reconstruction reaches `expected[\"load_serving_inference\"]` and raises `KeyError`. Adding new header imports can also break the whole-source comparison. [CI invokes this test](/home/rb/worktrees/sfora-positive-causality/.github/workflows/ci.yml:51).\n\n   **Required reconciliation:** make this consumer read the authenticated, exactly reconstructed baseline. The smallest direct repair touches the probe test outside OWN4; explicitly authorize that scope or specify a compatibility mechanism within OWN4. Do not suppress new names without authenticating the inverse. The [probe generator also pins the old runtime and authority](/home/rb/worktrees/sfora-positive-causality/scripts/extract_connected_probe_inference.py:18); its historical reproduction policy needs an explicit disposition.\n\n2. **The required genuine readers do not consistently preserve the primary exception.**  \n   [`connected_installed_environment._read_file()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_installed_environment.py:399) closes the file and directory in unconditional `finally` blocks. A close exception replaces an active read/validation exception. [`connected_artifact_identity._installed_sha()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_artifact_identity.py:201) protects the source close, but its final directory close can still replace the primary.\n\n   **Minimal falsifier:** make `fdopen` raise a particular `MemoryError` object, then make the owned descriptor close raise after closing. The environment reader propagates the cleanup error—or its `ValueError` wrapper—instead of that original object. For the identity reader, inject the secondary failure at the final directory close.\n\n   **Required reconciliation:** cover these exact paths in the primary-preservation design. A narrow helper repair would require scope beyond OWN4 and refreshed helper pins; alternatively, specify and prove finite recovery in the new wrapper. Merely retaining the exception caught from these helpers preserves the wrong exception. The existing [admission `_Owned.__exit__()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_serving_admission.py:54) demonstrates the intended primary-plus-notes behavior.\n\nThe other reviewed boundary decisions are acceptable **as contract requirements**:\n\n- **Executable capability:** five ordered modules, five independent source guards, and a retained authenticated checker are a sufficient finite ABI under the stated trusted-bridge precondition. Tuple validation alone cannot authenticate an arbitrary application callback. Fresh raw execution, imported-alias checks, and live-state snapshots remain mandatory.\n- **Independent identity:** authenticating original full/fixed/scope payload identity before projection, independently pinning the complete installed-environment result, and comparing unmodified live observations to detached expectations preserve the intended separation.\n- **Freshness:** the root correction corresponds to [`inference_outputs()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:727). Keep executable-source and existing backend/live-byte/role checks per request; full artifact, selected-wheel, and external-anchor checks belong at startup and uncached exit. Metadata does not grant native permission.\n\n**Future integration requirements, separate from these blockers:** prospectively update the bridge pin, register/capture the new loader, and preserve saved cleanup functions plus identity-only registry disposal. In particular, retain the bridge’s [registry delegation before release](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_compact_serving.py:628); otherwise the old release removes the runtime before the final ownership checker. Also falsify constructor cleanup masking at [`construct_encoder()`’s `finally`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:462), and ensure a failed teardown predicate does not skip remaining owned cleanup. Foreign retained owners must still reject.\n\nNot run: tests, ML/native execution, SSH, jobs, consultations, or children; no files edited.  \nRisk remains unqualified: different-root noneditable installation, B1/B2/B32 parity, 13-anchor/live audits, normal exit 0, quality and speed. **Full goal remains UNMET.**",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Decision: BLOCK — two required reconciliations.**\n\nReviewed HEAD `de10686aae86add683fe7daa4fd8931dac19fc39`. The worker contract matches `e75485cc…`; root corrections match `d06b799b…` and take precedence. The eight named sources match HEAD. Findings below are source-derived; no falsifier was executed.\n\n1. **OWN4 omits a live CI dependency.**  \n   [`correspondence()` in the probe extraction test](/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_probe_inference_extraction.py:72) reads the current MLP runtime, then uses **every definition name** to reconstruct the unchanged probe runtime at line 92. Its `expected` table contains historical definitions and six explicit helpers—not `load_serving_inference`.\n\n   **Minimal falsifier:** add the proposed API to the MLP runtime. The reconstruction reaches `expected[\"load_serving_inference\"]` and raises `KeyError`. Adding new header imports can also break the whole-source comparison. [CI invokes this test](/home/rb/worktrees/sfora-positive-causality/.github/workflows/ci.yml:51).\n\n   **Required reconciliation:** make this consumer read the authenticated, exactly reconstructed baseline. The smallest direct repair touches the probe test outside OWN4; explicitly authorize that scope or specify a compatibility mechanism within OWN4. Do not suppress new names without authenticating the inverse. The [probe generator also pins the old runtime and authority](/home/rb/worktrees/sfora-positive-causality/scripts/extract_connected_probe_inference.py:18); its historical reproduction policy needs an explicit disposition.\n\n2. **The required genuine readers do not consistently preserve the primary exception.**  \n   [`connected_installed_environment._read_file()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_installed_environment.py:399) closes the file and directory in unconditional `finally` blocks. A close exception replaces an active read/validation exception. [`connected_artifact_identity._installed_sha()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_artifact_identity.py:201) protects the source close, but its final directory close can still replace the primary.\n\n   **Minimal falsifier:** make `fdopen` raise a particular `MemoryError` object, then make the owned descriptor close raise after closing. The environment reader propagates the cleanup error—or its `ValueError` wrapper—instead of that original object. For the identity reader, inject the secondary failure at the final directory close.\n\n   **Required reconciliation:** cover these exact paths in the primary-preservation design. A narrow helper repair would require scope beyond OWN4 and refreshed helper pins; alternatively, specify and prove finite recovery in the new wrapper. Merely retaining the exception caught from these helpers preserves the wrong exception. The existing [admission `_Owned.__exit__()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_serving_admission.py:54) demonstrates the intended primary-plus-notes behavior.\n\nThe other reviewed boundary decisions are acceptable **as contract requirements**:\n\n- **Executable capability:** five ordered modules, five independent source guards, and a retained authenticated checker are a sufficient finite ABI under the stated trusted-bridge precondition. Tuple validation alone cannot authenticate an arbitrary application callback. Fresh raw execution, imported-alias checks, and live-state snapshots remain mandatory.\n- **Independent identity:** authenticating original full/fixed/scope payload identity before projection, independently pinning the complete installed-environment result, and comparing unmodified live observations to detached expectations preserve the intended separation.\n- **Freshness:** the root correction corresponds to [`inference_outputs()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:727). Keep executable-source and existing backend/live-byte/role checks per request; full artifact, selected-wheel, and external-anchor checks belong at startup and uncached exit. Metadata does not grant native permission.\n\n**Future integration requirements, separate from these blockers:** prospectively update the bridge pin, register/capture the new loader, and preserve saved cleanup functions plus identity-only registry disposal. In particular, retain the bridge’s [registry delegation before release](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_compact_serving.py:628); otherwise the old release removes the runtime before the final ownership checker. Also falsify constructor cleanup masking at [`construct_encoder()`’s `finally`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:462), and ensure a failed teardown predicate does not skip remaining owned cleanup. Foreign retained owners must still reject.\n\nNot run: tests, ML/native execution, SSH, jobs, consultations, or children; no files edited.  \nRisk remains unqualified: different-root noneditable installation, B1/B2/B32 parity, 13-anchor/live audits, normal exit 0, quality and speed. **Full goal remains UNMET.**"
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3192,
+      "output_bytes": 5159,
+      "elapsed_seconds": 358,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)",
+      "progress_truncated": false,
+      "result": "**Decision: BLOCK — two required reconciliations.**\n\nReviewed HEAD `de10686aae86add683fe7daa4fd8931dac19fc39`. The worker contract matches `e75485cc…`; root corrections match `d06b799b…` and take precedence. The eight named sources match HEAD. Findings below are source-derived; no falsifier was executed.\n\n1. **OWN4 omits a live CI dependency.**  \n   [`correspondence()` in the probe extraction test](/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_probe_inference_extraction.py:72) reads the current MLP runtime, then uses **every definition name** to reconstruct the unchanged probe runtime at line 92. Its `expected` table contains historical definitions and six explicit helpers—not `load_serving_inference`.\n\n   **Minimal falsifier:** add the proposed API to the MLP runtime. The reconstruction reaches `expected[\"load_serving_inference\"]` and raises `KeyError`. Adding new header imports can also break the whole-source comparison. [CI invokes this test](/home/rb/worktrees/sfora-positive-causality/.github/workflows/ci.yml:51).\n\n   **Required reconciliation:** make this consumer read the authenticated, exactly reconstructed baseline. The smallest direct repair touches the probe test outside OWN4; explicitly authorize that scope or specify a compatibility mechanism within OWN4. Do not suppress new names without authenticating the inverse. The [probe generator also pins the old runtime and authority](/home/rb/worktrees/sfora-positive-causality/scripts/extract_connected_probe_inference.py:18); its historical reproduction policy needs an explicit disposition.\n\n2. **The required genuine readers do not consistently preserve the primary exception.**  \n   [`connected_installed_environment._read_file()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_installed_environment.py:399) closes the file and directory in unconditional `finally` blocks. A close exception replaces an active read/validation exception. [`connected_artifact_identity._installed_sha()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_artifact_identity.py:201) protects the source close, but its final directory close can still replace the primary.\n\n   **Minimal falsifier:** make `fdopen` raise a particular `MemoryError` object, then make the owned descriptor close raise after closing. The environment reader propagates the cleanup error—or its `ValueError` wrapper—instead of that original object. For the identity reader, inject the secondary failure at the final directory close.\n\n   **Required reconciliation:** cover these exact paths in the primary-preservation design. A narrow helper repair would require scope beyond OWN4 and refreshed helper pins; alternatively, specify and prove finite recovery in the new wrapper. Merely retaining the exception caught from these helpers preserves the wrong exception. The existing [admission `_Owned.__exit__()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_serving_admission.py:54) demonstrates the intended primary-plus-notes behavior.\n\nThe other reviewed boundary decisions are acceptable **as contract requirements**:\n\n- **Executable capability:** five ordered modules, five independent source guards, and a retained authenticated checker are a sufficient finite ABI under the stated trusted-bridge precondition. Tuple validation alone cannot authenticate an arbitrary application callback. Fresh raw execution, imported-alias checks, and live-state snapshots remain mandatory.\n- **Independent identity:** authenticating original full/fixed/scope payload identity before projection, independently pinning the complete installed-environment result, and comparing unmodified live observations to detached expectations preserve the intended separation.\n- **Freshness:** the root correction corresponds to [`inference_outputs()`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:727). Keep executable-source and existing backend/live-byte/role checks per request; full artifact, selected-wheel, and external-anchor checks belong at startup and uncached exit. Metadata does not grant native permission.\n\n**Future integration requirements, separate from these blockers:** prospectively update the bridge pin, register/capture the new loader, and preserve saved cleanup functions plus identity-only registry disposal. In particular, retain the bridge’s [registry delegation before release](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_compact_serving.py:628); otherwise the old release removes the runtime before the final ownership checker. Also falsify constructor cleanup masking at [`construct_encoder()`’s `finally`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:462), and ensure a failed teardown predicate does not skip remaining owned cleanup. Foreign retained owners must still reject.\n\nNot run: tests, ML/native execution, SSH, jobs, consultations, or children; no files edited.  \nRisk remains unqualified: different-root noneditable installation, B1/B2/B32 parity, 13-anchor/live audits, normal exit 0, quality and speed. **Full goal remains UNMET.**",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1791583191,
+  "elapsed_seconds": 478,
+  "input_bytes": 2788,
+  "output_bytes": 14280
+}
