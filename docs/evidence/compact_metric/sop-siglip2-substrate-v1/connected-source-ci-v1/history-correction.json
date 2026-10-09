@@ -1,0 +1,18 @@
+{
+  "ci_green": false,
+  "correction": "fetch-depth:0 only in source-contract job. Existing product and site jobs unchanged.",
+  "failed_source_job": 113901942818,
+  "falsifier_note": "An initial scratch --shallow-file option was unsupported and failed before exercising the historical read. Final scratch bare repository uses read-only original object alternates plus a genuine shallow boundary; temporary repository removed.",
+  "full_history_original_git_show_exit": 0,
+  "historical_commit": "c6eb09e3f1cbb40b7108fb4e77f52cb8fd7e2a86",
+  "historical_packed_sha256": "4ca0de1b0579ea6165c81e9057e9afe77e6dd4141f0b4a0adb281de25300de67",
+  "historical_parent": "df04640b67b94c46b49a359ee8a6443253b37683",
+  "hosted_logs_http_status": 403,
+  "hosted_traceback_available": false,
+  "known_source_blocker": "Both extraction tests require git show c6eb09e3^:src/sfora/joint_relational_compaction.py. Default checkout depth1 lacks this historical parent.",
+  "native_quality_speed_qualified": false,
+  "schema": "connected-source-ci-history-correction-v1",
+  "second_failed_ci_run": 37954643451,
+  "shallow_falsifier_exit": 128,
+  "shallow_falsifier_stderr": "fatal: invalid object name 'c6eb09e3^'.\n"
+}
