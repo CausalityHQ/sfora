@@ -2630,6 +2630,7 @@ IDENTITY_BLOCK_SHA = '7870ea3c5a51f0e26052a772b57115fae24bb6d0b503dda6266ab4b94d
 
 
 def installed_identity_inverse(raw):
+    raw = genuine_alias_inverse(raw)
     begin,end = b'# BEGIN installed identity boundary\n',b'# END installed identity boundary\n\n\n'
     if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('identity block cardinality')
     start,stop = raw.index(begin),raw.index(end)+len(end)
@@ -2655,6 +2656,7 @@ def installed_identity_inverse(raw):
 
 
 def installed_identity_test_inverse(raw):
+    raw = genuine_alias_test_inverse(raw)
     begin,end = b'# BEGIN installed identity tests\n',b'# END installed identity tests\n\n\n'
     if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('identity test block cardinality')
     start,stop = raw.index(begin),raw.index(end)+len(end)
@@ -3064,7 +3066,7 @@ class GroupedNativeComposition(unittest.TestCase):
             collector = module('qualify_siglip2_substrate_cpu',
                 'from pathlib import Path\nimport hashlib\n'+extracted('qualify_connected_probe_serving.py','require')+
                 'def imported_origins(extract, packages):\n'
-                '    return extract(packages)\n')
+                '    return extract.collect(packages)\n')
             nearest_node = function(tree_of(HERE/'train_siglip2_nearest_ranking.py'),'native_source_api')
             nearest_raw = extracted('qualify_connected_probe_serving.py','require')+'\nNATIVE_MEMBERS = '+repr(set(Path(p).name for p in four))+'\n'
             nearest_raw += 'def native_source_api(context, _owned={}):\n    return _owned[id(context)][2]\n'
@@ -3097,16 +3099,18 @@ class GroupedNativeComposition(unittest.TestCase):
                     counters.libraries += 1
                     files[name] = group.get(Path(name),file_sha(Path(name)))
                 return {'packages':packages,'files':files,'modules':{},'native_files':list(mapped)}
+            extractor = module('extract_siglip2_vision_source','def collect(packages):\n    return _collect(packages)\n')
+            extractor._collect = collect
             legacy = {'selected':{'packages':original['packages'],'source_cpu':{'origins':original}},
                 'warm_record':{'origins':{'files':{},'modules':{},'native_files':[]}},'source_driver':collector,
-                'extract':collect,'prior':{'guards':{}},'guards':{}}
+                'extract':extractor,'prior':{'guards':{}},'guards':{}}
             t = w.context['training_context']; t.clear(); t.update(legacy=legacy,nearest=nearest,old=old,fitter=fitter,
                 fit_context={},guards={},native_source_owned={'api':original_api,'authenticate':nearest.original_authenticate})
             class OpaqueOwner:
                 def __deepcopy__(self,memo): raise AssertionError('live owner graph copied')
             t['opaque_owner'] = OpaqueOwner()
             nearest.native_source_api.__defaults__[0][id(t)] = (t,nearest.original_authenticate,original_api)
-            for mod in (native,requests,observer,nearest,old,fitter,evaluator):
+            for mod in (native,requests,observer,nearest,old,fitter,evaluator,collector,extractor):
                 f = fact(Path(mod.__file__)); w.context['guards'][f['path']] = t['guards'][f['path']] = f['sha256']
             w.context['required_guards'].update({**original['files'],**four,str(Path(collector.__file__)):
                 'eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38'})
@@ -3373,7 +3377,7 @@ class GroupedNativeComposition(unittest.TestCase):
 
     def test_only_owned_derivative_and_install_binding_change_original_bytes(self):
         frozen = ROOT/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-probe-installed-control-serving-v4-freeze'
-        raw, original = DRIVER.read_bytes(),(frozen/DRIVER.name).read_bytes()
+        raw, original = genuine_alias_inverse(DRIVER.read_bytes()),(frozen/DRIVER.name).read_bytes()
         self.assertEqual(SHA(original),'11019603d8cb88c339ab034c713cd8bce5a03ed429a5c4e960900aefd69467e3')
         begin,end = b'# BEGIN installed identity boundary\n',b'# END installed identity boundary\n'
         restored = raw[:raw.index(begin)]+original[original.index(begin):original.index(end)]+raw[raw.index(end):]
@@ -3391,6 +3395,216 @@ class GroupedNativeComposition(unittest.TestCase):
             {v['file']['path']:v['file']['sha256'] for v in authority['supplemental']})
 
 # END installed identity tests
+
+
+# BEGIN genuine alias tests
+def alias_baseline(name):
+    frozen = ROOT/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/probe-installed-control-serving-freeze-v5'
+    raw = (frozen/name).read_bytes()
+    pins = {'qualify_connected_probe_serving.py':'374ffa6331152940e9935ab561af76954ddbfbdf99e90cedba22b37ed4940b3c',
+        'test_connected_probe_serving.py':'2b9ed1da8daab9bed82d51b4fca9c9d9a5bd22aed74cb5cbae37e55f4f1656cf'}
+    if SHA(raw) != pins[name]: raise ValueError('genuine alias baseline differs')
+    return raw
+
+
+def genuine_alias_inverse(raw):
+    original = alias_baseline(DRIVER.name)
+    begin,end = b'class Denial:\n',b'def parity_body('
+    if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('denial cardinality')
+    start,stop = raw.index(begin),raw.index(end)
+    if SHA(raw[start:stop]) != '29a013db104538b567cd51161eae719bddfa4e12cff311403f3dbebf654f5e77':
+        raise ValueError('genuine alias denial differs')
+    raw = raw[:start]+original[original.index(begin):original.index(end)]+raw[stop:]
+    seam = b"            denial = Denial(directory,genuine=(t['legacy']['source_driver'],t['legacy']['extract']),guards=context['guards'])\n"
+    if raw.count(seam) != 1: raise ValueError('genuine alias seam differs')
+    raw = raw.replace(seam,b'            denial = Denial(directory)\n')
+    if raw != original: raise ValueError('complete original alias production bytes differ')
+    return raw
+
+
+def genuine_alias_test_inverse(raw):
+    original = alias_baseline(Path(__file__).name)
+    begin,end = b'# BEGIN genuine alias tests\n',b'# END genuine alias tests\n\n\n'
+    if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('genuine alias test cardinality')
+    start,stop = raw.index(begin),raw.index(end)+len(end)
+    names = [n.name for n in ast.parse(raw[start:stop]).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))]
+    if names != ['alias_baseline','genuine_alias_inverse','genuine_alias_test_inverse','denial_source',
+            'denial_seam','genuine_alias_world','GenuineAliases']: raise ValueError('genuine alias test inventory differs')
+    raw = raw[:start]+raw[stop:]
+    for line in (b'    raw = genuine_alias_inverse(raw)\n',b'    raw = genuine_alias_test_inverse(raw)\n'):
+        if raw.count(line) != 1: raise ValueError('genuine alias inverse normalization differs')
+        raw = raw.replace(line,b'')
+    added = b'        raw, original = genuine_alias_inverse(DRIVER.read_bytes()),(frozen/DRIVER.name).read_bytes()\n'
+    if raw.count(added) != 1: raise ValueError('genuine alias frozen inverse normalization differs')
+    raw = raw.replace(added,b'        raw, original = DRIVER.read_bytes(),(frozen/DRIVER.name).read_bytes()\n')
+    begin,end = b'    @contextmanager\n    def native_world(self):',b'    def test_exact_s_and_historical_only_authenticate_without_collecting(self):'
+    if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('genuine fixture cardinality')
+    start,stop = raw.index(begin),raw.index(end)
+    if SHA(raw[start:stop]) != '2db5a07797881cea85b374038b034797ee3afb619673f98586cc048038db8e09':
+        raise ValueError('genuine fixture differs')
+    raw = raw[:start]+original[original.index(begin):original.index(end)]+raw[stop:]
+    if raw != original: raise ValueError('complete original alias test bytes differ')
+    return raw
+
+
+def denial_source():
+    tree = tree_of(DRIVER)
+    nodes = [n for n in tree.body if
+        isinstance(n,(ast.FunctionDef,ast.ClassDef)) and n.name in ('require','Denial') or
+        isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id == 'HISTORICAL' for t in n.targets)]
+    space = {'Path':Path,'os':os,'sys':sys,'requests':requests}
+    exec(compile(ast.Module(body=nodes,type_ignores=[]),str(DRIVER),'exec',dont_inherit=True),space)
+    return space['Denial']
+
+
+def denial_seam(cls, directory, legacy, guards):
+    node = next(n for n in ast.walk(function(tree_of(DRIVER),'run')) if
+        isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id == 'denial' for t in n.targets))
+    space = {'Denial':cls,'directory':directory,'t':{'legacy':legacy},'context':{'guards':guards}}
+    exec(compile(ast.Module(body=[node],type_ignores=[]),str(DRIVER),'exec',dont_inherit=True),space)
+    return space['denial']
+
+
+@contextmanager
+def genuine_alias_world(order=('qualify_siglip2_substrate_cpu','extract_siglip2_vision_source')):
+    from importlib.util import module_from_spec, spec_from_file_location
+    with tempfile.TemporaryDirectory() as raw, patch.dict(sys.modules):
+        root = Path(raw).resolve(); source = root/'source'; bundle = root/'bundle'
+        source.mkdir(); bundle.mkdir()
+        modules, guards = {}, {}
+        for name in order:
+            path = source/(name+'.py'); path.write_bytes((HERE/path.name).read_bytes())
+            (bundle/path.name).write_bytes(path.read_bytes())
+            module = module_from_spec(spec_from_file_location(name,path))
+            sys.modules[name] = modules[name] = module
+            guards[str(path)] = file_sha(path)
+        legacy = {'source_driver':modules['qualify_siglip2_substrate_cpu'],
+            'extract':modules['extract_siglip2_vision_source']}
+        yield SimpleNamespace(root=root,source=source,bundle=bundle,modules=modules,legacy=legacy,guards=guards)
+
+
+class GenuineAliases(unittest.TestCase):
+    def test_exact_inverses_preserve_baseline_and_reject_unowned_mutations(self):
+        original = genuine_alias_inverse(DRIVER.read_bytes())
+        self.assertEqual(original,alias_baseline(DRIVER.name))
+        self.assertEqual(ast.dump(ast.parse(original)),ast.dump(ast.parse(alias_baseline(DRIVER.name))))
+        tests = genuine_alias_test_inverse(Path(__file__).read_bytes())
+        self.assertEqual(tests,alias_baseline(Path(__file__).name))
+        self.assertEqual(ast.dump(ast.parse(tests)),ast.dump(ast.parse(alias_baseline(Path(__file__).name))))
+        for raw in (DRIVER.read_bytes()+b'\nextra=1\n',DRIVER.read_bytes().replace(b'self.check_aliases()',b'pass'),
+                DRIVER.read_bytes().replace(b'denial = Denial(directory,genuine=',b'denial = Denial(directory,foreign=')):
+            with self.assertRaises(ValueError): genuine_alias_inverse(raw)
+        for raw in (Path(__file__).read_bytes()+b'\nextra=1\n',
+                Path(__file__).read_bytes().replace(b"'extract':extractor,'prior'",b"'extract':collect,'prior'")):
+            with self.assertRaises(ValueError): genuine_alias_test_inverse(raw)
+
+    def test_actual_source_accepts_exact_originals_in_both_admission_orders(self):
+        cls = denial_source()
+        orders = (('qualify_siglip2_substrate_cpu','extract_siglip2_vision_source'),
+            ('extract_siglip2_vision_source','qualify_siglip2_substrate_cpu'))
+        for order in orders:
+            with self.subTest(order=order), genuine_alias_world(order) as w:
+                denial = denial_seam(cls,w.bundle,w.legacy,w.guards)
+                try: proof = denial.check()
+                except ValueError as error: self.fail(str(error))
+                self.assertEqual(proof,{'checks':1,'historical_modules_absent':True})
+                self.assertEqual(denial.check()['checks'],2)
+
+    def test_capture_and_every_boundary_reject_mutated_alias_bindings(self):
+        from importlib.util import module_from_spec, spec_from_file_location
+        for phase in ('capture','check'):
+            for target in ('qualify_siglip2_substrate_cpu','extract_siglip2_vision_source'):
+                for mutation in ('missing','object','file','spec','origin','spec_missing','origin_missing','name','spec_name','guard_missing','guard_wrong',
+                        'copy','symlink','relative','noncanonical','directory','bytes','forged_pin','origin_symlink','origin_directory'):
+                    with self.subTest(phase=phase,target=target,mutation=mutation), genuine_alias_world() as w:
+                        module = w.modules[target]; origin = module.__file__
+                        denial = denial_seam(denial_source(),w.bundle,w.legacy,w.guards) if phase == 'check' else None
+                        if mutation == 'missing': del sys.modules[target]
+                        elif mutation == 'object': sys.modules[target] = module_from_spec(spec_from_file_location(target,origin))
+                        elif mutation == 'file': module.__file__ = str(w.bundle/(target+'.py'))
+                        elif mutation == 'spec': module.__spec__ = spec_from_file_location(target,origin)
+                        elif mutation == 'origin': module.__spec__.origin = str(w.bundle/(target+'.py'))
+                        elif mutation == 'spec_missing': module.__spec__ = None
+                        elif mutation == 'origin_missing': del module.__spec__.origin
+                        elif mutation == 'name': module.__name__ = gate.TRAINER.removesuffix('.py')
+                        elif mutation == 'spec_name': module.__spec__.name = 'foreign'
+                        elif mutation == 'guard_missing': del w.guards[origin]
+                        elif mutation == 'guard_wrong': w.guards[origin] = '0'*64
+                        elif mutation == 'bytes': Path(origin).write_bytes(b'changed')
+                        elif mutation == 'forged_pin':
+                            Path(origin).write_bytes(b'changed'); w.guards[origin] = file_sha(origin)
+                        elif mutation in ('origin_symlink','origin_directory'):
+                            Path(origin).unlink()
+                            if mutation == 'origin_symlink': Path(origin).symlink_to(w.bundle/(target+'.py'))
+                            else: Path(origin).mkdir()
+                        else:
+                            if mutation == 'copy': path = w.bundle/(target+'.py')
+                            elif mutation == 'symlink':
+                                path = w.root/(target+'.py'); path.symlink_to(origin)
+                            elif mutation == 'relative': path = Path('source')/(target+'.py')
+                            elif mutation == 'noncanonical': path = str(w.source)+'/../source/'+target+'.py'
+                            else:
+                                path = w.root/(target+'.py'); path.mkdir()
+                            module.__file__ = module.__spec__.origin = str(path)
+                            w.guards[str(path)] = w.guards[origin]
+                        # A new spec is invalid after capture; at capture it is the legitimate spec.
+                        if phase == 'capture' and mutation == 'spec': continue
+                        with self.assertRaises(ValueError):
+                            if denial is None: denial_seam(denial_source(),w.bundle,w.legacy,w.guards)
+                            else: denial.check()
+
+    def test_unknown_dotted_and_copied_modules_and_active_execution_stay_denied(self):
+        for name,file in (('train_siglip2_connected_probe',None),('qualify_siglip2_substrate_cpu.extra',None),
+                ('extract_siglip2_vision_source.extra',None),('_leaked','qualify_siglip2_substrate_cpu.py')):
+            with self.subTest(name=name), genuine_alias_world() as w:
+                denial = denial_seam(denial_source(),w.bundle,w.legacy,w.guards)
+                sys.modules[name] = SimpleNamespace(__file__=str(w.bundle/file) if file else None)
+                with self.assertRaises(ValueError): denial.check()
+        with genuine_alias_world() as w:
+            denial = denial_seam(denial_source(),w.bundle,w.legacy,w.guards)
+            path = str(w.bundle/'qualify_siglip2_substrate_cpu.py')
+            compile('x=1',path,'exec')
+            denial.active = True
+            try:
+                with self.assertRaises(ValueError): compile('x=1',path,'exec')
+                with self.assertRaises(ValueError): sys.audit('import','foreign',path,[],[],[])
+                with self.assertRaises(ValueError): sys.audit('exec',SimpleNamespace(co_filename=path))
+            finally: denial.active = False
+            compile('x=1',path,'exec')
+
+    def test_real_parity_body_with_original_aliases_preserves_denial_and_cleanup(self):
+        with genuine_alias_world() as w:
+            denial = denial_seam(denial_source(),w.bundle,w.legacy,w.guards)
+            result = gate.parity_body(**body_for(Fake(),denial=denial))
+            self.assertEqual(result['denial'],{'checks':3,'historical_modules_absent':True})
+            self.assertFalse(denial.active)
+        class Owner: pass
+        owner = Owner(); reference = weakref.ref(owner)
+        with genuine_alias_world() as w:
+            w.legacy['owner'] = owner
+            denial = denial_seam(denial_source(),w.bundle,w.legacy,w.guards)
+        del owner,w; gc.collect()
+        self.assertIsNone(reference())
+
+    def test_native_run_through_context_has_both_bare_module_objects(self):
+        with GroupedNativeComposition.native_world(self) as g:
+            legacy = g.w.context['training_context']['legacy']
+            for role,name in (('source_driver','qualify_siglip2_substrate_cpu'),('extract','extract_siglip2_vision_source')):
+                module = legacy[role]
+                self.assertIs(sys.modules[name],module)
+                self.assertEqual(module.__name__,name)
+                self.assertEqual(module.__file__,module.__spec__.origin)
+            # Native stand-ins use fixture bytes; original-byte denial is covered separately above.
+            pins = {Path(legacy[role].__file__).name:file_sha(legacy[role].__file__) for role in ('source_driver','extract')}
+            with patch.object(gate,'HISTORICAL',tuple((n,pins.get(n,h)) for n,h in gate.HISTORICAL)):
+                denial = denial_seam(gate.Denial,g.w.root/'bundle',legacy,g.w.context['guards'])
+                self.assertEqual(denial.check()['checks'],1)
+            g.api.audit_origins(legacy)
+            g.boundary.check_native()
+
+    identity_world = InstalledIdentityBoundary.identity_world
+
+# END genuine alias tests
 
 
 if __name__ == '__main__':

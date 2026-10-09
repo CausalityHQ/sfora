@@ -739,11 +739,31 @@ def lifecycle(index, decode, paths, directory, maps, deadline):
 
 class Denial:
     """One inert-after-use audit hook: installed inference must never execute the copied historical files."""
-    def __init__(self, directory):
+    def __init__(self, directory, *, genuine=(), guards=None):
         self.paths = {str(Path(directory)/n) for n,_ in HISTORICAL}
         self.names = {n.removesuffix('.py') for n,_ in HISTORICAL}
+        self.directory, self.aliases, self.guards = Path(directory).resolve(), {}, guards
+        require(type(genuine) is tuple and len(genuine) in (0,2) and
+            (not genuine or type(guards) is dict),'exact genuine admission pair required')
+        for name,module in zip(('qualify_siglip2_substrate_cpu','extract_siglip2_vision_source'),genuine):
+            spec = getattr(module,'__spec__',None)
+            origin = getattr(spec,'origin',None)
+            require(type(origin) is str and Path(origin).name == name+'.py',
+                'genuine admission origin differs: '+name)
+            self.aliases[name] = (module,spec,origin,dict(HISTORICAL)[name+'.py'])
+        self.check_aliases()
         self.active, self.checks = False, 0
         sys.addaudithook(self)
+
+    def check_aliases(self):
+        for name,(module,spec,origin,pin) in self.aliases.items():
+            require(type(module) is type(sys) and sys.modules.get(name) is module and
+                module.__name__ == name and getattr(module,'__spec__',None) is spec and
+                getattr(spec,'name',None) == name and getattr(spec,'origin',None) == origin and
+                getattr(module,'__file__',None) == origin and
+                not Path(origin).is_relative_to(self.directory) and self.guards.get(origin) == pin,
+                'genuine admission alias binding differs: '+name)
+            requests.read_file({'path':origin,'sha256':pin})
 
     def __call__(self, event, args):
         if not self.active: return
@@ -756,9 +776,11 @@ class Denial:
 
     def check(self):
         self.checks += 1
+        self.check_aliases()
         for name,module in list(sys.modules.items()):
             file = getattr(module,'__file__',None)
-            require(name.split('.')[0] not in self.names and
+            alias = self.aliases.get(name)
+            require((alias is not None and module is alias[0] or name.split('.')[0] not in self.names) and
                 not (isinstance(file,str) and file in self.paths),'historical source module is live: '+name)
         return {'checks':self.checks,'historical_modules_absent':True}
 
@@ -1141,7 +1163,7 @@ def run(args):
                 gallery_path=Path(authority['gallery']['file']['path']),expected_gallery_sha256=authority['gallery']['file']['sha256'],
                 gallery_count=authority['gallery']['count'],native_library_path=Path(native_fact['library']['path']),
                 expected_native_library_sha256=native_fact['library']['sha256'])
-            denial = Denial(directory)
+            denial = Denial(directory,genuine=(t['legacy']['source_driver'],t['legacy']['extract']),guards=context['guards'])
             def capture(index, images):
                 return captured_search(index,images,lambda v: snapshot_outputs(v,observer.tensor_snapshot),observer.native_snapshot)
             def mutate(index, deadline):
