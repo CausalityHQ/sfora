@@ -1,0 +1,18 @@
+{
+  "schema": "connected-installed-control-actual-launch-v1",
+  "ssh_session": 23664,
+  "actual_unit": "sfora-connected-probe-installed-control-serving-diagnostic-v3",
+  "actual_invocation_id": "42f3a71c508c49fdbeb2cc6cdfbd7f81",
+  "verified_main_pid": 2030679,
+  "verified_state": "active/running",
+  "source_root": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v4",
+  "output": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-diagnostic-v4",
+  "authority_sha256": "3fc13eb87561f7a33a395e83fdba5ae78b9a49469a89c0bde47fbe46d4cdd1a6",
+  "error": "Root template replacement changed absolute source/output paths but missed bare unit name in launch.sh; actual unit retained v3. Do not relabel frozen launch bytes or restart this invocation.",
+  "prior_v3_failure_invocation": "3117d0868eae4fd4bd85011981ef2316",
+  "prior_v3_failure_preserved": true,
+  "duplicate_launches": 0,
+  "native_qualified": false,
+  "quality_claim": false,
+  "speed_claim": false
+}
