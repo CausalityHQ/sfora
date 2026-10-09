@@ -173,8 +173,8 @@ def _installed_sha(path: PurePosixPath) -> str:
     try:
         for part in path.parts[1:-1]:
             child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
-            os.close(directory)
-            directory = child
+            parent, directory = directory, child
+            os.close(parent)
         source = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
         failure: BaseException | None = None
         try:

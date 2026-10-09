@@ -1,0 +1,23 @@
+FF
+======================================================================
+FAIL: test_parent_close_failure_keeps_foreign_fd_and_releases_child (__main__.DirectoryHandoffTests.test_parent_close_failure_keeps_foreign_fd_and_releases_child) (filename='connected_artifact_identity.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_directory_handoff.py", line 64, in test_parent_close_failure_keeps_foreign_fd_and_releases_child
+    self.assertTrue(same(*foreign[0]), "foreign reused descriptor was closed")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : foreign reused descriptor was closed
+
+======================================================================
+FAIL: test_parent_close_failure_keeps_foreign_fd_and_releases_child (__main__.DirectoryHandoffTests.test_parent_close_failure_keeps_foreign_fd_and_releases_child) (filename='connected_installed_environment.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_directory_handoff.py", line 64, in test_parent_close_failure_keeps_foreign_fd_and_releases_child
+    self.assertTrue(same(*foreign[0]), "foreign reused descriptor was closed")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : foreign reused descriptor was closed
+
+----------------------------------------------------------------------
+Ran 1 test in 0.028s
+
+FAILED (failures=2)

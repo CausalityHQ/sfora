@@ -1,0 +1,38 @@
+{
+  "schema": "installed-directory-handoff-root-verification-v1",
+  "original_base": "5c5cc6a205c5c740a8d2fd0bac67e52ff49fc915",
+  "cause": "Both original functions close the parent before assigning the child to the cleanup variable. A synthetic close that releases the parent, reuses its fd for a foreign file, and raises proves foreign close and leaked child.",
+  "fix": "Assign parent,directory = directory,child before closing parent. Cleanup then owns the child; foreign reused fd is untouched.",
+  "sources": {
+    "src/sfora/connected_artifact_identity.py": {
+      "original_sha256": "d7044e438d687eb21a0502ff352d5a6b592c09ee337255901bdc6281c3830690",
+      "corrected_sha256": "fce39bae7f468a9cbda7303d2625d31304860b0d9ba412adac97b9750d1da2db",
+      "whole_byte_inverse_pass": true
+    },
+    "src/sfora/connected_installed_environment.py": {
+      "original_sha256": "120326f51d609da1c79aeda0655da607be674cab85262d41499143cdb6041467",
+      "corrected_sha256": "07861e18602de93360187c70fb444ce63b1136a04f9799f4469ead03da41c093",
+      "whole_byte_inverse_pass": true
+    }
+  },
+  "red_exit": 1,
+  "green_exit": 0,
+  "final_exit": 0,
+  "final_tests": "Python3.12 and3.14: directory1 + identity22 + installed-environment11 each PASS;34 methods per version, including both directory-function subcases.",
+  "final_wall_seconds": 3.6,
+  "peak_rss_kib": 131388,
+  "swaps": 0,
+  "caps": "timeout120s/AS1GiB",
+  "style_and_typing": "Ruff0.15.20 format/check; mypy2.1 strict scoped3files follow-imports=silent PASS. No whole-repo claim.",
+  "residual": "This fixes the demonstrated directory handoff. It does not guarantee arbitrary asynchronous failure handling or protect descriptors from unrelated concurrent closes.",
+  "native_execution": false,
+  "goal_met": false,
+  "evidence_sha256": {
+    "final.stderr": "8b3823cdd376b9d011a9738fd3b0d96460c6cd3c96cbede27fa1f2f716e7c947",
+    "green.log": "0c1444824fd71eec878a61b61872df1e891b1aacd98843caec2dfe110aef03c8",
+    "red.log": "3342154ba5f30208c3a8709b665476ebe4d83c7c8554cb0df5caf842043bf266",
+    "final-command.sh": "d6ff1b4ba31d4181b65120dec0032816a61eeb35c8071bf7fa3e5735e3595902",
+    "final.log": "8d000b4138a17991161cf1fb3659a88f2a3cc1a6fa611fa7de4ddeb58abfcf75",
+    "original-causal-check.py": "df6c9427ab94fadd92d0827e99bdfe587fe6b81f4f48771d23a5415dda2253bf"
+  }
+}
