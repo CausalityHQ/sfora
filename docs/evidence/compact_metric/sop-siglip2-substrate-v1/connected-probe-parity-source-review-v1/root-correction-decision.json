@@ -1,0 +1,33 @@
+{
+  "base": "26b6bec6bfae4045690ea0c3827dc535179734e0",
+  "caps_scientific_source_pins_and_helpers_unchanged": true,
+  "corrected_source": "8b8a990f110b5b4ce5dc8872b61d740ce061c32b",
+  "decision": "SOURCE_INTEGRATED_NATIVE_HOLD",
+  "inherited_observer_fixture": {
+    "cause": "long caller filename exhausted encoded-byte limit at4089 before4096 count limit; old substring oracle matched resource-usage key",
+    "correction": "fixed short caller fixture isolates count boundary; explicit first_failure predicate",
+    "full_observer_source_check_exit": 0,
+    "old_long_filename_green": true,
+    "production_changed": false
+  },
+  "integrations": [
+    "d9223e27",
+    "5e82a50e"
+  ],
+  "native_parity": false,
+  "original_dual_review": "07c111050c9743ec",
+  "original_gate_exit": 0,
+  "original_gate_seconds": 2.9768030650448054,
+  "original_gate_tests": 98,
+  "quality_speed_release_qualified": false,
+  "remaining": [
+    "real training_context/CombinedAuthority composition",
+    "actual Torch/storage/lifetime/source/native closure/caps",
+    "native detection exact ValueError behavior",
+    "run exit wheel and direct_url guard and lifecycle deadline native verification",
+    "same_numel generator construction failure may retain aliases and fails closed",
+    "evaluator ownCPU first-v1 failed and exports held"
+  ],
+  "root_verified_committed_bytes_equal_original_gate": true,
+  "schema": "connected-probe-parity-root-source-correction-v1"
+}
