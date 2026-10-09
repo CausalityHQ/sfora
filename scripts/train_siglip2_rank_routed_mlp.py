@@ -470,7 +470,41 @@ def _regression_runtime(context):
     require('regression_terms' not in namespace, 'fresh regression private namespace required')
     exec(compile(ast.fix_missing_locations(ast.Module(body=[derived],type_ignores=[])),str(path),'exec',dont_inherit=True),
          namespace)
-    return SimpleNamespace(regression_terms=namespace['regression_terms'],source=ast.unparse(derived))
+    for name in ('loss_denominators','require'):
+        helper = namespace[name]
+        expected = [c for c in code.co_consts if isinstance(c,CodeType) and c.co_name == name]
+        require(len(expected) == 1 and type(helper) is FunctionType and helper.__globals__ is vars(trainer) and
+                helper.__code__ == expected[0], 'regression runtime private helper differs: '+name)
+    runtime = SimpleNamespace(regression_terms=namespace['regression_terms'],source=ast.unparse(derived))
+    functions = [v for v in namespace.values() if type(v) is FunctionType]
+    context['routing_binding'] = (context,runtime,runtime.regression_terms,namespace,dict(namespace),
+        vars(trainer),dict(vars(trainer)),
+        [(f,f.__code__,f.__defaults__,f.__kwdefaults__,f.__closure__,f.__builtins__,f.__globals__,
+          f.__name__,f.__qualname__,f.__module__) for f in functions])
+    return runtime
+
+
+def routed_regression(context, state, raw, anchors, K):
+    """Use only the admitted derivation in its original live routing context."""
+    owner,runtime,fn,namespace,bindings,source,source_bindings,functions = context['routing_binding']
+    require(owner is context and context['routing'] is runtime and runtime.regression_terms is fn and
+            fn.__globals__ is namespace and namespace.get('regression_terms') is fn and
+            all(f.__code__ is code and f.__defaults__ is defaults and f.__kwdefaults__ is kw and
+                f.__closure__ is closure and f.__builtins__ is builtins and f.__globals__ is globals_ and
+                (f.__name__,f.__qualname__,f.__module__) == (name,qualname,module)
+                for f,code,defaults,kw,closure,builtins,globals_,name,qualname,module in functions),
+            'regression live callable differs')
+    require(vars(context['trainer']) is source and namespace.keys() == bindings.keys() and
+            source.keys() == source_bindings.keys() and
+            all(namespace[k] is v for k,v in bindings.items()) and
+            all(source[k] is v for k,v in source_bindings.items()), 'regression private globals differ')
+    require(state['arm'] == 'candidate' and state['device'] in ('cpu','cuda') and raw.requires_grad and
+            all(state[n].requires_grad for n in ('A','C')) and isinstance(anchors,list) and 0 < len(anchors) <= 64,
+            'regression live routing context differs')
+    context['trainer'].helper_guard(context)
+    mse = fn(context,state,raw,anchors,K)
+    require(mse.requires_grad, 'regression live scalar graph detached')
+    return mse
 
 
 def strict_json(raw):
@@ -1046,9 +1080,13 @@ def update(context, state, identity, step):
     parity_checks,released = 0,[]
     optimizer.zero_grad(set_to_none=True)
     ranking_total = [torch.zeros_like(p) for p in members] if step == 1 else None
+    routed_total = [torch.zeros_like(p) for p in members[:2]] if candidate and step == 1 else None
+    accumulator_refs = [weakref.ref(t) for t in (*ranking_total,*routed_total)] if routed_total is not None else []
     for view in VIEWS:
         ranking = [torch.zeros_like(p) for p in members] if step == 1 else None
         route = route_accumulators(torch,members) if candidate and step == 1 else None
+        if route is not None and state['device'] == 'cpu':
+            route['full'] = route_full_reference(torch,context,state,identity,members,batch,K,view)
         for offset in range(0,64,16):
             anchors = batch[offset:offset+16]
             cpu_pixels,facts = context['witness'].pixels_for(trainer,context,state,state['processor_object'],anchors,view)
@@ -1069,7 +1107,7 @@ def update(context, state, identity, step):
                 mse,rank,selected = trainer.loss_terms(context,state,raw,anchors,K)
                 if candidate:
                     original = mse
-                    mse = context['routing'].regression_terms(context,state,detached,anchors,K)
+                    mse = routed_regression(context,state,detached,anchors,K)
                     require(torch.equal(mse.detach(),original.detach()), 'rank-routed regression scalar differs from pinned original')
                     parity_checks += 1
                 if step == 1:
@@ -1097,12 +1135,29 @@ def update(context, state, identity, step):
             for total,part in zip(ranking_total,ranking,strict=True):
                 total.add_(part)
             del total,part
+            if route is not None:
+                route_refs = [weakref.ref(t) for key in ('routed','original','unrouted','ranking') for t in route[key]]
+                for total,part in zip(routed_total,route['routed'],strict=True):
+                    total.add_(part)
+                del total,part
+                if route['full'] is not None:
+                    refs = [weakref.ref(t) for t in (*route['full']['scalars'].values(),*route['full']['gradients'])]
+                    route['full'] = None
+                    gc.collect()
+                    require(all(ref() is None for ref in refs), 'detached full reference lifetime survived release')
+                    del refs
             del ranking,route
+            if candidate:
+                gc.collect()
+                require(all(ref() is None for ref in route_refs), 'routing view accumulator lifetime survived release')
+                del route_refs
     if released:
         gc.collect()
         require(all(ref() is None for ref in released), 'rank-routing micro graph/tensor lifetime survived release')
         del released
     scaler.unscale_(optimizer)
+    optimizer_routing = route_optimizer(torch,context,members,names,ranking_total,routed_total) if routed_total is not None else None
+    del routed_total
     gradient_norms = {n:float(p.grad.double().norm()) if p.grad is not None else 0. for n,p in zip(names,members,strict=True)}
     require(all(p.grad is not None and p.grad.dtype == torch.float32 and torch.isfinite(p.grad).all().item()
                 for p in members) and all(math.isfinite(v) and v > 0 for v in gradient_norms.values()),
@@ -1125,6 +1180,10 @@ def update(context, state, identity, step):
     ranking_gradient_norm = float(ranking_total[0].double().norm()) if step == 1 else None
     ranking_C_gradient_norm = float(ranking_total[1].double().norm()) if step == 1 else None
     del ranking_total
+    if accumulator_refs:
+        gc.collect()
+        require(all(ref() is None for ref in accumulator_refs), 'routing optimizer accumulator lifetime survived release')
+    del accumulator_refs
     preclip_norm = float(norm)
     if state['device'] == 'cuda':
         torch.cuda.synchronize()
@@ -1134,6 +1193,7 @@ def update(context, state, identity, step):
         'gradient_norms':gradient_norms,'view_gradients':view_gradients,'preclip_norm':preclip_norm,'scale':scale,
         'ranking_gradient_norm':ranking_gradient_norm,'ranking_C_gradient_norm':ranking_C_gradient_norm,
         **({'routed_parity_checks':parity_checks} if candidate else {}),
+        **({'optimizer_routing':optimizer_routing} if candidate and step == 1 else {}),
         'before_sha256':before,'after_sha256':after,'vision_sha256':state['current_encoder']['vision_sha256'],
         'state_sha256':digest,'core_seconds':seconds,'seconds':seconds}
     print(json.dumps({'event':'CONNECTED_UPDATE',**row},sort_keys=True,allow_nan=False),flush=True)
@@ -1141,13 +1201,73 @@ def update(context, state, identity, step):
 
 
 ROUTING_KEYS = {'micro_checks','encoder_regression_gradient_nonzero','unrouted_regression_encoder_norms',
-                'A_C_total_max_abs','full_A_C_total_max_abs','tolerance','query_gallery'}
+                'A_C_total_max_abs','accumulated_A_C_total_max_abs','full_micro','tolerance','query_gallery'}
 
 
 def route_accumulators(torch, members):
     return {'micro':0,'nonzero':0,'routed':[torch.zeros_like(p) for p in members[:2]],
             'original':[torch.zeros_like(p) for p in members[:2]],
-            'unrouted':[torch.zeros_like(p) for p in members[2:]],'worst':{'A':0.,'C':0.},'split':None}
+            'unrouted':[torch.zeros_like(p) for p in members[2:]],'ranking':[torch.zeros_like(p) for p in members[2:]],
+            'scalars':{'mse':0.,'rank':0.,'loss':0.},'worst':{'A':0.,'C':0.},'split':None,'full':None}
+
+
+def route_full_reference(torch, context, state, identity, members, batch, K, view):
+    """Independent CPU B64 graph, destroyed before the four live micro16 graphs."""
+    from torch.nn import functional as F
+    require(state['device'] == 'cpu' and state['arm'] == 'candidate' and state['counter'] == 0 and len(batch) == 64,
+            'initialized CPU first B64 reference required')
+    trainer,connected = context['trainer'],context['connected']
+    before = fingerprint(context,payload(context,state,identity))
+    rng = torch.random.get_rng_state().clone()
+    temporary,refs = {},[]
+    try:
+        temporary['chunks'] = [context['witness'].pixels_for(trainer,context,state,state['processor_object'],
+            batch[offset:offset+16],view)[0] for offset in range(0,64,16)]
+        temporary['pixels'] = torch.cat(temporary.pop('chunks'),dim=0)
+        with torch.autocast('cpu',enabled=False):
+            temporary['features'] = F.normalize(state['model'](pixel_values=temporary['pixels']).pooler_output.float(),dim=1)
+            temporary['raw'] = connected.raw_features(temporary['features'],state['head_object'],state['A'],state['means'],
+                state['C'],state['mu_train'],context['legacy']['quadratic'],trainer.helper_guard(context))
+            temporary['detached'] = trainer.raw_features(context,state,temporary['features'].detach())
+            require(temporary['features'].requires_grad and temporary['raw'].requires_grad and
+                    temporary['detached'].requires_grad and
+                    torch.equal(temporary['raw'].detach(),temporary['detached'].detach()), 'full routed raw forward differs')
+            temporary['original'],temporary['rank'],selected = trainer.loss_terms(context,state,temporary['raw'],batch,K)
+            temporary['mse'] = routed_regression(context,state,temporary['detached'],batch,K)
+            require(torch.equal(temporary['mse'].detach(),temporary['original'].detach()), 'full regression scalar differs')
+            temporary['loss'] = temporary['mse']+temporary['rank']
+            temporary['regression'] = torch.autograd.grad(temporary['mse'],members,retain_graph=True,allow_unused=True)
+            require(all(g is None or torch.count_nonzero(g).item() == 0 for g in temporary['regression'][2:]),
+                    'full routed regression reached encoder')
+            temporary['ranking'] = torch.autograd.grad(temporary['rank'],members,retain_graph=True)
+            temporary['original_loss'] = temporary['original']+temporary['rank']
+            temporary['original_A_C'] = torch.autograd.grad(temporary['original_loss'],members[:2],retain_graph=True)
+            temporary['total'] = torch.autograd.grad(temporary['loss'],members)
+            for i,name in enumerate(('A','C')):
+                route_close(torch,context,temporary['total'][i],temporary['original_A_C'][i],'full original '+name)
+            for i,name in enumerate(MLP,2):
+                require(torch.count_nonzero(temporary['ranking'][i]).item() > 0, 'full ranking encoder gradient absent')
+                route_close(torch,context,temporary['total'][i],temporary['ranking'][i],'full encoder ranking-only '+name)
+            result = {'scalars':{n:temporary[n].detach() for n in ('mse','rank','loss')},
+                      'gradients':[g.detach() for g in temporary['total']]}
+            require(all(t.dtype == torch.float32 and not t.requires_grad and t.grad_fn is None and
+                        torch.isfinite(t).all().item() for t in (*result['scalars'].values(),*result['gradients'])),
+                    'full reference must own finite detached FP32 tensors only')
+        refs = [weakref.ref(t) for value in temporary.values() for t in
+                (value if isinstance(value,tuple) else (value,)) if t is not None]
+        return result
+    finally:
+        failed = sys.exc_info()[0] is not None
+        try:
+            temporary.clear()
+            gc.collect()
+            torch.random.set_rng_state(rng)
+            require(all(ref() is None for ref in refs), 'independent full B64 graph lifetime survived release')
+            require(fingerprint(context,payload(context,state,identity)) == before,
+                    'independent full reference changed initialized state/RNG')
+        except Exception:
+            if not failed:
+                raise
 
 
 def route_close(torch, context, left, right, label):
@@ -1156,6 +1276,13 @@ def route_close(torch, context, left, right, label):
             torch.isfinite(right).all().item() and torch.allclose(left,right,rtol=witness.RTOL,atol=witness.ATOL),
             'rank-routing correspondence differs: '+label)
     return float((left.detach()-right.detach()).abs().max())
+
+
+def route_optimizer(torch, context, members, names, ranking, routed):
+    require(all(p.grad is not None for p in members), 'actual optimizer routing gradient absent')
+    errors = {name:route_close(torch,context,p.grad,routed[i] if i < 2 else ranking[i],
+                             'actual unscaled optimizer '+name) for i,(name,p) in enumerate(zip(names,members,strict=True))}
+    return {'max_abs':errors,'tolerance':{'rtol':context['witness'].RTOL,'atol':context['witness'].ATOL}}
 
 
 def route_split(torch, context, state, members, features, rank, ranking, anchors, K, selected):
@@ -1167,7 +1294,7 @@ def route_split(torch, context, state, members, features, rank, ranking, anchors
         gallery[name] = torch.nn.Parameter(state[name].detach().clone())
     split_raw = connected.raw_features(features,query['head_object'],query['A'],query['means'],query['C'],
         query['mu_train'],context['legacy']['quadratic'],trainer.helper_guard(context))
-    _,split_rank,split_selected = trainer.loss_terms(context,gallery,split_raw,anchors,K)
+    split_mse,split_rank,split_selected = trainer.loss_terms(context,gallery,split_raw,anchors,K)
     require(split_selected == selected and torch.equal(split_rank.detach(),rank.detach()),
             'query/gallery split loss/membership differs')
     parts = torch.autograd.grad(split_rank,(query['A'],query['C'],gallery['A'],gallery['C'],*members[2:]),
@@ -1179,8 +1306,8 @@ def route_split(torch, context, state, members, features, rank, ranking, anchors
         result[name] = route_close(torch,context,ranking[i],parts[i]+parts[2+i],'tied=query+gallery '+name)
     result['encoder'] = max(route_close(torch,context,ranking[2+j],parts[4+j],'encoder via query route only')
                             for j in range(4))
-    refs = [weakref.ref(v) for v in (query['A'],query['C'],gallery['A'],gallery['C'],split_raw,split_rank,*parts)]
-    del query,gallery,split_raw,split_rank,parts
+    refs = [weakref.ref(v) for v in (query['A'],query['C'],gallery['A'],gallery['C'],split_raw,split_mse,split_rank,*parts)]
+    del query,gallery,split_raw,split_mse,split_rank,parts
     gc.collect()
     require(all(ref() is None for ref in refs), 'query/gallery split lifetime survived release')
     return result
@@ -1203,6 +1330,11 @@ def route_micro(torch, context, state, members, route, ranking, original, mse, r
         route['original'][i].add_(total_original)
     for accumulator,gradient in zip(route['unrouted'],unrouted[2:],strict=True):
         accumulator.add_(gradient.detach())
+    for accumulator,gradient in zip(route['ranking'],ranking[2:],strict=True):
+        accumulator.add_(gradient.detach())
+    route['scalars']['mse'] += float(mse.detach())
+    route['scalars']['rank'] += float(rank.detach())
+    route['scalars']['loss'] += float((mse+rank).detach())
     route['micro'] += 1
     route['nonzero'] += nonzero
     if first and state['device'] == 'cpu':
@@ -1211,15 +1343,31 @@ def route_micro(torch, context, state, members, route, ranking, original, mse, r
 
 
 def route_view(torch, context, route):
-    full = {name:route_close(torch,context,route['routed'][i],route['original'][i],'full B64 '+name)
+    accumulated = {name:route_close(torch,context,route['routed'][i],route['original'][i],'accumulated micro '+name)
             for i,name in enumerate(('A','C'))}
+    full_micro = None
+    if route['full'] is not None:
+        reference = route['full']
+        full_micro = {'batch':64,'micro':16,'scalars':{},'routed_A_C':{},'original_A_C':{},'encoder_ranking':{}}
+        for i,name in enumerate(('A','C')):
+            full_micro['routed_A_C'][name] = route_close(torch,context,route['routed'][i],reference['gradients'][i],
+                                                       'independent full B64 routed '+name)
+            full_micro['original_A_C'][name] = route_close(torch,context,route['original'][i],reference['gradients'][i],
+                                                         'independent full B64 original '+name)
+        for i,name in enumerate(MLP,2):
+            full_micro['encoder_ranking'][name] = route_close(torch,context,route['ranking'][i-2],reference['gradients'][i],
+                                                             'independent full B64 encoder '+name)
+        for name in ('mse','rank','loss'):
+            full_micro['scalars'][name] = route_close(torch,context,
+                torch.tensor(route['scalars'][name],dtype=torch.float32),reference['scalars'][name],'independent full B64 '+name)
     norms = {n:float(g.double().norm()) for n,g in zip(MLP,route['unrouted'],strict=True)}
     require(all(math.isfinite(v) and v > 0 for v in norms.values()),
             'unrouted original regression must reach all four encoder tensors')
     witness = context['witness']
     return {'micro_checks':route['micro'],'encoder_regression_gradient_nonzero':route['nonzero'],
             'unrouted_regression_encoder_norms':norms,'A_C_total_max_abs':dict(route['worst']),
-            'full_A_C_total_max_abs':full,'tolerance':{'rtol':witness.RTOL,'atol':witness.ATOL},
+            'accumulated_A_C_total_max_abs':accumulated,'full_micro':full_micro,
+            'tolerance':{'rtol':witness.RTOL,'atol':witness.ATOL},
             'query_gallery':route['split']}
 
 
@@ -1235,9 +1383,18 @@ def check_routing(context, routing, identity):
             routing['tolerance'] == {'rtol':context['witness'].RTOL,'atol':context['witness'].ATOL} and
             routing['unrouted_regression_encoder_norms'].keys() == set(MLP) and
             all(finite(v) and v > 0 for v in routing['unrouted_regression_encoder_norms'].values()) and
-            routing['A_C_total_max_abs'].keys() == routing['full_A_C_total_max_abs'].keys() == {'A','C'} and
-            all(finite(v) for v in (*routing['A_C_total_max_abs'].values(),*routing['full_A_C_total_max_abs'].values())),
+            routing['A_C_total_max_abs'].keys() == routing['accumulated_A_C_total_max_abs'].keys() == {'A','C'} and
+            all(finite(v) for v in (*routing['A_C_total_max_abs'].values(),*routing['accumulated_A_C_total_max_abs'].values())),
             'rank-routing step1 witness differs')
+    full = routing['full_micro']
+    require((full is None) if identity['device'] == 'cuda' else
+            (isinstance(full,dict) and full.keys() == {'batch','micro','scalars','routed_A_C','original_A_C','encoder_ranking'} and
+             type(full['batch']) is type(full['micro']) is int and full['batch'] == 64 and full['micro'] == 16 and
+             full['scalars'].keys() == {'mse','rank','loss'} and
+             full['routed_A_C'].keys() == full['original_A_C'].keys() == {'A','C'} and
+             full['encoder_ranking'].keys() == set(MLP) and
+             all(finite(v) for key in ('scalars','routed_A_C','original_A_C','encoder_ranking') for v in full[key].values())),
+            'independent full/micro witness differs')
     split = routing['query_gallery']
     require((split is None) if identity['device'] == 'cuda' else
             (isinstance(split,dict) and split.keys() == {'A','C','encoder'} and all(finite(v) for v in split.values())),
@@ -1769,6 +1926,13 @@ def check_steps(context, rows, identity):
         if row['step'] == 1:
             for v in row['view_gradients']:
                 check_routing(context,v.get('routing'),identity)
+        actual = row.get('optimizer_routing')
+        require((isinstance(actual,dict) and actual.keys() == {'max_abs','tolerance'} and
+                 actual['max_abs'].keys() == set(identity['parameter_names']) and
+                 all(type(v) is float and math.isfinite(v) and v >= 0 for v in actual['max_abs'].values()) and
+                 actual['tolerance'] == {'rtol':context['witness'].RTOL,'atol':context['witness'].ATOL})
+                if identity['arm'] == 'candidate' and row['step'] == 1 else 'optimizer_routing' not in row,
+                'actual optimizer rank-routing witness differs')
         projected.append({k:row[k] for k in ('step','batch','membership','full_membership_sha256','full_valid','mse','rank',
             'loss','preclip_norm','state_sha256','core_seconds','seconds','arm','ranking_gradient_norm','ranking_C_gradient_norm')})
         projected[-1].update(active_anchors=sum(m['active'] for m in row['membership']),scale=128,

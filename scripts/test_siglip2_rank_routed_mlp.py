@@ -34,8 +34,28 @@ CONNECTED_TEST_SHA = '8391b3dd38a682dd327c0d0a3f0a62a5e699f7e934a6e39959600ed7f0
 ORIGINAL = (HERE.parent/'docs/evidence/compact_metric/sop-siglip2-substrate-v1/'
             'export-exit-scan-ab-v1-freeze/train_siglip2_identity_diversity.py')
 ORIGINAL_SHA = '840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8'
-RUNTIME_BLOCK_SHA = '2dd5e2d20cb7add32187239f4d032dcd0bdda76833d01ffd60159bb45b8c4123'
-ROUTE_BLOCK_SHA = '7c53fefa76de128f2becd900a6d78a1ce7e0e1ad26f2179e04630d38459a3376'
+RUNTIME_BLOCK_SHA = '4a983d2c105b672cbe29dea9e3ee0d0fbf486c4d1a197d46009b4c096797a702'
+ROUTE_BLOCK_SHA = '3fab2d333f38dda0f9ce600edc0ae98edcd93c387da799521574e9b762fd4b41'
+
+# Exact repair splices back to the reviewed draft, before its historical byte inverse.
+REPAIR_INVERSE_EDITS = (
+    (b"                check_routing(context,v.get('routing'),identity)\n        actual = row.get('optimizer_routing')\n        require((isinstance(actual,dict) and actual.keys() == {'max_abs','tolerance'} and\n                 actual['max_abs'].keys() == set(identity['parameter_names']) and\n                 all(type(v) is float and math.isfinite(v) and v >= 0 for v in actual['max_abs'].values()) and\n                 actual['tolerance'] == {'rtol':context['witness'].RTOL,'atol':context['witness'].ATOL})\n                if identity['arm'] == 'candidate' and row['step'] == 1 else 'optimizer_routing' not in row,\n                'actual optimizer rank-routing witness differs')\n        projected.append({k:row[k] for k in ('step','batch','membership','full_membership_sha256','full_valid','mse','rank',\n",
+     b"                check_routing(context,v.get('routing'),identity)\n        projected.append({k:row[k] for k in ('step','batch','membership','full_membership_sha256','full_valid','mse','rank',\n"),
+    (b"        **({'routed_parity_checks':parity_checks} if candidate else {}),\n        **({'optimizer_routing':optimizer_routing} if candidate and step == 1 else {}),\n        'before_sha256':before,'after_sha256':after,'vision_sha256':state['current_encoder']['vision_sha256'],\n",
+     b"        **({'routed_parity_checks':parity_checks} if candidate else {}),\n        'before_sha256':before,'after_sha256':after,'vision_sha256':state['current_encoder']['vision_sha256'],\n"),
+    (b"    del ranking_total\n    if accumulator_refs:\n        gc.collect()\n        require(all(ref() is None for ref in accumulator_refs), 'routing optimizer accumulator lifetime survived release')\n    del accumulator_refs\n    preclip_norm = float(norm)\n",
+     b'    del ranking_total\n    preclip_norm = float(norm)\n'),
+    (b'    scaler.unscale_(optimizer)\n    optimizer_routing = route_optimizer(torch,context,members,names,ranking_total,routed_total) if routed_total is not None else None\n    del routed_total\n    gradient_norms = {n:float(p.grad.double().norm()) if p.grad is not None else 0. for n,p in zip(names,members,strict=True)}\n',
+     b'    scaler.unscale_(optimizer)\n    gradient_norms = {n:float(p.grad.double().norm()) if p.grad is not None else 0. for n,p in zip(names,members,strict=True)}\n'),
+    (b"            del total,part\n            if route is not None:\n                route_refs = [weakref.ref(t) for key in ('routed','original','unrouted','ranking') for t in route[key]]\n                for total,part in zip(routed_total,route['routed'],strict=True):\n                    total.add_(part)\n                del total,part\n                if route['full'] is not None:\n                    refs = [weakref.ref(t) for t in (*route['full']['scalars'].values(),*route['full']['gradients'])]\n                    route['full'] = None\n                    gc.collect()\n                    require(all(ref() is None for ref in refs), 'detached full reference lifetime survived release')\n                    del refs\n            del ranking,route\n            if candidate:\n                gc.collect()\n                require(all(ref() is None for ref in route_refs), 'routing view accumulator lifetime survived release')\n                del route_refs\n    if released:\n",
+     b'            del total,part\n            del ranking,route\n    if released:\n'),
+    (b"                    original = mse\n                    mse = routed_regression(context,state,detached,anchors,K)\n                    require(torch.equal(mse.detach(),original.detach()), 'rank-routed regression scalar differs from pinned original')\n",
+     b"                    original = mse\n                    mse = context['routing'].regression_terms(context,state,detached,anchors,K)\n                    require(torch.equal(mse.detach(),original.detach()), 'rank-routed regression scalar differs from pinned original')\n"),
+    (b"        route = route_accumulators(torch,members) if candidate and step == 1 else None\n        if route is not None and state['device'] == 'cpu':\n            route['full'] = route_full_reference(torch,context,state,identity,members,batch,K,view)\n        for offset in range(0,64,16):\n",
+     b'        route = route_accumulators(torch,members) if candidate and step == 1 else None\n        for offset in range(0,64,16):\n'),
+    (b'    ranking_total = [torch.zeros_like(p) for p in members] if step == 1 else None\n    routed_total = [torch.zeros_like(p) for p in members[:2]] if candidate and step == 1 else None\n    accumulator_refs = [weakref.ref(t) for t in (*ranking_total,*routed_total)] if routed_total is not None else []\n    for view in VIEWS:\n',
+     b'    ranking_total = [torch.zeros_like(p) for p in members] if step == 1 else None\n    for view in VIEWS:\n'),
+)
 
 # Reverse of the forward edits (new bytes -> committed connected bytes), applied last-first.
 INVERSE_EDITS = (
@@ -123,6 +143,9 @@ def cut(raw, start, end, pin):
 
 def rank_routing_inverse(raw):
     """Invert the whole prospective delta; the result must be the committed connected trainer."""
+    for new, old in REPAIR_INVERSE_EDITS:
+        assert raw.count(new) == 1, 'exact repair delta differs'
+        raw = raw.replace(new, old)
     raw = cut(raw, b'def _regression_runtime(', b'def strict_json(raw):', RUNTIME_BLOCK_SHA)
     raw = cut(raw, b'ROUTING_KEYS = {', b'def diagnostic(row):', ROUTE_BLOCK_SHA)
     for new, old in INVERSE_EDITS:
@@ -139,7 +162,7 @@ def inverse_contract():
     # Unrelated or partial mutations of the prospective delta must not invert.
     for before, after in ((b"<= 1.50", b"<= 1.51"), (b"features.detach()", b"features"),
                           (b"'seconds':600 if phase", b"'seconds':601 if phase"),
-                          (b"mse = context['routing'].regression_terms", b"mse = original.regression_terms")):
+                          (b"mse = routed_regression(", b"mse = foreign_regression(")):
         assert raw.count(before) >= 1, before
         try:
             rank_routing_inverse(raw.replace(before, after, 1))
@@ -208,6 +231,7 @@ class FT:
     """Nested-list tensor stand-in with only the pinned loss_terms operations."""
     dtype = 'float32'
     device = SimpleNamespace(type='cpu')
+    requires_grad = True
 
     def __init__(self, data):
         self.data = data
@@ -266,6 +290,7 @@ def regression_falsifiers(d):
         context = {'trainer': original, 'guards': {str(path): ORIGINAL_SHA}, 'witness': witness}
         before = dict(vars(original))
         runtime = d._regression_runtime(context)
+        context['routing'] = runtime
         assert vars(original).keys() == before.keys() and all(vars(original)[k] is v for k, v in before.items()), \
             'regression runtime rebound the pinned trainer'
         derived = ast.parse(runtime.source).body[0]
@@ -335,6 +360,43 @@ def regression_falsifiers(d):
                     patch.dict(context['guards'], {str(changed): ORIGINAL_SHA}):
                 rejects(lambda: d._regression_runtime(context), 'bytes')
         assert vars(original)['loss_terms'] is old and old.__code__ is saved
+        live_state = {**state, 'arm': 'candidate', 'device': 'cpu', 'A': FT([1.]), 'C': FT([1.])}
+        with patch.object(original, 'helper_guard', lambda c: None):
+            # Re-admit this explicit source stand-in; each mutant starts after construction.
+            runtime = d._regression_runtime(context)
+            context['routing'] = runtime
+            with patch.dict(sys.modules, fake_functional()):
+                assert d.routed_regression(context, live_state, raw, anchors, 3).data == mse.data
+                rejects(lambda: d.routed_regression({**context}, live_state, raw, anchors, 3), 'live callable')
+                with patch.dict(context, routing=SimpleNamespace(regression_terms=runtime.regression_terms)):
+                    rejects(lambda: d.routed_regression(context, live_state, raw, anchors, 3), 'live callable')
+                fn = runtime.regression_terms
+                with patch.object(runtime, 'regression_terms', lambda *a: None):
+                    rejects(lambda: d.routed_regression(context, live_state, raw, anchors, 3), 'live callable')
+                saved_code = fn.__code__
+                fn.__code__ = (lambda *a: None).__code__
+                try:
+                    rejects(lambda: d.routed_regression(context, live_state, raw, anchors, 3), 'live callable')
+                finally:
+                    fn.__code__ = saved_code
+                fn.__defaults__ = (None,)
+                try:
+                    rejects(lambda: d.routed_regression(context, live_state, raw, anchors, 3), 'live callable')
+                finally:
+                    fn.__defaults__ = None
+                for name in ('loss_denominators', 'require'):
+                    with patch.dict(fn.__globals__, {name: lambda *a: None}):
+                        rejects(lambda: d.routed_regression(context, live_state, raw, anchors, 3), 'private globals')
+                    helper = fn.__globals__[name]
+                    helper_code = helper.__code__
+                    helper.__code__ = (lambda *a: None).__code__
+                    try:
+                        rejects(lambda: d.routed_regression(context, live_state, raw, anchors, 3), 'live callable')
+                    finally:
+                        helper.__code__ = helper_code
+                detached = FT(raw.data)
+                detached.requires_grad = False
+                rejects(lambda: d.routed_regression(context, live_state, detached, anchors, 3), 'live routing context')
     finally:
         sys.modules.pop(original.__name__, None)
     print('PASS regression derivation: pinned loss_terms == derived mse (executed), statement-by-statement, guards/mutants')
@@ -345,15 +407,20 @@ class Vec:
     def __init__(self, values, dtype='float32'):
         self.v, self.dtype = [float(x) for x in values], dtype
         self.requires_grad = True
+        self.grad_fn = None
         self.shape = (len(self.v),)
     def _zip(self, o, f): return Vec([f(a, b) for a, b in zip(self.v, o.v, strict=True)], self.dtype)
     def __add__(self, o): return self._zip(o, lambda a, b: a + b)
     def __sub__(self, o): return self._zip(o, lambda a, b: a - b)
     def add_(self, o): self.v = [a + b for a, b in zip(self.v, o.v, strict=True)]; return self
-    def detach(self): return Vec(self.v, self.dtype)
+    def detach(self):
+        result = Vec(self.v, self.dtype)
+        result.requires_grad = False
+        return result
     clone = detach
     def float(self): return self
     def double(self): return self
+    def to(self, device): return self
     def norm(self): return math.sqrt(sum(x * x for x in self.v))
     def abs(self): return Vec([abs(x) for x in self.v], self.dtype)
     def max(self): return max(self.v)
@@ -363,8 +430,15 @@ class Out:
     """Scalar loss stand-in carrying a gradient oracle (callable inputs -> gradients)."""
     def __init__(self, value, grads=None, parts=None):
         self.value, self.grads, self.parts, self.requires_grad = value, grads, parts, True
-    def detach(self): return Out(self.value)
+        self.v, self.shape, self.dtype, self.grad_fn = [value], (), 'float32', None
+    def detach(self):
+        result = Out(self.value)
+        result.requires_grad = False
+        return result
     def __add__(self, o): return Out(self.value + o.value, parts=(self, o))
+    def __sub__(self, o): return Out(self.value - o.value)
+    def abs(self): return Out(abs(self.value))
+    def max(self): return self.value
     def __float__(self): return float(self.value)
 
 
@@ -383,12 +457,22 @@ class FakeTorch:
 
     def grad(self, out, inputs, retain_graph=False, allow_unused=False):
         self.retain.append(retain_graph)
-        result = tuple(out.grads(tuple(inputs)))
+        if out.grads is None:
+            assert len(out.parts) == 2
+            parts = [self.grad(p, inputs, retain_graph, True) for p in out.parts]
+            result = tuple(None if a is b is None else b if a is None else a if b is None else a+b
+                           for a,b in zip(*parts,strict=True))
+        else:
+            result = tuple(out.grads(tuple(inputs)))
         assert allow_unused or all(g is not None for g in result), 'unused input without allow_unused'
         return tuple(None if g is None else Vec(g.v) for g in result)
 
     @staticmethod
     def zeros_like(p): return Vec([0.] * len(p.v))
+    @staticmethod
+    def tensor(value, dtype): return Out(value)
+    @staticmethod
+    def cat(chunks, dim): return Vec([x for chunk in chunks for x in chunk.v])
     @staticmethod
     def isfinite(x): return SimpleNamespace(all=lambda: SimpleNamespace(item=lambda: all(math.isfinite(a) for a in x.v)))
     @staticmethod
@@ -415,7 +499,8 @@ class Scenario:
         self.rank_out = Out(.5, lambda ins: tuple(self.rank[self.index[id(i)]] for i in ins))
         self.context = {'witness': SimpleNamespace(RTOL=1e-5, ATOL=1e-6), 'legacy': {'quadratic': None},
                         'trainer': SimpleNamespace(helper_guard=lambda c: None, loss_terms=self.loss_terms),
-                        'connected': SimpleNamespace(raw_features=lambda *a: Out(0.))}
+                        'connected': SimpleNamespace(raw_features=lambda features, head, A, means, C, *a:
+                                                     Out(0., parts=(features, A, C)))}
         self.state = {'device': 'cpu', 'A': self.members[0], 'C': self.members[1], 'head_object': 1, 'means': 2, 'mu_train': 3}
         self.split_value, self.split_share, self.split_enc, self.leak, self.kept = .5, .4, 0., False, []
 
@@ -431,11 +516,13 @@ class Scenario:
         out = Out(self.split_value, grads)
         if self.leak:
             self.kept.append(out)
-        return None, out, {'active': 3}
+        return Out(1.25, parts=(raw, state['A'], state['C'])), out, {'active': 3}
 
     def view(self, d, device='cpu', micros=4, **overrides):
         route = d.route_accumulators(self.torch, self.members)
         self.state['device'] = device
+        if device == 'cpu':
+            route['full'] = self.full()
         with patch.dict(sys.modules, {'torch': self.torch}):
             for i in range(micros):
                 args = dict(torch=self.torch, context=self.context, state=self.state, members=self.members, route=route,
@@ -444,6 +531,54 @@ class Scenario:
                 args.update(overrides)
                 d.route_micro(**args)
         return route
+
+    def full(self):
+        ac = [Vec([2., -1., .5]), Vec([.25, .75, -2.])]
+        return {'gradients':[Vec([4. * (x+y) for x,y in zip(a.v,r.v,strict=True)]) for a,r in zip(ac,self.rank[:2],strict=True)] +
+                            [Vec([4. * x for x in r.v]) for r in self.rank[2:]],
+                'scalars':{'mse':Out(5.),'rank':Out(2.),'loss':Out(7.)}}
+
+
+def split_lifetime_falsifier(d):
+    sc = Scenario()
+    sc.view(d, 'cpu', micros=1)
+    print('PASS split MSE owns raw/query A/C graph and dies before the lifetime gate')
+
+
+def independent_reference_falsifier(d):
+    sc = Scenario()
+    route = sc.view(d, 'cpu')
+    route['routed'][0].v[0] += 1.
+    route['original'][0].v[0] += 1.
+    rejects(lambda: d.route_view(sc.torch, sc.context, route), 'independent full B64 routed A')
+    for key,text in (('scalars','independent full B64 mse'),('ranking','independent full B64 encoder')):
+        route = sc.view(d,'cpu')
+        if key == 'scalars':
+            route[key]['mse'] += .25
+        else:
+            route[key][0].v[0] += .25
+        rejects(lambda: d.route_view(sc.torch,sc.context,route),text)
+    print('PASS equal micro accumulator perturbation fails independent full reference')
+
+
+def optimizer_gradient_falsifier(d):
+    sc = Scenario()
+    names = d.parameter_roles('candidate')[0]
+    route = sc.view(d, 'cuda')
+    ranking = [Vec([4. * x for x in g.v]) for g in sc.rank]
+    for p,g in zip(sc.members, (*route['routed'], *ranking[2:]), strict=True):
+        p.grad = g.detach()
+    sc.members[2].grad.v[0] += 1.
+    rejects(lambda: d.route_optimizer(sc.torch, sc.context, sc.members, names, ranking, route['routed']),
+            'actual unscaled optimizer '+names[2])
+    sc.members[2].grad = ranking[2].detach()
+    sc.members[0].grad.v[0] += 1.
+    rejects(lambda: d.route_optimizer(sc.torch, sc.context, sc.members, names, ranking, route['routed']),
+            'actual unscaled optimizer '+names[0])
+    sc.members[0].grad = route['routed'][0].detach()
+    fact = d.route_optimizer(sc.torch, sc.context, sc.members, names, ranking, route['routed'])
+    assert fact['max_abs'] == {n:0. for n in names}
+    print('PASS actual optimizer encoder/A/C gradient mutants fail with independent witnesses unchanged')
 
 
 def routing_witness_falsifiers(d):
@@ -476,7 +611,7 @@ def routing_witness_falsifiers(d):
     sc = Scenario()
     route = sc.view(d, 'cuda')
     route['original'][0].v[0] += 1.
-    rejects(lambda: d.route_view(sc.torch, sc.context, route), 'full B64 A')
+    rejects(lambda: d.route_view(sc.torch, sc.context, route), 'accumulated micro A')
     route = sc.view(d, 'cuda')
     route['unrouted'][2] = Vec([0., 0., 0.])
     rejects(lambda: d.route_view(sc.torch, sc.context, route), 'all four encoder tensors')
@@ -500,13 +635,17 @@ def routing_witness_falsifiers(d):
     d.check_routing(sc.context, None, {'arm': 'control', 'device': 'cuda'})
     rejects(lambda: d.check_routing(sc.context, good, {'arm': 'control', 'device': 'cpu'}), 'control carries no')
     rejects(lambda: d.check_routing(sc.context, None, cpu), 'step1 witness')
-    rejects(lambda: d.check_routing(sc.context, good, {'arm': 'candidate', 'device': 'cuda'}), 'split witness')
+    rejects(lambda: d.check_routing(sc.context, {**good, 'full_micro':None}, {'arm': 'candidate', 'device': 'cuda'}), 'split witness')
     for key, value in (('micro_checks', 3), ('micro_checks', True), ('encoder_regression_gradient_nonzero', 1),
                        ('tolerance', {'rtol': 1e-4, 'atol': 1e-6}), ('extra', 1),
                        ('unrouted_regression_encoder_norms', {**good['unrouted_regression_encoder_norms'], d.MLP[0]: 0.}),
-                       ('A_C_total_max_abs', {'A': float('nan'), 'C': 0.}), ('full_A_C_total_max_abs', {'A': 0.}),
+                       ('A_C_total_max_abs', {'A': float('nan'), 'C': 0.}), ('accumulated_A_C_total_max_abs', {'A': 0.}),
                        ('query_gallery', {'A': 0., 'C': 0.}), ('query_gallery', None)):
         rejects(lambda: d.check_routing(sc.context, {**good, key: value}, cpu), 'witness differs')
+    for value in (None, {}, {**good['full_micro'], 'batch': True}, {**good['full_micro'], 'micro': 32},
+                  {**good['full_micro'], 'encoder_ranking': {}}, {**good['full_micro'], 'scalars': {'loss':0.}},
+                  {**good['full_micro'], 'routed_A_C': {'A':float('nan'),'C':0.}}):
+        rejects(lambda: d.check_routing(sc.context, {**good, 'full_micro':value}, cpu), 'independent full/micro')
     print('PASS routing witness: routed/original A/C correspondence, encoder-regression absent, unrouted reaches encoder, '
           'query/gallery split, full-view sums, retain_graph, lifetime, receipt mutants')
 
@@ -528,7 +667,8 @@ class Micro:
         main = lambda state: state['A'] is sc.members[0]
 
         def raw_features(context, state, features):
-            self.calls.append(('detached' if features is not self.last_features else 'live', id(features)))
+            if flags.get('record', True):
+                self.calls.append(('detached' if features is not self.last_features else 'live', id(features)))
             result = Vec([x + flags.get('raw_offset', 0.) for x in features.v])
             result.requires_grad = flags.get('detached_grad', True)
             return result
@@ -536,14 +676,22 @@ class Micro:
         def loss_terms(context, state, raw, anchors, K):
             if not main(state):
                 return sc.loss_terms(context, state, raw, anchors, K)
-            self.calls.append(('loss', raw))
-            mse = Out(1.25, sc.original.grads)
+            if flags.get('record', True):
+                self.calls.append(('loss', raw))
+            factor = len(anchors)/16
+            scaled = lambda out: lambda inputs: tuple(None if g is None else Vec([factor*x for x in g.v])
+                                                     for g in out.grads(inputs))
+            mse = Out(1.25*factor, scaled(sc.original), parts=(raw,))
             self.kept.append(mse) if flags.get('leak') else None
-            return mse, Out(.5, sc.rank_out.grads), {'active': 3}
+            return mse, Out(.5*factor, scaled(sc.rank_out), parts=(raw,)), {'active': 3}
 
         def regression(context, state, detached, anchors, K):
-            self.regressions.append(detached)
-            return Out(flags.get('mse', 1.25), sc.routed.grads)
+            if flags.get('record', True):
+                self.regressions.append(detached)
+            factor = len(anchors)/16
+            grads = lambda inputs: tuple(None if g is None else Vec([factor*x for x in g.v])
+                                         for g in sc.routed.grads(inputs))
+            return Out(flags.get('mse', 1.25)*factor, grads, parts=(detached,))
 
         def connected_raw(features, *rest):
             assert rest[-1] == 'guard' and rest[0] is sc.state['head_object']
@@ -563,7 +711,15 @@ class Micro:
         context = {**sc.context, 'trainer': trainer, 'witness': SimpleNamespace(RTOL=1e-5, ATOL=1e-6, pixels_for=pixels_for),
                    'legacy': {'quadratic': None}, 'connected': SimpleNamespace(raw_features=connected_raw)}
         if arm == 'candidate':
+            namespace = dict(regression.__globals__)
+            regression = FunctionType(regression.__code__, namespace, regression.__name__, regression.__defaults__, regression.__closure__)
+            namespace['regression_terms'] = regression
             context['routing'] = SimpleNamespace(regression_terms=regression)
+            context['routing_binding'] = (context, context['routing'], regression, namespace, dict(namespace),
+                vars(trainer), dict(vars(trainer)), [(regression, regression.__code__, regression.__defaults__,
+                regression.__kwdefaults__, regression.__closure__, regression.__builtins__, namespace,
+                regression.__name__, regression.__qualname__, regression.__module__)])
+            sc.state['arm'] = arm
         sc.context.update(context)
         scaler = SimpleNamespace(scale=lambda loss: SimpleNamespace(backward=lambda: self.backs.append(loss)))
         sc.torch.isfinite = FakeTorch.isfinite
@@ -573,6 +729,8 @@ class Micro:
                    'members': sc.members, 'ranking': [Vec([0.] * 3) for _ in sc.members], 'mse_sum': 0., 'rank_sum': 0.,
                    'membership': [], 'released': [], 'parity_checks': 0,
                    'route': d.route_accumulators(sc.torch, sc.members) if arm == 'candidate' and step == 1 else None}
+        if arm == 'candidate' and step == 1 and device == 'cpu':
+            self.ns['route']['full'] = sc.full()
 
     def run(self):
         with patch.dict(sys.modules, {'torch': self.sc.torch}):
@@ -585,6 +743,71 @@ class Micro:
         self.last_features = None
 
 
+def full_reference_source_falsifier(d):
+    def probe(mutate=False, leak=False, fault=False):
+        m = Micro(d, step=1, record=False)
+        sc,context,state = m.sc,m.ns['context'],m.sc.state
+        state['counter'] = 0
+        rng,seen,kept = [23.],[],[]
+        sc.torch.random = SimpleNamespace(get_rng_state=lambda: Vec(rng), set_rng_state=lambda t: rng.__setitem__(slice(None),t.v))
+        def pixels_for(trainer,context,state,processor,anchors,view):
+            seen.append((view,list(anchors)))
+            return Vec(anchors), []
+        context['witness'].pixels_for = pixels_for
+        def model(pixel_values):
+            assert len(pixel_values.v) == 64
+            rng[0] += 7.
+            if mutate or fault:
+                state['A'].v[0] += 1.
+            if fault:
+                raise ValueError('primary full forward fault')
+            features = Vec(pixel_values.v)
+            if leak:
+                kept.append(features)
+            return SimpleNamespace(pooler_output=features)
+        state['model'] = model
+        functional = ModuleType('torch.nn.functional')
+        functional.normalize = lambda t,dim:t
+        nn = ModuleType('torch.nn')
+        nn.functional = functional
+        def saved(context,state,identity):
+            return {'A':state['A'].v,'C':state['C'].v,'counter':state['counter'],'rng':list(rng)}
+        with patch.dict(sys.modules, {'torch':sc.torch,'torch.nn':nn,'torch.nn.functional':functional}), \
+                patch.object(d,'payload',saved), patch.object(d,'fingerprint',lambda c,v:repr(v)):
+            for view in d.VIEWS:
+                try:
+                    full = d.route_full_reference(sc.torch,context,state,{},sc.members,list(range(64)),1,view)
+                except ValueError:
+                    assert rng == [23.], 'full reference failed without restoring CPU RNG'
+                    raise
+                assert rng == [23.] and full['scalars']['loss'].value == 7.
+                for got,wanted in zip(full['gradients'],sc.full()['gradients'],strict=True):
+                    assert got.v == wanted.v
+                route = sc.view(d,'cpu')
+                route['full'] = full
+                fact = d.route_view(sc.torch,context,route)
+                assert fact['full_micro']['scalars'] == {'mse':0.,'rank':0.,'loss':0.}
+        assert seen == [(v,list(range(i,i+16))) for v in d.VIEWS for i in range(0,64,16)]
+    probe()
+    rejects(lambda: probe(mutate=True), 'changed initialized state/RNG')
+    rejects(lambda: probe(leak=True), 'full B64 graph lifetime survived')
+    rejects(lambda: probe(fault=True), 'primary full forward fault')
+    print('PASS executed independent B64 source reference: bothviews/full-vs-micro/state+RNG/lifetime/primary-error; native UNRUN')
+
+
+def live_runtime_falsifier(d):
+    m = Micro(d, step=18)
+    genuine = m.ns['context']['routing'].regression_terms
+    def detached(*args):
+        result = genuine(*args).detach()
+        result.requires_grad = False
+        return result
+    m.ns['context']['routing'].regression_terms = detached
+    rejects(m.run, 'regression live callable differs')
+    assert not m.regressions and not m.backs, 'replacement evaluated before rejection'
+    print('PASS live callable replacement after step17 rejected before regression/backward')
+
+
 def update_dataflow_falsifiers(d):
     # Structure of the real update(): one pinned loss_terms call, one derived regression call, one live connected call.
     tree = ast.parse(DRIVER.read_text())
@@ -592,11 +815,11 @@ def update_dataflow_falsifiers(d):
     text = ast.unparse(update)
     calls = [ast.unparse(c.func) for c in ast.walk(update) if isinstance(c, ast.Call)]
     assert calls.count('trainer.loss_terms') == 1 and calls.count('connected.raw_features') == 1
-    assert calls.count('trainer.raw_features') == 2 and calls.count("context['routing'].regression_terms") == 1
+    assert calls.count('trainer.raw_features') == 2 and calls.count('routed_regression') == 1
     assert calls.count('route_micro') == 1 and calls.count('route_view') == 1 and not [c for c in calls if 'ranking_gallery' in c]
     order = ['raw = connected.raw_features(', 'detached = trainer.raw_features(context, state, features.detach())',
              'torch.equal(detached.detach(), raw.detach())', 'mse, rank, selected = trainer.loss_terms(context, state, raw, anchors, K)',
-             'mse = context[\'routing\'].regression_terms(context, state, detached, anchors, K)',
+             'mse = routed_regression(context, state, detached, anchors, K)',
              'torch.equal(mse.detach(), original.detach())', 'route_micro(', 'loss = mse + rank', 'scaler.scale(loss).backward()']
     positions = [text.index(s) for s in order]
     assert positions == sorted(positions) and 'raw = trainer.raw_features(context, state, features)' in text
@@ -660,7 +883,8 @@ def check_steps_falsifiers(d):
                 'membership': [{'active': 1}], 'full_membership_sha256': 'x', 'full_valid': 63, 'mse': 1., 'rank': 1.,
                 'loss': 2., 'preclip_norm': 1., 'state_sha256': 'x', 'core_seconds': 1., 'seconds': 1.,
                 'ranking_gradient_norm': 1., 'ranking_C_gradient_norm': 1., 'scale': 128.,
-                **({'routed_parity_checks': 8} if arm == 'candidate' else {})}
+                **({'routed_parity_checks': 8, 'optimizer_routing': {'max_abs':{n:0. for n in use},
+                    'tolerance':{'rtol':1e-5,'atol':1e-6}}} if arm == 'candidate' else {})}
 
     for arm in d.ARMS:
         sc = Scenario()
@@ -674,6 +898,12 @@ def check_steps_falsifiers(d):
                 wrong[key] = value
                 rejects(lambda: d.check_steps(context(sc), [wrong], identity), 'rank-routed per-micro')
             if arm == 'candidate':
+                for value in (None, {}, {'max_abs':{},'tolerance':{'rtol':1e-5,'atol':1e-6}},
+                              {'max_abs':{n:float('nan') for n in names},'tolerance':{'rtol':1e-5,'atol':1e-6}},
+                              {'max_abs':{n:0. for n in names},'tolerance':{'rtol':1e-4,'atol':1e-6}}):
+                    wrong = row(arm,sc)
+                    wrong['optimizer_routing'] = value
+                    rejects(lambda: d.check_steps(context(sc),[wrong],identity),'actual optimizer rank-routing')
                 wrong = row(arm, sc)
                 del wrong['routed_parity_checks']
                 rejects(lambda: d.check_steps(context(sc), [wrong], identity), 'rank-routed per-micro')
@@ -693,16 +923,33 @@ def check_steps_falsifiers(d):
 def main():
     p = argparse.ArgumentParser(allow_abbrev=False)
     p.add_argument('--source-only', action='store_true', required=True)
-    p.parse_args()
+    p.add_argument('--layer', choices=('split', 'live', 'reference', 'full-source', 'optimizer', 'regression', 'routing', 'dataflow', 'inverse', 'steps', 'identity', 'seams'))
+    args = p.parse_args()
     assert DRIVER.exists(), 'rank-routed trainer missing'
     started = time.perf_counter()
     before = set(sys.modules)
     d = load('_rank_routed_source_test', DRIVER)
     c = load('_connected_source_for_rank_routing', CONNECTED)
     assert not {n.split('.')[0] for n in set(sys.modules) - before} & d.NATIVE
+    if args.layer:
+        layers = {'split': split_lifetime_falsifier, 'live': live_runtime_falsifier, 'reference': independent_reference_falsifier,
+                  'optimizer': optimizer_gradient_falsifier,
+                  'full-source': full_reference_source_falsifier,
+                  'regression': regression_falsifiers,
+                  'routing': routing_witness_falsifiers, 'dataflow': update_dataflow_falsifiers,
+                  'inverse': lambda d: inverse_contract(), 'steps': check_steps_falsifiers,
+                  'identity': lambda d: identity_contract(d, c), 'seams': reused_connected_seams}
+        layers[args.layer](d)
+        assert not {n.split('.')[0] for n in set(sys.modules)} & d.NATIVE
+        return
     inverse_contract()
     identity_contract(d, c)
     regression_falsifiers(d)
+    split_lifetime_falsifier(d)
+    live_runtime_falsifier(d)
+    independent_reference_falsifier(d)
+    full_reference_source_falsifier(d)
+    optimizer_gradient_falsifier(d)
     routing_witness_falsifiers(d)
     update_dataflow_falsifiers(d)
     check_steps_falsifiers(d)
