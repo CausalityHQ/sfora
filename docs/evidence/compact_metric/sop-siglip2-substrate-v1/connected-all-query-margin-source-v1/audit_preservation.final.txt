@@ -1,0 +1,49 @@
+== scripts/census_connected_core_errors_torch.py: base sha256 ccbae2316db16378 -> 25acc3a996e6f767
+nodes: base 92, now 116; byte-identical 89, AST-identical-but-reformatted 0, edited 3, removed 0, added 24; historical order preserved: True
+  AST-identical but reformatted: []
+  removed: []
+  edited: ['read_authority', 'parser', 'main']
+  -- read_authority:
+     @@ -1 +1 @@
+     -def read_authority(path, digest):
+     +def read_authority(path, digest, schema=LAUNCH_SCHEMA, keys=LAUNCH_KEYS):
+     @@ -5 +5 @@
+     -    require(type(authority) is dict and authority.keys() == LAUNCH_KEYS and authority['schema'] == LAUNCH_SCHEMA and
+     +    require(type(authority) is dict and authority.keys() == keys and authority['schema'] == schema and
+  -- parser:
+     @@ -5,0 +6,2 @@
+     +    p.add_argument('--mode', choices=('core', 'all-query'), default='core',
+     +                   help='core: the original 44-query census; all-query: the all-1734-query margin capture')
+  -- main:
+     @@ -4 +4 @@
+     -        payload = run(args)
+     +        payload = (run_all_query if args.mode == 'all-query' else run)(args)
+  added (24): import import statistics, ALL_QUERY_LAUNCH_SCHEMA, ALL_QUERY_RESULT_SCHEMA, ALL_QUERY_KEYS, PRIOR_CENSUS_SHA, PRIOR_TRUE, QUERY_COUNT, SEEDS, ENDPOINT_KEYS, FROZEN_TRANSITIONS, TRANSITION, strictly, admit_prior_census, read_all_query_authority, selection_mapping_sha256, fetch_identity, bind_prior, margin_r1, spread, movement, cohort_summary, build_all_query_census, replay_all_query, run_all_query
+  historical lines deleted or replaced anywhere in the file: 3
+     -def read_authority(path, digest):
+     -    require(type(authority) is dict and authority.keys() == LAUNCH_KEYS and authority['schema'] == LAUNCH_SCHEMA and
+     -        payload = run(args)
+== scripts/test_connected_core_errors_torch.py: base sha256 5dff16f60da65297 -> ec985a201a87d05d
+nodes: base 46, now 83; byte-identical 45, AST-identical-but-reformatted 0, edited 1, removed 0, added 37; historical order preserved: True
+  AST-identical but reformatted: []
+  removed: []
+  edited: ['GatingTests']
+  -- GatingTests:
+     @@ -166,0 +167,15 @@
+     +
+     +    def test_core_census_bytes_are_unchanged_by_the_all_query_mode(self):
+     +        ctx = self.context()
+     +        retained = {k: {i: [1.0 - j * 0.001 for j in range(self.GALLERY)] for i in ctx.state['core']}
+     +                    for k in ('control-179061', 'candidate-179061', 'control-179069', 'candidate-179069')}
+     +        results = {f'{a}-{s}': {k: list(ctx.state['receipt']['quality'][s][a][k]) for k in ('per_query_r1', 'per_query_ap')}
+     +                   for s, a in ctx.state['census'].ENDPOINTS}
+     +        for rows in results.values():
+     +            for index in ctx.state['core']:
+     +                rows['per_query_r1'][index] = 1
+     +        raw = json.dumps(self.m.build_census(ctx.state, retained, results, {'fixture': True}), sort_keys=True,
+     +                         indent=2, allow_nan=False)
+     +        # digest of the same fixture rendered by the frozen census-v1 driver (ccbae231...) before the all-query mode existed
+     +        self.assertEqual(hashlib.sha256(raw.encode()).hexdigest(),
+     +                         '3f31de6c10c2f99f6d81077eaa137e295654ff906829d5c8aca7110bfaed1f16')
+  added (37): import import io, import import statistics, PRIOR_RECEIPT, SEEDS, KEYS, (Q, G), IMPOSTORS, POSITIVES, EDITED, ADDED, HISTORICAL_NODES, HISTORICAL_IMPORTS, f32, frozen_r1, score_row, flat_row, make_prior, make_world, _WORLDS, world, mutated_r1, replaced, node_label, node_digest, Rename, Unbranch, UnReplay, inverse, AllQueryBase, PreservationTests, AllQueryAuthorityTests, PriorCensusTests, MarginRuleTests, AllQueryCaptureTests, AllQueryReplayTests, AllQueryBuildTests, AllQueryRunTests
+  historical lines deleted or replaced anywhere in the file: 0

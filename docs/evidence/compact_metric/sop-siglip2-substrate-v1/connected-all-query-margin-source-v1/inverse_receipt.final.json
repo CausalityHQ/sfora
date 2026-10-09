@@ -1,0 +1,78 @@
+{
+ "base_commit": "b3bd368daad8b247508028eaf65ea60abc09d654",
+ "files": {
+  "scripts/census_connected_core_errors_torch.py": {
+   "base_sha256": "ccbae2316db1637803982ebf7de14214b4f9239a740c5235b9c259d05cc62db8",
+   "draft_sha256": "25acc3a996e6f767fe5804baed1dcca92ea5767de401510f7ce6325dc5559477",
+   "byte_inverse_sha256": "ccbae2316db1637803982ebf7de14214b4f9239a740c5235b9c259d05cc62db8",
+   "byte_inverse_equals_base": true,
+   "hunks": {
+    "equal": 7,
+    "insert": 3,
+    "replace": 3,
+    "delete": 0
+   },
+   "replace_hunks": [
+    {
+     "base_lines": [
+      203,
+      203
+     ],
+     "draft_lines": [
+      204,
+      204
+     ]
+    },
+    {
+     "base_lines": [
+      207,
+      207
+     ],
+     "draft_lines": [
+      208,
+      208
+     ]
+    },
+    {
+     "base_lines": [
+      729,
+      729
+     ],
+     "draft_lines": [
+      986,
+      986
+     ]
+    }
+   ],
+   "delete_hunks": [],
+   "historical_nodes": 92,
+   "nodes_ast_identical": 89,
+   "nodes_edited": [
+    "read_authority",
+    "parser",
+    "main"
+   ],
+   "nodes_removed": []
+  },
+  "scripts/test_connected_core_errors_torch.py": {
+   "base_sha256": "5dff16f60da6529777f965ba70ea10d49d6f09a66d7785892d67a1c6fb89080d",
+   "draft_sha256": "ec985a201a87d05de0955c7bb824cd93030e53973a82b937e35ed0205ee3d9b7",
+   "byte_inverse_sha256": "5dff16f60da6529777f965ba70ea10d49d6f09a66d7785892d67a1c6fb89080d",
+   "byte_inverse_equals_base": true,
+   "hunks": {
+    "equal": 5,
+    "insert": 4,
+    "replace": 0,
+    "delete": 0
+   },
+   "replace_hunks": [],
+   "delete_hunks": [],
+   "historical_nodes": 46,
+   "nodes_ast_identical": 45,
+   "nodes_edited": [
+    "GatingTests"
+   ],
+   "nodes_removed": []
+  }
+ }
+}
