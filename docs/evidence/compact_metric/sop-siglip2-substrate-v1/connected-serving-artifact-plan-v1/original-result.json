@@ -1,0 +1,346 @@
+{
+  "id": "46b447677f774ad1",
+  "provider": "codex",
+  "model": "gpt-6-astra",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791576955,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791578155,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded implementation plan for Sfora installed serving-artifact reader. Repo /home/rb/worktrees/sfora-positive-causality master731728e5 (canonical master; no edits/ML/SSH/jobs/children). Goal remains actual installed image-to-top-k joint SOP+InShop quality/speed; not achieved. New completed prerequisite: six-member opaque gallery fragment actually published on DGX, all1715rows independently verified, original3JSONbytes preserved, source-only normal0. Exact evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gallery-fragment-source-v1/{prospective-authority.json,prospective-freeze-status.json,parent-verification-original.json}. Earlier complete relocation design already exists in connected-artifact-relocation-plan-v1/consult-result.json; reuse, do NOT repeat its generic research. Read connected-gallery-conversion-plan-v1/serving-boundary-source-audit.json and parent-publication-contract.md. Source: src/sfora/{connected_compact_serving.py,connected_inference.py,connected_artifact_identity.py,connected_installed_environment.py,connected_gallery_provenance.py,connected_gallery_conversion.py,atomic_publication.py}; relevant existing tests only. Current _from_bundle needs historical bundle/code paths; load_inference authenticates complete disk payload BEFORE construct then requires original live structure; per-call serving guards retain old historical roots. Prospective envelope has9nonmanifestmembers+serving.json: original origin.json/origin-export.json/origin-owners.json verbatim; vision.pt/endpoint.pt/processor.json unchanged; gallery.bin/gallery-ids.json/gallery-provenance.json from accepted fragment. Native13externalanchors remain separate unread qualification; never grant or normalize them blindly. Finite expected identity projection helper already exists; expected materialization is not live observation. Give ONE smallest complete next implementation boundary with exact owned files/API/manifest schema and genuine existing helper seams; explicit original typed authentication before finite expected projection, independent live installed-source/runtime/native-anchor validation, per-call fresh guards, original448/444/4-overlay/frozenroles/math/RNG/cache/lifetime/ties preserved. No originaltensor rewrite, monkeypatch/globalrebind/genericpathmask/old guard deletion. Name source-only falsifiers and exact later DGX native gate prerequisites, show why it actually removes historical-root dependency. If full reader cannot fit a bounded source increment, choose the smallest necessary composable artifact-manifest binder that moves directly toward that reader and give concrete next seam; not another generic audit. Report source-supported blocker precisely, no speculative pins/cap changes. No local Torch/NumPy/PIL/model/image/real payload execution. Read-only stdlib source/metadata only.",
+  "prompt_sha256": "92418f74373eb0a5b0bff4b8cfd1b8c14d101cc8bc1877e7506db5ee754f35e5",
+  "prompt_bytes": 3146,
+  "fingerprint": "06d983052d93415f7a3b1bc88283075eb5348459cbc48fd505290cded1a8f206",
+  "evidence": {
+    "git_commit": "731728e5a301814487da64378178f784ebb7b04b",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "291a0b95f5d5429ce2413689479021c2f5813472eaba2c3824019e050e766d24",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6-astra",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "c435b7b4-8853-4a35-8dbb-3932d8374c51"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-46b447677f774ad1.service",
+  "pid": 3078954,
+  "pgid": 3078954,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "budget_usd": null,
+      "timeout_seconds": 1199,
+      "started_at": 1791576956
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791577399,
+  "event_cursor": 70,
+  "events": [
+    {
+      "seq": 47,
+      "at": 1791577192,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 48,
+      "at": 1791577194,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 49,
+      "at": 1791577194,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 50,
+      "at": 1791577201,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 51,
+      "at": 1791577208,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 52,
+      "at": 1791577208,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 53,
+      "at": 1791577208,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 54,
+      "at": 1791577208,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 55,
+      "at": 1791577209,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 56,
+      "at": 1791577209,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 57,
+      "at": 1791577217,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 58,
+      "at": 1791577225,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 59,
+      "at": 1791577225,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 60,
+      "at": 1791577230,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 61,
+      "at": 1791577231,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 62,
+      "at": 1791577278,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 63,
+      "at": 1791577289,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 64,
+      "at": 1791577289,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 65,
+      "at": 1791577299,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 66,
+      "at": 1791577299,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 67,
+      "at": 1791577300,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 68,
+      "at": 1791577300,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 69,
+      "at": 1791577397,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 70,
+      "at": 1791577399,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 63,
+        "at": 1791577289,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 64,
+        "at": 1791577289,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 65,
+        "at": 1791577299,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 66,
+        "at": 1791577299,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 67,
+        "at": 1791577300,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 68,
+        "at": 1791577300,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 69,
+        "at": 1791577397,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 70,
+        "at": 1791577399,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Choose the artifact-manifest binder as the next increment.** It can finish a useful, independently testable boundary in two new files. A complete reader would also require coordinated changes to typed loading, runtime authority, live identity comparison, and per-call guards.\n\nThe accepted fragment resolves gallery extraction: six published members, all 1,715 rows independently checked, and the original three JSON byte strings preserved. It does not establish serving or native acceptance. [Parent verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gallery-fragment-source-v1/parent-verification-original.json)\n\n1. **Implement one pure manifest binder.**\n\n   Own exactly:\n\n   - New `src/sfora/connected_serving_artifact.py`.\n   - New `scripts/test_connected_serving_artifact.py`.\n\n   API:\n\n   ```python\n   def bind_serving_manifest(\n       serving: bytes,\n       fragment: dict[str, bytes],\n       *,\n       trusted_serving_sha256: str,\n       trusted_fragment_sha256: dict[str, str],\n   ) -> JSONObject:\n       ...\n   ```\n\n   `fragment` and its trusted hash table have exactly the six accepted fragment basenames. The caller obtains those six pins from the independently accepted publication evidence; no receipt boolean supplies authority.\n\n   Return exactly `{\"manifest\": parsed_manifest, \"producer\": producer_binding}` as detached metadata. Document that payload FILE entries are **expected file facts**: this function does not read or authenticate `vision.pt`, `endpoint.pt`, or `processor.json`, validate installed sources, or admit execution.\n\n   This is a reusable validator for both the eventual publisher and reader. It performs no filesystem access, tensor deserialization, identity projection, or publication.\n\n2. **Freeze a minimal, target-independent `serving.json` schema.**\n\n   Retain the earlier relocation design’s unchanged-payload envelope and authenticate-before-project order. For this bounded increment, derive installation expectations later from the originals instead of serializing a second environment/identity authority.\n\n   Exact top-level keys:\n\n   | Key | Exact contract |\n   |---|---|\n   | `schema` | `\"siglip2-connected-mlp-serving-v2\"` |\n   | `files` | Exactly nine basename → FILE entries listed below |\n   | `origin` | Exactly `bundle_sha256`, `endpoint_state_sha256`, `fixed_sha256` |\n   | `gallery` | Exactly `count`, `dimensions`, `bytes_per_row`, `wire_sha256`, `ordered_ids_sha256`, `provenance_sha256`, `encoder_binding_sha256` |\n   | `request` | Exactly `device:\"cuda\"`, `batch_min:1`, `batch_max:32`, `dimensions:128`, `k:10`, `ties:\"ordinal-ascending\"` |\n\n   Nine nonmanifest members:\n\n   ```text\n   origin.json\n   origin-export.json\n   origin-owners.json\n   vision.pt\n   endpoint.pt\n   processor.json\n   gallery.bin\n   gallery-ids.json\n   gallery-provenance.json\n   ```\n\n   FILE is exactly `{path, bytes, sha256}`. `path` equals the prescribed basename; `bytes` is a nonnegative builtin integer; SHA is lowercase 64-hex. Reject extra/missing keys, duplicate JSON keys, boolean integers, nonfinite numbers—including exponent overflow—and malformed UTF-8. Preserve the existing 64 MiB JSON bound. Original embedded absolute paths remain inert evidence.\n\n   Define `encoder_binding_sha256` unambiguously as SHA256 of the existing canonical JSON encoding of:\n\n   ```python\n   {\n       \"identity\": producer[\"identity\"],\n       \"gallery_batches\": producer[\"gallery_batches\"],\n       \"gallery_rows\": producer[\"gallery_rows\"],\n   }\n   ```\n\n   This is a new association digest, distinct from the original typed tensor fingerprints.\n\n3. **Implement authentication and correspondence in this order.**\n\n   - Require exact builtin bytes and exact six-member input sets. Authenticate `serving` and **all six fragment byte strings before parsing any JSON**.\n   - Strictly parse and validate the new manifest.\n   - Call genuine [`bind_gallery_provenance`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_gallery_provenance.py:423) with the original receipt/bundle bytes and their independently trusted pins.\n   - Require `origin.bundle_sha256` to match the original bundle pin; require endpoint/full and fixed identities to match the original bundle and producer binding respectively.\n   - Require the three payload FILE SHAs to equal `origin.json[\"files\"]` exactly. Their sizes remain declarations until actual file admission.\n   - Require `gallery-provenance.json` to equal the canonical four-key selection record produced by the existing conversion contract, using the freshly reconstructed producer binding. Preserve every row, batch and witness, including `producer.gallery_wire_sha256 is None`.\n   - Derive IDs from the exact `gallery_rows[*].relative_path` strings. Require uniqueness, canonical ID bytes, complete flattened batch correspondence, `count >= 10`, dimensions 128, and actual opaque gallery length `count * 130`.\n   - Compare every fragment FILE size/SHA with its supplied bytes. Bind the gallery’s observed wire/ID/provenance hashes and the association digest.\n\n   Reuse the genuine provenance parser, canonical encoder and binding function; do not repeat extraction from the combined wire. Keep owner evidence hash-authenticated and opaque here. Its structural validation belongs to `verify_installed_environment`.\n\n4. **Make the first falsifier demonstrate the missing association check.**\n\n   Use the existing synthetic provenance fixture with 33 gallery rows and tiny opaque payload placeholders. No real payloads or ML imports.\n\n   The decisive case changes one provenance batch membership or encoder identity, recomputes its synthetic file hashes and the synthetic manifest hash, but retains the trusted original bundle/receipt bytes. The binder must reject because genuine reconstructed producer correspondence differs. Merely checking self-consistent hashes would accept this mutant.\n\n   Also require:\n\n   - Wrong original pin rejects before parsing—even when another input contains invalid JSON.\n   - A substituted payload SHA rejects against the unchanged original bundle.\n   - Gallery row/ID reorder, duplicate IDs, wrong length, omitted members and a producer gallery hash changed from `null` reject.\n   - Duplicate keys, `true` counts, overflow numbers and non-basename FILE paths reject.\n   - Inputs remain byte-for-byte unchanged.\n   - Import sentinels forbid Torch, NumPy, PIL, Transformers and native retrieval; an audit hook rejects filesystem access by the binder.\n\n   Run this one new script under the established source-only 1 GiB/120-second envelope using supported Python versions, with scoped formatting/type checks. The parent can then add its normal CI invocation. No runtime or authority file needs modification for this increment.\n\nThe **concrete next seam after that binder** is a separate `load_serving_inference` path in `connected_inference.py`, called by `ConnectedCompactIndex.from_serving_artifact`. It must consume the binder’s result without routing through `admit_bundle`.\n\nThe source-supported reason is precise:\n\n- [`admit_bundle`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:530) opens historical helper files and hashes the original absolute environment.\n- [`load_inference`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:622) correctly authenticates the full original typed endpoint and fixed tree before construction, but then compares genuine structure against historical origins.\n- [`inference_outputs`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:727) reopens historical helper paths on every call. The bridge independently retains those paths in `_guards`.\n- `_bind_runtime` accepts exactly three runtime guard entries. The new helper closure therefore needs an explicit reviewed authority change; an extra import alone is insufficient.\n\nThe later reader must preserve this sequence:\n\n1. Authenticate actual artifact files using canonical, nonsymlink, regular, single-link members and fresh descriptor-based hashes. Enforce the exact ten-entry directory.\n2. Independently verify the installed source closure and runtime/native permissions before native use. The existing environment helper verifies 1,754 selected wheel members and owner RECORD/METADATA correspondence; it explicitly does **not** establish import resolution, complete installation integrity, or the 13 external anchors.\n3. Deserialize unchanged `endpoint.pt` using the existing weights-only/private-mmap discipline. Preserve every current full/fixed typed, scope and numerical predicate.\n4. **Only after those original typed checks**, call `project_identity`/`restore_identity`, then `materialize_identity` against independently bound installed roots. These produce expectations.\n5. Independently observe `model_structure`, processor origin/config/backend, constructor and loaded module origins. Compare genuine observations with the expectations; never rewrite observations to make them agree.\n6. Preserve strict original448 base loading, four absolute overlay copies, updated448/frozen444 identities, buffers, frozen encoder/head roles, existing A/C roles, residual math, precision, RNG, processor cache ownership and lifetime cleanup.\n\nFor the artifact route, replace historical filesystem guards with explicit authenticated installed-source guards and fresh checks at the existing call boundaries. Keep the legacy route’s guards intact. Extend the extraction/authority correspondence evidence for those exact substitutions; do not globally rebind helpers or mask paths.\n\nThat removes historical-root dependence because all opened paths come from the artifact directory, independently validated installation, or separately admitted exact system anchors. Historical bundle/code/package paths remain only in authenticated original metadata. The binder establishes this property for its own boundary; the complete reader must later prove it through construction, search and close with historical roots unavailable.\n\n**The later DGX gate requires**, before launch:\n\n- Reviewed reader/bridge/helper source authority and passing source falsifiers, including changed installed-source bytes with restored size/mtime, stale expectations, and attempted projection before original typed authentication.\n- A genuine different-root, noneditable installation whose exact RECORD/METADATA and selected bytes pass. Installer-rewritten RECORDs are a rejection, not permission to normalize them.\n- Separate fresh authentication and live mapping checks for all 13 original external anchors, plus the separately pinned retrieval library/compiler authority. The helper currently leaves these anchors unread.\n- Parent-frozen artifact/member authority, unchanged payload bytes, and the existing explicit resource/native authorization. Fragment acceptance grants none of these permissions.\n\nThen run one parent-owned qualification: original typed authentication; identical-batch B1/B2/B32 raw/unit/codes/inverse-norm/wire parity; independent persisted-wire top10 ordinals, score bits and ties; repeatability, failure cleanup, mapping release, double-close and post-close rejection; fresh source/native exit checks and collected normal terminal status. Reuse the atomic publication helpers for eventual publication, with retained identities and directory checks—not as an artifact admission API.\n\nThe main risks are treating expected metadata as observation, accepting stale file checks across use, and overlooking native/import resolution beyond selected wheel correspondence. Those remain explicit reader gates. The installed joint SOP+InShop quality/speed objective remains unmet.\n\nNo files were edited and no tests, ML/native execution, SSH, jobs or children were launched.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Choose the artifact-manifest binder as the next increment.** It can finish a useful, independently testable boundary in two new files. A complete reader would also require coordinated changes to typed loading, runtime authority, live identity comparison, and per-call guards.\n\nThe accepted fragment resolves gallery extraction: six published members, all 1,715 rows independently checked, and the original three JSON byte strings preserved. It does not establish serving or native acceptance. [Parent verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gallery-fragment-source-v1/parent-verification-original.json)\n\n1. **Implement one pure manifest binder.**\n\n   Own exactly:\n\n   - New `src/sfora/connected_serving_artifact.py`.\n   - New `scripts/test_connected_serving_artifact.py`.\n\n   API:\n\n   ```python\n   def bind_serving_manifest(\n       serving: bytes,\n       fragment: dict[str, bytes],\n       *,\n       trusted_serving_sha256: str,\n       trusted_fragment_sha256: dict[str, str],\n   ) -> JSONObject:\n       ...\n   ```\n\n   `fragment` and its trusted hash table have exactly the six accepted fragment basenames. The caller obtains those six pins from the independently accepted publication evidence; no receipt boolean supplies authority.\n\n   Return exactly `{\"manifest\": parsed_manifest, \"producer\": producer_binding}` as detached metadata. Document that payload FILE entries are **expected file facts**: this function does not read or authenticate `vision.pt`, `endpoint.pt`, or `processor.json`, validate installed sources, or admit execution.\n\n   This is a reusable validator for both the eventual publisher and reader. It performs no filesystem access, tensor deserialization, identity projection, or publication.\n\n2. **Freeze a minimal, target-independent `serving.json` schema.**\n\n   Retain the earlier relocation design’s unchanged-payload envelope and authenticate-before-project order. For this bounded increment, derive installation expectations later from the originals instead of serializing a second environment/identity authority.\n\n   Exact top-level keys:\n\n   | Key | Exact contract |\n   |---|---|\n   | `schema` | `\"siglip2-connected-mlp-serving-v2\"` |\n   | `files` | Exactly nine basename → FILE entries listed below |\n   | `origin` | Exactly `bundle_sha256`, `endpoint_state_sha256`, `fixed_sha256` |\n   | `gallery` | Exactly `count`, `dimensions`, `bytes_per_row`, `wire_sha256`, `ordered_ids_sha256`, `provenance_sha256`, `encoder_binding_sha256` |\n   | `request` | Exactly `device:\"cuda\"`, `batch_min:1`, `batch_max:32`, `dimensions:128`, `k:10`, `ties:\"ordinal-ascending\"` |\n\n   Nine nonmanifest members:\n\n   ```text\n   origin.json\n   origin-export.json\n   origin-owners.json\n   vision.pt\n   endpoint.pt\n   processor.json\n   gallery.bin\n   gallery-ids.json\n   gallery-provenance.json\n   ```\n\n   FILE is exactly `{path, bytes, sha256}`. `path` equals the prescribed basename; `bytes` is a nonnegative builtin integer; SHA is lowercase 64-hex. Reject extra/missing keys, duplicate JSON keys, boolean integers, nonfinite numbers—including exponent overflow—and malformed UTF-8. Preserve the existing 64 MiB JSON bound. Original embedded absolute paths remain inert evidence.\n\n   Define `encoder_binding_sha256` unambiguously as SHA256 of the existing canonical JSON encoding of:\n\n   ```python\n   {\n       \"identity\": producer[\"identity\"],\n       \"gallery_batches\": producer[\"gallery_batches\"],\n       \"gallery_rows\": producer[\"gallery_rows\"],\n   }\n   ```\n\n   This is a new association digest, distinct from the original typed tensor fingerprints.\n\n3. **Implement authentication and correspondence in this order.**\n\n   - Require exact builtin bytes and exact six-member input sets. Authenticate `serving` and **all six fragment byte strings before parsing any JSON**.\n   - Strictly parse and validate the new manifest.\n   - Call genuine [`bind_gallery_provenance`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_gallery_provenance.py:423) with the original receipt/bundle bytes and their independently trusted pins.\n   - Require `origin.bundle_sha256` to match the original bundle pin; require endpoint/full and fixed identities to match the original bundle and producer binding respectively.\n   - Require the three payload FILE SHAs to equal `origin.json[\"files\"]` exactly. Their sizes remain declarations until actual file admission.\n   - Require `gallery-provenance.json` to equal the canonical four-key selection record produced by the existing conversion contract, using the freshly reconstructed producer binding. Preserve every row, batch and witness, including `producer.gallery_wire_sha256 is None`.\n   - Derive IDs from the exact `gallery_rows[*].relative_path` strings. Require uniqueness, canonical ID bytes, complete flattened batch correspondence, `count >= 10`, dimensions 128, and actual opaque gallery length `count * 130`.\n   - Compare every fragment FILE size/SHA with its supplied bytes. Bind the gallery’s observed wire/ID/provenance hashes and the association digest.\n\n   Reuse the genuine provenance parser, canonical encoder and binding function; do not repeat extraction from the combined wire. Keep owner evidence hash-authenticated and opaque here. Its structural validation belongs to `verify_installed_environment`.\n\n4. **Make the first falsifier demonstrate the missing association check.**\n\n   Use the existing synthetic provenance fixture with 33 gallery rows and tiny opaque payload placeholders. No real payloads or ML imports.\n\n   The decisive case changes one provenance batch membership or encoder identity, recomputes its synthetic file hashes and the synthetic manifest hash, but retains the trusted original bundle/receipt bytes. The binder must reject because genuine reconstructed producer correspondence differs. Merely checking self-consistent hashes would accept this mutant.\n\n   Also require:\n\n   - Wrong original pin rejects before parsing—even when another input contains invalid JSON.\n   - A substituted payload SHA rejects against the unchanged original bundle.\n   - Gallery row/ID reorder, duplicate IDs, wrong length, omitted members and a producer gallery hash changed from `null` reject.\n   - Duplicate keys, `true` counts, overflow numbers and non-basename FILE paths reject.\n   - Inputs remain byte-for-byte unchanged.\n   - Import sentinels forbid Torch, NumPy, PIL, Transformers and native retrieval; an audit hook rejects filesystem access by the binder.\n\n   Run this one new script under the established source-only 1 GiB/120-second envelope using supported Python versions, with scoped formatting/type checks. The parent can then add its normal CI invocation. No runtime or authority file needs modification for this increment.\n\nThe **concrete next seam after that binder** is a separate `load_serving_inference` path in `connected_inference.py`, called by `ConnectedCompactIndex.from_serving_artifact`. It must consume the binder’s result without routing through `admit_bundle`.\n\nThe source-supported reason is precise:\n\n- [`admit_bundle`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:530) opens historical helper files and hashes the original absolute environment.\n- [`load_inference`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:622) correctly authenticates the full original typed endpoint and fixed tree before construction, but then compares genuine structure against historical origins.\n- [`inference_outputs`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:727) reopens historical helper paths on every call. The bridge independently retains those paths in `_guards`.\n- `_bind_runtime` accepts exactly three runtime guard entries. The new helper closure therefore needs an explicit reviewed authority change; an extra import alone is insufficient.\n\nThe later reader must preserve this sequence:\n\n1. Authenticate actual artifact files using canonical, nonsymlink, regular, single-link members and fresh descriptor-based hashes. Enforce the exact ten-entry directory.\n2. Independently verify the installed source closure and runtime/native permissions before native use. The existing environment helper verifies 1,754 selected wheel members and owner RECORD/METADATA correspondence; it explicitly does **not** establish import resolution, complete installation integrity, or the 13 external anchors.\n3. Deserialize unchanged `endpoint.pt` using the existing weights-only/private-mmap discipline. Preserve every current full/fixed typed, scope and numerical predicate.\n4. **Only after those original typed checks**, call `project_identity`/`restore_identity`, then `materialize_identity` against independently bound installed roots. These produce expectations.\n5. Independently observe `model_structure`, processor origin/config/backend, constructor and loaded module origins. Compare genuine observations with the expectations; never rewrite observations to make them agree.\n6. Preserve strict original448 base loading, four absolute overlay copies, updated448/frozen444 identities, buffers, frozen encoder/head roles, existing A/C roles, residual math, precision, RNG, processor cache ownership and lifetime cleanup.\n\nFor the artifact route, replace historical filesystem guards with explicit authenticated installed-source guards and fresh checks at the existing call boundaries. Keep the legacy route’s guards intact. Extend the extraction/authority correspondence evidence for those exact substitutions; do not globally rebind helpers or mask paths.\n\nThat removes historical-root dependence because all opened paths come from the artifact directory, independently validated installation, or separately admitted exact system anchors. Historical bundle/code/package paths remain only in authenticated original metadata. The binder establishes this property for its own boundary; the complete reader must later prove it through construction, search and close with historical roots unavailable.\n\n**The later DGX gate requires**, before launch:\n\n- Reviewed reader/bridge/helper source authority and passing source falsifiers, including changed installed-source bytes with restored size/mtime, stale expectations, and attempted projection before original typed authentication.\n- A genuine different-root, noneditable installation whose exact RECORD/METADATA and selected bytes pass. Installer-rewritten RECORDs are a rejection, not permission to normalize them.\n- Separate fresh authentication and live mapping checks for all 13 original external anchors, plus the separately pinned retrieval library/compiler authority. The helper currently leaves these anchors unread.\n- Parent-frozen artifact/member authority, unchanged payload bytes, and the existing explicit resource/native authorization. Fragment acceptance grants none of these permissions.\n\nThen run one parent-owned qualification: original typed authentication; identical-batch B1/B2/B32 raw/unit/codes/inverse-norm/wire parity; independent persisted-wire top10 ordinals, score bits and ties; repeatability, failure cleanup, mapping release, double-close and post-close rejection; fresh source/native exit checks and collected normal terminal status. Reuse the atomic publication helpers for eventual publication, with retained identities and directory checks—not as an artifact admission API.\n\nThe main risks are treating expected metadata as observation, accepting stale file checks across use, and overlooking native/import resolution beyond selected wheel correspondence. Those remain explicit reader gates. The installed joint SOP+InShop quality/speed objective remains unmet.\n\nNo files were edited and no tests, ML/native execution, SSH, jobs or children were launched."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 3146,
+  "output_bytes": 11828,
+  "elapsed_seconds": 444,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)",
+  "progress_truncated": false,
+  "result": "**Choose the artifact-manifest binder as the next increment.** It can finish a useful, independently testable boundary in two new files. A complete reader would also require coordinated changes to typed loading, runtime authority, live identity comparison, and per-call guards.\n\nThe accepted fragment resolves gallery extraction: six published members, all 1,715 rows independently checked, and the original three JSON byte strings preserved. It does not establish serving or native acceptance. [Parent verification](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gallery-fragment-source-v1/parent-verification-original.json)\n\n1. **Implement one pure manifest binder.**\n\n   Own exactly:\n\n   - New `src/sfora/connected_serving_artifact.py`.\n   - New `scripts/test_connected_serving_artifact.py`.\n\n   API:\n\n   ```python\n   def bind_serving_manifest(\n       serving: bytes,\n       fragment: dict[str, bytes],\n       *,\n       trusted_serving_sha256: str,\n       trusted_fragment_sha256: dict[str, str],\n   ) -> JSONObject:\n       ...\n   ```\n\n   `fragment` and its trusted hash table have exactly the six accepted fragment basenames. The caller obtains those six pins from the independently accepted publication evidence; no receipt boolean supplies authority.\n\n   Return exactly `{\"manifest\": parsed_manifest, \"producer\": producer_binding}` as detached metadata. Document that payload FILE entries are **expected file facts**: this function does not read or authenticate `vision.pt`, `endpoint.pt`, or `processor.json`, validate installed sources, or admit execution.\n\n   This is a reusable validator for both the eventual publisher and reader. It performs no filesystem access, tensor deserialization, identity projection, or publication.\n\n2. **Freeze a minimal, target-independent `serving.json` schema.**\n\n   Retain the earlier relocation design’s unchanged-payload envelope and authenticate-before-project order. For this bounded increment, derive installation expectations later from the originals instead of serializing a second environment/identity authority.\n\n   Exact top-level keys:\n\n   | Key | Exact contract |\n   |---|---|\n   | `schema` | `\"siglip2-connected-mlp-serving-v2\"` |\n   | `files` | Exactly nine basename → FILE entries listed below |\n   | `origin` | Exactly `bundle_sha256`, `endpoint_state_sha256`, `fixed_sha256` |\n   | `gallery` | Exactly `count`, `dimensions`, `bytes_per_row`, `wire_sha256`, `ordered_ids_sha256`, `provenance_sha256`, `encoder_binding_sha256` |\n   | `request` | Exactly `device:\"cuda\"`, `batch_min:1`, `batch_max:32`, `dimensions:128`, `k:10`, `ties:\"ordinal-ascending\"` |\n\n   Nine nonmanifest members:\n\n   ```text\n   origin.json\n   origin-export.json\n   origin-owners.json\n   vision.pt\n   endpoint.pt\n   processor.json\n   gallery.bin\n   gallery-ids.json\n   gallery-provenance.json\n   ```\n\n   FILE is exactly `{path, bytes, sha256}`. `path` equals the prescribed basename; `bytes` is a nonnegative builtin integer; SHA is lowercase 64-hex. Reject extra/missing keys, duplicate JSON keys, boolean integers, nonfinite numbers—including exponent overflow—and malformed UTF-8. Preserve the existing 64 MiB JSON bound. Original embedded absolute paths remain inert evidence.\n\n   Define `encoder_binding_sha256` unambiguously as SHA256 of the existing canonical JSON encoding of:\n\n   ```python\n   {\n       \"identity\": producer[\"identity\"],\n       \"gallery_batches\": producer[\"gallery_batches\"],\n       \"gallery_rows\": producer[\"gallery_rows\"],\n   }\n   ```\n\n   This is a new association digest, distinct from the original typed tensor fingerprints.\n\n3. **Implement authentication and correspondence in this order.**\n\n   - Require exact builtin bytes and exact six-member input sets. Authenticate `serving` and **all six fragment byte strings before parsing any JSON**.\n   - Strictly parse and validate the new manifest.\n   - Call genuine [`bind_gallery_provenance`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_gallery_provenance.py:423) with the original receipt/bundle bytes and their independently trusted pins.\n   - Require `origin.bundle_sha256` to match the original bundle pin; require endpoint/full and fixed identities to match the original bundle and producer binding respectively.\n   - Require the three payload FILE SHAs to equal `origin.json[\"files\"]` exactly. Their sizes remain declarations until actual file admission.\n   - Require `gallery-provenance.json` to equal the canonical four-key selection record produced by the existing conversion contract, using the freshly reconstructed producer binding. Preserve every row, batch and witness, including `producer.gallery_wire_sha256 is None`.\n   - Derive IDs from the exact `gallery_rows[*].relative_path` strings. Require uniqueness, canonical ID bytes, complete flattened batch correspondence, `count >= 10`, dimensions 128, and actual opaque gallery length `count * 130`.\n   - Compare every fragment FILE size/SHA with its supplied bytes. Bind the gallery’s observed wire/ID/provenance hashes and the association digest.\n\n   Reuse the genuine provenance parser, canonical encoder and binding function; do not repeat extraction from the combined wire. Keep owner evidence hash-authenticated and opaque here. Its structural validation belongs to `verify_installed_environment`.\n\n4. **Make the first falsifier demonstrate the missing association check.**\n\n   Use the existing synthetic provenance fixture with 33 gallery rows and tiny opaque payload placeholders. No real payloads or ML imports.\n\n   The decisive case changes one provenance batch membership or encoder identity, recomputes its synthetic file hashes and the synthetic manifest hash, but retains the trusted original bundle/receipt bytes. The binder must reject because genuine reconstructed producer correspondence differs. Merely checking self-consistent hashes would accept this mutant.\n\n   Also require:\n\n   - Wrong original pin rejects before parsing—even when another input contains invalid JSON.\n   - A substituted payload SHA rejects against the unchanged original bundle.\n   - Gallery row/ID reorder, duplicate IDs, wrong length, omitted members and a producer gallery hash changed from `null` reject.\n   - Duplicate keys, `true` counts, overflow numbers and non-basename FILE paths reject.\n   - Inputs remain byte-for-byte unchanged.\n   - Import sentinels forbid Torch, NumPy, PIL, Transformers and native retrieval; an audit hook rejects filesystem access by the binder.\n\n   Run this one new script under the established source-only 1 GiB/120-second envelope using supported Python versions, with scoped formatting/type checks. The parent can then add its normal CI invocation. No runtime or authority file needs modification for this increment.\n\nThe **concrete next seam after that binder** is a separate `load_serving_inference` path in `connected_inference.py`, called by `ConnectedCompactIndex.from_serving_artifact`. It must consume the binder’s result without routing through `admit_bundle`.\n\nThe source-supported reason is precise:\n\n- [`admit_bundle`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:530) opens historical helper files and hashes the original absolute environment.\n- [`load_inference`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:622) correctly authenticates the full original typed endpoint and fixed tree before construction, but then compares genuine structure against historical origins.\n- [`inference_outputs`](/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_inference.py:727) reopens historical helper paths on every call. The bridge independently retains those paths in `_guards`.\n- `_bind_runtime` accepts exactly three runtime guard entries. The new helper closure therefore needs an explicit reviewed authority change; an extra import alone is insufficient.\n\nThe later reader must preserve this sequence:\n\n1. Authenticate actual artifact files using canonical, nonsymlink, regular, single-link members and fresh descriptor-based hashes. Enforce the exact ten-entry directory.\n2. Independently verify the installed source closure and runtime/native permissions before native use. The existing environment helper verifies 1,754 selected wheel members and owner RECORD/METADATA correspondence; it explicitly does **not** establish import resolution, complete installation integrity, or the 13 external anchors.\n3. Deserialize unchanged `endpoint.pt` using the existing weights-only/private-mmap discipline. Preserve every current full/fixed typed, scope and numerical predicate.\n4. **Only after those original typed checks**, call `project_identity`/`restore_identity`, then `materialize_identity` against independently bound installed roots. These produce expectations.\n5. Independently observe `model_structure`, processor origin/config/backend, constructor and loaded module origins. Compare genuine observations with the expectations; never rewrite observations to make them agree.\n6. Preserve strict original448 base loading, four absolute overlay copies, updated448/frozen444 identities, buffers, frozen encoder/head roles, existing A/C roles, residual math, precision, RNG, processor cache ownership and lifetime cleanup.\n\nFor the artifact route, replace historical filesystem guards with explicit authenticated installed-source guards and fresh checks at the existing call boundaries. Keep the legacy route’s guards intact. Extend the extraction/authority correspondence evidence for those exact substitutions; do not globally rebind helpers or mask paths.\n\nThat removes historical-root dependence because all opened paths come from the artifact directory, independently validated installation, or separately admitted exact system anchors. Historical bundle/code/package paths remain only in authenticated original metadata. The binder establishes this property for its own boundary; the complete reader must later prove it through construction, search and close with historical roots unavailable.\n\n**The later DGX gate requires**, before launch:\n\n- Reviewed reader/bridge/helper source authority and passing source falsifiers, including changed installed-source bytes with restored size/mtime, stale expectations, and attempted projection before original typed authentication.\n- A genuine different-root, noneditable installation whose exact RECORD/METADATA and selected bytes pass. Installer-rewritten RECORDs are a rejection, not permission to normalize them.\n- Separate fresh authentication and live mapping checks for all 13 original external anchors, plus the separately pinned retrieval library/compiler authority. The helper currently leaves these anchors unread.\n- Parent-frozen artifact/member authority, unchanged payload bytes, and the existing explicit resource/native authorization. Fragment acceptance grants none of these permissions.\n\nThen run one parent-owned qualification: original typed authentication; identical-batch B1/B2/B32 raw/unit/codes/inverse-norm/wire parity; independent persisted-wire top10 ordinals, score bits and ties; repeatability, failure cleanup, mapping release, double-close and post-close rejection; fresh source/native exit checks and collected normal terminal status. Reuse the atomic publication helpers for eventual publication, with retained identities and directory checks—not as an artifact admission API.\n\nThe main risks are treating expected metadata as observation, accepting stale file checks across use, and overlooking native/import resolution beyond selected wheel correspondence. Those remain explicit reader gates. The installed joint SOP+InShop quality/speed objective remains unmet.\n\nNo files were edited and no tests, ML/native execution, SSH, jobs or children were launched.",
+  "result_truncated": false
+}
