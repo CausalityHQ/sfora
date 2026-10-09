@@ -1,0 +1,64 @@
+{
+  "compile_script": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-native-v1/build.py",
+    "sha256": "7b9095b59e4394aa37bcf9750a385a2ffeee002f68e80f9f735d67d77d57c619"
+  },
+  "contract": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-native-v1/gpu_sha256_source_contract_2026-10-09.md",
+    "sha256": "beb45576d5cea673f6ac2d8c45d40282a33290154ef28e8c34d1ef642351d545"
+  },
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "PATH": "/usr/bin:/bin",
+    "TMPDIR": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/tmp"
+  },
+  "evidence": [
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-control-v3/authority-v4.json",
+      "sha256": "f96c2197415ad54e71b13b628229f1dbd6e751f61c0108988b50c702c85baa5d"
+    }
+  ],
+  "flags": [
+    "-shared",
+    "-O3",
+    "-ccbin",
+    "/usr/bin/aarch64-linux-gnu-g++-13",
+    "--cudart=none",
+    "-Xcompiler=-fPIC",
+    "-gencode=arch=compute_121,code=sm_121",
+    "-L/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib",
+    "-l:libcudart.so.13",
+    "-Xlinker=-rpath",
+    "-Xlinker=/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib",
+    "--keep",
+    "--keep-dir=/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/intermediates",
+    "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/sha256_occurrences.cu",
+    "-o",
+    "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/libsha256_occurrences.so"
+  ],
+  "output_dir": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5",
+  "schema": "cuda-sha256-build-authority-v1",
+  "source": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/sha256_occurrences.cu",
+    "sha256": "f4547f923c5cb3acf893ffc1186e8392c343a6e27951ea3812b430993e621fd1"
+  },
+  "target": "sm_121",
+  "toolchain": [
+    {
+      "file": {
+        "path": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/nvcc",
+        "sha256": "6b76d931c20f4a26448332d5a53d96e5f7c1ccb5a7e77fa2d5a0e3db9c368d0a"
+      },
+      "role": "nvcc"
+    },
+    {
+      "file": {
+        "path": "/usr/bin/aarch64-linux-gnu-g++-13",
+        "sha256": "fc02363794280f404c6ca6f5da1c8fe469be902e9de140d35d8573bb3393f53b"
+      },
+      "role": "host_compiler"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+Prospective v5 compile only, same source/compiler/flags/runtime/caps. Freeze the native caller build contract before compilation and bind its bytes into the full collector input inventory. No CUDA launch/library load or speed/product claim. Prior v4 PASS and v1-v3 FAIL retained.
