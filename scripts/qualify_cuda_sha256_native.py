@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Standalone CUDA SHA-256 native caller + frozen smoke entrypoint; UNRUN, UNQUALIFIED.
+"""Standalone CUDA SHA-256 native caller + frozen smoke and full entrypoints; UNQUALIFIED.
 
-SOURCE ONLY. Nothing here was compiled, loaded, launched or timed; no Torch/NumPy/GPU/SSH
-work happens at import or in the tests. Native execution is root-only. No speed, quality,
-SOTA or product claim follows from this file. It calls rust/sfora-cuda-sha256/
+The smoke stage passed natively (root, normal0). The full stage below is SOURCE ONLY: never compiled-in, launched or
+timed from here; no Torch/NumPy/GPU/SSH work happens at import or in the tests. Native execution is root-only. No speed,
+quality, SOTA or product claim follows from this file. It calls rust/sfora-cuda-sha256/
 sha256_occurrences.cu unchanged; serving, defaults, helpers, math and the original
-serializers are untouched. full and timing are UNRELEASED SCAFFOLDING, not qualifiers.
+serializers are untouched. timing stays UNRELEASED SCAFFOLDING (no STAGE_BODIES entry); a full engineering receipt is
+never production, optimization or qualification eligibility.
 
 C ABI (exactly five arguments; cudaError_t is the C enum int):
   sfora_sha256_occurrences(const uchar* const* ptrs, const uint64* lens, uint64 count,
@@ -81,17 +82,28 @@ defaulted or guessed and no directory is ever granted. Strict JSON, no unknown/d
  an O_NOFOLLOW fd against the sha256 the root froze in the inventory, with the opened inode equal to
  the mapped one: a mapping whose bytes are not authenticated fails closed. The set is re-read and
  every mapped file re-hashed at exit. Unmapped inventory entries are not hashed here.
- UNIT: a user-written {decision:GO,authority} is NEVER accepted. UNIT_READER stays None until a
- genuine root-owned original unit/footer/locks/resources/exit/source reader exists, so --unit and
- therefore full/timing fail closed at admission.
+ cuda-sha256-native-authority-full-v1 (the full stage only; smoke accepts ONLY the v1 record above): the v1 keys plus
+  full = {prior:{unit,launch,verification}, fixture, extractor, metadata}, all FILEs, distinct from every other FILE,
+  hashed at admission, rehashed (fixture/extractor/metadata) at every full-body guard and (everything, plus the whole
+  prior chain re-read) at exit. prior.unit must equal --unit. The closure FILEs (build authority/receipt, library,
+  runtime files + provenance, mapping inventory, interpreter, probe/MLP serializers) must be byte-identical (sha256) to
+  the prior smoke authority's; their paths may differ. fixture = cuda-sha256-synthetic-vision-inventory-v1.
+ UNIT: a user-written {decision:GO,authority} is NEVER accepted. UNIT_READER = read_prior(unit, admitted, 'smoke')
+ authenticates the ORIGINAL normal0 smoke unit from its FILEs: the schema-less unit record {both_locks_held,
+ invocation_id, log, native_peak_rss_kib, receipt, service_seconds, unit}; the smoke receipt (exact keys, flags false, the
+ 24 native calls and every smoke check, invocation argv/python, resources inside the policy, mappings inside the frozen
+ inventory); the eight-line systemd terminal footer (unit + invocation ID, bootstrap_exit_pass, zero cgroup events, zero
+ swap, peak <= 8 GiB, success, code=exited/status=0, runtime == service_seconds); the root launch (unit name, properties,
+ environment, bootstrap command, native authority, output); the bootstrap and its authority; the prior native authority
+ and its driver/test bytes; and the parent verification (terminal == the unit record, outer resources == the footer's).
 
 CLI (argv order is canonical and exact; invoke by the canonical absolute script path):
   qualify_cuda_sha256_native.py STAGE --authority FILE.json --authority-sha256 SHA
       [--unit FILE.json --unit-sha256 SHA] --output NEWDIR            STAGE in smoke|full|timing
  --unit is forbidden for smoke and required for full/timing. NEWDIR is a canonical absolute
  path whose parent exists and which does not exist. smoke admits (authority, sources, FILEs,
- interpreter, locks, resources policy) and then runs the frozen smoke body; STAGE_BODIES has no
- full/timing entry, so those stages fail closed. The smoke body checks: raw ABI nulls/oversize,
+ interpreter, locks, resources policy) and then runs the frozen smoke body; full additionally runs UNIT_READER
+ before the body; STAGE_BODIES has no timing entry, so timing fails closed. The smoke body checks: raw ABI nulls/oversize,
  hashlib parity for byte lengths 0,4,52-68,116-132 with scalar/empty/offset/duplicate/overlap
  over 129 occurrences, typed-tree equality with the ORIGINAL fingerprint() extracted by AST
  from the authenticated probe and MLP serializer FILEs, occurrence order, same-version .data
@@ -99,8 +111,24 @@ CLI (argv order is canonical and exact; invoke by the canonical absolute script 
  oracle copy, labeled InjectedFault launch/completion/readback failures with real work
  outstanding, drain, released owners under a retained error and a healthy next call, and
  pre-enqueue rejections with zero native calls. It writes one diagnostic receipt (all
- eligibility flags false) only after every check AND the exit pass succeed. The 447+448/444+448
- inventories, timing and every qualification gate are separate root releases.
+ eligibility flags false) only after every check AND the exit pass succeed.
+
+ The full body (same admission, clocks, guards, exit and receipt lifecycle through run_stage/open_stage; synthetic
+ inventory only, no model weights, no quality read). build_inventory runs the ORIGINAL expected_vision/PREFIX/PROFILES
+ (AST-extracted from the authenticated extractor bytes) over the authenticated upstream metadata config/model, strips the
+ exact 'vision_model.' prefix and requires the fixture, 448 leaves, 1711552256 bytes, the 19832832-byte largest leaf and the
+ PROBE/MLP roles of both original serializers (447 / 444 frozen) to agree. Correctness gates come first, on a real-size
+ separately allocated largest leaf ([4304, 1152], deterministic seeded Generator.normal_): raw and typed parity against the
+ ORIGINAL streamed host digest (D2H + uint8 numpy memoryview hashlib; never tolist/bytes), three same-version byte mutations
+ with exact restoration, offset/duplicate/overlapping aliases and occurrence order, a nondefault current stream, an explicit
+ producer-stream event -> consumer wait_event dependency with the candidate run before the oracle copy and no host barrier,
+ and the retained injected status/launched/completed/readback failures with a checked drain, released owners and a healthy
+ follow-up. Then all 448 leaves are allocated (separate storages, unique, non-overlapping) and each of probe 447 -> validate
+ -> 448 (PROBE serializer), MLP 444 -> validate -> 448 (MLP serializer) and the isolated largest leaf is compared with the
+ ORIGINAL fingerprint of the same current bytes, with exactly one native launch per tree (no amalgamation, deduplication,
+ caching or reuse). A role-leaf mutation must change only the full digest. Only then PAIRS=3 alternating original/candidate
+ arms per workload are timed (order swaps every pair, every arm digest-checked); the clock scope is CLOCK, guard() checks sit
+ outside the clocks, and nothing is thresholded or projected. timing and every qualification gate stay separate releases.
 
  Smoke clocks and exit (policy unchanged: body 300 / whole 1500 / exit reserve 300). The body clock
  starts at smoke() entry (torch import and CUDA init count; admission does not) and is checked < 300
@@ -127,13 +155,18 @@ UNVERIFIED NATIVE ASSUMPTIONS (the tests use a fake torch/ABI and cannot check t
 carries a fresh version counter; torch.cuda._sleep plus Event.query prove a mutation is still
 pending (the check fails closed if it is not); pinned non_blocking copies and the caching
 allocator never insert a host barrier; the CUDA runtime/driver mappings fit the explicit
-inventory. Not integrated: encoder_facts callers, serving, extraction ledgers, bridge provenance.
+inventory. Full stage, additionally: torch.Generator(device).manual_seed + Tensor.normal_(generator=) is deterministic and
+allocates no host copy; untyped_storage().nbytes() of a fresh torch.empty equals its requested bytes; reshape(-1) of a
+contiguous leaf is a view and .data of it shares storage without bumping the original's version; Stream.wait_event makes a
+later current-stream launch see the producer's earlier write; the 19.8 MB single-occurrence kernel finishes inside the body
+clock. Not integrated: encoder_facts callers, serving, extraction ledgers, bridge provenance.
 """
 import argparse
 import ast
 import gc
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -159,19 +192,25 @@ POLICY = {'body_seconds': 300, 'whole_process_seconds': 1500, 'exit_reserve_seco
 BUILD, RECEIPT = 'cuda-sha256-build-authority-v1', 'cuda-sha256-build-receipt-v1'
 NATIVE, PROVENANCE = 'cuda-sha256-native-authority-v1', 'cuda-sha256-native-file-provenance-v1'
 INVENTORY, SMOKE_RECEIPT = 'cuda-sha256-mapping-inventory-v1', 'cuda-sha256-native-smoke-v1'
+NATIVE_FULL, FULL_RECEIPT = 'cuda-sha256-native-authority-full-v1', 'cuda-sha256-native-full-v1'
+FIXTURE = 'cuda-sha256-synthetic-vision-inventory-v1'
 BUILD_KEYS = {'schema', 'source', 'contract', 'toolchain', 'compile_script', 'target', 'flags',
               'environment', 'output_dir', 'evidence'}
 RECEIPT_KEYS = {'schema', 'build_authority', 'exit_status', 'library', 'sass_targets', 'ptx_images', 'logs'}
 SOURCE_KEYS = {'driver', 'test', 'probe_serializer', 'mlp_serializer'}
 NATIVE_KEYS = {'schema', 'sources', 'build_authority', 'build_receipt', 'library', 'runtime_files',
                'mapping_inventory', 'interpreter', 'device', 'resource_policy', 'locks'}
+FULL_KEYS = {'prior', 'fixture', 'extractor', 'metadata'}  # the full stage's one extra authority key: 'full'
+PRIOR_KEYS = {'unit', 'launch', 'verification'}
+FIXTURE_KEYS = {'bytes', 'largest_leaf_bytes', 'leaves', 'metadata', 'mlp', 'model', 'probe', 'quality_read', 'resolved',
+                'schema', 'shapes', 'source', 'synthetic'}
+LEAVES, BYTES, LARGEST_BYTES = 448, 1711552256, 19832832  # the frozen synthetic inventory facts, re-derived and compared
 ARCH_FLAGS = ('-arch', '--gpu-architecture', '-code', '--gpu-code', '-ptx', '--ptx', '-gencode',
               '--generate-code')
 HEX = re.compile('[0-9a-f]{64}')
 FLAGS = ('quality_read', 'quality_eligible', 'qualification_eligible', 'state_reuse_eligible',
          'optimization_eligible', 'product_go', 'speed_go')
 STARTED = time.perf_counter()  # whole-process clock (module load); the body clock starts at smoke() entry
-UNIT_READER = None  # the root wires the genuine terminal/provenance reader here; a GO file is never enough
 
 
 class InjectedFault(RuntimeError):
@@ -240,10 +279,15 @@ def read_bytes(fact, limit):
         os.close(fd)
 
 
-def read_json(fact, schema, keys):
+def read_keys(fact, keys, label):
     record = requests.strict_json(read_bytes(fact, JSON_LIMIT))
-    require(type(record) is dict and record.keys() == keys and record['schema'] == schema,
-            'exact %s required' % schema)
+    require(type(record) is dict and record.keys() == keys, 'exact %s required' % label)
+    return record
+
+
+def read_json(fact, schema, keys):
+    record = read_keys(fact, keys, schema)
+    require(record.get('schema') == schema, 'exact %s required' % schema)
     return record
 
 
@@ -306,8 +350,20 @@ def read_inventory(fact, declared):
     return files
 
 
-def read_native_authority(fact):
-    record = read_json(fact, NATIVE, NATIVE_KEYS)
+def read_full_extension(extension):
+    """The full stage's prospectively bound FILEs: the prior smoke chain and the fixture/extractor/config."""
+    require(type(extension) is dict and extension.keys() == FULL_KEYS and type(extension['prior']) is dict and
+            extension['prior'].keys() == PRIOR_KEYS, 'exact full-stage extension required')
+    rows = [*extension['prior'].values(), extension['fixture'], extension['extractor'], extension['metadata']]
+    for item in rows:
+        hash_file(item)
+    return rows
+
+
+def read_native_authority(fact, stage='smoke'):
+    full = stage == 'full'
+    require(stage in ('smoke', 'full'), 'a smoke or full native authority is required')
+    record = read_json(fact, NATIVE_FULL if full else NATIVE, NATIVE_KEYS | {'full'} if full else NATIVE_KEYS)
     sources = record['sources']
     require(type(sources) is dict and sources.keys() == SOURCE_KEYS, 'exact source FILE set required')
     for item in sources.values():
@@ -329,8 +385,9 @@ def read_native_authority(fact):
                 'independent runtime FILE provenance required')
         runtime.append(row['file'])
     inventory = read_inventory(record['mapping_inventory'], [record['library'], *runtime])
+    extension = read_full_extension(record['full']) if full else []
     paths = [record['library'], record['build_authority'], record['build_receipt'], record['mapping_inventory'],
-             *sources.values(), *runtime, *(r['provenance'] for r in rows)]
+             *sources.values(), *runtime, *(r['provenance'] for r in rows), *extension]
     require(len({p['path'] for p in paths}) == len(paths), 'distinct authority FILEs required')
     hash_file(record['interpreter'])
     require(Path(sys.executable).resolve() == Path(record['interpreter']['path']), 'running interpreter differs')
@@ -345,6 +402,180 @@ def read_native_authority(fact):
     require(type(policy) is dict and policy == POLICY and all(type(v) is int for v in policy.values()),
             'exact body300/whole1500/exit-reserve300/8GiB/zero-swap/CUDA<1e10 policy required')
     return SimpleNamespace(record=record, build=build, receipt=receipt, inventory=inventory, runtime=runtime)
+
+
+# ---------------------------------------------------------------- the genuine prior smoke unit
+UNIT_KEYS = {'both_locks_held', 'invocation_id', 'log', 'native_peak_rss_kib', 'receipt', 'service_seconds', 'unit'}
+LAUNCH, BOOTSTRAP = 'cuda-sha256-smoke-root-launch-v1', 'cuda-sha256-smoke-bootstrap-v1'
+VERIFICATION = 'standalone-cuda-sha-smoke-parent-verification-v1'
+LAUNCH_KEYS = {'bootstrap', 'bootstrap_authority', 'command', 'engineering_only', 'native_authority', 'output',
+               'product_go', 'quality_go', 'schema', 'speed_go', 'unit'}
+BOOTSTRAP_KEYS = {'schema', 'files', 'native_authority', 'output', 'interpreter'}
+BOOTSTRAP_FILES = {'driver', 'test', 'requests', 'probe_serializer', 'mlp_serializer'}
+VERIFICATION_KEYS = {'all_smoke_checks', 'complete_current_mapped_file_hashes_exit_pass', 'engineering_only',
+                     'exact_authority', 'exit_status', 'next', 'original_helper_and_source_exit_pass', 'outer_resources',
+                     'product_go', 'schema', 'speed_go', 'terminal'}
+SMOKE_RECEIPT_KEYS = {'schema', 'status', 'engineering_only', 'authority', 'library', 'device', 'checks', 'native_calls',
+                      'resources', 'resource_policy', 'mappings', *FLAGS, 'normal_terminal_required', 'invocation'}
+OUTER_KEYS = {'memory_events', 'memory_peak_bytes', 'swap_current_bytes', 'wall_seconds'}
+EVENT_KEYS = {'high', 'low', 'max', 'oom', 'oom_group_kill', 'oom_kill'}
+SMOKE_NATIVE_CALLS = 24
+SMOKE_CHECKS = {  # exactly what the released smoke body reports when every check passes (mutation.version is an observation)
+    'injected_failures': {'completed': 'InjectedFault', 'launched': 'InjectedFault', 'readback': 'InjectedFault',
+                          'status': 'ValueError'},
+    'mutation': {'byte': 5, 'mask': 64, 'version': 0},
+    'nondefault_stream_pending': {'byte': 9, 'mask': 4},
+    'parity': {'lengths': [4 * n for n in (0, 1, 13, 14, 15, 16, 17, 29, 30, 31, 32, 33)], 'occurrences': 129},
+    'raw_abi': {'all_null': 1, 'count0_nulls': 0, 'count2e32': 1, 'lens_null': 1, 'out_null': 1, 'ptrs_null': 1},
+    'rejections': ['cpu', 'float64', 'transposed', 'stride_zero', 'tuple', 'int_list'],
+    'typed_trees': {'serializers': 2, 'trees': 9}}
+
+
+def canon(value):
+    return json.dumps(value, sort_keys=True)  # type-exact comparison: True never equals 1
+
+
+def number(value, high):
+    return type(value) in (int, float) and math.isfinite(value) and 0 < value < high
+
+
+def sha_of(item):
+    return item.get('sha256') if type(item) is dict else None
+
+
+def read_footer(raw, unit):
+    """The original systemd --wait --pipe terminal of a normal0 service: exactly eight lines, no truncation."""
+    require(raw.endswith(b'\n'), 'complete terminal log required')
+    try:
+        lines = raw.decode('utf-8').split('\n')[:-1]
+    except UnicodeDecodeError:
+        raise ValueError('terminal log is not UTF-8') from None
+    require(len(lines) == 8, 'exact eight-line normal terminal footer required')
+    head = re.fullmatch(r'Running as unit: ([a-z0-9][a-z0-9-]*)\.service; invocation ID: ([0-9a-f]{32})', lines[0])
+    require(head is not None and head[1] == unit['unit'] and head[2] == unit['invocation_id'],
+            'terminal log unit/invocation ID differs')
+    boot = requests.strict_json(lines[1])
+    require(type(boot) is dict and boot.keys() == {'bootstrap_exit_pass', 'normal_outer_terminal_required', 'resources'} and
+            boot['bootstrap_exit_pass'] is True and boot['normal_outer_terminal_required'] is True,
+            'bootstrap exit pass required')
+    outer = boot['resources']
+    require(type(outer) is dict and outer.keys() == OUTER_KEYS and type(outer['memory_events']) is dict and
+            outer['memory_events'].keys() == EVENT_KEYS and
+            all(type(v) is int and v == 0 for v in outer['memory_events'].values()) and
+            type(outer['memory_peak_bytes']) is int and 0 < outer['memory_peak_bytes'] <= POLICY['host_bytes'] and
+            type(outer['swap_current_bytes']) is int and outer['swap_current_bytes'] == POLICY['swap_bytes'] and
+            number(outer['wall_seconds'], POLICY['whole_process_seconds']), 'outer unit resources differ')
+    runtime = re.fullmatch(r'Service runtime: ([0-9]+\.[0-9]{3})s', lines[4])
+    require(lines[2:4] == ['Finished with result: success', 'Main processes terminated with: code=exited/status=0'] and
+            runtime is not None and float(runtime[1]) == unit['service_seconds'] and
+            re.fullmatch(r'CPU time consumed: [0-9]+\.[0-9]{3}s', lines[5]) and
+            re.fullmatch(r'Memory peak: [0-9.]+[BKMG]', lines[6]) and lines[7] == 'Memory swap peak: 0B',
+            'normal0 terminal footer differs')
+    return outer
+
+
+def prior_facts(unit_fact, admitted, stage):
+    """Authenticate the ORIGINAL normal0 smoke unit the full authority froze: unit record, receipt, terminal log, launch,
+    bootstrap, prior native authority and its source bytes, parent verification. Returns JSON-able facts. A user-written
+    decision:GO record, or any forged/truncated/substituted/failed part, raises. Nothing is inferred from smoke metadata."""
+    require(stage == 'smoke', 'the only released prior stage is smoke')
+    current = admitted.record
+    frozen = current['full']['prior']
+    require(unit_fact == frozen['unit'], 'the authority did not freeze this unit FILE')
+    unit = read_keys(unit_fact, UNIT_KEYS, 'smoke unit record')
+    require(unit['both_locks_held'] is True and type(unit['invocation_id']) is str and
+            re.fullmatch('[0-9a-f]{32}', unit['invocation_id']) and type(unit['unit']) is str and
+            re.fullmatch('[a-z0-9][a-z0-9-]*', unit['unit']) and type(unit['native_peak_rss_kib']) is int and
+            unit['native_peak_rss_kib'] > 0 and number(unit['service_seconds'], POLICY['whole_process_seconds']),
+            'normal0 unit identity required')
+    receipt = read_json(unit['receipt'], SMOKE_RECEIPT, SMOKE_RECEIPT_KEYS)
+    outer = read_footer(read_bytes(unit['log'], 1024**2), unit)
+    launch = read_json(frozen['launch'], LAUNCH, LAUNCH_KEYS)
+    prior = read_json(receipt['authority'], NATIVE, NATIVE_KEYS)
+    # the prior closure is the current closure: same bytes (paths may differ), device, policy and original locks
+    rows, now = prior['runtime_files'], current['runtime_files']
+    sources, mine = prior['sources'], current['sources']
+    require(type(rows) is list and len(rows) == len(now) and all(type(r) is dict for r in rows) and
+            type(sources) is dict and
+            [(sha_of(r.get('file')), sha_of(r.get('provenance'))) for r in rows] ==
+            [(r['file']['sha256'], r['provenance']['sha256']) for r in now] and
+            all(sha_of(prior[k]) == current[k]['sha256'] for k in
+                ('build_authority', 'build_receipt', 'library', 'interpreter', 'mapping_inventory')) and
+            all(sha_of(sources.get(k)) == mine[k]['sha256'] for k in ('probe_serializer', 'mlp_serializer')) and
+            prior['device'] == current['device'] and prior['resource_policy'] == current['resource_policy'] == POLICY and
+            prior['locks'] == current['locks'], 'prior smoke closure differs from the full authority')
+    hash_file(sources['driver'])
+    hash_file(sources['test'])
+    # launch + bootstrap
+    command, name, output = launch['command'], unit['unit'], launch['output']
+    props = ['--property=RuntimeMaxSec=%d' % POLICY['whole_process_seconds'], '--property=MemoryMax=%d' % POLICY['host_bytes'],
+             '--property=MemorySwapMax=%d' % POLICY['swap_bytes'], '--property=TasksMax=128',
+             '--property=KillMode=control-group', '--property=OOMPolicy=stop']
+    boot_fact, boot_auth_fact = launch['bootstrap'], launch['bootstrap_authority']
+    require(launch['engineering_only'] is True and launch['product_go'] is False and launch['quality_go'] is False and
+            launch['speed_go'] is False and launch['unit'] == name and launch['native_authority'] == receipt['authority'] and
+            type(output) is str and unit['receipt']['path'] == str(Path(output) / 'smoke-receipt.json') and
+            type(command) is list and all(type(c) is str for c in command) and len(command) == 23 and
+            command[:6] == ['/usr/bin/systemd-run', '--user', '--unit=' + name, '--wait', '--pipe', '--collect'] and
+            command[6:12] == props and command[12:16] == ['--setenv=CUDA_VISIBLE_DEVICES=0', '--setenv=OMP_NUM_THREADS=1',
+                                                          '--setenv=OPENBLAS_NUM_THREADS=1', '--setenv=MKL_NUM_THREADS=1'] and
+            Path(command[16]).is_absolute() and command[17:] == ['-I', '-B', boot_fact['path'], boot_auth_fact['path'],
+                                                                 boot_auth_fact['sha256'], boot_fact['sha256']],
+            'exact root launch of the prior unit required')
+    hash_file(boot_fact)
+    bootstrap = read_json(boot_auth_fact, BOOTSTRAP, BOOTSTRAP_KEYS)
+    files = bootstrap['files']
+    require(type(files) is dict and files.keys() == BOOTSTRAP_FILES and bootstrap['native_authority'] == receipt['authority'] and
+            bootstrap['output'] == output and bootstrap['interpreter'] == prior['interpreter'] and
+            all(files[k] == sources[k] for k in ('driver', 'test', 'probe_serializer', 'mlp_serializer')),
+            'bootstrap authority differs from the prior native authority')
+    hash_file(files['requests'])
+    # the receipt written by the prior driver
+    argv = [sources['driver']['path'], 'smoke', '--authority', receipt['authority']['path'], '--authority-sha256',
+            receipt['authority']['sha256'], '--output', output]
+    invocation, facts, checks = receipt['invocation'], receipt['resources'], receipt['checks']
+    require(type(invocation) is dict and invocation.keys() == {'argv', 'python', 'pid', 'optimize', 'torch', 'cuda'} and
+            invocation['argv'] == argv and invocation['python'] == prior['interpreter']['path'] and
+            type(invocation['pid']) is int and invocation['pid'] > 0 and type(invocation['optimize']) is int and
+            invocation['optimize'] == 0 and all(type(invocation[k]) is str and invocation[k] for k in ('torch', 'cuda')),
+            'exact normal0 invocation required')
+    require(receipt['status'] == 'SMOKE_DIAGNOSTIC_UNREVIEWED' and receipt['engineering_only'] is True and
+            receipt['normal_terminal_required'] is True and all(receipt[f] is False for f in FLAGS) and
+            receipt['library'] == prior['library'] and receipt['device'] == prior['device'] and
+            receipt['resource_policy'] == POLICY and type(receipt['native_calls']) is int and
+            receipt['native_calls'] == SMOKE_NATIVE_CALLS and type(checks) is dict and type(checks.get('mutation')) is dict and
+            type(checks['mutation'].get('version')) is int and
+            canon({**checks, 'mutation': {**checks['mutation'], 'version': 0}}) == canon(SMOKE_CHECKS),
+            'every smoke check must have passed in the prior receipt')
+    require(type(facts) is dict and facts.keys() == {'wall_seconds', 'body_seconds', 'process_peak_rss_kib', 'peak_cuda_allocated_bytes'} and
+            number(facts['body_seconds'], POLICY['body_seconds']) and
+            facts['process_peak_rss_kib'] == unit['native_peak_rss_kib'] and
+            number(facts['wall_seconds'], POLICY['whole_process_seconds']) and
+            facts['wall_seconds'] <= outer['wall_seconds'] <= unit['service_seconds'], 'prior resources differ')
+    requests.check_resources(facts, POLICY, reserve=False)
+    mapped, declared = receipt['mappings'], {prior['library']['path'], *(r['file']['path'] for r in rows)}
+    require(type(mapped) is list and mapped == sorted(set(mapped)) and declared <= set(mapped) and
+            set(mapped) <= set(admitted.inventory), 'prior mapping set differs from the frozen inventory')
+    # the parent's verification of exactly this unit
+    verified = read_json(frozen['verification'], VERIFICATION, VERIFICATION_KEYS)
+    require(canon(verified['terminal']) == canon(unit) and canon(verified['outer_resources']) == canon(outer) and
+            all(verified[k] is True for k in ('all_smoke_checks', 'complete_current_mapped_file_hashes_exit_pass',
+                                               'engineering_only', 'exact_authority', 'original_helper_and_source_exit_pass')) and
+            verified['product_go'] is False and verified['speed_go'] is False and type(verified['exit_status']) is int and
+            verified['exit_status'] == 0, 'parent verification of the prior unit differs')
+    return {'unit': unit_fact, 'unit_name': name, 'invocation_id': unit['invocation_id'], 'receipt': unit['receipt'],
+            'log': unit['log'], 'launch': frozen['launch'], 'verification': frozen['verification'],
+            'authority': receipt['authority'], 'service_seconds': unit['service_seconds'], 'outer_resources': outer}
+
+
+def read_prior(unit_fact, admitted, stage='smoke'):
+    try:
+        return prior_facts(unit_fact, admitted, stage)
+    except (KeyError, TypeError, IndexError, AttributeError) as error:
+        raise ValueError('prior smoke unit record has the wrong shape: %r' % (error,)) from error
+
+
+UNIT_READER = read_prior  # a user-written decision:GO record is never accepted; only this genuine chain reader is
 
 
 # ---------------------------------------------------------------- mapping + library
@@ -633,6 +864,42 @@ def smoke_cases(torch, device):
     return [c[0] for c in cases], [c[1] for c in cases], leaves, raws, base, base_raw
 
 
+def injected_failures(torch, function, hashers, make_owners, follow, want):
+    """Labeled InjectedFault/status failures with real work outstanding. Each must return no digest, drain, release every
+    owner despite the retained error, leave the context healthy and allow a correct next call. Shared by smoke and full."""
+    injected, kept = {}, {}
+    for point in ('status', 'launched', 'completed', 'readback'):
+        seen = []
+        if point == 'status':
+            def once(*args, seen=seen):
+                result = function(*args)
+                return result if seen else seen.append(1) or 7
+            failing = Sha256Native(torch, once)
+        else:
+            def fault(name, seen=seen, point=point):
+                if name == point and not seen:
+                    seen.append(1)
+                    raise InjectedFault('injected ' + point)
+            failing = Sha256Native(torch, function, fault)
+        hashers.append(failing)
+        owners = make_owners()
+        refs = [weakref.ref(leaf) for leaf in owners]
+        try:
+            failing.digests(owners)
+        except (ValueError, InjectedFault) as error:
+            kept[point] = error  # a retained error must not pin the drained owners
+            injected[point] = type(error).__name__
+        else:
+            raise ValueError('injected %s failure returned digests' % point)
+        del owners
+        gc.collect()
+        require(all(ref() is None for ref in refs), 'drained failure kept its owners alive')
+        require(not failing.poisoned and not failing.quarantine and seen, 'injected failure left a poisoned context')
+        require(failing.digests(follow) == want, 'healthy call after injected failure differs')
+    del kept
+    return injected
+
+
 def smoke_checks(torch, device, function, fingerprints, guard, hashers):
     calls = []
 
@@ -720,37 +987,8 @@ def smoke_checks(torch, device, function, fingerprints, guard, hashers):
     guard()
 
     # injected failures with real work outstanding; owners must drain, be released, then a healthy call works
-    injected, kept = {}, {}
-    for point in ('status', 'launched', 'completed', 'readback'):
-        seen = []
-        if point == 'status':
-            def once(*args, seen=seen):
-                result = function(*args)
-                return result if seen else seen.append(1) or 7
-            failing = Sha256Native(torch, once)
-        else:
-            def fault(name, seen=seen, point=point):
-                if name == point and not seen:
-                    seen.append(1)
-                    raise InjectedFault('injected ' + point)
-            failing = Sha256Native(torch, function, fault)
-        hashers.append(failing)
-        owners = [device_leaf(torch, device, raw) for raw in raws[:3]]
-        refs = [weakref.ref(leaf) for leaf in owners]
-        try:
-            failing.digests(owners)
-        except (ValueError, InjectedFault) as error:
-            kept[point] = error  # a retained error must not pin the drained owners
-            injected[point] = type(error).__name__
-        else:
-            raise ValueError('injected %s failure returned digests' % point)
-        del owners
-        gc.collect()
-        require(all(ref() is None for ref in refs), 'drained failure kept its owners alive')
-        require(not failing.poisoned and not failing.quarantine and seen, 'injected failure left a poisoned context')
-        require(failing.digests(tensors[:3]) == expected[:3], 'healthy call after injected failure differs')
-    del kept
-    results['injected_failures'] = injected
+    results['injected_failures'] = injected_failures(
+        torch, function, hashers, lambda: [device_leaf(torch, device, raw) for raw in raws[:3]], tensors[:3], expected[:3])
     guard()
 
     # pre-enqueue rejections never reach the native function
@@ -784,7 +1022,7 @@ def resources(torch, body_started, final=False):
     return facts
 
 
-def exit_pass(context, held, maps, body_started):
+def exit_pass(context, held, maps, body_started, stage='smoke'):
     """The independent exit, run after the body on EVERY path. Each check is attempted even after a body, drain or
     earlier exit failure; the errors are returned, never raised. Nothing admitted earlier is trusted or reused."""
     errors, authority, torch = [], context.authority, held.torch
@@ -806,8 +1044,10 @@ def exit_pass(context, held, maps, body_started):
         authenticate_mappings(authority.inventory, current)
 
     def closure():  # every authority/source/compiler/evidence/runtime/interpreter/inventory FILE, freshly hashed
-        fresh = read_native_authority(context.fact)
+        fresh = read_native_authority(context.fact) if stage == 'smoke' else read_native_authority(context.fact, stage)
         require(fresh.record == authority.record and fresh.inventory == authority.inventory, 'admitted closure differs at exit')
+        if stage == 'full':  # the whole prior smoke chain is read again from its FILEs, never from the admitted facts
+            require(UNIT_READER(context.unit, fresh, PRIOR[stage]) == context.prior, 'prior smoke unit chain differs at exit')
 
     def release():
         fd, held.fd = held.fd, None
@@ -850,7 +1090,9 @@ def teardown(held, hashers, failure):
     return errors
 
 
-def smoke_body(context, held, hashers, cdll, maps, body_started):
+def open_stage(context, held, cdll, maps, body_started, extra=()):
+    """Admission shared by smoke and full: Torch + frozen device + both original serializers + one authenticated library
+    bound through the checked ABI. guard() = Source + Locks + extra FILE checks + resources."""
     import ctypes
     if held.torch is None:
         import importlib
@@ -875,36 +1117,48 @@ def smoke_body(context, held, hashers, cdll, maps, body_started):
     def guard():
         context.source.check()
         context.locks.check()
+        for check in extra:
+            check()
         return resources(torch, body_started)
     guard()
     held.fd, lib, held.mappings = open_library(authority, cdll, maps)
     function = bind_abi(lib, ctypes)
-    result = smoke_checks(torch, device, function, [p[0] for p in prints], guard, hashers)
+    return torch, device, function, [p[0] for p in prints], guard
+
+
+def smoke_body(context, held, hashers, cdll, maps, body_started):
+    torch, device, function, fingerprints, guard = open_stage(context, held, cdll, maps, body_started)
+    result = smoke_checks(torch, device, function, fingerprints, guard, hashers)
     guard()
     return result
 
 
-def smoke(context, output, torch=None, cdll=None, maps='/proc/self/maps'):
+def run_stage(stage, body, context, output, torch, cdll, maps):
+    """The one lifecycle: body, then the independent exit on EVERY path, then (only if all passed) the diagnostic receipt."""
     body_started = time.perf_counter()
     held = SimpleNamespace(torch=torch, fd=None, mappings=None, final=None, drain_tried=False, drained=False)
     hashers, failures, result, receipt = [], [], None, None
     try:
         try:
-            result = smoke_body(context, held, hashers, cdll, maps, body_started)
+            result = body(context, held, hashers, cdll, maps, body_started)
         except BaseException as error:
             failures.append(error)
-        failures.extend(exit_pass(context, held, maps, body_started))
+        failures.extend(exit_pass(context, held, maps, body_started, stage))
         if not failures:
             record, (checks, native_calls) = context.authority.record, result
-            receipt = {'schema': SMOKE_RECEIPT, 'status': 'SMOKE_DIAGNOSTIC_UNREVIEWED', 'engineering_only': True,
+            receipt = {'schema': SMOKE_RECEIPT if stage == 'smoke' else FULL_RECEIPT,
+                       'status': 'SMOKE_DIAGNOSTIC_UNREVIEWED' if stage == 'smoke' else 'FULL_DIAGNOSTIC_UNREVIEWED',
+                       'engineering_only': True,
                        'authority': context.fact, 'library': record['library'], 'device': record['device'], 'checks': checks,
                        'native_calls': native_calls, 'resources': held.final, 'resource_policy': POLICY,
                        'mappings': sorted(held.mappings), **{flag: False for flag in FLAGS}, 'normal_terminal_required': True,
                        'invocation': {'argv': sys.argv, 'python': str(Path(sys.executable).resolve()), 'pid': os.getpid(),
                                       'optimize': sys.flags.optimize, 'torch': held.torch.__version__,
                                       'cuda': held.torch.version.cuda}}
+            if stage == 'full':
+                receipt.update(prior=context.prior, **{k: record['full'][k] for k in ('fixture', 'extractor', 'metadata')})
             os.mkdir(output, 0o700)
-            with open(Path(output) / 'smoke-receipt.json', 'x') as stream:
+            with open(Path(output) / (stage + '-receipt.json'), 'x') as stream:
                 json.dump(receipt, stream, sort_keys=True, indent=1)
                 stream.flush()
                 os.fsync(stream.fileno())
@@ -919,7 +1173,267 @@ def smoke(context, output, torch=None, cdll=None, maps='/proc/self/maps'):
     return receipt
 
 
-STAGE_BODIES = {'smoke': smoke}
+def smoke(context, output, torch=None, cdll=None, maps='/proc/self/maps'):
+    return run_stage('smoke', smoke_body, context, output, torch, cdll, maps)
+
+
+# ---------------------------------------------------------------- full synthetic inventory stage
+PAIRS = 3
+CLOCK = ('time.perf_counter around each complete arm of a sequential workload (frozen tree, digest validation, full tree). '
+         'Candidate inside the clock: leaf traversal, validation, pinned table construction and H2D transfers, launch, '
+         'stream completion, readback, hexadecimal conversion, original framing. Original inside: per-leaf D2H, streamed '
+         'hashlib, original framing. Outside the clocks: guard() source/lock/resource/FILE rehash checks and a device drain '
+         'before each arm. Descriptive observation only; no threshold, p99, GO, quality or product claim.')
+
+
+def load_original(raw, label, functions=(), assigns=()):
+    """ORIGINAL top-level functions/constants exactly as written, extracted by AST from authenticated bytes."""
+    nodes = [n for n in ast.parse(raw).body
+             if (isinstance(n, ast.FunctionDef) and n.name in functions) or
+             (isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and
+              n.targets[0].id in assigns)]
+    names = sorted(n.name if isinstance(n, ast.FunctionDef) else n.targets[0].id for n in nodes)
+    require(names == sorted((*functions, *assigns)), 'exactly one original %s definition each required' % label)
+    namespace = {}
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), '<original %s>' % label, 'exec', dont_inherit=True), namespace)
+    return namespace
+
+
+def leaf_nbytes(shape):
+    return 4 * math.prod(shape)
+
+
+def build_inventory(record):
+    """Host only. The ORIGINAL expected_vision(config, model) over the authenticated extractor and upstream metadata gives
+    the leaf names/shapes (exact 'vision_model.' prefix removed); the authenticated fixture and the PROBE/MLP roles of BOTH
+    original serializers must agree with it exactly. No Torch, no allocation."""
+    ext, sources = record['full'], record['sources']
+    fixture = read_json(ext['fixture'], FIXTURE, FIXTURE_KEYS)
+    metadata = requests.strict_json(read_bytes(ext['metadata'], JSON_LIMIT))
+    require(type(metadata) is dict and type(metadata.get('config')) is dict and type(metadata.get('model')) is str,
+            'upstream metadata with config and model required')
+    for key, bound in (('metadata', ext['metadata']), ('source', ext['extractor'])):
+        item = fixture[key]
+        require(type(item) is dict and item.keys() == {'path', 'sha256'} and item['sha256'] == bound['sha256'] and
+                type(item['path']) is str and Path(item['path']).name == Path(bound['path']).name,
+                'fixture is not bound to the authenticated %s FILE' % key)
+    original = load_original(read_bytes(ext['extractor'], 2 * 1024**2), 'extractor', ('expected_vision',), ('PREFIX', 'PROFILES'))
+    expected, resolved = original['expected_vision'](metadata['config'], metadata['model'])
+    prefix = original['PREFIX']
+    require(prefix == 'vision_model.' and all(n.startswith(prefix) for n in expected), 'exact vision_model. prefix required')
+    shapes = {n[len(prefix):]: tuple(shape) for n, shape in expected.items()}
+    sizes = {n: leaf_nbytes(shape) for n, shape in shapes.items()}
+    require(len(shapes) == len(expected) == LEAVES and sum(sizes.values()) == BYTES and max(sizes.values()) == LARGEST_BYTES and
+            all(type(d) is int and d > 0 for shape in shapes.values() for d in shape), 'frozen synthetic inventory facts differ')
+    require(fixture['model'] == metadata['model'] and canon(fixture['resolved']) == canon(resolved) and
+            canon(fixture['shapes']) == canon({n: list(shape) for n, shape in shapes.items()}) and
+            (fixture['leaves'], fixture['bytes'], fixture['largest_leaf_bytes']) == (LEAVES, BYTES, LARGEST_BYTES) and
+            fixture['synthetic'] is True and fixture['quality_read'] is False, 'fixture differs from the ORIGINAL expected_vision')
+    probe = load_original(read_bytes(sources['probe_serializer'], 2 * 1024**2), 'probe roles', assigns=('PROBE', 'PROBE_SHAPES'))
+    mlp = load_original(read_bytes(sources['mlp_serializer'], 2 * 1024**2), 'MLP roles', assigns=('MLP', 'MLP_SHAPES'))
+    roles = {'probe': tuple(probe['PROBE']), 'mlp': tuple(mlp['MLP'])}
+    require(all(all(type(n) is str for n in r) and len(set(r)) == len(r) and set(r) <= shapes.keys() for r in roles.values()) and
+            list(roles['probe']) == fixture['probe'] and list(roles['mlp']) == fixture['mlp'] and
+            probe['PROBE_SHAPES'] == [list(shapes[n]) for n in roles['probe']] and
+            mlp['MLP_SHAPES'] == [list(shapes[n]) for n in roles['mlp']] and
+            (len(shapes) - len(roles['probe']), len(shapes) - len(roles['mlp'])) == (LEAVES - 1, LEAVES - 4),
+            'PROBE/MLP roles differ from the inventory')
+    return SimpleNamespace(shapes=shapes, roles=roles, largest=min(n for n, size in sizes.items() if size == LARGEST_BYTES))
+
+
+def inventory_facts(inventory):
+    sizes = {n: leaf_nbytes(shape) for n, shape in inventory.shapes.items()}
+    return {'leaves': len(sizes), 'bytes': sum(sizes.values()), 'largest': inventory.largest,
+            'largest_leaf_bytes': sizes[inventory.largest], 'roles': {k: list(v) for k, v in inventory.roles.items()},
+            'frozen_leaves': {k: len(sizes) - len(v) for k, v in inventory.roles.items()}}
+
+
+def leaf_seed(name):
+    return int.from_bytes(hashlib.sha256(name.encode()).digest()[:8], 'little') >> 1
+
+
+def allocate_leaf(torch, device, generator, name, shape):
+    """One separately allocated deterministic FP32 leaf; the seed depends on the leaf name only."""
+    generator.manual_seed(leaf_seed(name))
+    leaf = torch.empty(shape, dtype=torch.float32, device=device)
+    leaf.normal_(0.0, 0.02, generator=generator)
+    return leaf
+
+
+def check_leaves(torch, device, inventory, leaves):
+    names = list(inventory.shapes)
+    require(leaves.keys() == inventory.shapes.keys(), 'allocated leaf names differ from the inventory')
+    spans = plan_occurrences(torch, [leaves[n] for n in names], device)
+    require(all(tuple(leaves[n].shape) == inventory.shapes[n] and leaves[n].storage_offset() == 0 and
+                leaves[n].untyped_storage().nbytes() == size == leaf_nbytes(inventory.shapes[n]) and size > 0
+                for n, (_, size) in zip(names, spans, strict=True)), 'leaf is not a separate exact allocation')
+    ordered = sorted(spans)
+    require(all(a + size <= b for (a, size), (b, _) in zip(ordered, ordered[1:])), 'leaf allocations overlap or alias')
+    return spans
+
+
+def host_digest(torch, leaf):
+    """The ORIGINAL serializer's own streamed oracle: D2H, uint8 numpy view, hashlib over the memoryview; no tolist/bytes copy."""
+    raw = leaf.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()
+    return hashlib.sha256(memoryview(raw)).hexdigest()
+
+
+def largest_gates(torch, device, hasher, function, fingerprints, guard, hashers, calls, big, name, fresh):
+    """Correctness gates on the real-size largest leaf, before the whole inventory is even allocated."""
+    nbytes, results = 4 * big.numel(), {}
+    want = host_digest(torch, big)
+    require(hasher.digests([big]) == [want], 'largest-leaf digest parity differs')
+    for original in fingerprints:
+        require(native_fingerprint(torch, hasher, original, {name: big}) == original({name: big}), 'largest-leaf typed digest differs')
+    results['parity'] = {'bytes': nbytes, 'digest': want}
+    guard()
+
+    flat, version, seen = big.reshape(-1), big._version, {want}
+    bytes_ = [0, nbytes // 2 + 1, nbytes - 1]
+    for byte in bytes_:
+        flip(torch, flat, byte, 0x40)
+        changed = host_digest(torch, big)
+        require(big._version == version and changed not in seen and hasher.digests([big]) == [changed],
+                'same-version mutation digest differs')
+        seen.add(changed)
+        flip(torch, flat, byte, 0x40)
+        require(big._version == version and hasher.digests([big]) == [want], 'restored largest-leaf digest differs')
+    results['mutation'] = {'bytes': bytes_, 'mask': 0x40, 'version': version}
+    guard()
+
+    count = nbytes // 4
+    views = [big, flat[1:4097], flat[1:4097], flat[4096:8193], big, flat[count - 1:], flat[:4096]]  # last: same address, shorter length
+    wants, start = [host_digest(torch, view) for view in views], len(calls)
+    require(hasher.digests(views) == wants, 'offset/duplicate/overlapping alias digests differ')
+    require(hasher.digests(views[::-1]) == wants[::-1] and wants != wants[::-1], 'occurrence order differs')
+    require([c[2] for c in calls[start:]] == [len(views)] * 2, 'one native call per occurrence list required')
+    results['aliases'] = {'occurrences': len(views), 'reversed': True}
+    guard()
+
+    side = torch.cuda.Stream(device=device)
+    with torch.cuda.stream(side):
+        require(torch.cuda.current_stream(device).cuda_stream != 0, 'nondefault current stream required')
+        require(hasher.digests([big]) == [want], 'side-stream digest differs')
+    side.synchronize()
+    producer, consumer, event = torch.cuda.Stream(device=device), torch.cuda.Stream(device=device), torch.cuda.Event()
+    with torch.cuda.stream(producer):  # the producer's write is still pending when the consumer is enqueued
+        torch.cuda._sleep(200_000_000)
+        flip(torch, flat, 3, 0x20)
+        event.record(producer)
+        require(not event.query(), 'producer write was not pending; inconclusive')
+    with torch.cuda.stream(consumer):  # explicit event dependency, no host barrier; the oracle copy comes last
+        consumer.wait_event(event)
+        pending = hasher.digests([big])
+        oracle = host_digest(torch, big)
+    consumer.synchronize()
+    producer.synchronize()
+    require(oracle != want and pending == [oracle], 'producer-event dependent digest differs')
+    flip(torch, flat, 3, 0x20)
+    require(big._version == version and hasher.digests([big]) == [want], 'restored digest after the event dependency differs')
+    results['streams'] = {'side': True, 'producer_event': {'byte': 3, 'mask': 0x20, 'distinct_streams': True}}
+    guard()
+
+    results['injected_failures'] = injected_failures(torch, function, hashers, lambda: [fresh()], [big], [want])
+    guard()
+    return results
+
+
+def timed_arm(torch, run, trees, wants):
+    torch.cuda.synchronize()  # outside the clock
+    started, seconds = time.perf_counter(), []
+    for tree, want in zip(trees, wants, strict=True):
+        begin = time.perf_counter()
+        got = run(tree)
+        seconds.append(time.perf_counter() - begin)
+        require(got == want, 'typed digest differs from the ORIGINAL fingerprint')
+    return time.perf_counter() - started, seconds
+
+
+def full_checks(torch, device, function, fingerprints, guard, hashers, inventory):
+    calls = []
+
+    def counted(*args):
+        calls.append(args)
+        return function(*args)
+    hasher = Sha256Native(torch, counted)
+    hashers.append(hasher)
+    shapes, largest = inventory.shapes, inventory.largest
+    names = list(shapes)
+    results = {'inventory': inventory_facts(inventory)}
+    generator = torch.Generator(device=device)
+    tiny = pattern(16, 5)
+    require(hasher.digests([device_leaf(torch, device, tiny)]) == [sha(tiny)], 'full warm-up parity differs')
+    guard()
+
+    big = allocate_leaf(torch, device, generator, largest, shapes[largest])
+    results['largest_leaf'] = largest_gates(torch, device, hasher, function, fingerprints, guard, hashers, calls, big, largest,
+                                            lambda: allocate_leaf(torch, device, generator, largest, shapes[largest]))
+    del big
+    leaves = {n: allocate_leaf(torch, device, generator, n, shapes[n]) for n in names}
+    check_leaves(torch, device, inventory, leaves)
+    guard()
+
+    work = {label: (fingerprints[i], [{n: leaves[n] for n in names if n not in inventory.roles[label]}, dict(leaves)])
+            for i, label in enumerate(('probe', 'mlp'))}
+    work['largest'] = (fingerprints[0], [{largest: leaves[largest]}])
+    expected, launches = {}, {}
+    for label, (original, trees) in work.items():  # sequential frozen -> validate -> full, each vs the ORIGINAL on current bytes
+        expected[label], start = [], len(calls)
+        for tree in trees:
+            digest = original(tree)
+            require(native_fingerprint(torch, hasher, original, tree) == digest,
+                    '%s typed digest differs from the ORIGINAL fingerprint' % label)
+            expected[label].append(digest)
+        launches[label] = [c[2] for c in calls[start:]]
+        require(launches[label] == [len(tree) for tree in trees], 'one native launch per tree, no amalgamation or reuse')
+        guard()
+    for label in ('probe', 'mlp'):  # a role leaf is outside the frozen tree: only the full digest may change, and it must
+        original, trees = work[label]
+        leaf = leaves[inventory.roles[label][0]]
+        flat, version = leaf.reshape(-1), leaf._version
+        flip(torch, flat, 4 * leaf.numel() - 1, 0x01)
+        require(leaf._version == version, 'same-version role mutation precondition differs')
+        full_now = native_fingerprint(torch, hasher, original, trees[1])
+        require(native_fingerprint(torch, hasher, original, trees[0]) == expected[label][0] and
+                full_now != expected[label][1] and full_now == original(trees[1]), '%s role mutation digests differ' % label)
+        flip(torch, flat, 4 * leaf.numel() - 1, 0x01)
+        require(native_fingerprint(torch, hasher, original, trees[1]) == expected[label][1], '%s restored digest differs' % label)
+        guard()
+    results['workloads'] = {label: {'digests': expected[label], 'launches': launches[label]} for label in work}
+
+    comparison = {}
+    for label, (original, trees) in work.items():
+        runs = {'original': original, 'candidate': lambda tree, original=original: native_fingerprint(torch, hasher, original, tree)}
+        pairs, start = [], len(calls)
+        for pair in range(PAIRS):
+            row = {'order': ['original', 'candidate'] if pair % 2 == 0 else ['candidate', 'original']}
+            for arm in row['order']:
+                row[arm + '_seconds'], row[arm + '_call_seconds'] = timed_arm(torch, runs[arm], trees, expected[label])
+                guard()
+            pairs.append(row)
+        require([c[2] for c in calls[start:]] == launches[label] * PAIRS, 'timed candidate launches differ')
+        comparison[label] = {'trees': [len(tree) for tree in trees], 'pairs': pairs,
+                             'isolated_mechanism_only': label == 'largest'}
+    results['comparison'] = {'clock': CLOCK, 'pairs': PAIRS, 'workloads': comparison}
+    return results, len(calls)
+
+
+def full_body(context, held, hashers, cdll, maps, body_started):
+    record = context.authority.record
+    inventory = build_inventory(record)  # host only, before any CUDA work
+    files = [record['full'][k] for k in ('fixture', 'extractor', 'metadata')]
+    torch, device, function, fingerprints, guard = open_stage(
+        context, held, cdll, maps, body_started, (lambda: [hash_file(item) for item in files],))
+    result = full_checks(torch, device, function, fingerprints, guard, hashers, inventory)
+    guard()
+    return result
+
+
+def full(context, output, torch=None, cdll=None, maps='/proc/self/maps'):
+    return run_stage('full', full_body, context, output, torch, cdll, maps)
+
+
+STAGE_BODIES = {'smoke': smoke, 'full': full}
 
 
 # ---------------------------------------------------------------- CLI
@@ -932,7 +1446,7 @@ def cli(stage, authority, unit, output):
 
 def parser():
     result = argparse.ArgumentParser(prog='qualify_cuda_sha256_native.py', allow_abbrev=False,
-                                     description='Standalone CUDA SHA-256 native caller; smoke only, root-run.')
+                                     description='Standalone CUDA SHA-256 native caller; smoke and full stages, root-run.')
     result.add_argument('stage', choices=STAGES)
     result.add_argument('--authority', required=True)
     result.add_argument('--authority-sha256', required=True)
@@ -954,13 +1468,14 @@ def main(argv=None):
     require(output.is_absolute() and str(output) == args.output and output.parent.is_dir() and
             output.parent.resolve() == output.parent and not os.path.lexists(output), 'new canonical output directory required')
     require(args.stage in STAGE_BODIES, '%s stage body is unreleased scaffolding' % args.stage)
+    admitted = read_native_authority(authority, args.stage)
+    prior = None
     if unit is not None:
         require(UNIT_READER is not None, 'genuine root-owned terminal unit reader required; a user-written GO is never accepted')
-        UNIT_READER(unit, PRIOR[args.stage], authority)
-    admitted = read_native_authority(authority)
+        prior = UNIT_READER(unit, admitted, PRIOR[args.stage])
     source = requests.Source(sys.modules[__name__], admitted.record['sources']['driver'])
     locks = requests.Locks(admitted.record['locks'])
-    context = SimpleNamespace(authority=admitted, fact=authority, source=source, locks=locks)
+    context = SimpleNamespace(authority=admitted, fact=authority, source=source, locks=locks, unit=unit, prior=prior)
     return STAGE_BODIES[args.stage](context, args.output)
 
 

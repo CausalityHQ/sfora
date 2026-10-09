@@ -11,6 +11,8 @@ import importlib.util
 import io
 import itertools
 import json
+import math
+import mmap
 import os
 from pathlib import Path
 import py_compile
@@ -35,6 +37,10 @@ if NATIVE & {name.split('.')[0] for name in sys.modules}:
 SERIALIZERS = {'probe': ROOT / 'src/sfora/connected_probe_inference.py',
                'mlp': ROOT / 'src/sfora/connected_inference.py'}
 CUDA = ROOT / 'rust/sfora-cuda-sha256/sha256_occurrences.cu'
+EVIDENCE = ROOT / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
+FIXTURE_FILE = EVIDENCE / 'standalone-gpu-sha-full-fixture-v1/inventory.json'
+EXTRACTOR = ROOT / 'scripts/extract_siglip2_vision_source.py'
+METADATA = EVIDENCE / 'late-dense-v1/so400-native256-upstream-metadata-v1.json'
 
 
 def sha(raw):
@@ -88,7 +94,7 @@ class Device:
 
 class Arena:
     def __init__(self, base, size):
-        self.base, self.mem, self.top = base, bytearray(size), 512
+        self.base, self.mem, self.top = base, mmap.mmap(-1, size), 512  # lazily committed: large fake devices stay cheap
 
     def alloc(self, nbytes):
         address = self.base + self.top
@@ -105,8 +111,8 @@ class Arena:
 
 
 class Storage:
-    def __init__(self, address, size):
-        self.address, self.size = address, size
+    def __init__(self, address, size, arena=None):
+        self.address, self.size, self.arena = address, size, arena
 
     def data_ptr(self):
         return self.address
@@ -148,7 +154,7 @@ class Tensor:
         return self.dtype.size
 
     def numel(self):
-        return len(list(itertools.product(*(range(d) for d in self.shape)))) if self.shape else 1
+        return math.prod(self.shape)
 
     def is_contiguous(self):
         if 0 in self.shape:
@@ -171,18 +177,26 @@ class Tensor:
         return self.storage
 
     def arena(self):
-        return self.torch.device_arena if self.is_cuda else self.torch.host_arena
+        return self.storage.arena
 
     def offsets(self):
         for index in itertools.product(*(range(d) for d in self.shape)):
             yield self.byte_offset + sum(i * s for i, s in zip(index, self.strides)) * self.dtype.size
 
     def logical(self):
+        if self.is_contiguous():  # fast path: a contiguous tensor is one span (also what keeps 19.8 MB leaves cheap)
+            return self.arena().read(self.storage.address + self.byte_offset, self.numel() * self.dtype.size)
         return b''.join(self.arena().read(self.storage.address + o, self.dtype.size) for o in self.offsets())
 
-    def write_logical(self, raw):
+    def _write(self, raw):
+        if self.is_contiguous():
+            self.arena().write(self.storage.address + self.byte_offset, raw)
+            return
         for i, offset in enumerate(self.offsets()):
             self.arena().write(self.storage.address + offset, raw[i * self.dtype.size:(i + 1) * self.dtype.size])
+
+    def write_logical(self, raw):
+        self.torch.run_or_defer(lambda: self._write(raw))
         self.counter[0] += 1
 
     def share(self, byte_offset, shape, strides, dtype):
@@ -196,11 +210,23 @@ class Tensor:
         self.torch.log.append(('cpu', self.dtype.name, self.shape))
         if not self.is_cuda:
             return self
+        self.torch.current.run()  # a copy on the current stream is ordered after that stream's queued work
         return self.torch.make(Device('cpu'), self.shape, self.dtype, self.logical())
 
     def to(self, device, non_blocking=False):
         self.torch.log.append(('copy', device.type, non_blocking, self.pinned))
-        return self if device == self.device else self.torch.make(device, self.shape, self.dtype, self.logical())
+        if device == self.device:
+            return self
+        if self.is_cuda:
+            self.torch.current.run()
+        return self.torch.make(device, self.shape, self.dtype, self.logical())
+
+    def normal_(self, mean=0.0, std=1.0, generator=None):
+        """Deterministic stand-in content (seed and size only); the real Generator.normal_ is an UNVERIFIED assumption."""
+        nbytes = self.numel() * self.dtype.size
+        block = hashlib.shake_256(b'%d:%d' % (generator.seed, nbytes)).digest(min(nbytes, 4096))
+        self.write_logical((block * (nbytes // max(len(block), 1) + 1))[:nbytes])
+        return self
 
     def pin_memory(self):
         self.pinned = True
@@ -219,7 +245,7 @@ class Tensor:
 
     def reshape(self, *shape):
         shape = shape[0] if len(shape) == 1 and isinstance(shape[0], tuple) else shape
-        count = len(list(itertools.product(*(range(d) for d in self.shape)))) if self.shape else 1
+        count = self.numel()
         shape = tuple(count if d == -1 else d for d in shape)
         if not self.is_contiguous():
             raise ValueError('fake reshape needs a contiguous tensor')
@@ -251,21 +277,44 @@ class Tensor:
             assert step == 1
             return self.share(self.byte_offset + start * self.strides[0] * self.dtype.size, (max(0, stop - start),),
                               self.strides, self.dtype)
-        return Scalar(self, key, self.tolist()[key])
+        size = self.dtype.size  # one element of a contiguous 1-D tensor; never a whole-tensor tolist
+        raw = self.arena().read(self.storage.address + self.byte_offset + key * size, size)
+        return Scalar(self, key, struct.unpack('<' + self.dtype.code, raw)[0])
 
     def __setitem__(self, key, value):
-        raw = bytearray(self.logical())
-        raw[key] = value.value if isinstance(value, Scalar) else value
-        self.write_logical(bytes(raw))
+        size, value = self.dtype.size, value.value if isinstance(value, Scalar) else value
+        raw = struct.pack('<' + self.dtype.code, value)
+        address = self.storage.address + self.byte_offset + key * size
+        self.torch.run_or_defer(lambda: self.arena().write(address, raw))
+        self.counter[0] += 1
 
 
 class Stream:
     def __init__(self, torch, device, handle, token='default'):
         self.torch, self.device, self.cuda_stream, self.token = torch, device, handle, token
+        self.queue, self.issued, self.done = [], 0, 0
+
+    def push(self, op):
+        self.queue.append(op)
+        self.issued += 1
+
+    def run(self, upto=None):
+        """Execute this stream's queued work in order; a ('wait', event) item first runs the producer up to the event."""
+        while self.queue and (upto is None or self.done < upto):
+            op = self.queue.pop(0)
+            self.done += 1
+            if isinstance(op, tuple):
+                op[1].stream.run(op[1].mark)
+            else:
+                op()
+
+    def wait_event(self, event):
+        self.push(('wait', event))
 
     def synchronize(self):
         self.torch.hook('sync', self)
         self.torch.log.append(('sync', self.cuda_stream))
+        self.run()
         self.torch.pending.discard(self.cuda_stream)
 
     def __eq__(self, other):
@@ -278,10 +327,10 @@ class Stream:
 
 class Event:
     def __init__(self, torch):
-        self.torch, self.stream = torch, None
+        self.torch, self.stream, self.mark = torch, None, 0
 
     def record(self, stream):
-        self.stream = stream
+        self.stream, self.mark = stream, stream.issued
 
     def query(self):
         return self.stream.cuda_stream not in self.torch.pending
@@ -293,7 +342,9 @@ class Cuda:
 
     is_available = staticmethod(lambda: True)
     current_device = staticmethod(lambda: 0)
-    max_memory_allocated = staticmethod(lambda: 123)
+
+    def max_memory_allocated(self):
+        return self.torch.peak
 
     def get_device_properties(self, index):
         return types.SimpleNamespace(name='Fake GPU', major=12, minor=1)
@@ -306,7 +357,9 @@ class Cuda:
 
     def Stream(self, device=None):
         self.torch.streams += 1
-        return Stream(self.torch, Device('cuda', 0), 0x1000 + self.torch.streams, 'side')
+        stream = Stream(self.torch, Device('cuda', 0), 0x1000 + self.torch.streams, 'side')
+        self.torch.streams_by_handle[stream.cuda_stream] = stream
+        return stream
 
     @contextlib.contextmanager
     def stream(self, stream):
@@ -333,13 +386,26 @@ class Torch:
     strided = 'strided'
     __version__ = 'fake'
 
-    def __init__(self):
+    def __init__(self, device_bytes=1 << 24):
         self.log, self.hooks, self.pending, self.streams, self.made = [], {}, set(), 0, []
-        self.device_arena, self.host_arena = Arena(0x7000_0000_0000, 1 << 24), Arena(0x5000_0000_0000, 1 << 24)
+        self.device_arena = Arena(0x7000_0000_0000, device_bytes)
         self.version = types.SimpleNamespace(cuda='fake')
         self.default = Stream(self, Device('cuda', 0), 0)
         self.current = self.default
+        self.streams_by_handle, self.defer, self.peak = {0: self.default}, False, 123
         self.cuda = Cuda(self)
+
+    def run_or_defer(self, thunk):
+        """A write on a stream that is still busy (torch.cuda._sleep) completes later, in that stream's order, when defer is on."""
+        if self.defer and self.current.cuda_stream in self.pending:
+            self.current.push(thunk)
+        else:
+            thunk()
+
+    def Generator(self, device=None):
+        generator = types.SimpleNamespace(seed=None)
+        generator.manual_seed = lambda seed: (setattr(generator, 'seed', seed), generator)[1]
+        return generator
 
     def hook(self, name, value):
         if name in self.hooks:
@@ -350,10 +416,9 @@ class Torch:
 
     def make(self, device, shape, dtype, raw=None):
         shape = tuple(shape)
-        count = len(list(itertools.product(*(range(d) for d in shape)))) if shape else 1
-        size = count * dtype.size
-        arena = self.device_arena if device.type == 'cuda' else self.host_arena
-        storage = Storage(arena.alloc(size) if size else 0, size)
+        size = math.prod(shape) * dtype.size
+        arena = self.device_arena if device.type == 'cuda' else Arena(0x5000_0000_0000, size + 1024)  # host: private, freed with the tensor
+        storage = Storage(arena.alloc(size) if size else 0, size, arena)
         result = Tensor(self, storage, 0, shape, contiguous_strides(shape), dtype, device)
         self.made.append(weakref.ref(result))
         if raw:
@@ -365,6 +430,7 @@ class Torch:
         return self.make(device or Device('cpu'), (len(values),), dtype, struct.pack('<%d%s' % (len(values), dtype.code), *values))
 
     def empty(self, *shape, dtype=None, device=None):
+        shape = tuple(shape[0]) if len(shape) == 1 and isinstance(shape[0], (tuple, list)) else shape
         self.hook('empty', shape)
         return self.make(device or Device('cpu'), shape, dtype)
 
@@ -386,6 +452,9 @@ class Native:
         self.calls.append((ptrs, lens, count, out, stream))
         if self.hook:
             self.hook()
+        launch = self.torch.streams_by_handle.get(stream)
+        if launch is not None:
+            launch.run()  # stream order: the launch sees exactly what that stream (and its waited events) completed
         if count > 2**32 - 1:
             return 1
         if count == 0:
@@ -884,6 +953,8 @@ class Fixture:
                                 ('driver', SCRIPT), ('test', HERE / 'test_cuda_sha256_native.py'),
                                 ('probe', SERIALIZERS['probe']), ('mlp', SERIALIZERS['mlp'])):
                 self.static[key] = self.file(origin.name, origin.read_bytes())
+        for key, origin in (('fixture', FIXTURE_FILE), ('extractor', EXTRACTOR), ('metadata', METADATA)):
+            self.static[key] = self.file('full-fixture-' + origin.name if key == 'fixture' else origin.name, origin.read_bytes()) if own else fact(origin)
         for name in ('nvcc', 'gxx', 'compile', 'evidence', 'log', 'proof_evidence'):
             self.static[name] = self.file(name, ('fixture ' + name).encode())
         self.static['library'] = self.file('libsha256_occurrences.so', b'fixture library ' * 64)
@@ -907,7 +978,8 @@ class Fixture:
     def json_file(self, name, record):
         return self.file(name, json.dumps(record, sort_keys=True).encode())
 
-    def render(self, edit=None):
+    def common(self, edit=None):
+        """The closure shared by the smoke and the full authority: build authority/receipt, provenance, inventory."""
         s = self.static
 
         def emit(stage, name, record):
@@ -927,13 +999,90 @@ class Fixture:
             'schema': mod.PROVENANCE, 'file': s['runtime'], 'origin': 'root frozen fixture', 'evidence': [s['proof_evidence']]})
         files = {s[k]['path']: {'sha256': s[k]['sha256'], 'size': Path(s[k]['path']).stat().st_size} for k in ('library', 'runtime')}
         inventory = emit('inventory', 'inventory.json', {'schema': mod.INVENTORY, 'files': files})
-        return emit('native', 'native-authority.json', {
-            'schema': mod.NATIVE, 'sources': {'driver': s['driver'], 'test': s['test'], 'probe_serializer': s['probe'],
-                                              'mlp_serializer': s['mlp']},
-            'build_authority': build, 'build_receipt': receipt, 'library': s['library'],
-            'runtime_files': [{'file': s['runtime'], 'provenance': proof}], 'mapping_inventory': inventory,
+        return types.SimpleNamespace(build=build, receipt=receipt, proof=proof, inventory=inventory, emit=emit)
+
+    def native(self, common, driver, test, schema, name, stage, extra=None):
+        s = self.static
+        record = {
+            'schema': schema, 'sources': {'driver': driver, 'test': test, 'probe_serializer': s['probe'],
+                                          'mlp_serializer': s['mlp']},
+            'build_authority': common.build, 'build_receipt': common.receipt, 'library': s['library'],
+            'runtime_files': [{'file': s['runtime'], 'provenance': common.proof}], 'mapping_inventory': common.inventory,
             'interpreter': s['interpreter'], 'device': {'index': 0, 'name': 'Fake GPU', 'capability': [12, 1]},
-            'resource_policy': dict(mod.POLICY), 'locks': self.locks})
+            'resource_policy': dict(mod.POLICY), 'locks': self.locks, **(extra or {})}
+        return common.emit(stage, name, record)
+
+    def render(self, edit=None):
+        s = self.static
+        return self.native(self.common(edit), s['driver'], s['test'], mod.NATIVE, 'native-authority.json', 'native')
+
+    # ---- the full stage: a genuine-shaped prior smoke unit chain + the fixture/extractor/config FILEs
+    UNIT, INVOCATION = 'sfora-standalone-gpu-sha-smoke-v2', 'e594e58e8ad1495a8150757ca754e3fc'
+
+    def render_full(self, edit=None, chain=None, frozen=None):
+        """edit(stage, record) edits the shared closure and both authorities ('prior-native', 'native'); chain(stage, value) edits the prior
+        chain ('receipt', 'footer', 'unit', 'launch', 'bootstrap-authority', 'verification'); frozen(full) edits the 'full' extension."""
+        s, common = self.static, self.common(edit)
+        chain = chain or (lambda stage, value: None)
+        out = self.dir / 'smoke-out'
+        out.mkdir(exist_ok=True)
+        prior_driver, prior_test = self.file('prior_driver.py', b'prior driver'), self.file('prior_test.py', b'prior test')
+        prior = self.native(common, prior_driver, prior_test, mod.NATIVE, 'prior-authority.json', 'prior-native')
+        argv = [prior_driver['path'], 'smoke', '--authority', prior['path'], '--authority-sha256', prior['sha256'], '--output', str(out)]
+        receipt = {
+            'schema': mod.SMOKE_RECEIPT, 'status': 'SMOKE_DIAGNOSTIC_UNREVIEWED', 'engineering_only': True, 'authority': prior,
+            'library': s['library'], 'device': {'index': 0, 'name': 'Fake GPU', 'capability': [12, 1]},
+            'checks': json.loads(json.dumps(mod.SMOKE_CHECKS)), 'native_calls': 24,
+            'resources': {'wall_seconds': 3.9, 'body_seconds': 3.8, 'process_peak_rss_kib': 666528, 'peak_cuda_allocated_bytes': 15872},
+            'resource_policy': dict(mod.POLICY), 'mappings': sorted([s['library']['path'], s['runtime']['path']]),
+            **{flag: False for flag in mod.FLAGS}, 'normal_terminal_required': True,
+            'invocation': {'argv': argv, 'python': s['interpreter']['path'], 'pid': 4242, 'optimize': 0,
+                           'torch': '2.12.1+cu130', 'cuda': '13.0'}}
+        chain('receipt', receipt)
+        receipt_fact = self.json_file('smoke-out/smoke-receipt.json', receipt)
+        outer = {'memory_events': {k: 0 for k in sorted(mod.EVENT_KEYS)}, 'memory_peak_bytes': 436899840,
+                 'swap_current_bytes': 0, 'wall_seconds': 4.05}
+        lines = ['Running as unit: %s.service; invocation ID: %s' % (self.UNIT, self.INVOCATION),
+                 json.dumps({'bootstrap_exit_pass': True, 'normal_outer_terminal_required': True, 'resources': outer}, sort_keys=True),
+                 'Finished with result: success', 'Main processes terminated with: code=exited/status=0', 'Service runtime: 4.393s',
+                 'CPU time consumed: 4.352s', 'Memory peak: 1020.0K', 'Memory swap peak: 0B']
+        chain('footer', lines)
+        raw = ['\n'.join(lines) + '\n']
+        chain('log', raw)
+        log = self.file('original-smoke.log', raw[0].encode('utf-8', 'surrogateescape'))
+        unit = {'both_locks_held': True, 'invocation_id': self.INVOCATION, 'log': log, 'native_peak_rss_kib': 666528,
+                'receipt': receipt_fact, 'service_seconds': 4.393, 'unit': self.UNIT}
+        chain('unit', unit)
+        unit_fact = self.json_file('unit.json', unit)
+        bootstrap = self.file('bootstrap.py', b'bootstrap')
+        helper = self.file('helper.py', b'helper')
+        auth = {'schema': mod.BOOTSTRAP, 'files': {'driver': prior_driver, 'test': prior_test, 'requests': helper,
+                                                   'probe_serializer': s['probe'], 'mlp_serializer': s['mlp']},
+                'native_authority': prior, 'output': str(out), 'interpreter': s['interpreter']}
+        chain('bootstrap-authority', auth)
+        auth_fact = self.json_file('bootstrap-authority.json', auth)
+        launch = {'bootstrap': bootstrap, 'bootstrap_authority': auth_fact, 'engineering_only': True, 'native_authority': prior,
+                  'output': str(out), 'product_go': False, 'quality_go': False, 'schema': mod.LAUNCH, 'speed_go': False, 'unit': self.UNIT,
+                  'command': ['/usr/bin/systemd-run', '--user', '--unit=' + self.UNIT, '--wait', '--pipe', '--collect',
+                              '--property=RuntimeMaxSec=1500', '--property=MemoryMax=8589934592', '--property=MemorySwapMax=0',
+                              '--property=TasksMax=128', '--property=KillMode=control-group', '--property=OOMPolicy=stop',
+                              '--setenv=CUDA_VISIBLE_DEVICES=0', '--setenv=OMP_NUM_THREADS=1', '--setenv=OPENBLAS_NUM_THREADS=1',
+                              '--setenv=MKL_NUM_THREADS=1', '/venv/bin/python', '-I', '-B', bootstrap['path'], auth_fact['path'],
+                              auth_fact['sha256'], bootstrap['sha256']]}
+        chain('launch', launch)
+        launch_fact = self.json_file('launch.json', launch)
+        verification = {'all_smoke_checks': True, 'complete_current_mapped_file_hashes_exit_pass': True, 'engineering_only': True,
+                        'exact_authority': True, 'exit_status': 0, 'next': 'full', 'original_helper_and_source_exit_pass': True,
+                        'outer_resources': outer, 'product_go': False, 'schema': 'standalone-cuda-sha-smoke-parent-verification-v1',
+                        'speed_go': False, 'terminal': unit}
+        chain('verification', verification)
+        verification_fact = self.json_file('verification.json', verification)
+        self.unit = unit_fact
+        full = {'prior': {'unit': unit_fact, 'launch': launch_fact, 'verification': verification_fact},
+                'fixture': s['fixture'], 'extractor': s['extractor'], 'metadata': s['metadata']}
+        if frozen:
+            frozen(full)
+        return self.native(common, s['driver'], s['test'], mod.NATIVE_FULL, 'native-authority-full.json', 'native', {'full': full})
 
 
 def at(stage, change):
@@ -1277,18 +1426,19 @@ class CliTests(AuthorityBase):
         with self.assertRaises(ValueError):
             other.main(self.argv())
 
-    def test_full_and_timing_are_unreleased_scaffolding_and_ignore_user_go_units(self):
+    def test_timing_stays_unreleased_scaffolding_and_full_never_accepts_a_user_go_unit(self):
         unit = self.fixture.json_file('go.json', {'schema': 'cuda-sha256-native-unit-v1', 'stage': 'smoke',
                                                   'decision': 'GO', 'authority': self.authority})
-        for stage in ('full', 'timing'):
-            argv = mod.cli(stage, self.authority, unit, self.output)
-            with self.subTest(stage + ' no body'), self.assertRaisesRegex(ValueError, 'unreleased scaffolding'):
-                self.run_main(argv)
-            self.assertIsNone(mod.UNIT_READER)
-            with self.subTest(stage + ' body present'), self.assertRaisesRegex(ValueError, 'genuine root-owned'):
-                self.run_main(argv, {'smoke': self.body, stage: self.body})
+        self.assertIs(mod.UNIT_READER, mod.read_prior)  # the genuine reader is wired; a GO file is not a unit
+        argv = mod.cli('timing', self.authority, unit, self.output)
+        with self.subTest('timing no body'), self.assertRaisesRegex(ValueError, 'unreleased scaffolding'):
+            self.run_main(argv)
+        with self.subTest('timing body present'), self.assertRaises(ValueError):
+            self.run_main(argv, {'smoke': self.body, 'timing': self.body})
+        with self.subTest('full with a user GO and a smoke authority'), self.assertRaises(ValueError):
+            self.run_main(mod.cli('full', self.authority, unit, self.output), {'smoke': self.body, 'full': self.body})
         self.assertEqual(self.recorder, [])
-        self.assertEqual(set(mod.STAGE_BODIES), {'smoke'})
+        self.assertEqual(set(mod.STAGE_BODIES), {'smoke', 'full'})
 
     def test_script_help_and_flags(self):
         for flags in ((), ('-O',), ('-OO',)):
@@ -1334,13 +1484,15 @@ class Clock:
         return self.now
 
 
-class SmokeTests(AuthorityBase):
+class StageHarness(AuthorityBase):
+    """Fake-torch lifecycle harness shared by the smoke and the full stage tests (no tests of its own)."""
     own = True  # private byte-identical copies of the closure FILEs, so a test can drift any of them
+    stage = 'smoke'
 
     def setUp(self):
         super().setUp()
-        self.authority = self.fixture.render()
-        self.admitted = mod.read_native_authority(self.authority)
+        self.authority = self.render()
+        self.admitted = self.admit()
         self.maps = self.fixture.dir / 'maps'
         stack = contextlib.ExitStack()
         self.addCleanup(stack.close)
@@ -1357,7 +1509,7 @@ class SmokeTests(AuthorityBase):
         self.count += 1
         self.output = self.fixture.dir / ('smoke-out-%d' % self.count)
         self.counts, self.events, self.receipt_seen = {'source': 0, 'locks': 0}, [], []
-        self.drifts, self.extra_maps, self.library_fd, self.exiting = set(), [], None, False
+        self.drifts, self.extra_maps, self.library_fd, self.exiting, self.actions = set(), [], None, False, {}
 
     def cdll(self, path):
         self.paths = getattr(self, 'paths', []) + [(path, os.readlink(path))]
@@ -1370,23 +1522,35 @@ class SmokeTests(AuthorityBase):
             self.counts[kind] += 1
             self.events.append(kind)
             self.receipt_seen.append(os.path.lexists(self.output))
+            if (kind, self.counts[kind]) in self.actions:
+                self.actions[(kind, self.counts[kind])]()
             if (kind, self.counts[kind]) in self.drifts or self.exiting and (kind, 'exit') in self.drifts:
                 raise ValueError('injected %s drift' % kind)
         return types.SimpleNamespace(check=check)
 
-    def run_smoke(self, **overrides):
-        context = types.SimpleNamespace(authority=self.admitted, fact=self.authority, locks=self.spy('locks'),
-                                        source=self.spy('source'))
+    def render(self, edit=None):
+        return self.fixture.render(edit)
+
+    def admit(self):
+        return mod.read_native_authority(self.authority)
+
+    def context(self):
+        return types.SimpleNamespace(authority=self.admitted, fact=self.authority, locks=self.spy('locks'), source=self.spy('source'))
+
+    def run_stage(self, **overrides):
         arguments = dict(torch=self.torch, cdll=self.cdll, maps=str(self.maps))
         arguments.update(overrides)
-        return mod.smoke(context, str(self.output), **arguments)
+        return getattr(mod, self.stage)(self.context(), str(self.output), **arguments)
+
+    def run_smoke(self, **overrides):
+        return self.run_stage(**overrides)
 
     def held_error(self, **overrides):
         try:  # not assertRaises: it clears the traceback frames and would hide a pinned owner
-            self.run_smoke(**overrides)
+            self.run_stage(**overrides)
         except BaseException as error:
             return error
-        raise AssertionError('smoke returned instead of rejecting')
+        raise AssertionError('%s returned instead of rejecting' % self.stage)
 
     @staticmethod
     def frame_locals(error, name):
@@ -1433,13 +1597,37 @@ class SmokeTests(AuthorityBase):
         def add(stage, record):
             if stage == 'inventory':
                 record['files'][extra['path']] = {'sha256': extra['sha256'], 'size': len(raw)}
-        self.authority = self.fixture.render(add)
-        self.admitted = mod.read_native_authority(self.authority)
+        self.authority = self.render(add)
+        self.admitted = self.admit()
         self.reset()
         self.maps.write_text(maps_line(extra['path']))
         self.extra_maps = [extra['path']]
         return extra
 
+    def close_failure(self):
+        real, raised = os.close, []
+
+        def close(fd):
+            real(fd)
+            if fd == self.library_fd and not raised:
+                raised.append(1)
+                raise OSError('close failed')
+        self.stack.enter_context(mock.patch.object(mod.os, 'close', close))
+
+    def spied_closure(self):
+        real = mod.read_native_authority
+
+        def spy(fact, *stage):
+            self.events.append('closure')
+            return real(fact, *stage)
+        return mock.patch.object(mod, 'read_native_authority', spy)
+
+    def refuse(self, path):
+        raise OSError('dlopen failed')
+
+
+
+class SmokeTests(StageHarness):
     def test_all_checks_pass_and_receipt_is_a_discarded_diagnostic(self):
         receipt = self.run_smoke()
         self.assertEqual(sorted(receipt['checks']), ['injected_failures', 'mutation', 'nondefault_stream_pending',
@@ -1738,16 +1926,6 @@ class SmokeTests(AuthorityBase):
         self.assertTrue([ref for ref in self.torch.made if ref() is not None], 'quarantined owners were released')
         self.assertIn('tensors', self.frame_locals(error, 'smoke_checks'), 'error frames cleared despite a quarantine')
 
-    def close_failure(self):
-        real, raised = os.close, []
-
-        def close(fd):
-            real(fd)
-            if fd == self.library_fd and not raised:
-                raised.append(1)
-                raise OSError('close failed')
-        self.stack.enter_context(mock.patch.object(mod.os, 'close', close))
-
     def test_cleanup_failure_alone_still_raises_without_a_receipt(self):
         self.close_failure()
         before = self.fds()
@@ -1768,17 +1946,6 @@ class SmokeTests(AuthorityBase):
 
 
     # ------------------------------------------------ the independent exit also runs when the body failed
-    def spied_closure(self):
-        real = mod.read_native_authority
-
-        def spy(fact):
-            self.events.append('closure')
-            return real(fact)
-        return mock.patch.object(mod, 'read_native_authority', spy)
-
-    def refuse(self, path):
-        raise OSError('dlopen failed')
-
     def test_body_failure_still_attempts_the_full_independent_exit(self):
         self.arm('wrong_digest')
         before = self.fds()
@@ -1856,6 +2023,1013 @@ class SmokeTests(AuthorityBase):
         self.stack.enter_context(mock.patch.object(mod.json, 'dump', dump))
         with self.assertRaisesRegex(ValueError, 'headroom'):
             self.run_smoke()
+
+
+# ------------------------------------------------------------------ the full stage: authority + genuine prior chain
+def chain_at(stage, change):
+    return lambda current, value: change(value) if current == stage else None
+
+
+class FullAuthorityTests(AuthorityBase):
+    own = True
+
+    def admit(self, **kwargs):
+        return mod.read_native_authority(self.fixture.render_full(**kwargs), 'full')
+
+    def test_positive_read_binds_every_extension_file(self):
+        admitted = self.admit()
+        self.assertEqual(admitted.record['schema'], mod.NATIVE_FULL)
+        self.assertEqual(admitted.record['full'].keys(), mod.FULL_KEYS)
+        self.assertEqual(admitted.record['full']['prior'].keys(), mod.PRIOR_KEYS)
+        self.assertEqual(admitted.record['full']['fixture'], self.fixture.static['fixture'])
+
+    def test_smoke_and_full_records_are_not_interchangeable(self):
+        full, smoke = self.fixture.render_full(), self.fixture.render()
+        self.assertEqual(mod.read_native_authority(smoke).record['schema'], mod.NATIVE)
+        for label, call in (('smoke given full', lambda: mod.read_native_authority(full)),
+                            ('full given smoke', lambda: mod.read_native_authority(smoke, 'full')),
+                            ('timing', lambda: mod.read_native_authority(full, 'timing'))):
+            with self.subTest(label), self.assertRaises(ValueError):
+                call()
+
+    def test_extension_negatives(self):
+        s = self.fixture.static
+        wrong = {'sha256': '0' * 64}
+        cases = {
+            'extra_key': lambda f: f.update(extra=1), 'missing_fixture': lambda f: f.pop('fixture'),
+            'prior_extra': lambda f: f['prior'].update(extra=s['log']), 'prior_missing': lambda f: f['prior'].pop('launch'),
+            'duplicate_file': lambda f: f.update(extractor=f['metadata']),
+            'reused_closure_file': lambda f: f.update(fixture=s['library']),
+            'relative_path': lambda f: f.update(fixture={**s['fixture'], 'path': 'inventory.json'}),
+            **{'sha_' + k: (lambda f, k=k: f.update({k: {**f[k], **wrong}})) for k in ('fixture', 'extractor', 'metadata')},
+            **{'sha_prior_' + k: (lambda f, k=k: f['prior'].update({k: {**f['prior'][k], **wrong}})) for k in mod.PRIOR_KEYS}}
+        for name, edit in cases.items():
+            with self.subTest(name), self.assertRaises(ValueError):
+                self.admit(frozen=edit)
+
+    def test_every_extension_file_is_rehashed_by_a_fresh_admission(self):
+        fact = self.fixture.render_full()
+        mod.read_native_authority(fact, 'full')
+        for name in ('full-fixture-inventory.json', 'extract_siglip2_vision_source.py', 'so400-native256-upstream-metadata-v1.json', 'unit.json',
+                     'launch.json', 'verification.json'):
+            with self.subTest(name):
+                path = self.fixture.dir / name
+                original = path.read_bytes()
+                path.write_bytes(bytes([original[0] ^ 1]) + original[1:])
+                try:
+                    with self.assertRaisesRegex(ValueError, 'differs'):
+                        mod.read_native_authority(fact, 'full')
+                finally:
+                    path.write_bytes(original)
+
+
+class PriorTests(AuthorityBase):
+    own = True
+
+    def read(self, unit=None, **kwargs):
+        admitted = mod.read_native_authority(self.fixture.render_full(**kwargs), 'full')
+        return mod.read_prior(unit or self.fixture.unit, admitted)
+
+    def test_positive_chain_returns_json_facts_bound_to_the_unit(self):
+        facts = self.read()
+        self.assertEqual(facts['unit'], self.fixture.unit)
+        self.assertEqual(facts['invocation_id'], self.fixture.INVOCATION)
+        self.assertEqual(facts['unit_name'], self.fixture.UNIT)
+        self.assertEqual(json.loads(json.dumps(facts)), facts)
+        self.assertIs(mod.UNIT_READER, mod.read_prior)
+
+    def test_only_the_frozen_unit_and_the_smoke_stage_are_read(self):
+        admitted = mod.read_native_authority(self.fixture.render_full(), 'full')
+        with self.assertRaisesRegex(ValueError, 'did not freeze'):
+            mod.read_prior(self.fixture.static['log'], admitted)
+        with self.assertRaisesRegex(ValueError, 'only released prior stage'):
+            mod.read_prior(self.fixture.unit, admitted, 'full')
+
+    def test_user_written_go_unit_is_never_accepted(self):
+        go = self.fixture.json_file('go.json', {'schema': 'cuda-sha256-native-unit-v1', 'stage': 'smoke', 'decision': 'GO',
+                                                'authority': self.fixture.static['driver']})
+        with self.assertRaises(ValueError):
+            self.read(unit=go, frozen=lambda f: f['prior'].update(unit=go))
+
+    def test_semantic_negatives_on_each_chain_record(self):
+        def edit_boot(lines, change):
+            record = json.loads(lines[1])
+            change(record)
+            lines[1] = json.dumps(record, sort_keys=True)
+
+        def line(index, text):
+            return lambda lines: lines.__setitem__(index, text)
+        s, flags = self.fixture.static, mod.FLAGS
+        cases = {
+            'footer_missing_line': ('footer', lambda l: l.pop()), 'footer_extra_line': ('footer', lambda l: l.append('x')),
+            'footer_failed': ('footer', line(2, 'Finished with result: exit-code')),
+            'footer_status1': ('footer', line(3, 'Main processes terminated with: code=exited/status=1')),
+            'footer_signal': ('footer', line(3, 'Main processes terminated with: code=killed/status=9/KILL')),
+            'footer_wrong_unit': ('footer', line(0, 'Running as unit: other.service; invocation ID: ' + self.fixture.INVOCATION)),
+            'footer_wrong_id': ('footer', line(0, 'Running as unit: %s.service; invocation ID: %s' % (self.fixture.UNIT, '0' * 32))),
+            'footer_runtime': ('footer', line(4, 'Service runtime: 4.394s')), 'footer_swap_peak': ('footer', line(7, 'Memory swap peak: 4.0K')),
+            'footer_swapped_lines': ('footer', lambda l: l.insert(2, l.pop(3))),
+            'footer_bootstrap_false': ('footer', lambda l: edit_boot(l, lambda r: r.update(bootstrap_exit_pass=False))),
+            'footer_oom_kill': ('footer', lambda l: edit_boot(l, lambda r: r['resources']['memory_events'].update(oom_kill=1))),
+            'footer_swap': ('footer', lambda l: edit_boot(l, lambda r: r['resources'].update(swap_current_bytes=1))),
+            'footer_peak': ('footer', lambda l: edit_boot(l, lambda r: r['resources'].update(memory_peak_bytes=8 * 1024**3 + 1))),
+            'footer_wall': ('footer', lambda l: edit_boot(l, lambda r: r['resources'].update(wall_seconds=1500.0))),
+            'footer_event_key': ('footer', lambda l: edit_boot(l, lambda r: r['resources']['memory_events'].pop('oom'))),
+            'log_no_newline': ('log', lambda raw: raw.__setitem__(0, raw[0][:-1])), 'log_crlf': ('log', lambda raw: raw.__setitem__(0, raw[0].replace('\n', '\r\n'))),
+            'log_cut': ('log', lambda raw: raw.__setitem__(0, raw[0][:90])), 'log_empty': ('log', lambda raw: raw.__setitem__(0, '')),
+            'log_not_utf8': ('log', lambda raw: raw.__setitem__(0, raw[0] + '\udcff')),
+            'unit_extra': ('unit', lambda u: u.update(extra=1)), 'unit_locks_false': ('unit', lambda u: u.update(both_locks_held=False)),
+            'unit_locks_int': ('unit', lambda u: u.update(both_locks_held=1)),
+            'unit_id_upper': ('unit', lambda u: u.update(invocation_id=u['invocation_id'].upper())),
+            'unit_id_other': ('unit', lambda u: u.update(invocation_id='1' * 32)), 'unit_service': ('unit', lambda u: u.update(service_seconds=4.0)),
+            'unit_service_bool': ('unit', lambda u: u.update(service_seconds=True)), 'unit_rss': ('unit', lambda u: u.update(native_peak_rss_kib=1)),
+            'unit_receipt_is_log': ('unit', lambda u: u.update(receipt=u['log'])),
+            'receipt_key': ('receipt', lambda r: r.update(extra=1)), 'receipt_status': ('receipt', lambda r: r.update(status='PASS')),
+            'receipt_engineering': ('receipt', lambda r: r.update(engineering_only=False)),
+            'receipt_terminal': ('receipt', lambda r: r.update(normal_terminal_required=False)),
+            **{'receipt_flag_' + f: ('receipt', lambda r, f=f: r.update({f: True})) for f in flags},
+            'receipt_calls': ('receipt', lambda r: r.update(native_calls=23)), 'receipt_calls_bool': ('receipt', lambda r: r.update(native_calls=True)),
+            'receipt_occurrences': ('receipt', lambda r: r['checks']['parity'].update(occurrences=128)),
+            'receipt_bool_for_int': ('receipt', lambda r: r['checks']['raw_abi'].update(all_null=True)),
+            'receipt_check_missing': ('receipt', lambda r: r['checks'].pop('rejections')),
+            'receipt_check_extra': ('receipt', lambda r: r['checks'].update(extra=1)),
+            'receipt_injected': ('receipt', lambda r: r['checks']['injected_failures'].update(status='InjectedFault')),
+            'receipt_version_bool': ('receipt', lambda r: r['checks']['mutation'].update(version=True)),
+            'receipt_trees': ('receipt', lambda r: r['checks']['typed_trees'].update(trees=8)),
+            'receipt_argv': ('receipt', lambda r: r['invocation']['argv'].__setitem__(1, 'full')),
+            'receipt_optimize': ('receipt', lambda r: r['invocation'].update(optimize=1)),
+            'receipt_python': ('receipt', lambda r: r['invocation'].update(python=s['nvcc']['path'])),
+            'receipt_body': ('receipt', lambda r: r['resources'].update(body_seconds=300.0)),
+            'receipt_wall': ('receipt', lambda r: r['resources'].update(wall_seconds=4.2)),
+            'receipt_rss': ('receipt', lambda r: r['resources'].update(process_peak_rss_kib=1)),
+            'receipt_cuda_cap': ('receipt', lambda r: r['resources'].update(peak_cuda_allocated_bytes=10**10)),
+            'receipt_resource_key': ('receipt', lambda r: r['resources'].pop('body_seconds')),
+            'receipt_library': ('receipt', lambda r: r.update(library=s['runtime'])),
+            'receipt_device': ('receipt', lambda r: r['device'].update(name='Other')),
+            'receipt_policy': ('receipt', lambda r: r['resource_policy'].update(body_seconds=301)),
+            'receipt_maps_no_library': ('receipt', lambda r: r.update(mappings=[r['mappings'][1]])),
+            'receipt_maps_outside': ('receipt', lambda r: r.update(mappings=sorted([*r['mappings'], '/x/libx.so']))),
+            'receipt_maps_unsorted': ('receipt', lambda r: r.update(mappings=r['mappings'][::-1])),
+            'receipt_authority': ('receipt', lambda r: r.update(authority=s['evidence'])),
+            'launch_product': ('launch', lambda l: l.update(product_go=True)), 'launch_quality': ('launch', lambda l: l.update(quality_go=True)),
+            'launch_unit': ('launch', lambda l: l.update(unit='other')), 'launch_authority': ('launch', lambda l: l.update(native_authority=s['evidence'])),
+            'launch_output': ('launch', lambda l: l.update(output=l['output'] + '2')),
+            'launch_property': ('launch', lambda l: l['command'].__setitem__(7, '--property=MemoryMax=1')),
+            'launch_no_property': ('launch', lambda l: l['command'].pop(9)), 'launch_extra_arg': ('launch', lambda l: l['command'].append('x')),
+            'launch_setenv': ('launch', lambda l: l['command'].__setitem__(12, '--setenv=CUDA_VISIBLE_DEVICES=1')),
+            'launch_bootstrap_sha': ('launch', lambda l: l['command'].__setitem__(-1, '0' * 64)),
+            'launch_isolation': ('launch', lambda l: l['command'].__setitem__(-6, '-S')),
+            'launch_systemd': ('launch', lambda l: l['command'].__setitem__(0, '/tmp/systemd-run')),
+            'launch_relative_python': ('launch', lambda l: l['command'].__setitem__(16, 'python')),
+            'boot_output': ('bootstrap-authority', lambda b: b.update(output='/x')),
+            'boot_driver': ('bootstrap-authority', lambda b: b['files'].update(driver=s['test'])),
+            'boot_missing': ('bootstrap-authority', lambda b: b['files'].pop('requests')),
+            'boot_authority': ('bootstrap-authority', lambda b: b.update(native_authority=s['evidence'])),
+            'boot_interpreter': ('bootstrap-authority', lambda b: b.update(interpreter=s['nvcc'])),
+            'verify_terminal': ('verification', lambda v: v['terminal'].update(service_seconds=4.4)),
+            'verify_outer': ('verification', lambda v: v['outer_resources'].update(wall_seconds=4.0)),
+            'verify_checks': ('verification', lambda v: v.update(all_smoke_checks=False)),
+            'verify_mapped': ('verification', lambda v: v.update(complete_current_mapped_file_hashes_exit_pass=False)),
+            'verify_product': ('verification', lambda v: v.update(product_go=True)), 'verify_speed': ('verification', lambda v: v.update(speed_go=True)),
+            'verify_exit': ('verification', lambda v: v.update(exit_status=1)), 'verify_extra': ('verification', lambda v: v.update(go='GO'))}
+        for name, (stage, change) in cases.items():
+            with self.subTest(name), self.assertRaises(ValueError):
+                self.read(chain=chain_at(stage, change))
+
+    def test_prior_authority_closure_must_equal_the_full_authority_closure(self):
+        s = self.fixture.static
+        cases = {'library': lambda r: r.update(library=s['runtime']), 'device': lambda r: r['device'].update(index=1),
+                 'locks': lambda r: r.update(locks=r['locks'][:1]), 'policy': lambda r: r['resource_policy'].update(body_seconds=299),
+                 'probe_serializer': lambda r: r['sources'].update(probe_serializer=s['mlp']),
+                 'mlp_serializer': lambda r: r['sources'].update(mlp_serializer=s['probe']),
+                 'build_receipt': lambda r: r.update(build_receipt=s['log']), 'interpreter': lambda r: r.update(interpreter=s['nvcc']),
+                 'runtime_row': lambda r: r['runtime_files'].append(r['runtime_files'][0]), 'runtime_empty': lambda r: r.update(runtime_files=[])}
+        for name, change in cases.items():
+            with self.subTest(name), self.assertRaises(ValueError):
+                self.read(edit=at('prior-native', change))
+
+    def test_any_changed_byte_of_any_chain_file_is_substitution(self):
+        admitted = mod.read_native_authority(self.fixture.render_full(), 'full')
+        self.assertEqual(mod.read_prior(self.fixture.unit, admitted)['invocation_id'], self.fixture.INVOCATION)
+        for name in ('unit.json', 'smoke-out/smoke-receipt.json', 'original-smoke.log', 'launch.json', 'bootstrap.py',
+                     'bootstrap-authority.json', 'verification.json', 'prior-authority.json', 'prior_driver.py', 'prior_test.py', 'helper.py'):
+            with self.subTest(name):
+                path = self.fixture.dir / name
+                original = path.read_bytes()
+                path.write_bytes(bytes([original[0] ^ 1]) + original[1:])
+                try:
+                    with self.assertRaisesRegex(ValueError, 'differs'):
+                        mod.read_prior(self.fixture.unit, admitted)
+                finally:
+                    path.write_bytes(original)
+
+    def test_wrong_shapes_in_a_forged_record_are_value_errors(self):
+        for name, stage, change in (('receipt_checks_str', 'receipt', lambda r: r.update(checks='x')),
+                                    ('receipt_resources_none', 'receipt', lambda r: r.update(resources=None)),
+                                    ('launch_command_int', 'launch', lambda l: l.update(command=3)),
+                                    ('boot_files_list', 'bootstrap-authority', lambda b: b.update(files=[])),
+                                    ('verification_terminal_none', 'verification', lambda v: v.update(terminal=None)),
+                                    ('unit_unit_int', 'unit', lambda u: u.update(unit=3))):
+            with self.subTest(name), self.assertRaises(ValueError):
+                self.read(chain=chain_at(stage, change))
+
+
+GENUINE_ROOT = '/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/'
+FREEZE, RESULT = EVIDENCE / 'standalone-gpu-sha-smoke-v2-freeze', EVIDENCE / 'standalone-gpu-sha-smoke-v2-result'
+
+
+def genuine_path(path):
+    """The committed copies stand in for the root's /home/riomus files (same bytes, same sha256)."""
+    if path == '/home/riomus/runs/sfora-standalone-gpu-sha-smoke-v2/smoke-receipt.json':
+        return RESULT / 'receipt.json'
+    if path == GENUINE_ROOT + 'original-smoke-v2.log':
+        return RESULT / 'original.log'
+    if path.startswith(GENUINE_ROOT):
+        return FREEZE / path[len(GENUINE_ROOT):]
+    if path.startswith((str(FREEZE), str(RESULT))):
+        return Path(path)
+    raise FileNotFoundError(path)
+
+
+class GenuinePriorTests(unittest.TestCase):
+    """The reader against the ORIGINAL smoke-v2 bytes (exact eight-line log, launch, verification, receipt, unit, bootstrap)."""
+
+    def setUp(self):
+        prior = json.loads((FREEZE / 'native-authority-v2.json').read_text())
+        current = json.loads(json.dumps(prior))
+        current['schema'] = mod.NATIVE_FULL
+        current['full'] = {'prior': {'unit': fact(RESULT / 'unit.json'), 'launch': fact(FREEZE / 'launch.json'),
+                                     'verification': fact(RESULT / 'verification.json')},
+                           'fixture': fact(FIXTURE_FILE), 'extractor': fact(EXTRACTOR), 'metadata': fact(METADATA)}
+        files = json.loads((FREEZE / 'mapping-inventory-v1.json').read_text())['files']
+        self.admitted = types.SimpleNamespace(record=current, inventory=files)
+        self.unit, self.overrides = current['full']['prior']['unit'], {}
+        self.real_read, self.real_hash = mod.read_bytes, mod.hash_file
+
+    def key(self, name):
+        launch = json.loads((FREEZE / 'launch.json').read_text())
+        return {'log': GENUINE_ROOT + 'original-smoke-v2.log', 'receipt': '/home/riomus/runs/sfora-standalone-gpu-sha-smoke-v2/smoke-receipt.json',
+                'unit': self.unit['path'], 'launch': str(FREEZE / 'launch.json'), 'verification': str(RESULT / 'verification.json'),
+                'bootstrap-authority': launch['bootstrap_authority']['path'], 'prior': launch['native_authority']['path']}[name]
+
+    def mutate(self, name, change):
+        """Replace one genuine FILE's bytes; the sha256 binding is deliberately bypassed so the SEMANTIC check is what rejects."""
+        key = self.key(name)
+        raw = (genuine_path(key)).read_bytes()
+        if name == 'log':
+            self.overrides[key] = change(raw.decode()).encode('utf-8', 'surrogateescape')
+        else:
+            record = json.loads(raw)
+            change(record)
+            self.overrides[key] = json.dumps(record, sort_keys=True).encode()
+
+    def read(self):
+        def read_bytes(item, limit):
+            if item['path'] in self.overrides:
+                return self.overrides[item['path']]
+            return self.real_read({'path': str(genuine_path(item['path'])), 'sha256': item['sha256']}, limit)
+
+        def hash_file(item):
+            if item['path'] not in self.overrides:
+                return self.real_hash({'path': str(genuine_path(item['path'])), 'sha256': item['sha256']})
+        with mock.patch.object(mod, 'read_bytes', read_bytes), mock.patch.object(mod, 'hash_file', hash_file):
+            return mod.read_prior(self.unit, self.admitted)
+
+    def test_the_original_normal0_smoke_v2_chain_is_accepted(self):
+        facts = self.read()
+        self.assertEqual(facts['invocation_id'], 'e594e58e8ad1495a8150757ca754e3fc')
+        self.assertEqual(facts['unit_name'], 'sfora-standalone-gpu-sha-smoke-v2')
+        self.assertEqual(facts['service_seconds'], 4.393)
+        self.assertEqual(facts['outer_resources']['memory_peak_bytes'], 436899840)
+        self.assertEqual(len((RESULT / 'original.log').read_text().splitlines()), 8)
+
+    def test_genuine_log_mutations_and_truncations_are_rejected(self):
+        original = (RESULT / 'original.log').read_text()
+        lines = original.split('\n')[:-1]
+        cases = {'drop_last': '\n'.join(lines[:-1]) + '\n', 'drop_first': '\n'.join(lines[1:]) + '\n', 'drop_middle': '\n'.join(lines[:3] + lines[4:]) + '\n',
+                 'no_newline': original[:-1], 'crlf': original.replace('\n', '\r\n'), 'cut': original[:200], 'empty': '', 'extra': original + 'x\n',
+                 'blank': original + '\n', 'status1': original.replace('status=0', 'status=1'), 'result': original.replace('success', 'exit-code'),
+                 'id': original.replace('e594e58e', 'e594e58f'), 'unit': original.replace('smoke-v2.service', 'smoke-v3.service'),
+                 'boot_false': original.replace('"bootstrap_exit_pass": true', '"bootstrap_exit_pass": false'),
+                 'oom': original.replace('"oom_kill": 0', '"oom_kill": 1'), 'swap': original.replace('"swap_current_bytes": 0', '"swap_current_bytes": 4096'),
+                 'runtime': original.replace('4.393s', '4.394s'), 'swap_peak': original.replace('0B', '1B'), 'peak': original.replace('436899840', '8589934593'),
+                 'swapped': '\n'.join([lines[0], lines[2], lines[1], *lines[3:]]) + '\n', 'non_utf8': original + '\udcff'}
+        self.assertEqual(self.read()['invocation_id'], 'e594e58e8ad1495a8150757ca754e3fc')
+        for name, text in cases.items():
+            with self.subTest(name):
+                self.overrides.clear()
+                self.mutate('log', lambda raw, text=text: text)
+                with self.assertRaises(ValueError):
+                    self.read()
+
+    def test_genuine_launch_verification_receipt_unit_and_bootstrap_mutations_are_rejected(self):
+        cases = {
+            'launch_product': ('launch', lambda r: r.update(product_go=True)), 'launch_unit': ('launch', lambda r: r.update(unit='x')),
+            'launch_memory': ('launch', lambda r: r['command'].__setitem__(8, '--property=MemoryMax=8589934593')),
+            'launch_runtime': ('launch', lambda r: r['command'].__setitem__(7, '--property=RuntimeMaxSec=1501')),
+            'launch_drop_swap': ('launch', lambda r: r['command'].pop(9)), 'launch_bootstrap': ('launch', lambda r: r['command'].__setitem__(-1, '0' * 64)),
+            'launch_output': ('launch', lambda r: r.update(output='/home/riomus/runs/other')),
+            'launch_authority': ('launch', lambda r: r['native_authority'].update(sha256='0' * 64)),
+            'verify_terminal': ('verification', lambda r: r['terminal'].update(unit='x')), 'verify_outer': ('verification', lambda r: r['outer_resources'].update(wall_seconds=1.0)),
+            'verify_checks': ('verification', lambda r: r.update(all_smoke_checks=False)), 'verify_exit': ('verification', lambda r: r.update(exit_status=1)),
+            'verify_product': ('verification', lambda r: r.update(product_go=True)),
+            'receipt_flag': ('receipt', lambda r: r.update(speed_go=True)), 'receipt_calls': ('receipt', lambda r: r.update(native_calls=23)),
+            'receipt_parity': ('receipt', lambda r: r['checks']['parity'].update(occurrences=128)),
+            'receipt_abi': ('receipt', lambda r: r['checks']['raw_abi'].update(out_null=0)),
+            'receipt_injected': ('receipt', lambda r: r['checks']['injected_failures'].update(readback='ValueError')),
+            'receipt_optimize': ('receipt', lambda r: r['invocation'].update(optimize=2)),
+            'receipt_argv': ('receipt', lambda r: r['invocation']['argv'].__setitem__(7, '/home/riomus/runs/other')),
+            'receipt_body': ('receipt', lambda r: r['resources'].update(body_seconds=300.1)),
+            'receipt_mappings': ('receipt', lambda r: r['mappings'].remove(r['library']['path'])), 'receipt_library': ('receipt', lambda r: r['library'].update(sha256='0' * 64)),
+            'unit_locks': ('unit', lambda r: r.update(both_locks_held=False)), 'unit_id': ('unit', lambda r: r.update(invocation_id='f' * 32)),
+            'unit_extra': ('unit', lambda r: r.update(decision='GO')), 'unit_rss': ('unit', lambda r: r.update(native_peak_rss_kib=666529)),
+            'boot_output': ('bootstrap-authority', lambda r: r.update(output='/home/riomus/runs/other')),
+            'boot_driver': ('bootstrap-authority', lambda r: r['files']['driver'].update(sha256='0' * 64)),
+            'prior_locks': ('prior', lambda r: r['locks'].pop()), 'prior_library': ('prior', lambda r: r['library'].update(sha256='0' * 64)),
+            'prior_runtime': ('prior', lambda r: r['runtime_files'][0]['file'].update(sha256='0' * 64)),
+            'prior_probe': ('prior', lambda r: r['sources']['probe_serializer'].update(sha256='0' * 64))}
+        for name, (target, change) in cases.items():
+            with self.subTest(name):
+                self.overrides.clear()
+                self.mutate(target, change)
+                with self.assertRaises(ValueError):
+                    self.read()
+
+    def test_a_user_written_go_unit_cannot_stand_in_for_the_genuine_unit(self):
+        self.mutate('unit', lambda r: (r.clear(), r.update(schema='cuda-sha256-native-unit-v1', stage='smoke', decision='GO')))
+        with self.assertRaisesRegex(ValueError, 'smoke unit record'):
+            self.read()
+
+    def test_the_committed_evidence_is_itself_unchanged(self):
+        for name, digest in (('standalone-gpu-sha-smoke-v2-result/receipt.json', '45eff741cc688c616eab66ae1aad0f83e0250fb025c64d2e1d28d3b02c0fc7a8'),
+                             ('standalone-gpu-sha-smoke-v2-result/original.log', 'b1e6fc4a01ca51b4a27574f2a10649d049cc24e8f2e1d87c33db14bb8cc33709'),
+                             ('standalone-gpu-sha-smoke-v2-freeze/native-authority-v2.json', '8f11965ce5f79a943d2d3aab2ea85cd509de1f5b1a5e6333ef201758f07c1887')):
+            self.assertEqual(sha((EVIDENCE / name).read_bytes()), digest)
+
+
+# ------------------------------------------------------------------ the synthetic inventory (host only)
+def replacing(old, new):
+    def edit(raw):
+        if old not in raw:
+            raise AssertionError('test edit did not apply: %r' % old)
+        return raw.replace(old, new, 1)
+    return edit
+
+
+class InventoryTests(AuthorityBase):
+    own = True
+
+    def record(self, fixture=None, metadata=None, extractor=None, probe=None, mlp=None, bind=True):
+        def variant(label, origin, edit=None):
+            (self.fixture.dir / label).mkdir(exist_ok=True)
+            raw = origin.read_bytes() if edit is None else edit(origin.read_bytes())
+            return self.fixture.file('%s/%s' % (label, origin.name), raw)
+        meta, ext = variant('meta', METADATA, metadata), variant('ext', EXTRACTOR, extractor)
+        record = json.loads(FIXTURE_FILE.read_text())
+        if bind:
+            record['metadata']['sha256'], record['source']['sha256'] = meta['sha256'], ext['sha256']
+        if fixture:
+            fixture(record)
+        return {'full': {'fixture': self.fixture.json_file('fx.json', record), 'extractor': ext, 'metadata': meta},
+                'sources': {'probe_serializer': variant('probe', SERIALIZERS['probe'], probe),
+                            'mlp_serializer': variant('mlp', SERIALIZERS['mlp'], mlp)}}
+
+    def test_the_real_fixture_extractor_metadata_and_roles_agree(self):
+        inventory = mod.build_inventory(self.record())
+        facts = mod.inventory_facts(inventory)
+        self.assertEqual((facts['leaves'], facts['bytes'], facts['largest_leaf_bytes']), (448, 1711552256, 19832832))
+        self.assertEqual(facts['largest'], 'encoder.layers.0.mlp.fc1.weight')
+        self.assertEqual(inventory.shapes[facts['largest']], (4304, 1152))
+        self.assertEqual(facts['frozen_leaves'], {'probe': 447, 'mlp': 444})
+        self.assertEqual(inventory.roles['probe'], ('head.probe',))
+        self.assertEqual(inventory.roles['mlp'], tuple('encoder.layers.26.mlp.%s.%s' % (a, b) for a in ('fc1', 'fc2') for b in ('weight', 'bias')))
+        self.assertFalse(any(n.startswith('vision_model.') for n in inventory.shapes))
+        self.assertEqual(json.loads(json.dumps(facts)), facts)
+        self.assertNotIn('extract_siglip2_vision_source', sys.modules, 'the extractor must be AST-extracted, never imported')
+
+    def test_tampered_fixture_extractor_metadata_or_roles_are_rejected(self):
+        def shape(record):
+            record['shapes']['head.probe'] = [1, 1, 1151]
+        cases = {
+            'fixture_shape': dict(fixture=shape), 'fixture_bytes': dict(fixture=lambda r: r.update(bytes=r['bytes'] + 4)),
+            'fixture_leaves': dict(fixture=lambda r: r.update(leaves=447)), 'fixture_largest': dict(fixture=lambda r: r.update(largest_leaf_bytes=4)),
+            'fixture_probe': dict(fixture=lambda r: r.update(probe=['head.other'])), 'fixture_mlp': dict(fixture=lambda r: r['mlp'].reverse()),
+            'fixture_model': dict(fixture=lambda r: r.update(model='google/siglip2-large-patch16-256')),
+            'fixture_resolved': dict(fixture=lambda r: r['resolved'].update(vision_use_head=1)),
+            'fixture_quality': dict(fixture=lambda r: r.update(quality_read=True)), 'fixture_real': dict(fixture=lambda r: r.update(synthetic=False)),
+            'fixture_extra': dict(fixture=lambda r: r.update(extra=1)), 'fixture_schema': dict(fixture=lambda r: r.update(schema='x')),
+            'fixture_dropped_leaf': dict(fixture=lambda r: r['shapes'].pop('head.probe')),
+            'fixture_unbound_metadata': dict(bind=False, metadata=lambda raw: raw + b'\n'),
+            'fixture_unbound_extractor': dict(bind=False, extractor=lambda raw: raw + b'\n'), 'fixture_source_sha': dict(fixture=lambda r: r['source'].update(sha256='0' * 64)),
+            'fixture_metadata_sha': dict(fixture=lambda r: r['metadata'].update(sha256='0' * 64)),
+            'fixture_metadata_name': dict(fixture=lambda r: r['metadata'].update(path='docs/other.json')),
+            'metadata_width': dict(metadata=replacing(b'"hidden_size": 1152,\n      "image_size"', b'"hidden_size": 1024,\n      "image_size"')),
+            'metadata_model': dict(metadata=replacing(b'"model": "google/siglip2-so400m-patch16-256"', b'"model": "google/other"')),
+            'extractor_prefix': dict(extractor=replacing(b"PREFIX = 'vision_model.'", b"PREFIX = 'vm.'")),
+            'extractor_second_prefix': dict(extractor=lambda raw: raw + b"\nPREFIX = 'x'\n"),
+            'extractor_no_function': dict(extractor=replacing(b'def expected_vision(', b'def other_vision(')),
+            'extractor_profile': dict(extractor=replacing(b'(1152, 27, 4304)', b'(1152, 27, 4305)')),
+            'probe_role': dict(probe=replacing(b"PROBE = ('head.probe',)", b"PROBE = ('head.attention.in_proj_bias',)")),
+            'probe_shape': dict(probe=replacing(b'PROBE_SHAPES = [[1,1,1152]]', b'PROBE_SHAPES = [[1,1,1151]]')),
+            'probe_second': dict(probe=lambda raw: raw + b"\nPROBE = ('head.probe',)\n"),
+            'mlp_shape': dict(mlp=replacing(b'MLP_SHAPES = [[4304, 1152]', b'MLP_SHAPES = [[4304, 1151]')),
+            'mlp_layer': dict(mlp=replacing(b'"encoder.layers.26.mlp."', b'"encoder.layers.25.mlp."'))}
+        for name, kwargs in cases.items():
+            with self.subTest(name), self.assertRaises(ValueError):
+                mod.build_inventory(self.record(**kwargs))
+
+
+class LeafTests(Base):
+    def test_leaves_are_deterministic_per_name_and_separately_allocated(self):
+        generator = self.torch.Generator(self.device)
+        first = mod.allocate_leaf(self.torch, self.device, generator, 'a.weight', (3, 5))
+        again = mod.allocate_leaf(self.torch, self.device, generator, 'a.weight', (3, 5))
+        other = mod.allocate_leaf(self.torch, self.device, generator, 'b.weight', (3, 5))
+        self.assertEqual((first.shape, first.dtype, first.device), ((3, 5), F32, self.device))
+        self.assertEqual(first.logical(), again.logical())
+        self.assertNotEqual(first.logical(), other.logical())
+        self.assertNotEqual(first.data_ptr(), again.data_ptr())
+        self.assertEqual(len({mod.leaf_seed('n%d' % i) for i in range(448)}), 448)
+        self.assertTrue(all(0 <= mod.leaf_seed('n%d' % i) < 2**63 for i in range(448)))
+
+    def test_check_leaves_rejects_aliases_overlaps_and_wrong_allocations(self):
+        inventory = types.SimpleNamespace(shapes={'a': (4, 4), 'b': (2, 4)})
+        generator = self.torch.Generator(self.device)
+        good = {n: mod.allocate_leaf(self.torch, self.device, generator, n, s) for n, s in inventory.shapes.items()}
+        self.assertEqual([n for _, n in mod.check_leaves(self.torch, self.device, inventory, good)], [64, 32])
+        a = good['a']
+        host, wrong = self.torch.zeros(2, 4), self.torch.make(self.device, (2, 4), F64)
+        cases = {'alias': {'a': a, 'b': a.reshape(2, 8)}, 'wrong_shape': {'a': a, 'b': good['b'].reshape(8)},
+                 'offset_view': {'a': a, 'b': a.reshape(-1)[4:12].reshape(2, 4)}, 'host': {'a': a, 'b': host}, 'dtype': {'a': a, 'b': wrong},
+                 'missing': {'a': a}, 'extra': {**good, 'c': a}, 'overlap_whole': {'a': a, 'b': a.reshape(-1)[:8].reshape(2, 4)}}
+        for name, leaves in cases.items():
+            with self.subTest(name), self.assertRaises(ValueError):
+                mod.check_leaves(self.torch, self.device, inventory, leaves)
+
+
+# ------------------------------------------------------------------ the full stage body (fake torch, scaled inventory)
+REAL_BUILD = mod.build_inventory
+ROLE_MLP = tuple('encoder.layers.26.mlp.%s.%s' % (a, b) for a in ('fc1', 'fc2') for b in ('weight', 'bias'))
+SMALL = {'head.probe': (1, 1, 6), ROLE_MLP[0]: (4, 6), ROLE_MLP[1]: (4,), ROLE_MLP[2]: (6, 4), ROLE_MLP[3]: (6,),
+         'post_layernorm.weight': (6,), 'post_layernorm.bias': (6,), 'embeddings.patch_embedding.bias': (6,),
+         'encoder.layers.0.mlp.fc1.weight': (3, 4000), 'encoder.layers.0.self_attn.q_proj.bias': (5,),
+         'head.layernorm.bias': (7,), 'head.attention.in_proj_bias': (18,)}
+
+
+def small_inventory():
+    return types.SimpleNamespace(shapes=dict(SMALL), roles={'probe': ('head.probe',), 'mlp': ROLE_MLP},
+                                 largest='encoder.layers.0.mlp.fc1.weight')
+
+
+class FullTests(StageHarness):
+    stage = 'full'
+
+    def setUp(self):
+        self.inventory, self.leaves = small_inventory(), {}
+        super().setUp()
+
+    def render(self, edit=None):
+        return self.fixture.render_full(edit)
+
+    def admit(self):
+        return mod.read_native_authority(self.authority, 'full')
+
+    def context(self):
+        context = super().context()
+        context.unit, context.prior = self.fixture.unit, mod.read_prior(self.fixture.unit, self.admitted)
+        return context
+
+    def reset(self):
+        super().reset()
+        self.torch.defer = True
+        self.leaves = {}
+        real = mod.check_leaves
+
+        def capturing(torch, device, inventory, leaves):
+            self.leaves = dict(leaves)  # strong references to exactly the inventory leaves (not the largest-leaf gate copies)
+            return real(torch, device, inventory, leaves)
+        self.stack.enter_context(mock.patch.object(mod, 'check_leaves', capturing))
+        self.stack.enter_context(mock.patch.object(mod, 'build_inventory', lambda record: self.inventory))
+
+    def original(self, name='probe'):
+        return original_fingerprint(SERIALIZERS[name])[0]
+
+    def test_full_stage_passes_and_writes_a_discarded_diagnostic(self):
+        receipt = self.run_stage()
+        self.assertEqual((receipt['schema'], receipt['status']), (mod.FULL_RECEIPT, 'FULL_DIAGNOSTIC_UNREVIEWED'))
+        self.assertTrue(receipt['engineering_only'] and receipt['normal_terminal_required'])
+        self.assertTrue(all(receipt[flag] is False for flag in mod.FLAGS))
+        self.assertEqual(receipt['resource_policy'], mod.POLICY)
+        self.assertEqual({k: receipt[k] for k in ('fixture', 'extractor', 'metadata')},
+                         {k: self.fixture.static[k] for k in ('fixture', 'extractor', 'metadata')})
+        self.assertEqual(receipt['prior']['invocation_id'], self.fixture.INVOCATION)
+        written = json.loads((self.output / 'full-receipt.json').read_text())
+        self.assertEqual((written['schema'], written['authority'], written['prior']), (mod.FULL_RECEIPT, self.authority, receipt['prior']))
+        self.assertFalse((self.output / 'smoke-receipt.json').exists())
+        checks = receipt['checks']
+        self.assertEqual(sorted(checks), ['comparison', 'inventory', 'largest_leaf', 'workloads'])
+        self.assertEqual(checks['inventory']['frozen_leaves'], {'probe': 11, 'mlp': 8})
+        self.assertEqual(sorted(checks['largest_leaf']), ['aliases', 'injected_failures', 'mutation', 'parity', 'streams'])
+        self.assertEqual(checks['largest_leaf']['injected_failures'], {
+            'status': 'ValueError', 'launched': 'InjectedFault', 'completed': 'InjectedFault', 'readback': 'InjectedFault'})
+        self.assertEqual({k: v['launches'] for k, v in checks['workloads'].items()}, {'probe': [11, 12], 'mlp': [8, 12], 'largest': [1]})
+        comparison = checks['comparison']
+        self.assertIn('Outside the clocks', comparison['clock'])
+        self.assertEqual(comparison['pairs'], 3)
+        for label, row in comparison['workloads'].items():
+            self.assertEqual(len(row['pairs']), 3)
+            self.assertEqual([p['order'] for p in row['pairs']], [['original', 'candidate'], ['candidate', 'original'], ['original', 'candidate']])
+            self.assertTrue(all(len(p[arm + '_call_seconds']) == len(row['trees']) and p[arm + '_seconds'] >= 0
+                                for p in row['pairs'] for arm in ('original', 'candidate')))
+            self.assertEqual(row['isolated_mechanism_only'], label == 'largest')
+        self.assertGreater(len(self.native.calls), receipt['native_calls'])  # injected-failure hashers call the native function directly
+        # an independent ORIGINAL fingerprint of the current leaves
+        names = list(SMALL)
+        probe, mlp = self.original('probe'), self.original('mlp')
+        digests = checks['workloads']
+        self.assertEqual(digests['probe']['digests'], [probe({n: self.leaves[n] for n in names if n != 'head.probe'}),
+                                                       probe({n: self.leaves[n] for n in names})])
+        self.assertEqual(digests['mlp']['digests'], [mlp({n: self.leaves[n] for n in names if n not in ROLE_MLP}),
+                                                     mlp({n: self.leaves[n] for n in names})])
+        self.assertNotEqual(digests['probe']['digests'][0], digests['probe']['digests'][1])
+        self.leaves.clear()
+        gc.collect()
+        self.assertEqual([ref for ref in self.torch.made if ref() is not None], [], 'a finished stage must not pin any device owner')
+
+    def test_every_tree_is_one_launch_in_the_original_visit_order_without_dedup(self):
+        self.run_stage()
+        want = lambda names: [(self.leaves[n].data_ptr(), 4 * self.leaves[n].numel()) for n in sorted(names, key=repr)]
+        names = list(SMALL)
+        frozen_probe, frozen_mlp = [n for n in names if n != 'head.probe'], [n for n in names if n not in ROLE_MLP]
+        reads = [r for r in self.native.reads if len(r) in (11, 12, 8) or r == want([self.inventory.largest])]
+        for tree in (frozen_probe, names, frozen_mlp, names, [self.inventory.largest]):
+            self.assertIn(want(tree), reads)
+        self.assertFalse([r for r in self.native.reads if len(r) in (19, 20, 23, 24)], 'frozen and full were amalgamated')
+        self.assertTrue(all(len({a for a, _ in r}) == len(r) for r in reads if len(r) > 1), 'the inventory has no aliased leaf')
+
+    def test_the_448_name_inventory_runs_the_exact_sequential_groups(self):
+        real = REAL_BUILD(self.admitted.record)
+        names = list(real.shapes)
+        self.assertEqual(len(names), 448)
+        self.inventory = types.SimpleNamespace(
+            shapes={n: (3, 4000) if n == real.largest else (1 + i % 3,) for i, n in enumerate(names)}, roles=real.roles, largest=real.largest)
+        receipt = self.run_stage()
+        self.assertEqual({k: v['launches'] for k, v in receipt['checks']['workloads'].items()},
+                         {'probe': [447, 448], 'mlp': [444, 448], 'largest': [1]})
+        self.assertEqual(receipt['checks']['inventory']['leaves'], 448)
+        self.assertEqual(len({leaf.data_ptr() for leaf in self.leaves.values()}), 448)
+        self.assertEqual(sorted(len(r) for r in set(map(tuple, self.native.reads)) if len(r) > 7), [444, 447, 448])
+
+    def arm(self, name):
+        torch = self.torch
+        if name in ('wrong_frozen', 'wrong_full', 'wrong_last'):
+            class Bad(Native):
+                def __call__(inner, *args):
+                    status = Native.__call__(inner, *args)
+                    if args[2] == {'wrong_frozen': 11, 'wrong_full': 12, 'wrong_last': 12}[name]:
+                        first = 0 if name != 'wrong_last' else 32 * (args[2] - 1)
+                        self.torch.device_arena.write(args[3] + first, b'\x01' * 32)
+                    return status
+            self.native = Bad(torch)
+        elif name == 'stale_tree_cache':
+            real, cache = mod.native_fingerprint, {}
+
+            def stale(torch_, hasher, original, value):
+                key = tuple((t.data_ptr(), 4 * t.numel()) for t in mod.collect_occurrences(torch_, value))
+                if key not in cache:
+                    cache[key] = real(torch_, hasher, original, value)
+                return cache[key]
+            self.stack.enter_context(mock.patch.object(mod, 'native_fingerprint', stale))
+        elif name == 'reused_leaf_digests':
+            real, known = mod.native_fingerprint, {}
+
+            def reuse(torch_, hasher, original, value):
+                tensors = mod.collect_occurrences(torch_, value)
+                keys = [mod.occurrence_key(t) for t in tensors]
+                fresh = [t for t in tensors if t.data_ptr() not in known]
+                known.update({t.data_ptr(): d for t, d in zip(fresh, hasher.digests(fresh), strict=True)})
+                cursor = mod.OccurrenceCursor(keys, [(k[2], k[3], known[k[0]]) for k in keys])
+                result = original(value, frozen=cursor)
+                cursor.finish()
+                return result
+            self.stack.enter_context(mock.patch.object(mod, 'native_fingerprint', reuse))
+        elif name == 'pointer_only_dedup':
+            class Dedup(Native):
+                def __call__(inner, ptrs, lens, count, out, stream):
+                    status = Native.__call__(inner, ptrs, lens, count, out, stream)
+                    seen, arena = {}, self.torch.device_arena
+                    for i in range(count):
+                        address, = struct.unpack('<q', arena.read(ptrs + 8 * i, 8))
+                        digest = arena.read(out + 32 * i, 32)
+                        if address in seen:
+                            arena.write(out + 32 * i, seen[address])
+                        elif address:
+                            seen[address] = digest
+                    return status
+            self.native = Dedup(torch)
+        elif name == 'wrong_stream_handle':
+            class Wrong(Native):
+                def __call__(inner, ptrs, lens, count, out, stream):
+                    return Native.__call__(inner, ptrs, lens, count, out, 0)
+            self.native = Wrong(torch)
+        elif name == 'no_wait_event':
+            self.stack.enter_context(mock.patch.object(Stream, 'wait_event', lambda self, event: None))
+        elif name == 'not_pending':
+            torch.cuda._sleep = lambda cycles: None
+        elif name == 'poisoned_drain':
+            syncs = []
+            torch.hooks['sync'] = lambda stream: (syncs.append(1), len(syncs) > 12 and (_ for _ in ()).throw(RuntimeError('drain')))
+        elif name == 'leaky_owner':
+            leaked, real = [], mod.Sha256Native
+
+            class Leaky(real):
+                def digests(self, tensors):
+                    leaked.append(list(tensors))
+                    return real.digests(self, tensors)
+            self.stack.enter_context(mock.patch.object(mod, 'Sha256Native', Leaky))
+        elif name == 'restore_bumps_version':
+            real, seen = mod.flip, []
+
+            def flip(torch_, leaf, byte, mask):
+                real(torch_, leaf, byte, mask)
+                seen.append(1)
+                if len(seen) == 2:
+                    leaf.counter[0] += 1
+            self.stack.enter_context(mock.patch.object(mod, 'flip', flip))
+        elif name == 'restore_skipped':
+            real, seen = mod.flip, []
+
+            def flip(torch_, leaf, byte, mask):
+                seen.append(1)
+                if len(seen) != 2:
+                    real(torch_, leaf, byte, mask)
+            self.stack.enter_context(mock.patch.object(mod, 'flip', flip))
+        elif name == 'wrong_device':
+            torch.cuda.get_device_properties = lambda index: types.SimpleNamespace(name='Other', major=12, minor=1)
+        elif name in ('aliased_leaves', 'wrong_shape', 'wrong_dtype', 'host_leaf'):
+            real, made = mod.allocate_leaf, {}
+
+            def allocate(torch_, device, generator, leaf_name, shape):
+                leaf = real(torch_, device, generator, leaf_name, shape)
+                if leaf_name == 'post_layernorm.weight':
+                    made[leaf_name] = leaf
+                if leaf_name != 'post_layernorm.bias':
+                    return leaf
+                return {'aliased_leaves': made['post_layernorm.weight'], 'wrong_shape': torch_.make(device, (shape[0] + 1,), F32),
+                        'wrong_dtype': torch_.make(device, shape, F64), 'host_leaf': torch_.zeros(*shape)}[name]
+            self.stack.enter_context(mock.patch.object(mod, 'allocate_leaf', allocate))
+        else:
+            raise AssertionError(name)
+
+    def test_each_defect_fails_closed_and_publishes_nothing(self):
+        before = self.fds()
+        for name in ('wrong_frozen', 'wrong_full', 'wrong_last', 'stale_tree_cache', 'reused_leaf_digests', 'pointer_only_dedup',
+                     'wrong_stream_handle', 'no_wait_event', 'not_pending', 'poisoned_drain', 'leaky_owner', 'restore_bumps_version', 'restore_skipped',
+                     'wrong_device', 'aliased_leaves', 'wrong_shape', 'wrong_dtype', 'host_leaf'):
+            with self.subTest(name):
+                self.reset()
+                self.arm(name)
+                with self.assertRaises((ValueError, RuntimeError)):
+                    self.run_stage()
+                self.assertFalse(os.path.lexists(self.output))
+                self.assertEqual(self.fds(), before)
+
+
+    # ---- every guard and the exit rehash the extension FILEs; the exit also re-reads the whole prior chain
+    def drift_bytes(self, name):
+        path = self.fixture.dir / name
+        original = path.read_bytes()
+        return path, original, bytes([original[0] ^ 1]) + original[1:]
+
+    def test_extension_file_drift_is_caught_by_a_body_guard(self):
+        self.run_stage()
+        total = self.counts['source']
+        self.assertGreater(total, 30)
+        for name in ('full-fixture-inventory.json', 'extract_siglip2_vision_source.py', 'so400-native256-upstream-metadata-v1.json'):
+            for number in (2, total - 5):
+                with self.subTest(name, guard=number):
+                    self.reset()
+                    path, original, changed = self.drift_bytes(name)
+                    self.actions[('source', number)] = lambda path=path, changed=changed: path.write_bytes(changed)
+                    try:
+                        with self.assertRaisesRegex(ValueError, 'differs'):
+                            self.run_stage()
+                    finally:
+                        path.write_bytes(original)
+                    self.assertFalse(os.path.lexists(self.output))
+
+    def test_exit_rehashes_the_extension_and_rereads_the_whole_prior_chain(self):
+        self.run_stage()
+        before = self.fds()
+        for name in ('full-fixture-inventory.json', 'extract_siglip2_vision_source.py', 'so400-native256-upstream-metadata-v1.json',
+                     'smoke-out/smoke-receipt.json', 'original-smoke.log', 'prior_driver.py'):
+            with self.subTest(name):
+                self.reset()
+                path, original, changed = self.drift_bytes(name)
+                self.on_exit_drain(lambda path=path, changed=changed: path.write_bytes(changed))
+                try:
+                    with self.assertRaisesRegex(ValueError, 'differs'):
+                        self.run_stage()
+                finally:
+                    path.write_bytes(original)
+                self.assertFalse(os.path.lexists(self.output))
+                self.assertEqual(self.fds(), before)
+
+    def test_a_semantic_change_of_the_prior_chain_at_exit_is_not_accepted(self):
+        def forge():  # a consistently re-hashed forgery is still caught: the chain is re-read and must equal the admitted facts
+            real = mod.read_prior
+            self.stack.enter_context(mock.patch.object(mod, 'UNIT_READER', lambda *a: {**real(*a), 'invocation_id': '0' * 32}))
+        self.on_exit_drain(forge)
+        with self.assertRaisesRegex(ValueError, 'prior smoke unit chain differs at exit'):
+            self.run_stage()
+        self.assertFalse(os.path.lexists(self.output))
+
+    def test_the_exit_runs_the_same_independent_checks_when_the_body_failed(self):
+        self.arm('wrong_full')
+        with self.spied_closure():
+            error = self.held_error()
+        self.assertIn('ORIGINAL', str(error))
+        self.assertEqual(getattr(error, '__notes__', []), [])
+        self.assertEqual(self.events[-3:], ['closure', 'source', 'locks'])
+
+    # ---- caps
+    def test_body_cap_cuda_cap_and_locks_are_enforced_inside_the_full_body(self):
+        clock = self.timed()
+        self.on_call(40, lambda: setattr(clock, 'now', clock.now + 301))
+        with self.assertRaisesRegex(ValueError, 'body deadline'):
+            self.run_stage()
+        self.reset()
+        self.on_call(40, lambda: setattr(self.torch, 'peak', 10**10))
+        with self.assertRaisesRegex(ValueError, 'resource cap'):
+            self.run_stage()
+        self.reset()
+        self.drifts = {('locks', 20)}
+        with self.assertRaisesRegex(ValueError, 'injected locks drift'):
+            self.run_stage()
+        self.assertFalse(os.path.lexists(self.output))
+
+    def test_the_whole_clock_leaves_the_exit_reserve_before_the_exit(self):
+        clock = self.timed(admission=1195)
+        self.on_call(40, lambda: setattr(clock, 'now', clock.now + 10))
+        with self.assertRaisesRegex(ValueError, 'headroom'):
+            self.run_stage()
+        self.assertFalse(os.path.lexists(self.output))
+
+    # ---- lifetimes
+    def test_failure_releases_every_device_owner_after_a_good_drain_and_keeps_them_after_a_bad_one(self):
+        self.arm('wrong_full')
+        error = self.held_error()
+        self.leaves.clear()
+        gc.collect()
+        self.assertEqual([ref for ref in self.torch.made if ref() is not None], [], 'error frames pinned device owners')
+        self.assertEqual(self.frame_locals(error, 'full_checks'), {})
+        self.reset()
+        self.arm('wrong_full')
+        self.torch.cuda.synchronize = lambda: (_ for _ in ()).throw(RuntimeError('final drain'))
+        error = self.held_error()
+        self.assertTrue(any('final drain' in note for note in error.__notes__), error.__notes__)
+        self.assertIn('leaves', self.frame_locals(error, 'full_checks'))
+
+    def test_a_quarantined_hasher_keeps_its_owners_in_the_full_stage(self):
+        self.arm('poisoned_drain')
+        error = self.held_error()
+        self.assertIsInstance(error, (ValueError, RuntimeError))
+        gc.collect()
+        self.assertTrue([ref for ref in self.torch.made if ref() is not None], 'quarantined owners were released')
+
+    def test_the_library_descriptor_is_closed_and_the_receipt_is_exclusive(self):
+        before = self.fds()
+        self.run_stage()
+        self.assertEqual(self.fds(), before)
+        self.reset()
+        self.output.mkdir()
+        with self.assertRaises(FileExistsError):
+            self.run_stage()
+
+    def test_no_global_barrier_sits_between_the_table_copies_and_the_readback_of_a_candidate_call(self):
+        self.run_stage()
+        log = self.torch.log
+        complete = [i for i, e in enumerate(log) if e[0] == 'launch' and log[i + 1][0] == 'sync' and log[i + 2][0] == 'cpu']
+        self.assertGreater(len(complete), 20)
+        self.assertIn(('global_sync',), log)  # the arm and exit drains exist, but never inside a candidate call
+        for i in complete:
+            start = [j for j in range(i) if log[j][0] == 'pin'][-2]  # two pinned tables per call
+            self.assertNotIn(('global_sync',), log[start:i + 3])
+            self.assertEqual([e[0] for e in log[start:i + 3] if e[0] in ('pin', 'copy', 'launch', 'sync', 'cpu')],
+                             ['pin', 'copy', 'pin', 'copy', 'launch', 'sync', 'cpu'])
+
+
+class FullCliTests(AuthorityBase):
+    own = False  # the driver FILE must be this very script, as for the smoke CLI tests
+
+    def setUp(self):
+        super().setUp()
+        self.authority = self.fixture.render_full()
+        self.output = str(self.fixture.dir / 'cli-out')
+        self.recorder = []
+
+    @property
+    def body(self):  # a plain closure: requests.Source deep-copies the STAGE_BODIES literal
+        recorder = self.recorder
+
+        def body(context, output):
+            context.source.check()
+            context.locks.check()
+            recorder.append((context, output))
+            return 'ran'
+        return body
+
+    def run_main(self, argv, bodies=None):
+        with mock.patch.dict(mod.STAGE_BODIES, bodies or {'smoke': self.body, 'full': self.body}, clear=True):
+            return mod.main(argv)
+
+    def test_full_admits_the_authority_then_the_genuine_unit_then_runs_the_body_once(self):
+        self.assertEqual(self.run_main(mod.cli('full', self.authority, self.fixture.unit, self.output)), 'ran')
+        (context, output), = self.recorder
+        self.assertEqual((output, context.unit, context.fact), (self.output, self.fixture.unit, self.authority))
+        self.assertEqual(context.prior['invocation_id'], self.fixture.INVOCATION)
+        self.assertEqual(context.authority.record['schema'], mod.NATIVE_FULL)
+        self.assertFalse(NATIVE & {name.split('.')[0] for name in sys.modules})
+
+    def test_rejections_never_reach_the_full_body(self):
+        go = self.fixture.json_file('go.json', {'schema': 'cuda-sha256-native-unit-v1', 'stage': 'smoke', 'decision': 'GO',
+                                                'authority': self.authority})
+        smoke = self.fixture.render()
+        cases = {'user_go_unit': mod.cli('full', self.authority, go, self.output),
+                 'unfrozen_unit': mod.cli('full', self.authority, self.fixture.static['log'], self.output),
+                 'smoke_authority_for_full': mod.cli('full', smoke, self.fixture.unit, self.output),
+                 'full_authority_for_smoke': mod.cli('smoke', self.authority, None, self.output),
+                 'timing': mod.cli('timing', self.authority, self.fixture.unit, self.output)}
+        for name, argv in cases.items():
+            with self.subTest(name), self.assertRaises(ValueError):
+                self.run_main(argv, {'smoke': self.body, 'full': self.body})
+        self.assertEqual(self.recorder, [])
+        self.assertEqual(set(mod.STAGE_BODIES), {'smoke', 'full'})
+        with self.assertRaisesRegex(ValueError, 'unreleased scaffolding'):
+            self.run_main(mod.cli('timing', self.authority, self.fixture.unit, self.output), {'smoke': self.body, 'full': self.body})
+
+    def test_a_changed_chain_file_never_reaches_the_body(self):
+        path = self.fixture.dir / 'original-smoke.log'
+        path.write_bytes(path.read_bytes()[:-1])
+        with self.assertRaises(ValueError):
+            self.run_main(mod.cli('full', self.authority, self.fixture.unit, self.output))
+        self.assertEqual(self.recorder, [])
+
+
+class RealSizeLeafTests(unittest.TestCase):
+    """The real 19,832,832-byte [4304, 1152] leaf through the fake native: sizes, offsets, no tolist, no 1.7 GiB inventory."""
+
+    def setUp(self):
+        self.torch = Torch(device_bytes=160 << 20)
+        self.device = self.torch.device('cuda', 0)
+        stack = contextlib.ExitStack()
+        self.addCleanup(stack.close)
+        stack.enter_context(fake_modules(self.torch))
+        real = Tensor.tolist
+
+        def tolist(tensor):
+            if tensor.numel() > 4096:
+                raise AssertionError('a large tolist/bytes-copy oracle is forbidden')
+            return real(tensor)
+        stack.enter_context(mock.patch.object(Tensor, 'tolist', tolist))
+        self.native = Native(self.torch)
+        self.hasher = mod.Sha256Native(self.torch, self.native)
+
+    def test_largest_leaf_parity_mutation_and_typed_digest_use_the_streamed_oracle(self):
+        leaf = mod.allocate_leaf(self.torch, self.device, self.torch.Generator(self.device), 'encoder.layers.0.mlp.fc1.weight', (4304, 1152))
+        self.assertEqual(4 * leaf.numel(), 19832832)
+        self.assertEqual(mod.plan_occurrences(self.torch, [leaf], self.device)[0][1], 19832832)
+        want = mod.host_digest(torch=self.torch, leaf=leaf)
+        self.assertEqual(want, sha(leaf.logical()))
+        self.assertEqual(self.hasher.digests([leaf]), [want])
+        flat, version = leaf.reshape(-1), leaf._version
+        mod.flip(self.torch, flat, 19832831, 0x40)
+        changed = mod.host_digest(self.torch, leaf)
+        self.assertEqual((leaf._version, changed != want), (version, True))
+        self.assertEqual(self.hasher.digests([leaf]), [changed])
+        mod.flip(self.torch, flat, 19832831, 0x40)
+        self.assertEqual(self.hasher.digests([leaf]), [want])
+        original = original_fingerprint(SERIALIZERS['probe'])[0]
+        tree = {'encoder.layers.0.mlp.fc1.weight': leaf}
+        self.assertEqual(mod.native_fingerprint(self.torch, self.hasher, original, tree), original(tree))
+        self.assertEqual(self.native.reads[-1], [(leaf.data_ptr(), 19832832)])
+
+    def test_every_largest_leaf_gate_runs_at_the_real_size(self):
+        name, shape = 'encoder.layers.0.mlp.fc1.weight', (4304, 1152)
+        generator = self.torch.Generator(self.device)
+        big = mod.allocate_leaf(self.torch, self.device, generator, name, shape)
+        fingerprints = [original_fingerprint(path)[0] for path in SERIALIZERS.values()]
+        calls = []
+
+        def counted(*args):
+            calls.append(args)
+            return self.native(*args)
+        results = mod.largest_gates(self.torch, self.device, mod.Sha256Native(self.torch, counted), self.native, fingerprints,
+                                    lambda: None, [], calls, big, name,
+                                    lambda: mod.allocate_leaf(self.torch, self.device, generator, name, shape))
+        self.assertEqual(results['parity']['bytes'], 19832832)
+        self.assertEqual(results['mutation']['bytes'], [0, 9916417, 19832831])
+        self.assertEqual(sorted(results['injected_failures']), ['completed', 'launched', 'readback', 'status'])
+
+
+class SourceShapeTests(unittest.TestCase):
+    def functions(self, *names):
+        tree = ast.parse(SCRIPT.read_text())
+        found = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+        return [found[name] for name in names]
+
+    def test_the_full_oracle_path_has_no_tolist_or_bytes_copy(self):
+        for function in self.functions('host_digest', 'largest_gates', 'full_checks', 'timed_arm', 'allocate_leaf', 'check_leaves', 'build_inventory'):
+            for node in ast.walk(function):
+                if isinstance(node, ast.Attribute):
+                    self.assertNotIn(node.attr, ('tolist', 'tobytes', 'to_bytes'), function.name)
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                    self.assertNotIn(node.func.id, ('bytes', 'bytearray'), function.name)
+
+    def test_comparator_is_the_original_fingerprint_never_the_rejected_helper(self):
+        text = SCRIPT.read_text()
+        self.assertNotIn('_fingerprint_cuda_dict', text.replace('never `_fingerprint_cuda_dict`', ''))
+        self.assertIn("original_fingerprint(value, frozen=cursor)", text)
+        self.assertEqual(set(mod.STAGE_BODIES), {'smoke', 'full'})
+        self.assertIsNone(getattr(mod, 'timing', None))
+
+    def test_released_stage_flow_uses_only_the_shared_lifecycle(self):
+        calls = {n.func.id for f in self.functions('smoke', 'full') for n in ast.walk(f) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+        self.assertEqual(calls, {'run_stage'})
+        body = {n.func.id for f in self.functions('smoke_body', 'full_body') for n in ast.walk(f) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+        self.assertLessEqual({'open_stage', 'smoke_checks', 'full_checks'}, body)
+
+
+class SmokeSourceInverseTests(unittest.TestCase):
+    """What the passed native smoke-v2 ran is AST-identical to the frozen smoke-v2 driver except an explicit, finite list."""
+    FROZEN = FREEZE / 'qualify_cuda_sha256_native.py'
+    CHANGED = {'STAGE_BODIES', 'UNIT_READER', 'exit_pass', 'main', 'parser', 'read_json', 'read_native_authority', 'smoke', 'smoke_body',
+               'smoke_checks'}
+
+    @staticmethod
+    def definitions(tree):
+        found = {}
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                found[node.name] = ast.dump(node)
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    for name in ([target.id] if isinstance(target, ast.Name) else [e.id for e in getattr(target, 'elts', ())]):
+                        found[name] = ast.dump(node)
+        return found
+
+    def setUp(self):
+        raw = self.FROZEN.read_bytes()
+        self.assertEqual(sha(raw), '4786116278231bf17c36dd83dc4ac769df032f27678957a63297b3ca88399174')
+        self.old, self.new = ast.parse(raw), ast.parse(SCRIPT.read_text())
+
+    def test_only_the_listed_smoke_definitions_changed_and_none_was_removed(self):
+        old, new = self.definitions(self.old), self.definitions(self.new)
+        self.assertEqual(sorted(set(old) - set(new)), [])
+        self.assertEqual({name for name in old if old[name] != new[name]}, self.CHANGED)
+
+    @staticmethod
+    def injected_span(body):
+        names = lambda n: isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Tuple) and [e.id for e in n.targets[0].elts] == ['injected', 'kept']
+        first = next(i for i, n in enumerate(body) if names(n))
+        last = next(i for i, n in enumerate(body) if ast.unparse(n) == "results['injected_failures'] = injected")
+        return first, last
+
+    def test_smoke_checks_differ_only_by_the_extracted_injected_failure_block(self):
+        old = next(n for n in self.old.body if isinstance(n, ast.FunctionDef) and n.name == 'smoke_checks').body
+        new = next(n for n in self.new.body if isinstance(n, ast.FunctionDef) and n.name == 'smoke_checks').body
+        first, last = self.injected_span(old)
+        self.assertEqual([ast.dump(n) for n in new[:first]], [ast.dump(n) for n in old[:first]])
+        self.assertEqual([ast.dump(n) for n in new[first + 1:]], [ast.dump(n) for n in old[last + 1:]])
+        self.assertIn("results['injected_failures'] = injected_failures(", ast.unparse(new[first]))
+
+    def test_the_extracted_injected_failure_loop_is_the_released_loop_with_only_its_inputs_parameterised(self):
+        old = next(n for n in self.old.body if isinstance(n, ast.FunctionDef) and n.name == 'smoke_checks').body
+        helper = next(n for n in self.new.body if isinstance(n, ast.FunctionDef) and n.name == 'injected_failures').body
+        first, last = self.injected_span(old)
+        released = ast.Module(body=old[first:last], type_ignores=[])  # the assignments, the loop and `del kept`
+
+        class Parameterise(ast.NodeTransformer):
+            def visit_Assign(self, node):
+                if isinstance(node.targets[0], ast.Name) and node.targets[0].id == 'owners':
+                    return ast.Assign(targets=node.targets, value=ast.Call(func=ast.Name('make_owners', ast.Load()), args=[], keywords=[]))
+                return self.generic_visit(node)
+
+            def visit_Subscript(self, node):
+                name = node.value.id if isinstance(node.value, ast.Name) else None
+                if name in ('tensors', 'expected') and ast.unparse(node.slice) == ':3':
+                    return ast.Name('follow' if name == 'tensors' else 'want', ast.Load())
+                return self.generic_visit(node)
+        released = Parameterise().visit(released)
+        ast.fix_missing_locations(released)
+        shared = ast.Module(body=[n for n in helper[1:-1]], type_ignores=[])  # without the docstring and the return
+        self.assertEqual(ast.dump(released), ast.dump(shared))
+
+    def test_smoke_still_has_exactly_the_released_receipt_shape_and_file(self):
+        self.assertIn("(stage + '-receipt.json')", SCRIPT.read_text())
+        self.assertEqual(mod.SMOKE_RECEIPT_KEYS, {'schema', 'status', 'engineering_only', 'authority', 'library', 'device', 'checks', 'native_calls',
+                                                  'resources', 'resource_policy', 'mappings', *mod.FLAGS, 'normal_terminal_required', 'invocation'})
+        self.assertEqual(mod.SMOKE_CHECKS['parity']['lengths'], [4 * n for n in mod.LENGTHS])
 
 
 if __name__ == '__main__':
