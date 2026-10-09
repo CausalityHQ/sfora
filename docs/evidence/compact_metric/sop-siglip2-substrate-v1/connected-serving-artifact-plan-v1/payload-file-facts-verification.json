@@ -1,0 +1,18 @@
+{
+  "expected_future_manifest_payload_sizes": {
+    "endpoint.pt": 42893040,
+    "processor.json": 354,
+    "vision.pt": 1711945083
+  },
+  "native_qualification": false,
+  "original_bundle_sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153",
+  "payload_files_byte_hashes_match_original": true,
+  "peak_rss_bytes": 18644992,
+  "quality_speed_goal_met": false,
+  "schema": "serving-payload-file-facts-parent-verification-v1",
+  "serving_accepted": false,
+  "source_only_elapsed_seconds": 2.0244638599688187,
+  "ssh_exit": 0,
+  "total_bytes": 1754838477,
+  "typed_payload_verified": false
+}

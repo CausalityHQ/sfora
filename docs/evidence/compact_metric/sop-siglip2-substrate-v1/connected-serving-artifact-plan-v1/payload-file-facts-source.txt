@@ -1,0 +1,16 @@
+import hashlib,json,os,stat,time,resource,signal
+from pathlib import Path
+resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824));signal.alarm(120)
+def stamp(v):return (v.st_dev,v.st_ino,v.st_mode,v.st_nlink,v.st_size,v.st_mtime_ns,v.st_ctime_ns)
+def inspect(p,expected):
+ assert p.resolve()==p and not p.is_symlink()
+ fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+ try:
+  before=os.fstat(fd);assert stat.S_ISREG(before.st_mode) and before.st_nlink==1
+  h=hashlib.sha256();total=0
+  while b:=os.read(fd,1024*1024):h.update(b);total+=len(b)
+  assert h.hexdigest()==expected and total==before.st_size and stamp(before)==stamp(os.fstat(fd))==stamp(p.lstat())
+ finally:os.close(fd)
+ return {'path':str(p),'bytes':total,'sha256':expected,'device':before.st_dev,'inode':before.st_ino}
+root=Path('/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle');bundle=root/'bundle.json';trusted='e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153';before=inspect(bundle,trusted);raw=bundle.read_bytes();assert hashlib.sha256(raw).hexdigest()==trusted;m=json.loads(raw);assert set(m['files'])=={'vision.pt','endpoint.pt','processor.json'};start=time.monotonic();files={name:inspect(root/name,pin) for name,pin in sorted(m['files'].items())};assert inspect(bundle,trusted)==before
+print(json.dumps({'schema':'original-serving-payload-file-facts-v1','original_bundle_sha256':trusted,'files':files,'total_bytes':sum(f['bytes'] for f in files.values()),'elapsed_seconds':time.monotonic()-start,'peak_rss_bytes':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024,'address_space_bytes':1073741824,'typed_payload_verified':False,'model_executed':False,'native_qualification':False,'serving_accepted':False,'quality_speed_goal_met':False},sort_keys=True))
