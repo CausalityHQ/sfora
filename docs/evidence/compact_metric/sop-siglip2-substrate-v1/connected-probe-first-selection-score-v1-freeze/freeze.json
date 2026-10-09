@@ -1,0 +1,17 @@
+{
+  "files": {
+    "authority-first-selection-score-v1.json": "e0a14f8af822d53df8f2b9952627b521f3c497d1d9fe080671e2b08fbb1ca028",
+    "first-selection-score-v1-command.sh": "2e902ce27995fc84822de5202bac13f1010f1c28c73c9706ccf76674cd1cc827",
+    "first-selection-score-v1-controller.sh": "9c887ca06bedd87095a82cb045c87e608a622ef67a47639f07eb916bf728200a",
+    "first-selection-score-v1-launch.sh": "4df6e675f7a3f274fcc5a8c167f283d8ea4ac495849302511047239e48fc921d"
+  },
+  "policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 700,
+    "swap_bytes": 0
+  },
+  "schema": "connected-probe-first-score-freeze-v1",
+  "stop_rule": "ONE paired first selection score after both original accepted exports; original complete accept_unit before quality; frozen CONTINUE/KILL; no official, serving-speed or SOTA claim.",
+  "unit": "sfora-connected-probe-evaluation-first-selection-score-v1"
+}

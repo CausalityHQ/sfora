@@ -1,0 +1,33 @@
+{
+  "schema": "connected-probe-export-inclusive-timing-diagnostic-v1",
+  "stages": {
+    "images_outputs": {
+      "count": 218,
+      "sum_seconds": 690.9803548419732,
+      "median_seconds": 2.7484822749975137
+    },
+    "exit_rehash": {
+      "count": 1,
+      "sum_seconds": 77.95908627798781,
+      "median_seconds": 77.95908627798781
+    }
+  },
+  "runtime_hash": {
+    "count": 228,
+    "sum_seconds": 74.32560703108902,
+    "median_seconds": 0.3177269934967626
+  },
+  "gpu_utilization_sampled": {
+    "interval_seconds": 5,
+    "active_samples": 217,
+    "mean_percent": 9.059907834101383,
+    "median_percent": 1,
+    "max_percent": 96,
+    "zero_samples": 107,
+    "scope": "Sparse NVML samples of this invocation, starting after launch; not time-weighted, not sustained full-run integration or compute-only occupancy"
+  },
+  "overlapping_stages_not_additive": true,
+  "product_latency_qualified": false,
+  "host_peak_bytes": 5143412736,
+  "cuda_peak_bytes": 2066498560
+}
