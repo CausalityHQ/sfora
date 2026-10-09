@@ -1,0 +1,2 @@
+PASS: real ten-file admission + installed RECORD verification + bounded metadata + fresh external anchor; payload/metadata/wheel/authority/anchor mutations reject; fresh restored composition passes; native UNRUN
+PASS: genuine binding; foreign callback, checker code/defaults/kwdefaults, duplicate snapshot, helper literal mutations reject; restored binding passes; native UNRUN

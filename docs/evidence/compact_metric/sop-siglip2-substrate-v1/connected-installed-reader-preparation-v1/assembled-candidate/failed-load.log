@@ -1,0 +1,1 @@
+PASS real mmap failed-load cleanup: original rejection object retained; owned finished aliases released; external retained mapping remains alive and rejected; full exit attempted; native UNRUN

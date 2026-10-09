@@ -1,0 +1,62 @@
+{
+  "checks": [
+    {
+      "check": "sfora-serving-preparation-check.py",
+      "exit": 0,
+      "wall_seconds": 0.27564004994928837
+    },
+    {
+      "check": "sfora-serving-lifecycle-check.py",
+      "exit": 0,
+      "wall_seconds": 0.18416011694353074
+    },
+    {
+      "check": "sfora-serving-failed-load-check.py",
+      "exit": 0,
+      "wall_seconds": 0.05262457602657378
+    },
+    {
+      "check": "sfora-serving-payload-flow-check.py",
+      "exit": 0,
+      "wall_seconds": 0.03698457696009427
+    },
+    {
+      "check": "sfora-serving-public-load-check.py",
+      "exit": 0,
+      "wall_seconds": 0.027198452036827803
+    },
+    {
+      "check": "sfora-serving-request-prelude-check.py",
+      "exit": 0,
+      "wall_seconds": 0.08607756695710123
+    }
+  ],
+  "files": {
+    "connected_inference_candidate.py": "2a6fd915904a45b24ea7effbbdefcac1a2c286dc9d7dec21ae7a0e11ab90978c",
+    "failed-load.log": "ec5cf7d19dbe8732515cbb2a34dcf1007ec2c34b2e9350feb270a0ce2dcf0beb",
+    "lifecycle.log": "4e5dfaf0cef7db6fe0295f4daae2c79f044005c200615bf19b8667e3f0443007",
+    "payload-flow.log": "860be376318946f387e466ebad20df71b5fa1e0545ac57aa695fc594cb68af9c",
+    "preparation.log": "ccdca0f9e348d15886c069837afc2447209858e1a2c469ba3b26274659134035",
+    "public-load.log": "ec7e8169ed4da6d08359ee393bc626eba901569b05b8836f27eac9bb14842b9d",
+    "request-prelude.log": "1169e35bb241c4416570ad355bef1a1a0a86d3305fb59a8ea668a82c131687b5",
+    "scope.md": "ffddd91bc94224d2120e6778032ddd135c2bb11d29f3558ac4d2031faa953cee",
+    "sfora-installed-reader-core.py": "2ff8856b3c4f6ac79c1a7be35752160fe48b35de7d1d1dd6a36dd71152278528",
+    "sfora-serving-constructor-candidate.py": "70b63ad9863f9b46357fa643c83f54cec7b7bdcdaf5dd2ba31c360ccd0e65324",
+    "sfora-serving-failed-load-check.py": "1f7c1d9011d1947f7b5c65c93262bdb98a5371ee3fa95c1b2e23a9883f27082e",
+    "sfora-serving-failed-load.py": "820424e2aa9a975e043d1693316e6f1fa5ce014d44b135f6c9c0ec9fde29ed69",
+    "sfora-serving-inference-outputs.py": "0f4efb9af12f5aba7492c947b679b776b6fe090412da02b817f22432960a30ec",
+    "sfora-serving-lifecycle-check.py": "220007eb57a936748bcb2b25a2de6f0afa0ef4d3428466e194d23604545fa839",
+    "sfora-serving-lifecycle.py": "151d6635c0e925af507bf98874bb3624c6ea1086e8df30b3a9cb2c3634a13590",
+    "sfora-serving-load-payload.py": "fc6eaf2722739de58af1277c4c2b98548270897557858f625d20f90c2ec2b739",
+    "sfora-serving-metadata-prototype.py": "1c4d6b11e89bffcd9d053b4c2ad2153dcd1497a767bc3edffa7b5c6250342286",
+    "sfora-serving-payload-flow-check.py": "c7d09050c239b4432a601268c8b8ae2bf28d34def2b6ad8308daa4eded0c8c17",
+    "sfora-serving-payload-identity.py": "46257c5a789228a73fecfe9180b9049f4d0f8fc666c9533941c1ce737fff8717",
+    "sfora-serving-preparation-check.py": "2bfeeb5fb83e81f51fbbc93bcd9fe5502ea4a1b9c4e1add3c50a819eac9a605a",
+    "sfora-serving-prepare-fixture.py": "259954b48725de4e724d7df4d07deb0b3a6efdf7b7bfc15cf451f01444e5c7c0",
+    "sfora-serving-public-load-check.py": "8e51b3a8682176487cea3b647dd308f17061c69cbf1338c2515a18c1cb9f930c",
+    "sfora-serving-request-prelude-check.py": "1867d9a9b2e7c4e5acae5133aad1733be22beb70cdd3da210edc11147b778cb7"
+  },
+  "native_run": false,
+  "production_changed": false,
+  "schema": "installed-reader-candidate-source-only-v1"
+}
