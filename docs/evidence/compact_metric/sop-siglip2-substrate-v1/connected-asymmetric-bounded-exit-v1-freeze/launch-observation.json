@@ -1,0 +1,16 @@
+{
+  "active_at_observation": true,
+  "control_group": "/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-bounded-exit-179061-v1.service",
+  "invocation_id": "6f829f87d1134e3baf99c2f76417d773",
+  "launch_observation_tool_chunk": "8e1567",
+  "main_pid": 2162343,
+  "memory_max_bytes": 8589934592,
+  "runtime_max_seconds": 700,
+  "schema": "bounded-exit-original-launch-observation-v1",
+  "scientific_qualified": false,
+  "source_preflight_tool_chunk": "88f3ac",
+  "ssh_session": 54145,
+  "swap_max_bytes": 0,
+  "terminal_collected": false,
+  "unit": "sfora-connected-asymmetric-cache-bounded-exit-179061-v1"
+}

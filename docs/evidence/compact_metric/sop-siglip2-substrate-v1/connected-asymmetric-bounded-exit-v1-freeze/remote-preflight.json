@@ -1,0 +1,9 @@
+{
+  "experiment_launched_at_preflight": false,
+  "files_verified": 32,
+  "native_imports": [],
+  "original_tool_chunk": "88f3ac",
+  "python_version": "3.13.9",
+  "schema": "bounded-exit-preflight-v1",
+  "unit_binding": true
+}
