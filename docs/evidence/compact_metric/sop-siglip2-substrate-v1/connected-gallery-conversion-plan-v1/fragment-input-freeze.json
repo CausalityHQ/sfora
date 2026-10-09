@@ -1,0 +1,31 @@
+{
+  "conversion_executed": false,
+  "inputs": {
+    "bundle": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json",
+      "sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153"
+    },
+    "combined_wire": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/control-179061.packed.bin",
+      "sha256": "c2260ca93cedf8ae5c0840034d2ed06d10860539d33df562fe82a7eac30b1558"
+    },
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/receipt.json",
+      "sha256": "db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407"
+    }
+  },
+  "ownership_audit": {
+    "remote_path": null,
+    "repository_path": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-original-environment-audit-v1/complete-record-owners.json",
+    "sha256": "8e38d2e503a44cdc1f2fe3cf4bf08c2a86dfb1f86603363aef5dcb262812f36f"
+  },
+  "quality_speed_goal_met": false,
+  "reference": {
+    "gallery_count": 1715,
+    "ordered_ids_sha256": "df9fb988945811be1100b4b95166871a4f840974e6667ecdf249d75732405ad4",
+    "wire_sha256": "386f3b2289f74f7d154efc9d47838f26def6a8c7a18368faac1d3c690ec6bd28"
+  },
+  "schema": "connected-gallery-fragment-input-freeze-v1",
+  "serving_accepted": false,
+  "source_authority_frozen": false
+}
