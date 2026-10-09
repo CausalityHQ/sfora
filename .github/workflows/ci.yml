@@ -51,6 +51,7 @@ jobs:
           check_source_contract scripts/test_connected_probe_inference_extraction.py
           check_source_contract scripts/test_connected_compact_serving.py
           check_source_contract scripts/test_connected_compact_serving.py --probe-only
+          check_source_contract scripts/test_connected_artifact_identity.py
 
   test:
     name: Format, lint, type-check, and test

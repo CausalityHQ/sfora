@@ -1,0 +1,17 @@
+Captured initial TDD execution (before implementation existed).
+Command: ulimit -v 1048576; timeout 15 python3 -B -S scripts/test_connected_artifact_identity.py
+Exit status: 1
+E
+======================================================================
+ERROR: setUpClass (__main__.IdentityTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-artifact-origin-correspondence-20261009/scripts/test_connected_artifact_identity.py", line 42, in setUpClass
+    assert SOURCE.is_file(), "missing correspondence implementation"
+           ~~~~~~~~~~~~~~^^
+AssertionError: missing correspondence implementation
+
+----------------------------------------------------------------------
+Ran 0 tests in 0.001s
+
+FAILED (errors=1)

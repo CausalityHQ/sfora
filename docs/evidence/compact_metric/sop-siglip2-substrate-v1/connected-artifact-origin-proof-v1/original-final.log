@@ -1,0 +1,36 @@
+Final affected source-only suite: one serial run; deadline 120s; AS limit (1073741824, 1073741824)
+Python 3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]
+RUN scripts/test_connected_artifact_identity.py -v
+test_committed_genuine_model_rows_have_exact_source_correspondence (__main__.IdentityTests.test_committed_genuine_model_rows_have_exact_source_correspondence) ... ok
+test_equal_installed_bytes_relocate_only_explicit_origins (__main__.IdentityTests.test_equal_installed_bytes_relocate_only_explicit_origins) ... ok
+test_installed_roots_are_independent_canonical_unambiguous_nonsymlinks (__main__.IdentityTests.test_installed_roots_are_independent_canonical_unambiguous_nonsymlinks) ... ok
+test_installed_source_symlink_directory_fifo_or_missing_rejects (__main__.IdentityTests.test_installed_source_symlink_directory_fifo_or_missing_rejects) ... ok
+test_inverse_rejects_changed_source_shape_path_package_and_hash (__main__.IdentityTests.test_inverse_rejects_changed_source_shape_path_package_and_hash) ... ok
+test_inverse_rejects_non_origin_values_types_and_module_order (__main__.IdentityTests.test_inverse_rejects_non_origin_values_types_and_module_order) ... ok
+test_json_only_no_coercion_or_nonfinite_values (__main__.IdentityTests.test_json_only_no_coercion_or_nonfinite_values) ... ok
+test_original_paths_must_be_canonical_component_contained (__main__.IdentityTests.test_original_paths_must_be_canonical_component_contained) ... ok
+test_projection_inverse_preserve_every_other_typed_member_and_input (__main__.IdentityTests.test_projection_inverse_preserve_every_other_typed_member_and_input) ... ok
+test_same_class_path_version_changed_bytes_reject_before_native_and_recheck (__main__.IdentityTests.test_same_class_path_version_changed_bytes_reject_before_native_and_recheck) ... ok
+test_wrong_original_hash_cannot_authorize_installed_bytes (__main__.IdentityTests.test_wrong_original_hash_cannot_authorize_installed_bytes) ... ok
+test_wrong_unknown_ambiguous_roots_or_missing_hash_reject (__main__.IdentityTests.test_wrong_unknown_ambiguous_roots_or_missing_hash_reject) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.056s
+
+OK
+EXIT 0 elapsed_total_s 0.128
+RUN scripts/test_connected_inference_extraction.py
+connected inference source-only checks passed
+EXIT 0 elapsed_total_s 2.246
+RUN scripts/test_connected_probe_inference_extraction.py
+PASS actual decorator factory/code/globals predicates and original CPU-v5 full-source guards
+PASS genuine decorated vision/direct head: wraps forgeries, actual closure/flags/globals/base negatives
+connected probe inference source-only checks passed; native UNRUN
+EXIT 0 elapsed_total_s 24.014
+RUN scripts/test_connected_compact_serving.py
+PASS: connected bridge source-only admission, exact wire, failure cleanup, registry ownership, lifecycle lock; mode=mlp
+EXIT 0 elapsed_total_s 25.331
+RUN scripts/test_connected_compact_serving.py --probe-only
+PASS: connected bridge source-only admission, exact wire, failure cleanup, registry ownership, lifecycle lock; mode=probe
+EXIT 0 elapsed_total_s 26.785
+PASS all 5 commands; elapsed_s 26.785 max_child_rss_kib 115992

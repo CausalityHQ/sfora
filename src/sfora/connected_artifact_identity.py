@@ -29,22 +29,34 @@ import os
 import re
 import stat
 from pathlib import PurePosixPath
+from typing import cast
+
+type JSONValue = str | int | float | bool | None | list[JSONValue] | dict[str, JSONValue]
+type JSONObject = dict[str, JSONValue]
 
 
-def _clone_json(value):
+def _clone_json(value: object) -> JSONValue:
     kind = type(value)
     if kind is dict:
-        if any(type(key) is not str for key in value):
+        if any(type(key) is not str for key in cast(dict[object, object], value)):
             raise ValueError("JSON object keys must be strings")
-        return {key: _clone_json(item) for key, item in value.items()}
+        return {
+            cast(str, key): _clone_json(item)
+            for key, item in cast(dict[object, object], value).items()
+        }
     if kind is list:
-        return [_clone_json(item) for item in value]
-    if value is None or kind in (str, int, bool) or kind is float and math.isfinite(value):
-        return value
+        return [_clone_json(item) for item in cast(list[object], value)]
+    if (
+        value is None
+        or kind in (str, int, bool)
+        or kind is float
+        and math.isfinite(cast(float, value))
+    ):
+        return cast(JSONValue, value)
     raise ValueError("finite JSON metadata required")
 
 
-def _absolute_path(value):
+def _absolute_path(value: object) -> PurePosixPath:
     if (
         type(value) is not str
         or not value.startswith("/")
@@ -56,10 +68,10 @@ def _absolute_path(value):
     return PurePosixPath(value)
 
 
-def _roots(roots):
+def _roots(roots: object) -> dict[str, PurePosixPath]:
     if type(roots) is not dict or not roots:
         raise ValueError("authenticated package roots required")
-    result = {}
+    result: dict[str, PurePosixPath] = {}
     for package, root in roots.items():
         if type(package) is not str or not package.isidentifier():
             raise ValueError("top-level package name required")
@@ -72,7 +84,7 @@ def _roots(roots):
     return result
 
 
-def _origins(metadata, kind):
+def _origins(metadata: object, kind: object) -> list[JSONObject]:
     if type(metadata) is not dict or type(kind) is not str:
         raise ValueError("model or processor JSON identity required")
     if kind == "model":
@@ -88,10 +100,12 @@ def _origins(metadata, kind):
         type(row) is not dict or not {"class", "file"} <= row.keys() for row in origins
     ):
         raise ValueError(kind + " class/file origin occurrences required")
-    return origins
+    return cast(list[JSONObject], origins)
 
 
-def project_identity(original, *, kind, package_roots, source_files):
+def project_identity(
+    original: object, *, kind: object, package_roots: object, source_files: object
+) -> JSONObject:
     """Copy authenticated model/processor JSON, replacing only explicit file leaves.
 
     Each SOURCE has string package/path/sha256. Package is the unchanged class's
@@ -118,10 +132,17 @@ def project_identity(original, *, kind, package_roots, source_files):
         if type(sha) is not str or re.fullmatch("[0-9a-f]{64}", sha) is None:
             raise ValueError("missing or invalid authenticated source hash")
         row["file"] = {"package": package, "path": str(path.relative_to(root)), "sha256": sha}
-    return projected
+    return cast(JSONObject, projected)
 
 
-def restore_identity(projected, original, *, kind, package_roots, source_files):
+def restore_identity(
+    projected: object,
+    original: object,
+    *,
+    kind: object,
+    package_roots: object,
+    source_files: object,
+) -> JSONObject:
     """Invert explicit occurrences and reject any other typed metadata change.
 
     Returns a fresh original-shaped JSON dict. Neither input is changed. JSON
@@ -143,10 +164,10 @@ def restore_identity(projected, original, *, kind, package_roots, source_files):
         row["file"] = old["file"]
     if json.dumps(restored, allow_nan=False) != json.dumps(original, allow_nan=False):
         raise ValueError("original typed metadata correspondence differs")
-    return restored
+    return cast(JSONObject, restored)
 
 
-def _installed_sha(path):
+def _installed_sha(path: PurePosixPath) -> str:
     # Walk open directory descriptors so no parent or leaf symlink is followed.
     directory = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
     try:
@@ -169,8 +190,14 @@ def _installed_sha(path):
 
 
 def materialize_identity(
-    projected, original, *, kind, package_roots, source_files, installed_roots
-):
+    projected: object,
+    original: object,
+    *,
+    kind: object,
+    package_roots: object,
+    source_files: object,
+    installed_roots: object,
+) -> JSONObject:
     """Return expected installed metadata after inverse checks and fresh hashing.
 
     Independently bound installed_roots are canonical absolute POSIX directories.
@@ -184,15 +211,15 @@ def materialize_identity(
         expected, original, kind=kind, package_roots=package_roots, source_files=source_files
     )
     roots = _roots(installed_roots)
-    if roots.keys() != package_roots.keys():
+    if roots.keys() != cast(dict[str, str], package_roots).keys():
         raise ValueError("installed package root keys differ")
-    checked = set()
+    checked: set[PurePosixPath] = set()
     for row in _origins(expected, kind):
-        source = row["file"]
+        source = cast(dict[str, str], row["file"])
         path = roots[source["package"]] / source["path"]
         if path not in checked:
             if _installed_sha(path) != source["sha256"]:
                 raise ValueError("installed source hash differs: " + str(path))
             checked.add(path)
         row["file"] = str(path)
-    return expected
+    return cast(JSONObject, expected)

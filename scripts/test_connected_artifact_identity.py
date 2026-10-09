@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Stdlib correspondence checks; no native, tensor or serving qualification."""
 
+import ast
 import copy
 import hashlib
 import importlib.abc
@@ -8,6 +9,7 @@ import importlib.util
 import inspect
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -113,6 +115,79 @@ class IdentityTests(unittest.TestCase):
             package_roots=self.roots,
             source_files=self.files,
             installed_roots={"json": str(self.installed)} if roots is None else roots,
+        )
+
+    def test_typing_erasure_restores_original_whole_source_ast(self):
+        original = subprocess.check_output(
+            [
+                "git",
+                "show",
+                "f81dd383de1bd67920e0cd0a3e570a51de8ad0fc:src/sfora/connected_artifact_identity.py",
+            ],
+            cwd=ROOT,
+        )
+        self.assertEqual(
+            hashlib.sha256(original).hexdigest(),
+            "296742a2f8c06ed66f07c1bfe500e87f9aed0161ded7f2c05f88e84bd92aeded",
+        )
+
+        class EraseTyping(ast.NodeTransformer):
+            def __init__(self):
+                self.casts = 0
+                self.aliases = []
+                self.locals = 0
+                self.functions = 0
+                self.imports = 0
+
+            def visit_ImportFrom(self, node):
+                if node.module == "typing":
+                    if [(item.name, item.asname) for item in node.names] != [("cast", None)]:
+                        raise AssertionError("unexpected typing import")
+                    self.imports += 1
+                    return None
+                return node
+
+            def visit_TypeAlias(self, node):
+                self.aliases.append(node.name.id)
+                return None
+
+            def visit_FunctionDef(self, node):
+                self.functions += 1
+                node.returns = None
+                return self.generic_visit(node)
+
+            def visit_arg(self, node):
+                node.annotation = None
+                return node
+
+            def visit_AnnAssign(self, node):
+                self.locals += 1
+                if node.value is None:
+                    raise AssertionError("unexpected unassigned annotation")
+                return ast.Assign(
+                    targets=[node.target],
+                    value=self.visit(node.value),
+                    type_comment=None,
+                )
+
+            def visit_Call(self, node):
+                if isinstance(node.func, ast.Name) and node.func.id == "cast":
+                    if len(node.args) != 2 or node.keywords:
+                        raise AssertionError("unexpected cast form")
+                    self.casts += 1
+                    return self.visit(node.args[1])
+                return self.generic_visit(node)
+
+        inverse = EraseTyping()
+        restored = inverse.visit(ast.parse(SOURCE.read_bytes()))
+        self.assertEqual(inverse.casts, 12)
+        self.assertEqual(inverse.aliases, ["JSONValue", "JSONObject"])
+        self.assertEqual(inverse.locals, 2)
+        self.assertEqual(inverse.functions, 8)
+        self.assertEqual(inverse.imports, 1)
+        self.assertEqual(
+            ast.dump(restored, include_attributes=False),
+            ast.dump(ast.parse(original), include_attributes=False),
         )
 
     def test_projection_inverse_preserve_every_other_typed_member_and_input(self):

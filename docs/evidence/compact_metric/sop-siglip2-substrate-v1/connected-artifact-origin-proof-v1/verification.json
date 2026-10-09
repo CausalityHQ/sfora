@@ -1,0 +1,63 @@
+{
+  "all_original_test_methods_ast_identical": true,
+  "ci_delta": "one explicit new standalone test call; existing workflow restored byte-exactly by removing that line",
+  "files": {
+    "scripts/test_connected_artifact_identity.py": "50db870330ba0cf830483eae477f0b80ce5146439578eb415bb1419b98974f1f",
+    "src/sfora/connected_artifact_identity.py": "3886a1e0c21824824f296f810dcdb89af25a7365b857f7a5afff6c91ece4abc3"
+  },
+  "final_gate": {
+    "address_space_bytes": 1073741824,
+    "commands": 8,
+    "exit": 0,
+    "max_child_rss_kib": 116284,
+    "new_tests": 13,
+    "seconds": 20.498,
+    "stdlib_source_only": true,
+    "timeout_seconds": 120
+  },
+  "limits": [
+    "No serving integration or artifact converter",
+    "Original full/fixed payload and environment authentication remains caller prerequisite",
+    "Installed roots must be independently caller-bound; selected byte checks do not authenticate complete distribution/native environment",
+    "No live observation can be manufactured from expected metadata",
+    "Native/tensor/numerical relocation parity UNRUN",
+    "Whole package CI still formattingFAIL; no complete release or quality/speed qualification"
+  ],
+  "logs": {
+    "original-final.log": "c25c8d0ed735b80ac10cdcf4c23fe8235856ead5848e76a29dd7500b230ccf5f",
+    "original-red.log": "1d2a6a32f41f1254422679571e3527b9a28db02073f8d73b7db6e97be88cfb25",
+    "typing-final.log": "1bdc2bd83c5f4785a75419dbae340d8d6a8ce63826c3da7c88b2ea730ee90ed8"
+  },
+  "original_worker_commit": "c80769cb08e3a5bd67d21ed22c8b60ff81b5e64c",
+  "product_go": false,
+  "python312_new_tests": {
+    "no_ml_imports": true,
+    "pass": true,
+    "seconds": 0.075,
+    "tests": 13
+  },
+  "root_import_commit": "f81dd383de1bd67920e0cd0a3e570a51de8ad0fc",
+  "runtime_authorities_and_existing_loader_files_unchanged": true,
+  "schema": "connected-artifact-origin-source-proof-v1",
+  "scientific_goal_met": false,
+  "strict_mypy": {
+    "first_download_attempt": "TIMEOUT124/no verdict",
+    "original_untyped_source": "RED26 errors/no-untyped-def,no-untyped-call,var-annotated",
+    "repaired_source": "PASS single file with configured strict Python3.12; follow-imports=skip",
+    "version": "2.1.0"
+  },
+  "typing_ast_inverse": {
+    "aliases": 2,
+    "annotated_locals": 2,
+    "functions": 8,
+    "identity_casts": 12,
+    "pass": true,
+    "typing_imports": 1
+  },
+  "typing_worker": {
+    "instance": "d2098253-8709-4ab9-85e2-c2c02ea74e72",
+    "reason": "Provider initialization failed; parent took narrow repair; preserved original brief/worktree",
+    "source_turn_started": false,
+    "state": "deliberately-stopped"
+  }
+}
