@@ -1,0 +1,82 @@
+{
+  "evirank_v1.html": {
+    "bytes": 826144,
+    "sha256": "d0bf822a86487044b5232130e95cb8548a9a40624c3680d89bd05d9ddd569776"
+  },
+  "evirank_v1.txt": {
+    "bytes": 124187,
+    "sha256": "192610e15ccec6357707af7903119bf528c4b30136793d6c327cc9326d3f76a8"
+  },
+  "or_forum.json": {
+    "bytes": 266,
+    "sha256": "54af5fd2788a3fe1c06ff8d314e8437be9d5e8d90391e7ae7c674cd8dfa50165"
+  },
+  "or_forum2.json": {
+    "bytes": 287,
+    "sha256": "ad7d6b422b8580ec80e5fecda38b6ed467cbd96094c43c5e2b2f625da4ef06d3"
+  },
+  "or_search.json": {
+    "bytes": 14398,
+    "sha256": "61c48f5de1f956a0873f135bac0101f1c12dda5a1e5f798c1e454fe372e7409b"
+  },
+  "unicom_LICENSE": {
+    "bytes": 1066,
+    "sha256": "9a76fb1745613faf11bc819c698d556095ae9be6891e5d737d22e3780b4242ba"
+  },
+  "unicom_README.md": {
+    "bytes": 6068,
+    "sha256": "bda57726c6e4a7f91384191ce676096235cd61d5d7fb2f11075cbbeb3ce52640"
+  },
+  "unicom_arxiv_v1.html": {
+    "bytes": 283533,
+    "sha256": "cd321730c43486ec4f07d08f7c43781816d6e97b7df2cdf155eb7ab3aedf3031"
+  },
+  "unicom_data_README.md": {
+    "bytes": 21,
+    "sha256": "78c26cddca9932cbe51e8de4747d8e3d04d017d39c737a52aa80166813675b5f"
+  },
+  "unicom_dataset_Inshop.py": {
+    "bytes": 3132,
+    "sha256": "bce198dc44f52a4f03977ef1096b8927f0e7461df9d8e9581c54169c0ae3d8dd"
+  },
+  "unicom_dataset_SOP.py": {
+    "bytes": 998,
+    "sha256": "4625e29dca74677d1b0278bebf188261e2a62183134d14889a0b3c9b4e0fa677"
+  },
+  "unicom_dataset_base.py": {
+    "bytes": 1234,
+    "sha256": "d33211e9150356fba9a874eb9140e8a04d31ddd9de03cb47c77a5ae61ab9f911"
+  },
+  "unicom_examples_retrieval.md": {
+    "bytes": 1652,
+    "sha256": "67cb5f9ebeadfe4984de5709ed0a2c56dd04bf88d557c92fe3ba8c4d2e50291d"
+  },
+  "unicom_partial_fc.py": {
+    "bytes": 11701,
+    "sha256": "9f86e76389a8b92c9a4251a09a586a32668d2b2db2672f2581ec0aea90937e15"
+  },
+  "unicom_retrieval.py": {
+    "bytes": 30062,
+    "sha256": "35fcea34c35ce428ccbcf0af66a61b0f7deae6e77b1cfcc3867edd2f5e8d2071"
+  },
+  "unicom_retrieval_f5b40e4.py": {
+    "bytes": 29875,
+    "sha256": "0169a3792261e395f81536082405f2b0123ed48d1343b74910d0b757f952d1c3"
+  },
+  "unicom_scripts_inshop_vit_l_14_336px.sh": {
+    "bytes": 1243,
+    "sha256": "14deba5a78f37a8126acfbf459652c5bef6b54bbd9562936e15f69e1f9d01741"
+  },
+  "unicom_scripts_sop_vit_l_14_336px.sh": {
+    "bytes": 1149,
+    "sha256": "702ca2690f5bd35baf82a257b03df5bd7faec8f5c28c687c36e62cad216aea98"
+  },
+  "unicom_unicom_model.py": {
+    "bytes": 3639,
+    "sha256": "d3698953e582ae879b0a7cf11a2784882ac7b0bb3122382f8d6ba7abc542f6d2"
+  },
+  "unicom_vit.py": {
+    "bytes": 7840,
+    "sha256": "9f707ce7734c4df6d0a05895e514671211fe346d03d03758a59cb998ae8684a8"
+  }
+}

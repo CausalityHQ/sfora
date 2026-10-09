@@ -1,0 +1,11 @@
+# Root disposition: bounded reference-code qualification
+
+Original consultation1d64e5ff75ce496a completed normally with exit0. This advances code/artifact provenance, not the scientific gate or an exhaustive frontier claim.
+
+Independently fetched the paper-era [UNICOM retrieval.py](https://github.com/deepglint/unicom/blob/f5b40e40d16ba3a8ca2672479bc1fabfb3864ff4/retrieval.py); exact29875-byte SHA0169a3792261e395f81536082405f2b0123ed48d1343b74910d0b757f952d1c3 matches the consultation copy. Source inspection confirms per-epoch evaluation and running maximum reporting, SOP positional rank2 selection rather than identity exclusion, normalization before prefix truncation, and Euclidean ranking. These are reproducibility caveats. Code alone does not establish which epoch produced Table4; positional self-exclusion has no measured bias direction or size here.
+
+The [EviRank primary paper](https://arxiv.org/html/2608.20886v1) describes coarse retrieval plus multimodal reranking. Keep its reported SOP91.46/rounded91.5 as a stronger published lead whose exact protocol and complete system remain unqualified. A reranker is not excluded from the user's strongest-system target merely because Sfora serves one learned vector. It must be labelled and costed as its complete pipeline; it supplies no In-Shop reference. Do not require the strongest SOP and In-Shop references to come from one paper.
+
+Retain dated UNICOM91.2/96.7 as current predeclared floors. Do not lower gates due to baseline caveats or replace strongest-reference qualification with the limited screen. Public pretrained graph timing would be an architecture proxy, not a matched-quality comparison to unavailable fine-tuned artifacts. Paper/code recipe differences, missing artifacts and inaccessible newer-paper tables remain gaps. No model/weights download, inference, selection or method change is admitted by this audit.
+
+The proposed OpenReview browser check is useful additional source evidence, not a reason to pause the active accepted-pair export/selection path. Carry code-implied test-epoch-selection uncertainty until resolved. No fresh headless challenge retry, operator access request or paid consultation is needed now. Existing exploratory SOP/official In-Shop and speed conclusions remain unchanged.

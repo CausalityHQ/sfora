@@ -1,0 +1,332 @@
+{
+  "id": "1d64e5ff75ce496a",
+  "provider": "claude",
+  "model": "claude-opus-5-5",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791505871,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791507071,
+  "budget_usd": 4,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded primary-source reference qualification. Repo /home/rb/worktrees/sfora-positive-causality master42420cb6fd5ba613740f8d023dd2b6fa60bef89d. SAME goal production learned-vector image-to-top-k surpass strongest protocol-matched published quality BOTH SOP and In-Shop + matched full-system speed. Read docs/published_reference_qualification_2026-09-28.md and docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/primary-reference-{screen,addendum}-20261008.md first. Prior screen is completed, do NOT repeat broad literature inventory. NEW exact question: qualify serving/evaluation-code provenance for UNICOM arXiv2304.05884v1 Table4 SOP91.2/In-Shop96.7 and EviRank arXiv2608.20886v1 Table4/15 SOP91.46/91.5 (DINOv2 coarse top20 + Gemini-3-pro; distilled86.56). Inspect accessible official author code/eval configs and primary paper for splits/query self-exclusion/training-test exposure, pretrained vs dataset-finetuned artifacts, dimensions/preprocessing, metric/AP inconsistency, model weights availability/license, and whether the high result can serve as a single learned-vector reference or must be compared as complete reranked image-to-result system. Explicitly separate published numbers vs verified code vs missing. Return finite source-linked qualification matrix plus ONE concrete next reference verification action; strongest global frontier remains unproven if bounded screen incomplete. NO new loss/method selection, thresholds, source edits, model/weights/image downloads, Torch/native/SSH/GPU/experiments/children. Small public text/web reads only, primary sources, no paywall bypass. Preserve current evaluator CPUv3 inv462e354ef9df42668c20b4d257baff12 and all receipts. Local native quality unchanged: exploratory SOP91.7419 vs dated91.2, older InShop95.4823 vs96.7; current accepted paired probe TRAIN128 cost only, no quality. Full official confirmation/p99 unmet. No parallel duplicate consult exists for this exact code/artifact qualification question.",
+  "prompt_sha256": "b74950c4996e8e2f07cad21142861303788011485a10f8917bc2e8e79695423d",
+  "prompt_bytes": 2316,
+  "fingerprint": "d8447b34642abbd2f16167f9e2c81039563cc4088862065d8296cb286fc93c4f",
+  "evidence": {
+    "git_commit": "42420cb6fd5ba613740f8d023dd2b6fa60bef89d",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "1a2cc58601d097b3b8d4fddb8a88b9156bb0a988d67a4d0bac7545465ce0ca3f",
+  "reused": false,
+  "specialist_route": {
+    "model": "claude-opus-5-5",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "a8f51a46-cef4-4413-8afc-3bd0b3be84e1"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-1d64e5ff75ce496a.service",
+  "pid": 654770,
+  "pgid": 654770,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "budget_usd": 4,
+      "timeout_seconds": 1200,
+      "started_at": 1791505871
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791506226,
+  "event_cursor": 58,
+  "events": [
+    {
+      "seq": 35,
+      "at": 1791506103,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "mcp__fff__multi_grep started"
+    },
+    {
+      "seq": 36,
+      "at": 1791506111,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 37,
+      "at": 1791506167,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 38,
+      "at": 1791506170,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Write started"
+    },
+    {
+      "seq": 39,
+      "at": 1791506179,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 40,
+      "at": 1791506206,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 41,
+      "at": 1791506207,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 42,
+      "at": 1791506208,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 43,
+      "at": 1791506210,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 44,
+      "at": 1791506211,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 45,
+      "at": 1791506212,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 46,
+      "at": 1791506213,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 47,
+      "at": 1791506214,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 48,
+      "at": 1791506215,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 49,
+      "at": 1791506216,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 50,
+      "at": 1791506217,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 51,
+      "at": 1791506218,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 52,
+      "at": 1791506219,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 53,
+      "at": 1791506220,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 54,
+      "at": 1791506221,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 55,
+      "at": 1791506222,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 56,
+      "at": 1791506223,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 57,
+      "at": 1791506224,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 58,
+      "at": 1791506226,
+      "provider": "claude",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "claude": [
+      {
+        "seq": 51,
+        "at": 1791506218,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 52,
+        "at": 1791506219,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 53,
+        "at": 1791506220,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 54,
+        "at": 1791506221,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 55,
+        "at": 1791506222,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 56,
+        "at": 1791506223,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 57,
+        "at": 1791506224,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 58,
+        "at": 1791506226,
+        "provider": "claude",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "# UNICOM and EviRank code and artifact qualification (read-only, 2026-10-09, repo 42420cb6)\n\n**Plan:** keep UNICOM's 91.2 (SOP) and 96.7 (In-Shop) as the dated single-vector references for both datasets, and add three caveats that come from its released code. EviRank-pro's SOP 91.46 cannot serve as a learned-vector reference or as a joint reference. If it is carried at all, it goes in a separate row as a complete reranked system, SOP only. No gate, threshold, method or receipt changes. Evaluator CPUv3 inv462e354ef9df42668c20b4d257baff12 is untouched, and the strongest global frontier remains unproven.\n\nSources:\n- **UNICOM paper:** [arXiv 2304.05884v1](https://arxiv.org/html/2304.05884v1), the only version.\n- **UNICOM code at the time of the paper:** [`retrieval.py` @f5b40e40](https://github.com/deepglint/unicom/blob/f5b40e40d16ba3a8ca2672479bc1fabfb3864ff4/retrieval.py), committed 2023-04-12.\n- **UNICOM current code:** [`unicom/retrieval.py` @d71992ed](https://github.com/deepglint/unicom/blob/d71992ed969e6c271436ac0a0ee1f3ca61474ac0/unicom/retrieval.py). Its training/evaluation logic matches the 2023 version; the only later addition is saving a checkpoint every epoch.\n- **EviRank paper:** [arXiv 2608.20886v1](https://arxiv.org/html/2608.20886v1), the only version.\n\nEach cell is tagged **[P]** published in the paper, **[C]** checked in code or the API, or **[M]** missing.\n\n| Axis | UNICOM Table 4 (L/14@336) | EviRank Tables 4/15 (SOP) |\n|---|---|---|\n| Code | **[C]** Public, MIT licence. Fine-tuning scripts: `scripts/{sop,inshop}_vit_l_14_336px.sh` | **[M]** The abstract says code is at github.com/EnjunDu/EviRank. That URL returns **HTTP 404** (the owner account exists, HTTP 200). |\n| Splits | **[P]** Table 11: SOP 59,551 train / 60,502 test; In-Shop 25,882 / 26,830. **[C]** Data loaders copied from hyp_metric; SOP classes 0..11317 train and 11318..22633 test; In-Shop uses the official partition file, 14,218 queries × 12,612 gallery. | **[P]** \"60,502 test\"; setup \"following LoCoRE\". **[M]** Whether all 60,502 queries were Gemini-reranked. |\n| Query self-exclusion | **[C]** By position only: `topk=2`, take `[:, 1]` (lines 365–367). Not identity-based. fp32 expanded-form distance clamped at 1e-12. Any bias can only inflate the score; size not measured. Our evaluator excludes by row identity (`scripts/test_siglip2_nearest_ranking.py:2113`). | **[M]** Not stated in the paper and no code to check. |\n| Training/test exposure | **[C]** Training uses train only. **TEST is evaluated after every epoch and the printed \"eval result\" is `max_score`** (64 epochs for SOP, 128 for In-Shop; lines 257–263). This implies the reported number is the best test epoch. **[P]** The paper does not say how the checkpoint was chosen. | **[P]** The distilled 86.56 model was trained on \"4K SoP queries\" from an unstated split. λ/η were tuned on \"the validation set\", but SOP has no official validation split. **[M]** Whether test queries overlap the distillation data. |\n| Artifact | **[C]** Only the pretrained FP16 weights (LAION-400M) are released, SHA256-pinned in `model.py`. **No fine-tuned SOP or In-Shop weights are public.** [Issue #89](https://github.com/deepglint/unicom/issues/89) asked for the In-Shop weights on 2025-02-12 and got no answer. The weights have no licence of their own; the MIT file is dated 2025 and was absent from the 2023 tree. | **[M]** No student weights. Gemini-3-pro is a closed API with no weights, run at T=0.15. Base Qwen3-VL-2B is public, but I did not check its licence. |\n| Dimensions and preprocessing | **[C]** Output is 768-D; it is L2-normalized, then truncated to the **first 512 dims without renormalizing**, and ranked by Euclidean distance. Input is resized (bicubic, short side 336), centre-cropped to 336, CLIP mean/std. SOP training has no augmentation (`origin_clip`); In-Shop training uses timm RandAugment, colour jitter 0.4 and random erasing 0.25. The model head flattens the patch-token grid. **[P]** The paper does not state dimensions or resolution for Table 4. | **[P]** DINOv2 coarse retrieval by cosine, top-20. **[M]** DINOv2 model size and preprocessing. |\n| Recipe: paper vs code | **[P]** ArcFace margin 0.3, scale 64. **[C]** The scripts use m2=0.25, s=32, and the margin is computed under `no_grad`, so its gradient passes straight through ([issue #11](https://github.com/deepglint/unicom/issues/11)). The two do not match. | — |\n| Metric | **[C]** R@1 only. The code has no mAP for SOP or In-Shop, so there is no UNICOM mAP@R to compare against. | **[P]** Table 4/15 give pro mAP@R as 79.6/79.58. Table 8's matching row (rubric + listwise, R@1 91.5) gives **79.8**, which disagrees. |\n| Reference class | Single learned vector, no reranking, covers both datasets. **Usable as the joint reference, with the caveats above.** The fine-tuned model has the same graph as the public pretrained one, so speed can be measured from the public artifact. Quality cannot be reproduced without retraining. | Complete multi-stage system: DINOv2 + rubric + 2 Gemini-3-pro calls per query. SOP only, no In-Shop. Its single-vector stage alone scores R@1 80.80. **Not usable as a vector or joint reference.** The only latency published is for Flickr30k (~800 ms student + ~382 ms CLIP), none for SOP. |\n\n## Risks\n1. Using 91.46 to raise the single-vector SOP bar would compare different kinds of system. Treating 91.2 as a clean test number would overstate how strict it is.\n2. The local SOP 91.7419 is still exploratory and not officially confirmed. The UNICOM caveats do not change that, and they do not count as a win.\n3. A matched-speed comparison against EviRank is impossible because its main stage is a closed API. Against UNICOM it is possible using the public L/14@336 graph.\n4. Still open:\n   - The ESA (IEEE Access) and Confidence Controls DML tables remain unverified.\n   - The UNICOM OpenReview forum `3YFDsSRSxB-` blocked both headless APIs (HTTP 403, \"challenge required\"). I did not bypass it. Don't retry headless.\n\n## Next action and falsifying test\n**Next action:** have someone open the UNICOM ICLR 2023 OpenReview forum `3YFDsSRSxB-` in a normal browser that passes the challenge (the operator, or a browser pane), including its camera-ready PDF. Look for any author, reviewer or paper text on how the Table 4 checkpoint or epoch was chosen, on the 512-D evaluation and on the SOP protocol. Read only; post nothing.\n\n**How the result changes the plan:**\n- **Says a fixed final epoch, or selection without using test:** drop the best-test-epoch caveat. UNICOM then stands as a clean single-vector reference.\n- **Confirms the best test epoch, or says nothing:** attach \"code-implied test-epoch selection, optimistic, size not measured\" to every comparison against 91.2/96.7. Gates are unchanged.\n- **Shows a different protocol** (for example reranking, another split or 768-D): re-qualify UNICOM before any \"surpass\" claim.\n\nNothing was downloaded beyond small public text files in `/tmp/refqual_20261009`; no repo files were edited. I also saved these findings to memory so a later session doesn't redo the code read.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "claude": "# UNICOM and EviRank code and artifact qualification (read-only, 2026-10-09, repo 42420cb6)\n\n**Plan:** keep UNICOM's 91.2 (SOP) and 96.7 (In-Shop) as the dated single-vector references for both datasets, and add three caveats that come from its released code. EviRank-pro's SOP 91.46 cannot serve as a learned-vector reference or as a joint reference. If it is carried at all, it goes in a separate row as a complete reranked system, SOP only. No gate, threshold, method or receipt changes. Evaluator CPUv3 inv462e354ef9df42668c20b4d257baff12 is untouched, and the strongest global frontier remains unproven.\n\nSources:\n- **UNICOM paper:** [arXiv 2304.05884v1](https://arxiv.org/html/2304.05884v1), the only version.\n- **UNICOM code at the time of the paper:** [`retrieval.py` @f5b40e40](https://github.com/deepglint/unicom/blob/f5b40e40d16ba3a8ca2672479bc1fabfb3864ff4/retrieval.py), committed 2023-04-12.\n- **UNICOM current code:** [`unicom/retrieval.py` @d71992ed](https://github.com/deepglint/unicom/blob/d71992ed969e6c271436ac0a0ee1f3ca61474ac0/unicom/retrieval.py). Its training/evaluation logic matches the 2023 version; the only later addition is saving a checkpoint every epoch.\n- **EviRank paper:** [arXiv 2608.20886v1](https://arxiv.org/html/2608.20886v1), the only version.\n\nEach cell is tagged **[P]** published in the paper, **[C]** checked in code or the API, or **[M]** missing.\n\n| Axis | UNICOM Table 4 (L/14@336) | EviRank Tables 4/15 (SOP) |\n|---|---|---|\n| Code | **[C]** Public, MIT licence. Fine-tuning scripts: `scripts/{sop,inshop}_vit_l_14_336px.sh` | **[M]** The abstract says code is at github.com/EnjunDu/EviRank. That URL returns **HTTP 404** (the owner account exists, HTTP 200). |\n| Splits | **[P]** Table 11: SOP 59,551 train / 60,502 test; In-Shop 25,882 / 26,830. **[C]** Data loaders copied from hyp_metric; SOP classes 0..11317 train and 11318..22633 test; In-Shop uses the official partition file, 14,218 queries × 12,612 gallery. | **[P]** \"60,502 test\"; setup \"following LoCoRE\". **[M]** Whether all 60,502 queries were Gemini-reranked. |\n| Query self-exclusion | **[C]** By position only: `topk=2`, take `[:, 1]` (lines 365–367). Not identity-based. fp32 expanded-form distance clamped at 1e-12. Any bias can only inflate the score; size not measured. Our evaluator excludes by row identity (`scripts/test_siglip2_nearest_ranking.py:2113`). | **[M]** Not stated in the paper and no code to check. |\n| Training/test exposure | **[C]** Training uses train only. **TEST is evaluated after every epoch and the printed \"eval result\" is `max_score`** (64 epochs for SOP, 128 for In-Shop; lines 257–263). This implies the reported number is the best test epoch. **[P]** The paper does not say how the checkpoint was chosen. | **[P]** The distilled 86.56 model was trained on \"4K SoP queries\" from an unstated split. λ/η were tuned on \"the validation set\", but SOP has no official validation split. **[M]** Whether test queries overlap the distillation data. |\n| Artifact | **[C]** Only the pretrained FP16 weights (LAION-400M) are released, SHA256-pinned in `model.py`. **No fine-tuned SOP or In-Shop weights are public.** [Issue #89](https://github.com/deepglint/unicom/issues/89) asked for the In-Shop weights on 2025-02-12 and got no answer. The weights have no licence of their own; the MIT file is dated 2025 and was absent from the 2023 tree. | **[M]** No student weights. Gemini-3-pro is a closed API with no weights, run at T=0.15. Base Qwen3-VL-2B is public, but I did not check its licence. |\n| Dimensions and preprocessing | **[C]** Output is 768-D; it is L2-normalized, then truncated to the **first 512 dims without renormalizing**, and ranked by Euclidean distance. Input is resized (bicubic, short side 336), centre-cropped to 336, CLIP mean/std. SOP training has no augmentation (`origin_clip`); In-Shop training uses timm RandAugment, colour jitter 0.4 and random erasing 0.25. The model head flattens the patch-token grid. **[P]** The paper does not state dimensions or resolution for Table 4. | **[P]** DINOv2 coarse retrieval by cosine, top-20. **[M]** DINOv2 model size and preprocessing. |\n| Recipe: paper vs code | **[P]** ArcFace margin 0.3, scale 64. **[C]** The scripts use m2=0.25, s=32, and the margin is computed under `no_grad`, so its gradient passes straight through ([issue #11](https://github.com/deepglint/unicom/issues/11)). The two do not match. | — |\n| Metric | **[C]** R@1 only. The code has no mAP for SOP or In-Shop, so there is no UNICOM mAP@R to compare against. | **[P]** Table 4/15 give pro mAP@R as 79.6/79.58. Table 8's matching row (rubric + listwise, R@1 91.5) gives **79.8**, which disagrees. |\n| Reference class | Single learned vector, no reranking, covers both datasets. **Usable as the joint reference, with the caveats above.** The fine-tuned model has the same graph as the public pretrained one, so speed can be measured from the public artifact. Quality cannot be reproduced without retraining. | Complete multi-stage system: DINOv2 + rubric + 2 Gemini-3-pro calls per query. SOP only, no In-Shop. Its single-vector stage alone scores R@1 80.80. **Not usable as a vector or joint reference.** The only latency published is for Flickr30k (~800 ms student + ~382 ms CLIP), none for SOP. |\n\n## Risks\n1. Using 91.46 to raise the single-vector SOP bar would compare different kinds of system. Treating 91.2 as a clean test number would overstate how strict it is.\n2. The local SOP 91.7419 is still exploratory and not officially confirmed. The UNICOM caveats do not change that, and they do not count as a win.\n3. A matched-speed comparison against EviRank is impossible because its main stage is a closed API. Against UNICOM it is possible using the public L/14@336 graph.\n4. Still open:\n   - The ESA (IEEE Access) and Confidence Controls DML tables remain unverified.\n   - The UNICOM OpenReview forum `3YFDsSRSxB-` blocked both headless APIs (HTTP 403, \"challenge required\"). I did not bypass it. Don't retry headless.\n\n## Next action and falsifying test\n**Next action:** have someone open the UNICOM ICLR 2023 OpenReview forum `3YFDsSRSxB-` in a normal browser that passes the challenge (the operator, or a browser pane), including its camera-ready PDF. Look for any author, reviewer or paper text on how the Table 4 checkpoint or epoch was chosen, on the 512-D evaluation and on the SOP protocol. Read only; post nothing.\n\n**How the result changes the plan:**\n- **Says a fixed final epoch, or selection without using test:** drop the best-test-epoch caveat. UNICOM then stands as a clean single-vector reference.\n- **Confirms the best test epoch, or says nothing:** attach \"code-implied test-epoch selection, optimistic, size not measured\" to every comparison against 91.2/96.7. Gates are unchanged.\n- **Shows a different protocol** (for example reranking, another split or 768-D): re-qualify UNICOM before any \"surpass\" claim.\n\nNothing was downloaded beyond small public text files in `/tmp/refqual_20261009`; no repo files were edited. I also saved these findings to memory so a later session doesn't redo the code read."
+  },
+  "providers_used": [
+    "claude"
+  ],
+  "active_provider": "claude",
+  "phase": "Consultation completed",
+  "input_bytes": 2316,
+  "output_bytes": 7121,
+  "elapsed_seconds": 355,
+  "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)",
+  "progress_truncated": false,
+  "result": "# UNICOM and EviRank code and artifact qualification (read-only, 2026-10-09, repo 42420cb6)\n\n**Plan:** keep UNICOM's 91.2 (SOP) and 96.7 (In-Shop) as the dated single-vector references for both datasets, and add three caveats that come from its released code. EviRank-pro's SOP 91.46 cannot serve as a learned-vector reference or as a joint reference. If it is carried at all, it goes in a separate row as a complete reranked system, SOP only. No gate, threshold, method or receipt changes. Evaluator CPUv3 inv462e354ef9df42668c20b4d257baff12 is untouched, and the strongest global frontier remains unproven.\n\nSources:\n- **UNICOM paper:** [arXiv 2304.05884v1](https://arxiv.org/html/2304.05884v1), the only version.\n- **UNICOM code at the time of the paper:** [`retrieval.py` @f5b40e40](https://github.com/deepglint/unicom/blob/f5b40e40d16ba3a8ca2672479bc1fabfb3864ff4/retrieval.py), committed 2023-04-12.\n- **UNICOM current code:** [`unicom/retrieval.py` @d71992ed](https://github.com/deepglint/unicom/blob/d71992ed969e6c271436ac0a0ee1f3ca61474ac0/unicom/retrieval.py). Its training/evaluation logic matches the 2023 version; the only later addition is saving a checkpoint every epoch.\n- **EviRank paper:** [arXiv 2608.20886v1](https://arxiv.org/html/2608.20886v1), the only version.\n\nEach cell is tagged **[P]** published in the paper, **[C]** checked in code or the API, or **[M]** missing.\n\n| Axis | UNICOM Table 4 (L/14@336) | EviRank Tables 4/15 (SOP) |\n|---|---|---|\n| Code | **[C]** Public, MIT licence. Fine-tuning scripts: `scripts/{sop,inshop}_vit_l_14_336px.sh` | **[M]** The abstract says code is at github.com/EnjunDu/EviRank. That URL returns **HTTP 404** (the owner account exists, HTTP 200). |\n| Splits | **[P]** Table 11: SOP 59,551 train / 60,502 test; In-Shop 25,882 / 26,830. **[C]** Data loaders copied from hyp_metric; SOP classes 0..11317 train and 11318..22633 test; In-Shop uses the official partition file, 14,218 queries × 12,612 gallery. | **[P]** \"60,502 test\"; setup \"following LoCoRE\". **[M]** Whether all 60,502 queries were Gemini-reranked. |\n| Query self-exclusion | **[C]** By position only: `topk=2`, take `[:, 1]` (lines 365–367). Not identity-based. fp32 expanded-form distance clamped at 1e-12. Any bias can only inflate the score; size not measured. Our evaluator excludes by row identity (`scripts/test_siglip2_nearest_ranking.py:2113`). | **[M]** Not stated in the paper and no code to check. |\n| Training/test exposure | **[C]** Training uses train only. **TEST is evaluated after every epoch and the printed \"eval result\" is `max_score`** (64 epochs for SOP, 128 for In-Shop; lines 257–263). This implies the reported number is the best test epoch. **[P]** The paper does not say how the checkpoint was chosen. | **[P]** The distilled 86.56 model was trained on \"4K SoP queries\" from an unstated split. λ/η were tuned on \"the validation set\", but SOP has no official validation split. **[M]** Whether test queries overlap the distillation data. |\n| Artifact | **[C]** Only the pretrained FP16 weights (LAION-400M) are released, SHA256-pinned in `model.py`. **No fine-tuned SOP or In-Shop weights are public.** [Issue #89](https://github.com/deepglint/unicom/issues/89) asked for the In-Shop weights on 2025-02-12 and got no answer. The weights have no licence of their own; the MIT file is dated 2025 and was absent from the 2023 tree. | **[M]** No student weights. Gemini-3-pro is a closed API with no weights, run at T=0.15. Base Qwen3-VL-2B is public, but I did not check its licence. |\n| Dimensions and preprocessing | **[C]** Output is 768-D; it is L2-normalized, then truncated to the **first 512 dims without renormalizing**, and ranked by Euclidean distance. Input is resized (bicubic, short side 336), centre-cropped to 336, CLIP mean/std. SOP training has no augmentation (`origin_clip`); In-Shop training uses timm RandAugment, colour jitter 0.4 and random erasing 0.25. The model head flattens the patch-token grid. **[P]** The paper does not state dimensions or resolution for Table 4. | **[P]** DINOv2 coarse retrieval by cosine, top-20. **[M]** DINOv2 model size and preprocessing. |\n| Recipe: paper vs code | **[P]** ArcFace margin 0.3, scale 64. **[C]** The scripts use m2=0.25, s=32, and the margin is computed under `no_grad`, so its gradient passes straight through ([issue #11](https://github.com/deepglint/unicom/issues/11)). The two do not match. | — |\n| Metric | **[C]** R@1 only. The code has no mAP for SOP or In-Shop, so there is no UNICOM mAP@R to compare against. | **[P]** Table 4/15 give pro mAP@R as 79.6/79.58. Table 8's matching row (rubric + listwise, R@1 91.5) gives **79.8**, which disagrees. |\n| Reference class | Single learned vector, no reranking, covers both datasets. **Usable as the joint reference, with the caveats above.** The fine-tuned model has the same graph as the public pretrained one, so speed can be measured from the public artifact. Quality cannot be reproduced without retraining. | Complete multi-stage system: DINOv2 + rubric + 2 Gemini-3-pro calls per query. SOP only, no In-Shop. Its single-vector stage alone scores R@1 80.80. **Not usable as a vector or joint reference.** The only latency published is for Flickr30k (~800 ms student + ~382 ms CLIP), none for SOP. |\n\n## Risks\n1. Using 91.46 to raise the single-vector SOP bar would compare different kinds of system. Treating 91.2 as a clean test number would overstate how strict it is.\n2. The local SOP 91.7419 is still exploratory and not officially confirmed. The UNICOM caveats do not change that, and they do not count as a win.\n3. A matched-speed comparison against EviRank is impossible because its main stage is a closed API. Against UNICOM it is possible using the public L/14@336 graph.\n4. Still open:\n   - The ESA (IEEE Access) and Confidence Controls DML tables remain unverified.\n   - The UNICOM OpenReview forum `3YFDsSRSxB-` blocked both headless APIs (HTTP 403, \"challenge required\"). I did not bypass it. Don't retry headless.\n\n## Next action and falsifying test\n**Next action:** have someone open the UNICOM ICLR 2023 OpenReview forum `3YFDsSRSxB-` in a normal browser that passes the challenge (the operator, or a browser pane), including its camera-ready PDF. Look for any author, reviewer or paper text on how the Table 4 checkpoint or epoch was chosen, on the 512-D evaluation and on the SOP protocol. Read only; post nothing.\n\n**How the result changes the plan:**\n- **Says a fixed final epoch, or selection without using test:** drop the best-test-epoch caveat. UNICOM then stands as a clean single-vector reference.\n- **Confirms the best test epoch, or says nothing:** attach \"code-implied test-epoch selection, optimistic, size not measured\" to every comparison against 91.2/96.7. Gates are unchanged.\n- **Shows a different protocol** (for example reranking, another split or 768-D): re-qualify UNICOM before any \"surpass\" claim.\n\nNothing was downloaded beyond small public text files in `/tmp/refqual_20261009`; no repo files were edited. I also saved these findings to memory so a later session doesn't redo the code read.",
+  "result_truncated": false
+}
