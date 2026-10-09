@@ -1,0 +1,7 @@
+Original Fable consultation 37197ecb04b543d9 completed normally. Its next cheap tensor-displacement read is accepted as a descriptive evidence audit only; 256-step training is NOT released.
+
+The strong claims that no FIT objective, readout, sampler or coverage change can reach the core errors are not established by one 63-anchor batch or path metadata. Same-category duplicate assumptions and per-query pose measurements need independent checking. The reported cosine margins are real archived measurements; their generalization interpretation remains an inference.
+
+The proposed below-2-percent and above-10-percent displacement rules are not approved scientific thresholds. Bias norms may be tiny or zero; report per-tensor and aggregate norms with explicit zero-denominator handling, and do not infer capacity or optimization failure from ratios alone. Saved FP32 control/candidate encoder members can be read with the existing restricted stdlib checkpoint metadata parser; no Torch, model construction, images, new seed or official/VAL read is required.
+
+Any prospective training-budget comparison requires its own method/schedule/count/cost freeze, fresh paired control and review. The proposal's single-seed product-LCB stop differs from the current FIRST/FULL policy; preserve the actual existing stage gates. Original 128-step candidate KILL and negative FS outcome remain unchanged. Native SHA caller implementation proceeds independently and this research grants no GPU execution.

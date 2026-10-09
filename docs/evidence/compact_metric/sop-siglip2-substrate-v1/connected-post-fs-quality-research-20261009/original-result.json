@@ -1,0 +1,333 @@
+{
+  "id": "37197ecb04b543d9",
+  "provider": "fable",
+  "model": "claude-fable-5-1",
+  "effort": "max",
+  "fallbacks": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791532970,
+  "timeout_seconds": 1800,
+  "deadline_at": 1791534770,
+  "budget_usd": 6,
+  "prompt_preview": "Deep read-only ORIGINAL research toward SAME Sfora joint quality+speed goal. Repo /home/rb/worktrees/sfora-positive-causality master3680436ef738386e79d32d14c4299012e73f0a7c. New decisive native result: docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-bounded-exit-v1-result/{root-review.json,receipt.json.gz,original.log}; docs/connected_probe_decision_2026-10-09.md current. InShop TRAIN-selection1734Q/1715G/498products seed179061 archived candidate symmetric FF R1 .97116493656/AP .85151734216; asymmetric archived-query F/frozen-cache gallery S R1 .96885813149/AP .83660027814 (3up7down). Nativewire/top10bits/ties/fulluncachedexit normal0,618.829s,4.819GBhost/1.809GBCUDA/0events/swap. This falsifier is descriptive; fixed composition/frozen-encoder versus updated-live confound remains, historicalcandidateKILL unchanged. Poolingprobe alsoKILL R1same/AP-.003822pp. PriorMLP2seedselectionR1gainCI crosses0 despite+2.30ppAP. Old official SOP91.7419 vsdatedUNICOM91.2 exploratory; InShop95.4823 vs96.7; notmatchedSOTA. PRIOR numerous committed plans/criticisms are in substrate evidence and docs; SEARCH those first, don't repeat loss-tweak/probe/FS proposals already killed. Parallel speed path: GPU SHA source only, standalone caller specialist active; DON'T review/invent that optimization or duplicate existing 970707db/fa99312f/2bb153e3 work. Research ONE causally distinct, cheapest TRAIN-only intervention addressing actual R1 gap, inspect per-query/product failure evidence and active exact trainer/data supervision/sampling architecture. Consider whether serving-matched feature/batch consistency, identity/data coverage, objective versus retrieval metric or readout capacity gives a falsifiable mechanism; do not presume cached freshness cause. Require evidence connecting hypothesis to observed errors, separate assumptions from measurements, and produce smallest bounded implementable preregistration with exact source seam, samepairedbackbone/compute/data/scorer, existing quality/cost thresholds and stoprule. Rank at most3 alternatives then selectONE with smallest decisive preliminary falsifier; no generic survey or projected official/latency number. Use primary papers/code only for external source attribution; strongestknownrefs audit in docs/evidence/.../published-reference-code-qualification-20261009 is limited, notexhaustiveSOTA. NO edits, native/Torch/images/SSH/GPU/cloud/downloads/training, consultations, children or operator contact. Do not open official/VAL/newseed or reverseKILL. Return concrete decision, anticipated confounds, source-supported implementation scope and exact next cheap test. Root remains sole experiment/freeze/release authority; current DGX gate is terminal, preserve originals.",
+  "prompt_sha256": "4e6e53cd5074755a16ee6a2942b7cc9e23e009f93751a8f81dab258a6719c77d",
+  "prompt_bytes": 2937,
+  "fingerprint": "a8f0673b1d480e77a52ffe1427a739d97a043fe8534bee9a7423c2dc068253ec",
+  "evidence": {
+    "git_commit": "3680436ef738386e79d32d14c4299012e73f0a7c",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "37f59b8f9f530a29c49758092896456d517a439e4919d6e1daca54915a08db8e",
+  "reused": false,
+  "systemd_unit": "devbox-consult-37197ecb04b543d9.service",
+  "pid": 367253,
+  "pgid": 367253,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1",
+      "budget_usd": 6,
+      "timeout_seconds": 1793,
+      "started_at": 1791532977
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791533644,
+  "event_cursor": 38,
+  "events": [
+    {
+      "seq": 15,
+      "at": 1791533173,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 16,
+      "at": 1791533189,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 17,
+      "at": 1791533206,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 18,
+      "at": 1791533221,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 19,
+      "at": 1791533304,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 20,
+      "at": 1791533320,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 21,
+      "at": 1791533441,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 22,
+      "at": 1791533465,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 23,
+      "at": 1791533620,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 24,
+      "at": 1791533621,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 25,
+      "at": 1791533622,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 26,
+      "at": 1791533624,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 27,
+      "at": 1791533626,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 28,
+      "at": 1791533628,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 29,
+      "at": 1791533630,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 30,
+      "at": 1791533632,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 31,
+      "at": 1791533633,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 32,
+      "at": 1791533635,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 33,
+      "at": 1791533636,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 34,
+      "at": 1791533638,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 35,
+      "at": 1791533639,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 36,
+      "at": 1791533641,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 37,
+      "at": 1791533643,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 38,
+      "at": 1791533644,
+      "provider": "fable",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "fable": [
+      {
+        "seq": 31,
+        "at": 1791533633,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 32,
+        "at": 1791533635,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 33,
+        "at": 1791533636,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 34,
+        "at": 1791533638,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 35,
+        "at": 1791533639,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 36,
+        "at": 1791533641,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 37,
+        "at": 1791533643,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 38,
+        "at": 1791533644,
+        "provider": "fable",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Verdict: the core-44 is a cross-view, same-pose-impostor failure of the representation on unseen panel products. No FIT-objective, readout, sampler, or coverage change can reach it, because the FIT set contains almost no such violations. The one TRAIN-only lever with measured R@1 movement is layer-26 MLP plasticity, and its displacement budget was tiny. I select a displacement-scaled continuation of exactly that arm, gated by a zero-training payload read.**\n\n## What the per-query evidence measures\n\nFrom the exact Torch census receipt, control-179061 endpoint, parsing the In-Shop path codes of all 44 shared errors. Structure is identical across the four endpoints, since 41 of 44 share the top impostor product.\n\n| Core-44 property | Count |\n|---|---:|\n| Best positive has a different pose code than the query | 42 / 44 |\n| Top impostor shares the query's pose code | 21 / 44 |\n| Same-pose impostor beats a cross-pose positive | 20 / 44 |\n| Impostor is a different garment category | 22 / 44 |\n| Impostor same gender | 41 / 44 |\n| Distinct impostor products | 36 |\n| Mutual confusion pairs | 4 |\n| Queries with only 2 gallery positives | 29 / 44 |\n| Query pose is back, full, or additional detail crop | 32 / 44 |\n| Margin beyond −0.05 | 32 / 44 (median −0.076) |\n\nConclusions I draw from these, labelled as inferences: the near-duplicate or label-ceiling hypothesis is falsified for at least the 22 cross-category cases, since duplicate listings share a category. Mutual confusion is rare, so these are not systematic twin products. The failure is pose and crop layout dominating garment identity at the margin.\n\n**Saturation arithmetic.** The ranking term in `loss_terms` uses SmoothAP with temperature 0.01 over the full cached FIT bank. At the core median margin the sigmoid sits at 0.9995, so the pair gradient is about 0.2 percent of peak. The ranking objective carries effectively zero gradient on core-shaped pairs. More decisively, the archived live-top1 diagnostic found only 1 of 63 first-batch FIT anchors violating the 0.05 top-1 margin. The FIT products already satisfy the serving event. Any FIT-side loss, mask, temperature, or hinge change therefore has nothing to learn from, which is why every such arm was inert in R@1.\n\n**Batch consistency ruled out by magnitude.** The B32 versus B6 tail difference touched 6 query rows and 13 int8 code bytes. The FS versus FF cell moved 10 queries in total. Neither can bear 44 errors with median cosine margin −0.076.\n\n**Coverage and readout ruled out by existing measurements.** The 2016-class identity-diversity arm matched control R@1. Identity mix, genuine second-image view, probe pooling, width, concat and quadratic readouts all failed. Lower-block plasticity curves were flat.\n\n## Ranked alternatives\n\n1. **Selected. Displacement-scaled continuation of the layer-26 MLP arm.** Mechanism: the candidate gained +0.346 pp R@1 and +2.30 mAP@R with the identical recipe, needing roughly 8 net queries per seed versus the 6 it got. Its AdamW budget was 128 steps at lr 1e-5 on 9.9M coordinates, a worst-case L2 displacement near 4 against a parameter norm near 60, so under 2 percent realistic displacement. This is the only lever with measured R@1 movement and an untested budget, and it is not a loss, probe, FS, width, or coverage proposal.\n2. Pose-disjoint positive mask in the ranking event. Causally aligned with the measured failure, but dead on arrival: the FIT violation count is 1 of 63, so the mask changes normalization, not gradient.\n3. Enable the existing `live_top1_hinge` in the MLP arm. Same FIT-violation problem, and the 2026-10-03 nearest-ranking encoder trial already added impostor supervision to four encoder tensors. Root should confirm that trial's terminal before anyone revisits this.\n\n## Preregistration for the selected arm\n\n- **Seam.** `scripts/train_siglip2_connected_mlp.py` constant `'updates':128` at line 91 and the matching schedule length. No change to tensors, lr, optimizer, views, bank, scope, scorer, or packing. Both arms run 256 updates with fresh paired controls, so the paired compute and cost ratio are unchanged in form. This is a new comparison, not a reversal of the 128-step KILL, which stays recorded.\n- **Unchanged gates.** TRAIN-selection 1734Q/1715G/498 products, seeds 179061 and 179069, frozen 5000-draw product R@1 lower bound greater than 0, mAP@R not lower, whole-service and core ratio at or below 1.50 against the live frozen-encoder control, 8 GiB host, zero memory events, zero swap, CUDA under 10 GB.\n- **Stop rule.** If the seed-061 pair fails the R@1 lower bound, close the lane with no seed-069 run. If displacement at 256 exceeds 10 percent and R@1 does not improve, record encoder plasticity as capacity-limited, not budget-limited, and stop proposing encoder arms in this family.\n\n## Exact next cheap test, zero training\n\nRead the four layer-26 tensors from the archived FP32 candidate-179061 bundle and the control initializer, and compute the relative L2 displacement per tensor. Prediction under the budget hypothesis: below 2 percent for every tensor. A value above 10 percent falsifies the budget mechanism before any GPU time is spent. A second free read, which I started but did not finish within budget: on the full 1734 panel, the control error rate conditional on whether a same-pose positive exists in the gallery role. The query and gallery lists are under the `panels` key of `genuine-view-v1/export-source-v2/partition.json`, and the per-query vectors are in the full-selection receipt. Prediction: error rate several times higher when no same-pose positive exists. Both reads need Torch or the pinned partition reader, so they belong to root.\n\n## Anticipated confounds\n\n- Panel products are assumed disjoint from the 1008 FIT products. The receipt's class targets come from the global label space, so this was not verified here.\n- A 256-step arm doubles exposure, so a gain may reflect optimization rather than a higher ceiling. The 2000-to-4000 continuation precedent showed held gains that vanished officially. The paired control at 256 steps absorbs the exposure effect but not the ceiling question.\n- Gallery-side features in the ranking term stay frozen-encoder. Longer training enlarges the train-versus-serve asymmetry that the FS cell showed matters by 0.23 pp. It is bounded, not eliminated.\n- No official, VAL, or new-seed read follows from any outcome here. Official In-Shop and matched SOTA remain unestablished.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "fable": "**Verdict: the core-44 is a cross-view, same-pose-impostor failure of the representation on unseen panel products. No FIT-objective, readout, sampler, or coverage change can reach it, because the FIT set contains almost no such violations. The one TRAIN-only lever with measured R@1 movement is layer-26 MLP plasticity, and its displacement budget was tiny. I select a displacement-scaled continuation of exactly that arm, gated by a zero-training payload read.**\n\n## What the per-query evidence measures\n\nFrom the exact Torch census receipt, control-179061 endpoint, parsing the In-Shop path codes of all 44 shared errors. Structure is identical across the four endpoints, since 41 of 44 share the top impostor product.\n\n| Core-44 property | Count |\n|---|---:|\n| Best positive has a different pose code than the query | 42 / 44 |\n| Top impostor shares the query's pose code | 21 / 44 |\n| Same-pose impostor beats a cross-pose positive | 20 / 44 |\n| Impostor is a different garment category | 22 / 44 |\n| Impostor same gender | 41 / 44 |\n| Distinct impostor products | 36 |\n| Mutual confusion pairs | 4 |\n| Queries with only 2 gallery positives | 29 / 44 |\n| Query pose is back, full, or additional detail crop | 32 / 44 |\n| Margin beyond −0.05 | 32 / 44 (median −0.076) |\n\nConclusions I draw from these, labelled as inferences: the near-duplicate or label-ceiling hypothesis is falsified for at least the 22 cross-category cases, since duplicate listings share a category. Mutual confusion is rare, so these are not systematic twin products. The failure is pose and crop layout dominating garment identity at the margin.\n\n**Saturation arithmetic.** The ranking term in `loss_terms` uses SmoothAP with temperature 0.01 over the full cached FIT bank. At the core median margin the sigmoid sits at 0.9995, so the pair gradient is about 0.2 percent of peak. The ranking objective carries effectively zero gradient on core-shaped pairs. More decisively, the archived live-top1 diagnostic found only 1 of 63 first-batch FIT anchors violating the 0.05 top-1 margin. The FIT products already satisfy the serving event. Any FIT-side loss, mask, temperature, or hinge change therefore has nothing to learn from, which is why every such arm was inert in R@1.\n\n**Batch consistency ruled out by magnitude.** The B32 versus B6 tail difference touched 6 query rows and 13 int8 code bytes. The FS versus FF cell moved 10 queries in total. Neither can bear 44 errors with median cosine margin −0.076.\n\n**Coverage and readout ruled out by existing measurements.** The 2016-class identity-diversity arm matched control R@1. Identity mix, genuine second-image view, probe pooling, width, concat and quadratic readouts all failed. Lower-block plasticity curves were flat.\n\n## Ranked alternatives\n\n1. **Selected. Displacement-scaled continuation of the layer-26 MLP arm.** Mechanism: the candidate gained +0.346 pp R@1 and +2.30 mAP@R with the identical recipe, needing roughly 8 net queries per seed versus the 6 it got. Its AdamW budget was 128 steps at lr 1e-5 on 9.9M coordinates, a worst-case L2 displacement near 4 against a parameter norm near 60, so under 2 percent realistic displacement. This is the only lever with measured R@1 movement and an untested budget, and it is not a loss, probe, FS, width, or coverage proposal.\n2. Pose-disjoint positive mask in the ranking event. Causally aligned with the measured failure, but dead on arrival: the FIT violation count is 1 of 63, so the mask changes normalization, not gradient.\n3. Enable the existing `live_top1_hinge` in the MLP arm. Same FIT-violation problem, and the 2026-10-03 nearest-ranking encoder trial already added impostor supervision to four encoder tensors. Root should confirm that trial's terminal before anyone revisits this.\n\n## Preregistration for the selected arm\n\n- **Seam.** `scripts/train_siglip2_connected_mlp.py` constant `'updates':128` at line 91 and the matching schedule length. No change to tensors, lr, optimizer, views, bank, scope, scorer, or packing. Both arms run 256 updates with fresh paired controls, so the paired compute and cost ratio are unchanged in form. This is a new comparison, not a reversal of the 128-step KILL, which stays recorded.\n- **Unchanged gates.** TRAIN-selection 1734Q/1715G/498 products, seeds 179061 and 179069, frozen 5000-draw product R@1 lower bound greater than 0, mAP@R not lower, whole-service and core ratio at or below 1.50 against the live frozen-encoder control, 8 GiB host, zero memory events, zero swap, CUDA under 10 GB.\n- **Stop rule.** If the seed-061 pair fails the R@1 lower bound, close the lane with no seed-069 run. If displacement at 256 exceeds 10 percent and R@1 does not improve, record encoder plasticity as capacity-limited, not budget-limited, and stop proposing encoder arms in this family.\n\n## Exact next cheap test, zero training\n\nRead the four layer-26 tensors from the archived FP32 candidate-179061 bundle and the control initializer, and compute the relative L2 displacement per tensor. Prediction under the budget hypothesis: below 2 percent for every tensor. A value above 10 percent falsifies the budget mechanism before any GPU time is spent. A second free read, which I started but did not finish within budget: on the full 1734 panel, the control error rate conditional on whether a same-pose positive exists in the gallery role. The query and gallery lists are under the `panels` key of `genuine-view-v1/export-source-v2/partition.json`, and the per-query vectors are in the full-selection receipt. Prediction: error rate several times higher when no same-pose positive exists. Both reads need Torch or the pinned partition reader, so they belong to root.\n\n## Anticipated confounds\n\n- Panel products are assumed disjoint from the 1008 FIT products. The receipt's class targets come from the global label space, so this was not verified here.\n- A 256-step arm doubles exposure, so a gain may reflect optimization rather than a higher ceiling. The 2000-to-4000 continuation precedent showed held gains that vanished officially. The paired control at 256 steps absorbs the exposure effect but not the ceiling question.\n- Gallery-side features in the ranking term stay frozen-encoder. Longer training enlarges the train-versus-serve asymmetry that the FS cell showed matters by 0.23 pp. It is bounded, not eliminated.\n- No official, VAL, or new-seed read follows from any outcome here. Official In-Shop and matched SOTA remain unestablished."
+  },
+  "providers_used": [
+    "fable"
+  ],
+  "active_provider": "fable",
+  "phase": "Consultation completed",
+  "input_bytes": 2937,
+  "output_bytes": 6485,
+  "elapsed_seconds": 674,
+  "progress": "devbox-ask: fable consult still running (0m 30s)\ndevbox-ask: fable consult still running (1m 00s)\ndevbox-ask: fable consult still running (1m 30s)\ndevbox-ask: fable consult still running (2m 00s)\ndevbox-ask: fable consult still running (2m 30s)\ndevbox-ask: fable consult still running (3m 00s)\ndevbox-ask: fable consult still running (3m 30s)\ndevbox-ask: fable consult still running (4m 00s)\ndevbox-ask: fable consult still running (4m 30s)\ndevbox-ask: fable consult still running (5m 00s)\ndevbox-ask: fable consult still running (5m 30s)\ndevbox-ask: fable consult still running (6m 00s)\ndevbox-ask: fable consult still running (6m 30s)\ndevbox-ask: fable consult still running (7m 00s)\ndevbox-ask: fable consult still running (7m 30s)\ndevbox-ask: fable consult still running (8m 00s)\ndevbox-ask: fable consult still running (8m 30s)\ndevbox-ask: fable consult still running (9m 00s)\ndevbox-ask: fable consult still running (9m 30s)\ndevbox-ask: fable consult still running (10m 00s)\ndevbox-ask: fable consult still running (10m 30s)\ndevbox-ask: fable consult still running (11m 00s)",
+  "progress_truncated": false,
+  "result": "**Verdict: the core-44 is a cross-view, same-pose-impostor failure of the representation on unseen panel products. No FIT-objective, readout, sampler, or coverage change can reach it, because the FIT set contains almost no such violations. The one TRAIN-only lever with measured R@1 movement is layer-26 MLP plasticity, and its displacement budget was tiny. I select a displacement-scaled continuation of exactly that arm, gated by a zero-training payload read.**\n\n## What the per-query evidence measures\n\nFrom the exact Torch census receipt, control-179061 endpoint, parsing the In-Shop path codes of all 44 shared errors. Structure is identical across the four endpoints, since 41 of 44 share the top impostor product.\n\n| Core-44 property | Count |\n|---|---:|\n| Best positive has a different pose code than the query | 42 / 44 |\n| Top impostor shares the query's pose code | 21 / 44 |\n| Same-pose impostor beats a cross-pose positive | 20 / 44 |\n| Impostor is a different garment category | 22 / 44 |\n| Impostor same gender | 41 / 44 |\n| Distinct impostor products | 36 |\n| Mutual confusion pairs | 4 |\n| Queries with only 2 gallery positives | 29 / 44 |\n| Query pose is back, full, or additional detail crop | 32 / 44 |\n| Margin beyond −0.05 | 32 / 44 (median −0.076) |\n\nConclusions I draw from these, labelled as inferences: the near-duplicate or label-ceiling hypothesis is falsified for at least the 22 cross-category cases, since duplicate listings share a category. Mutual confusion is rare, so these are not systematic twin products. The failure is pose and crop layout dominating garment identity at the margin.\n\n**Saturation arithmetic.** The ranking term in `loss_terms` uses SmoothAP with temperature 0.01 over the full cached FIT bank. At the core median margin the sigmoid sits at 0.9995, so the pair gradient is about 0.2 percent of peak. The ranking objective carries effectively zero gradient on core-shaped pairs. More decisively, the archived live-top1 diagnostic found only 1 of 63 first-batch FIT anchors violating the 0.05 top-1 margin. The FIT products already satisfy the serving event. Any FIT-side loss, mask, temperature, or hinge change therefore has nothing to learn from, which is why every such arm was inert in R@1.\n\n**Batch consistency ruled out by magnitude.** The B32 versus B6 tail difference touched 6 query rows and 13 int8 code bytes. The FS versus FF cell moved 10 queries in total. Neither can bear 44 errors with median cosine margin −0.076.\n\n**Coverage and readout ruled out by existing measurements.** The 2016-class identity-diversity arm matched control R@1. Identity mix, genuine second-image view, probe pooling, width, concat and quadratic readouts all failed. Lower-block plasticity curves were flat.\n\n## Ranked alternatives\n\n1. **Selected. Displacement-scaled continuation of the layer-26 MLP arm.** Mechanism: the candidate gained +0.346 pp R@1 and +2.30 mAP@R with the identical recipe, needing roughly 8 net queries per seed versus the 6 it got. Its AdamW budget was 128 steps at lr 1e-5 on 9.9M coordinates, a worst-case L2 displacement near 4 against a parameter norm near 60, so under 2 percent realistic displacement. This is the only lever with measured R@1 movement and an untested budget, and it is not a loss, probe, FS, width, or coverage proposal.\n2. Pose-disjoint positive mask in the ranking event. Causally aligned with the measured failure, but dead on arrival: the FIT violation count is 1 of 63, so the mask changes normalization, not gradient.\n3. Enable the existing `live_top1_hinge` in the MLP arm. Same FIT-violation problem, and the 2026-10-03 nearest-ranking encoder trial already added impostor supervision to four encoder tensors. Root should confirm that trial's terminal before anyone revisits this.\n\n## Preregistration for the selected arm\n\n- **Seam.** `scripts/train_siglip2_connected_mlp.py` constant `'updates':128` at line 91 and the matching schedule length. No change to tensors, lr, optimizer, views, bank, scope, scorer, or packing. Both arms run 256 updates with fresh paired controls, so the paired compute and cost ratio are unchanged in form. This is a new comparison, not a reversal of the 128-step KILL, which stays recorded.\n- **Unchanged gates.** TRAIN-selection 1734Q/1715G/498 products, seeds 179061 and 179069, frozen 5000-draw product R@1 lower bound greater than 0, mAP@R not lower, whole-service and core ratio at or below 1.50 against the live frozen-encoder control, 8 GiB host, zero memory events, zero swap, CUDA under 10 GB.\n- **Stop rule.** If the seed-061 pair fails the R@1 lower bound, close the lane with no seed-069 run. If displacement at 256 exceeds 10 percent and R@1 does not improve, record encoder plasticity as capacity-limited, not budget-limited, and stop proposing encoder arms in this family.\n\n## Exact next cheap test, zero training\n\nRead the four layer-26 tensors from the archived FP32 candidate-179061 bundle and the control initializer, and compute the relative L2 displacement per tensor. Prediction under the budget hypothesis: below 2 percent for every tensor. A value above 10 percent falsifies the budget mechanism before any GPU time is spent. A second free read, which I started but did not finish within budget: on the full 1734 panel, the control error rate conditional on whether a same-pose positive exists in the gallery role. The query and gallery lists are under the `panels` key of `genuine-view-v1/export-source-v2/partition.json`, and the per-query vectors are in the full-selection receipt. Prediction: error rate several times higher when no same-pose positive exists. Both reads need Torch or the pinned partition reader, so they belong to root.\n\n## Anticipated confounds\n\n- Panel products are assumed disjoint from the 1008 FIT products. The receipt's class targets come from the global label space, so this was not verified here.\n- A 256-step arm doubles exposure, so a gain may reflect optimization rather than a higher ceiling. The 2000-to-4000 continuation precedent showed held gains that vanished officially. The paired control at 256 steps absorbs the exposure effect but not the ceiling question.\n- Gallery-side features in the ranking term stay frozen-encoder. Longer training enlarges the train-versus-serve asymmetry that the FS cell showed matters by 0.23 pp. It is bounded, not eliminated.\n- No official, VAL, or new-seed read follows from any outcome here. Official In-Shop and matched SOTA remain unestablished.",
+  "result_truncated": false
+}
