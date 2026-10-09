@@ -1,0 +1,6 @@
+{
+  "baseline_consumer_pass": true,
+  "additive_api_rejected": "KeyError(load_serving_inference)",
+  "native_executed": false,
+  "scope": "Actual correspondence oracle; appended inert definition, no production edit"
+}
