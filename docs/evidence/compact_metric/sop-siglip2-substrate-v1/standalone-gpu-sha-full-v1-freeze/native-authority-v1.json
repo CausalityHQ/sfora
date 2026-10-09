@@ -1,0 +1,117 @@
+{
+  "build_authority": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-native-v1/native-build-authority-v5.json",
+    "sha256": "1722dd618f5cfa77bff055664e4ab35c202fd22bea550aa19b453b17fb9752f2"
+  },
+  "build_receipt": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/build-receipt-v5.json",
+    "sha256": "7d0445d28e4c054abbbb820d3e2f9232a24c7a2821ee75691c4c7f88d2e41a5e"
+  },
+  "device": {
+    "capability": [
+      12,
+      1
+    ],
+    "index": 0,
+    "name": "NVIDIA GB10"
+  },
+  "full": {
+    "extractor": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/extract_siglip2_vision_source.py",
+      "sha256": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d"
+    },
+    "fixture": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/inventory.json",
+      "sha256": "a901e9a05d6b889523672e68e5116c803579f48cd3b886cd1708e5efd42264bb"
+    },
+    "metadata": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/so400-native256-upstream-metadata-v1.json",
+      "sha256": "42411fd4a16dfa007eadb370ac0524a65f6d0ef3936cd3f320ef1c9f191f62a9"
+    },
+    "prior": {
+      "launch": {
+        "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/prior-launch.json",
+        "sha256": "2becd614c987a96b082b0ed23f4b00fc3da60acabe2f33703d907fabb3acc717"
+      },
+      "unit": {
+        "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/prior-unit.json",
+        "sha256": "f604a87b1ba475eb407f5bc8690974b1c35e923af787946a1bbc71a5b46ff5ab"
+      },
+      "verification": {
+        "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/prior-verification.json",
+        "sha256": "516d4e165f14e21855d4b6fa7b9f83f1cfdbbad34ae11465e54bd43df1896402"
+      }
+    }
+  },
+  "interpreter": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "library": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/libsha256_occurrences.so",
+    "sha256": "c9fcd633340e327d1330cd473277bec22bdf6444ed5171d874b5e0392015da19"
+  },
+  "locks": [
+    {
+      "fd": 3,
+      "path": "/home/riomus/runs/.sfora-siglip2-gpu.lock"
+    },
+    {
+      "fd": 4,
+      "path": "/home/riomus/.sfora-siglip2-gpu.lock"
+    }
+  ],
+  "mapping_inventory": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/mapping-inventory-v1.json",
+    "sha256": "94ed6253dcf2506de986aa542233344104d68929ca75e4bf89b0e576e9f196dd"
+  },
+  "resource_policy": {
+    "body_seconds": 300,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "exit_reserve_seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_process_seconds": 1500
+  },
+  "runtime_files": [
+    {
+      "file": {
+        "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcudart.so.13",
+        "sha256": "7bdba2b5b08cbdc85203c41cc94598adedb1bcfea7cb574ca693ac73599e4e63"
+      },
+      "provenance": {
+        "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/cudart-provenance.json",
+        "sha256": "fc9af3c2c0b25bcf873b3b7bc693f4e0bedc30cc58232bfd32a51d545f2913a7"
+      }
+    },
+    {
+      "file": {
+        "path": "/usr/lib/aarch64-linux-gnu/libcuda.so.580.159.03",
+        "sha256": "f6fb476bbefda386491dc5151a593a98bedeff6a4eb0ec4ef766e3b2fe3b9032"
+      },
+      "provenance": {
+        "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/driver-provenance.json",
+        "sha256": "45e87737003dbbe43e8673314f13e71d89db1dc51215139a507ebb3beca72a13"
+      }
+    }
+  ],
+  "schema": "cuda-sha256-native-authority-full-v1",
+  "sources": {
+    "driver": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/qualify_cuda_sha256_native.py",
+      "sha256": "c4d0e70b82b050ed0da06ac023e7039b6be5c92eb887f7347c23bd8b13f026f1"
+    },
+    "mlp_serializer": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/connected_inference.py",
+      "sha256": "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8"
+    },
+    "probe_serializer": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v2/connected_probe_inference.py",
+      "sha256": "f6e6796df5931a7c1b384509839320719ce0804ecbebf3630ab643643c64aef4"
+    },
+    "test": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/test_cuda_sha256_native.py",
+      "sha256": "a4a09f57a99c85b8f0cb8bb22b5e75b90f71a7dc3665ad1a7b337a4e853b435f"
+    }
+  }
+}

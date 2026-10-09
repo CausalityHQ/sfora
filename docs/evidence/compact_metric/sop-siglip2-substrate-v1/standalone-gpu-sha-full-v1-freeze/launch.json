@@ -1,0 +1,46 @@
+{
+  "bootstrap": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/bootstrap.py",
+    "sha256": "391ea03995b85a8f5d6759a165cea21c80b9f695705737454df970d80f6ca61f"
+  },
+  "bootstrap_authority": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/bootstrap-authority-v1.json",
+    "sha256": "d9d8014d53d20933a733b86d59491d82dc070d7ed5d2c280217abeec84adc0d9"
+  },
+  "command": [
+    "/usr/bin/systemd-run",
+    "--user",
+    "--unit=sfora-standalone-gpu-sha-full-v1",
+    "--wait",
+    "--pipe",
+    "--collect",
+    "--property=RuntimeMaxSec=1500",
+    "--property=MemoryMax=8589934592",
+    "--property=MemorySwapMax=0",
+    "--property=TasksMax=128",
+    "--property=KillMode=control-group",
+    "--property=OOMPolicy=stop",
+    "--setenv=CUDA_VISIBLE_DEVICES=0",
+    "--setenv=OMP_NUM_THREADS=1",
+    "--setenv=OPENBLAS_NUM_THREADS=1",
+    "--setenv=MKL_NUM_THREADS=1",
+    "/home/riomus/group-learning/.venv/bin/python",
+    "-I",
+    "-B",
+    "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/bootstrap.py",
+    "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/bootstrap-authority-v1.json",
+    "d9d8014d53d20933a733b86d59491d82dc070d7ed5d2c280217abeec84adc0d9",
+    "391ea03995b85a8f5d6759a165cea21c80b9f695705737454df970d80f6ca61f"
+  ],
+  "engineering_only": true,
+  "native_authority": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-full-source-v1/native-authority-v1.json",
+    "sha256": "ccb936ac4f0dff368a76564a3365c44ca5afcbaf251f51040b9b7816ea308756"
+  },
+  "output": "/home/riomus/runs/sfora-standalone-gpu-sha-full-v1",
+  "product_go": false,
+  "quality_go": false,
+  "schema": "cuda-sha256-full-root-launch-v1",
+  "speed_go": false,
+  "unit": "sfora-standalone-gpu-sha-full-v1"
+}

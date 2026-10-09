@@ -1,0 +1,81 @@
+{
+ "author": "Roman Bartusiak <riomus@gmail.com>",
+ "commit": "ed937d2169661c39d2d8419fe7d7d8bff967d478",
+ "contract": {
+  "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-gpu-sha-full-inventory-20261009/c2ef5d77-25f1-4fce-855b-083a56031c95/scratchpad/gpu-sha-full-stage-contract-v1.md",
+  "sha256": "e0ed3cc06006fac64c27974b23dccd6a259fee8c230d75bbb4eb1b9963e61200"
+ },
+ "files": {
+  "scripts/qualify_cuda_sha256_native.py": "c4d0e70b82b050ed0da06ac023e7039b6be5c92eb887f7347c23bd8b13f026f1",
+  "scripts/test_cuda_sha256_native.py": "a4a09f57a99c85b8f0cb8bb22b5e75b90f71a7dc3665ad1a7b337a4e853b435f"
+ },
+ "final_whole_suite": {
+  "command": "ulimit -v 1048576; timeout 120 python3 -B scripts/test_cuda_sha256_native.py",
+  "exit": 0,
+  "log": {
+   "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-gpu-sha-full-inventory-20261009/c2ef5d77-25f1-4fce-855b-083a56031c95/scratchpad/final-whole-suite.log",
+   "sha256": "006ad11fb03020af21bffdd73e00ec76575b66e5206afa27f851fddc21206f04"
+  },
+  "max_rss_kib": 212648,
+  "native_modules_installed": {
+   "PIL": false,
+   "numpy": false,
+   "safetensors": false,
+   "torch": false,
+   "torchvision": false,
+   "transformers": false
+  },
+  "note": "wall 16.0s test time under host load average 7-10; over the earlier 15s narrow target, inside the released 120s timeout",
+  "result": "OK",
+  "sys_seconds": 1.9,
+  "tests": 120,
+  "time": {
+   "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-gpu-sha-full-inventory-20261009/c2ef5d77-25f1-4fce-855b-083a56031c95/scratchpad/final-whole-suite.time",
+   "sha256": "70cc6491edc986114de798da5f3ee6c55d7814a0556ed2df5479e79413932eea"
+  },
+  "user_seconds": 10.41,
+  "wall_seconds": 16.42
+ },
+ "flags": "all eligibility flags false; no GO, threshold, estimate, p99, quality or product claim",
+ "help_outputs": {
+  "help-O.txt": "cf39f5c83b7c91a114ee4ae07452280ea8ba36e84d5d5b3d7ad6db5a386b4019",
+  "help-OO.txt": "cf39f5c83b7c91a114ee4ae07452280ea8ba36e84d5d5b3d7ad6db5a386b4019",
+  "help.txt": "cf39f5c83b7c91a114ee4ae07452280ea8ba36e84d5d5b3d7ad6db5a386b4019"
+ },
+ "ledger": {
+  "path": "/tmp/claude-1001/-home-rb-worktrees-sfora-gpu-sha-full-inventory-20261009/c2ef5d77-25f1-4fce-855b-083a56031c95/scratchpad/gpu-sha-full-stage-ledger-v1.md",
+  "sha256": "b852bce08f57ee8b89edb72535428d3598b4f1bf2b77185715fd9e939fa333b3"
+ },
+ "merged": false,
+ "narrow_class_logs": {
+  "CliTests.log": "f7e1c85290319b1471c85811e13ac94ac9558f9c2ab903de882ae9449e4a29ca",
+  "FullAuthorityTests.log": "98772368de8233a51f0bd8ef6184a6654acc8ccd754ba9e2c3600e4e442f5378",
+  "FullCliTests.log": "2a48f1fb2ac738ee169d9ee6bdc8a337c7b9ef49a5b8565598f7f766bdf90fc9",
+  "FullTests.log": "bbaf3f1235f8be8544dbb68ea2cae8863f75b8c7e8675e2d7fe2404c0e80f7af",
+  "GenuinePriorTests.log": "c924980aa8e0a07cae2dd8f6a7230980cf3ddde053d81ef02f58ee5d7f3df4d1",
+  "InventoryTests.log": "caf0b170fa1dd84d0d90f0b93845f8a972573704fe8684fda25f2dde0189ae60",
+  "LeafTests.log": "b23fb1ecc41b62612ec037aa35fb672cb58e59e2f43972e34bd6613bdcfaf01f",
+  "PriorTests.log": "f1cdbb1156fb3b347f90c46e14244037130454f2037eb9c0fb64c75de92feecc",
+  "RealSizeLeafTests.log": "4c52a912536dcdfb82f4b7b411d2afb360bcac8247fe322455796d51e14691b3",
+  "SmokeSourceInverseTests.log": "ba2815639bf8a8b0946459f65a1372b0803b221bf7047f0aa3fabbaf6accb972",
+  "SourceShapeTests.log": "633a951019ce139ba668932f01a7f03e6c27f2b6dd7ac8002267db928f1aca09"
+ },
+ "parent": "e2014d50e9fd1d90d9a40437cf17ad2d0338d226",
+ "post_pass": {
+  "diff": "2 files, 1825 insertions, 136 deletions",
+  "git_diff_check": "ok",
+  "help_default_O_OO": "exit 0, byte-identical",
+  "py_compile": "ok"
+ },
+ "pushed": false,
+ "schema": "gpu-sha-full-stage-source-handoff-receipt-v1",
+ "trailers": false,
+ "tree": "0f53005ab50258ce38a2b797c5e0610256f41931",
+ "unrun": [
+  "native full stage",
+  "native timing/comparison",
+  "real torch API assumptions listed in the driver docstring",
+  "timing stage (unreleased)"
+ ],
+ "worktree": "/home/rb/worktrees/sfora-gpu-sha-full-inventory-20261009"
+}

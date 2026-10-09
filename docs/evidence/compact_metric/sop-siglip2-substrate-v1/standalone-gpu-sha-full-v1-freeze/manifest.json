@@ -1,0 +1,16 @@
+{
+  "bootstrap-authority-v1.json": "d9d8014d53d20933a733b86d59491d82dc070d7ed5d2c280217abeec84adc0d9",
+  "bootstrap.py": "391ea03995b85a8f5d6759a165cea21c80b9f695705737454df970d80f6ca61f",
+  "execution.json": "d82e325e30952f155d75d2a987c90631a531a9f3adf9593ca026218073c4b53b",
+  "extract_siglip2_vision_source.py": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d",
+  "inventory.json": "a901e9a05d6b889523672e68e5116c803579f48cd3b886cd1708e5efd42264bb",
+  "launch.json": "bffe0567be0e6059b39e1eb39aad48f2900e0db9fde418698af0cd0c2c3cc28c",
+  "native-authority-v1.json": "ccb936ac4f0dff368a76564a3365c44ca5afcbaf251f51040b9b7816ea308756",
+  "prior-launch.json": "2becd614c987a96b082b0ed23f4b00fc3da60acabe2f33703d907fabb3acc717",
+  "prior-unit.json": "f604a87b1ba475eb407f5bc8690974b1c35e923af787946a1bbc71a5b46ff5ab",
+  "prior-verification.json": "516d4e165f14e21855d4b6fa7b9f83f1cfdbbad34ae11465e54bd43df1896402",
+  "qualify_cuda_sha256_native.py": "c4d0e70b82b050ed0da06ac023e7039b6be5c92eb887f7347c23bd8b13f026f1",
+  "root-disposition.md": "a2871d87a9c8ee7055cb90cfcde2f97909bd2a4f727d4a621fa1fd6b119282d7",
+  "so400-native256-upstream-metadata-v1.json": "42411fd4a16dfa007eadb370ac0524a65f6d0ef3936cd3f320ef1c9f191f62a9",
+  "test_cuda_sha256_native.py": "a4a09f57a99c85b8f0cb8bb22b5e75b90f71a7dc3665ad1a7b337a4e853b435f"
+}
