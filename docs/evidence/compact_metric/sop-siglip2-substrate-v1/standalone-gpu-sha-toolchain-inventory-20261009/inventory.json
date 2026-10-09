@@ -1,0 +1,71 @@
+{
+  "compile_executed": false,
+  "compiler_dependencies_complete": false,
+  "cuda_launched": false,
+  "files": [
+    {
+      "bytes": 33221712,
+      "canonical": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/nvcc",
+      "requested": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/nvcc",
+      "sha256": "6b76d931c20f4a26448332d5a53d96e5f7c1ccb5a7e77fa2d5a0e3db9c368d0a",
+      "symlink": false
+    },
+    {
+      "bytes": 46204512,
+      "canonical": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/ptxas",
+      "requested": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/ptxas",
+      "sha256": "5a603db15dbc0b048c1fe2f39d97509b6e220f85c6da295b7332be39460ac64b",
+      "symlink": false
+    },
+    {
+      "bytes": 42203112,
+      "canonical": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/nvlink",
+      "requested": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/nvlink",
+      "sha256": "10ff43c832fca5dd9dfe04a09fd313008bd2e44bb41de9655b86c7a1b355f233",
+      "symlink": false
+    },
+    {
+      "bytes": 12516856,
+      "canonical": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/cudafe++",
+      "requested": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/cudafe++",
+      "sha256": "a95e19b46e8775b9c48c8cc4a1577d88d65ce78cad8d7c4501f71907262d8d8d",
+      "symlink": false
+    },
+    {
+      "bytes": 1257368,
+      "canonical": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/fatbinary",
+      "requested": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/fatbinary",
+      "sha256": "a166dfdf40b104cd2ee01ab5f20c2350d00bb337250117ba35b04ddbe24a8367",
+      "symlink": false
+    },
+    {
+      "bytes": 409,
+      "canonical": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/nvcc.profile",
+      "requested": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/nvcc.profile",
+      "sha256": "78eee50e8519668b36ae8d379b7ba1495ccddddd64797753625e40b110b22015",
+      "symlink": false
+    },
+    {
+      "bytes": 100983,
+      "canonical": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/include/cuda_runtime.h",
+      "requested": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/include/cuda_runtime.h",
+      "sha256": "c93f92894cabfeafab0c1b7c575b8c932416e2959f8046ef19b79eb82199b6ae",
+      "symlink": false
+    },
+    {
+      "bytes": 990040,
+      "canonical": "/usr/bin/aarch64-linux-gnu-g++-13",
+      "requested": "/usr/bin/g++",
+      "sha256": "fc02363794280f404c6ca6f5da1c8fe469be902e9de140d35d8573bb3393f53b",
+      "symlink": true
+    }
+  ],
+  "gpu": "NVIDIA GB10, 12.1, 580.159.03\n",
+  "host_version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "native_binary_admitted": false,
+  "nvcc_version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2026 NVIDIA Corporation\nBuilt on Tue_Sep_01_08:47:20_PDT_2026\nCuda compilation tools, release 13.4, V13.4.92\nBuild cuda_13.4.r13.4/compiler.38855100_0\n",
+  "original_ssh_session": 16302,
+  "schema": "standalone-gpu-sha-readonly-toolchain-inventory-v1",
+  "strace": "/usr/bin/strace",
+  "torch_imported": false
+}
