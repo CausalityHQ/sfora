@@ -1,0 +1,155 @@
+[
+  {
+    "binding_complete": true,
+    "checkpoint": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/vision.pt",
+    "code_id": 209993467277648,
+    "device": 66306,
+    "diagnostic_complete": false,
+    "errors": {
+      "diagnostic_complete": true,
+      "edges": [],
+      "nodes": [],
+      "root": null
+    },
+    "event": "before_original_mapping_guard",
+    "function": "construct_encoder",
+    "globals_id": 268462389258304,
+    "inode": 21891394,
+    "line": 754,
+    "locals_present": {
+      "cache": true,
+      "copied": false,
+      "disk": false,
+      "endpoint": false,
+      "head": false,
+      "model": true,
+      "pages": false
+    },
+    "mappings": [],
+    "owners": {
+      "candidates": [],
+      "diagnostic_complete": false,
+      "edges_visited": 513,
+      "limitations": [
+        "GC enumeration has no bounded streaming API; global snapshot not allocated",
+        "native/C++ ownership is not observable"
+      ],
+      "owner": "unresolved",
+      "reason": "owner inspection or quota failure",
+      "roots": [
+        "loader_local"
+      ]
+    },
+    "source": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+    "source_sha256": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+  },
+  {
+    "binding_complete": true,
+    "checkpoint": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/endpoint.pt",
+    "code_id": 209993465948288,
+    "device": 66306,
+    "diagnostic_complete": false,
+    "errors": {
+      "diagnostic_complete": true,
+      "edges": [],
+      "nodes": [],
+      "root": null
+    },
+    "event": "before_original_mapping_guard",
+    "function": "load_inference",
+    "globals_id": 268462389258304,
+    "inode": 21891395,
+    "line": 1352,
+    "locals_present": {
+      "cache": true,
+      "copied": false,
+      "disk": false,
+      "endpoint": true,
+      "head": false,
+      "model": false,
+      "pages": false
+    },
+    "mappings": [],
+    "owners": {
+      "candidates": [],
+      "diagnostic_complete": false,
+      "edges_visited": 513,
+      "limitations": [
+        "GC enumeration has no bounded streaming API; global snapshot not allocated",
+        "native/C++ ownership is not observable",
+        "unsupported object type"
+      ],
+      "owner": "unresolved",
+      "reason": "owner inspection or quota failure",
+      "roots": [
+        "loader_local"
+      ]
+    },
+    "source": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+    "source_sha256": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+  },
+  {
+    "errors": {
+      "diagnostic_complete": true,
+      "edges": [],
+      "nodes": [
+        {
+          "id": 0,
+          "message": "grouped md mapped native witness differs",
+          "notes": [],
+          "suppress_context": false,
+          "traceback": [
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v4/qualify_connected_probe_serving.py",
+              "function": "reference_outputs",
+              "line": 480
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/contextlib.py",
+              "function": "__enter__",
+              "line": 141
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v4/qualify_connected_probe_serving.py",
+              "function": "scope",
+              "line": 1426
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v4/qualify_connected_serving_requests.py",
+              "function": "raise_failures",
+              "line": 226
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v4/qualify_connected_probe_serving.py",
+              "function": "scope",
+              "line": 1412
+            },
+            {
+              "file": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/contextlib.py",
+              "function": "__enter__",
+              "line": 141
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/evaluate_siglip2_identity_diversity.py",
+              "function": "bundle_reads_only",
+              "line": 1655
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/evaluate_siglip2_identity_diversity.py",
+              "function": "grouped_md_origin",
+              "line": 1620
+            },
+            {
+              "file": "/home/riomus/runs/sfora-connected-mlp-identity-evaluation-reference-v1/evaluate_siglip2_identity_diversity.py",
+              "function": "require",
+              "line": 652
+            }
+          ],
+          "type": "builtins.ValueError"
+        }
+      ],
+      "root": 0
+    },
+    "event": "reference_catch_before_clear_frames"
+  }
+]

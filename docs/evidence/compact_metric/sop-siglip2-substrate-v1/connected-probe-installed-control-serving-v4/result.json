@@ -1,0 +1,26 @@
+{
+  "actual_unit": "sfora-connected-probe-installed-control-serving-diagnostic-v3",
+  "caught_loader_errors_before_mapping_guards": false,
+  "cause": "grouped md mapped native witness differs",
+  "checkpoint_mappings": [],
+  "events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+  "exact_predicate_culprit_unproven": true,
+  "exit": 1,
+  "exit_failure": "observed native difference must be exact four",
+  "files": {
+    "loader-observations.json": "08a04ba80ab1cd9d318cee7e5a4e6896cd2573c3ba0ac295a6cfbf54341cc9ef",
+    "original.log": "9d0a068deb03723abb3b7633659eda7ac8ed69e351ea9f03b6161e2922b8e3e3",
+    "terminal-status.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  "forward_qualified": false,
+  "host_peak_bytes": 3699171328,
+  "invocation_id": "42f3a71c508c49fdbeb2cc6cdfbd7f81",
+  "label_error_preserved": true,
+  "metadata_denial_resolved": true,
+  "parity_qualified": false,
+  "schema": "installed-control-serving-native-result-v4",
+  "service_seconds": 357.822,
+  "source_root": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v4",
+  "ssh_session": 23664,
+  "swaps": 0
+}
