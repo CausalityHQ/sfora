@@ -1,0 +1,344 @@
+{
+  "id": "cff668c1ec224f4f",
+  "provider": "codex",
+  "model": "gpt-6-astra",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791504197,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791505397,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded causal audit; do not edit/import Torch/native/SSH/launch/retry. Sfora SAME goal. Evaluator CPU first-v1 failed original inv7d95f5f27fd44294ab061bdb5b6a03c9 normal status1 at240.141s, cgroup8GiB peak exact8GiB memory.max8131, zeroOOM/swap, RSS414600KiB, filesystem inputs393219640 blocks. No admitted progress. Evidence /tmp/sfora-probe-first-evaluator-cpu-v1-result/{original.log,verification.json}; command/authority/launch /tmp/sfora-probe-first-evaluator-cpu-v1-freeze/. Repo /home/rb/worktrees/sfora-positive-causality master29e63a18; frozen evaluator scripts/evaluate_siglip2_connected_probe.py SHA6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d and train_siglip2_connected_probe.py SHAe2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e. Both fresh TRAIN128 accepted, source gates/parity frozen. Trace earliest cgroup guard and every relevant file reader/admission lifetime from exact sources. bound_file already uses DONTNEED; launcher sha256sum before+after SHA tables does not. Determine what is source-proven versus UNPROVEN; give smallest testable correction or diagnostic for file-backed memory pressure without removing a single read/predicate/trust boundary, caching hashes, changing math/source native grants or8GiB/zero-event policy. Explain whether launcher-only bounded stream readinto/hash+DONTNEED could remove concrete page-cache accumulation and what evidence tests/fresh original gate required. No broad refactor/research/loss/cap proposal. Preserve failure and live independent parity specialist; no duplicate jobs.",
+  "prompt_sha256": "05e0a3de24a4491c85bde28e0baa2ccf8fab604349fac9df91d188fd4c096a72",
+  "prompt_bytes": 1877,
+  "fingerprint": "1a2cc58601d097b3b8d4fddb8a88b9156bb0a988d67a4d0bac7545465ce0ca3f",
+  "evidence": {
+    "git_commit": "29e63a18ab34acb88b86387803e9b3f935b30762",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "004d684a930ca2c2562e32f0b22237a884197f0411491b0481dc0f4f15da22aa",
+    "worktree_sha256": "a1c37d4be0e6220df3661b10a288a0ed64f1a5c05d57c7461d4aab2181914d89",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "f5efe37928df589c97bc2d2d3171f06d83341626963ec3bdcfbb982777c0ab23",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6-astra",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "20676b99-bfa9-463a-b855-3c7751ce98a1"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-cff668c1ec224f4f.service",
+  "pid": 3820791,
+  "pgid": 3820791,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "budget_usd": null,
+      "timeout_seconds": 1200,
+      "started_at": 1791504197
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791504639,
+  "event_cursor": 68,
+  "events": [
+    {
+      "seq": 45,
+      "at": 1791504405,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 46,
+      "at": 1791504411,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 47,
+      "at": 1791504419,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 48,
+      "at": 1791504419,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 49,
+      "at": 1791504424,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 50,
+      "at": 1791504424,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 51,
+      "at": 1791504432,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 52,
+      "at": 1791504437,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 53,
+      "at": 1791504449,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 54,
+      "at": 1791504449,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 55,
+      "at": 1791504460,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Web search started"
+    },
+    {
+      "seq": 56,
+      "at": 1791504461,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Web search completed"
+    },
+    {
+      "seq": 57,
+      "at": 1791504470,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Web search started"
+    },
+    {
+      "seq": 58,
+      "at": 1791504471,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 59,
+      "at": 1791504471,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 60,
+      "at": 1791504472,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Web search completed"
+    },
+    {
+      "seq": 61,
+      "at": 1791504528,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 62,
+      "at": 1791504529,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 63,
+      "at": 1791504537,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 64,
+      "at": 1791504538,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 65,
+      "at": 1791504545,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 66,
+      "at": 1791504545,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 67,
+      "at": 1791504638,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 68,
+      "at": 1791504638,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 61,
+        "at": 1791504528,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 62,
+        "at": 1791504529,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 63,
+        "at": 1791504537,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 64,
+        "at": 1791504538,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 65,
+        "at": 1791504545,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 66,
+        "at": 1791504545,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 67,
+        "at": 1791504638,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 68,
+        "at": 1791504638,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "A launcher-only streaming verifier is the smallest testable intervention. It can prevent accumulation from the launcher’s full-file scans while preserving every hash check. **It is not yet a proven fix for first-v1.** Preserve invocation `7d95f5f27fd44294ab061bdb5b6a03c9` as failed.\n\nThe supplied evaluator/trainer SHAs and frozen command/authority/log hashes match locally. The shared checkout has advanced to `44bb54d2`; this audit used the pinned bytes, including the archived identity trainer v5.\n\n**What the sources establish**\n\n| Stage | Reads and lifetime |\n|---|---|\n| Launcher | Inside the capped service, the command runs `sha256sum -c` over **18,810 entries, 18,779 distinct paths**. This includes 16,456 JPEG entries, 40 `.pt` entries, caches and native libraries. All 18,810 checks appear successfully, in order, in the original log. The launcher supplies no consumed-range `DONTNEED`. Its identical second table is after Python and was **not reached** because Python returned 1 under `set -e`. [Frozen command](/tmp/sfora-probe-first-evaluator-cpu-v1-freeze/first-cpu-v1-command.sh:4) |\n| Source/bootstrap admission | Evaluator `authority()` loads authenticated closures, then runs the authenticated trainer-authority derivative. The nested chain is probe trainer → frozen identity trainer v5 → nearest startup adapter → signed-concat fitter → quadratic trainer → genuine trainer/exporter → substrate exporter/source qualifier. These read source, authorities, historical receipts/logs, source checkpoints, image inventories, cache payloads and installed-package evidence. The early checks of cgroup records concern **historical units**, not the current service. [Evaluator authority](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1115) |\n| Historical and fresh terminal readers | Existing `FlatAdmission` retains `entries`, `verified` and authenticated `json_bytes` for its reader lifetime. The evaluator’s prerequisite/endpoint batching creates a **fresh reader for every input occurrence**, at most four workers, joins successfully, then publishes metadata. It preserves fresh CPU, both mechanics, TRAIN128, original terminal-log and cost predicates. Futures retain paths/facts, not entire checkpoint contents. [Batch reader](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:430), [FlatAdmission](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:170) |\n| Endpoint and reference admission | Each trained checkpoint is hashed; each bundle’s code, `vision.pt`, `endpoint.pt`, processor and environment files are authenticated. Concat/source receipts, guards, wire files and preparation logs are subsequently read. These are still admission reads; endpoint tensor loading has not begun. [Endpoint admission](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1057), [Bundle admission](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_probe.py:1267) |\n| First live guard | After `authority()` returns and the interpreter is rehashed, `native_start()` calls `source.cgroup_memory()` at line 1243. Its implementation rejects nonzero `max`, `oom` or `oom_kill` with the exact observed message. This precedes Torch import at line 1248. The later `admitted` message follows native preparation. The checked call path therefore locates this rejection at the first live guard, but does **not** locate when the events accumulated. [Call](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1235), [Predicate](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_siglip2_substrate_cpu.py:505) |\n\nThe bulk Python hashers already use consumed-range `DONTNEED`: evaluator `bound_file` uses 1 MiB reads; trainer `bound_file` uses a reusable 1 MiB `readinto` buffer. Historical bulk hashers and NPY payload validators also advise consumed ranges away.\n\nThat does **not** cover every read. JSON parsers reopen files, commonly capped at 64 MiB each; source/AST readers use `read_bytes`; terminal readers reopen whole logs using `read_text`; installed RECORD/metadata parsing rereads files. Those reads generally lack advice. Some parsed records and authenticated JSON bytes remain owned by admission contexts. Closing a descriptor does not itself establish that its cached pages were released.\n\nLater native preparation and CPU qualification have additional mmap/checkpoint/cache lifetimes, including sequential initializer ownership, checkpoint fingerprinting, release checks and fresh exit rehashes. A launcher correction cannot qualify those stages. [Payload lifetimes](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1430), [Exit rehash](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1779)\n\n**What remains UNPROVEN**\n\nThe exact 8 GiB peak, 8,131 `memory.events:max`, low process RSS and substantial filesystem reads support file-backed pressure. The final counters also show extensive file refault/reclaim activity. But final `memory.stat` is an end-state snapshot, not the composition at the peak. Neither the responsible file nor the split between launcher and subsequent admission reads is established. [Original verification](/tmp/sfora-probe-first-evaluator-cpu-v1-result/verification.json)\n\n`max` events can occur with successful reclaim and zero OOM; they still violate the frozen policy. `DONTNEED` can release consumed cached pages, but remains advisory, ignores partial-page ranges and cannot guarantee reclamation of dirty pages. Merely changing `read` to `readinto` bounds user-space buffering; the advice is the relevant page-cache intervention. [Kernel cgroup documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html), [Linux `posix_fadvise`](https://man7.org/linux/man-pages/man2/posix_fadvise.2.html)\n\n**One actionable plan**\n\n1. **Change only the two launcher table verifiers in a new freeze.** Use an independently authenticated, stdlib-only helper: one file at a time, reusable 1 MiB buffer, hash every byte through EOF, then advise consumed ranges away. Track fully consumed page-aligned ranges across short reads. Preserve both tables’ exact order, all duplicate occurrences, expected digests, mismatch/I/O failure behavior and shell exit/footer propagation. Keep dataset reads inside the same capped service. Do not import the evaluator to reuse its helper, cache hashes, or alter any evaluator/trainer/source/native authority.\n\n2. **Verify equivalence before resource testing.** Compare with `sha256sum` on empty, partial-page and multichunk files; test short reads, duplicate entries, unreadable/missing files, digest mismatch, and same-size mutation with restored mtime. Verify complete table traversal and nonzero status on failure. Check that evaluator failure still skips the after-table and preserves its failure through the footer trap. Authenticate the new helper and command; keep the original freeze untouched.\n\n3. **Use one predeclared launcher-only A/B diagnostic, proposed—not executed here.** Two sequential fresh units: original verifier and candidate verifier, each reading the exact first table once, stopping before evaluator execution. Keep the original 8 GiB, zero swap, locks and 700-second maximum. Record invocation identity and bounded samples of `memory.current`, `memory.peak`, `memory.events`, swap and `memory.stat`—especially `file`, `anon`, `kernel`, dirty/writeback, refault and reclaim—at entry, during scanning and exit.\n\n   The hypothesis gains support if the original scan develops file-dominated accumulation/events while the candidate completes identical checks with bounded file usage and zero events. **Any candidate memory event falsifies launcher-only sufficiency for that scan.** A clean original diagnostic leaves attribution of first-v1 unresolved; a clean candidate scan alone does not qualify the evaluator.\n\n4. **Require a fresh complete original evaluator gate afterward.** New invocation/output and frozen launcher, same accepted TRAIN128 endpoints and unchanged scientific/source predicates. Acceptance requires normal status 0, complete CPU qualification, original native/source exit checks, both full SHA passes, and final/stop evidence covering the after-table: peak ≤8 GiB, zero required events and zero swap throughout. This remains an engineering gate, without quality or speed admission. Preserve the independent parity specialist’s work and prerequisites.\n\nThe principal risks are advisory eviction failing on the actual filesystem, later readers rebuilding pressure, and extra physical I/O consuming the unchanged deadline. No files were edited, native runtime imported, SSH used, jobs launched or retries performed.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "A launcher-only streaming verifier is the smallest testable intervention. It can prevent accumulation from the launcher’s full-file scans while preserving every hash check. **It is not yet a proven fix for first-v1.** Preserve invocation `7d95f5f27fd44294ab061bdb5b6a03c9` as failed.\n\nThe supplied evaluator/trainer SHAs and frozen command/authority/log hashes match locally. The shared checkout has advanced to `44bb54d2`; this audit used the pinned bytes, including the archived identity trainer v5.\n\n**What the sources establish**\n\n| Stage | Reads and lifetime |\n|---|---|\n| Launcher | Inside the capped service, the command runs `sha256sum -c` over **18,810 entries, 18,779 distinct paths**. This includes 16,456 JPEG entries, 40 `.pt` entries, caches and native libraries. All 18,810 checks appear successfully, in order, in the original log. The launcher supplies no consumed-range `DONTNEED`. Its identical second table is after Python and was **not reached** because Python returned 1 under `set -e`. [Frozen command](/tmp/sfora-probe-first-evaluator-cpu-v1-freeze/first-cpu-v1-command.sh:4) |\n| Source/bootstrap admission | Evaluator `authority()` loads authenticated closures, then runs the authenticated trainer-authority derivative. The nested chain is probe trainer → frozen identity trainer v5 → nearest startup adapter → signed-concat fitter → quadratic trainer → genuine trainer/exporter → substrate exporter/source qualifier. These read source, authorities, historical receipts/logs, source checkpoints, image inventories, cache payloads and installed-package evidence. The early checks of cgroup records concern **historical units**, not the current service. [Evaluator authority](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1115) |\n| Historical and fresh terminal readers | Existing `FlatAdmission` retains `entries`, `verified` and authenticated `json_bytes` for its reader lifetime. The evaluator’s prerequisite/endpoint batching creates a **fresh reader for every input occurrence**, at most four workers, joins successfully, then publishes metadata. It preserves fresh CPU, both mechanics, TRAIN128, original terminal-log and cost predicates. Futures retain paths/facts, not entire checkpoint contents. [Batch reader](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:430), [FlatAdmission](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:170) |\n| Endpoint and reference admission | Each trained checkpoint is hashed; each bundle’s code, `vision.pt`, `endpoint.pt`, processor and environment files are authenticated. Concat/source receipts, guards, wire files and preparation logs are subsequently read. These are still admission reads; endpoint tensor loading has not begun. [Endpoint admission](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1057), [Bundle admission](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_probe.py:1267) |\n| First live guard | After `authority()` returns and the interpreter is rehashed, `native_start()` calls `source.cgroup_memory()` at line 1243. Its implementation rejects nonzero `max`, `oom` or `oom_kill` with the exact observed message. This precedes Torch import at line 1248. The later `admitted` message follows native preparation. The checked call path therefore locates this rejection at the first live guard, but does **not** locate when the events accumulated. [Call](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1235), [Predicate](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_siglip2_substrate_cpu.py:505) |\n\nThe bulk Python hashers already use consumed-range `DONTNEED`: evaluator `bound_file` uses 1 MiB reads; trainer `bound_file` uses a reusable 1 MiB `readinto` buffer. Historical bulk hashers and NPY payload validators also advise consumed ranges away.\n\nThat does **not** cover every read. JSON parsers reopen files, commonly capped at 64 MiB each; source/AST readers use `read_bytes`; terminal readers reopen whole logs using `read_text`; installed RECORD/metadata parsing rereads files. Those reads generally lack advice. Some parsed records and authenticated JSON bytes remain owned by admission contexts. Closing a descriptor does not itself establish that its cached pages were released.\n\nLater native preparation and CPU qualification have additional mmap/checkpoint/cache lifetimes, including sequential initializer ownership, checkpoint fingerprinting, release checks and fresh exit rehashes. A launcher correction cannot qualify those stages. [Payload lifetimes](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1430), [Exit rehash](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1779)\n\n**What remains UNPROVEN**\n\nThe exact 8 GiB peak, 8,131 `memory.events:max`, low process RSS and substantial filesystem reads support file-backed pressure. The final counters also show extensive file refault/reclaim activity. But final `memory.stat` is an end-state snapshot, not the composition at the peak. Neither the responsible file nor the split between launcher and subsequent admission reads is established. [Original verification](/tmp/sfora-probe-first-evaluator-cpu-v1-result/verification.json)\n\n`max` events can occur with successful reclaim and zero OOM; they still violate the frozen policy. `DONTNEED` can release consumed cached pages, but remains advisory, ignores partial-page ranges and cannot guarantee reclamation of dirty pages. Merely changing `read` to `readinto` bounds user-space buffering; the advice is the relevant page-cache intervention. [Kernel cgroup documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html), [Linux `posix_fadvise`](https://man7.org/linux/man-pages/man2/posix_fadvise.2.html)\n\n**One actionable plan**\n\n1. **Change only the two launcher table verifiers in a new freeze.** Use an independently authenticated, stdlib-only helper: one file at a time, reusable 1 MiB buffer, hash every byte through EOF, then advise consumed ranges away. Track fully consumed page-aligned ranges across short reads. Preserve both tables’ exact order, all duplicate occurrences, expected digests, mismatch/I/O failure behavior and shell exit/footer propagation. Keep dataset reads inside the same capped service. Do not import the evaluator to reuse its helper, cache hashes, or alter any evaluator/trainer/source/native authority.\n\n2. **Verify equivalence before resource testing.** Compare with `sha256sum` on empty, partial-page and multichunk files; test short reads, duplicate entries, unreadable/missing files, digest mismatch, and same-size mutation with restored mtime. Verify complete table traversal and nonzero status on failure. Check that evaluator failure still skips the after-table and preserves its failure through the footer trap. Authenticate the new helper and command; keep the original freeze untouched.\n\n3. **Use one predeclared launcher-only A/B diagnostic, proposed—not executed here.** Two sequential fresh units: original verifier and candidate verifier, each reading the exact first table once, stopping before evaluator execution. Keep the original 8 GiB, zero swap, locks and 700-second maximum. Record invocation identity and bounded samples of `memory.current`, `memory.peak`, `memory.events`, swap and `memory.stat`—especially `file`, `anon`, `kernel`, dirty/writeback, refault and reclaim—at entry, during scanning and exit.\n\n   The hypothesis gains support if the original scan develops file-dominated accumulation/events while the candidate completes identical checks with bounded file usage and zero events. **Any candidate memory event falsifies launcher-only sufficiency for that scan.** A clean original diagnostic leaves attribution of first-v1 unresolved; a clean candidate scan alone does not qualify the evaluator.\n\n4. **Require a fresh complete original evaluator gate afterward.** New invocation/output and frozen launcher, same accepted TRAIN128 endpoints and unchanged scientific/source predicates. Acceptance requires normal status 0, complete CPU qualification, original native/source exit checks, both full SHA passes, and final/stop evidence covering the after-table: peak ≤8 GiB, zero required events and zero swap throughout. This remains an engineering gate, without quality or speed admission. Preserve the independent parity specialist’s work and prerequisites.\n\nThe principal risks are advisory eviction failing on the actual filesystem, later readers rebuilding pressure, and extra physical I/O consuming the unchanged deadline. No files were edited, native runtime imported, SSH used, jobs launched or retries performed."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 1877,
+  "output_bytes": 8848,
+  "elapsed_seconds": 442,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)",
+  "progress_truncated": false,
+  "result": "A launcher-only streaming verifier is the smallest testable intervention. It can prevent accumulation from the launcher’s full-file scans while preserving every hash check. **It is not yet a proven fix for first-v1.** Preserve invocation `7d95f5f27fd44294ab061bdb5b6a03c9` as failed.\n\nThe supplied evaluator/trainer SHAs and frozen command/authority/log hashes match locally. The shared checkout has advanced to `44bb54d2`; this audit used the pinned bytes, including the archived identity trainer v5.\n\n**What the sources establish**\n\n| Stage | Reads and lifetime |\n|---|---|\n| Launcher | Inside the capped service, the command runs `sha256sum -c` over **18,810 entries, 18,779 distinct paths**. This includes 16,456 JPEG entries, 40 `.pt` entries, caches and native libraries. All 18,810 checks appear successfully, in order, in the original log. The launcher supplies no consumed-range `DONTNEED`. Its identical second table is after Python and was **not reached** because Python returned 1 under `set -e`. [Frozen command](/tmp/sfora-probe-first-evaluator-cpu-v1-freeze/first-cpu-v1-command.sh:4) |\n| Source/bootstrap admission | Evaluator `authority()` loads authenticated closures, then runs the authenticated trainer-authority derivative. The nested chain is probe trainer → frozen identity trainer v5 → nearest startup adapter → signed-concat fitter → quadratic trainer → genuine trainer/exporter → substrate exporter/source qualifier. These read source, authorities, historical receipts/logs, source checkpoints, image inventories, cache payloads and installed-package evidence. The early checks of cgroup records concern **historical units**, not the current service. [Evaluator authority](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1115) |\n| Historical and fresh terminal readers | Existing `FlatAdmission` retains `entries`, `verified` and authenticated `json_bytes` for its reader lifetime. The evaluator’s prerequisite/endpoint batching creates a **fresh reader for every input occurrence**, at most four workers, joins successfully, then publishes metadata. It preserves fresh CPU, both mechanics, TRAIN128, original terminal-log and cost predicates. Futures retain paths/facts, not entire checkpoint contents. [Batch reader](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:430), [FlatAdmission](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_substrate_adaptation.py:170) |\n| Endpoint and reference admission | Each trained checkpoint is hashed; each bundle’s code, `vision.pt`, `endpoint.pt`, processor and environment files are authenticated. Concat/source receipts, guards, wire files and preparation logs are subsequently read. These are still admission reads; endpoint tensor loading has not begun. [Endpoint admission](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1057), [Bundle admission](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_probe.py:1267) |\n| First live guard | After `authority()` returns and the interpreter is rehashed, `native_start()` calls `source.cgroup_memory()` at line 1243. Its implementation rejects nonzero `max`, `oom` or `oom_kill` with the exact observed message. This precedes Torch import at line 1248. The later `admitted` message follows native preparation. The checked call path therefore locates this rejection at the first live guard, but does **not** locate when the events accumulated. [Call](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1235), [Predicate](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_siglip2_substrate_cpu.py:505) |\n\nThe bulk Python hashers already use consumed-range `DONTNEED`: evaluator `bound_file` uses 1 MiB reads; trainer `bound_file` uses a reusable 1 MiB `readinto` buffer. Historical bulk hashers and NPY payload validators also advise consumed ranges away.\n\nThat does **not** cover every read. JSON parsers reopen files, commonly capped at 64 MiB each; source/AST readers use `read_bytes`; terminal readers reopen whole logs using `read_text`; installed RECORD/metadata parsing rereads files. Those reads generally lack advice. Some parsed records and authenticated JSON bytes remain owned by admission contexts. Closing a descriptor does not itself establish that its cached pages were released.\n\nLater native preparation and CPU qualification have additional mmap/checkpoint/cache lifetimes, including sequential initializer ownership, checkpoint fingerprinting, release checks and fresh exit rehashes. A launcher correction cannot qualify those stages. [Payload lifetimes](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1430), [Exit rehash](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_probe.py:1779)\n\n**What remains UNPROVEN**\n\nThe exact 8 GiB peak, 8,131 `memory.events:max`, low process RSS and substantial filesystem reads support file-backed pressure. The final counters also show extensive file refault/reclaim activity. But final `memory.stat` is an end-state snapshot, not the composition at the peak. Neither the responsible file nor the split between launcher and subsequent admission reads is established. [Original verification](/tmp/sfora-probe-first-evaluator-cpu-v1-result/verification.json)\n\n`max` events can occur with successful reclaim and zero OOM; they still violate the frozen policy. `DONTNEED` can release consumed cached pages, but remains advisory, ignores partial-page ranges and cannot guarantee reclamation of dirty pages. Merely changing `read` to `readinto` bounds user-space buffering; the advice is the relevant page-cache intervention. [Kernel cgroup documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html), [Linux `posix_fadvise`](https://man7.org/linux/man-pages/man2/posix_fadvise.2.html)\n\n**One actionable plan**\n\n1. **Change only the two launcher table verifiers in a new freeze.** Use an independently authenticated, stdlib-only helper: one file at a time, reusable 1 MiB buffer, hash every byte through EOF, then advise consumed ranges away. Track fully consumed page-aligned ranges across short reads. Preserve both tables’ exact order, all duplicate occurrences, expected digests, mismatch/I/O failure behavior and shell exit/footer propagation. Keep dataset reads inside the same capped service. Do not import the evaluator to reuse its helper, cache hashes, or alter any evaluator/trainer/source/native authority.\n\n2. **Verify equivalence before resource testing.** Compare with `sha256sum` on empty, partial-page and multichunk files; test short reads, duplicate entries, unreadable/missing files, digest mismatch, and same-size mutation with restored mtime. Verify complete table traversal and nonzero status on failure. Check that evaluator failure still skips the after-table and preserves its failure through the footer trap. Authenticate the new helper and command; keep the original freeze untouched.\n\n3. **Use one predeclared launcher-only A/B diagnostic, proposed—not executed here.** Two sequential fresh units: original verifier and candidate verifier, each reading the exact first table once, stopping before evaluator execution. Keep the original 8 GiB, zero swap, locks and 700-second maximum. Record invocation identity and bounded samples of `memory.current`, `memory.peak`, `memory.events`, swap and `memory.stat`—especially `file`, `anon`, `kernel`, dirty/writeback, refault and reclaim—at entry, during scanning and exit.\n\n   The hypothesis gains support if the original scan develops file-dominated accumulation/events while the candidate completes identical checks with bounded file usage and zero events. **Any candidate memory event falsifies launcher-only sufficiency for that scan.** A clean original diagnostic leaves attribution of first-v1 unresolved; a clean candidate scan alone does not qualify the evaluator.\n\n4. **Require a fresh complete original evaluator gate afterward.** New invocation/output and frozen launcher, same accepted TRAIN128 endpoints and unchanged scientific/source predicates. Acceptance requires normal status 0, complete CPU qualification, original native/source exit checks, both full SHA passes, and final/stop evidence covering the after-table: peak ≤8 GiB, zero required events and zero swap throughout. This remains an engineering gate, without quality or speed admission. Preserve the independent parity specialist’s work and prerequisites.\n\nThe principal risks are advisory eviction failing on the actual filesystem, later readers rebuilding pressure, and extra physical I/O consuming the unchanged deadline. No files were edited, native runtime imported, SSH used, jobs launched or retries performed.",
+  "result_truncated": false
+}

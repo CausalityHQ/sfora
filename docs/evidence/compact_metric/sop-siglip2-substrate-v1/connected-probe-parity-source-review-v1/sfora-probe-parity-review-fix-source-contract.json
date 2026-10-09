@@ -1,0 +1,32 @@
+{
+  "schema": "connected-probe-serving-review-fix-source-contract-v1",
+  "base": "26b6bec6bfae4045690ea0c3827dc535179734e0",
+  "branch": "devbox/probe-parity-review-fix-20261009 (ff from f860e061 to base; clean)",
+  "worktree": "/home/rb/worktrees/sfora-probe-parity-review-fix-20261009",
+  "own2_only": ["scripts/qualify_connected_probe_serving.py", "scripts/test_connected_probe_serving.py"],
+  "base_own2_sha256": {
+    "scripts/qualify_connected_probe_serving.py": "e68806fa5cc56237734a572577543583cb6438fb8137496d07854d23616b795b",
+    "scripts/test_connected_probe_serving.py": "a36dc8af0503122f204e4c92aa0fa03b7b0601e659eef7183a91e6f2bae42b02"
+  },
+  "evidence_read": {
+    "dual_critique": "/tmp/sfora-probe-parity-dual-final.json id 07c111050c9743ec (Opus 44a1aa31 SOURCE_GO+5 should-fix; Astra a3c5a867 SOURCE_HOLD 3xP1 2xP2)",
+    "source_final": "/tmp/sfora-connected-probe-serving-source-final.json",
+    "final_gate": "/tmp/sfora-connected-probe-serving-final-gate.json (85 PASS 2.674s AS1GiB) + .log",
+    "preserved_untouched": ["/tmp/sfora-connected-probe-serving-narrow-exit144-receipt.json", "/tmp/sfora-connected-probe-serving-source-contract.json", "/tmp/sfora-connected-probe-serving-source-final.json", "/tmp/sfora-connected-probe-serving-final-gate.json", "/tmp/sfora-connected-probe-serving-final-gate.log", "/tmp/sfora-probe-parity-dual-final.json"]
+  },
+  "independently_reproduced_gaps_and_minimal_fixes": {
+    "D1_body_deadline": "parity_body defines lightweight time-only deadline() (no guard/source/deep work) and passes it to reference/native/mutant_factory/installed_pass/mutants/lifecycle; called BEFORE and AFTER each expensive reference load+inference, native search, factory mutant, installed capture, live mutant iteration (before apply / after restore, never inside the ValueError rejection handler, never while mutated), lifecycle. restore/release/close/owner teardown always run even when expired. Fake clock: crossing during call k prevents call k+1.",
+    "D2_live_mutant_failure_retention": "live_mutants: on any failure drop mutants/detect closures (tensor backups) and clear_frames(error) BEFORE the exception reaches requests.owner teardown; clear_frames walks __cause__ AND __context__ AND BaseExceptionGroup.exceptions (finished frames only). Test: partial apply + restore failure through actual requests.owner; endpoint weakref dead at owner close, outward apply error retained with group cause.",
+    "D3_reference_cleanup_independence": "reference_outputs finally: release, after(), owned-registry pop each independently attempted; state/portable dropped unconditionally; finished frames of cleanup errors cleared; aggregated rejection preserved via requests.raise_failures.",
+    "D4_wheel_freshness": "direct_url FILE (when declared) added to frozen inputs => every guard, context guards, receipt input_guards, parent required guards; check_wheel repeated at run exit (== admission wheel evidence) and in accept_unit (== record wheel_evidence) so canonical absence/.pth/editable/RECORD changes after admission cannot escape. validate_receipt: exact receipt keyset, exact invocation keyset, wheel_evidence structure bound to authority wheel; accept_unit: record invocation_id == UNIT invocation_id.",
+    "D5_mutant_oracle": "factory/live negatives catch ONLY exact ValueError (subclass/TypeError/MemoryError/RuntimeError/OOM propagate => whole gate fails, restore still attempted); receipt keeps bounded {type:'ValueError',message:str[:256]} per mutant and validate_receipt requires that shape (RNG guard mutants: exact 'whole-unit RNG changed'). Docstring relabels RNG detection as the qualifier whole-unit guard.",
+    "D6_processor_identity": "processor_config restore sets the original image_mean OBJECT (no list copy); stdlib fake test of native_live_mutants restores every mutated object identity.",
+    "D7_callback_lifetime_test": "replace vacuous test: marker created inside output production, alive at the failing snapshot, weakref dead after with outward exception retained.",
+    "D8_real_denial": "existing DenialHook test already instantiates real gate.Denial (Opus claim refuted); add real Denial through parity_body: green with active hook, active historical compile during installed inference rejected, bare historical module rejected, hook inactive afterwards (compile allowed). Allowlist unchanged.",
+    "D9_doc": "accept_unit/admit_probe docstring: parent acceptance needs a FRESH export-phase context whose export UNIT invocation was not already consumed (evaluator.accept_unit adds it to legacy['invocations'], 'reused terminal invocation' otherwise)."
+  },
+  "not_changed": "no original helper/evaluator/runtime/bridge rebinding; no math/quality/source pins/resource policy/caps/native grants/numeric tolerances changed; Denial allowlist unchanged; existing receipts preserved",
+  "unresolved": "native training_context + CombinedAuthority.install/evaluator_exit composition UNRESOLVED; no historical authority reconstruction; native/Torch/numerics/lifetimes/timing/p99/quality unrun",
+  "tests": "stdlib only; narrow red/green <=30s RLIMIT_AS 1GiB; ONE final affected suite <=120s AS1GiB serial after stable; no overlapping suites, no pattern pkill",
+  "commit": "exactly the 2 OWN2 files; Roman Bartusiak identity; no AI trailers; no merge/push"
+}

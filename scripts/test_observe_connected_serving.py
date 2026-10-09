@@ -263,7 +263,12 @@ def resource_accounting_check(d, original):
         assert not probe.stack and sys.getprofile() is None
         # Repeated scalar fingerprints retain records even without tensor occurrences.
         probe = d.RequestObserver(original.fingerprint, sources)
-        rejects(lambda:d.observe_call(probe, lambda:[original.fingerprint(i) for i in range(4097)]), 'fingerprint_records')
+        # A fixed short fixture filename isolates the record-count limit from the encoded-byte limit.
+        scope = {'fingerprint':original.fingerprint}
+        exec(compile('def repeat():\n return [fingerprint(i) for i in range(4097)]\n',
+            '<observer-record-count>', 'exec'), scope)
+        rejects(lambda:d.observe_call(probe, scope['repeat']), 'fingerprint_records')
+        assert probe.first_failure['predicate'] == 'fingerprint_records'
         assert len(probe.fingerprints) == 4096 and not probe.leaves
 
         probe = d.RequestObserver(original.fingerprint, sources)

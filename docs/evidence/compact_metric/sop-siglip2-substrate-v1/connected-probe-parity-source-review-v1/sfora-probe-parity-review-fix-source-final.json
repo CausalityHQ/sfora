@@ -1,0 +1,70 @@
+{
+  "schema": "connected-probe-serving-review-fix-source-final-v1",
+  "status": "SOURCE_PASS_ONLY; native UNRUN; no native launch authorized; no quality/speed/release/deployment claim",
+  "commit": "8b8a990f110b5b4ce5dc8872b61d740ce061c32b",
+  "parent": "26b6bec6bfae4045690ea0c3827dc535179734e0",
+  "branch": "devbox/probe-parity-review-fix-20261009",
+  "worktree": "/home/rb/worktrees/sfora-probe-parity-review-fix-20261009",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "trailers": "none",
+  "merged": false,
+  "pushed": false,
+  "own2_files": {
+    "scripts/qualify_connected_probe_serving.py": "bf8d63d4ba0a9e852f0da33fe6cf14b844e89c3d79a8c3824a9ec3ed77b71c94",
+    "scripts/test_connected_probe_serving.py": "a864c91328d871710adf45fbabdde903b140b96c329a310ebfccbc8151782a9b"
+  },
+  "existing_sources_edited": "NONE outside OWN2",
+  "early_contract": {"path": "/tmp/sfora-probe-parity-review-fix-source-contract.json", "sha256": "1637471b16bf88a18cfde2e38c33c409dd89ee66494c2cf0cb6cf97bda6a4bc8"},
+  "final_affected_gate": {
+    "receipt": "/tmp/sfora-probe-parity-review-fix-final-gate.json",
+    "receipt_sha256": "3c52dd2ad9ecf49c6459904ce182834c7fc2dd4f51aaab091fbb5e6715cd83a9",
+    "log": "/tmp/sfora-probe-parity-review-fix-final-gate.log",
+    "log_sha256": "944f74466ddba26bb25161c178d2825f8f8552a714911d0dc7b059f0a2b3bff1",
+    "tests": 98, "exit": 0, "seconds": 2.977, "cap_seconds": 120, "address_space_bytes": 1073741824, "maxrss_kib": 55448,
+    "serial": true, "committed_bytes_equal_gated_bytes": true, "python": "3.14.4", "third_party_imports": "none"
+  },
+  "preserved_untouched_receipts": [
+    "/tmp/sfora-connected-probe-serving-narrow-exit144-receipt.json (sha 90a243eed697ae85f2bd6e21d8df2444c5b0e81456eb3ea5afbe4158c1d3f1dc)",
+    "/tmp/sfora-connected-probe-serving-source-contract.json", "/tmp/sfora-connected-probe-serving-source-final.json",
+    "/tmp/sfora-connected-probe-serving-final-gate.json", "/tmp/sfora-connected-probe-serving-final-gate.log",
+    "/tmp/sfora-probe-parity-dual-final.json"
+  ],
+  "fixes": {
+    "D1_body_deadline": "parity_body deadline() is time-only; passed to reference/native/mutant_factory/installed_pass/mutants/lifecycle and called before/after each expensive call; run_mutants checks it only between mutants (never inside the ValueError handler, never while mutated); restore/release/gallery close/owner close always run",
+    "D2_live_mutant_failure": "live_mutants on failure empties gate-owned apply/restore closure cells, drops mutants/detect and clear_frames(error) BEFORE requests.owner teardown; clear_frames walks __cause__, __context__ and BaseExceptionGroup members; native_live_mutants builds leaves without a nested closure over the partial list. Root cause found: frame.clear() keeps the frame's own function object, so a failed apply frame pinned its closure (tensors) until cells were emptied",
+    "D3_reference_cleanup": "release, after(), owned-registry pop each independently attempted; state/portable dropped unconditionally; cleanup-error frames cleared; aggregated rejection preserved",
+    "D4_wheel": "declared direct_url FILE in frozen guards/input_guards/parent required guards; check_wheel repeated at exit (== admission evidence) and in accept_unit (== receipt wheel_evidence); validate_receipt checks exact RECEIPT_KEYS/INVOCATION_KEYS and wheel_evidence bound to authority wheel; accept_unit binds receipt invocation_id == UNIT invocation_id",
+    "D5_oracle": "factory/live negatives count only exact ValueError (subclass/TypeError/MemoryError/RuntimeError propagate => whole gate fails, restore still attempted); bounded {type,message<=256}; receipt requires that shape and RNG guard mutants message 'whole-unit RNG changed'",
+    "D6_processor_identity": "image_mean restored as the original object",
+    "D7_callback_test": "marker created during output production, asserted alive at the failing snapshot, weakref dead with outward exception retained",
+    "D8_real_denial": "standalone real-Denial test already existed at base (Opus claim refuted); added real Denial through parity_body: green, active historical compile rejected, bare module rejected, inactive allowance after; allowlist unchanged",
+    "D9_doc": "admit_probe/accept_unit document the FRESH export-phase context requirement (evaluator.accept_unit consumes the export UNIT invocation)"
+  },
+  "red_green": {
+    "base_red": "new/changed classes against untouched base driver (scratch copy, sha e68806fa): 11 failures + 46 errors of 63 (signature TypeErrors plus behavioural reds, e.g. processor_config restored list != original tuple)",
+    "green": "same 63 narrow tests OK 1.6s AS1GiB, then one final 98-test suite",
+    "targeted_mutants_killed": 24,
+    "killed_names": [
+      "live: no closure-cell emptying", "live: no clear_frames", "clear_frames: cause-or-context without groups",
+      "reference: after() skipped when release fails", "reference: cleanup-error frames kept", "processor: list copy restore",
+      "run_mutants: any Exception is a rejection", "factory: any Exception is a rejection", "run_mutants: deadline inside rejection handler",
+      "run_mutants: no per-mutant deadline", "installed_pass: no per-call deadline", "reference: no between-call deadline",
+      "factory: no per-mutant deadline", "native search: no per-search deadline", "capture keeps raw exception (raise from it)",
+      "denial hook inert", "denial bare-module check removed", "accept_unit: fresh check_wheel removed",
+      "accept_unit: no invocation-id binding", "validate_receipt: no exact keyset", "validate_receipt: no wheel_evidence check",
+      "native_live_mutants: base nested leaf closure (construction failure pins earlier backup)", "processor list copy on refactored fn",
+      "capture keeps exception (lifetime assertion, not cause assertion)"
+    ],
+    "equivalent_noted": "accept_unit comparison-only removal (check_wheel still called and raising) survives by construction; full call removal is killed"
+  },
+  "remaining_unverified": [
+    "native training_context + CombinedAuthority.__init__/install/evaluator_exit composition UNRESOLVED; no historical authority reconstructed",
+    "run() exit-path check_wheel and direct_url frozen guard are structure-tested only (source tests stop at the real evaluator.authority junk-launch rejection)",
+    "lifecycle deadline is structure-tested only",
+    "whether every genuine runtime/bridge live-mutant detection raises exact ValueError (stricter oracle now fails the gate otherwise) needs the native run",
+    "residual: a non-ValueError raised inside the same_numel 'wrong' generator during mutant construction could pin its closure until the exception is dropped (gate still fails closed)",
+    "real Torch .data/version semantics, weakref/processor-cache release, bitwise parity, CUDA/RSS/time caps, p99, quality: later native gates",
+    "test_observe_connected_serving.py pre-existing base failure (recorded in the earlier source final) not investigated; untouched"
+  ],
+  "no_side_effects": "no Torch/NumPy/PIL import, images, models, native, SSH, GPU, cloud, jobs, consults, children, operator contact, merge, push or pattern pkill; root candidate TRAIN inv87e5ed643485414c94bdeec2f7072289 untouched"
+}

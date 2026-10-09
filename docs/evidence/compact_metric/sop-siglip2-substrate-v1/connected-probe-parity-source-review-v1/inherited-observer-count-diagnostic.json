@@ -1,0 +1,40 @@
+{
+  "fingerprints": 4089,
+  "first_failure": {
+    "aggregate_keys": 10,
+    "callback_seconds": 0.371516451,
+    "code": [
+      {
+        "function": "resource_accounting_check.<locals>.<lambda>.<locals>.<lambda>",
+        "kind": "python",
+        "line": 266,
+        "source": "/home/rb/worktrees/sfora-connected-probe-installed-parity-20261009/scripts/test_observe_connected_serving.py"
+      },
+      {
+        "function": "fingerprint",
+        "kind": "python",
+        "line": 941,
+        "source": "/home/rb/worktrees/sfora-connected-probe-installed-parity-20261009/src/sfora/connected_inference.py"
+      },
+      {
+        "function": "fingerprint.<locals>.visit",
+        "kind": "python",
+        "line": 951,
+        "source": "/home/rb/worktrees/sfora-connected-probe-installed-parity-20261009/src/sfora/connected_inference.py"
+      }
+    ],
+    "current_depth": 3,
+    "elapsed_seconds": 0.436532755,
+    "encoded_byte_budget": 8388608,
+    "encoded_bytes": 8386838,
+    "fingerprint_records": 4089,
+    "max_depth": 5,
+    "predicate": "encoded_bytes",
+    "tensor_occurrences": 0,
+    "total_calls": 81768
+  },
+  "leaves": 0,
+  "metadata_bytes": 8381198,
+  "source_unchanged": true,
+  "test_path": "/home/rb/worktrees/sfora-connected-probe-installed-parity-20261009/scripts/test_observe_connected_serving.py"
+}

@@ -1,0 +1,25 @@
+{
+  "address_space_bytes": 1073741824,
+  "cap_seconds": 120,
+  "command": "python3 -B scripts/test_connected_probe_serving.py (serial, cwd repo root, RLIMIT_AS 1GiB via preexec, timeout 120)",
+  "exit": 0,
+  "files_after": {
+    "scripts/qualify_connected_probe_serving.py": "bf8d63d4ba0a9e852f0da33fe6cf14b844e89c3d79a8c3824a9ec3ed77b71c94",
+    "scripts/test_connected_probe_serving.py": "a864c91328d871710adf45fbabdde903b140b96c329a310ebfccbc8151782a9b"
+  },
+  "files_before": {
+    "scripts/qualify_connected_probe_serving.py": "bf8d63d4ba0a9e852f0da33fe6cf14b844e89c3d79a8c3824a9ec3ed77b71c94",
+    "scripts/test_connected_probe_serving.py": "a864c91328d871710adf45fbabdde903b140b96c329a310ebfccbc8151782a9b"
+  },
+  "files_unchanged_during_gate": true,
+  "log": "/tmp/sfora-probe-parity-review-fix-final-gate.log",
+  "log_sha256": "944f74466ddba26bb25161c178d2825f8f8552a714911d0dc7b059f0a2b3bff1",
+  "maxrss_kib": 55448,
+  "ok": true,
+  "python": "3.14.4",
+  "schema": "connected-probe-serving-review-fix-final-affected-gate-v1",
+  "seconds": 2.9768030650448054,
+  "serial": true,
+  "tests_run": 98,
+  "third_party_imports": "none (stdlib + the two sources and reused original scripts)"
+}

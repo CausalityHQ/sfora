@@ -1,0 +1,111 @@
+{
+  "before_table_bytes_per_occurrence": 25464809459,
+  "duplicate_occurrences": 31,
+  "kind": "read-only stat sizes; not I/O timing or peak attribution",
+  "largest_inputs": [
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-connected-probe-cpu-v2/candidate-179061-bundle/vision.pt"
+    },
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-connected-probe-mechanics-candidate-179061-v1/candidate-179061-bundle/vision.pt"
+    },
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-connected-probe-mechanics-control-179061-v1/control-179061-bundle/vision.pt"
+    },
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-connected-probe-train-candidate-179061-v1/candidate-179061-bundle/vision.pt"
+    },
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/vision.pt"
+    },
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-native256-source-cpu-so400-v4/fresh_vision.pt"
+    },
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v5/bundle-candidate-179061/vision.pt"
+    },
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v5/bundle-candidate-179069/vision.pt"
+    },
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v5/bundle-control-179061/vision.pt"
+    },
+    {
+      "bytes": 1711945083,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-so400-identity-diversity-cpu-v5/bundle-control-179069/vision.pt"
+    },
+    {
+      "bytes": 1711601328,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-native256-source-extraction-v1/so400/vision.safetensors"
+    },
+    {
+      "bytes": 629945952,
+      "occurrences": 1,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcublasLt.so.13"
+    },
+    {
+      "bytes": 472992264,
+      "occurrences": 1,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/triton/_C/libtriton.so"
+    },
+    {
+      "bytes": 423376097,
+      "occurrences": 1,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cuda.so"
+    },
+    {
+      "bytes": 299909640,
+      "occurrences": 1,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9"
+    },
+    {
+      "bytes": 283285752,
+      "occurrences": 1,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcufft.so.12"
+    },
+    {
+      "bytes": 274143825,
+      "occurrences": 1,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cusparselt/lib/libcusparseLt.so.0"
+    },
+    {
+      "bytes": 256136105,
+      "occurrences": 1,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cpu.so"
+    },
+    {
+      "bytes": 237975080,
+      "occurrences": 1,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/nccl/lib/libnccl.so.2"
+    },
+    {
+      "bytes": 191353418,
+      "occurrences": 1,
+      "path": "/home/riomus/runs/sfora-connected-mlp-train-candidate-179061-v1/candidate-179061-terminal.pt"
+    }
+  ],
+  "occurrences": 18810,
+  "schema": "probe-cpu-frozen-prehash-read-volume-v1",
+  "unique_file_bytes": 25269833057,
+  "unique_paths": 18779
+}
