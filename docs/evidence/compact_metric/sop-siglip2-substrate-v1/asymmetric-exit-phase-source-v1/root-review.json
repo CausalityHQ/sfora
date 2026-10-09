@@ -1,0 +1,23 @@
+{
+  "files": {
+    "diagnose_connected_asymmetric_cache.py": "6a456248cd249e16f7f5b62eaae584cb226774a1acecf6ee8ff00ec9ff360f0f",
+    "test_connected_asymmetric_cache.py": "2e13f715c860d32da729bee5e4e51e7150f526ec96dbc92a640b184c81c8c893"
+  },
+  "integration_commit": "a21bbd5e",
+  "native": "UNRUN",
+  "report_and_authenticated": "unchanged from base",
+  "resource_cause": "UNPROVEN",
+  "root_narrow": {
+    "exit": 0,
+    "scope": "actual ExitPhaseObservation tests: whole original AST inverse, all cleanup and no publish on error, sentinel lifetimes, fresh complete repeated reads and same-stat mutation rejection",
+    "tests": 6
+  },
+  "worker_commit": "16426e2b5c3e951d6e760c187760cb151898f2ea",
+  "worker_full_suite": {
+    "authority": "durable managed archive summary; full wrapper exit receipt not independently located",
+    "peak_rss_kib": 66264,
+    "reported_exit": 0,
+    "tests": 86,
+    "wall_seconds": 6.29
+  }
+}
