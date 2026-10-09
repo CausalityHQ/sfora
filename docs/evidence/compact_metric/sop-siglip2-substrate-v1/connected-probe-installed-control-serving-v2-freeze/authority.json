@@ -1,0 +1,359 @@
+{
+  "bundle": {
+    "code": {
+      "extract_siglip2_vision_source.py": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/extract_siglip2_vision_source.py",
+        "sha256": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d"
+      },
+      "joint_relational_compaction.py": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/joint_relational_compaction.py",
+        "sha256": "4ca0de1b0579ea6165c81e9057e9afe77e6dd4141f0b4a0adb281de25300de67"
+      },
+      "prototype_residual_readout.py": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/prototype_residual_readout.py",
+        "sha256": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68"
+      },
+      "quadratic_readout.py": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/quadratic_readout.py",
+        "sha256": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6"
+      },
+      "qualify_siglip2_substrate_cpu.py": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/qualify_siglip2_substrate_cpu.py",
+        "sha256": "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38"
+      },
+      "test_siglip2_connected_probe.py": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/test_siglip2_connected_probe.py",
+        "sha256": "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120"
+      },
+      "train_siglip2_cached_readout.py": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_cached_readout.py",
+        "sha256": "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c"
+      },
+      "train_siglip2_connected_probe.py": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_connected_probe.py",
+        "sha256": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+      },
+      "train_siglip2_substrate_adaptation.py": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/train_siglip2_substrate_adaptation.py",
+        "sha256": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543"
+      }
+    },
+    "directory": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle",
+    "files": {
+      "endpoint.pt": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/endpoint.pt",
+        "sha256": "a27d677ec8ca03afb26ddf1782124aacd1d10c50ba7e7009e720b7acf7eac4e3"
+      },
+      "processor.json": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/processor.json",
+        "sha256": "4aa85cbcaee5034daeaf2dccbbd21f43a04351f707df96ffd602571fb13b0f0a"
+      },
+      "vision.pt": {
+        "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/vision.pt",
+        "sha256": "5dade5510a57637019adcf3c37a2ef66af0828ba072d5c847e768c8de2d48189"
+      }
+    },
+    "manifest": {
+      "path": "/home/riomus/runs/sfora-connected-probe-train-control-179061-v1/control-179061-bundle/bundle.json",
+      "sha256": "4bd895f3011e9a5d5970001ffd877b284f7cd7b764eb4bbb8aea341050f0ee01"
+    }
+  },
+  "endpoint": {
+    "arm": "control",
+    "panel": "selection",
+    "seed": 179061,
+    "stage": "first"
+  },
+  "evaluation_authority": {
+    "path": "/home/riomus/runs/sfora-connected-probe-evaluation-source-v1/authority-export-control-179061-v1.json",
+    "sha256": "0585ea60b6a38ec3e7ea4da1d9733e9819bb044632cb9c861d33ff585b0687bc"
+  },
+  "evaluator": {
+    "code": {
+      "evaluate_siglip2_connected_probe.py": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+      "test_connected_probe_evaluation.py": "c101bc5517acc720f66084a0d7859630f3d344a02831a671e2e790820fa68890"
+    },
+    "execution_sha256": "e1f5bb49de7f26cd582fa014381b0d0e30bf244f1c8e20d33e0cd1103452d0b4",
+    "root": "/home/riomus/runs/sfora-connected-probe-evaluation-source-v1"
+  },
+  "gallery": {
+    "count": 1715,
+    "file": {
+      "path": "/home/riomus/runs/sfora-connected-probe-control-serving-gallery-v1/gallery.bin",
+      "sha256": "386f3b2289f74f7d154efc9d47838f26def6a8c7a18368faac1d3c690ec6bd28"
+    }
+  },
+  "images": {
+    "fixed32": [
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00000041/03_1_front.jpg",
+        "sha256": "2f46b1bbbc7c9facda2858d8fcda4e567efc46125e49e0cf624ec7bccdaf4e96"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Graphic_Tees/id_00000044/01_2_side.jpg",
+        "sha256": "614823c798f0de739ea66aaceea4b4ef14cf9b4866951523b1f942c3626abeb6"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Graphic_Tees/id_00000044/01_3_back.jpg",
+        "sha256": "3f6af4ec2e004e4047b9250653cb5dd8a49e52718e23497eec9764f0f86d5298"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Graphic_Tees/id_00000044/01_6_flat.jpg",
+        "sha256": "1536ea382f546c538bccab621a9c0c4f38a2e5e9039674b6dbaa8f45869d08d4"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00000059/02_2_side.jpg",
+        "sha256": "a7194890e0db5527de5783e9d382721b44a6b1c5ffd5ff6fbab7b10c25f98a06"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00000059/02_3_back.jpg",
+        "sha256": "7502c3204fa8218d75245d9121ff872b20ac2557b57e733baf526322d7d2d55a"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Shorts/id_00000066/02_3_back.jpg",
+        "sha256": "4b6e352efb5c8e630e3910577be69d8a1297ebc0c06e5f65caa6f57314eea7cb"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Shorts/id_00000066/02_7_additional.jpg",
+        "sha256": "a76c7582025129c65c7a7af044f4fa6f454f70cd142bf021f4adf9a760da3fe8"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000085/02_7_additional.jpg",
+        "sha256": "526356ed446b904c262ca6c1dc5da9e6ad7e10db2c7b5efa0c7db51f01b28b51"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000124/03_2_side.jpg",
+        "sha256": "c3f424457be3ad38820185ab35d82afe893c98b6ed20c605cc1983836b7e799a"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000124/03_3_back.jpg",
+        "sha256": "63856631e5da20b609856cfd096dabd6cda191c7c8f38cdb156afa7b36bebb64"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000124/04_2_side.jpg",
+        "sha256": "5528b9fbe643cfc0b42d246c00860a826587fa1eb9722da67ba99dee2e4a4747"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000124/04_7_additional.jpg",
+        "sha256": "94b6be577c63a8b8b1a358215c441cf4ab5ec0b49a407510e1d35fa766ed0122"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00000141/01_1_front.jpg",
+        "sha256": "74e21555ebc9e233ff4a4ba41462e15ff4c73c4bdf0f68a77c4a5a5b9858b214"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00000141/01_4_full.jpg",
+        "sha256": "1ccdfab8db39982b909f6a17a6f1ca260910bf4ba1021e6a0eb24d468c4755bc"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000142/01_1_front.jpg",
+        "sha256": "189e31e1ed48c5981c0ffdee6e94b19b351f01ce29bb823e5f392d33e81059b7"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000142/01_3_back.jpg",
+        "sha256": "cb50016e0742de1a6591a81e6fe03889bb04f5ac4658d688c3acc35a717d69aa"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000149/05_2_side.jpg",
+        "sha256": "551c66c0f5cdb5163ba2ad0475b08ed513e1ab1b36e2ad7e2a2c3a41713cd0a6"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000149/05_7_additional.jpg",
+        "sha256": "0149bec4009f0deb6a7dcef68dcc13a5ffda1567e6e8f11c4932f676efd2febf"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000149/06_3_back.jpg",
+        "sha256": "15119d1d96b9e45ca935c6f285963f881eb7c017fed1a9c6f2d88f342dfff36f"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000149/06_4_full.jpg",
+        "sha256": "0271a46094df5e186bab51e354a617c300c36b6b2e422af365a480f68daaec1d"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000149/06_7_additional.jpg",
+        "sha256": "fb85897361ad9bac7ade44136aad0f4a5b8f3ac67fffaa1baa92b1dafbc562f0"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000198/01_1_front.jpg",
+        "sha256": "d03f10952f5a2841cfe57e610790c95f746890a1651fc74acc45d35249076038"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00000207/02_1_front.jpg",
+        "sha256": "a802d00bb8a0cf487d0b59555910b0a27db0364de7811b6b8c67e005e397b226"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00000207/02_2_side.jpg",
+        "sha256": "ac1106ff71ffb8c001101ef5d5c232beff0f041a45b443f6dd035b64b0f79e8c"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000220/01_1_front.jpg",
+        "sha256": "48a75578ad1ecae8f7c4b738c1ed449a1dc851549cef1f4f7af4ae7c06b3021c"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000220/01_7_additional.jpg",
+        "sha256": "2fbc4cbdd3f1c1bd01fed8f40361b4e104aa5f8ab3190f0a9c771d63bde848e9"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Tees_Tanks/id_00000220/02_1_front.jpg",
+        "sha256": "5748530f0c85427ddd808813346b807d71827b0b144020a731f3c97cbacb0c98"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00000228/01_1_front.jpg",
+        "sha256": "46ebb52fd571f84eb162dee2a1e6408264938d86a86c4dbad4928d49649b5ade"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00000228/01_2_side.jpg",
+        "sha256": "16d10611d12bd6101b2a0fb57b4cdb839634e075fde725b26f326d51a2aa92fa"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Blouses_Shirts/id_00000228/01_7_additional.jpg",
+        "sha256": "4c594fe4cf62ca33e53835e6923dbfe87299586b0b2cb652564204723f0ee4e1"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Graphic_Tees/id_00000253/01_1_front.jpg",
+        "sha256": "3e153625efad18f77729dc15075d3161c2a757cf3bbbe3401fb1ede786d6a574"
+      }
+    ],
+    "tail": {
+      "files": [
+        {
+          "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007940/02_3_back.jpg",
+          "sha256": "4651007318b8c63f8b5e7f9d3766c0d0c99e8160bf77766f9a6c082d38652854"
+        },
+        {
+          "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007940/02_4_full.jpg",
+          "sha256": "2d864b6c55e77f87632c58e586afdfd4a392e373d614dc3c9cf77c8ab55acd08"
+        },
+        {
+          "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007941/02_1_front.jpg",
+          "sha256": "54c5c487334801a7459491eee95277f6377524c4149db2b26921c33ffed12a49"
+        },
+        {
+          "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007941/02_3_back.jpg",
+          "sha256": "0aa9b680eaa44835e1d4f4a1ca5a65d8ee9c42773ac68bf4804de54fec552885"
+        },
+        {
+          "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007953/01_1_front.jpg",
+          "sha256": "b831a71ef0368927c2a5314f2ce557ebf81ed5991b5a949b6dd971d316d34b1e"
+        },
+        {
+          "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007953/01_7_additional.jpg",
+          "sha256": "dd5335b2fa0796132fdd5fae6a004cd4221f18e80efa28d67bfccdfc7886b054"
+        }
+      ],
+      "role": "query"
+    }
+  },
+  "locks": [
+    {
+      "fd": 8,
+      "path": "/home/riomus/runs/.sfora-siglip2-gpu.lock"
+    },
+    {
+      "fd": 9,
+      "path": "/home/riomus/.sfora-siglip2-gpu.lock"
+    }
+  ],
+  "native": {
+    "archived_control_binary_ack": true,
+    "authority": {
+      "path": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json",
+      "sha256": "cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1"
+    },
+    "library": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/candidate.so",
+      "sha256": "3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526"
+    }
+  },
+  "resource_policy": {
+    "body_seconds": 300,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "exit_reserve_seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_process_seconds": 1500
+  },
+  "schema": "connected-probe-serving-authority-v1",
+  "sources": {
+    "bridge": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/connected_compact_serving.py",
+      "sha256": "d3ebfd9a575d7fb77ffbf3a3e1c2d01793edaa03eef0da63faf543596c1d68b3"
+    },
+    "control_native": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v2/connected_control_native_authority.py",
+      "sha256": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442"
+    },
+    "ledger": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/_connected_probe_inference_authority.py",
+      "sha256": "0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab"
+    },
+    "native_wrapper": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/cutile_int8.py",
+      "sha256": "173eb393ed82d01281557b2f76edb1d50ffcc29faf85b9f9deb07d0df3c90d87"
+    },
+    "observer": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v2/observe_connected_serving.py",
+      "sha256": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de"
+    },
+    "observer_test": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v2/test_observe_connected_serving.py",
+      "sha256": "085a15c134b504ce72b34ae701bbae0a881c11162bdb9571a82ab0ed1881d2d9"
+    },
+    "packed": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/packed_int8.py",
+      "sha256": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4"
+    },
+    "packing": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/joint_relational_compaction.py",
+      "sha256": "0c0320787ee8d9e3a61bfd265859ec8785874b9727c686d6bd290fd4af19679d"
+    },
+    "probe_driver": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v2/qualify_connected_probe_serving.py",
+      "sha256": "149808c99e9216afdf7aacdc7e4610ea810598ea2dee8d1b963243ac394253dd"
+    },
+    "probe_test": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v2/test_connected_probe_serving.py",
+      "sha256": "37e209bf12e823571a828136d85bb8e9dd5da28cbc2309f4414bd7d17e35db84"
+    },
+    "request_driver": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v2/qualify_connected_serving_requests.py",
+      "sha256": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163"
+    },
+    "request_test": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v2/test_connected_serving_requests.py",
+      "sha256": "ad35a7177ddc3be7cc29db3b73c204b16f1afff98ff41c7357f1919da259a57b"
+    },
+    "runtime": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/connected_probe_inference.py",
+      "sha256": "ea49b80d2d8c80aea54f71a1f01a58053f04858b9ffe03d168e0bd28c94fac44"
+    }
+  },
+  "train_export": {
+    "both_locks_held": true,
+    "invocation_id": "5840abd0a03f42eabfa5fdee3595161d",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-probe-evaluation-source-v1/export-control-179061-v1-original.log",
+      "sha256": "3e66639be0ad137e20025e9c625ac592cf603a051cd0a0b48fb3dc2168e0cc98"
+    },
+    "native_peak_rss_kib": 4222124,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-probe-evaluation-export-control-179061-v1/receipt.json",
+      "sha256": "cdf477b87812126e259a8bc0e38a0e152d426a4a63bd82ace2fdce8c68c5728b"
+    },
+    "service_seconds": 1251.502,
+    "unit": "sfora-connected-probe-evaluation-export-control-179061-v1"
+  },
+  "wheel": {
+    "direct_url": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora-0.3.0rc4.dist-info/direct_url.json",
+      "sha256": "88b9f7c995a142c3332e5c6b558075d657bbde79b8d040a9c7c84cdd52d6c54e"
+    },
+    "distribution": "sfora",
+    "record": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora-0.3.0rc4.dist-info/RECORD",
+      "sha256": "f9bc646d0ccbbd2922cc0dcaf8641b2b484c699fdc2fb71937ba6da0956fdffb"
+    },
+    "site_root": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages",
+    "version": "0.3.0rc4"
+  }
+}

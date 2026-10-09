@@ -1,0 +1,20 @@
+{
+  "all_old_tests_ast_identical": true,
+  "full_production_byte_inverse_pass": true,
+  "integration": "4826db1c",
+  "launch_held_until_original35033collected": true,
+  "native_qualified": false,
+  "schema": "probe-wheel-boundary-root-review-v1",
+  "source_sha256": "149808c99e9216afdf7aacdc7e4610ea810598ea2dee8d1b963243ac394253dd",
+  "source_suite": {
+    "as_bytes": 1073741824,
+    "exit": 0,
+    "log_sha256": "ae983fe1114dff107512d2bc79aee7d21726f5171f5f2bd1af0363fd3b86d73a",
+    "peak_rss_kib": 56176,
+    "tests": 102,
+    "wall_seconds": 3.32
+  },
+  "test_sha256": "37e209bf12e823571a828136d85bb8e9dd5da28cbc2309f4414bd7d17e35db84",
+  "unchanged_helper_predicates": true,
+  "worker_commit": "8892a8841293e66584f1fbbf5d3d9246b65cb703"
+}

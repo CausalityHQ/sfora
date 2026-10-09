@@ -1,0 +1,45 @@
+{
+  "files": {
+    "authority.json": "93122d47831eed920427789376473c62ec72ce941fdbd7ed3ccd826b4e22116a",
+    "command.sh": "1ca8ebcb5cd7179c096bb99ee30863ff1eef1496c346af55c2188b64320a739d",
+    "connected_control_native_authority.py": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442",
+    "controller.sh": "4ab1c6c77d62bf2740a6fb49e83b95ebfb528e42fee601f19b952141b65e91a4",
+    "launch.sh": "1e14a02d97b2542528c99cf911b4bb6a54a0811a11b0d4880eb0580d32e48603",
+    "observe_connected_serving.py": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de",
+    "qualify_connected_probe_serving.py": "149808c99e9216afdf7aacdc7e4610ea810598ea2dee8d1b963243ac394253dd",
+    "qualify_connected_serving_requests.py": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163",
+    "test_connected_probe_serving.py": "37e209bf12e823571a828136d85bb8e9dd5da28cbc2309f4414bd7d17e35db84",
+    "test_connected_serving_requests.py": "ad35a7177ddc3be7cc29db3b73c204b16f1afff98ff41c7357f1919da259a57b",
+    "test_observe_connected_serving.py": "085a15c134b504ce72b34ae701bbae0a881c11162bdb9571a82ab0ed1881d2d9"
+  },
+  "launches": 0,
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-diagnostic-v2",
+  "prior_v1": "original SSH71350 invcddb55d04747481a8afc6822d46fcb67 FAIL startup shared-runs checkout inference preserved",
+  "quality_decision": "candidate pooling-probe FIRST KILL; only accepted control serving parity eligible",
+  "resource_policy": {
+    "body_seconds": 300,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "exit_reserve_seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_process_seconds": 1500
+  },
+  "root": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v2",
+  "root_review": "Exactly three call arguments .parent.parent -> .parent, full production byte inverse PASS, all98 original tests AST identical; genuine helper predicates intact. Original102 suite PASS3.32s/56176KiB/AS1GiB, suite bytes equal final commit; unchanged helper suites not repeated.",
+  "schema": "connected-probe-installed-control-serving-freeze-v2",
+  "source_commit": "862d50619c2f240795338f84414ec268a9e42b54",
+  "source_files": {
+    "control_native": "connected_control_native_authority.py",
+    "observer": "observe_connected_serving.py",
+    "observer_test": "test_observe_connected_serving.py",
+    "probe_driver": "qualify_connected_probe_serving.py",
+    "probe_test": "test_connected_probe_serving.py",
+    "request_driver": "qualify_connected_serving_requests.py",
+    "request_test": "test_connected_serving_requests.py"
+  },
+  "source_only_shape_check": true,
+  "source_worker_commit": "8892a8841293e66584f1fbbf5d3d9246b65cb703",
+  "stop_rule": "ONE new engineering-only normal-terminal job AFTER original live fresh-SHA SSH35033 collected and idle/locks/source preflight. Original parity/mutants/lifetimes/full exit/body300/whole1500/8GiB/zeroSwap/CUDA<10GB unchanged; no duplicate, auto cap escalation, quality/speed/product GO.",
+  "unit": "sfora-connected-probe-installed-control-serving-diagnostic-v2"
+}
