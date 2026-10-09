@@ -1,0 +1,33 @@
+{
+  "base": "d3d3771e4989e8f4c8eff26f72b47bc5c5475cd5",
+  "mode": "read-only causal audit; no source edits proposed before exact cause",
+  "source_sha256": {
+    "scripts/extract_siglip2_vision_source.py": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d",
+    "scripts/prototype_residual_readout.py": "2bf9af74d2e59aed94898da4d54004ba47036a928d86c863939fa7188039de68",
+    "scripts/quadratic_readout.py": "12f0d8d4f799bdd620f827431d51f5ce011e5f54f7bc7efa24530d7e787eb3c6",
+    "scripts/qualify_siglip2_substrate_cpu.py": "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38",
+    "scripts/test_siglip2_connected_probe.py": "4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120",
+    "scripts/train_siglip2_cached_readout.py": "a687a62b78eeb4c122491f23394954ad192acc02394e29b66efb257d3a6f338c",
+    "scripts/train_siglip2_connected_probe.py": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e",
+    "scripts/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+    "scripts/qualify_connected_probe_serving.py": "149808c99e9216afdf7aacdc7e4610ea810598ea2dee8d1b963243ac394253dd",
+    "scripts/test_connected_probe_serving.py": "37e209bf12e823571a828136d85bb8e9dd5da28cbc2309f4414bd7d17e35db84"
+  },
+  "causal_contract": {
+    "primary": "endpoint.pt mapping_absent in copied load_inference finally; concrete owner/caught error unproven",
+    "native_exit": "exact four cuDNN predicate preserved; observed missing all four before any image forward",
+    "forbidden_inference": "fake seam outcomes establish Python ownership/error mechanisms only, not original Torch cause"
+  },
+  "type_contract": {
+    "tensor": "stdlib fake torch.Tensor holds real mmap; .to(copy=True) independent bytes; fake deepcopy independent bytes",
+    "container": "real dict/list/tuple; actual recursive owned_copy; metadata copied by existing copy.deepcopy",
+    "pages": "actual extracted CheckpointPages.copy and consume; constructor/release stand-ins only; no ctypes/native advice"
+  },
+  "ast_contract": {
+    "original": "compile actual unmodified AST source functions, with only dependency globals/native import modules replaced by named stand-ins",
+    "if_future_diagnostics": "full production AST inverse removes only explicit diagnostic additions and equals exact base; all original tests remain AST identical",
+    "mapping_predicate": "actual unmodified copied trainer mapping_absent must execute, no suppression/retry/clear_frames before it"
+  },
+  "checks": "ONE <=15s/AS1GiB stdlib harness; no full suite without root serial slot grant",
+  "observation": "root only ONE proposed future observation capturing original exception and owner at unchanged mapping guard; not launched"
+}

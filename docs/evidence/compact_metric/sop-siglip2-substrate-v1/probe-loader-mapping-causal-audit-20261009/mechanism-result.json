@@ -1,0 +1,151 @@
+{
+  "status": "STDLIB_MECHANISM_CHECKS_PASS_ORIGINAL_CAUSE_UNPROVEN",
+  "seconds": 0.27656704594846815,
+  "as_bytes": 1073741824,
+  "source_sha256": {
+    "scripts/train_siglip2_substrate_adaptation.py": "a168491758481a10d59469116b8ea5318eea733b7d9445a99a174afd6f74b543",
+    "scripts/train_siglip2_connected_probe.py": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e",
+    "scripts/qualify_connected_probe_serving.py": "149808c99e9216afdf7aacdc7e4610ea810598ea2dee8d1b963243ac394253dd",
+    "scripts/qualify_connected_serving_requests.py": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163"
+  },
+  "unmodified_ast_seams": [
+    "scripts/train_siglip2_substrate_adaptation.py:CheckpointPages.copy",
+    "scripts/train_siglip2_substrate_adaptation.py:CheckpointPages.consume",
+    "scripts/train_siglip2_connected_probe.py:require",
+    "scripts/train_siglip2_connected_probe.py:mapping_absent",
+    "scripts/train_siglip2_connected_probe.py:owned_copy",
+    "scripts/train_siglip2_connected_probe.py:inference_readout_tree",
+    "scripts/train_siglip2_connected_probe.py:load_inference",
+    "scripts/qualify_connected_probe_serving.py:clear_frames",
+    "scripts/qualify_connected_serving_requests.py:raise_failures",
+    "scripts/train_siglip2_substrate_adaptation.py:fingerprint",
+    "scripts/train_siglip2_substrate_adaptation.py:load_vision"
+  ],
+  "results": [
+    {
+      "mode": "success",
+      "returned": true,
+      "error": null,
+      "context": null,
+      "events": [
+        {
+          "event": "before_original_mapping_predicate",
+          "disk_deleted": true,
+          "active_exception": null,
+          "copied_present": false,
+          "endpoint_present": true
+        }
+      ],
+      "actual_pages_copy_calls": 8
+    },
+    {
+      "mode": "external_owner",
+      "returned": false,
+      "error": "ValueError:checkpoint mapping survived independent copy/release",
+      "context": null,
+      "events": [
+        {
+          "event": "before_original_mapping_predicate",
+          "disk_deleted": true,
+          "active_exception": null,
+          "copied_present": false,
+          "endpoint_present": true
+        },
+        {
+          "event": "loader_exception",
+          "type": "ValueError",
+          "message": "checkpoint mapping survived independent copy/release"
+        }
+      ],
+      "actual_pages_copy_calls": 8
+    },
+    {
+      "mode": "copy_error",
+      "returned": false,
+      "error": "ValueError:checkpoint mapping survived independent copy/release",
+      "context": "RuntimeError:injected copy failure",
+      "events": [
+        {
+          "event": "loader_exception",
+          "type": "RuntimeError",
+          "message": "injected copy failure"
+        },
+        {
+          "event": "before_original_mapping_predicate",
+          "disk_deleted": true,
+          "active_exception": "RuntimeError:injected copy failure",
+          "copied_present": false,
+          "endpoint_present": false
+        },
+        {
+          "event": "loader_exception",
+          "type": "ValueError",
+          "message": "checkpoint mapping survived independent copy/release"
+        }
+      ],
+      "actual_pages_copy_calls": 0
+    },
+    {
+      "mode": "construct_error",
+      "returned": false,
+      "error": "ValueError:checkpoint mapping survived independent copy/release",
+      "context": "RuntimeError:injected constructor failure with endpoint overlay",
+      "events": [
+        {
+          "event": "loader_exception",
+          "type": "RuntimeError",
+          "message": "injected constructor failure with endpoint overlay"
+        },
+        {
+          "event": "before_original_mapping_predicate",
+          "disk_deleted": true,
+          "active_exception": "RuntimeError:injected constructor failure with endpoint overlay",
+          "copied_present": false,
+          "endpoint_present": false
+        },
+        {
+          "event": "loader_exception",
+          "type": "ValueError",
+          "message": "checkpoint mapping survived independent copy/release"
+        }
+      ],
+      "actual_pages_copy_calls": 0
+    },
+    {
+      "mode": "head_error",
+      "returned": false,
+      "error": "RuntimeError:injected head failure after independent copies",
+      "context": null,
+      "events": [
+        {
+          "event": "loader_exception",
+          "type": "RuntimeError",
+          "message": "injected head failure after independent copies"
+        },
+        {
+          "event": "before_original_mapping_predicate",
+          "disk_deleted": true,
+          "active_exception": "RuntimeError:injected head failure after independent copies",
+          "copied_present": true,
+          "endpoint_present": false
+        }
+      ],
+      "actual_pages_copy_calls": 8
+    }
+  ],
+  "exception_rendering_checks": [
+    {
+      "mode": "external_owner",
+      "earlier_context_hidden_by_explicit_exit_group": false
+    },
+    {
+      "mode": "copy_error",
+      "earlier_context_hidden_by_explicit_exit_group": true
+    },
+    {
+      "mode": "construct_error",
+      "earlier_context_hidden_by_explicit_exit_group": true
+    }
+  ],
+  "limitations": "Fake native dependency globals and Torch tensors; actual mmap and unmodified extracted seams. No original checkpoint or native run; no attribution to original failure."
+}
