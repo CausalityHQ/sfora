@@ -1,0 +1,12 @@
+{
+  "schema": "reference-artifact-access-check-v1",
+  "observed_at_utc": "2026-10-09T05:30:45.835453+00:00",
+  "paper": "https://arxiv.org/html/2608.20886v1",
+  "advertised_repository": "https://github.com/EnjunDu/EviRank",
+  "api_request": "https://api.github.com/repos/EnjunDu/EviRank",
+  "http_status": 404,
+  "response_sha256": "a298fd3d1a255b0eb21a952212460852e05ba9721d3445fb42d7ad054d88f94a",
+  "interpretation": "Public unauthenticated API did not expose the repository. This does not prove code does not exist or whether it is private, renamed or deleted.",
+  "native_or_weights_run": false,
+  "gate_change": false
+}
