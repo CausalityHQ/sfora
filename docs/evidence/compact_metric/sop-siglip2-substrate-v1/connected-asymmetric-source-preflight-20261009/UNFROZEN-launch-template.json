@@ -1,0 +1,169 @@
+{
+  "both_locks_held": true,
+  "candidate_status": "KILL",
+  "controls": {
+    "control-179061": {
+      "bundle": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json",
+        "sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153"
+      },
+      "export": {
+        "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/receipt.json",
+        "sha256": "db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407"
+      }
+    }
+  },
+  "evaluation_authority": {
+    "path": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/authority-full-export-control-179061-v2.json",
+    "sha256": "0875aec90fe11c1523b66584bbec8164be5dc886d3da81131a4c220a1f624c8b"
+  },
+  "evaluator": {
+    "code": {
+      "evaluate_siglip2_connected_mlp.py": "b651f6a02666ab9eafb4104eafbf464118b804baf94004db00d9263a7e3224e4",
+      "test_connected_mlp_evaluation.py": "48b47ea04f0cdf5f1980583d2a219c8d6803d0215293628956bc3b408139b89b"
+    },
+    "execution_sha256": "3b9ade347801291b2cd4f4a3849be9eb2811b4237ddd562303d46cc3af505029",
+    "root": "/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9"
+  },
+  "execution_sha256": null,
+  "historical": {
+    "authority": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/authority.json",
+      "sha256": "179275e426dd7b2c2f0ab0c8d7323b55fbdf5c11bbb12d1f96056d53c0b2941d"
+    },
+    "execution": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/execution.json",
+      "sha256": "6ef0482ddd758a6a5fb76cc9911c57c164fa3cec33ec71db9ad3baa8245d7cf4"
+    },
+    "source": {
+      "path": "/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/diagnose_connected_gallery_freshness.py",
+      "sha256": "3b756bf94da91f1e66b03db1e25c96a21105ff784cac4833e40e70122de6a434"
+    }
+  },
+  "locks": [
+    {
+      "fd": 8,
+      "path": "/home/riomus/runs/.sfora-siglip2-gpu.lock"
+    },
+    {
+      "fd": 9,
+      "path": "/home/riomus/.sfora-siglip2-gpu.lock"
+    }
+  ],
+  "native": {
+    "archived_control_binary_ack": true,
+    "authority": {
+      "path": "/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json",
+      "sha256": "cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1"
+    },
+    "library": {
+      "path": "/home/riomus/runs/sfora-cutile-threads-v1/candidate.so",
+      "sha256": "3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526"
+    }
+  },
+  "observer": {
+    "execution": {
+      "path": "/home/riomus/runs/sfora-connected-control-batch-execution-source-v5/execution.json",
+      "sha256": "e6c57fecb9ddc0772e1396b771876864ff181d3de58804e3622dda74983232c2"
+    },
+    "source": {
+      "path": "/home/riomus/runs/sfora-connected-control-batch-execution-source-v5/observe_connected_control_batch_execution.py",
+      "sha256": "62e69a04bf4df55df5185366231d0237b5991c912f2a0e23e6af31f41c5dd24f"
+    },
+    "test": {
+      "path": "/home/riomus/runs/sfora-connected-control-batch-execution-source-v5/test_connected_control_batch_execution.py",
+      "sha256": "6d08228ab87cc1cf9aba5159a4b72ad671087462ef335c03c659d64b0a750c8c"
+    }
+  },
+  "output": "/home/riomus/runs/sfora-connected-asymmetric-cache-first-179061-v1",
+  "qualification_eligible": false,
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "cuda_visible_devices": "0",
+    "host_bytes": 8589934592,
+    "seconds": 700,
+    "swap_bytes": 0
+  },
+  "schema": "connected-asymmetric-cache-launch-v1",
+  "seeds": [
+    179061
+  ],
+  "serving": {
+    "control_native": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v5/connected_control_native_authority.py",
+      "sha256": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442"
+    },
+    "native_wrapper": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/cutile_int8.py",
+      "sha256": "173eb393ed82d01281557b2f76edb1d50ffcc29faf85b9f9deb07d0df3c90d87"
+    },
+    "observer": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v5/observe_connected_serving.py",
+      "sha256": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de"
+    },
+    "packed": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/packed_int8.py",
+      "sha256": "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4"
+    },
+    "request_driver": {
+      "path": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v5/qualify_connected_serving_requests.py",
+      "sha256": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163"
+    }
+  },
+  "stage": "first",
+  "state_reuse_eligible": false,
+  "tail_oracle": {
+    "batch_index": 54,
+    "fit_rows": [
+      13239,
+      13240,
+      13241,
+      13242,
+      13254,
+      13257
+    ],
+    "images": [
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007940/02_3_back.jpg",
+        "sha256": "4651007318b8c63f8b5e7f9d3766c0d0c99e8160bf77766f9a6c082d38652854"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Dresses/id_00007940/02_4_full.jpg",
+        "sha256": "2d864b6c55e77f87632c58e586afdfd4a392e373d614dc3c9cf77c8ab55acd08"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007941/02_1_front.jpg",
+        "sha256": "54c5c487334801a7459491eee95277f6377524c4149db2b26921c33ffed12a49"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007941/02_3_back.jpg",
+        "sha256": "0aa9b680eaa44835e1d4f4a1ca5a65d8ee9c42773ac68bf4804de54fec552885"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007953/01_1_front.jpg",
+        "sha256": "b831a71ef0368927c2a5314f2ce557ebf81ed5991b5a949b6dd971d316d34b1e"
+      },
+      {
+        "path": "/home/riomus/datasets/inshop_official_standard/img/img/WOMEN/Jackets_Coats/id_00007953/01_7_additional.jpg",
+        "sha256": "dd5335b2fa0796132fdd5fae6a004cd4221f18e80efa28d67bfccdfc7886b054"
+      }
+    ],
+    "role": "query",
+    "role_indices": [
+      1728,
+      1729,
+      1730,
+      1731,
+      1732,
+      1733
+    ],
+    "selection_rows": [
+      3439,
+      3440,
+      3441,
+      3442,
+      3445,
+      3448
+    ]
+  }
+}

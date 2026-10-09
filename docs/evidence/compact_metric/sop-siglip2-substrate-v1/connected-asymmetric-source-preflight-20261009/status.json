@@ -1,0 +1,8 @@
+{
+  "status": "UNFROZEN_NOT_LAUNCHABLE",
+  "historical_metadata_files_sha_verified": 18,
+  "execution_sha256": null,
+  "native_started": false,
+  "model_image_or_native_execution": false,
+  "next": "Root verify repaired stable source and exact final execution identity, normal-terminal verifier and freeze before ONE native FIRST061 FS gate. No future source hashes guessed."
+}
