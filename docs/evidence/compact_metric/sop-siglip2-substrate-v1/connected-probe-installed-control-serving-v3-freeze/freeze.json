@@ -1,0 +1,46 @@
+{
+  "files": {
+    "authority.json": "3ab176fb217e07c0f99ff366dd0c41b78a71431aa677abaadccc663f82380b7c",
+    "command.sh": "419169ad45f89268c67009afffd68ca3b13bfa64871232b1725bfd33314aa952",
+    "connected_control_native_authority.py": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442",
+    "controller.sh": "74bee1c2dbda2ef2e22ffe77adf0a683a584fa5be2c6f6b05b42b6072af225cc",
+    "launch.sh": "c40e674307acd29048b8d7ef2bfe074c961ecd7af699443b07e3a185cb7b9433",
+    "observe_connected_serving.py": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de",
+    "qualify_connected_probe_serving.py": "81828ad4c0ed7bf2cebec57c46e0db7215f244ea4ae5f07aa699adaf971d1de1",
+    "qualify_connected_serving_requests.py": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163",
+    "test_connected_probe_serving.py": "1adbc43bd9bf1a2b131bd9c8a04d39099c71d789f45898c8ab6bf717bd17f9e9",
+    "test_connected_serving_requests.py": "ad35a7177ddc3be7cc29db3b73c204b16f1afff98ff41c7357f1919da259a57b",
+    "test_observe_connected_serving.py": "085a15c134b504ce72b34ae701bbae0a881c11162bdb9571a82ab0ed1881d2d9"
+  },
+  "launches": 0,
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-diagnostic-v3",
+  "prior_v1": "original SSH71350 invcddb55d04747481a8afc6822d46fcb67 FAIL startup shared-runs checkout inference preserved",
+  "prior_v2": "SSH82389 exit1 inv715802b9fa584d12bbdb79118dc11738 mapping survived; exact-four missing before forward; FAIL preserved",
+  "quality_decision": "candidate pooling-probe FIRST KILL; only accepted control serving parity eligible",
+  "resource_policy": {
+    "body_seconds": 300,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "exit_reserve_seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_process_seconds": 1500
+  },
+  "root": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v3",
+  "root_review": "Bounded owner/error observation only; baseline byte+AST inverse and original tests restored; source113PASS6.26s63876KiB0swap. Native owner unproven; no lifecycle/gate change.",
+  "schema": "connected-probe-installed-control-serving-freeze-v3",
+  "source_commit": "28131a70fc31378e5e3eb68658ceb9334a72a12c",
+  "source_files": {
+    "control_native": "connected_control_native_authority.py",
+    "observer": "observe_connected_serving.py",
+    "observer_test": "test_observe_connected_serving.py",
+    "probe_driver": "qualify_connected_probe_serving.py",
+    "probe_test": "test_connected_probe_serving.py",
+    "request_driver": "qualify_connected_serving_requests.py",
+    "request_test": "test_connected_serving_requests.py"
+  },
+  "source_only_shape_check": true,
+  "source_worker_commit": "28131a70fc31378e5e3eb68658ceb9334a72a12c",
+  "stop_rule": "ONE fresh observation original source/locks/body300/whole1500/exit300/8GiB/noSwap/CUDA<10GB. No parity acceptance on exit failure.",
+  "unit": "sfora-connected-probe-installed-control-serving-diagnostic-v3"
+}

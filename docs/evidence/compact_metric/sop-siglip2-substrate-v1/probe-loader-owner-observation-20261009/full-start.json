@@ -1,0 +1,15 @@
+{
+  "command": "ulimit -v 1048576; timeout 120s /usr/bin/time -v python3 -B scripts/test_connected_probe_serving.py",
+  "start_epoch": 1791515802.280622,
+  "as_bytes": 1073741824,
+  "sha256": {
+    "scripts/qualify_connected_probe_serving.py": "81828ad4c0ed7bf2cebec57c46e0db7215f244ea4ae5f07aa699adaf971d1de1",
+    "scripts/test_connected_probe_serving.py": "1adbc43bd9bf1a2b131bd9c8a04d39099c71d789f45898c8ab6bf717bd17f9e9"
+  },
+  "narrow": {
+    "tests": 20,
+    "exit": 0,
+    "seconds": 3.865,
+    "timeout": 15
+  }
+}
