@@ -1,0 +1,10 @@
+{
+  "status": "EXISTING_GENUINE_CONTEXT_ROUTE_LOCATED_NATIVE_UNRUN",
+  "file": "scripts/evaluate_siglip2_connected_probe.py",
+  "sha256": "6b60df9162a5cdfc253c61535dac09681604ba1868a6b2135a75fd65b8ffdd1d",
+  "function": "fullfeature_oracle",
+  "source_segment_sha256": "061700ae58189a27cdfb0c710fe523b0a430cd2337a8e21d530976de2ec4ad32",
+  "context": "Existing probe evaluator.authority returns training_context with its genuine historical trainer; oracle calls t[trainer].helper_guard(t).",
+  "math": "Original accepted concat plus F.linear(features-mu,C); omitted-C and wrong-mu negatives retained.",
+  "constraint": "Use original probe evaluator fullfeature_oracle, unchanged, only under its fully admitted context and live guards. This source inspection does not prove a proposed launch admissible or native parity."
+}
