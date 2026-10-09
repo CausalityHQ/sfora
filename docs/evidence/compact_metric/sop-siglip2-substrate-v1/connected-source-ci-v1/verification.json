@@ -1,0 +1,36 @@
+{
+  "address_space_kib": 1048576,
+  "base_commit": "f0c26abacc7f65d8c81265755fc8f58c9ce4d54e",
+  "ci_python_version": "3.12",
+  "commands": [
+    "timeout 120 bash -c 'ulimit -v 1048576; python3 -B -S scripts/test_connected_inference_extraction.py && python3 -B -S scripts/test_connected_probe_inference_extraction.py && python3 -B -S scripts/test_connected_compact_serving.py'",
+    "timeout 120 bash -c 'ulimit -v 1048576; python3 -B -S scripts/test_connected_compact_serving.py --probe-only'"
+  ],
+  "elapsed_seconds": null,
+  "logs": {
+    "original-probe-bridge.log": "56e0314b453f5d23d47e714b60050224e243fcb1a8a5977d996699ce1430e062",
+    "original-source-checks.log": "979db4a64f9a8efd5d733b7a5f26bfce70933395c7bc8fd22d0bd4cd2aa0c3cb"
+  },
+  "native_serving_qualified": false,
+  "original_exit_codes": [
+    0,
+    0
+  ],
+  "original_sessions": [
+    79649,
+    7161
+  ],
+  "python312_ci_executed_locally": false,
+  "python_version": "3.14.4",
+  "quality_speed_go": false,
+  "schema": "connected-source-ci-verification-v1",
+  "scope": "Separate dependency-free CI job invokes four existing source-only script entry points missed by pytest discovery. Runtime/test sources unchanged. Historical CI jobs unchanged. No model, native, quality, latency, publication or protocol qualification.",
+  "sources": {
+    ".github/workflows/ci.yml": "ed0b2d097e7845da10576cf09666c1b1a2d5ccb43c61c0121481c5ad453b7585",
+    "scripts/test_connected_compact_serving.py": "9589dae6a5b77d500c313559ec613669e71b6e66ae127498c033a649012016d3",
+    "scripts/test_connected_inference_extraction.py": "500364238fd29f9786868c410875267f112cc245325d4e7056c931f57ed04157",
+    "scripts/test_connected_probe_inference_extraction.py": "c18566649da23ff835c4548d048180bed415d255b9c34e8f835046f05e78dda9"
+  },
+  "status": "LOCAL_SOURCE_ONLY_PASS",
+  "timeout_seconds_each_controller": 120
+}

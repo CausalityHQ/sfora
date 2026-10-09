@@ -7,6 +7,29 @@ on:
     tags: ["v*"]
 
 jobs:
+  connected-source:
+    name: Connected serving source contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check packaged inference and bridge contracts without native dependencies
+        # These script entry points are outside pytest discovery. They check
+        # source correspondence and stand-ins, not native serving or performance.
+        run: |
+          ulimit -v 1048576
+          timeout 120 python -B -S scripts/test_connected_inference_extraction.py
+          timeout 120 python -B -S scripts/test_connected_probe_inference_extraction.py
+          timeout 120 python -B -S scripts/test_connected_compact_serving.py
+          timeout 120 python -B -S scripts/test_connected_compact_serving.py --probe-only
+
   test:
     name: Format, lint, type-check, and test
     runs-on: ubuntu-latest
