@@ -1,0 +1,35 @@
+{
+  "bounded": {
+    "all_18810_ordered_duplicate_hashes_verified": true,
+    "exit": 0,
+    "final_anon_bytes": 5992448,
+    "final_file_bytes": 143855616,
+    "host_peak_bytes": 195465216,
+    "invocation_id": "c6e98dcc5f8c43c5bc1e2360d14709bc",
+    "max_events_final": 0,
+    "max_events_stop": 0,
+    "process_max_rss_kib": 14584,
+    "samples": 74,
+    "service_seconds": 37.429,
+    "swap_peak_bytes": 0
+  },
+  "decision": "BOUNDED_LAUNCHER_SCAN_PASSES; ORIGINAL_SCAN_REPRODUCES_FILE_BACKED_PRESSURE",
+  "evaluator_cpu_qualified": false,
+  "next": "ONE fresh complete evaluator CPU700 required; no quality/export/speed admission",
+  "original": {
+    "all_18810_ordered_duplicate_hashes_verified": true,
+    "exit": 1,
+    "final_anon_bytes": 5992448,
+    "final_file_bytes": 8535748608,
+    "host_peak_bytes": 8589934592,
+    "invocation_id": "14d339698c2e43059955830e8e09a61c",
+    "max_events_final": 8099,
+    "max_events_stop": 8106,
+    "process_max_rss_kib": 30108,
+    "samples": 45,
+    "service_seconds": 23.004,
+    "swap_peak_bytes": 0
+  },
+  "quality_qualified": false,
+  "schema": "connected-probe-launcher-sha-ab-result-v1"
+}
