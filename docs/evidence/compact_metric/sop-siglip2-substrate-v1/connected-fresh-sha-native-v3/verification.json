@@ -1,0 +1,24 @@
+{
+  "actual_unit": "sfora-connected-fresh-sha-native-v2",
+  "body_seconds": 131.22964728501393,
+  "cuda_peak_bytes": 1848395264,
+  "declared_freeze_unit": "sfora-connected-fresh-sha-native-v3",
+  "engineering_evidence_only": true,
+  "evidence_sha256": {
+    "original.log": "04b8947e92ce740c74adc9e48a7b5b55299c559b940ff304aa14038048776356",
+    "receipt.json": "9d32cec58016126287b22c825678ce7cb1fa80c2d335bce74e1e7ca5cc308c1b",
+    "terminal-status.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  "host_peak_bytes": 5212233728,
+  "invocation_id": "e0b5b55e7b024761916bd36a80f3ccde",
+  "label_mismatch_preserved": true,
+  "median_ratio": 3.8450950218811926,
+  "optimization_decision": "REJECT_SLOWER",
+  "quality_product_speed_go": false,
+  "remaining_gate": "Installed public B1/B32 parity; 10000 paired full-pipeline calls needed for p99 product claim",
+  "schema": "connected-fresh-sha-parent-verification-v3",
+  "terminal_exit": 0,
+  "timing_unit": "frozen444+full448 bare-call seconds; source checks outside clock",
+  "whole_process_seconds": 699.2762661520101,
+  "zero_swap_events": true
+}

@@ -1,0 +1,716 @@
+{
+  "id": "d49cbfcdeea14ca2",
+  "status": "completed",
+  "started_at": 1791512098,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal pooling-probe FIRST KILL and completed Fable3854334af8c544d8 propose a causally distinct asymmetric serving falsifier. Result-gated decision needed before any new implementation/native/quality gate; not repetition of prior parity/helper reviews.",
+  "rolling_6h_count": 6,
+  "prompt_preview": "Read-only RESULT-GATED review, repo /home/rb/worktrees/sfora-positive-causality master862d5061. Goal BOTH SOP/In-Shop strongest protocol-matched quality plus matched image-to-topk speed, no gate weakening. Read docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-probe-negative-research-20261009/{original-answer.md,root-disposition.md}, connected-probe-first-selection-score-v1/{quality-summary.json,decision.md}; old connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json; connected-next-mechanism-research-v1/freshness-parent-input-ledger.json; connected-gallery-freshness-diagnostic-v3/{terminal.json,control-179061-tap.json}; scripts/diagnose_connected_gallery_freshness.py, train_siglip2_connected_mlp.py and exact pinned original identity source. Fable ONE recommendation: zero-new-training asymmetric query F/gallery S using archived candidate query wires and original13283x1152 FIT-cache selection-gallery rows through candidate A/C. ROOT rejects unproven optimizer cause, 'coverage excluded', core44 gate-impossibility, no-reindexing/unchangedcost, CPU FP32==CUDA, moving fresh hash to load-time, metric changes or direct VAL jump. Cache selection rows do exist via panel_mapping, but original S is CUDA FP32 and prior control tap failed B32-vs-B6 tail bytes; don't remove equivalence predicates. Decide ACCEPT/REJECT/CONDITIONAL on ONE minimal cache-based asymmetric falsifier under original batch-context, source/cache/row/endpoint roles, actual samegroup output/native parity and source/resource/cleanup gates. Prove input availability and minimal control oracle strategy (finite original batch-tail recompute if truly needed), reuse exact source helper seams; no arithmetic/device substitution masquerading as causal freshness. Specify exact files/CLI/source ledger/stop rule minimal implementation if admissible, no extra displacement/cosine/quality sweep. New method must have fresh engineering/first-selection then bothseeds full productLCB/cost/floors; prior symmetric KILL stays KILL/noVAL bypass. Existing original fresh-SHA native job SSH35033 is separately live on DGX, do not touch it. NO code edits/native/Torch/SSH/images/jobs/children/operator. Independently distinguish source observations/hypotheses/projections. Smallest cheap falsifier, clear blockers, no arbitrary LR/loss change. ROOT holds native/experiment/freeze/integration authority.",
+  "prompt_sha256": "4170840673c3acddd4b01938eb0b0456c02dedf6e8398cda3f97194d11074b07",
+  "prompt_bytes": 2411,
+  "fingerprint": "1ad74ffcfda11c4800fcd0d823b6ffabb7f2355122d7309c818d516c5df57f0d",
+  "evidence": {
+    "git_commit": "862d50619c2f240795338f84414ec268a9e42b54",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "99b30496442841d1",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791512098,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791513298,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only RESULT-GATED review, repo /home/rb/worktrees/sfora-positive-causality master862d5061. Goal BOTH SOP/In-Shop strongest protocol-matched quality plus matched image-to-topk speed, no gate weakening. Read docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-probe-negative-research-20261009/{original-answer.md,root-disposition.md}, connected-probe-first-selection-score-v1/{quality-summary.json,decision.md}; old connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json; connected-next-mechanism-research-v1/freshness-parent-input-ledger.json; connected-gallery-freshness-diagnostic-v3/{terminal.json,control-179061-tap.json}; scripts/diagnose_connected_gallery_freshness.py, train_siglip2_connected_mlp.py and exact pinned original identity source. Fable ONE recommendation: zero-new-training asymmetric query F/gallery S using archived candidate query wires and original13283x1152 FIT-cache selection-gallery rows through candidate A/C. ROOT rejects unproven optimizer cause, 'coverage excluded', core44 gate-impossibility, no-reindexing/unchangedcost, CPU FP32==CUDA, moving fresh hash to load-time, metric changes or direct VAL jump. Cache selection rows do exist via panel_mapping, but original S is CUDA FP32 and prior control tap failed B32-vs-B6 tail bytes; don't remove equivalence predicates. Decide ACCEPT/REJECT/CONDITIONAL on ONE minimal cache-based asymmetric falsifier under original batch-context, source/cache/row/endpoint roles, actual samegroup output/native parity and source/resource/cleanup gates. Prove input availability and minimal control oracle strategy (finite original batch-tail recompute if truly needed), reuse exact source helper seams; no arithmetic/device substitution masquerading as causal freshness. Specify exact files/CLI/source ledger/stop rule minimal implementation if admissible, no extra displacement/cosine/quality sweep. New method must have fresh engineering/first-selection then bothseeds full productLCB/cost/floors; prior symmetric KILL stays KILL/noVAL bypass. Existing original fresh-SHA native job SSH35033 is separately live on DGX, do not touch it. NO code edits/native/Torch/SSH/images/jobs/children/operator. Independently distinguish source observations/hypotheses/projections. Smallest cheap falsifier, clear blockers, no arbitrary LR/loss change. ROOT holds native/experiment/freeze/integration authority.",
+      "prompt_sha256": "b218678e3e2e0bc440cb5c5521e77c7217190907adc25572adde0858e6ea8016",
+      "prompt_bytes": 2781,
+      "fingerprint": "b2dfc859d2d8242527f4a65aff8af1ea7ce2bf01c4ace67557b5cf475d72fe94",
+      "evidence": {
+        "git_commit": "862d50619c2f240795338f84414ec268a9e42b54",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "a3d8fa72708b6e163caef1773522fb3c27c2444442d9e6c190abec6bad8fbc58",
+      "reused": false,
+      "critique_id": "d49cbfcdeea14ca2",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-99b30496442841d1.service",
+      "pid": 4037229,
+      "pgid": 4037229,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1199,
+          "started_at": 1791512099
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791512637,
+      "event_cursor": 59,
+      "events": [
+        {
+          "seq": 36,
+          "at": 1791512611,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1791512612,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 38,
+          "at": 1791512613,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1791512614,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 40,
+          "at": 1791512615,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 41,
+          "at": 1791512617,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 42,
+          "at": 1791512618,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 43,
+          "at": 1791512619,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 44,
+          "at": 1791512620,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 45,
+          "at": 1791512621,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 46,
+          "at": 1791512623,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 47,
+          "at": 1791512624,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 48,
+          "at": 1791512625,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 49,
+          "at": 1791512626,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 50,
+          "at": 1791512627,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 51,
+          "at": 1791512628,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 52,
+          "at": 1791512629,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 53,
+          "at": 1791512630,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 54,
+          "at": 1791512631,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 55,
+          "at": 1791512633,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 56,
+          "at": 1791512634,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 57,
+          "at": 1791512635,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 58,
+          "at": 1791512636,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 59,
+          "at": 1791512636,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 52,
+            "at": 1791512629,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 53,
+            "at": 1791512630,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 54,
+            "at": 1791512631,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 55,
+            "at": 1791512633,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 56,
+            "at": 1791512634,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 57,
+            "at": 1791512635,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 58,
+            "at": 1791512636,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 59,
+            "at": 1791512636,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "# Verdict on the cache-based asymmetric falsifier: CONDITIONAL ACCEPT, as a kill screen only\n\nI accept it as a kill screen that runs before any engineering work, not as a selection result. It is admissible only as an FS-only run: archived candidate query wires (F) scored against a gallery made from FIT-cache rows passed through the candidate's A/C (S). Three conditions apply:\n\n- **Tap predicate scoped to the gallery role.** The control-tap byte check applies to the rows the cell actually uses.\n- **Both seeds' control taps run in the job.** Seed 179069's tap has never run.\n- **The decision is replayed by the parent** using the frozen full-stage rule.\n\nFable's version is rejected as written. I made no repository edits and ran no native code, Torch, SSH or jobs. The only file I wrote is a memory note outside the repo.\n\n## Source observations (verified at 862d5061)\n\n1. **The existing script already does what Fable proposed.** `scripts/diagnose_connected_gallery_freshness.py`'s `stale_values` already reads the original 13283\u00d71152 FIT-cache rows (selection rows located via `panel_mapping`). It runs the candidate readout on CUDA FP32 with autocast off, in the original role batches (queries 32\u00d754 + a final batch of 6; gallery 32\u00d753 + a final batch of 19). It normalizes on CUDA and builds the FS cell with `compose`. Fable's claim that \"using the FIT cache removes the B6 blocker\" is wrong: that blocker appeared inside this same cache instrument. Its \"CPU FP32 readout\" contradicts the source.\n2. **Every tap difference is in the six query rows of the final batch of 6** (selection rows 3439\u20133442, 3445, 3448).\n   - The difference counts are raw 1902 bytes, unit 1896, codes 9, inverse norms 1 and wire 10.\n   - All 1715 gallery rows match the archived control-179061 export byte for byte across raw, unit, codes, inverse norms and wire. That includes the gallery's final batch of 19.\n   - In the FS cell, S is used only for gallery rows. Queries come from the archived F export, which the original job encoded with that same final batch of 6.\n3. **The readout does not depend on the arm.** In the pinned identity source (sha 840c5d82), `fullfeature_raw_features` only validates the arm label through `parameter_roles`. So the control and candidate readouts follow one arithmetic path.\n4. **Training was asymmetric.** In training, `ranking_gallery` passes frozen canonical views through the current A/C. FS is therefore the geometry the objective actually trained on (training classes only).\n5. **The symmetric FF result being re-tested:**\n   - Each seed gained 6 net R@1 queries (11 up / 5 down and 12 up / 6 down).\n   - The R@1 mean was +0.346pp, with a product lower bound of \u22120.085pp (upper bound +0.828pp).\n   - The mAP@R lower bound was +1.77pp. Training cost ratios were 1.03 and 1.07.\n   - The frozen `quality_gate` requires each seed R@1 > 0 and AP \u2265 0, a mean of at least 0.2pp, and a product lower bound above 0 for both metrics.\n   - Only the R@1 lower bound failed.\n\n## Corrections to Fable\n\n| Fable claim | Disposition |\n|---|---|\n| CPU FP32 readout, no CUDA | Reject. Use v3's CUDA FP32 path in the original role batches. |\n| \"FS \u2212 SS (control)\" | Mislabel. SS means the candidate's A/C on both frozen sides. The method comparator is the accepted control export. |\n| Kill if FS \u2212 FF \u2264 0 | Drop as a gate: it is post hoc and not frozen. Report FS \u2212 FF transition counts as description only. |\n| \"No re-indexing, unchanged cost\" | False relative to the deployed control, because the A/C change the gallery wire. Query-path cost equals FF only if the gallery is indexed offline. It is unmeasured either way, so it belongs to the engineering gate. |\n| Continue \u2192 same-four VAL | Reject (that is a VAL bypass). A pass only licenses an engineering build. |\n| Displacement and core-44 cosine reads | Reject. They are not needed for the decision. |\n| Core-44 impossibility | Agree with the root. 12/1734 = 0.692pp, and FS needs only about 1.5\u20132 more net queries per seed than FF. |\n\n## Why no recompute of the query rows in the final batch of 6\n\nRecomputing those six rows would need the images, `vision.pt` and preprocessing, all of which are excluded reads. That work would only qualify bytes the FS cell never uses. It becomes necessary only if SS or SF cells are wanted, and that is the extra sweep the brief rules out.\n\nThe equivalence predicate is not removed; it is kept for every byte FS uses.\n\n## Minimal falsifier\n\n**Changes to `diagnose_connected_gallery_freshness.py`:**\n1. Add `require_gallery_role_tap`. For each of the five outputs it requires:\n   - complete lengths;\n   - `row_localization.status == 'AVAILABLE'`;\n   - every differing row has `role=='query'` and `live_encoder_tail is True`.\n\n   Gallery rows, including the final batch of 19, must be exact. Apply it to both controls. The full all-row localization is still written to `*-tap.json`. Determinism (first run vs second run) keeps the unchanged all-row `require_control_tap`.\n2. Control oracle, replacing the S-query replay. Build `oracle = compose(control_S, control_F, 'FS')`, then require:\n   - `exact_wire(pack(oracle).to_bytes(), archived control wire)`;\n   - the accepted control per-query R@1 and AP replay through both `packed_quality` and `native_wire_quality`.\n3. Candidates:\n   - Keep the two-run determinism check and the `omitted_C` / `wrong_mu` mutation checks.\n   - Compute only the FF and FS cells, and require FF to replay the accepted candidate result.\n   - Delete SS, SF and `effects`. The receipt records SS/SF as `UNMEASURED: query-tail S unqualified`, keeps `remaining_confound`, and emits the FS per-query vectors.\n   - Keep the order: all four archived replays, then both control taps, then the candidates.\n   - Leave limits, cleanup, rehash, RNG, CUDA-zero and cgroup checks unchanged.\n\n**Other files:**\n- `test_connected_gallery_freshness.py` needs tests showing that:\n  - a difference confined to the query tail is accepted;\n  - a single byte difference in any gallery row stops the run, including a row in the final batch of 19;\n  - so do a difference in a query row outside the tail and a truncated output;\n  - the control oracle catches one flipped gallery byte;\n  - only the FS and FF cells exist.\n- The root freezes a new `execution.json`.\n- Launch authority `connected-gallery-freshness-launch-v2` is identical to v1 apart from its schema and execution hash: same 16 source roles and pins, same cache, partition, fit and scope, four `endpoint.pt` files and twelve export files, same runtime. The command line and `command.sh` wrapper are unchanged.\n\n**Parent decision:** a CPU-only `parent-decision.py`, modelled on `connected-probe-first-selection-score-v1/parent-verifier.py:32`.\n1. Load the pinned `evaluator_reference`, genuine-views math, reference and baseline sources.\n2. Replay the archived FF decision. It must reproduce the R@1 and AP intervals exactly (\u22120.0008484\u2026 and 0.0177101\u2026) and the KILL.\n3. Substitute FS as the candidate and run `decide(..., 'full', 'selection', paired_intervals 5000/179019, archived training cost)`.\n4. Map the result to KILL or ENGINEERING_LICENSE. It must never become CONTINUE, GO or VAL.\n\nThe training cost is genuinely shared with FF. Serving cost stays unmeasured.\n\n**Stop rule:**\n- **Instrument failure:** any failure of a tap, oracle, determinism, mutation, FF replay, scorer/native check, cap or cleanup stops the run with no FS number released.\n- **KILL:** the frozen gate fails. That closes asymmetric serving of these endpoints. There is no retry with other cells, learning rate or recipe, and the symmetric KILL stands.\n- **Pass:** start the engineering gate.\n  - Build a bundle with separate query and gallery encoder roles, keeping the fresh-SHA check over all current bytes on every request.\n  - Its gallery wire must reproduce this run's FS gallery bytes exactly, and it needs production top-k parity.\n  - Then run a new first-selection check and the full both-seed product lower bound, cost and floors.\n  - A selection GO admits it to VAL only.\n\n## Blockers before launch\n\n1. **The root must accept the gallery-scoped tap predicate.** Without it, FS is infeasible unless the query tail is re-encoded from images and `vision.pt`.\n2. **Locks.** The native job SSH35033 holds the DGX. Queue behind it and do not touch it.\n3. **Freeze before running.** The parent script, the decision mapping and the tests must be frozen before the native run.\n4. **Unrun and unobserved paths.** The control-179069 tap and every candidate readout path have never executed. The remote file bytes have not been freshly checked; the in-job rehash covers that.\n\n## Hypotheses and projections (not evidence)\n\n- **Cause of the six-row difference.** The B6 difference most likely comes from batch-size-dependent kernel selection in the encoder; the readout batches were already matched. This is unproven, and FS does not depend on it.\n- **Readout carries over to the candidate's A/C.** Byte-exact control output strongly suggests, but does not prove, that the candidate's A/C on S matches what an original run would produce. There is no original byte reference for that.\n- **Resources.** Expect under about 3 minutes, roughly the v3 4.4 GB host peak, and well under 10 GB of CUDA.\n- **Odds.** I put the chance of passing at roughly 15\u201325%. A pass on this already-exposed panel is the second look after FF, so only the sealed VAL check can carry a claim.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "# Verdict on the cache-based asymmetric falsifier: CONDITIONAL ACCEPT, as a kill screen only\n\nI accept it as a kill screen that runs before any engineering work, not as a selection result. It is admissible only as an FS-only run: archived candidate query wires (F) scored against a gallery made from FIT-cache rows passed through the candidate's A/C (S). Three conditions apply:\n\n- **Tap predicate scoped to the gallery role.** The control-tap byte check applies to the rows the cell actually uses.\n- **Both seeds' control taps run in the job.** Seed 179069's tap has never run.\n- **The decision is replayed by the parent** using the frozen full-stage rule.\n\nFable's version is rejected as written. I made no repository edits and ran no native code, Torch, SSH or jobs. The only file I wrote is a memory note outside the repo.\n\n## Source observations (verified at 862d5061)\n\n1. **The existing script already does what Fable proposed.** `scripts/diagnose_connected_gallery_freshness.py`'s `stale_values` already reads the original 13283\u00d71152 FIT-cache rows (selection rows located via `panel_mapping`). It runs the candidate readout on CUDA FP32 with autocast off, in the original role batches (queries 32\u00d754 + a final batch of 6; gallery 32\u00d753 + a final batch of 19). It normalizes on CUDA and builds the FS cell with `compose`. Fable's claim that \"using the FIT cache removes the B6 blocker\" is wrong: that blocker appeared inside this same cache instrument. Its \"CPU FP32 readout\" contradicts the source.\n2. **Every tap difference is in the six query rows of the final batch of 6** (selection rows 3439\u20133442, 3445, 3448).\n   - The difference counts are raw 1902 bytes, unit 1896, codes 9, inverse norms 1 and wire 10.\n   - All 1715 gallery rows match the archived control-179061 export byte for byte across raw, unit, codes, inverse norms and wire. That includes the gallery's final batch of 19.\n   - In the FS cell, S is used only for gallery rows. Queries come from the archived F export, which the original job encoded with that same final batch of 6.\n3. **The readout does not depend on the arm.** In the pinned identity source (sha 840c5d82), `fullfeature_raw_features` only validates the arm label through `parameter_roles`. So the control and candidate readouts follow one arithmetic path.\n4. **Training was asymmetric.** In training, `ranking_gallery` passes frozen canonical views through the current A/C. FS is therefore the geometry the objective actually trained on (training classes only).\n5. **The symmetric FF result being re-tested:**\n   - Each seed gained 6 net R@1 queries (11 up / 5 down and 12 up / 6 down).\n   - The R@1 mean was +0.346pp, with a product lower bound of \u22120.085pp (upper bound +0.828pp).\n   - The mAP@R lower bound was +1.77pp. Training cost ratios were 1.03 and 1.07.\n   - The frozen `quality_gate` requires each seed R@1 > 0 and AP \u2265 0, a mean of at least 0.2pp, and a product lower bound above 0 for both metrics.\n   - Only the R@1 lower bound failed.\n\n## Corrections to Fable\n\n| Fable claim | Disposition |\n|---|---|\n| CPU FP32 readout, no CUDA | Reject. Use v3's CUDA FP32 path in the original role batches. |\n| \"FS \u2212 SS (control)\" | Mislabel. SS means the candidate's A/C on both frozen sides. The method comparator is the accepted control export. |\n| Kill if FS \u2212 FF \u2264 0 | Drop as a gate: it is post hoc and not frozen. Report FS \u2212 FF transition counts as description only. |\n| \"No re-indexing, unchanged cost\" | False relative to the deployed control, because the A/C change the gallery wire. Query-path cost equals FF only if the gallery is indexed offline. It is unmeasured either way, so it belongs to the engineering gate. |\n| Continue \u2192 same-four VAL | Reject (that is a VAL bypass). A pass only licenses an engineering build. |\n| Displacement and core-44 cosine reads | Reject. They are not needed for the decision. |\n| Core-44 impossibility | Agree with the root. 12/1734 = 0.692pp, and FS needs only about 1.5\u20132 more net queries per seed than FF. |\n\n## Why no recompute of the query rows in the final batch of 6\n\nRecomputing those six rows would need the images, `vision.pt` and preprocessing, all of which are excluded reads. That work would only qualify bytes the FS cell never uses. It becomes necessary only if SS or SF cells are wanted, and that is the extra sweep the brief rules out.\n\nThe equivalence predicate is not removed; it is kept for every byte FS uses.\n\n## Minimal falsifier\n\n**Changes to `diagnose_connected_gallery_freshness.py`:**\n1. Add `require_gallery_role_tap`. For each of the five outputs it requires:\n   - complete lengths;\n   - `row_localization.status == 'AVAILABLE'`;\n   - every differing row has `role=='query'` and `live_encoder_tail is True`.\n\n   Gallery rows, including the final batch of 19, must be exact. Apply it to both controls. The full all-row localization is still written to `*-tap.json`. Determinism (first run vs second run) keeps the unchanged all-row `require_control_tap`.\n2. Control oracle, replacing the S-query replay. Build `oracle = compose(control_S, control_F, 'FS')`, then require:\n   - `exact_wire(pack(oracle).to_bytes(), archived control wire)`;\n   - the accepted control per-query R@1 and AP replay through both `packed_quality` and `native_wire_quality`.\n3. Candidates:\n   - Keep the two-run determinism check and the `omitted_C` / `wrong_mu` mutation checks.\n   - Compute only the FF and FS cells, and require FF to replay the accepted candidate result.\n   - Delete SS, SF and `effects`. The receipt records SS/SF as `UNMEASURED: query-tail S unqualified`, keeps `remaining_confound`, and emits the FS per-query vectors.\n   - Keep the order: all four archived replays, then both control taps, then the candidates.\n   - Leave limits, cleanup, rehash, RNG, CUDA-zero and cgroup checks unchanged.\n\n**Other files:**\n- `test_connected_gallery_freshness.py` needs tests showing that:\n  - a difference confined to the query tail is accepted;\n  - a single byte difference in any gallery row stops the run, including a row in the final batch of 19;\n  - so do a difference in a query row outside the tail and a truncated output;\n  - the control oracle catches one flipped gallery byte;\n  - only the FS and FF cells exist.\n- The root freezes a new `execution.json`.\n- Launch authority `connected-gallery-freshness-launch-v2` is identical to v1 apart from its schema and execution hash: same 16 source roles and pins, same cache, partition, fit and scope, four `endpoint.pt` files and twelve export files, same runtime. The command line and `command.sh` wrapper are unchanged.\n\n**Parent decision:** a CPU-only `parent-decision.py`, modelled on `connected-probe-first-selection-score-v1/parent-verifier.py:32`.\n1. Load the pinned `evaluator_reference`, genuine-views math, reference and baseline sources.\n2. Replay the archived FF decision. It must reproduce the R@1 and AP intervals exactly (\u22120.0008484\u2026 and 0.0177101\u2026) and the KILL.\n3. Substitute FS as the candidate and run `decide(..., 'full', 'selection', paired_intervals 5000/179019, archived training cost)`.\n4. Map the result to KILL or ENGINEERING_LICENSE. It must never become CONTINUE, GO or VAL.\n\nThe training cost is genuinely shared with FF. Serving cost stays unmeasured.\n\n**Stop rule:**\n- **Instrument failure:** any failure of a tap, oracle, determinism, mutation, FF replay, scorer/native check, cap or cleanup stops the run with no FS number released.\n- **KILL:** the frozen gate fails. That closes asymmetric serving of these endpoints. There is no retry with other cells, learning rate or recipe, and the symmetric KILL stands.\n- **Pass:** start the engineering gate.\n  - Build a bundle with separate query and gallery encoder roles, keeping the fresh-SHA check over all current bytes on every request.\n  - Its gallery wire must reproduce this run's FS gallery bytes exactly, and it needs production top-k parity.\n  - Then run a new first-selection check and the full both-seed product lower bound, cost and floors.\n  - A selection GO admits it to VAL only.\n\n## Blockers before launch\n\n1. **The root must accept the gallery-scoped tap predicate.** Without it, FS is infeasible unless the query tail is re-encoded from images and `vision.pt`.\n2. **Locks.** The native job SSH35033 holds the DGX. Queue behind it and do not touch it.\n3. **Freeze before running.** The parent script, the decision mapping and the tests must be frozen before the native run.\n4. **Unrun and unobserved paths.** The control-179069 tap and every candidate readout path have never executed. The remote file bytes have not been freshly checked; the in-job rehash covers that.\n\n## Hypotheses and projections (not evidence)\n\n- **Cause of the six-row difference.** The B6 difference most likely comes from batch-size-dependent kernel selection in the encoder; the readout batches were already matched. This is unproven, and FS does not depend on it.\n- **Readout carries over to the candidate's A/C.** Byte-exact control output strongly suggests, but does not prove, that the candidate's A/C on S matches what an original run would produce. There is no original byte reference for that.\n- **Resources.** Expect under about 3 minutes, roughly the v3 4.4 GB host peak, and well under 10 GB of CUDA.\n- **Odds.** I put the chance of passing at roughly 15\u201325%. A pass on this already-exposed panel is the second look after FF, so only the sealed VAL check can carry a claim."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 2781,
+      "output_bytes": 9443,
+      "elapsed_seconds": 539,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)\ndevbox-ask: claude consult still running (8m 00s)\ndevbox-ask: claude consult still running (8m 30s)",
+      "progress_truncated": false,
+      "result": "# Verdict on the cache-based asymmetric falsifier: CONDITIONAL ACCEPT, as a kill screen only\n\nI accept it as a kill screen that runs before any engineering work, not as a selection result. It is admissible only as an FS-only run: archived candidate query wires (F) scored against a gallery made from FIT-cache rows passed through the candidate's A/C (S). Three conditions apply:\n\n- **Tap predicate scoped to the gallery role.** The control-tap byte check applies to the rows the cell actually uses.\n- **Both seeds' control taps run in the job.** Seed 179069's tap has never run.\n- **The decision is replayed by the parent** using the frozen full-stage rule.\n\nFable's version is rejected as written. I made no repository edits and ran no native code, Torch, SSH or jobs. The only file I wrote is a memory note outside the repo.\n\n## Source observations (verified at 862d5061)\n\n1. **The existing script already does what Fable proposed.** `scripts/diagnose_connected_gallery_freshness.py`'s `stale_values` already reads the original 13283\u00d71152 FIT-cache rows (selection rows located via `panel_mapping`). It runs the candidate readout on CUDA FP32 with autocast off, in the original role batches (queries 32\u00d754 + a final batch of 6; gallery 32\u00d753 + a final batch of 19). It normalizes on CUDA and builds the FS cell with `compose`. Fable's claim that \"using the FIT cache removes the B6 blocker\" is wrong: that blocker appeared inside this same cache instrument. Its \"CPU FP32 readout\" contradicts the source.\n2. **Every tap difference is in the six query rows of the final batch of 6** (selection rows 3439\u20133442, 3445, 3448).\n   - The difference counts are raw 1902 bytes, unit 1896, codes 9, inverse norms 1 and wire 10.\n   - All 1715 gallery rows match the archived control-179061 export byte for byte across raw, unit, codes, inverse norms and wire. That includes the gallery's final batch of 19.\n   - In the FS cell, S is used only for gallery rows. Queries come from the archived F export, which the original job encoded with that same final batch of 6.\n3. **The readout does not depend on the arm.** In the pinned identity source (sha 840c5d82), `fullfeature_raw_features` only validates the arm label through `parameter_roles`. So the control and candidate readouts follow one arithmetic path.\n4. **Training was asymmetric.** In training, `ranking_gallery` passes frozen canonical views through the current A/C. FS is therefore the geometry the objective actually trained on (training classes only).\n5. **The symmetric FF result being re-tested:**\n   - Each seed gained 6 net R@1 queries (11 up / 5 down and 12 up / 6 down).\n   - The R@1 mean was +0.346pp, with a product lower bound of \u22120.085pp (upper bound +0.828pp).\n   - The mAP@R lower bound was +1.77pp. Training cost ratios were 1.03 and 1.07.\n   - The frozen `quality_gate` requires each seed R@1 > 0 and AP \u2265 0, a mean of at least 0.2pp, and a product lower bound above 0 for both metrics.\n   - Only the R@1 lower bound failed.\n\n## Corrections to Fable\n\n| Fable claim | Disposition |\n|---|---|\n| CPU FP32 readout, no CUDA | Reject. Use v3's CUDA FP32 path in the original role batches. |\n| \"FS \u2212 SS (control)\" | Mislabel. SS means the candidate's A/C on both frozen sides. The method comparator is the accepted control export. |\n| Kill if FS \u2212 FF \u2264 0 | Drop as a gate: it is post hoc and not frozen. Report FS \u2212 FF transition counts as description only. |\n| \"No re-indexing, unchanged cost\" | False relative to the deployed control, because the A/C change the gallery wire. Query-path cost equals FF only if the gallery is indexed offline. It is unmeasured either way, so it belongs to the engineering gate. |\n| Continue \u2192 same-four VAL | Reject (that is a VAL bypass). A pass only licenses an engineering build. |\n| Displacement and core-44 cosine reads | Reject. They are not needed for the decision. |\n| Core-44 impossibility | Agree with the root. 12/1734 = 0.692pp, and FS needs only about 1.5\u20132 more net queries per seed than FF. |\n\n## Why no recompute of the query rows in the final batch of 6\n\nRecomputing those six rows would need the images, `vision.pt` and preprocessing, all of which are excluded reads. That work would only qualify bytes the FS cell never uses. It becomes necessary only if SS or SF cells are wanted, and that is the extra sweep the brief rules out.\n\nThe equivalence predicate is not removed; it is kept for every byte FS uses.\n\n## Minimal falsifier\n\n**Changes to `diagnose_connected_gallery_freshness.py`:**\n1. Add `require_gallery_role_tap`. For each of the five outputs it requires:\n   - complete lengths;\n   - `row_localization.status == 'AVAILABLE'`;\n   - every differing row has `role=='query'` and `live_encoder_tail is True`.\n\n   Gallery rows, including the final batch of 19, must be exact. Apply it to both controls. The full all-row localization is still written to `*-tap.json`. Determinism (first run vs second run) keeps the unchanged all-row `require_control_tap`.\n2. Control oracle, replacing the S-query replay. Build `oracle = compose(control_S, control_F, 'FS')`, then require:\n   - `exact_wire(pack(oracle).to_bytes(), archived control wire)`;\n   - the accepted control per-query R@1 and AP replay through both `packed_quality` and `native_wire_quality`.\n3. Candidates:\n   - Keep the two-run determinism check and the `omitted_C` / `wrong_mu` mutation checks.\n   - Compute only the FF and FS cells, and require FF to replay the accepted candidate result.\n   - Delete SS, SF and `effects`. The receipt records SS/SF as `UNMEASURED: query-tail S unqualified`, keeps `remaining_confound`, and emits the FS per-query vectors.\n   - Keep the order: all four archived replays, then both control taps, then the candidates.\n   - Leave limits, cleanup, rehash, RNG, CUDA-zero and cgroup checks unchanged.\n\n**Other files:**\n- `test_connected_gallery_freshness.py` needs tests showing that:\n  - a difference confined to the query tail is accepted;\n  - a single byte difference in any gallery row stops the run, including a row in the final batch of 19;\n  - so do a difference in a query row outside the tail and a truncated output;\n  - the control oracle catches one flipped gallery byte;\n  - only the FS and FF cells exist.\n- The root freezes a new `execution.json`.\n- Launch authority `connected-gallery-freshness-launch-v2` is identical to v1 apart from its schema and execution hash: same 16 source roles and pins, same cache, partition, fit and scope, four `endpoint.pt` files and twelve export files, same runtime. The command line and `command.sh` wrapper are unchanged.\n\n**Parent decision:** a CPU-only `parent-decision.py`, modelled on `connected-probe-first-selection-score-v1/parent-verifier.py:32`.\n1. Load the pinned `evaluator_reference`, genuine-views math, reference and baseline sources.\n2. Replay the archived FF decision. It must reproduce the R@1 and AP intervals exactly (\u22120.0008484\u2026 and 0.0177101\u2026) and the KILL.\n3. Substitute FS as the candidate and run `decide(..., 'full', 'selection', paired_intervals 5000/179019, archived training cost)`.\n4. Map the result to KILL or ENGINEERING_LICENSE. It must never become CONTINUE, GO or VAL.\n\nThe training cost is genuinely shared with FF. Serving cost stays unmeasured.\n\n**Stop rule:**\n- **Instrument failure:** any failure of a tap, oracle, determinism, mutation, FF replay, scorer/native check, cap or cleanup stops the run with no FS number released.\n- **KILL:** the frozen gate fails. That closes asymmetric serving of these endpoints. There is no retry with other cells, learning rate or recipe, and the symmetric KILL stands.\n- **Pass:** start the engineering gate.\n  - Build a bundle with separate query and gallery encoder roles, keeping the fresh-SHA check over all current bytes on every request.\n  - Its gallery wire must reproduce this run's FS gallery bytes exactly, and it needs production top-k parity.\n  - Then run a new first-selection check and the full both-seed product lower bound, cost and floors.\n  - A selection GO admits it to VAL only.\n\n## Blockers before launch\n\n1. **The root must accept the gallery-scoped tap predicate.** Without it, FS is infeasible unless the query tail is re-encoded from images and `vision.pt`.\n2. **Locks.** The native job SSH35033 holds the DGX. Queue behind it and do not touch it.\n3. **Freeze before running.** The parent script, the decision mapping and the tests must be frozen before the native run.\n4. **Unrun and unobserved paths.** The control-179069 tap and every candidate readout path have never executed. The remote file bytes have not been freshly checked; the in-job rehash covers that.\n\n## Hypotheses and projections (not evidence)\n\n- **Cause of the six-row difference.** The B6 difference most likely comes from batch-size-dependent kernel selection in the encoder; the readout batches were already matched. This is unproven, and FS does not depend on it.\n- **Readout carries over to the candidate's A/C.** Byte-exact control output strongly suggests, but does not prove, that the candidate's A/C on S matches what an original run would produce. There is no original byte reference for that.\n- **Resources.** Expect under about 3 minutes, roughly the v3 4.4 GB host peak, and well under 10 GB of CUDA.\n- **Odds.** I put the chance of passing at roughly 15\u201325%. A pass on this already-exposed panel is the second look after FF, so only the sealed VAL check can carry a claim.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "efb5aafe49484b67",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "effort": "",
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1791512099,
+      "timeout_seconds": 1200,
+      "deadline_at": 1791513299,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only RESULT-GATED review, repo /home/rb/worktrees/sfora-positive-causality master862d5061. Goal BOTH SOP/In-Shop strongest protocol-matched quality plus matched image-to-topk speed, no gate weakening. Read docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-probe-negative-research-20261009/{original-answer.md,root-disposition.md}, connected-probe-first-selection-score-v1/{quality-summary.json,decision.md}; old connected-mlp-evaluation-full-selection-score-v1/gallery-source-dataflow-audit.json; connected-next-mechanism-research-v1/freshness-parent-input-ledger.json; connected-gallery-freshness-diagnostic-v3/{terminal.json,control-179061-tap.json}; scripts/diagnose_connected_gallery_freshness.py, train_siglip2_connected_mlp.py and exact pinned original identity source. Fable ONE recommendation: zero-new-training asymmetric query F/gallery S using archived candidate query wires and original13283x1152 FIT-cache selection-gallery rows through candidate A/C. ROOT rejects unproven optimizer cause, 'coverage excluded', core44 gate-impossibility, no-reindexing/unchangedcost, CPU FP32==CUDA, moving fresh hash to load-time, metric changes or direct VAL jump. Cache selection rows do exist via panel_mapping, but original S is CUDA FP32 and prior control tap failed B32-vs-B6 tail bytes; don't remove equivalence predicates. Decide ACCEPT/REJECT/CONDITIONAL on ONE minimal cache-based asymmetric falsifier under original batch-context, source/cache/row/endpoint roles, actual samegroup output/native parity and source/resource/cleanup gates. Prove input availability and minimal control oracle strategy (finite original batch-tail recompute if truly needed), reuse exact source helper seams; no arithmetic/device substitution masquerading as causal freshness. Specify exact files/CLI/source ledger/stop rule minimal implementation if admissible, no extra displacement/cosine/quality sweep. New method must have fresh engineering/first-selection then bothseeds full productLCB/cost/floors; prior symmetric KILL stays KILL/noVAL bypass. Existing original fresh-SHA native job SSH35033 is separately live on DGX, do not touch it. NO code edits/native/Torch/SSH/images/jobs/children/operator. Independently distinguish source observations/hypotheses/projections. Smallest cheap falsifier, clear blockers, no arbitrary LR/loss change. ROOT holds native/experiment/freeze/integration authority.",
+      "prompt_sha256": "2d34064916fe7517e54b6e797eb036e3057fb5e37f7f6e196563dee98fdb11fc",
+      "prompt_bytes": 2815,
+      "fingerprint": "5a157775ecd531270ed72793eb701060db509cea8f107fe6c562e9b87f8adc7e",
+      "evidence": {
+        "git_commit": "862d50619c2f240795338f84414ec268a9e42b54",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "b2dfc859d2d8242527f4a65aff8af1ea7ce2bf01c4ace67557b5cf475d72fe94",
+      "reused": false,
+      "critique_id": "d49cbfcdeea14ca2",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-efb5aafe49484b67.service",
+      "pid": 4037337,
+      "pgid": 4037337,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1791512099
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1791512468,
+      "event_cursor": 96,
+      "events": [
+        {
+          "seq": 73,
+          "at": 1791512283,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 74,
+          "at": 1791512289,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 75,
+          "at": 1791512289,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 76,
+          "at": 1791512290,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 77,
+          "at": 1791512290,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 78,
+          "at": 1791512290,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 79,
+          "at": 1791512290,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 80,
+          "at": 1791512329,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 81,
+          "at": 1791512329,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 82,
+          "at": 1791512329,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 83,
+          "at": 1791512329,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 84,
+          "at": 1791512329,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 85,
+          "at": 1791512329,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 86,
+          "at": 1791512346,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 87,
+          "at": 1791512347,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 88,
+          "at": 1791512347,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 89,
+          "at": 1791512349,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 90,
+          "at": 1791512372,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 91,
+          "at": 1791512392,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 92,
+          "at": 1791512392,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 93,
+          "at": 1791512392,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 94,
+          "at": 1791512392,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 95,
+          "at": 1791512467,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 96,
+          "at": 1791512467,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 89,
+            "at": 1791512349,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 90,
+            "at": 1791512372,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 91,
+            "at": 1791512392,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 92,
+            "at": 1791512392,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 93,
+            "at": 1791512392,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 94,
+            "at": 1791512392,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 2"
+          },
+          {
+            "seq": 95,
+            "at": 1791512467,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 96,
+            "at": 1791512467,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: CONDITIONAL for one cache-based asymmetric method falsifier. REJECT the proposed CPU-only execution and direct VAL continuation.** This can test whether archived candidate queries work better against a specifically defined cached gallery. It cannot yet isolate encoder freshness as the cause.\n\nThe symmetric MLP and pooling-probe decisions remain **KILL**.\n\n1. **The control-equivalence blocker is real.** V3 completed zero counterfactual cells. Its control061 comparison found 1,902 raw-byte differences and ten wire-byte differences, all within query indices 1728\u20131733. That localizes the discrepancy; it does not prove batching caused it. The second control was never reached. The existing [control predicate](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_gallery_freshness.py:260) correctly rejects these differences.\n\n   Preserve CUDA FP32 readout and normalization, original flags, role order, B32 batches and tails. CPU FP32, tolerance checks, extra normalization, or copying expected output bytes would invalidate the comparison.\n\n2. **Reconstructing the original FIT batches would breach the validation boundary.** I independently checked the partition: FIT groups `13216..13247` and `13248..13279` contain **14 sealed validation rows**. Their images cannot be opened to repair this TRAIN-only diagnostic. The [role audit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/tail-original-group-role-audit.json) agrees.\n\n   The admissible finite oracle is the **original accepted selection-query B6**, FIT rows `[13239,13240,13241,13242,13254,13257]`, under its original live execution context. This is a new matched-context oracle; it does not retroactively make the failed all-cache comparison exact.\n\n3. **Input coverage is established; current availability is not.** Local metadata verifies 13,283 FIT rows, 3,449 selection rows, 1,734 queries, 1,715 gallery rows and 498 products. Selection rows and products are disjoint from the 6,355-row control training scope. Every selected row originally came from a complete encoder B32 cache batch.\n\n   However, the [input ledger](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/freshness-parent-input-ledger.json) explicitly says remote bytes have not been freshly checked. Historical V3 execution supports availability then; launch still requires fresh hashes, shapes, typed endpoint checks and original terminal admission.\n\n4. **Existing replay is not actual native-search parity.** [`native_wire_quality`](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_gallery_freshness.py:566) uses CPU Torch integer multiplication and sorting. It is useful independent wire replay, but it never calls Rust/CUDA search. Likewise, equal control descriptors cannot prove equality of all underlying 1,152-dimensional features under a different candidate readout.\n\n   Require independent same-input, same-batch readout output parity for candidate A/C, plus actual native IDs, score bits and ordinal ties on the new mixed wire. Reuse the existing [`CutilePackedInt8Gallery.search_packed`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:188) interface and native tie witness. Historical parity on a different gallery is insufficient.\n\n5. **The claimed deployment and causal conclusions exceed the evidence.** Candidate A/C applied to frozen features generally creates a new gallery artifact and index. Training used cached canonical features while serving uses different numerical contexts; cache extraction and accepted live export also differ in batching and cuDNN TF32 flags. A positive result would support this cache-specific method, not prove a pure freshness effect.\n\n   Optimizer causation, exclusion of coverage, core-44 gate impossibility, unchanged cost, and family-wide closure after a negative result remain unsupported. Per-request byte checks must remain intact. The [current inference path](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1258) explicitly detects current `.data` substitutions.\n\n**The smallest admissible implementation proposal** is a separate `scripts/diagnose_connected_asymmetric_cache.py` and `scripts/test_connected_asymmetric_cache.py`, with a fresh freeze directory containing `execution.json`, `authority.json`, `source-ledger.json` and the launch command. Preserve historical diagnostic files and receipts. Proposed CLI:\n\n```text\n<PINNED_PYTHON> -B <FROZEN_DIR>/diagnose_connected_asymmetric_cache.py \\\n  --execution-sha256 <SHA> \\\n  --authority <AUTHORITY_JSON> \\\n  --authority-sha256 <SHA> \\\n  --output <EXCLUSIVE_NEW_DIRECTORY>\n```\n\nFreeze the stage and seed in authority, not optional runtime tuning flags.\n\nThe source ledger must bind these exact roles:\n\n| Role | Required binding |\n|---|---|\n| Cache | Original `fit.npy`, SHA `c418df0354408c8b33dca07f21e7b3cbf9d5089f7f278b93003a614f21085716`; normalized little-endian FP32, `13283\u00d71152` |\n| Rows | Original FIT manifest, partition and scope; selection ordinal \u2192 original FIT index \u2192 image/product \u2192 query/gallery role |\n| Query F | Archived candidate query raw/unit/wire rows, endpoint and export receipt, separately for each seed |\n| Gallery S | Original cache gallery rows through that **same candidate\u2019s** head/A/C/means/\u03bc |\n| Controls | Each seed\u2019s own control endpoint and archived descriptors; do not confuse candidate `SS` with the trained control |\n| Sources/runtime | Original v3 source-role map, interpreter, package/native origins, flags and terminal receipts |\n| Optional tail oracle | Exact six selection images, accepted RGB/pixel/output hashes, unchanged control bundle and original B6 context |\n\nI verified the historical identity source SHA `840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8` and its readout AST equality with the connected helper. **Use the historical packing pin:** current repository `joint_relational_compaction.py` does not match that archived source hash.\n\nExecution should follow this fixed order:\n\n1. **Admit and replay before new quality.** Reuse `prepare`, `panel_mapping`, `check_export_mapping`, `Sources`, `origin_audit`, `terminal_admission`, `check_endpoint_payload` and `fresh_values`. Authenticate archived descriptors and replay their per-query R@1/AP.\n\n2. **Resolve controls before candidate scoring.** Preserve complete raw/unit/code/inverse/wire equality. If needed, independently reconstruct only the predeclared accepted query B6 using `load_inference` and the AST-checked capture seam in [the existing batch observer](/home/rb/worktrees/sfora-positive-causality/scripts/observe_connected_control_batch_execution.py:186). Require original RGB/pixel/output hashes and repeatability. Keep that live-tail provenance separate from cache provenance. Any other mismatch stops the run; no expanding image subsets or padding search.\n\n3. **Construct only FS.** Keep candidate query rows byte-identical to archive. Compute gallery rows using the pinned identity `fullfeature_raw_features` and original `packed_outputs`, CUDA FP32, gallery B32/tail19 grouping, without another outer feature normalization. Use independent reloads and the accepted explicit concat-plus-centered-residual oracle; retain omitted-C and wrong-\u03bc negatives.\n\n4. **Persist, read back and verify actual search.** Bind the mixed artifact\u2019s independent query/gallery roles and gallery hash. Require exact output and native parity before releasing its quality result. Cache-to-live encoder equivalence remains unproved unless separately witnessed; do not label this a pure causal freshness result.\n\n5. **Stop on engineering or resource failure.** Retain the 700-second whole-job cap, 8 GiB host cap, zero swap/events, CUDA allocation below 10 GB, both locks, uncached exit authentication and genuine cleanup. Include oracle construction, hashing, native search and teardown. V3\u2019s 19.643 seconds is time to failure, not an estimate of successful cost. Emit no qualifying result after a failed gate.\n\n6. **Apply staged scientific gates unchanged.** Start with seed179061. Kill this method if FS does not improve R@1 over archived candidate FF, or fails the existing first-stage control/source/concat/AP/floor/cost rules. Only then admit seed179069 and full paired evaluation. Require improvement over FF in each seed, existing per-seed conditions, both mean gains \u22650.2 percentage points, and both product lower bounds strictly positive using the original 5,000 draws/179019; retain query intervals and complete cost accounting. The [existing gate implementation](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_identity_diversity.py:917) is the authority.\n\nPassing permits the next frozen evaluation stage. It does not permit a direct VAL jump, revive symmetric KILL, establish either official benchmark win, or establish matched image-to-top-k speed. No displacement/cosine side study, LR change, loss change or quality sweep is needed.\n\nNot checked: current remote bytes, runtime tests, numerical/native parity, quality or latency. No edits, native/Torch imports, SSH, images, jobs, children or operator contact; SSH35033 was untouched.  \nRisk: the finite oracle may still fail; that must terminate this proposal without weakening equivalence or resource gates.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Verdict: CONDITIONAL for one cache-based asymmetric method falsifier. REJECT the proposed CPU-only execution and direct VAL continuation.** This can test whether archived candidate queries work better against a specifically defined cached gallery. It cannot yet isolate encoder freshness as the cause.\n\nThe symmetric MLP and pooling-probe decisions remain **KILL**.\n\n1. **The control-equivalence blocker is real.** V3 completed zero counterfactual cells. Its control061 comparison found 1,902 raw-byte differences and ten wire-byte differences, all within query indices 1728\u20131733. That localizes the discrepancy; it does not prove batching caused it. The second control was never reached. The existing [control predicate](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_gallery_freshness.py:260) correctly rejects these differences.\n\n   Preserve CUDA FP32 readout and normalization, original flags, role order, B32 batches and tails. CPU FP32, tolerance checks, extra normalization, or copying expected output bytes would invalidate the comparison.\n\n2. **Reconstructing the original FIT batches would breach the validation boundary.** I independently checked the partition: FIT groups `13216..13247` and `13248..13279` contain **14 sealed validation rows**. Their images cannot be opened to repair this TRAIN-only diagnostic. The [role audit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/tail-original-group-role-audit.json) agrees.\n\n   The admissible finite oracle is the **original accepted selection-query B6**, FIT rows `[13239,13240,13241,13242,13254,13257]`, under its original live execution context. This is a new matched-context oracle; it does not retroactively make the failed all-cache comparison exact.\n\n3. **Input coverage is established; current availability is not.** Local metadata verifies 13,283 FIT rows, 3,449 selection rows, 1,734 queries, 1,715 gallery rows and 498 products. Selection rows and products are disjoint from the 6,355-row control training scope. Every selected row originally came from a complete encoder B32 cache batch.\n\n   However, the [input ledger](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/freshness-parent-input-ledger.json) explicitly says remote bytes have not been freshly checked. Historical V3 execution supports availability then; launch still requires fresh hashes, shapes, typed endpoint checks and original terminal admission.\n\n4. **Existing replay is not actual native-search parity.** [`native_wire_quality`](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_gallery_freshness.py:566) uses CPU Torch integer multiplication and sorting. It is useful independent wire replay, but it never calls Rust/CUDA search. Likewise, equal control descriptors cannot prove equality of all underlying 1,152-dimensional features under a different candidate readout.\n\n   Require independent same-input, same-batch readout output parity for candidate A/C, plus actual native IDs, score bits and ordinal ties on the new mixed wire. Reuse the existing [`CutilePackedInt8Gallery.search_packed`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:188) interface and native tie witness. Historical parity on a different gallery is insufficient.\n\n5. **The claimed deployment and causal conclusions exceed the evidence.** Candidate A/C applied to frozen features generally creates a new gallery artifact and index. Training used cached canonical features while serving uses different numerical contexts; cache extraction and accepted live export also differ in batching and cuDNN TF32 flags. A positive result would support this cache-specific method, not prove a pure freshness effect.\n\n   Optimizer causation, exclusion of coverage, core-44 gate impossibility, unchanged cost, and family-wide closure after a negative result remain unsupported. Per-request byte checks must remain intact. The [current inference path](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1258) explicitly detects current `.data` substitutions.\n\n**The smallest admissible implementation proposal** is a separate `scripts/diagnose_connected_asymmetric_cache.py` and `scripts/test_connected_asymmetric_cache.py`, with a fresh freeze directory containing `execution.json`, `authority.json`, `source-ledger.json` and the launch command. Preserve historical diagnostic files and receipts. Proposed CLI:\n\n```text\n<PINNED_PYTHON> -B <FROZEN_DIR>/diagnose_connected_asymmetric_cache.py \\\n  --execution-sha256 <SHA> \\\n  --authority <AUTHORITY_JSON> \\\n  --authority-sha256 <SHA> \\\n  --output <EXCLUSIVE_NEW_DIRECTORY>\n```\n\nFreeze the stage and seed in authority, not optional runtime tuning flags.\n\nThe source ledger must bind these exact roles:\n\n| Role | Required binding |\n|---|---|\n| Cache | Original `fit.npy`, SHA `c418df0354408c8b33dca07f21e7b3cbf9d5089f7f278b93003a614f21085716`; normalized little-endian FP32, `13283\u00d71152` |\n| Rows | Original FIT manifest, partition and scope; selection ordinal \u2192 original FIT index \u2192 image/product \u2192 query/gallery role |\n| Query F | Archived candidate query raw/unit/wire rows, endpoint and export receipt, separately for each seed |\n| Gallery S | Original cache gallery rows through that **same candidate\u2019s** head/A/C/means/\u03bc |\n| Controls | Each seed\u2019s own control endpoint and archived descriptors; do not confuse candidate `SS` with the trained control |\n| Sources/runtime | Original v3 source-role map, interpreter, package/native origins, flags and terminal receipts |\n| Optional tail oracle | Exact six selection images, accepted RGB/pixel/output hashes, unchanged control bundle and original B6 context |\n\nI verified the historical identity source SHA `840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8` and its readout AST equality with the connected helper. **Use the historical packing pin:** current repository `joint_relational_compaction.py` does not match that archived source hash.\n\nExecution should follow this fixed order:\n\n1. **Admit and replay before new quality.** Reuse `prepare`, `panel_mapping`, `check_export_mapping`, `Sources`, `origin_audit`, `terminal_admission`, `check_endpoint_payload` and `fresh_values`. Authenticate archived descriptors and replay their per-query R@1/AP.\n\n2. **Resolve controls before candidate scoring.** Preserve complete raw/unit/code/inverse/wire equality. If needed, independently reconstruct only the predeclared accepted query B6 using `load_inference` and the AST-checked capture seam in [the existing batch observer](/home/rb/worktrees/sfora-positive-causality/scripts/observe_connected_control_batch_execution.py:186). Require original RGB/pixel/output hashes and repeatability. Keep that live-tail provenance separate from cache provenance. Any other mismatch stops the run; no expanding image subsets or padding search.\n\n3. **Construct only FS.** Keep candidate query rows byte-identical to archive. Compute gallery rows using the pinned identity `fullfeature_raw_features` and original `packed_outputs`, CUDA FP32, gallery B32/tail19 grouping, without another outer feature normalization. Use independent reloads and the accepted explicit concat-plus-centered-residual oracle; retain omitted-C and wrong-\u03bc negatives.\n\n4. **Persist, read back and verify actual search.** Bind the mixed artifact\u2019s independent query/gallery roles and gallery hash. Require exact output and native parity before releasing its quality result. Cache-to-live encoder equivalence remains unproved unless separately witnessed; do not label this a pure causal freshness result.\n\n5. **Stop on engineering or resource failure.** Retain the 700-second whole-job cap, 8 GiB host cap, zero swap/events, CUDA allocation below 10 GB, both locks, uncached exit authentication and genuine cleanup. Include oracle construction, hashing, native search and teardown. V3\u2019s 19.643 seconds is time to failure, not an estimate of successful cost. Emit no qualifying result after a failed gate.\n\n6. **Apply staged scientific gates unchanged.** Start with seed179061. Kill this method if FS does not improve R@1 over archived candidate FF, or fails the existing first-stage control/source/concat/AP/floor/cost rules. Only then admit seed179069 and full paired evaluation. Require improvement over FF in each seed, existing per-seed conditions, both mean gains \u22650.2 percentage points, and both product lower bounds strictly positive using the original 5,000 draws/179019; retain query intervals and complete cost accounting. The [existing gate implementation](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_identity_diversity.py:917) is the authority.\n\nPassing permits the next frozen evaluation stage. It does not permit a direct VAL jump, revive symmetric KILL, establish either official benchmark win, or establish matched image-to-top-k speed. No displacement/cosine side study, LR change, loss change or quality sweep is needed.\n\nNot checked: current remote bytes, runtime tests, numerical/native parity, quality or latency. No edits, native/Torch imports, SSH, images, jobs, children or operator contact; SSH35033 was untouched.  \nRisk: the finite oracle may still fail; that must terminate this proposal without weakening equivalence or resource gates."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 2815,
+      "output_bytes": 9462,
+      "elapsed_seconds": 369,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)",
+      "progress_truncated": false,
+      "result": "**Verdict: CONDITIONAL for one cache-based asymmetric method falsifier. REJECT the proposed CPU-only execution and direct VAL continuation.** This can test whether archived candidate queries work better against a specifically defined cached gallery. It cannot yet isolate encoder freshness as the cause.\n\nThe symmetric MLP and pooling-probe decisions remain **KILL**.\n\n1. **The control-equivalence blocker is real.** V3 completed zero counterfactual cells. Its control061 comparison found 1,902 raw-byte differences and ten wire-byte differences, all within query indices 1728\u20131733. That localizes the discrepancy; it does not prove batching caused it. The second control was never reached. The existing [control predicate](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_gallery_freshness.py:260) correctly rejects these differences.\n\n   Preserve CUDA FP32 readout and normalization, original flags, role order, B32 batches and tails. CPU FP32, tolerance checks, extra normalization, or copying expected output bytes would invalidate the comparison.\n\n2. **Reconstructing the original FIT batches would breach the validation boundary.** I independently checked the partition: FIT groups `13216..13247` and `13248..13279` contain **14 sealed validation rows**. Their images cannot be opened to repair this TRAIN-only diagnostic. The [role audit](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/tail-original-group-role-audit.json) agrees.\n\n   The admissible finite oracle is the **original accepted selection-query B6**, FIT rows `[13239,13240,13241,13242,13254,13257]`, under its original live execution context. This is a new matched-context oracle; it does not retroactively make the failed all-cache comparison exact.\n\n3. **Input coverage is established; current availability is not.** Local metadata verifies 13,283 FIT rows, 3,449 selection rows, 1,734 queries, 1,715 gallery rows and 498 products. Selection rows and products are disjoint from the 6,355-row control training scope. Every selected row originally came from a complete encoder B32 cache batch.\n\n   However, the [input ledger](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-next-mechanism-research-v1/freshness-parent-input-ledger.json) explicitly says remote bytes have not been freshly checked. Historical V3 execution supports availability then; launch still requires fresh hashes, shapes, typed endpoint checks and original terminal admission.\n\n4. **Existing replay is not actual native-search parity.** [`native_wire_quality`](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_gallery_freshness.py:566) uses CPU Torch integer multiplication and sorting. It is useful independent wire replay, but it never calls Rust/CUDA search. Likewise, equal control descriptors cannot prove equality of all underlying 1,152-dimensional features under a different candidate readout.\n\n   Require independent same-input, same-batch readout output parity for candidate A/C, plus actual native IDs, score bits and ordinal ties on the new mixed wire. Reuse the existing [`CutilePackedInt8Gallery.search_packed`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:188) interface and native tie witness. Historical parity on a different gallery is insufficient.\n\n5. **The claimed deployment and causal conclusions exceed the evidence.** Candidate A/C applied to frozen features generally creates a new gallery artifact and index. Training used cached canonical features while serving uses different numerical contexts; cache extraction and accepted live export also differ in batching and cuDNN TF32 flags. A positive result would support this cache-specific method, not prove a pure freshness effect.\n\n   Optimizer causation, exclusion of coverage, core-44 gate impossibility, unchanged cost, and family-wide closure after a negative result remain unsupported. Per-request byte checks must remain intact. The [current inference path](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1258) explicitly detects current `.data` substitutions.\n\n**The smallest admissible implementation proposal** is a separate `scripts/diagnose_connected_asymmetric_cache.py` and `scripts/test_connected_asymmetric_cache.py`, with a fresh freeze directory containing `execution.json`, `authority.json`, `source-ledger.json` and the launch command. Preserve historical diagnostic files and receipts. Proposed CLI:\n\n```text\n<PINNED_PYTHON> -B <FROZEN_DIR>/diagnose_connected_asymmetric_cache.py \\\n  --execution-sha256 <SHA> \\\n  --authority <AUTHORITY_JSON> \\\n  --authority-sha256 <SHA> \\\n  --output <EXCLUSIVE_NEW_DIRECTORY>\n```\n\nFreeze the stage and seed in authority, not optional runtime tuning flags.\n\nThe source ledger must bind these exact roles:\n\n| Role | Required binding |\n|---|---|\n| Cache | Original `fit.npy`, SHA `c418df0354408c8b33dca07f21e7b3cbf9d5089f7f278b93003a614f21085716`; normalized little-endian FP32, `13283\u00d71152` |\n| Rows | Original FIT manifest, partition and scope; selection ordinal \u2192 original FIT index \u2192 image/product \u2192 query/gallery role |\n| Query F | Archived candidate query raw/unit/wire rows, endpoint and export receipt, separately for each seed |\n| Gallery S | Original cache gallery rows through that **same candidate\u2019s** head/A/C/means/\u03bc |\n| Controls | Each seed\u2019s own control endpoint and archived descriptors; do not confuse candidate `SS` with the trained control |\n| Sources/runtime | Original v3 source-role map, interpreter, package/native origins, flags and terminal receipts |\n| Optional tail oracle | Exact six selection images, accepted RGB/pixel/output hashes, unchanged control bundle and original B6 context |\n\nI verified the historical identity source SHA `840c5d8277a89ccdac02c9e231cbe6eddf386e2b23915ecd1bbec1136c51dee8` and its readout AST equality with the connected helper. **Use the historical packing pin:** current repository `joint_relational_compaction.py` does not match that archived source hash.\n\nExecution should follow this fixed order:\n\n1. **Admit and replay before new quality.** Reuse `prepare`, `panel_mapping`, `check_export_mapping`, `Sources`, `origin_audit`, `terminal_admission`, `check_endpoint_payload` and `fresh_values`. Authenticate archived descriptors and replay their per-query R@1/AP.\n\n2. **Resolve controls before candidate scoring.** Preserve complete raw/unit/code/inverse/wire equality. If needed, independently reconstruct only the predeclared accepted query B6 using `load_inference` and the AST-checked capture seam in [the existing batch observer](/home/rb/worktrees/sfora-positive-causality/scripts/observe_connected_control_batch_execution.py:186). Require original RGB/pixel/output hashes and repeatability. Keep that live-tail provenance separate from cache provenance. Any other mismatch stops the run; no expanding image subsets or padding search.\n\n3. **Construct only FS.** Keep candidate query rows byte-identical to archive. Compute gallery rows using the pinned identity `fullfeature_raw_features` and original `packed_outputs`, CUDA FP32, gallery B32/tail19 grouping, without another outer feature normalization. Use independent reloads and the accepted explicit concat-plus-centered-residual oracle; retain omitted-C and wrong-\u03bc negatives.\n\n4. **Persist, read back and verify actual search.** Bind the mixed artifact\u2019s independent query/gallery roles and gallery hash. Require exact output and native parity before releasing its quality result. Cache-to-live encoder equivalence remains unproved unless separately witnessed; do not label this a pure causal freshness result.\n\n5. **Stop on engineering or resource failure.** Retain the 700-second whole-job cap, 8 GiB host cap, zero swap/events, CUDA allocation below 10 GB, both locks, uncached exit authentication and genuine cleanup. Include oracle construction, hashing, native search and teardown. V3\u2019s 19.643 seconds is time to failure, not an estimate of successful cost. Emit no qualifying result after a failed gate.\n\n6. **Apply staged scientific gates unchanged.** Start with seed179061. Kill this method if FS does not improve R@1 over archived candidate FF, or fails the existing first-stage control/source/concat/AP/floor/cost rules. Only then admit seed179069 and full paired evaluation. Require improvement over FF in each seed, existing per-seed conditions, both mean gains \u22650.2 percentage points, and both product lower bounds strictly positive using the original 5,000 draws/179019; retain query intervals and complete cost accounting. The [existing gate implementation](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_identity_diversity.py:917) is the authority.\n\nPassing permits the next frozen evaluation stage. It does not permit a direct VAL jump, revive symmetric KILL, establish either official benchmark win, or establish matched image-to-top-k speed. No displacement/cosine side study, LR change, loss change or quality sweep is needed.\n\nNot checked: current remote bytes, runtime tests, numerical/native parity, quality or latency. No edits, native/Torch imports, SSH, images, jobs, children or operator contact; SSH35033 was untouched.  \nRisk: the finite oracle may still fail; that must terminate this proposal without weakening equivalence or resource gates.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1791512701,
+  "elapsed_seconds": 539,
+  "input_bytes": 2411,
+  "output_bytes": 18905
+}
