@@ -1,0 +1,28 @@
+{
+  "cost_qualified": false,
+  "draft_committed": false,
+  "draft_source_check": {
+    "exit": 0,
+    "maxrss_kib": 65548,
+    "wall_seconds": 1.64
+  },
+  "files": {
+    "test_siglip2_rank_routed_mlp.py": "d5ab846aa6c031fad06b55ea6b51e94b985233c1b23de251bbfffbb040fedb99",
+    "train_siglip2_rank_routed_mlp.py": "80568e5fe78a1d7e2d7643372358fce3c78aec13db91b06d2bff2e3643af4d89"
+  },
+  "historical_suite": {
+    "exit": 0,
+    "maxrss_kib": 81020,
+    "wall_seconds": 23.25
+  },
+  "implementation_critique": {
+    "astra": "04b051cfaa0142a7",
+    "group": "9be1bc2c21894553",
+    "opus": "904276285ab1472b",
+    "status": "running_at_receipt"
+  },
+  "native_run": false,
+  "next_gate": "Reconcile independent implementation findings, repair exact failing layers if any, final source verification and actual freeze before fresh CPU/mechanics/TRAIN.",
+  "quality_qualified": false,
+  "status": "SOURCE_CHECKS_PASS_NATIVE_HOLD"
+}

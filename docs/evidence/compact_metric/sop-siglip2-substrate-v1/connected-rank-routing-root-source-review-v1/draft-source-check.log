@@ -1,0 +1,10 @@
+PASS exact delta inverse: driver bytes -> committed connected trainer; mutants rejected
+PASS identity: new schemas/FILES/CLI/recipe+routing pins in typed method; frozen constants equal connected
+PASS regression derivation: pinned loss_terms == derived mse (executed), statement-by-statement, guards/mutants
+PASS routing witness: routed/original A/C correspondence, encoder-regression absent, unrouted reaches encoder, query/gallery split, full-view sums, retain_graph, lifetime, receipt mutants
+PASS update dataflow: real micro loop on stand-ins (routed mse -> backward, detached branch, control unchanged, step1 witness, lifetime gate) + one loss_terms/one regression/retain_graph structure
+PASS check_steps: per-micro parity count and step1 routing witness required for candidate, forbidden for control
+PASS executed producer-shaped full mechanics receipt: first17/steps/missing/tamper negatives
+PASS reused connected seams on rank-routed driver (source/authority/lifetime/overlay/loader/restore/encoder/processor/cost)
+PASS source-only rank-routed connected MLP contracts/falsifiers; native UNRUN; 1.5s
+exit=0 wall=1.64 maxrss_kib=65548
