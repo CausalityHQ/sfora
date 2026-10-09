@@ -1,0 +1,1 @@
+Two serial bounded offline builds are byte-identical. All112 packaged source files match tracked HEAD; unique117 archive members have verified RECORD rows. This is an isolated0.3.0rc4 engineering wheel, not a published release. Installed/native parity, end-to-end latency and production quality remain unqualified. Historical frozen wheel and DGX files are unchanged.

@@ -1,0 +1,14 @@
+{
+  "command": "/usr/bin/prlimit --as=1073741824 timeout 120 uv build --wheel --offline --out-dir <exclusive directory>",
+  "directories": [
+    "/tmp/sfora-serving-restore-wheel-v1",
+    "/tmp/sfora-serving-restore-wheel-v1-repeat"
+  ],
+  "first_exit": 0,
+  "native_or_project_inference_imported": false,
+  "original_first_session": 16152,
+  "root_source_commit": "a894d609851d238f0605d5bbeeaa88a896b60da7",
+  "second_completed_in_initial_exec": true,
+  "second_exit": 0,
+  "tracked_HEAD_source_equality": true
+}
