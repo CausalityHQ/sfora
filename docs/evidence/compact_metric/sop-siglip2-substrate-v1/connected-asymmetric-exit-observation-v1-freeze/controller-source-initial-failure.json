@@ -1,0 +1,6 @@
+{
+  "exit": 1,
+  "assertion": "forced-error stand-in expected exact9, observed143",
+  "diagnosis": "Debug captured success and original-failure cases both sampler0; only forced sampler failure can race parent-owned SIGTERM and report143. Require nonzero diagnostic failure instead of exact code9; production controller unchanged.",
+  "second_failure": "same over-specific assertion after fixture handler ordering corrected"
+}

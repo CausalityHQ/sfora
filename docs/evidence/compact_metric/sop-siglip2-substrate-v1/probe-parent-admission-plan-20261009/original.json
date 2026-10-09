@@ -1,0 +1,332 @@
+{
+  "id": "ac79554465224310",
+  "provider": "claude",
+  "model": "claude-opus-5-5",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791527844,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791529044,
+  "budget_usd": 4,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded parent-admission plan for NEW terminal result, not research or duplicate native job. Repo /home/rb/worktrees/sfora-positive-causality master f53d1208. Goal production Sfora joint quality/speed. Exact installed probe v6 exited0 inv986cdff0ab0940a98fcafa8115d5334b/service685.950s; committed docs/evidence/compact_metric/sop-siglip2-substrate-v1/probe-installed-control-serving-diagnostic-v6/{receipt.json,original.log,root-review.json} and freeze-v6. Frozen validate_receipt passed local stdlib only; public same-batch B1/B2/B32/tail parity/lifecycle/mutants/full exit, all quality/speed eligibility false. Need smallest concrete ROOT-owned fresh parent acceptance invocation of UNCHANGED scripts/qualify_connected_probe_serving.py accept_unit(context,UNIT,authority_fact): requires fresh probe evaluator export context, original export accept, current wheel/native/full guards and terminal reader. Read exact accept_unit/authority/exit seams and existing root protocols; identify whether an existing frozen command can perform acceptance with zero new source, or provide minimum standalone engineering parent script + exact SOURCE/FILE/UNIT/policy/locks/cleanup freeze obligations for root review (DESIGN ONLY, do not write executable or run). Don't invent cap, weaken guard, reuse consumed context, native imports, images, rerun v6, public search, quality, extra paid consultation or children. Give exact reason if parent acceptance cannot be separated cheaply, and next responsible layer. Also check no current existing acceptance job/source already covers v6 before recommending any launch. Native Python3.13.9/runtime mismatch mandatory. Read-only local stdlib/source <=1GiB, no SSH/Torch/thirdparty/GPU/downloads/edits. Evidence-rich concrete output, not generic governance checklist.",
+  "prompt_sha256": "0ed6fc8a5f26e752ee690a2c8028d80ee272d767a91b179e292a47cae136659d",
+  "prompt_bytes": 2097,
+  "fingerprint": "199f715f49ef52b139724cbca918dd2625492f6b36ba90de2d864793c3f91e0c",
+  "evidence": {
+    "git_commit": "f53d120876c81c5089d685024ea87441b97098b7",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "7f510b0f419739d0466aae5a509f4c269e1a7adf3862571fdc26fde8ddb62aa6",
+  "reused": false,
+  "specialist_route": {
+    "model": "claude-opus-5-5",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "b942e279-2556-4545-8e7f-0c89c2e25a9c"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-ac79554465224310.service",
+  "pid": 1522322,
+  "pgid": 1522322,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "budget_usd": 4,
+      "timeout_seconds": 1200,
+      "started_at": 1791527844
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791528393,
+  "event_cursor": 64,
+  "events": [
+    {
+      "seq": 41,
+      "at": 1791528344,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 42,
+      "at": 1791528351,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Write started"
+    },
+    {
+      "seq": 43,
+      "at": 1791528358,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 44,
+      "at": 1791528369,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 45,
+      "at": 1791528370,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 46,
+      "at": 1791528371,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 47,
+      "at": 1791528372,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 48,
+      "at": 1791528374,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 49,
+      "at": 1791528375,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 50,
+      "at": 1791528376,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 51,
+      "at": 1791528377,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 52,
+      "at": 1791528378,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 53,
+      "at": 1791528379,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 54,
+      "at": 1791528380,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 55,
+      "at": 1791528381,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 56,
+      "at": 1791528383,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 57,
+      "at": 1791528384,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 58,
+      "at": 1791528385,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 59,
+      "at": 1791528386,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 60,
+      "at": 1791528387,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 61,
+      "at": 1791528388,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 62,
+      "at": 1791528389,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 63,
+      "at": 1791528390,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 64,
+      "at": 1791528392,
+      "provider": "claude",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "claude": [
+      {
+        "seq": 57,
+        "at": 1791528384,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 58,
+        "at": 1791528385,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 59,
+        "at": 1791528386,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 60,
+        "at": 1791528387,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 61,
+        "at": 1791528388,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 62,
+        "at": 1791528389,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 63,
+        "at": 1791528390,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 64,
+        "at": 1791528392,
+        "provider": "claude",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "# Plan: parent acceptance of probe v6\n\n**Short answer:** no existing frozen command can run the parent acceptance without new source. The smallest path is one new parent script, about 40 lines, that runs once on the DGX without native imports. It cannot run the evaluator's normal export exit, and root needs to accept that limit before launch (details below). I edited nothing in the repo and launched nothing; I only saved a memory note.\n\n## Nothing existing already covers v6\n- **The gate CLI:** `main()` only calls `run()`, which performs a full new native diagnostic. Using it would mean rerunning v6.\n- **Other callers:** no script imports `qualify_connected_probe_serving` except its own test. The tests (`test_connected_probe_serving.py:1741-1799`) call `accept_unit` only with fake contexts (`{}` or `{'training_context':{}}`).\n- **Evaluator CLI:** its cpu/export/score phases never accept a serving UNIT.\n- **No precedent:** the control-serving v2 precedent also never ran its parent `accept_unit`; its `verification.json` only records `source_validate_receipt: PASS`.\n- **No job in flight locally:** `/tmp/sfora-installed-control-v6-result/` holds only the receipt, log and status. There is no `accepted-unit.json` for v6 anywhere, and `root-review.json` still says `parent_remote_accept_unit: UNRUN`. I could not check the DGX; the preflight below covers that.\n\n## Design of the parent script\nProposed location: `/home/riomus/runs/sfora-connected-probe-serving-parent-accept-v6/parent_accept.py`. It reuses the admission statements from `run()` at lines 1062\u20131082 and replaces `admit_probe` with one call to `accept_unit`:\n\n```\nstartup: optimize==0, dont_write_bytecode, getprofile() is None,\n         no torch/numpy/PIL/sfora/transformers/torchvision/safetensors loaded, exact argv\nsys.path.insert(0, SRC_V6); import qualify_connected_probe_serving as gate; requests = gate.requests\nauthority = strict_json(read_file(AFACT)); gate.check_shape(authority)\nlocks = requests.Locks(authority['locks'])\nselfsrc = [Source(gate, sources['probe_driver']), Source(requests, sources['request_driver'])]\nnative_source = Source.load(control_native)\nevaluator loaded via gate.derive_evaluator_loader\nFILES == EVALUATOR_FILES; check_code; closure == fact['code']\neargs = SimpleNamespace(..., phase='export', arm='control', seed=179061, output=PARENT_OUT)  # exactly as run()\ncontext, exit_guard = evaluator.authority(eargs)\ninterpreter checks copied from native_start (:1241-1242): resolved python == prior,\n    bound_file(guards, python, prior sha 9258c53d\u2026), sys.version == prior          # mismatch = STOP\nrecord = gate.accept_unit(context, V6_UNIT, AFACT)      # the ONLY consumer of this context\nrequire record invocation == 986cdff0\u2026 and it is in legacy['invocations']\nexit_guard(context); check every Source; locks.check()\nno native module loaded at the end; whole time < 1500\npublish (exclusive) PARENT_OUT/parent-acceptance.json with all eligibility flags false\nthen drop the parent's own loaded modules in reverse order, as run() does\n```\n\nTwo rules matter most:\n- **Do not call `admit_probe` first.** `accept_unit` runs it internally (`:1032`), and that consumes the export UNIT `5840abd0\u2026`. A second consumption fails with `'reused terminal invocation'`.\n- **`CUTILE_TILEIRAS_PATH` must be set.** `CombinedAuthority` requires it (`connected_control_native_authority.py:119`).\n\n## Frozen values for root review\n**SOURCE**\n- The parent script's sha256.\n- The unchanged v6 sources: gate `02e44a35\u2026`, requests `6a4d310d\u2026`, observer `b255c6e8\u2026`, control_native `fc8795be\u2026`. The working-tree copies are byte-identical to the v6 freeze.\n- The evaluator `6b60df91\u2026` (execution sha `e1f5bb49\u2026`), which also matches.\n- One small static test for the new script: no native names; no `admit_probe`, `native_start`, `install`, `exit_rehash` or `evaluator_exit`; exactly one `accept_unit` call; `mkdir` only after it.\n\n**FILE**\n- Authority `98f18df9\u2026`\n- Evaluation authority `0585ea60\u2026`\n- Native authority `cf085f68\u2026`\n- v6 `receipt.json` `77f6a485\u2026`, `original.log` `444a1642\u2026`, `terminal-status.txt` `9a271f2a\u2026`\n- `unit.json`\n\nThe `command.sh` hash check before and after the run should cover the v6 rows plus these files.\n\n**UNIT**\n```\n{\"unit\":\"sfora-connected-probe-installed-control-serving-diagnostic-v6\",\"invocation_id\":\"986cdff0ab0940a98fcafa8115d5334b\",\n \"both_locks_held\":true,\"service_seconds\":685.95,\"native_peak_rss_kib\":4337024,\n \"receipt\":{\"path\":\"/home/riomus/runs/sfora-connected-probe-installed-control-serving-diagnostic-v6/receipt.json\",\"sha256\":\"77f6a485\u2026\"},\n \"log\":{\"path\":\"/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v6/original.log\",\"sha256\":\"444a1642\u2026\"}}\n```\n\n**Policy:** no new cap. Copy the v6 `launch.sh` exactly except for the unit name and paths: RuntimeMaxSec 1500, MemoryMax 8 GiB, swap 0, KillMode=control-group, OOMPolicy=stop, the same footers and the same environment variables. There is no body cap because there is no body.\n\n**Locks and interpreter:** hold fd 8 and fd 9 with `flock -n`, as v6 `command.sh` does. Run `/home/riomus/group-learning/.venv/bin/python -B`, which resolves to Python 3.13.9. The local machine has 3.14.4 and no `/home/riomus`, so the acceptance can only run remotely.\n\n**Cleanup:** create no output before success. Never write to `SRC_V6`, the evaluator roots or the v6 output (`-B` keeps `__pycache__` out). Run once; any exception is a FAIL that closes the attempt, and a retry needs a source change plus a new freeze.\n\n**DGX preflight:** the parent output must not exist, no `sfora` systemd units may be running, there must be no GPU compute apps, and both locks must be free.\n\n## The cost, and the one thing it cannot do\nThe predicted cost is about 330\u2013370 s on CPU only, with no CUDA and no image decoding (images are hashed, not decoded). That is roughly the ~258 s v6 spent before going native, plus about 60\u201390 s to re-hash all 20,519 guarded files. This is an estimate, not a measurement.\n\nThe parent cannot run the evaluator's unchanged export-phase `exit_rehash`. That exit calls `audit_origins(require_exact=True)` (`train_siglip2_nearest_ranking.py:510-513`), which demands the four extra native libraries be mapped in the process. That only happens with native imports. So the parent's ending is: `accept_unit` (which itself re-hashes every input fresh) plus `exit_guard`. Skipping that exit is not weakening `accept_unit`, since `accept_unit` never contains it.\n\nIf root decides the full export exit is mandatory, parent acceptance cannot be separated cheaply. It would have to move into the first consuming native performance-qualification unit. That unit would also need a source change, because one context can consume the export UNIT only once, and `accept_unit` discards the endpoint and export results that such a consumer would need from `admit_probe`.\n\n## Risks (none of these paths has run live)\n1. **Two evaluator copies.** The context comes from the parent's evaluator copy, while `accept_unit` loads a second copy. A static scan found no module-identity coupling in `check_receipt` or the evaluator's `accept_unit`.\n2. **Terminal reader on a serving receipt** has only run against fakes in tests.\n3. **Native file identities** (device and inode of `candidate.so` and `libnvidia-gpucomp.so.580.159.03`) must be unchanged since v6. A driver reinstall fails this and points to the native-authority layer.\n4. **The installed wheel** must be unchanged since v6; any change fails the check.\n\n## Falsifying tests\n- **Local, already run** (stdlib, no bytecode writes, committed files): all passed.\n  - evaluator `check_unit(V6_UNIT)`\n  - `check_shape` and `validate_receipt`\n  - all 71 required guards (excluding native provenance) present with matching hashes\n  - `check_resources`\n  - both footers carry the v6 invocation id, with exit 0 and `success`\n  - runtime 11min 25.950s = 685.95; RSS 4337024\n  - no native modules were loaded\n- **Remote:** the single parent run. It passes only if `accept_unit` returns the record and the process exits 0 without ever loading a native module. Any exception is a FAIL.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "claude": "# Plan: parent acceptance of probe v6\n\n**Short answer:** no existing frozen command can run the parent acceptance without new source. The smallest path is one new parent script, about 40 lines, that runs once on the DGX without native imports. It cannot run the evaluator's normal export exit, and root needs to accept that limit before launch (details below). I edited nothing in the repo and launched nothing; I only saved a memory note.\n\n## Nothing existing already covers v6\n- **The gate CLI:** `main()` only calls `run()`, which performs a full new native diagnostic. Using it would mean rerunning v6.\n- **Other callers:** no script imports `qualify_connected_probe_serving` except its own test. The tests (`test_connected_probe_serving.py:1741-1799`) call `accept_unit` only with fake contexts (`{}` or `{'training_context':{}}`).\n- **Evaluator CLI:** its cpu/export/score phases never accept a serving UNIT.\n- **No precedent:** the control-serving v2 precedent also never ran its parent `accept_unit`; its `verification.json` only records `source_validate_receipt: PASS`.\n- **No job in flight locally:** `/tmp/sfora-installed-control-v6-result/` holds only the receipt, log and status. There is no `accepted-unit.json` for v6 anywhere, and `root-review.json` still says `parent_remote_accept_unit: UNRUN`. I could not check the DGX; the preflight below covers that.\n\n## Design of the parent script\nProposed location: `/home/riomus/runs/sfora-connected-probe-serving-parent-accept-v6/parent_accept.py`. It reuses the admission statements from `run()` at lines 1062\u20131082 and replaces `admit_probe` with one call to `accept_unit`:\n\n```\nstartup: optimize==0, dont_write_bytecode, getprofile() is None,\n         no torch/numpy/PIL/sfora/transformers/torchvision/safetensors loaded, exact argv\nsys.path.insert(0, SRC_V6); import qualify_connected_probe_serving as gate; requests = gate.requests\nauthority = strict_json(read_file(AFACT)); gate.check_shape(authority)\nlocks = requests.Locks(authority['locks'])\nselfsrc = [Source(gate, sources['probe_driver']), Source(requests, sources['request_driver'])]\nnative_source = Source.load(control_native)\nevaluator loaded via gate.derive_evaluator_loader\nFILES == EVALUATOR_FILES; check_code; closure == fact['code']\neargs = SimpleNamespace(..., phase='export', arm='control', seed=179061, output=PARENT_OUT)  # exactly as run()\ncontext, exit_guard = evaluator.authority(eargs)\ninterpreter checks copied from native_start (:1241-1242): resolved python == prior,\n    bound_file(guards, python, prior sha 9258c53d\u2026), sys.version == prior          # mismatch = STOP\nrecord = gate.accept_unit(context, V6_UNIT, AFACT)      # the ONLY consumer of this context\nrequire record invocation == 986cdff0\u2026 and it is in legacy['invocations']\nexit_guard(context); check every Source; locks.check()\nno native module loaded at the end; whole time < 1500\npublish (exclusive) PARENT_OUT/parent-acceptance.json with all eligibility flags false\nthen drop the parent's own loaded modules in reverse order, as run() does\n```\n\nTwo rules matter most:\n- **Do not call `admit_probe` first.** `accept_unit` runs it internally (`:1032`), and that consumes the export UNIT `5840abd0\u2026`. A second consumption fails with `'reused terminal invocation'`.\n- **`CUTILE_TILEIRAS_PATH` must be set.** `CombinedAuthority` requires it (`connected_control_native_authority.py:119`).\n\n## Frozen values for root review\n**SOURCE**\n- The parent script's sha256.\n- The unchanged v6 sources: gate `02e44a35\u2026`, requests `6a4d310d\u2026`, observer `b255c6e8\u2026`, control_native `fc8795be\u2026`. The working-tree copies are byte-identical to the v6 freeze.\n- The evaluator `6b60df91\u2026` (execution sha `e1f5bb49\u2026`), which also matches.\n- One small static test for the new script: no native names; no `admit_probe`, `native_start`, `install`, `exit_rehash` or `evaluator_exit`; exactly one `accept_unit` call; `mkdir` only after it.\n\n**FILE**\n- Authority `98f18df9\u2026`\n- Evaluation authority `0585ea60\u2026`\n- Native authority `cf085f68\u2026`\n- v6 `receipt.json` `77f6a485\u2026`, `original.log` `444a1642\u2026`, `terminal-status.txt` `9a271f2a\u2026`\n- `unit.json`\n\nThe `command.sh` hash check before and after the run should cover the v6 rows plus these files.\n\n**UNIT**\n```\n{\"unit\":\"sfora-connected-probe-installed-control-serving-diagnostic-v6\",\"invocation_id\":\"986cdff0ab0940a98fcafa8115d5334b\",\n \"both_locks_held\":true,\"service_seconds\":685.95,\"native_peak_rss_kib\":4337024,\n \"receipt\":{\"path\":\"/home/riomus/runs/sfora-connected-probe-installed-control-serving-diagnostic-v6/receipt.json\",\"sha256\":\"77f6a485\u2026\"},\n \"log\":{\"path\":\"/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v6/original.log\",\"sha256\":\"444a1642\u2026\"}}\n```\n\n**Policy:** no new cap. Copy the v6 `launch.sh` exactly except for the unit name and paths: RuntimeMaxSec 1500, MemoryMax 8 GiB, swap 0, KillMode=control-group, OOMPolicy=stop, the same footers and the same environment variables. There is no body cap because there is no body.\n\n**Locks and interpreter:** hold fd 8 and fd 9 with `flock -n`, as v6 `command.sh` does. Run `/home/riomus/group-learning/.venv/bin/python -B`, which resolves to Python 3.13.9. The local machine has 3.14.4 and no `/home/riomus`, so the acceptance can only run remotely.\n\n**Cleanup:** create no output before success. Never write to `SRC_V6`, the evaluator roots or the v6 output (`-B` keeps `__pycache__` out). Run once; any exception is a FAIL that closes the attempt, and a retry needs a source change plus a new freeze.\n\n**DGX preflight:** the parent output must not exist, no `sfora` systemd units may be running, there must be no GPU compute apps, and both locks must be free.\n\n## The cost, and the one thing it cannot do\nThe predicted cost is about 330\u2013370 s on CPU only, with no CUDA and no image decoding (images are hashed, not decoded). That is roughly the ~258 s v6 spent before going native, plus about 60\u201390 s to re-hash all 20,519 guarded files. This is an estimate, not a measurement.\n\nThe parent cannot run the evaluator's unchanged export-phase `exit_rehash`. That exit calls `audit_origins(require_exact=True)` (`train_siglip2_nearest_ranking.py:510-513`), which demands the four extra native libraries be mapped in the process. That only happens with native imports. So the parent's ending is: `accept_unit` (which itself re-hashes every input fresh) plus `exit_guard`. Skipping that exit is not weakening `accept_unit`, since `accept_unit` never contains it.\n\nIf root decides the full export exit is mandatory, parent acceptance cannot be separated cheaply. It would have to move into the first consuming native performance-qualification unit. That unit would also need a source change, because one context can consume the export UNIT only once, and `accept_unit` discards the endpoint and export results that such a consumer would need from `admit_probe`.\n\n## Risks (none of these paths has run live)\n1. **Two evaluator copies.** The context comes from the parent's evaluator copy, while `accept_unit` loads a second copy. A static scan found no module-identity coupling in `check_receipt` or the evaluator's `accept_unit`.\n2. **Terminal reader on a serving receipt** has only run against fakes in tests.\n3. **Native file identities** (device and inode of `candidate.so` and `libnvidia-gpucomp.so.580.159.03`) must be unchanged since v6. A driver reinstall fails this and points to the native-authority layer.\n4. **The installed wheel** must be unchanged since v6; any change fails the check.\n\n## Falsifying tests\n- **Local, already run** (stdlib, no bytecode writes, committed files): all passed.\n  - evaluator `check_unit(V6_UNIT)`\n  - `check_shape` and `validate_receipt`\n  - all 71 required guards (excluding native provenance) present with matching hashes\n  - `check_resources`\n  - both footers carry the v6 invocation id, with exit 0 and `success`\n  - runtime 11min 25.950s = 685.95; RSS 4337024\n  - no native modules were loaded\n- **Remote:** the single parent run. It passes only if `accept_unit` returns the record and the process exits 0 without ever loading a native module. Any exception is a FAIL."
+  },
+  "providers_used": [
+    "claude"
+  ],
+  "active_provider": "claude",
+  "phase": "Consultation completed",
+  "input_bytes": 2097,
+  "output_bytes": 8157,
+  "elapsed_seconds": 549,
+  "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)\ndevbox-ask: claude consult still running (8m 00s)\ndevbox-ask: claude consult still running (8m 30s)\ndevbox-ask: claude consult still running (9m 00s)",
+  "progress_truncated": false,
+  "result": "# Plan: parent acceptance of probe v6\n\n**Short answer:** no existing frozen command can run the parent acceptance without new source. The smallest path is one new parent script, about 40 lines, that runs once on the DGX without native imports. It cannot run the evaluator's normal export exit, and root needs to accept that limit before launch (details below). I edited nothing in the repo and launched nothing; I only saved a memory note.\n\n## Nothing existing already covers v6\n- **The gate CLI:** `main()` only calls `run()`, which performs a full new native diagnostic. Using it would mean rerunning v6.\n- **Other callers:** no script imports `qualify_connected_probe_serving` except its own test. The tests (`test_connected_probe_serving.py:1741-1799`) call `accept_unit` only with fake contexts (`{}` or `{'training_context':{}}`).\n- **Evaluator CLI:** its cpu/export/score phases never accept a serving UNIT.\n- **No precedent:** the control-serving v2 precedent also never ran its parent `accept_unit`; its `verification.json` only records `source_validate_receipt: PASS`.\n- **No job in flight locally:** `/tmp/sfora-installed-control-v6-result/` holds only the receipt, log and status. There is no `accepted-unit.json` for v6 anywhere, and `root-review.json` still says `parent_remote_accept_unit: UNRUN`. I could not check the DGX; the preflight below covers that.\n\n## Design of the parent script\nProposed location: `/home/riomus/runs/sfora-connected-probe-serving-parent-accept-v6/parent_accept.py`. It reuses the admission statements from `run()` at lines 1062\u20131082 and replaces `admit_probe` with one call to `accept_unit`:\n\n```\nstartup: optimize==0, dont_write_bytecode, getprofile() is None,\n         no torch/numpy/PIL/sfora/transformers/torchvision/safetensors loaded, exact argv\nsys.path.insert(0, SRC_V6); import qualify_connected_probe_serving as gate; requests = gate.requests\nauthority = strict_json(read_file(AFACT)); gate.check_shape(authority)\nlocks = requests.Locks(authority['locks'])\nselfsrc = [Source(gate, sources['probe_driver']), Source(requests, sources['request_driver'])]\nnative_source = Source.load(control_native)\nevaluator loaded via gate.derive_evaluator_loader\nFILES == EVALUATOR_FILES; check_code; closure == fact['code']\neargs = SimpleNamespace(..., phase='export', arm='control', seed=179061, output=PARENT_OUT)  # exactly as run()\ncontext, exit_guard = evaluator.authority(eargs)\ninterpreter checks copied from native_start (:1241-1242): resolved python == prior,\n    bound_file(guards, python, prior sha 9258c53d\u2026), sys.version == prior          # mismatch = STOP\nrecord = gate.accept_unit(context, V6_UNIT, AFACT)      # the ONLY consumer of this context\nrequire record invocation == 986cdff0\u2026 and it is in legacy['invocations']\nexit_guard(context); check every Source; locks.check()\nno native module loaded at the end; whole time < 1500\npublish (exclusive) PARENT_OUT/parent-acceptance.json with all eligibility flags false\nthen drop the parent's own loaded modules in reverse order, as run() does\n```\n\nTwo rules matter most:\n- **Do not call `admit_probe` first.** `accept_unit` runs it internally (`:1032`), and that consumes the export UNIT `5840abd0\u2026`. A second consumption fails with `'reused terminal invocation'`.\n- **`CUTILE_TILEIRAS_PATH` must be set.** `CombinedAuthority` requires it (`connected_control_native_authority.py:119`).\n\n## Frozen values for root review\n**SOURCE**\n- The parent script's sha256.\n- The unchanged v6 sources: gate `02e44a35\u2026`, requests `6a4d310d\u2026`, observer `b255c6e8\u2026`, control_native `fc8795be\u2026`. The working-tree copies are byte-identical to the v6 freeze.\n- The evaluator `6b60df91\u2026` (execution sha `e1f5bb49\u2026`), which also matches.\n- One small static test for the new script: no native names; no `admit_probe`, `native_start`, `install`, `exit_rehash` or `evaluator_exit`; exactly one `accept_unit` call; `mkdir` only after it.\n\n**FILE**\n- Authority `98f18df9\u2026`\n- Evaluation authority `0585ea60\u2026`\n- Native authority `cf085f68\u2026`\n- v6 `receipt.json` `77f6a485\u2026`, `original.log` `444a1642\u2026`, `terminal-status.txt` `9a271f2a\u2026`\n- `unit.json`\n\nThe `command.sh` hash check before and after the run should cover the v6 rows plus these files.\n\n**UNIT**\n```\n{\"unit\":\"sfora-connected-probe-installed-control-serving-diagnostic-v6\",\"invocation_id\":\"986cdff0ab0940a98fcafa8115d5334b\",\n \"both_locks_held\":true,\"service_seconds\":685.95,\"native_peak_rss_kib\":4337024,\n \"receipt\":{\"path\":\"/home/riomus/runs/sfora-connected-probe-installed-control-serving-diagnostic-v6/receipt.json\",\"sha256\":\"77f6a485\u2026\"},\n \"log\":{\"path\":\"/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v6/original.log\",\"sha256\":\"444a1642\u2026\"}}\n```\n\n**Policy:** no new cap. Copy the v6 `launch.sh` exactly except for the unit name and paths: RuntimeMaxSec 1500, MemoryMax 8 GiB, swap 0, KillMode=control-group, OOMPolicy=stop, the same footers and the same environment variables. There is no body cap because there is no body.\n\n**Locks and interpreter:** hold fd 8 and fd 9 with `flock -n`, as v6 `command.sh` does. Run `/home/riomus/group-learning/.venv/bin/python -B`, which resolves to Python 3.13.9. The local machine has 3.14.4 and no `/home/riomus`, so the acceptance can only run remotely.\n\n**Cleanup:** create no output before success. Never write to `SRC_V6`, the evaluator roots or the v6 output (`-B` keeps `__pycache__` out). Run once; any exception is a FAIL that closes the attempt, and a retry needs a source change plus a new freeze.\n\n**DGX preflight:** the parent output must not exist, no `sfora` systemd units may be running, there must be no GPU compute apps, and both locks must be free.\n\n## The cost, and the one thing it cannot do\nThe predicted cost is about 330\u2013370 s on CPU only, with no CUDA and no image decoding (images are hashed, not decoded). That is roughly the ~258 s v6 spent before going native, plus about 60\u201390 s to re-hash all 20,519 guarded files. This is an estimate, not a measurement.\n\nThe parent cannot run the evaluator's unchanged export-phase `exit_rehash`. That exit calls `audit_origins(require_exact=True)` (`train_siglip2_nearest_ranking.py:510-513`), which demands the four extra native libraries be mapped in the process. That only happens with native imports. So the parent's ending is: `accept_unit` (which itself re-hashes every input fresh) plus `exit_guard`. Skipping that exit is not weakening `accept_unit`, since `accept_unit` never contains it.\n\nIf root decides the full export exit is mandatory, parent acceptance cannot be separated cheaply. It would have to move into the first consuming native performance-qualification unit. That unit would also need a source change, because one context can consume the export UNIT only once, and `accept_unit` discards the endpoint and export results that such a consumer would need from `admit_probe`.\n\n## Risks (none of these paths has run live)\n1. **Two evaluator copies.** The context comes from the parent's evaluator copy, while `accept_unit` loads a second copy. A static scan found no module-identity coupling in `check_receipt` or the evaluator's `accept_unit`.\n2. **Terminal reader on a serving receipt** has only run against fakes in tests.\n3. **Native file identities** (device and inode of `candidate.so` and `libnvidia-gpucomp.so.580.159.03`) must be unchanged since v6. A driver reinstall fails this and points to the native-authority layer.\n4. **The installed wheel** must be unchanged since v6; any change fails the check.\n\n## Falsifying tests\n- **Local, already run** (stdlib, no bytecode writes, committed files): all passed.\n  - evaluator `check_unit(V6_UNIT)`\n  - `check_shape` and `validate_receipt`\n  - all 71 required guards (excluding native provenance) present with matching hashes\n  - `check_resources`\n  - both footers carry the v6 invocation id, with exit 0 and `success`\n  - runtime 11min 25.950s = 685.95; RSS 4337024\n  - no native modules were loaded\n- **Remote:** the single parent run. It passes only if `accept_unit` returns the record and the process exits 0 without ever loading a native module. Any exception is a FAIL.",
+  "result_truncated": false
+}

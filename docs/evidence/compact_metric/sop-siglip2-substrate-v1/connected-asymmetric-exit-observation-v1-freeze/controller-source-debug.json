@@ -1,0 +1,26 @@
+[
+  {
+    "native_exit": 0,
+    "intended_observer_exit": null,
+    "observer_exit": 0,
+    "controller_exit": 0,
+    "output": "started\nobserver_terminal\n",
+    "observer_log": ""
+  },
+  {
+    "native_exit": 23,
+    "intended_observer_exit": null,
+    "observer_exit": 0,
+    "controller_exit": 23,
+    "output": "started\nobserver_terminal\n",
+    "observer_log": ""
+  },
+  {
+    "native_exit": 0,
+    "intended_observer_exit": 9,
+    "observer_exit": 143,
+    "controller_exit": 0,
+    "output": "started\n",
+    "observer_log": ""
+  }
+]

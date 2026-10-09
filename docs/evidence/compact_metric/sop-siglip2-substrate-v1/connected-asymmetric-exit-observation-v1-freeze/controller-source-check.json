@@ -1,0 +1,35 @@
+{
+  "cases": [
+    {
+      "controller_exit": 0,
+      "intended_observer_exit": null,
+      "native_exit": 0,
+      "observer_exit": 0,
+      "observer_log": "",
+      "output": "started\nobserver_terminal\n"
+    },
+    {
+      "controller_exit": 23,
+      "intended_observer_exit": null,
+      "native_exit": 23,
+      "observer_exit": 0,
+      "observer_log": "",
+      "output": "started\nobserver_terminal\n"
+    },
+    {
+      "controller_exit": 0,
+      "intended_observer_exit": 9,
+      "native_exit": 0,
+      "observer_exit": 143,
+      "observer_log": "",
+      "output": "started\n"
+    }
+  ],
+  "controller_sha256": "ae9af9dd994d90deed9d6c99aacc072da1e117756dde9b3619299f6854c76e2a",
+  "native_experiment_run": false,
+  "no_native_modules": true,
+  "risk": "Owned sampler fault may report its nonzero exit or143 if SIGTERM reaches it during exit; either makes observer evidence inconclusive. Native terminal status is preserved. Stand-ins do not prove DGX residency.",
+  "same_shell_control_flow": true,
+  "schema": "asymmetric-observer-controller-source-check-v1",
+  "substitutions": "only canonical paths, pinned interpreter and fake observer hash; fake observer/native launch stand-ins"
+}
