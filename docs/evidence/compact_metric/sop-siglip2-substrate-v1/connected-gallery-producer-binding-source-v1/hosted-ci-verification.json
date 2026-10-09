@@ -1,0 +1,27 @@
+{
+  "run_id": 37975091055,
+  "head_sha": "c8963dfd5f91bf18127326db846e772ecb848998",
+  "original_jobs_sha256": "46e2e1074063a9c81ab2a69a5bbd544a40d810846f3e10ae07bb18fe70f6b067",
+  "jobs": [
+    {
+      "id": 113971254541,
+      "name": "Build Astro site + e2e",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 113971254707,
+      "name": "Format, lint, type-check, and test",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 113971254823,
+      "name": "Connected serving source contracts",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "release_ready": false,
+  "product_failure_step": "Check formatting"
+}
