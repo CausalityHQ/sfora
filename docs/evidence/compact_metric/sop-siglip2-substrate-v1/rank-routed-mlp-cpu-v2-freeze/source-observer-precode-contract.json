@@ -1,0 +1,28 @@
+{
+  "status": "PRE_CODE_CONTRACT",
+  "base_commit": "d64782f3e88bcd68b36909e3b8a1b334bbb33bd2",
+  "base_trainer_sha256": "940d37fb12e4a6cc3f53c023ee31d50f8316d801fe8a6db93af929b7028bb3f1",
+  "scope": [
+    "scripts/train_siglip2_rank_routed_mlp.py",
+    "scripts/test_siglip2_rank_routed_mlp.py"
+  ],
+  "cleanup": "Clear completed pending-primary traceback frames before unchanged exceptional release. Release always runs. If release fails, retain that failure as explicit cause of the original primary exception. Normal lifetime failures still raise.",
+  "observer_window": "CPU candidate first fresh/initialized update only; seal on normal first update return or exceptional arm cleanup.",
+  "observed_sites": [
+    "fresh/initializer/model begin/end",
+    "outer accumulators",
+    "per-view full pixels/forward/loss/regression-grad/rank-grad/original-AC-grad/total-grad/release",
+    "per-micro forward/loss/witness/backward/release",
+    "query-gallery split",
+    "view correspondence/detached-reference/accumulator release",
+    "unscale/actual-grad/clip/step/zero-grad/current-encoder",
+    "integrity payload/resource boundaries"
+  ],
+  "metadata": "Stdlib raw cgroup current/peak/events/stat and /proc/self/status RSS/HWM; scalar named tensor-group count/shape/dtype/storage-byte/grad metadata; no clones/heap census/native imports/threads or retained owners.",
+  "max_records": 128,
+  "max_record_bytes": 4096,
+  "max_total_bytes": 262144,
+  "failure": "Observe catches diagnostics failures and retains scalar failure flag. Unchanged original guards run first; after them diagnostic admission fails closed. Observer never replaces pending primary failure or skips cleanup. No reset/acceptance of cgroup events.",
+  "inverse": "Only enumerated observer/exception cleanup seams, exact whole BYTE inverse to 940d37fb before historical inverse.",
+  "execution": "Narrow <=15s AS1GiB RED/GREEN selected layers only; HOLD fullsuite/commit/native; no consult/child/operator."
+}

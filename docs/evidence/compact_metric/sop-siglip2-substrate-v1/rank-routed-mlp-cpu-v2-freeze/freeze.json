@@ -1,0 +1,31 @@
+{
+  "authority_sha256": "f769e49b86a0e9ebe9d3475b54361a6de8a53459a08f416422c2915480d1549b",
+  "execution_sha256": "a7d7f45f3366ee45f8027f372eaa8dde9e752af62626671007a7192f3ef2c389",
+  "files": {
+    "authority-cpu-v2.json": "f769e49b86a0e9ebe9d3475b54361a6de8a53459a08f416422c2915480d1549b",
+    "cpu-v2-command.sh": "0907bf79685a6f2b8435a7b9a32f1ebc92dce51ec852e5d5a55be6ad88b1240f",
+    "cpu-v2-controller.sh": "180170eb73a1521ed270197f8a08af0bdc4205342e589d80df3acc00df022c27",
+    "cpu-v2-launch.sh": "1adfb90bd57f2dcc8af2c594f55cd34a746505f579c98ffd0167a200c59d9293",
+    "execution.json": "a7d7f45f3366ee45f8027f372eaa8dde9e752af62626671007a7192f3ef2c389",
+    "source-observer-final.log": "9c88622fd69880e11e235f8638a0eea0d1f6f6f7cc912d8c143a1aa96d766c30",
+    "source-observer-precode-contract.json": "0e8d77e3cbc3a2c39785ab64ddb33db8ef2c526eb7d161cd6af2943e535bb1ca",
+    "source-observer-receipt.json": "70d26099153f78938ce15776c609b55e0e0e475f1aef05923094c5121893e549",
+    "source-preflight.py": "2517280117125556ce21d1753a88e4c99a6c86a5a3140f49aa322255e8458438",
+    "test_siglip2_rank_routed_mlp.py": "8f61921da94679231da41734aa73375b9dad311b74adc04fa9c86a2376a9e15a",
+    "train_siglip2_rank_routed_mlp.py": "2fb4f237345f346080e499cc99d97fbc40c7087f255027ed810ef02b56537b1f"
+  },
+  "native_unrun_at_freeze": true,
+  "output": "/home/riomus/runs/sfora-rank-routed-mlp-cpu-v2",
+  "resource_policy": {
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "host_bytes": 8589934592,
+    "seconds": 600,
+    "swap_bytes": 0
+  },
+  "schema": "rank-routed-mlp-parent-freeze-v2",
+  "source_commit": "b6eeaec9ec358971a3109c5856d213274233e45b",
+  "source_root": "/home/riomus/runs/sfora-rank-routed-mlp-train-source-v2",
+  "stop_rule": "ONE fresh CPU600 phase-observation gate on reviewed exact2. Preserve original CPUv1 FAIL. Same scientific recipe/fullB64-micro/RNG/roles/normal terminal/lifetime/full uncached source/native exit and zero memory events/swap/both locks. Added completed-error-frame cleanup preserves original rejection; bounded scalar phase metadata cannot accept/reset events. No CPU/GPU eligibility without complete original terminal acceptance; no numbers from failed receipt/phase rows, no unchanged relaunch/cap change.",
+  "unit": "sfora-rank-routed-mlp-cpu-v2",
+  "worker_commit": "42174f497f347c23da5d5381de10dd962387c2d0"
+}

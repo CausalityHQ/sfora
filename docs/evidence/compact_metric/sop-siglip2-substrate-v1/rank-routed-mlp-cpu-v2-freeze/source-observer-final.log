@@ -1,0 +1,42 @@
+PASS exact delta inverse: observer/cleanup -> 940d37fb -> committed connected trainer; mutants rejected
+PASS extracted exceptional arm_run: traceback owners released; primary/location retained; genuine lifetime failure chained
+PASS scalar observer: raw max unchanged, scalar owners/released weakref, IO failure recorded, record/byte bounds
+PASS observer error follows original guards; primary cap/pending exception unchanged
+PASS observer source: 42 fixed call sites; conservative window <=113/128 rows; hard per-row4096/total262144 byte bounds; overhead timed
+PASS identity: new schemas/FILES/CLI/recipe+routing pins in typed method; frozen constants equal connected
+PASS regression derivation: pinned loss_terms == derived mse (executed), statement-by-statement, guards/mutants
+PASS split MSE owns raw/query A/C graph and dies before the lifetime gate
+PASS live callable replacement after step17 rejected before regression/backward
+PASS equal micro accumulator perturbation fails independent full reference
+PASS executed independent B64 source reference: bothviews/full-vs-micro/state+RNG/lifetime/primary-error; native UNRUN
+PASS actual optimizer encoder/A/C gradient mutants fail with independent witnesses unchanged
+PASS routing witness: routed/original A/C correspondence, encoder-regression absent, unrouted reaches encoder, query/gallery split, full-view sums, retain_graph, lifetime, receipt mutants
+PASS update dataflow: real micro loop on stand-ins (routed mse -> backward, detached branch, control unchanged, step1 witness, lifetime gate) + one loss_terms/one regression/retain_graph structure
+PASS check_steps: per-micro parity count and step1 routing witness required for candidate, forbidden for control
+PASS executed producer-shaped full mechanics receipt: first17/steps/missing/tamper negatives
+PASS reused connected seams on rank-routed driver (source/authority/lifetime/overlay/loader/restore/encoder/processor/cost)
+PASS source-only rank-routed connected MLP contracts/falsifiers; native UNRUN; 4.5s
+	Command being timed: "timeout 120s python3 -B scripts/test_siglip2_rank_routed_mlp.py --source-only"
+	User time (seconds): 2.04
+	System time (seconds): 0.08
+	Percent of CPU this job got: 45%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:04.71
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 69276
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 1
+	Minor (reclaiming a frame) page faults: 18663
+	Voluntary context switches: 89
+	Involuntary context switches: 1006
+	Swaps: 0
+	File system inputs: 5848
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+EXIT=0

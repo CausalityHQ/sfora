@@ -1,0 +1,141 @@
+{
+  "schema": "rank-routing-observer-cleanup-source-receipt-v1",
+  "status": "SOURCE_ONLY_PASS_NATIVE_HOLD",
+  "worktree": "/home/rb/worktrees/sfora-rank-routing-trainer-repair-20261009",
+  "commit": "42174f497f347c23da5d5381de10dd962387c2d0",
+  "parent_commit": "d64782f3e88bcd68b36909e3b8a1b334bbb33bd2",
+  "source": {
+    "scripts/train_siglip2_rank_routed_mlp.py": "2fb4f237345f346080e499cc99d97fbc40c7087f255027ed810ef02b56537b1f",
+    "scripts/test_siglip2_rank_routed_mlp.py": "8f61921da94679231da41734aa73375b9dad311b74adc04fa9c86a2376a9e15a"
+  },
+  "scope": [
+    "scripts/test_siglip2_rank_routed_mlp.py",
+    "scripts/train_siglip2_rank_routed_mlp.py"
+  ],
+  "identity": "Roman Bartusiak <riomus@gmail.com>\nRoman Bartusiak <riomus@gmail.com>\nfix: bound rank-routing diagnostics and preserve primary failures",
+  "clean": true,
+  "merge_push": false,
+  "reviewed_production_sha256": "2fb4f237345f346080e499cc99d97fbc40c7087f255027ed810ef02b56537b1f",
+  "authorization": "immediate-1791549072542431976-2798198",
+  "before_code_contract": {
+    "path": "/tmp/rank-routing-observer-cleanup-contract.json",
+    "sha256": "0e8d77e3cbc3a2c39785ab64ddb33db8ef2c526eb7d161cd6af2943e535bb1ca"
+  },
+  "cleanup": "Extracted actual arm_run seam RED original owner retention -> GREEN completed traceback frames cleared before unchanged release. Original primary/location/nonzero preserved; actual external lifetime leak remains explicit cause; normal cleanup failure still raises.",
+  "observation": {
+    "window": "CPU candidate first discarded fresh/update only; closed on update completion or exceptional arm cleanup",
+    "static_call_sites": 42,
+    "enumerated_inverse_seams": 40,
+    "conservative_record_upper_bound": 113,
+    "max_records": 128,
+    "max_record_bytes": 4096,
+    "max_total_bytes": 262144,
+    "byte_bound_proof": "Counter and encoded line length/cumulative byte guard run before each stdout write; reserved counters precede write/flush; overflow/oversized row/short write/IO/BaseException failures flag diagnostic rejection. Original resource predicates run before observation_guard and remain byte-identical after inverse.",
+    "record_bound_proof": "Fixed AST sites: fresh5,resource1,integrity3,update18 (weighted63),full9,split2,micro1,arm3; 3 integrity/resource calls+two fulls+eight micros+two splits; conservative union includes normal completion and two exceptional cleanup rows =113 <=128.",
+    "storage_bytes_semantics": "Per-tensor summed storage capacity. Aliases/shared storages can double-count. It is neither unique live storage nor process allocation; no dedup machinery. Phase/RSS/cgroup counters are primary residency category evidence.",
+    "interpretation": "Boundary records are observations, not accepted CONNECTED_UPDATE/native qualification receipts. No attribution of workspace or first max-event phase until original fresh diagnostic result is collected.",
+    "overhead": "All observer work charged to original enclosing CPU600/8GiB unit; update_complete observation precedes original update elapsed measurement.",
+    "ownership": "Scalar strings/ints/lists only in emitted structures; no clone, heap census, added native import, thread, reset/acceptance of resource event; weakref falsifier proves emitted metadata retains no owner.",
+    "normal_source_window_record_count": 111
+  },
+  "inverse": {
+    "observation_base_sha256": "940d37fb12e4a6cc3f53c023ee31d50f8316d801fe8a6db93af929b7028bb3f1",
+    "observer_block_sha256": "bc27d7d122f3456198dfaec0312e29e3be2847095b3472402c6b85cb7cbd61f4",
+    "historical_connected_sha256": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b",
+    "result": "Both exact whole BYTE inverses PASS; observer/cleanup/cap/routing mutants rejected. Existing mathematical/reference/RNG/roles/caps/original exit predicates restored unchanged."
+  },
+  "selected_narrow": "cleanup,observer,observer-guard,observer-source,inverse,dataflow terminal PASS; each timeout15s AS1GiB; all original failures preserved in logs",
+  "one_full_suite": {
+    "path": "/tmp/rank-routing-observer-final-suite-a0001.log",
+    "sha256": "9c88622fd69880e11e235f8638a0eea0d1f6f6f7cc912d8c143a1aa96d766c30",
+    "exit": 0,
+    "wall_seconds": 4.71,
+    "max_rss_kib": 69276,
+    "timeout_seconds": 120,
+    "address_space_bytes": 1073741824,
+    "overlap": false
+  },
+  "logs": [
+    {
+      "path": "/tmp/rank-routing-observer-bounds-green.log",
+      "sha256": "4b30c5bdde04a210cffae4d4aef4ce8526385a5c06ec4b58ab22b79f48f4a9a4",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-cleanup-final-green.log",
+      "sha256": "f71ce0824afe0531ba2a74f8528b9a35fa9a51dc7ca5759321b20c86fdaf8f6b",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-cleanup-green.log",
+      "sha256": "f71ce0824afe0531ba2a74f8528b9a35fa9a51dc7ca5759321b20c86fdaf8f6b",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-cleanup-red.log",
+      "sha256": "9d4b360acc4f5c1b374ab4e295a18babdb04d2bb8e2c436b2622b9801cd93197",
+      "terminal": "EXIT=1"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-dataflow-green.log",
+      "sha256": "d98d5fbed74a517617366c1cd15e6a55953337450f35e0ec130bd401ceb0522c",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-final-green.log",
+      "sha256": "4b30c5bdde04a210cffae4d4aef4ce8526385a5c06ec4b58ab22b79f48f4a9a4",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-final-suite-a0001.log",
+      "sha256": "9c88622fd69880e11e235f8638a0eea0d1f6f6f7cc912d8c143a1aa96d766c30",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-green-2.log",
+      "sha256": "4b30c5bdde04a210cffae4d4aef4ce8526385a5c06ec4b58ab22b79f48f4a9a4",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-green.log",
+      "sha256": "098c4c6368afec7c1cd9c0011cbe1268f8e002ce7a0dbbfd0469ded3e83aa2ab",
+      "terminal": "EXIT=1"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-guard-final-green.log",
+      "sha256": "afb41c48499909d9df0ddaa3144097895a0c736868b2aae1b9b190bcd3b77c69",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-guard-green.log",
+      "sha256": "afb41c48499909d9df0ddaa3144097895a0c736868b2aae1b9b190bcd3b77c69",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-inverse-green.log",
+      "sha256": "cfbafc23ee47bfe483104a5a311774bf7ae37373f872eda7d4e002326c4238fa",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-record-bound-green.log",
+      "sha256": "4b30c5bdde04a210cffae4d4aef4ce8526385a5c06ec4b58ab22b79f48f4a9a4",
+      "terminal": "EXIT=0"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-red.log",
+      "sha256": "660a8e48cb366f1d1ea8d8107545ce068cecac8ee881eee3dad9ae66e2b1c32f",
+      "terminal": "EXIT=1"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-source-first.log",
+      "sha256": "2697b0ec3436f0c5fcacfae62dc51cac690e655bccd72b0e73b420d9db85eb93",
+      "terminal": "EXIT=1"
+    },
+    {
+      "path": "/tmp/rank-routing-observer-source-green.log",
+      "sha256": "5cb1a2874309b2d566edac6c4f6b74e2c382c9091bd4f2a3c170adac6f969727",
+      "terminal": "EXIT=0"
+    }
+  ],
+  "holds": "Native Torch/NumPy/CPU/GPU/freeze/cloud/SSH/public parity/resource fit remain root-owned UNRUN/HOLD. No consult/children/operator/merge/push. Worker retained pending parent final release."
+}
