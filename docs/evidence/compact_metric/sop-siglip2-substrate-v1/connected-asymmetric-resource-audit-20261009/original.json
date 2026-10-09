@@ -1,0 +1,345 @@
+{
+  "id": "8ae4fa5577db4d93",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1791526481,
+  "timeout_seconds": 1200,
+  "deadline_at": 1791527681,
+  "budget_usd": null,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nREAD ONLY sfora at exact f2080d4 (resolve full). Original new DGX asymmetric FIRST061 invocation b892664054744c80867410b2b0fab8bb exited1 at634.098s, memory.peak8GiB/max1442/zerooom+swap. Read scripts/diagnose_connected_asymmetric_cache.py and docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-cache-first-179061-v1/{original.log,result.json,final-cgroup.json}, freeze adjacent folder; implementation review repair doc. Before_exit at531.4s had peak4.825GB/anon3.889GB/file0.862GB, max0. First rejection in final_guard->evaluator.resources->genuine cgroup_memory. Postexitfile4.654GB/anon5.8MB does NOT prove peak composition. Body returned; no accepted receipt/quality. NEW causal audit question: source-supported retention/read ownership across cleanup release->combined exit->prospective rehash->final_guard, exact boundary which source controls resident anonymous objects or growing file cache. Do NOT speculate root cause from postexit counts. Return exact type/lifetime/call ledger, smallest source-only falsifier and either proved minimal bounded fix retaining every fresh read/hash/predicate/cap OR one bounded observer for next original run if unproven. No cap change, empty_cache/eviction/reset, historical/source module rebinding, proof bypass, math/method/state reuse, new quality. No edits, native/Torch/thirdparty/SSH/jobs/reviews/children/operator. This is new resource failure; don't repeat completed namespace or asymmetric implementation review. Root alone owns native/integration.",
+  "prompt_sha256": "46621a5a7a901dddc36d8f85d56f61b13c0735eecf4773cf9e922256dae5eb0f",
+  "prompt_bytes": 1814,
+  "fingerprint": "7f510b0f419739d0466aae5a509f4c269e1a7adf3862571fdc26fde8ddb62aa6",
+  "evidence": {
+    "git_commit": "f2080d48376baac7e43d7a9c146c8c1364bc07a5",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "f4241cb35dd2623c906a38e7ce878dfc1024d6b803cbda94743dece2d16c514a",
+  "reused": false,
+  "specialist_route": {
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "source": "fallback"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-8ae4fa5577db4d93.service",
+  "pid": 676479,
+  "pgid": 676479,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "budget_usd": null,
+      "timeout_seconds": 1199,
+      "started_at": 1791526482
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1791527049,
+  "event_cursor": 74,
+  "events": [
+    {
+      "seq": 51,
+      "at": 1791526709,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 52,
+      "at": 1791526717,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 53,
+      "at": 1791526717,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 54,
+      "at": 1791526726,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 55,
+      "at": 1791526726,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 56,
+      "at": 1791526733,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 57,
+      "at": 1791526734,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 58,
+      "at": 1791526760,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 59,
+      "at": 1791526777,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 60,
+      "at": 1791526782,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 61,
+      "at": 1791526796,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 62,
+      "at": 1791526806,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 63,
+      "at": 1791526809,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 64,
+      "at": 1791526818,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 65,
+      "at": 1791526818,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 66,
+      "at": 1791526894,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 67,
+      "at": 1791526902,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 68,
+      "at": 1791526902,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 69,
+      "at": 1791526919,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 70,
+      "at": 1791526919,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 71,
+      "at": 1791526952,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 72,
+      "at": 1791526952,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 73,
+      "at": 1791527045,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 74,
+      "at": 1791527049,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 67,
+        "at": 1791526902,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 68,
+        "at": 1791526902,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 69,
+        "at": 1791526919,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 70,
+        "at": 1791526919,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 71,
+        "at": 1791526952,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 72,
+        "at": 1791526952,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 73,
+        "at": 1791527045,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 74,
+        "at": 1791527049,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "At **`f2080d48376baac7e43d7a9c146c8c1364bc07a5`**, retention and read ownership are source-supported; the cause of the 8 GiB peak is **unproven**. Recommend one bounded observer for the next root-owned original run, with every existing read, hash, predicate and cap preserved.\n\nThe original invocation `b892664054744c80867410b2b0fab8bb` returned from `body()`. Its first rejection was `final_guard → evaluator.resources → genuine cgroup_memory`, specifically the nonzero memory-event predicate. `before_exit` recorded `max=0`; no intermediate memory samples locate the first increment. The shell also performs postflight hashes before its footer, so the footer’s file/anonymous counts describe a later state. [Original log](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-cache-first-179061-v1/original.log), [frozen command](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-cache-first-179061-v1-freeze/command.sh:43).\n\nThe driver equals its frozen SHA `f68b4aa…`; evaluator, v3, serving observer, request driver and combined authority match their admitted pins. For v5, I inspected the historical Git blob explicitly named by the driver and confirmed SHA `62e69a04…`. The inherited identity implementation was read from its matching frozen copy, SHA `840c5d82…`.\n\nThe ownership ledger is:\n\n| Object/type and source owner | Lifetime through the questioned boundary |\n|---|---|\n| B6 inference endpoint: dictionary containing model, processor, head, parameters, tensors and processor cache | `tail_replay.release_state` sets `S.state=None`, then genuine `release_inference` clears the cache and endpoint, unregisters owned modules, collects, and checks weakrefs. On this normal path, cleanup’s later `release` action is **absent**, because `S.state` is already `None`. |\n| `S.features`: CPU FP32 tensor backed by a copied NumPy selection array, shape `3449×1152` | `cache_rows` deletes the file mapping before returning. The copied **15,892,992 bytes** remain referenced by `S` throughout combined exit, both rehashes and final guard. |\n| `S.fresh`: four dictionaries of CPU raw/unit/code/inverse tensors plus wire `bytes` | `fresh_values` constructs them; no cleanup action clears them. NumPy-backed raw/unit storage is shared with its tensor wrapper, not an additional independent copy. |\n| `S.control_S`, `S.candidate_S`: two dictionaries of recomputed CPU tensors and wire `bytes` | `stale_values` releases its endpoint/readout state in `finally`; the returned panel data remains on `S`. |\n| `S.cell`: cloned CPU FP32 `3449×128` composition | Retained on `S`; cleanup does not clear it. |\n| `S.archived`, `S.receipt`, `run.result`: dictionaries/lists of quality and diagnostic metadata | Remain live; `run.result` is a local in the still-active `run` frame during cleanup. They contain results, not the native search handle or encoder state. |\n| Inherited `context_e.training_context` | Preparation explicitly removes old views/teachers/schedules and unwanted legacy tensors. It retains `common`, common-witness features, selected legacy initial members, metadata, admission caches and authenticated closures. No driver cleanup releases this context before final guard. |\n| Source objects, checks, API closures, module registries | Strong references remain intentionally: guards require registered modules. `Sources.close` occurs **after** final guard; final registry disposal occurs later still. Removing registry entries alone does not remove other references. |\n| Hash buffers and parsed metadata | Driver streaming buffers are function locals; non-`keep` reads return a `Path`. Guard dictionaries retain path/SHA strings, not file contents. Parsed metadata and deliberately captured closure bindings have longer lifetimes. |\n| Cleanup failures: exceptions/tracebacks | Added to `attempt`’s failure list only when an action fails. They can retain frames thereafter; the first such failure here is final guard, so this is not evidence explaining an earlier peak. |\n\nThe six retained panel payloads plus features and composition account for **44,229,976 bytes** by their frozen layouts, excluding metadata and allocator overhead. This does not account for the observed **3,889,025,024 anonymous bytes**. Tensor/object release also does not prove that native allocator pages returned to the OS. [Panel constructors](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_gallery_freshness.py:588), [cache copy](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_quadratic_readout.py:1065), [genuine serving release](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1296).\n\nThe exact call/read ledger is:\n\n| Boundary | Reads and ownership consequences |\n|---|---|\n| `before_exit → optional release → mapping checks` | The snapshot precedes release. Mapping checks assert absence; they do not release the retained panels or inherited context. Checked actions also run live source guards. |\n| `api.evaluator_exit(context_e, exit_guard)` | Authenticates combined ownership; runs the unchanged evaluator exit through the H∪S adapters. This includes native-origin collection, nested quadratic/fitter exit, fresh guard-union hashing, closure checks, bundle admission and the final origin audit. |\n| Combined exit’s readers | `imported_origins` hashes installed package files and actual mapped libraries through `extract.sha`. Trainer batches use four bounded streaming workers. Existing consumed-range advice remains inherited; it is explicitly not a residency guarantee. Returned inventories hold paths/digests, not complete binary contents. |\n| `api.evidence()` | After successful evaluator exit, authenticates again and performs another exact origin audit before returning copied inventory metadata. The log’s `closure_end` therefore does **not** mark completion of all combined work. |\n| `rehash(S.context['guards'])` | Serial fresh reads through **the asymmetric driver’s `authenticated`**, including guards added during serving. |\n| `rehash(S.prospective['guards'])` | Another serial fresh pass through the same reader. `authenticated(keep=False)` reads 1 MiB blocks, checks file identity/stat stability and SHA, then returns a `Path`; it provides no file-cache residency control. |\n| `final_guard` before `resources` | Locks, source ownership checks, live pins, **`api.authenticate()`**, then evaluator helper guards. Combined authentication itself calls `CombinedAuthority.check → validate_runtime`, freshly reading runtime/compiler/library/supplemental/provenance evidence through the serving observer. These reads remain a possible location of the first event. |\n| `resources` and subsequent cleanup | Genuine `cgroup_memory` rejects `max≠0`. All remaining cleanup actions are still attempted. Source disposal, workspace disposal, final-state checks and independent terminal checks do not erase the event; receipt publication is blocked. |\n\nThus source controls the **references and read schedule**. Kernel file-cache residency and anonymous allocator retention are not controlled by those references alone. The important unmeasured interval includes combined evidence, both driver rehashes, and final guard’s authentication—not just the logged nested exit. [Cleanup order](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_asymmetric_cache.py:1175), [evaluator exit](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1772), [combined authentication/read chain](/home/rb/worktrees/sfora-positive-causality/scripts/connected_control_native_authority.py:211), [final guard](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_asymmetric_cache.py:610).\n\nOne actionable plan:\n\n1. Root freezes a **single scalar observer** in the prospective driver. Sample the admitted cgroup every 100 ms, from immediately before cleanup through its terminal checks: current/peak, anonymous/file/kernel bytes, all memory events and swap, with monotonic timestamps.\n2. Emit synchronous markers around combined exit, evidence, each rehash, and final guard’s authentication and resource call. For the driver’s own rehashes, record the current path and completed-byte count without changing the read loop.\n3. Bound the observer to 700 seconds, 8,192 records, ≤4 MiB output and constant retained scalar state. Do not inspect stacks, retain tensors/frames, profile, reset counters or alter historical modules. Join it on every terminal path; sampling failure makes attribution inconclusive.\n4. Locate the **first observed `max` increment** against those markers and its contemporaneous anonymous/file readings. Only then choose a source repair. Preserve the original terminal acceptance and KILL status.\n\nThe smallest source-only falsifier is a **≤15-second, AS≤1-GiB isolated harness**, proposed here and not executed:\n\n- Extract the exact driver `cleanup/attempt/raise_primary` functions. Use weakref sentinels for the serving endpoint and every retained owner above, with callbacks that inspect their lifetime at each boundary. Assert serving release does not release the panels/context, and that both rehashes precede final guard.\n- Extract `authenticated/rehash` into an isolated test namespace with synthetic in-memory streams. Assert fresh opens and complete hashes occur on every invocation, non-`keep` reads stay at 1 MiB, and same-stat changed bytes reject.\n- Inject a final-guard resource rejection; assert subsequent cleanup still runs and no staging/publication occurs.\n\nThis falsifies the ownership/read ledger if any assertion fails. It cannot establish DGX cache residency or resource fit.\n\nSkipped: edits, execution tests, native/Torch imports, jobs, reviews, children and operator contact. Risk: the observer adds overhead and can miss a sub-100-ms composition peak; no accepted receipt, quality result or minimal resource fix is proved.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "At **`f2080d48376baac7e43d7a9c146c8c1364bc07a5`**, retention and read ownership are source-supported; the cause of the 8 GiB peak is **unproven**. Recommend one bounded observer for the next root-owned original run, with every existing read, hash, predicate and cap preserved.\n\nThe original invocation `b892664054744c80867410b2b0fab8bb` returned from `body()`. Its first rejection was `final_guard → evaluator.resources → genuine cgroup_memory`, specifically the nonzero memory-event predicate. `before_exit` recorded `max=0`; no intermediate memory samples locate the first increment. The shell also performs postflight hashes before its footer, so the footer’s file/anonymous counts describe a later state. [Original log](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-cache-first-179061-v1/original.log), [frozen command](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-cache-first-179061-v1-freeze/command.sh:43).\n\nThe driver equals its frozen SHA `f68b4aa…`; evaluator, v3, serving observer, request driver and combined authority match their admitted pins. For v5, I inspected the historical Git blob explicitly named by the driver and confirmed SHA `62e69a04…`. The inherited identity implementation was read from its matching frozen copy, SHA `840c5d82…`.\n\nThe ownership ledger is:\n\n| Object/type and source owner | Lifetime through the questioned boundary |\n|---|---|\n| B6 inference endpoint: dictionary containing model, processor, head, parameters, tensors and processor cache | `tail_replay.release_state` sets `S.state=None`, then genuine `release_inference` clears the cache and endpoint, unregisters owned modules, collects, and checks weakrefs. On this normal path, cleanup’s later `release` action is **absent**, because `S.state` is already `None`. |\n| `S.features`: CPU FP32 tensor backed by a copied NumPy selection array, shape `3449×1152` | `cache_rows` deletes the file mapping before returning. The copied **15,892,992 bytes** remain referenced by `S` throughout combined exit, both rehashes and final guard. |\n| `S.fresh`: four dictionaries of CPU raw/unit/code/inverse tensors plus wire `bytes` | `fresh_values` constructs them; no cleanup action clears them. NumPy-backed raw/unit storage is shared with its tensor wrapper, not an additional independent copy. |\n| `S.control_S`, `S.candidate_S`: two dictionaries of recomputed CPU tensors and wire `bytes` | `stale_values` releases its endpoint/readout state in `finally`; the returned panel data remains on `S`. |\n| `S.cell`: cloned CPU FP32 `3449×128` composition | Retained on `S`; cleanup does not clear it. |\n| `S.archived`, `S.receipt`, `run.result`: dictionaries/lists of quality and diagnostic metadata | Remain live; `run.result` is a local in the still-active `run` frame during cleanup. They contain results, not the native search handle or encoder state. |\n| Inherited `context_e.training_context` | Preparation explicitly removes old views/teachers/schedules and unwanted legacy tensors. It retains `common`, common-witness features, selected legacy initial members, metadata, admission caches and authenticated closures. No driver cleanup releases this context before final guard. |\n| Source objects, checks, API closures, module registries | Strong references remain intentionally: guards require registered modules. `Sources.close` occurs **after** final guard; final registry disposal occurs later still. Removing registry entries alone does not remove other references. |\n| Hash buffers and parsed metadata | Driver streaming buffers are function locals; non-`keep` reads return a `Path`. Guard dictionaries retain path/SHA strings, not file contents. Parsed metadata and deliberately captured closure bindings have longer lifetimes. |\n| Cleanup failures: exceptions/tracebacks | Added to `attempt`’s failure list only when an action fails. They can retain frames thereafter; the first such failure here is final guard, so this is not evidence explaining an earlier peak. |\n\nThe six retained panel payloads plus features and composition account for **44,229,976 bytes** by their frozen layouts, excluding metadata and allocator overhead. This does not account for the observed **3,889,025,024 anonymous bytes**. Tensor/object release also does not prove that native allocator pages returned to the OS. [Panel constructors](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_gallery_freshness.py:588), [cache copy](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_quadratic_readout.py:1065), [genuine serving release](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1296).\n\nThe exact call/read ledger is:\n\n| Boundary | Reads and ownership consequences |\n|---|---|\n| `before_exit → optional release → mapping checks` | The snapshot precedes release. Mapping checks assert absence; they do not release the retained panels or inherited context. Checked actions also run live source guards. |\n| `api.evaluator_exit(context_e, exit_guard)` | Authenticates combined ownership; runs the unchanged evaluator exit through the H∪S adapters. This includes native-origin collection, nested quadratic/fitter exit, fresh guard-union hashing, closure checks, bundle admission and the final origin audit. |\n| Combined exit’s readers | `imported_origins` hashes installed package files and actual mapped libraries through `extract.sha`. Trainer batches use four bounded streaming workers. Existing consumed-range advice remains inherited; it is explicitly not a residency guarantee. Returned inventories hold paths/digests, not complete binary contents. |\n| `api.evidence()` | After successful evaluator exit, authenticates again and performs another exact origin audit before returning copied inventory metadata. The log’s `closure_end` therefore does **not** mark completion of all combined work. |\n| `rehash(S.context['guards'])` | Serial fresh reads through **the asymmetric driver’s `authenticated`**, including guards added during serving. |\n| `rehash(S.prospective['guards'])` | Another serial fresh pass through the same reader. `authenticated(keep=False)` reads 1 MiB blocks, checks file identity/stat stability and SHA, then returns a `Path`; it provides no file-cache residency control. |\n| `final_guard` before `resources` | Locks, source ownership checks, live pins, **`api.authenticate()`**, then evaluator helper guards. Combined authentication itself calls `CombinedAuthority.check → validate_runtime`, freshly reading runtime/compiler/library/supplemental/provenance evidence through the serving observer. These reads remain a possible location of the first event. |\n| `resources` and subsequent cleanup | Genuine `cgroup_memory` rejects `max≠0`. All remaining cleanup actions are still attempted. Source disposal, workspace disposal, final-state checks and independent terminal checks do not erase the event; receipt publication is blocked. |\n\nThus source controls the **references and read schedule**. Kernel file-cache residency and anonymous allocator retention are not controlled by those references alone. The important unmeasured interval includes combined evidence, both driver rehashes, and final guard’s authentication—not just the logged nested exit. [Cleanup order](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_asymmetric_cache.py:1175), [evaluator exit](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1772), [combined authentication/read chain](/home/rb/worktrees/sfora-positive-causality/scripts/connected_control_native_authority.py:211), [final guard](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_asymmetric_cache.py:610).\n\nOne actionable plan:\n\n1. Root freezes a **single scalar observer** in the prospective driver. Sample the admitted cgroup every 100 ms, from immediately before cleanup through its terminal checks: current/peak, anonymous/file/kernel bytes, all memory events and swap, with monotonic timestamps.\n2. Emit synchronous markers around combined exit, evidence, each rehash, and final guard’s authentication and resource call. For the driver’s own rehashes, record the current path and completed-byte count without changing the read loop.\n3. Bound the observer to 700 seconds, 8,192 records, ≤4 MiB output and constant retained scalar state. Do not inspect stacks, retain tensors/frames, profile, reset counters or alter historical modules. Join it on every terminal path; sampling failure makes attribution inconclusive.\n4. Locate the **first observed `max` increment** against those markers and its contemporaneous anonymous/file readings. Only then choose a source repair. Preserve the original terminal acceptance and KILL status.\n\nThe smallest source-only falsifier is a **≤15-second, AS≤1-GiB isolated harness**, proposed here and not executed:\n\n- Extract the exact driver `cleanup/attempt/raise_primary` functions. Use weakref sentinels for the serving endpoint and every retained owner above, with callbacks that inspect their lifetime at each boundary. Assert serving release does not release the panels/context, and that both rehashes precede final guard.\n- Extract `authenticated/rehash` into an isolated test namespace with synthetic in-memory streams. Assert fresh opens and complete hashes occur on every invocation, non-`keep` reads stay at 1 MiB, and same-stat changed bytes reject.\n- Inject a final-guard resource rejection; assert subsequent cleanup still runs and no staging/publication occurs.\n\nThis falsifies the ownership/read ledger if any assertion fails. It cannot establish DGX cache residency or resource fit.\n\nSkipped: edits, execution tests, native/Torch imports, jobs, reviews, children and operator contact. Risk: the observer adds overhead and can miss a sub-100-ms composition peak; no accepted receipt, quality result or minimal resource fix is proved."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 1814,
+  "output_bytes": 10069,
+  "elapsed_seconds": 568,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)\ndevbox-ask: codex consult still running (7m 00s)\ndevbox-ask: codex consult still running (7m 30s)\ndevbox-ask: codex consult still running (8m 00s)\ndevbox-ask: codex consult still running (8m 30s)\ndevbox-ask: codex consult still running (9m 00s)",
+  "progress_truncated": false,
+  "result": "At **`f2080d48376baac7e43d7a9c146c8c1364bc07a5`**, retention and read ownership are source-supported; the cause of the 8 GiB peak is **unproven**. Recommend one bounded observer for the next root-owned original run, with every existing read, hash, predicate and cap preserved.\n\nThe original invocation `b892664054744c80867410b2b0fab8bb` returned from `body()`. Its first rejection was `final_guard → evaluator.resources → genuine cgroup_memory`, specifically the nonzero memory-event predicate. `before_exit` recorded `max=0`; no intermediate memory samples locate the first increment. The shell also performs postflight hashes before its footer, so the footer’s file/anonymous counts describe a later state. [Original log](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-cache-first-179061-v1/original.log), [frozen command](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-asymmetric-cache-first-179061-v1-freeze/command.sh:43).\n\nThe driver equals its frozen SHA `f68b4aa…`; evaluator, v3, serving observer, request driver and combined authority match their admitted pins. For v5, I inspected the historical Git blob explicitly named by the driver and confirmed SHA `62e69a04…`. The inherited identity implementation was read from its matching frozen copy, SHA `840c5d82…`.\n\nThe ownership ledger is:\n\n| Object/type and source owner | Lifetime through the questioned boundary |\n|---|---|\n| B6 inference endpoint: dictionary containing model, processor, head, parameters, tensors and processor cache | `tail_replay.release_state` sets `S.state=None`, then genuine `release_inference` clears the cache and endpoint, unregisters owned modules, collects, and checks weakrefs. On this normal path, cleanup’s later `release` action is **absent**, because `S.state` is already `None`. |\n| `S.features`: CPU FP32 tensor backed by a copied NumPy selection array, shape `3449×1152` | `cache_rows` deletes the file mapping before returning. The copied **15,892,992 bytes** remain referenced by `S` throughout combined exit, both rehashes and final guard. |\n| `S.fresh`: four dictionaries of CPU raw/unit/code/inverse tensors plus wire `bytes` | `fresh_values` constructs them; no cleanup action clears them. NumPy-backed raw/unit storage is shared with its tensor wrapper, not an additional independent copy. |\n| `S.control_S`, `S.candidate_S`: two dictionaries of recomputed CPU tensors and wire `bytes` | `stale_values` releases its endpoint/readout state in `finally`; the returned panel data remains on `S`. |\n| `S.cell`: cloned CPU FP32 `3449×128` composition | Retained on `S`; cleanup does not clear it. |\n| `S.archived`, `S.receipt`, `run.result`: dictionaries/lists of quality and diagnostic metadata | Remain live; `run.result` is a local in the still-active `run` frame during cleanup. They contain results, not the native search handle or encoder state. |\n| Inherited `context_e.training_context` | Preparation explicitly removes old views/teachers/schedules and unwanted legacy tensors. It retains `common`, common-witness features, selected legacy initial members, metadata, admission caches and authenticated closures. No driver cleanup releases this context before final guard. |\n| Source objects, checks, API closures, module registries | Strong references remain intentionally: guards require registered modules. `Sources.close` occurs **after** final guard; final registry disposal occurs later still. Removing registry entries alone does not remove other references. |\n| Hash buffers and parsed metadata | Driver streaming buffers are function locals; non-`keep` reads return a `Path`. Guard dictionaries retain path/SHA strings, not file contents. Parsed metadata and deliberately captured closure bindings have longer lifetimes. |\n| Cleanup failures: exceptions/tracebacks | Added to `attempt`’s failure list only when an action fails. They can retain frames thereafter; the first such failure here is final guard, so this is not evidence explaining an earlier peak. |\n\nThe six retained panel payloads plus features and composition account for **44,229,976 bytes** by their frozen layouts, excluding metadata and allocator overhead. This does not account for the observed **3,889,025,024 anonymous bytes**. Tensor/object release also does not prove that native allocator pages returned to the OS. [Panel constructors](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_gallery_freshness.py:588), [cache copy](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_quadratic_readout.py:1065), [genuine serving release](/home/rb/worktrees/sfora-positive-causality/scripts/train_siglip2_connected_mlp.py:1296).\n\nThe exact call/read ledger is:\n\n| Boundary | Reads and ownership consequences |\n|---|---|\n| `before_exit → optional release → mapping checks` | The snapshot precedes release. Mapping checks assert absence; they do not release the retained panels or inherited context. Checked actions also run live source guards. |\n| `api.evaluator_exit(context_e, exit_guard)` | Authenticates combined ownership; runs the unchanged evaluator exit through the H∪S adapters. This includes native-origin collection, nested quadratic/fitter exit, fresh guard-union hashing, closure checks, bundle admission and the final origin audit. |\n| Combined exit’s readers | `imported_origins` hashes installed package files and actual mapped libraries through `extract.sha`. Trainer batches use four bounded streaming workers. Existing consumed-range advice remains inherited; it is explicitly not a residency guarantee. Returned inventories hold paths/digests, not complete binary contents. |\n| `api.evidence()` | After successful evaluator exit, authenticates again and performs another exact origin audit before returning copied inventory metadata. The log’s `closure_end` therefore does **not** mark completion of all combined work. |\n| `rehash(S.context['guards'])` | Serial fresh reads through **the asymmetric driver’s `authenticated`**, including guards added during serving. |\n| `rehash(S.prospective['guards'])` | Another serial fresh pass through the same reader. `authenticated(keep=False)` reads 1 MiB blocks, checks file identity/stat stability and SHA, then returns a `Path`; it provides no file-cache residency control. |\n| `final_guard` before `resources` | Locks, source ownership checks, live pins, **`api.authenticate()`**, then evaluator helper guards. Combined authentication itself calls `CombinedAuthority.check → validate_runtime`, freshly reading runtime/compiler/library/supplemental/provenance evidence through the serving observer. These reads remain a possible location of the first event. |\n| `resources` and subsequent cleanup | Genuine `cgroup_memory` rejects `max≠0`. All remaining cleanup actions are still attempted. Source disposal, workspace disposal, final-state checks and independent terminal checks do not erase the event; receipt publication is blocked. |\n\nThus source controls the **references and read schedule**. Kernel file-cache residency and anonymous allocator retention are not controlled by those references alone. The important unmeasured interval includes combined evidence, both driver rehashes, and final guard’s authentication—not just the logged nested exit. [Cleanup order](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_asymmetric_cache.py:1175), [evaluator exit](/home/rb/worktrees/sfora-positive-causality/scripts/evaluate_siglip2_connected_mlp.py:1772), [combined authentication/read chain](/home/rb/worktrees/sfora-positive-causality/scripts/connected_control_native_authority.py:211), [final guard](/home/rb/worktrees/sfora-positive-causality/scripts/diagnose_connected_asymmetric_cache.py:610).\n\nOne actionable plan:\n\n1. Root freezes a **single scalar observer** in the prospective driver. Sample the admitted cgroup every 100 ms, from immediately before cleanup through its terminal checks: current/peak, anonymous/file/kernel bytes, all memory events and swap, with monotonic timestamps.\n2. Emit synchronous markers around combined exit, evidence, each rehash, and final guard’s authentication and resource call. For the driver’s own rehashes, record the current path and completed-byte count without changing the read loop.\n3. Bound the observer to 700 seconds, 8,192 records, ≤4 MiB output and constant retained scalar state. Do not inspect stacks, retain tensors/frames, profile, reset counters or alter historical modules. Join it on every terminal path; sampling failure makes attribution inconclusive.\n4. Locate the **first observed `max` increment** against those markers and its contemporaneous anonymous/file readings. Only then choose a source repair. Preserve the original terminal acceptance and KILL status.\n\nThe smallest source-only falsifier is a **≤15-second, AS≤1-GiB isolated harness**, proposed here and not executed:\n\n- Extract the exact driver `cleanup/attempt/raise_primary` functions. Use weakref sentinels for the serving endpoint and every retained owner above, with callbacks that inspect their lifetime at each boundary. Assert serving release does not release the panels/context, and that both rehashes precede final guard.\n- Extract `authenticated/rehash` into an isolated test namespace with synthetic in-memory streams. Assert fresh opens and complete hashes occur on every invocation, non-`keep` reads stay at 1 MiB, and same-stat changed bytes reject.\n- Inject a final-guard resource rejection; assert subsequent cleanup still runs and no staging/publication occurs.\n\nThis falsifies the ownership/read ledger if any assertion fails. It cannot establish DGX cache residency or resource fit.\n\nSkipped: edits, execution tests, native/Torch imports, jobs, reviews, children and operator contact. Risk: the observer adds overhead and can miss a sub-100-ms composition peak; no accepted receipt, quality result or minimal resource fix is proved.",
+  "result_truncated": false
+}
