@@ -167,9 +167,10 @@ def read_json(fact, guards):
     return strict_json(authenticated(fact, guards, keep=True))
 
 
-def rehash(guards):
-    for path, digest in tuple(guards.items()):
-        authenticated({'path': path, 'sha256': digest}, {})
+def rehash(guards, *, phase='driver_rehash'):
+    with ExitPhase(phase):
+        for path, digest in tuple(guards.items()):
+            authenticated({'path': path, 'sha256': digest}, {})
 
 
 def load_module(name, fact, guards):
@@ -371,6 +372,30 @@ def persist_fs(output, wire, roles):
             'roles': {'path': str(roles_path), 'sha256': hashlib.sha256(encoded).hexdigest()}}
 
 
+class ExitPhase:
+    """Synchronous scalar markers at finite call sites; no sampler or retained owner/exception/frame.
+
+    Missing/partial output makes observation inconclusive, never changes the original acceptance or cleanup.
+    """
+    __slots__ = ('phase',)
+
+    def __init__(self, phase):
+        self.phase = phase
+
+    def mark(self, boundary):
+        try:
+            print(json.dumps({'phase': self.phase, 'boundary': boundary, 'monotonic_seconds': time.monotonic()}),
+                  flush=True)
+        except BaseException:
+            pass
+
+    def __enter__(self):
+        self.mark('entry')
+
+    def __exit__(self, kind, error, trace):
+        self.mark('exit' if kind is None else 'error')
+
+
 def attempt(callbacks):
     """Run every callback; return the failures in order (never raises)."""
     failures = []
@@ -543,41 +568,43 @@ def registry_plan(S, disposed=False):
 def registry_dispose(S):
     """Delete exactly the owned entries, each only while it is STILL the captured object (compare-and-delete); a
     replaced entry is retained untouched and reported. A conflict never stops the other disposals; it rejects at the end."""
-    owned, foreign, conflicts = registry_plan(S)
-    for name, module in owned.items():
-        if sys.modules.get(name) is module:
-            del sys.modules[name]
-        else:
-            conflicts.append(name+': owned entry replaced before deletion; retained')
-    again, _, more = registry_plan(S, disposed=True)
-    require(not (conflicts or again or more),
-            'owned source registry not restored: '+repr({'conflicts': sorted(set(conflicts+more)), 'left': sorted(again)}))
+    with ExitPhase('cleanup.registry_dispose'):
+        owned, foreign, conflicts = registry_plan(S)
+        for name, module in owned.items():
+            if sys.modules.get(name) is module:
+                del sys.modules[name]
+            else:
+                conflicts.append(name+': owned entry replaced before deletion; retained')
+        again, _, more = registry_plan(S, disposed=True)
+        require(not (conflicts or again or more),
+                'owned source registry not restored: '+repr({'conflicts': sorted(set(conflicts+more)), 'left': sorted(again)}))
 
 
 def terminal_checks(S):
     """Mandatory terminal checks attempted independently of the historical final_state (which skips the allocator
     check without a receipt and everything after an expired cap) and of the whole cap (its own retained failure)."""
-    torch, checks = S.torch, []
-    if torch is not None and torch.cuda.is_initialized():
-        def allocator():
-            torch.cuda.synchronize()
-            require(torch.cuda.memory_allocated() == 0, 'terminal residual CUDA allocation')
-            require(torch.cuda.max_memory_allocated() < LIMITS['cuda_allocated_bytes_exclusive'], 'terminal CUDA cap differs')
-        checks.append(allocator)
-    if S.source is not None and S.flags is not None:
-        checks.append(lambda: require(S.source.numerical_flags() == S.flags, 'terminal numerical flags changed'))
-    if torch is not None and S.rng is not None:
-        checks.append(lambda: require(torch.equal(torch.random.get_rng_state(), S.rng[0]) and
-            len(torch.cuda.get_rng_state_all()) == len(S.rng[1]) and
-            all(torch.equal(a, b) for a, b in zip(torch.cuda.get_rng_state_all(), S.rng[1], strict=True)),
-            'terminal RNG changed'))
-    if S.source is not None and S.v3_before is not None and S.initializer is not None:
-        def cgroup():
-            after = S.source.cgroup_memory()
-            S.initializer.admit_cgroup(after, Path(S.v3_before['path']).name.removesuffix('.service'))
-            require(after['path'] == S.v3_before['path'], 'terminal enclosing cgroup changed')
-        checks.append(cgroup)
-    cleanup_error(None, checks)
+    with ExitPhase('cleanup.terminal_checks'):
+        torch, checks = S.torch, []
+        if torch is not None and torch.cuda.is_initialized():
+            def allocator():
+                torch.cuda.synchronize()
+                require(torch.cuda.memory_allocated() == 0, 'terminal residual CUDA allocation')
+                require(torch.cuda.max_memory_allocated() < LIMITS['cuda_allocated_bytes_exclusive'], 'terminal CUDA cap differs')
+            checks.append(allocator)
+        if S.source is not None and S.flags is not None:
+            checks.append(lambda: require(S.source.numerical_flags() == S.flags, 'terminal numerical flags changed'))
+        if torch is not None and S.rng is not None:
+            checks.append(lambda: require(torch.equal(torch.random.get_rng_state(), S.rng[0]) and
+                len(torch.cuda.get_rng_state_all()) == len(S.rng[1]) and
+                all(torch.equal(a, b) for a, b in zip(torch.cuda.get_rng_state_all(), S.rng[1], strict=True)),
+                'terminal RNG changed'))
+        if S.source is not None and S.v3_before is not None and S.initializer is not None:
+            def cgroup():
+                after = S.source.cgroup_memory()
+                S.initializer.admit_cgroup(after, Path(S.v3_before['path']).name.removesuffix('.service'))
+                require(after['path'] == S.v3_before['path'], 'terminal enclosing cgroup changed')
+            checks.append(cgroup)
+        cleanup_error(None, checks)
 
 
 def independent_exit(S):
@@ -610,42 +637,48 @@ def independent_exit(S):
 def final_guard(S):
     """Full live-source/lock/resource guard of every owner, pin and both locks. Runs BEFORE any registry or Sources
     removal (guards need the registered modules); publication repeats only locks, resources and the cap afterwards."""
-    S.locks.check()
-    if S.sources is not None:
-        S.sources.guard()
-    for source in (S.self_source, S.request_source, S.observer_source, S.native_source, S.evaluator_source,
-                   S.diagnostic_source, S.v5_source, S.wrapper_source, S.packed_source):
-        if source is not None:
-            source.check()
-    live(S)
-    S.api.authenticate()
-    S.evaluator.guard_helpers(S.context_e)
-    S.evaluator.resources(S.context_e, S.before)
-    S.budget.check()
+    with ExitPhase('final_guard'):
+        S.locks.check()
+        if S.sources is not None:
+            S.sources.guard()
+        for source in (S.self_source, S.request_source, S.observer_source, S.native_source, S.evaluator_source,
+                       S.diagnostic_source, S.v5_source, S.wrapper_source, S.packed_source):
+            if source is not None:
+                source.check()
+        live(S)
+        with ExitPhase('final_guard.authenticate'):
+            S.api.authenticate()
+        with ExitPhase('final_guard.helpers'):
+            S.evaluator.guard_helpers(S.context_e)
+        with ExitPhase('final_guard.resources'):
+            S.evaluator.resources(S.context_e, S.before)
+        S.budget.check()
 
 
 def stage_receipt(S):
     """Stage the receipt under a name the parent never accepts; the registry plan must be conflict free."""
-    owned, foreign, conflicts = registry_plan(S)
-    require(not conflicts, 'preexisting module replaced or removed: '+repr(conflicts))
-    S.receipt.update(exit_rehash_pass=True, integrity_pass=True, cleanup_pass=True,
-        wall_seconds=time.perf_counter()-STARTED,
-        registry={'owned_disposed': sorted(owned), 'foreign_new': foreign, 'conflicts': conflicts},
-        terminal_binding={'invocation_id': os.environ['INVOCATION_ID'], 'normal_terminal_required': True,
-            'publication': 'receipt.json is linked last; a nonzero exit or expired cap after the link invalidates it'})
-    write_json(S.prospective['output']/'receipt.json.partial', S.receipt)
+    with ExitPhase('cleanup.stage_receipt'):
+        owned, foreign, conflicts = registry_plan(S)
+        require(not conflicts, 'preexisting module replaced or removed: '+repr(conflicts))
+        S.receipt.update(exit_rehash_pass=True, integrity_pass=True, cleanup_pass=True,
+            wall_seconds=time.perf_counter()-STARTED,
+            registry={'owned_disposed': sorted(owned), 'foreign_new': foreign, 'conflicts': conflicts},
+            terminal_binding={'invocation_id': os.environ['INVOCATION_ID'], 'normal_terminal_required': True,
+                'publication': 'receipt.json is linked last; a nonzero exit or expired cap after the link invalidates it'})
+        write_json(S.prospective['output']/'receipt.json.partial', S.receipt)
 
 
 def publish_receipt(S):
     """Final locks + resources + cap after the registry disposal, then an exclusive link (never replaces); one more
     cap check after the link."""
-    out = S.prospective['output']
-    S.locks.check()
-    S.evaluator.resources(S.context_e, S.before)
-    S.budget.check()
-    os.link(out/'receipt.json.partial', out/'receipt.json')
-    os.unlink(out/'receipt.json.partial')
-    S.budget.check()
+    with ExitPhase('cleanup.publish_receipt'):
+        out = S.prospective['output']
+        S.locks.check()
+        S.evaluator.resources(S.context_e, S.before)
+        S.budget.check()
+        os.link(out/'receipt.json.partial', out/'receipt.json')
+        os.unlink(out/'receipt.json.partial')
+        S.budget.check()
 
 
 # ---- admission (pure python until native_start) ------------------------------------------------------------------
@@ -1179,18 +1212,19 @@ def cleanup(S, error):
     Every step is attempted whatever failed before it; the primary error (else the first failure) is raised."""
     actions = []
 
-    def checked(action):
+    def checked(action, phase='cleanup.checked'):
         """Never execute a tampered v3/v5/Sources function during cleanup: guard first, the failure stays secondary."""
         def run_checked():
-            if S.locks is not None:
-                S.locks.check()
-            live(S)
-            if S.sources is not None:
-                S.sources.guard()
-            action()
+            with ExitPhase(phase):
+                if S.locks is not None:
+                    S.locks.check()
+                live(S)
+                if S.sources is not None:
+                    S.sources.guard()
+                action()
         return run_checked
     if S.v5 is not None and S.v3_before is not None:
-        actions.append(checked(lambda: snap(S, 'before_exit')))
+        actions.append(checked(lambda: snap(S, 'before_exit'), phase='cleanup.snapshot'))
     m = S.sources.modules if S.sources is not None else {}
     connected, initializer = m.get('connected'), m.get('initializer')  # Sources.close empties m before final_state
     if S.state is not None and connected is not None:
@@ -1198,59 +1232,65 @@ def cleanup(S, error):
             S.serving_checks.clear()
             state, S.state = S.state, None
             connected.release_inference(state)
-        actions.append(checked(release))
+        actions.append(checked(release, phase='cleanup.release'))
     if S.context is not None and connected is not None:
         def maps():
             connected.mapping_absent(S.context['launch']['original_cache']['path'])
             for endpoint in S.context['score']['launch']['endpoints']:
                 connected.mapping_absent(Path(endpoint['bundle']['path']).parent/'endpoint.pt')
             connected.mapping_absent(Path(S.control['bundle']['path']).parent/'vision.pt')
-        actions.append(checked(maps))
+        actions.append(checked(maps, phase='cleanup.maps'))
     if S.context_e is not None:
         def exit_evaluator():
             if S.api is None:
-                S.evaluator.exit_rehash(S.context_e, S.exit_guard)
+                with ExitPhase('evaluator.exit_rehash'):
+                    S.evaluator.exit_rehash(S.context_e, S.exit_guard)
                 return
             try:
-                S.api.evaluator_exit(S.context_e, S.exit_guard)
+                with ExitPhase('combined.evaluator_exit'):
+                    S.api.evaluator_exit(S.context_e, S.exit_guard)
             except BaseException as combined:
                 try:
-                    independent_exit(S)
+                    with ExitPhase('cleanup.independent_exit'):
+                        independent_exit(S)
                     combined.add_note('independent uncached context/closure/bundle checks completed')
                 except BaseException as extra:
                     combined.add_note('independent uncached exit checks also failed: '+repr(extra))
                 raise
-            S.combined = S.api.evidence()
+            with ExitPhase('combined.evidence'):
+                S.combined = S.api.evidence()
             if S.receipt is not None:
                 S.receipt['combined_native'] = S.combined
         actions.append(exit_evaluator)
     if S.context is not None:
-        actions.append(lambda: rehash(S.context['guards']))
+        actions.append(lambda: rehash(S.context['guards'], phase='rehash.context'))
     if S.prospective is not None:
-        actions.append(lambda: rehash(S.prospective['guards']))
+        actions.append(lambda: rehash(S.prospective['guards'], phase='rehash.prospective'))
     actions.append(S.budget.check)
     if S.api is not None and S.locks is not None and S.context_e is not None:
         actions.append(lambda: final_guard(S))      # full live guards while every registered module is still in place
     if S.sources is not None:
-        actions.append(checked(S.sources.close))
+        actions.append(checked(S.sources.close, phase='cleanup.sources_close'))
     if S.workspace_dispose is not None:
         def final_resources():
             failure = None
             try:
-                S.dispose_check()
-                S.workspace_dispose()
+                with ExitPhase('cleanup.workspace_dispose'):
+                    S.dispose_check()
+                    S.workspace_dispose()
             except BaseException as caught:
                 failure = caught
                 caught.__traceback__ = None
             try:
-                S.diagnostic.final_state(S.budget, S.source, initializer, S.v3_before, S.rng, S.flags, S.receipt)
+                with ExitPhase('cleanup.final_state'):
+                    S.diagnostic.final_state(S.budget, S.source, initializer, S.v3_before, S.rng, S.flags, S.receipt)
             except BaseException as final_failure:
                 if failure is not None:
                     final_failure.add_note('workspace cleanup: '+repr(failure))
                 raise
             if failure is not None:
                 raise failure
-        actions.append(checked(final_resources))
+        actions.append(checked(final_resources, phase='cleanup.final_resources'))
     actions.append(lambda: terminal_checks(S))
     failures = attempt(actions)
     staged = False

@@ -340,11 +340,15 @@ class DriverStructure(unittest.TestCase):
 
     def test_cleanup_action_order_is_fixed(self):
         text = ast.get_source_segment(self.source, self.functions['cleanup'])
-        marks = ["actions.append(checked(lambda: snap(S, 'before_exit')))", 'actions.append(checked(release))',
-                 'actions.append(checked(maps))', 'actions.append(exit_evaluator)', "rehash(S.context['guards'])",
-                 "rehash(S.prospective['guards'])", 'actions.append(S.budget.check)',
-                 'actions.append(lambda: final_guard(S))', 'actions.append(checked(S.sources.close))',
-                 'actions.append(checked(final_resources))', 'actions.append(lambda: terminal_checks(S))',
+        marks = ["actions.append(checked(lambda: snap(S, 'before_exit'), phase='cleanup.snapshot'))",
+                 "actions.append(checked(release, phase='cleanup.release'))",
+                 "actions.append(checked(maps, phase='cleanup.maps'))", 'actions.append(exit_evaluator)',
+                 "rehash(S.context['guards'], phase='rehash.context')",
+                 "rehash(S.prospective['guards'], phase='rehash.prospective')", 'actions.append(S.budget.check)',
+                 'actions.append(lambda: final_guard(S))',
+                 "actions.append(checked(S.sources.close, phase='cleanup.sources_close'))",
+                 "actions.append(checked(final_resources, phase='cleanup.final_resources'))",
+                 'actions.append(lambda: terminal_checks(S))',
                  'failures = attempt(actions)', 'attempt([lambda: stage_receipt(S)])',
                  'attempt([lambda: registry_dispose(S)])', 'attempt([lambda: publish_receipt(S)])',
                  "receipt.json.partial').unlink(missing_ok=True)", 'raise_primary(error, failures)']
@@ -1861,6 +1865,228 @@ if __name__ == '__main__':
         with self.assertRaises(ValueError):
             w2.d.cleanup(w2.S, None)
         self.assertFalse((w2.output/'receipt.json').exists())
+
+
+class ExitPhaseObservation(unittest.TestCase):
+    """Diagnostic-only contract against 30bb14f98664c1b8a2367a18b22550e1130c79e2.
+
+    Cause remains UNPROVEN: sentinel lifetimes and fresh reads cannot establish residency. The inverse removes
+    only phase scopes/labels; the WHOLE original module must remain identical.
+    Marker owners hold a phase string only, never S, a callback, an exception, a tensor or a frame.
+    """
+
+    def test_whole_module_ast_inverse_preserves_every_original_operation(self):
+        class Inverse(ast.NodeTransformer):
+            def visit_ClassDef(self, node):
+                return None if node.name == 'ExitPhase' else self.generic_visit(node)
+
+            def visit_With(self, node):
+                self.generic_visit(node)
+                if (len(node.items) == 1 and isinstance(node.items[0].context_expr, ast.Call) and
+                        ast.unparse(node.items[0].context_expr.func) == 'ExitPhase'):
+                    assert node.items[0].optional_vars is None
+                    return node.body
+                return node
+
+            def visit_FunctionDef(self, node):
+                self.generic_visit(node)
+                if node.name == 'rehash' and node.args.kwonlyargs:
+                    assert [a.arg for a in node.args.kwonlyargs] == ['phase']
+                    assert [ast.literal_eval(v) for v in node.args.kw_defaults] == ['driver_rehash']
+                    node.args.kwonlyargs, node.args.kw_defaults = [], []
+                if node.name == 'checked' and len(node.args.args) == 2:
+                    assert node.args.args[-1].arg == 'phase'
+                    assert [ast.literal_eval(v) for v in node.args.defaults] == ['cleanup.checked']
+                    node.args.args.pop()
+                    node.args.defaults = []
+                return node
+
+            def visit_Call(self, node):
+                self.generic_visit(node)
+                if ast.unparse(node.func) in {'checked', 'rehash'}:
+                    node.keywords = [k for k in node.keywords if k.arg != 'phase']
+                return node
+
+        original = Inverse().visit(tree(DRIVER))
+        self.assertEqual(hashlib.sha256(ast.dump(original, include_attributes=False).encode()).hexdigest(),
+                         'e16b6258e17a3a654b017d74d9d7c089da41ef6453fcdcc9b4e91fcb45d69350')
+
+    def records(self, stream):
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        for record in records:
+            self.assertEqual(set(record), {'phase', 'boundary', 'monotonic_seconds'})
+            self.assertIs(type(record['phase']), str)
+            self.assertIn(record['boundary'], ('entry', 'exit', 'error'))
+            self.assertIs(type(record['monotonic_seconds']), float)
+        self.assertEqual([r['monotonic_seconds'] for r in records],
+                         sorted(r['monotonic_seconds'] for r in records))
+        self.assertLess(len(records), 64)
+        self.assertTrue(all(len(line) < 256 for line in stream.getvalue().splitlines()))
+        return [(r['phase'], r['boundary']) for r in records]
+
+    def test_cleanup_success_phase_order_flushes_bounded_scalar_records(self):
+        w = World(self, receipt=True)
+        class Stream(io.StringIO):
+            flushes = 0
+            def flush(self):
+                self.flushes += 1
+        stream = Stream()
+        with contextlib.redirect_stdout(stream):
+            w.d.cleanup(w.S, None)
+        events = self.records(stream)
+        phases = ['cleanup.snapshot', 'cleanup.release', 'cleanup.maps', 'combined.evaluator_exit',
+                  'combined.evidence', 'rehash.context', 'rehash.prospective']
+        expected = [(p, b) for p in phases for b in ('entry', 'exit')]
+        expected += [('final_guard', 'entry')]
+        expected += [(p, b) for p in ('final_guard.authenticate', 'final_guard.helpers', 'final_guard.resources')
+                     for b in ('entry', 'exit')]
+        expected += [('final_guard', 'exit'), ('cleanup.sources_close', 'entry'), ('cleanup.sources_close', 'exit'),
+                     ('cleanup.final_resources', 'entry')]
+        expected += [(p, b) for p in ('cleanup.workspace_dispose', 'cleanup.final_state') for b in ('entry', 'exit')]
+        expected += [('cleanup.final_resources', 'exit')]
+        expected += [(p, b) for p in ('cleanup.terminal_checks', 'cleanup.stage_receipt', 'cleanup.registry_dispose',
+                                      'cleanup.publish_receipt') for b in ('entry', 'exit')]
+        self.assertEqual(events, expected)
+        self.assertEqual(stream.flushes, len(events))
+        self.assertTrue((w.output/'receipt.json').exists())
+
+    def test_actual_cleanup_keeps_retained_owners_and_releases_only_the_endpoint(self):
+        class Owner:
+            pass
+        w = World(self)
+        names = ('features', 'fresh', 'control_S', 'candidate_S', 'cell', 'archived')
+        for name in names:
+            setattr(w.S, name, Owner())
+        refs = {name: weakref.ref(getattr(w.S, name)) for name in names}
+        w.S.context_e['training_context'] = {'common': Owner()}
+        refs['training_context'] = weakref.ref(w.S.context_e['training_context']['common'])
+        w.S.state = {'model': Owner()}
+        endpoint = weakref.ref(w.S.state['model'])
+        w.sources.modules['connected'].release_inference = lambda state: state.clear()
+        seen = []
+        class Stream(io.StringIO):
+            def flush(self):
+                line = self.getvalue().splitlines()[-1]
+                record = json.loads(line)
+                seen.append((record['phase'], record['boundary'], endpoint() is not None,
+                             all(ref() is not None for ref in refs.values())))
+        with contextlib.redirect_stdout(Stream()):
+            w.d.cleanup(w.S, None)
+        self.assertIsNone(endpoint())
+        self.assertTrue(all(row[3] for row in seen), 'panels/context survive every observed boundary')
+        for phase in ('combined.evaluator_exit', 'combined.evidence', 'rehash.context', 'rehash.prospective',
+                      'final_guard.authenticate', 'final_guard.helpers', 'final_guard.resources'):
+            rows = [row for row in seen if row[0] == phase]
+            self.assertEqual(len(rows), 2, phase)
+            self.assertTrue(all(not row[2] for row in rows), phase+' retained the endpoint')
+
+    def test_combined_and_final_guard_failures_keep_identity_and_attempt_subsequent_cleanup(self):
+        cases = (('api', 'evaluator_exit', 'combined.evaluator_exit'), ('api', 'evidence', 'combined.evidence'),
+                 ('api', 'authenticate', 'final_guard.authenticate'),
+                 ('evaluator', 'guard_helpers', 'final_guard.helpers'),
+                 ('evaluator', 'resources', 'final_guard.resources'))
+        for owner, name, phase in cases:
+            with self.subTest(phase=phase):
+                w = World(self, receipt=True)
+                error = ValueError('original rejection')
+                def reject(*args):
+                    raise error
+                setattr(getattr(w.S, owner), name, reject)
+                stream = io.StringIO()
+                with contextlib.redirect_stdout(stream), self.assertRaises(ValueError) as caught:
+                    w.d.cleanup(w.S, None)
+                self.assertIs(caught.exception, error)
+                events = self.records(stream)
+                self.assertIn((phase, 'entry'), events)
+                self.assertIn((phase, 'error'), events)
+                self.assertNotIn((phase, 'exit'), events)
+                for later in ('cleanup.sources_close', 'cleanup.workspace_dispose', 'cleanup.final_state',
+                              'cleanup.terminal_checks', 'cleanup.registry_dispose'):
+                    self.assertIn((later, 'exit'), events)
+                    self.assertLess(events.index((phase, 'error')), events.index((later, 'entry')))
+                self.assertFalse((w.output/'receipt.json.partial').exists())
+                self.assertFalse((w.output/'receipt.json').exists())
+                self.assertNotIn(w.owned_module.__name__, sys.modules)
+
+    def test_marker_output_clock_and_serialization_errors_never_replace_rejection_or_skip_cleanup(self):
+        for fault in ('write', 'flush', 'clock', 'json'):
+            with self.subTest(fault=fault):
+                w = World(self, receipt=True)
+                error = ValueError('resource rejection')
+                def reject(*args):
+                    raise error
+                w.S.evaluator.resources = reject
+                class Broken(io.StringIO):
+                    def write(self, value):
+                        if fault == 'write':
+                            raise BrokenPipeError('marker output')
+                        return super().write(value)
+                    def flush(self):
+                        if fault == 'flush':
+                            raise KeyboardInterrupt('marker flush')
+                with contextlib.ExitStack() as stack:
+                    stack.enter_context(contextlib.redirect_stdout(Broken()))
+                    if fault == 'clock':
+                        stack.enter_context(patch.object(w.d.time, 'monotonic', side_effect=RuntimeError('clock')))
+                    if fault == 'json':
+                        stack.enter_context(patch.object(w.d.json, 'dumps', side_effect=RuntimeError('json')))
+                    with self.assertRaises(ValueError) as caught:
+                        w.d.cleanup(w.S, None)
+                self.assertIs(caught.exception, error)
+                for step in ('sources.close', 'workspace_dispose', 'final_state', 'terminal.cgroup_read'):
+                    self.assertIn(step, w.log)
+                self.assertFalse((w.output/'receipt.json').exists())
+                self.assertNotIn(w.owned_module.__name__, sys.modules)
+
+    def test_rehash_reads_complete_fresh_bytes_repeatedly_and_rejects_same_stat_mutation(self):
+        w = World(self)
+        d = w.d
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp).resolve()/'synthetic.bin'
+            payload = b'a'*(2*1024**2)+b'original-tail-17!'
+            path.write_bytes(payload)
+            authority = {'path': str(path), 'sha256': hashlib.sha256(payload).hexdigest()}
+            w.S.context['guards'] = {str(path): authority['sha256']}
+            w.S.prospective['guards'] = dict(w.S.context['guards'])
+            reads, opens = [], []
+            original_open = Path.open
+            class Reader:
+                def __init__(self, stream):
+                    self.stream = stream
+                def __enter__(self):
+                    return self
+                def __exit__(self, *args):
+                    self.stream.close()
+                def fileno(self):
+                    return self.stream.fileno()
+                def read(self, n):
+                    raw = self.stream.read(n)
+                    reads[-1].append((n, len(raw)))
+                    return raw
+            def tracked_open(current, *args, **kwargs):
+                stream = original_open(current, *args, **kwargs)
+                if current == path and args == ('rb',):
+                    opens.append(stream)
+                    reads.append([])
+                    return Reader(stream)
+                return stream
+            with patch.object(Path, 'open', tracked_open), contextlib.redirect_stdout(io.StringIO()):
+                d.cleanup(w.S, None)
+                for _ in range(2):
+                    self.assertEqual(d.authenticated(authority, {}, keep=True), payload)
+                before = path.stat()
+                path.write_bytes(payload[:-1]+b'?')
+                os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+                after = path.stat()
+                self.assertEqual((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns),
+                                 (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns))
+                with self.assertRaisesRegex(ValueError, 'FILE SHA differs'):
+                    d.rehash({str(path): authority['sha256']})
+            self.assertEqual(len(opens), 5, 'every invocation opens a new descriptor')
+            self.assertTrue(all(stream.closed for stream in opens))
+            streamed = [(1024**2, 1024**2), (1024**2, 1024**2), (1024**2, 17), (1024**2, 0)]
+            self.assertEqual(reads, [streamed, streamed, [(64*1024**2+1, len(payload))],
+                                    [(64*1024**2+1, len(payload))], streamed])
 
 
 if __name__ == '__main__':
