@@ -2151,11 +2151,17 @@ class WheelBoundaryCallsites(unittest.TestCase):
                 self.check(node)
 
     def test_the_three_argument_edits_are_the_whole_production_change(self):
-        data = DRIVER.read_bytes()
+        data = diagnostic_inverse(DRIVER.read_bytes())
+        tree = ast.parse(data)
+        found = []
+        for name in ('run','accept_unit'):
+            for node in ast.walk(function(tree,name)):
+                if isinstance(node,ast.Call) and ast.unparse(node.func) == 'check_wheel':
+                    found.append((name,node.args[3]))
         lines = data.splitlines(keepends=True)
         starts = [sum(map(len,lines[:i])) for i in range(len(lines)+1)]
         ends = []
-        for _,node in self.callsites():
+        for _,node in found:
             self.assertIsInstance(node,ast.Attribute)
             self.assertEqual(node.attr,'parent')
             self.assertNotIsInstance(node.value,ast.Attribute)
@@ -2163,6 +2169,459 @@ class WheelBoundaryCallsites(unittest.TestCase):
         self.assertEqual(len(ends),3)
         for end in sorted(ends,reverse=True): data = data[:end]+b'.parent'+data[end:]
         self.assertEqual(hashlib.sha256(data).hexdigest(),self.BASE_DRIVER_SHA)
+
+
+# BEGIN loader observation tests
+OBSERVATION_BLOCK_SHA = '9706fee5c071322f577a8a482f83ff6f374166888c45bcff3d63221cb23c40fb'
+OBSERVATION_ASSIGN = b"            state = portable.load_inference(Path(directory),bundle_sha,'cuda')\n"
+OBSERVATION_SCOPE = b"""            observation = _LoaderObservation(portable,name,directory,pin,guards,registry)
+            try:
+                observation.start()
+                state = portable.load_inference(Path(directory),bundle_sha,'cuda')
+            finally:
+                observation.close()
+                observation = None
+"""
+OBSERVATION_CATCH = b"        _observation_emit({'event':'reference_catch_before_clear_frames','errors':_observation_errors(error)})\n"
+
+
+def diagnostic_inverse(raw):
+    begin,end = b'# BEGIN bounded loader observation\n',b'# END bounded loader observation\n\n\n'
+    if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('diagnostic block cardinality')
+    start,stop = raw.index(begin),raw.index(end)+len(end)
+    block = raw[start:stop]
+    if SHA(block) != OBSERVATION_BLOCK_SHA: raise ValueError('diagnostic definitions differ')
+    nodes = ast.parse(block).body
+    names = [n.name if isinstance(n,(ast.FunctionDef,ast.ClassDef)) else ast.unparse(n) for n in nodes]
+    if names != ['import types as _observation_types','import functools as _observation_functools',
+            '_observation_json','_observation_emit','_observation_text','_observation_type','_observation_message',
+            '_observation_errors','_observation_maps','_observation_dict','_observation_member','_observation_storage','_observation_owners',
+            '_LoaderObservation']:
+        raise ValueError('diagnostic node inventory differs')
+    raw = raw[:start]+raw[stop:]
+    if raw.count(OBSERVATION_SCOPE) != 1 or raw.count(OBSERVATION_CATCH) != 1:
+        raise ValueError('diagnostic seam cardinality')
+    raw = raw.replace(OBSERVATION_SCOPE,OBSERVATION_ASSIGN).replace(OBSERVATION_CATCH,b'')
+    if SHA(raw) != '149808c99e9216afdf7aacdc7e4610ea810598ea2dee8d1b963243ac394253dd':
+        raise ValueError('complete baseline bytes differ')
+    if SHA(ast.dump(ast.parse(raw),include_attributes=False).encode()) != 'e9e7ebf63c06be4063a539c6ca4285bcd32359c656135150e1527b7a0479b44b':
+        raise ValueError('complete baseline AST differs')
+    return raw
+
+
+class LoaderObservation(unittest.TestCase):
+    def test_all_original_test_bytes_and_ast_are_preserved_except_authorized_inverse(self):
+        raw = Path(__file__).read_bytes()
+        start = raw.index(b'# BEGIN loader observation tests\n')
+        end_marker = b'# END loader observation tests\n\n\n'
+        end = raw.index(end_marker)+len(end_marker)
+        raw = raw[:start]+raw[end:]
+        added = b"""        data = diagnostic_inverse(DRIVER.read_bytes())
+        tree = ast.parse(data)
+        found = []
+        for name in ('run','accept_unit'):
+            for node in ast.walk(function(tree,name)):
+                if isinstance(node,ast.Call) and ast.unparse(node.func) == 'check_wheel':
+                    found.append((name,node.args[3]))
+"""
+        self.assertEqual(raw.count(added),1)
+        raw = raw.replace(added,b'        data = DRIVER.read_bytes()\n')
+        self.assertEqual(raw.count(b'        for _,node in found:\n'),1)
+        raw = raw.replace(b'        for _,node in found:\n',b'        for _,node in self.callsites():\n')
+        self.assertEqual(SHA(raw),'37e209bf12e823571a828136d85bb8e9dd5da28cbc2309f4414bd7d17e35db84')
+        self.assertEqual(SHA(ast.dump(ast.parse(raw),include_attributes=False).encode()),
+            'e31c35d7d86b60d5495f938d6822981e0bb3a38a387957a18cdb60aa6f122c1e')
+
+    def test_source_type_authentication_origin_registry_and_line_mutations(self):
+        import types
+        for mode in ('comment','pin','guard','origin','registry','module_type','filename','line','code','globals'):
+            with self.subTest(mode), tempfile.TemporaryDirectory() as tmp:
+                w = ObservationWorld(Path(tmp),'success')
+                with patch.dict(sys.modules,w.registered), patch('sys.stdout',io.StringIO()) as output:
+                    method = w.portable.load_inference
+                    if mode == 'comment':
+                        with Path(w.portable.__file__).open('a') as stream: stream.write('\n# source mutation\n')
+                    elif mode == 'pin': w.pin = '0'*64
+                    elif mode == 'guard': w.guards[str(w.path)] = 'bad'
+                    elif mode == 'origin': w.portable.__spec__.origin += '.wrong'
+                    elif mode == 'registry': sys.modules[w.name] = types.ModuleType(w.name)
+                    elif mode == 'module_type': w.portable = SimpleNamespace(**vars(w.portable))
+                    elif mode == 'filename': w.portable.__file__ += '.wrong'
+                    elif mode == 'line':
+                        w.portable.load_inference = types.FunctionType(method.__code__.replace(
+                            co_firstlineno=method.__code__.co_firstlineno+1),method.__globals__)
+                    elif mode == 'code':
+                        w.portable.load_inference = lambda *args: None
+                    elif mode == 'globals': w.portable.load_inference = types.FunctionType(method.__code__,{})
+                    watch = gate._LoaderObservation(w.portable,w.name,w.directory,w.pin,w.guards,sys.modules)
+                    self.assertFalse(watch.eligible,mode)
+                    self.assertTrue(observation_records(output))
+                    watch.close()
+
+    def test_live_inode_registry_and_guard_mutations_are_incomplete_without_changing_loader(self):
+        import types
+        for mode in ('inode','registry','guard'):
+            with self.subTest(mode), tempfile.TemporaryDirectory() as tmp:
+                w = ObservationWorld(Path(tmp),'success')
+                with patch.dict(sys.modules,w.registered), patch('sys.stdout',io.StringIO()) as output:
+                    watch = gate._LoaderObservation(w.portable,w.name,w.directory,w.pin,w.guards,sys.modules)
+                    self.assertTrue(watch.eligible)
+                    w.portable.construct_encoder = w.construct
+                    if mode == 'inode':
+                        w.path.rename(w.directory/'old.pt'); w.path.write_bytes(b'n'*4096)
+                    elif mode == 'registry': sys.modules[w.name] = types.ModuleType(w.name)
+                    else: w.guards[str(w.path)] = '0'*64
+                    try:
+                        watch.start()
+                        state = w.portable.load_inference(w.directory,'bundle','cuda')
+                    finally: watch.close()
+                self.assertIs(type(state['A'].storage),bytes)
+                record = next(r for r in observation_records(output) if r['event'] == 'before_original_mapping_guard')
+                self.assertFalse(record['diagnostic_complete'])
+                self.assertNotIn('owners',record)
+                w.portable.mapping_absent(w.path)
+
+    def test_existing_trace_is_ineligible_and_profile_identity_is_restored(self):
+        def previous(frame,event,arg): return previous
+        def profile(frame,event,arg): pass
+        saved_trace,saved_profile = sys.gettrace(),sys.getprofile()
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                w = ObservationWorld(Path(tmp),'success')
+                with patch.dict(sys.modules,w.registered), patch('sys.stdout',io.StringIO()) as output:
+                    watch = gate._LoaderObservation(w.portable,w.name,w.directory,w.pin,w.guards,sys.modules)
+                    w.portable.construct_encoder = w.construct
+                    sys.settrace(previous); sys.setprofile(profile)
+                    try:
+                        watch.start()
+                        self.assertIs(sys.gettrace(),previous)
+                        w.portable.load_inference(w.directory,'bundle','cuda')
+                    finally: watch.close()
+                    self.assertIs(sys.gettrace(),previous)
+                    self.assertIs(sys.getprofile(),profile)
+                self.assertFalse(any(r['event'] == 'before_original_mapping_guard' for r in observation_records(output)))
+                sys.settrace(None)
+                with patch.dict(sys.modules,w.registered), patch('sys.stdout',io.StringIO()):
+                    # Recreate the code contract before a second, independent hook test.
+                    w = ObservationWorld(Path(tmp),'success')
+                    sys.modules[w.name] = w.portable
+                    watch = gate._LoaderObservation(w.portable,w.name,w.directory,w.pin,w.guards,sys.modules)
+                    watch.start()
+                    sys.setprofile(None)
+                    watch.close()
+                    self.assertIsNone(sys.gettrace())
+                    self.assertIs(sys.getprofile(),profile)
+        finally:
+            sys.settrace(saved_trace); sys.setprofile(saved_profile)
+
+    def test_diagnostic_install_inspection_sink_failures_leave_original_cleanup(self):
+        for mode in ('install','maps','sink'):
+            with self.subTest(mode), tempfile.TemporaryDirectory() as tmp:
+                w = ObservationWorld(Path(tmp),'construct_error')
+                saved = sys.settrace
+                def settrace(callback):
+                    if callback is not None: raise RuntimeError('diagnostic install failure')
+                    return saved(callback)
+                events,output = [],io.StringIO()
+                with patch.dict(sys.modules,w.registered), patch('sys.stdout',output):
+                    watch = gate._LoaderObservation(w.portable,w.name,w.directory,w.pin,w.guards,sys.modules)
+                    self.assertTrue(watch.eligible)
+                    w.portable.construct_encoder = w.construct
+                    # The real reference_outputs seam is used, including the original clear_frames and cleanup.
+                    def loader(*args): return w.portable
+                    def after():
+                        events.append('after')
+                        w.portable.mapping_absent(w.path)
+                    target = {'install':'sys.settrace','maps':'qualify_connected_probe_serving._observation_maps',
+                              'sink':'builtins.print'}[mode]
+                    replacement = settrace if mode == 'install' else None
+                    with patch('qualify_connected_probe_serving._LoaderObservation',return_value=watch), \
+                            patch(target,side_effect=replacement or RuntimeError('diagnostic failure')):
+                        with self.assertRaisesRegex(ValueError,'checkpoint mapping survived') as caught:
+                            gate.reference_outputs(name=w.name,directory=w.directory,bundle_sha='bundle',loader=loader,
+                                pin=w.pin,guards=w.guards,reads_only=lambda: io.StringIO(),batches=[],decode=None,rgb=None,
+                                snapshot=None,loaded=lambda state: events.append('loaded'),after=after,deadline=lambda: None)
+                    self.assertIs(type(caught.exception.__context__),RuntimeError)
+                    self.assertEqual(events,['after'])
+                    self.assertNotIn(w.name,sys.modules)
+                    self.assertIsNone(sys.gettrace())
+                    w.portable.mapping_absent(w.path)
+                    if mode != 'sink':
+                        record = next(r for r in observation_records(output) if r['event'] == 'reference_catch_before_clear_frames')
+                        self.assertIn('injected constructor failure',json.dumps(record))
+
+    def test_custom_error_and_owner_properties_are_not_executed(self):
+        import types
+        calls = []
+        class Error(Exception):
+            def __str__(self): calls.append('str'); return 'wrong'
+            @property
+            def __notes__(self): calls.append('notes'); return []
+        class Owner:
+            @property
+            def __dict__(self): calls.append('dict'); return {}
+        self.assertFalse(gate._observation_errors(Error())['diagnostic_complete'])
+        self.assertIsNone(gate._observation_dict(Owner()))
+        class Descriptor:
+            def __get__(self, *args): calls.append('tensor property'); return None
+        class Tensor:
+            __module__ = 'torch'
+            untyped_storage = device = shape = dtype = Descriptor()
+        class Storage:
+            __module__ = 'torch.storage'
+            data_ptr = nbytes = device = Descriptor()
+        torch = types.ModuleType('torch'); torch.Tensor = Tensor; torch.UntypedStorage = Storage
+        with self.assertRaisesRegex(ValueError,'unsupported native metadata'):
+            gate._observation_storage(Tensor(),torch)
+        self.assertEqual(calls,[])
+
+    def test_owner_quota_retains_scalar_partial_paths_without_retaining_objects(self):
+        import types
+        class Candidate: pass
+        candidate = Candidate()
+        reference = weakref.ref(candidate)
+        torch = types.ModuleType('torch'); torch.__file__ = '/fake-authenticated-torch'
+        # Scalar reader stand-in tests traversal only, and establishes no Torch/native attribution.
+        def storage(value, module):
+            if type(value) is Candidate:
+                return {'object_id':id(value),'address':12,'end':16}
+        def observe(value):
+            guards = {torch.__file__:'f'*64}
+            return gate._observation_owners(sys._getframe(),None,[{'start':10,'end':20}])
+        with patch.dict(sys.modules,{'torch':torch}), patch.object(gate,'_observation_storage',storage):
+            record = observe({'overlap':candidate,'excess':list(range(600))})
+        self.assertFalse(record['diagnostic_complete'])
+        self.assertEqual(record['candidates'][0]['path'],'loader_local.value.overlap')
+        self.assertIn('quota',record['reason'])
+        self.assertLessEqual(len(gate._observation_json(record)),65536)
+        candidate = None
+        self.assertIsNone(reference())
+        self.assertNotIn('gc.get_objects',DRIVER.read_text())
+        self.assertNotIn('gc.get_referrers',DRIVER.read_text())
+
+    def test_full_byte_and_ast_inverse_rejects_extra_missing_and_multiple_nodes(self):
+        raw = DRIVER.read_bytes()
+        self.assertEqual(SHA(diagnostic_inverse(raw)),
+            '149808c99e9216afdf7aacdc7e4610ea810598ea2dee8d1b963243ac394253dd')
+        for changed in (raw.replace(OBSERVATION_SCOPE,OBSERVATION_ASSIGN),
+                        raw.replace(OBSERVATION_SCOPE,OBSERVATION_SCOPE*2),
+                        raw.replace(OBSERVATION_CATCH,b''),
+                        raw.replace(OBSERVATION_CATCH,OBSERVATION_CATCH*2),
+                        raw+b'\nunknown = 1\n',
+                        raw.replace(b'def _observation_maps(',b'def extra_node('),
+                        raw.replace(b'gc.collect()',b'gc.collect(0)'),
+                        raw.replace(b"'body_seconds':300",b"'body_seconds':301")):
+            with self.assertRaises(ValueError): diagnostic_inverse(changed)
+
+    def test_original_exception_graph_includes_suppressed_context_and_cycles(self):
+        self.assertTrue(hasattr(gate, '_observation_errors'), 'bounded scalar exception observation is missing')
+        context = RuntimeError('original copy failure')
+        primary = ValueError('mapping guard')
+        primary.__context__ = context
+        primary.__cause__ = ExceptionGroup('independent exit', [OSError('exact four')])
+        context.__context__ = primary
+        primary.add_note('original note')
+        record = gate._observation_errors(primary)
+        self.assertTrue(record['diagnostic_complete'])
+        self.assertEqual(len(record['nodes']), 4)
+        self.assertEqual(record['nodes'][0]['notes'], ['original note'])
+        self.assertTrue(record['nodes'][0]['suppress_context'])
+        self.assertEqual({edge['kind'] for edge in record['edges']}, {'cause', 'context', 'member'})
+        self.assertIn('original copy failure', json.dumps(record))
+
+    def test_exception_quotas_and_bad_inspection_are_incomplete(self):
+        for error in (ExceptionGroup('too many', [ValueError(str(i)) for i in range(65)]),
+                      ValueError('x'*65537)):
+            self.assertFalse(gate._observation_errors(error)['diagnostic_complete'])
+        class BadError(Exception):
+            def __str__(self): raise RuntimeError('inspection failed')
+        self.assertFalse(gate._observation_errors(BadError())['diagnostic_complete'])
+        self.assertEqual(gate._observation_errors(None),
+            {'diagnostic_complete':True,'root':None,'nodes':[],'edges':[]})
+
+    def test_extracted_original_loader_with_real_mapping(self):
+        import traceback
+        for mode in ('success','external_owner','construct_error','copy_error','head_error'):
+            with self.subTest(mode), tempfile.TemporaryDirectory() as tmp:
+                w = ObservationWorld(Path(tmp),mode)
+                output = io.StringIO()
+                old_trace,old_profile = sys.gettrace(),sys.getprofile()
+                error = state = None
+                with patch.dict(sys.modules,w.registered), patch('sys.stdout',output):
+                    watch = gate._LoaderObservation(w.portable,w.name,w.directory,w.pin,w.guards,sys.modules)
+                    self.assertTrue(watch.eligible,output.getvalue())
+                    # Stand-ins model native dependencies only; attribution to these objects is forbidden.
+                    w.portable.construct_encoder = w.construct
+                    try:
+                        watch.start()
+                        state = w.portable.load_inference(w.directory,'bundle','cuda')
+                    except BaseException as caught:
+                        error = caught
+                    finally: watch.close()
+                self.assertIs(sys.gettrace(),old_trace)
+                self.assertIs(sys.getprofile(),old_profile)
+                records = observation_records(output)
+                at_guard = next(r for r in records if r['event'] == 'before_original_mapping_guard')
+                self.assertEqual(at_guard['function'],'load_inference')
+                self.assertEqual(at_guard['line'],1352)
+                self.assertTrue(at_guard['binding_complete'])
+                self.assertFalse(at_guard['diagnostic_complete'])
+                self.assertFalse(at_guard['locals_present']['disk'])
+                self.assertEqual(bool(at_guard['mappings']),mode in ('external_owner','construct_error','copy_error'))
+                self.assertEqual(at_guard['errors']['root'] is None,mode in ('success','external_owner'))
+                self.assertEqual(at_guard['owners']['owner'],'unresolved')
+                if mode == 'success':
+                    self.assertIsNone(error)
+                    self.assertIs(type(state['A'].storage),bytes)
+                    self.assertIs(type(state['processor']['metadata_tensor'].storage),bytes)
+                    self.assertEqual(w.consumed,8)
+                elif mode == 'head_error':
+                    self.assertIs(type(error),RuntimeError)
+                    w.portable.mapping_absent(w.path)
+                else:
+                    self.assertIs(type(error),ValueError)
+                    self.assertEqual(str(error),'checkpoint mapping survived independent copy/release')
+                    if mode == 'external_owner': self.assertIsNone(error.__context__)
+                    else: self.assertIs(type(error.__context__),RuntimeError)
+                if error is not None:
+                    before = gate._observation_errors(error)
+                    gate.clear_frames(error)
+                    native_exit = ValueError('observed native difference must be exact four')
+                    try: requests.raise_failures([error,native_exit])
+                    except BaseException as final:
+                        self.assertIs(final,error)
+                        self.assertIn('exact four',''.join(traceback.format_exception(final)))
+                        if mode in ('construct_error','copy_error'):
+                            self.assertIn('injected',json.dumps(before))
+                            self.assertNotIn('injected',''.join(traceback.format_exception(final)))
+                        gate.clear_frames(final)
+                w.external = error = state = None
+                gc.collect()
+                w.portable.mapping_absent(w.path)
+
+
+def observation_records(output):
+    return [json.loads(line.removeprefix('LOADER_OBSERVATION '))
+        for line in output.getvalue().splitlines() if line.startswith('LOADER_OBSERVATION ')]
+
+
+class ObservationTensor:
+    def __init__(self, storage):
+        self.storage = storage
+        self.device = SimpleNamespace(type='cpu')
+        self.requires_grad = False
+    def to(self, device='cpu', copy=False):
+        import mmap
+        if ObservationWorld.current.mode == 'copy_error' and type(self.storage) is mmap.mmap:
+            raise RuntimeError('injected copy failure')
+        return ObservationTensor(bytes(self.storage)) if copy else self
+    def __deepcopy__(self, memo):
+        result = ObservationTensor(bytes(self.storage)); memo[id(self)] = result; return result
+    def is_contiguous(self): return True
+    def data_ptr(self): return id(self.storage)
+    def numel(self): return len(self.storage)
+    def element_size(self): return 1
+    def detach(self): return self
+
+
+class ObservationModel:
+    def state_dict(self): return {'model_vision':True}
+    def requires_grad_(self, value): return self
+    def eval(self): return self
+    def train(self): return self
+    def to(self, device): return self
+
+
+class ObservationWorld:
+    """Real mmap + unmodified extracted source; fake native dependencies prove no native owner."""
+    current = None
+
+    def __init__(self, directory, mode):
+        import types
+        self.directory,self.mode = directory,mode
+        self.external = None; self.consumed = 0
+        self.path = directory/'endpoint.pt'
+        self.path.write_bytes(b'x'*4096)
+        (directory/'vision.pt').write_bytes(b'v'*4096)
+        source = directory/gate.TRAINER
+        raw = (HERE/gate.TRAINER).read_bytes()
+        source.write_bytes(raw)
+        self.pin = dict(gate.HISTORICAL)[gate.TRAINER]
+        self.guards = {str(source):self.pin,str(self.path):'e'*64,str(directory/'vision.pt'):'f'*64}
+        self.name = '_connected_probe_gate_observation_test'
+        self.portable = types.ModuleType(self.name)
+        self.portable.__file__ = str(source)
+        self.portable.__spec__ = SimpleNamespace(origin=str(source))
+        space = vars(self.portable)
+        space.update(Path=Path,os=os,copy=copy,gc=gc,time=__import__('time'))
+        tree = ast.parse(raw)
+        compiled = compile(raw,str(source),'exec')
+        for name in ('require','mapping_absent','owned_copy','inference_readout_tree','load_inference','construct_encoder'):
+            code = next(c for c in compiled.co_consts if type(c) is types.CodeType and c.co_name == name)
+            defaults = tuple(ast.literal_eval(v) for v in function(tree,name).args.defaults)
+            space[name] = types.FunctionType(code,space,name,defaults)
+        for name in ('INFERENCE_KEYS','INFERENCE_SCHEMA','CONTROL_SHA256','SERVING_FILES'):
+            node = next(n for n in tree.body if isinstance(n,ast.Assign) and
+                any(isinstance(t,ast.Name) and t.id == name for t in n.targets))
+            space[name] = ast.literal_eval(node.value)
+        space['ARMS'] = ('control',)
+        pages = {}
+        original_path = HERE/'train_siglip2_substrate_adaptation.py'
+        original_tree = tree_of(original_path)
+        for name in ('copy','consume'):
+            exec(compile(ast.Module(body=[function(original_tree,name,'CheckpointPages')],type_ignores=[]),
+                str(original_path),'exec'),pages)
+        pages['require'] = space['require']
+        world = self
+        class Pages:
+            copy = pages['copy']
+            consume = pages['consume']
+            def __init__(self, stream): self.fd = stream.fileno()
+            def release(self, address, count): world.consumed += 1
+        modules = {'train_siglip2_substrate_adaptation.py':SimpleNamespace(fingerprint=self.fingerprint,CheckpointPages=Pages),
+            'qualify_siglip2_substrate_cpu.py':SimpleNamespace(numerical_flags=lambda: {}),
+            'extract_siglip2_vision_source.py':SimpleNamespace(),
+            'train_siglip2_cached_readout.py':SimpleNamespace(head_from=self.head)}
+        manifest = {'endpoint_state_sha256':'endpoint','vision_sha256':'vision','encoder_identity':{'runtime':'structure'},
+            'base_vision_sha256':'vision','environment':{'packages':{},'vision_constructor':'fake'},
+            'files':{'vision.pt':'fake'},'code':{n:'fake' for n in space['SERVING_FILES'] | {'joint_relational_compaction.py'}}}
+        space.update(admit_bundle=lambda *args: (manifest,self.guards),
+            load_authenticated=lambda name,path,*args: modules.get(path.name,SimpleNamespace()),
+            encoder_facts=lambda *args,**kwargs: {'vision_sha256':'vision'})
+        self.registered = {self.name:self.portable,'torch':SimpleNamespace(Tensor=ObservationTensor,load=self.load,
+            nn=SimpleNamespace(Parameter=lambda value,requires_grad: value))}
+        ObservationWorld.current = self
+
+    def load(self, path, **kwargs):
+        import mmap
+        assert kwargs == dict(map_location='cpu',weights_only=True,mmap=True)
+        with Path(path).open('rb') as stream:
+            storage = mmap.mmap(stream.fileno(),0,access=mmap.ACCESS_COPY)
+        def tensor(): return ObservationTensor(storage)
+        if self.mode == 'external_owner': self.external = tensor()
+        disk = {k:None for k in self.portable.INFERENCE_KEYS}
+        disk.update(schema=self.portable.INFERENCE_SCHEMA,arm='control',fixed_sha256='fixed',config={},
+            buffers={'position':tensor()},processor={'config':{},'metadata_tensor':tensor()},head={'weight':tensor()},
+            A=tensor(),C=tensor(),means=[tensor(),(tensor(),)],mu_train=tensor(),common_statistics={'nested':[tensor(),(tensor(),)]},
+            mu_train_provenance={'role':'FIT'},numerical_flags={},base_vision={'sha256':'vision'},
+            encoder={'overlay':tensor()},encoder_identity={'runtime':'structure'},vision_sha256='vision',
+            scope={'arm':'control','payload':{'scope_sha256':self.portable.CONTROL_SHA256,'class_names':['x']*1008}})
+        return disk
+
+    def fingerprint(self, value):
+        if isinstance(value,dict) and 'model_vision' in value: return 'vision'
+        if isinstance(value,dict) and 'schema' in value: return 'endpoint' if 'fixed_sha256' in value else 'fixed'
+        return 'readout'
+
+    def construct(self, source, original, context, config, buffers, processor_config, base, overlay):
+        if self.mode == 'construct_error': raise RuntimeError('injected constructor failure with endpoint overlay')
+        return ObservationModel(),SimpleNamespace(),SimpleNamespace(currsize=0),{},'structure'
+
+    def head(self, arm, tensors):
+        if self.mode == 'head_error': raise RuntimeError('injected head failure after independent copies')
+        return ObservationModel()
+
+# END loader observation tests
 
 
 if __name__ == '__main__':

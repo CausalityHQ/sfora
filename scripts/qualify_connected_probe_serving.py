@@ -464,7 +464,13 @@ def reference_outputs(*, name, directory, bundle_sha, loader, pin, guards, reads
         deadline()
         with reads_only():
             portable = loader(name,Path(directory)/TRAINER,pin,guards)
-            state = portable.load_inference(Path(directory),bundle_sha,'cuda')
+            observation = _LoaderObservation(portable,name,directory,pin,guards,registry)
+            try:
+                observation.start()
+                state = portable.load_inference(Path(directory),bundle_sha,'cuda')
+            finally:
+                observation.close()
+                observation = None
         deadline()
         loaded(state)
         for kind,paths in batches:
@@ -481,6 +487,7 @@ def reference_outputs(*, name, directory, bundle_sha, loader, pin, guards, reads
             check_outputs(first,len(paths))
             rows[kind] = {'rgb_sha256':pixels,'outputs':first}
     except BaseException as error:
+        _observation_emit({'event':'reference_catch_before_clear_frames','errors':_observation_errors(error)})
         clear_frames(error)
         failures.append(error)
     finally:
@@ -1204,6 +1211,403 @@ def main(argv=None):
     parser.add_argument('--authority-sha256',required=True)
     parser.add_argument('--output',type=Path,required=True)
     return run(parser.parse_args(argv))
+
+
+# BEGIN bounded loader observation
+import types as _observation_types
+import functools as _observation_functools
+
+
+def _observation_json(value, limit=65536):
+    chunks, size = [], 0
+    for chunk in json.JSONEncoder(ensure_ascii=True, separators=(',',':')).iterencode(value):
+        size += len(chunk)
+        if size > limit: raise ValueError('encoded observation quota')
+        chunks.append(chunk)
+    return ''.join(chunks)
+
+
+def _observation_emit(record):
+    try:
+        print('LOADER_OBSERVATION '+_observation_json(record,196608),flush=True)
+    except BaseException:
+        # A broken diagnostic sink must not replace the original computation failure.
+        pass
+
+
+def _observation_text(value):
+    value = str(value)
+    if len(value) > 65536: raise ValueError('observation text quota')
+    return value
+
+
+def _observation_type(value):
+    cls = type(value)
+    module,name = (type.__getattribute__(cls,key) for key in ('__module__','__qualname__'))
+    if type(module) is not str or type(name) is not str or len(module)+len(name) > 1024:
+        raise ValueError('type metadata quota')
+    return module+'.'+name
+
+
+def _observation_message(error):
+    # Calling custom __str__, or repr on an arbitrary exception argument, can change the workload.
+    method = type.__getattribute__(type(error),'__str__')
+    if isinstance(error,BaseExceptionGroup):
+        if method is not BaseExceptionGroup.__str__: raise ValueError('unsupported group formatter')
+        return _observation_text(error)
+    if method not in (BaseException.__str__,OSError.__str__,KeyError.__str__):
+        raise ValueError('unsupported exception formatter')
+    args = BaseException.args.__get__(error)
+    if len(args) > 64 or any(type(v) not in (str,int,float,bool,type(None)) for v in args):
+        raise ValueError('unsupported exception arguments')
+    if any(type(v) is str and len(v) > 65536 for v in args): raise ValueError('message quota')
+    if method is OSError.__str__:
+        for name in ('errno','strerror','filename','filename2'):
+            value = OSError.__dict__[name].__get__(error)
+            if type(value) not in (str,int,type(None)) or (type(value) is str and len(value) > 65536):
+                raise ValueError('unsupported OS error metadata')
+    return _observation_text(error)
+
+
+def _observation_errors(error):
+    record = {'diagnostic_complete':True,'root':None,'nodes':[],'edges':[]}
+    pending, seen, traces = [], {}, 0
+    current = trace = child = None
+    try:
+        def number(value):
+            if id(value) not in seen:
+                if len(seen) == 64: raise ValueError('exception node quota')
+                seen[id(value)] = len(seen)
+                pending.append(value)
+            return seen[id(value)]
+        if error is not None: record['root'] = number(error)
+        while pending:
+            current = pending.pop(0)
+            notes = BaseException.__dict__['__dict__'].__get__(current).get('__notes__',[])
+            if type(notes) is not list or len(notes) > 64 or any(type(n) is not str for n in notes):
+                raise ValueError('exception notes quota/type')
+            node = {'id':seen[id(current)],'type':_observation_type(current),
+                'message':_observation_message(current),
+                'notes':[_observation_text(n) for n in notes],
+                'suppress_context':BaseException.__suppress_context__.__get__(current),'traceback':[]}
+            trace = BaseException.__traceback__.__get__(current)
+            while trace is not None:
+                traces += 1
+                if traces > 512: raise ValueError('exception traceback quota')
+                node['traceback'].append({'file':trace.tb_frame.f_code.co_filename,
+                    'function':trace.tb_frame.f_code.co_name,'line':trace.tb_lineno})
+                trace = trace.tb_next
+            record['nodes'].append(node)
+            for kind,child in (('cause',BaseException.__cause__.__get__(current)),
+                               ('context',BaseException.__context__.__get__(current))):
+                if child is not None:
+                    record['edges'].append({'from':node['id'],'to':number(child),'kind':kind})
+            if isinstance(current,BaseExceptionGroup):
+                members = BaseExceptionGroup.exceptions.__get__(current)
+                if len(members) > 64: raise ValueError('exception member quota')
+                for child in members:
+                    record['edges'].append({'from':node['id'],'to':number(child),'kind':'member'})
+            _observation_json(record)
+        return record
+    except BaseException:
+        return {'diagnostic_complete':False,'reason':'exception inspection or quota failure'}
+    finally:
+        pending.clear()
+        error = current = trace = child = None
+
+
+def _observation_maps(path, identity):
+    stat = path.stat()
+    if (stat.st_dev,stat.st_ino) != identity: raise ValueError('endpoint inode changed')
+    result = []
+    with Path('/proc/self/maps').open() as stream:
+        for count,line in enumerate(stream):
+            if count >= 32768 or len(line) > 8192: raise ValueError('maps quota')
+            address,mode,offset,device,inode,*_ = line.split(maxsplit=5)
+            major,minor = (int(v,16) for v in device.split(':'))
+            if (major,minor,int(inode)) == (os.major(stat.st_dev),os.minor(stat.st_dev),stat.st_ino):
+                if len(result) == 64: raise ValueError('mapping quota')
+                start,end = (int(v,16) for v in address.split('-'))
+                result.append({'start':start,'end':end,'offset':int(offset,16),'mode':mode})
+    return result
+
+
+def _observation_dict(value):
+    if type(value) is dict: return value
+    if type(value) is type(sys._getframe().f_locals): return value
+    if type(value) is _observation_types.ModuleType: return value.__dict__
+    # Only CPython's instance-dictionary descriptor; never user properties or __getattribute__.
+    for cls in type.__getattribute__(type(value),'__mro__'):
+        descriptor = type.__getattribute__(cls,'__dict__').get('__dict__')
+        if descriptor is not None:
+            if type(descriptor) is _observation_types.GetSetDescriptorType:
+                result = descriptor.__get__(value,type(value))
+                return result if type(result) is dict else None
+            return None
+    return None
+
+
+def _observation_member(cls, name):
+    for base in type.__getattribute__(cls,'__mro__'):
+        namespace = type.__getattribute__(base,'__dict__')
+        if name in namespace: return namespace[name]
+    raise ValueError('unsupported native metadata member')
+
+
+def _observation_storage(value, torch):
+    tensor,storage = torch.__dict__['Tensor'],torch.__dict__['UntypedStorage']
+    if (not isinstance(tensor,type) or not isinstance(storage,type) or
+            type.__getattribute__(tensor,'__module__') != 'torch' or
+            type.__getattribute__(storage,'__module__') != 'torch.storage'):
+        raise ValueError('unsupported native tensor descriptors')
+    untyped,device_get,shape_get,dtype_get = (_observation_member(tensor,key)
+        for key in ('untyped_storage','device','shape','dtype'))
+    pointer,nbytes,storage_device = (_observation_member(storage,key) for key in ('data_ptr','nbytes','device'))
+    if (any(type(method) is not _observation_types.MethodDescriptorType for method in (untyped,pointer,nbytes)) or
+            any(type(member) is not _observation_types.GetSetDescriptorType
+                for member in (device_get,shape_get,dtype_get,storage_device))):
+        raise ValueError('unsupported native metadata descriptors')
+    parameter_module = sys.modules.get('torch.nn.parameter')
+    parameter = (parameter_module.__dict__.get('Parameter')
+        if type(parameter_module) is _observation_types.ModuleType else None)
+    if type(value) not in (tensor,storage,parameter): return None
+    owned = None
+    try:
+        if type(value) is storage:
+            owned = value
+            shape,dtype,device = None,None,storage_device.__get__(owned)
+        else:
+            device = device_get.__get__(value)
+            if device.type != 'cpu': return None
+            owned = untyped(value)
+            if type(owned) is not storage: raise ValueError('unsupported storage type')
+            shape = list(shape_get.__get__(value))
+            if len(shape) > 32: raise ValueError('shape quota')
+            dtype = str(dtype_get.__get__(value))
+        if device.type != 'cpu': return None
+        address,size = pointer(owned),nbytes(owned)
+        if type(address) is not int or type(size) is not int or address < 0 or size < 0:
+            raise ValueError('unsupported storage range')
+        return {'object_id':id(value),'type':_observation_type(value),'storage_id':id(owned),
+            'address':address,'end':address+size,'bytes':size,'shape':shape,'dtype':dtype,'device':'cpu'}
+    finally:
+        owned = value = torch = parameter_module = None
+
+
+def _observation_owners(frame, error, mappings):
+    record = {'diagnostic_complete':False,'candidates':[],'roots':[],
+        'limitations':['GC enumeration has no bounded streaming API; global snapshot not allocated',
+                      'native/C++ ownership is not observable'], 'owner':'unresolved'}
+    seen,errors,trace_roots = set(),[],[]
+    value = current = trace = parent = torch = namespace = source_frame = None
+    edges = 0
+    try:
+        torch = sys.modules.get('torch')
+        if type(torch) is not _observation_types.ModuleType:
+            raise ValueError('loaded torch module unavailable')
+        # The loader has already authenticated these package files, without a diagnostic rehash.
+        guards = frame.f_locals.get('guards',{})
+        torch_path = torch.__dict__.get('__file__')
+        if type(guards) is not dict or type(torch_path) is not str or not sha_ok(guards.get(torch_path)):
+            raise ValueError('torch origin not in authenticated loader guards')
+
+        def walk(value, path, depth=0):
+            nonlocal edges
+            edges += 1
+            if edges > 512: raise ValueError('owner edge quota')
+            if depth > 8: raise ValueError('owner depth quota')
+            if type(value) in (str,bytes,int,float,bool,type(None)): return
+            if isinstance(value,type) or type(value) in (_observation_types.FunctionType,
+                    _observation_types.CodeType,_observation_types.BuiltinFunctionType,_observation_types.ModuleType):
+                return
+            candidate = _observation_storage(value,torch)
+            if candidate is not None:
+                if any(candidate['address'] < row['end'] and candidate['end'] > row['start'] for row in mappings):
+                    if len(record['candidates']) == 64: raise ValueError('candidate quota')
+                    record['candidates'].append({**candidate,'path':path})
+                    record['owner'] = 'observed Python retaining path; other owners unresolved'
+                return
+            if id(value) in seen: return
+            seen.add(id(value))
+            if type(value) in (tuple,list):
+                for index,item in enumerate(value): walk(item,path+'['+str(index)+']',depth+1)
+                return
+            namespace = _observation_dict(value)
+            if namespace is not None:
+                for key,item in namespace.items():
+                    if type(key) is not str or len(key) > 256: raise ValueError('owner key unsupported')
+                    if key == '__builtins__': continue
+                    walk(item,path+'.'+key,depth+1)
+            else:
+                if 'unsupported object type' not in record['limitations']:
+                    record['limitations'].append('unsupported object type')
+
+        def root(value, label):
+            record['roots'].append(label)
+            seen.clear()
+            walk(value,label)
+
+        if error is not None: errors.append(error)
+        error_seen,trace_count = set(),0
+        while errors:
+            current = errors.pop()
+            if id(current) in error_seen: continue
+            if len(error_seen) == 64: raise ValueError('owner exception quota')
+            error_seen.add(id(current))
+            trace = BaseException.__traceback__.__get__(current)
+            while trace is not None:
+                trace_count += 1
+                if trace_count > 512: raise ValueError('owner traceback quota')
+                trace_roots.append((trace.tb_frame,'traceback:'+trace.tb_frame.f_code.co_name+':'+str(trace.tb_lineno)))
+                trace = trace.tb_next
+            for value in (BaseException.__cause__.__get__(current),BaseException.__context__.__get__(current)):
+                if value is not None: errors.append(value)
+            if isinstance(current,BaseExceptionGroup):
+                members = BaseExceptionGroup.exceptions.__get__(current)
+                if len(members) > 64: raise ValueError('owner member quota')
+                errors.extend(members)
+        # Mapped arguments precede large environment/guard dictionaries in the finite traversal budget.
+        for source_frame,label in trace_roots:
+            for name in ('value','overlay','buffers','tensors','disk'):
+                if name in source_frame.f_locals: root(source_frame.f_locals[name],label+'.'+name)
+        for source_frame,label in trace_roots: root(source_frame.f_locals,label)
+        root(frame.f_locals,'loader_local')
+        modules = frame.f_locals.get('modules',{})
+        if type(modules) is dict and len(modules) <= 16:
+            for name,value in modules.items():
+                if type(value) is _observation_types.ModuleType and sys.modules.get(value.__name__) is value:
+                    source = value.__dict__.get('__file__')
+                    if type(source) is str and sha_ok(guards.get(source)):
+                        root(value.__dict__,'copied_module:'+name)
+        parent = frame.f_back
+        for _ in range(16):
+            if parent is None: break
+            for name in ('t','context'):
+                if name in parent.f_locals: root(parent.f_locals[name],'parent:'+name)
+            parent = parent.f_back
+        cache = frame.f_locals.get('cache')
+        if type(cache) is _observation_functools._lru_cache_wrapper:
+            info = _observation_functools._lru_cache_wrapper.cache_info(cache)
+            record['processor_cache'] = {'hits':info.hits,'misses':info.misses,'maxsize':info.maxsize,'currsize':info.currsize}
+        record['edges_visited'] = edges
+        _observation_json(record)
+        return record
+    except BaseException:
+        record.update(reason='owner inspection or quota failure',edges_visited=edges)
+        try:
+            _observation_json(record)
+            return record
+        except BaseException:
+            return {'diagnostic_complete':False,'owner':'unresolved','reason':'owner encoded quota failure'}
+    finally:
+        errors.clear(); trace_roots.clear()
+        frame = error = value = current = trace = parent = torch = namespace = source_frame = None
+
+
+class _LoaderObservation:
+    """Scalar-only witness of authenticated original code; never owns loader tensors or frames."""
+    def __init__(self, portable, name, directory, pin, guards, registry):
+        self.active = self.eligible = False
+        self.previous = self.profile = None
+        self.points, self.seen = {},set()
+        try:
+            path = Path(directory)/TRAINER
+            if (type(portable) is not _observation_types.ModuleType or type(registry) is not dict or
+                    registry.get(name) is not portable or sys.modules.get(name) is not portable or
+                    portable.__dict__.get('__name__') != name or portable.__dict__.get('__file__') != str(path) or
+                    portable.__dict__.get('__spec__') is None or portable.__spec__.origin != str(path) or
+                    pin != dict(HISTORICAL)[TRAINER] or guards.get(str(path)) != pin):
+                raise ValueError('copied source authentication binding')
+            with path.open('rb') as stream: raw = stream.read(262145)
+            if len(raw) > 262144: raise ValueError('source quota')
+            if hashlib.sha256(raw).hexdigest() != pin: raise ValueError('copied source bytes changed')
+            tree = ast.parse(raw,filename=str(path))
+            compiled = compile(raw,str(path),'exec')
+            for function,filename in (('load_inference','endpoint.pt'),('construct_encoder','vision.pt')):
+                nodes = [n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name == function]
+                if len(nodes) != 1: raise ValueError('source function cardinality')
+                node = nodes[0]
+                targets = [n for n in ast.walk(node) if isinstance(n,ast.Try) and
+                    [ast.unparse(v) for v in n.finalbody] == ['del disk','gc.collect()','mapping_absent(path)']]
+                if len(targets) != 1: raise ValueError('original mapping seam differs')
+                code = [c for c in compiled.co_consts if type(c) is _observation_types.CodeType and c.co_name == function]
+                method = portable.__dict__.get(function)
+                if (len(code) != 1 or type(method) is not _observation_types.FunctionType or
+                        method.__globals__ is not portable.__dict__ or method.__code__ != code[0] or
+                        method.__code__.co_filename != str(path)):
+                    raise ValueError('original code/global/line binding')
+                checkpoint = Path(directory)/filename
+                stat = checkpoint.stat()
+                sha = guards.get(str(checkpoint))
+                if not sha_ok(sha): raise ValueError('checkpoint authentication binding')
+                self.points[id(method.__code__)] = {'function':function,'line':targets[0].finalbody[-1].lineno,
+                    'path':str(checkpoint),'identity':(stat.st_dev,stat.st_ino),'sha256':sha}
+            self.module_id,self.globals_id,self.name = id(portable),id(portable.__dict__),name
+            self.source,self.pin = str(path),pin
+            self.eligible = True
+        except BaseException:
+            _observation_emit({'event':'observation_ineligible','diagnostic_complete':False,
+                'reason':'source/type/auth/AST contract failed'})
+
+    def start(self):
+        self.previous,self.profile = sys.gettrace(),sys.getprofile()
+        if not self.eligible or self.previous is not None:
+            _observation_emit({'event':'observation_ineligible','diagnostic_complete':False,
+                'reason':'source contract or existing trace'})
+            return
+        try:
+            self.active = True
+            sys.settrace(self.trace)
+        except BaseException:
+            self.close()
+
+    def trace(self, frame, event, arg):
+        try:
+            point = self.points.get(id(frame.f_code))
+            if point is None or id(frame.f_globals) != self.globals_id: return None
+            if event != 'line' or frame.f_lineno != point['line']: return self.trace
+            if point['function'] in self.seen: return self.trace
+            self.seen.add(point['function'])
+            error = sys.exception()
+            record = {'event':'before_original_mapping_guard','function':point['function'],
+                'source':self.source,'source_sha256':self.pin,'line':point['line'],'checkpoint':point['path'],
+                'code_id':id(frame.f_code),'globals_id':id(frame.f_globals),
+                'errors':_observation_errors(error),'diagnostic_complete':False}
+            try:
+                module = sys.modules.get(self.name)
+                if (id(module) != self.module_id or id(module.__dict__) != self.globals_id or
+                        module.__dict__[point['function']].__code__ is not frame.f_code or
+                        str(frame.f_locals['path']) != point['path'] or
+                        frame.f_locals['guards'].get(point['path']) != point['sha256']):
+                    raise ValueError('live registry/path/auth binding changed')
+                mappings = _observation_maps(Path(point['path']),point['identity'])
+                owners = _observation_owners(frame,error,mappings)
+                record.update({'binding_complete':True,'device':point['identity'][0],'inode':point['identity'][1],
+                    'mappings':mappings,'locals_present':{k:k in frame.f_locals for k in
+                        ('disk','endpoint','copied','pages','model','head','cache')},
+                    'owners':owners})
+                record['diagnostic_complete'] = record['errors']['diagnostic_complete'] and owners['diagnostic_complete']
+            except BaseException:
+                record['reason'] = 'live binding/maps inspection or quota failure'
+            _observation_emit(record)
+            return self.trace
+        except BaseException:
+            _observation_emit({'event':'observation_incomplete','diagnostic_complete':False})
+            return self.trace
+        finally:
+            frame = arg = None
+
+    def close(self):
+        try:
+            if self.active:
+                sys.settrace(self.previous)
+                if sys.getprofile() is not self.profile: sys.setprofile(self.profile)
+        except BaseException:
+            _observation_emit({'event':'observation_incomplete','diagnostic_complete':False,'reason':'hook restoration failed'})
+        finally:
+            self.active = False
+            self.previous = self.profile = None
+# END bounded loader observation
 
 
 if __name__ == '__main__':
