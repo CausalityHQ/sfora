@@ -1,7 +1,9 @@
 """Real tiny-file descriptor handoff checks; no model or native imports."""
 
+import hashlib
 import importlib.util
 import os
+import stat
 import tempfile
 import unittest
 from pathlib import Path, PurePosixPath
@@ -19,6 +21,101 @@ class DirectoryHandoffTests(unittest.TestCase):
         ):
             with self.subTest(filename=filename):
                 self.check_handoff(filename, function, extra)
+
+    def test_read_error_survives_both_descriptor_close_errors(self) -> None:
+        for filename, function, extra in (
+            ("connected_artifact_identity.py", "_installed_sha", ()),
+            ("connected_installed_environment.py", "_read_file", ("0" * 64, None)),
+        ):
+            with self.subTest(filename=filename):
+                self.check_read_cleanup(filename, function, extra)
+
+    def check_read_cleanup(self, filename, function, extra) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            spec = importlib.util.spec_from_file_location(
+                "_cleanup_under_test", ROOT / "src/sfora" / filename
+            )
+            assert spec and spec.loader
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            leaf = Path(tmp, "opaque")
+            leaf.write_bytes(b"opaque")
+            primary = MemoryError("original read failure")
+            closing_read = False
+            closed = []
+            proxy = SimpleNamespace(
+                **{name: getattr(os, name) for name in dir(os) if not name.startswith("__")}
+            )
+
+            def opening_stream(*args, **kwargs):
+                nonlocal closing_read
+                closing_read = True
+                raise primary
+
+            def closing(fd):
+                os.close(fd)
+                if closing_read:
+                    closed.append(fd)
+                    raise OSError("close failed after releasing descriptor")
+
+            proxy.fdopen, proxy.close = opening_stream, closing
+            with patch.object(module, "os", proxy), self.assertRaises(MemoryError) as caught:
+                getattr(module, function)(PurePosixPath(leaf), *extra)
+            self.assertIs(caught.exception, primary)
+            self.assertEqual(len(closed), 2)
+            self.assertEqual(len(primary.__notes__), 2)
+            for fd in closed:
+                with self.assertRaises(OSError):
+                    os.fstat(fd)
+
+    def test_cleanup_only_failure_is_not_swallowed_inside_callers_except(self) -> None:
+        for filename, function, extra in (
+            ("connected_artifact_identity.py", "_installed_sha", ()),
+            ("connected_installed_environment.py", "_read_file", ("0" * 64, None)),
+        ):
+            with self.subTest(filename=filename):
+                self.check_cleanup_only(filename, function, extra)
+
+    def check_cleanup_only(self, filename, function, extra) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            spec = importlib.util.spec_from_file_location(
+                "_cleanup_only", ROOT / "src/sfora" / filename
+            )
+            assert spec and spec.loader
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            leaf = Path(tmp, "opaque")
+            leaf.write_bytes(b"opaque")
+            args = () if not extra else (hashlib.sha256(b"opaque").hexdigest(), None)
+            cleanup = RuntimeError("directory close failed")
+            proxy = SimpleNamespace(
+                **{name: getattr(os, name) for name in dir(os) if not name.startswith("__")}
+            )
+
+            close_read = False
+
+            def closing(fd):
+                directory = stat.S_ISDIR(os.fstat(fd).st_mode)
+                os.close(fd)
+                if directory and close_read:
+                    raise cleanup
+
+            original_fdopen = proxy.fdopen
+
+            def opening_stream(*args, **kwargs):
+                nonlocal close_read
+                close_read = True
+                return original_fdopen(*args, **kwargs)
+
+            proxy.fdopen, proxy.close = opening_stream, closing
+            caller = ValueError("already handled by caller")
+            try:
+                raise caller
+            except ValueError:
+                with patch.object(module, "os", proxy), self.assertRaises(RuntimeError) as caught:
+                    getattr(module, function)(PurePosixPath(leaf), *args)
+            self.assertIs(caught.exception, cleanup)
+            self.assertFalse(hasattr(caller, "__notes__"))
 
     def check_handoff(self, filename: str, function: str, extra: tuple[object, ...]) -> None:
         with tempfile.TemporaryDirectory() as tmp:

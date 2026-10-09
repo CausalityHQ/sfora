@@ -348,6 +348,7 @@ def _read_file(
     path: PurePosixPath, expected: str, size: int | None, *, capture: bool = False
 ) -> bytes:
     directory = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    failure: BaseException | None = None
     try:
         for part in path.parts[1:-1]:
             child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
@@ -396,12 +397,29 @@ def _read_file(
                     "fresh installed SHA/size differs",
                 )
                 return b"".join(chunks) if capture else b""
+        except BaseException as primary:
+            failure = primary
+            raise
         finally:
-            os.close(fd)
+            try:
+                os.close(fd)
+            except BaseException as cleanup:
+                if failure is None:
+                    raise
+                failure.add_note("source descriptor close failed: " + repr(cleanup))
     except OSError as error:
-        raise ValueError("nonsymlink installed path required") from error
+        failure = ValueError("nonsymlink installed path required")
+        raise failure from error
+    except BaseException as primary:
+        failure = primary
+        raise
     finally:
-        os.close(directory)
+        try:
+            os.close(directory)
+        except BaseException as cleanup:
+            if failure is None:
+                raise
+            failure.add_note("directory descriptor close failed: " + repr(cleanup))
 
 
 def _record_row(rel: str, sha: str, size: int) -> list[str]:

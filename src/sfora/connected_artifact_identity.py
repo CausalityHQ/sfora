@@ -170,13 +170,13 @@ def restore_identity(
 def _installed_sha(path: PurePosixPath) -> str:
     # Walk open directory descriptors so no parent or leaf symlink is followed.
     directory = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    failure: BaseException | None = None
     try:
         for part in path.parts[1:-1]:
             child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
             parent, directory = directory, child
             os.close(parent)
         source = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
-        failure: BaseException | None = None
         try:
             with os.fdopen(source, "rb", closefd=False) as stream:
                 if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
@@ -197,9 +197,18 @@ def _installed_sha(path: PurePosixPath) -> str:
                     raise
                 failure.add_note("source descriptor close failed: " + repr(cleanup))
     except OSError as error:
-        raise ValueError("installed source must exist beneath nonsymlink directories") from error
+        failure = ValueError("installed source must exist beneath nonsymlink directories")
+        raise failure from error
+    except BaseException as primary:
+        failure = primary
+        raise
     finally:
-        os.close(directory)
+        try:
+            os.close(directory)
+        except BaseException as cleanup:
+            if failure is None:
+                raise
+            failure.add_note("directory descriptor close failed: " + repr(cleanup))
 
 
 def materialize_identity(

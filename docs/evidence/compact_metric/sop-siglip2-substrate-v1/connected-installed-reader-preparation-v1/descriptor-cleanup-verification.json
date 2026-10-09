@@ -1,0 +1,19 @@
+{
+  "production": {
+    "src/sfora/connected_artifact_identity.py": {
+      "baseline_sha256": "fce39bae7f468a9cbda7303d2625d31304860b0d9ba412adac97b9750d1da2db",
+      "sha256": "75d6e7a862fcee1b1b324e87b7181e3959e539afb0c240da5200a6dc57cf2156",
+      "outside_function_identical": true
+    },
+    "src/sfora/connected_installed_environment.py": {
+      "baseline_sha256": "07861e18602de93360187c70fb444ce63b1136a04f9799f4469ead03da41c093",
+      "sha256": "1ec916430dee8dc08c8f4a9a05f0616ffc4d0b0731444fd6314fc53533d9dd0a",
+      "outside_function_identical": true
+    }
+  },
+  "existing_test_method_asts_unchanged": true,
+  "red": "Both helpers masked injected MemoryError with descriptor close OSError",
+  "green": "3 handoff/cleanup +22 identity +11 environment PASS on Python 3.12 and 3.14, AS1GiB timeout120",
+  "lint": "Ruff test PASS; production mypy strict PASS",
+  "native_executed": false
+}
