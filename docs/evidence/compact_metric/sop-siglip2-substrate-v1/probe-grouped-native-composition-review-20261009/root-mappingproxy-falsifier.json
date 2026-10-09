@@ -1,0 +1,18 @@
+{
+  "schema": "probe-grouped-native-mappingproxy-falsifier-v1",
+  "native": false,
+  "torch": false,
+  "source": "scripts/train_siglip2_nearest_ranking.py bind_native_authority return",
+  "source_supported_type": "MappingProxyType({'files': MappingProxyType(files), 'modules': MappingProxyType({})})",
+  "draft_site": "_InstalledIdentityBoundary.bind_native copy.deepcopy tuple including owner.supplement",
+  "fixture_gap": "native_world fixture supplement is plain dict",
+  "stdlib_input": "copy.deepcopy(MappingProxyType({'files':MappingProxyType({'lib':'hash'}),'modules':MappingProxyType({})}))",
+  "observed_error": {
+    "type": "TypeError",
+    "message": "cannot pickle 'mappingproxy' object"
+  },
+  "correction": "Keep genuine supplemental proxy identity, independently copy scalar plain files/modules maps for comparisons; make fixture genuine nested MappingProxyType; execute real binding seam RED/GREEN",
+  "message": "immediate-1791522082949047405-665549",
+  "full_gate": "held",
+  "claim": "Source-supported startup blocker; no native or scientific result"
+}
