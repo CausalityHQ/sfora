@@ -1,0 +1,123 @@
+{
+  "guarded_files": 1767,
+  "literal_historical_code_closure_exact": true,
+  "native_files": 262,
+  "original_bundle": {
+    "bytes": 546690,
+    "path": "/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json",
+    "sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153"
+  },
+  "out_of_six_package_roots": {
+    "all_exactly_native_sha_bound": true,
+    "count": 228,
+    "groups": {
+      "/usr/lib/aarch64-linux-gnu": 13,
+      "site-packages/81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so": 1,
+      "site-packages/charset_normalizer": 1,
+      "site-packages/cuda": 7,
+      "site-packages/markupsafe": 1,
+      "site-packages/numpy.libs": 2,
+      "site-packages/nvidia": 20,
+      "site-packages/pandas": 43,
+      "site-packages/pillow.libs": 12,
+      "site-packages/psutil": 1,
+      "site-packages/pyarrow": 9,
+      "site-packages/regex": 1,
+      "site-packages/scikit_learn.libs": 1,
+      "site-packages/scipy": 80,
+      "site-packages/scipy.libs": 3,
+      "site-packages/sklearn": 22,
+      "site-packages/tokenizers": 1,
+      "site-packages/torchvision.libs": 8,
+      "site-packages/triton": 1,
+      "site-packages/yaml": 1
+    },
+    "system_members": {
+      "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1": "393384096ffa869e1be20d2f91fdf08dfadb9f3e531dfe724085d8501d3f85d9",
+      "/usr/lib/aarch64-linux-gnu/libc.so.6": "fe5966a43e068ad7cb389c3affa069f4ee6f296e07d7ccc0398a23cfde4f0b7e",
+      "/usr/lib/aarch64-linux-gnu/libcuda.so.580.159.03": "f6fb476bbefda386491dc5151a593a98bedeff6a4eb0ec4ef766e3b2fe3b9032",
+      "/usr/lib/aarch64-linux-gnu/libdl.so.2": "97387fb55ccfc0cc109dfe99b81de2b7bbaac723d1c215107dc69a068c4b1fae",
+      "/usr/lib/aarch64-linux-gnu/libfribidi.so.0.4.0": "f25617883b0c10df0f143174c49454ca61c571a1051b5480070341223f95fbdb",
+      "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1": "f2d3ad2bf0b61f6bc944cc37d7b6ab7f88d2582b41ff989ca164803f56cc5f20",
+      "/usr/lib/aarch64-linux-gnu/libm.so.6": "d5b262e559d38769e4959f036a1cc2c4009fa60b4ec836a7a19ca8554aebf5a5",
+      "/usr/lib/aarch64-linux-gnu/libnvidia-ml.so.580.159.03": "66763ad0d2cf14c12eca195de0f8c1065390d0b0bbf66fb495f65762893cbbd3",
+      "/usr/lib/aarch64-linux-gnu/libpthread.so.0": "97b288827c0ab29659dfcdcfab6c2e9e1225c19fc5abfe106d8a53c2c7b34402",
+      "/usr/lib/aarch64-linux-gnu/librt.so.1": "4b38331a53bc2bd10c1ecf4f02a71c913c40bad13f5fbf93bee5a0e1f25dd493",
+      "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.33": "6e3112d35cfc86db7ee85b27e1746f67408e2837ff8628b46386c3eabd5682a4",
+      "/usr/lib/aarch64-linux-gnu/libutil.so.1": "fe15c414e7e585bf749be683eba39d2f8db556b678ed8253f6884be660caac31",
+      "/usr/lib/aarch64-linux-gnu/libz.so.1.3": "170380b4e7ab28ec86eb090b48df90f84089392cb72fecd5067e5b7a4dc5239f"
+    }
+  },
+  "packages": {
+    "PIL": {
+      "origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/PIL/__init__.py",
+      "root": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/PIL",
+      "version": "12.2.0"
+    },
+    "numpy": {
+      "origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/__init__.py",
+      "root": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy",
+      "version": "2.5.0"
+    },
+    "safetensors": {
+      "origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/safetensors/__init__.py",
+      "root": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/safetensors",
+      "version": "0.8.0"
+    },
+    "torch": {
+      "origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/__init__.py",
+      "root": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch",
+      "version": "2.12.1"
+    },
+    "torchvision": {
+      "origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision/__init__.py",
+      "root": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision",
+      "version": "0.27.1"
+    },
+    "transformers": {
+      "origin": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/__init__.py",
+      "root": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers",
+      "version": "5.12.1"
+    }
+  },
+  "product_go": false,
+  "required_next_binding": [
+    "Exact owner/distribution or separately named anchor for every out-of-model-package native member; no generic site-packages grant",
+    "Independent target installed source/distribution descriptors retaining original executable byte hashes",
+    "13 exact system/driver byte bindings stay separate from relocated wheel roots",
+    "Original endpoint full/fixed typed authentication remains required before finite origin projection",
+    "Fresh native/resource/lifetime and raw/unit/packed/top10/tie qualification at different installed roots"
+  ],
+  "runtime_origins": {
+    "all_class_package_containment_and_manifest_sha_entries_verified": true,
+    "occurrences": 339,
+    "unique_files": 8
+  },
+  "schema": "connected-original-environment-source-audit-v1",
+  "scientific_goal_met": false,
+  "source_only_remote_transfer": {
+    "captured_transfer_session": 7725,
+    "captured_transfer_terminal": 0,
+    "first_copy_limit": "tool output truncated; original SSH99332 collected0; second read captured exact file bytes",
+    "no_model_images_native_ml_or_environment_mutation": true,
+    "original_first_stdout_transfer_terminal": 0,
+    "python_flags": [
+      "-I",
+      "-S",
+      "-B"
+    ],
+    "read_target": "original bundle.json only",
+    "ssh_host": "riomus@spark-2751"
+  },
+  "unproven": [
+    "No current executable or native member bytes rehashed by this metadata-only audit",
+    "No installed target profile created",
+    "Original endpoint tensors not deserialized",
+    "No converter or native relocated reader run",
+    "No scientific quality/speed qualification"
+  ],
+  "vision_constructor": {
+    "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py",
+    "sha256": "274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31"
+  }
+}
