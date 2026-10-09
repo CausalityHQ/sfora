@@ -108,9 +108,7 @@ class BudgetedPublisher:
         matching = [
             row
             for row in rows or []
-            if type(row) is dict
-            and row.get("name") == name
-            and row.get("path") == relative
+            if type(row) is dict and row.get("name") == name and row.get("path") == relative
         ]
         if len(matching) != 1:
             raise ValueError("publication budget row differs")
@@ -136,15 +134,12 @@ class BudgetedPublisher:
             existing.add(relative_path)
             registered_row = registered[relative_path]
             registered_bound = (
-                registered_row["persistent_bytes"]
-                or registered_row["temporary_bytes"]
+                registered_row["persistent_bytes"] or registered_row["temporary_bytes"]
             )
             if path.is_file() and path.stat().st_size > registered_bound:
                 raise OSError(errno.EFBIG, "persisted publication exceeds budget")
         remaining_rows = [
-            candidate
-            for candidate in rows or []
-            if candidate["path"] not in existing
+            candidate for candidate in rows or [] if candidate["path"] not in existing
         ]
         required_bytes = sum(
             candidate["persistent_bytes"] + candidate["temporary_bytes"]
@@ -177,13 +172,9 @@ class BudgetedPublisher:
     def validate_payload(
         self, *, name: str, destination: Path, payload: bytes
     ) -> Mapping[str, object]:
-        return self.validate_size(
-            name=name, destination=destination, size=len(payload)
-        )
+        return self.validate_size(name=name, destination=destination, size=len(payload))
 
-    def validate_size(
-        self, *, name: str, destination: Path, size: int
-    ) -> Mapping[str, object]:
+    def validate_size(self, *, name: str, destination: Path, size: int) -> Mapping[str, object]:
         if type(size) is not int or size < 0:
             raise ValueError("publication payload size differs")
         row = self._row(name, destination)
@@ -391,9 +382,7 @@ def publish_large_writer_noreplace(
         os.fsync(descriptor)
         info = os.fstat(descriptor)
         owned = (info.st_dev, info.st_ino)
-        read_descriptor = os.open(
-            f"/proc/self/fd/{descriptor}", os.O_RDONLY | os.O_CLOEXEC
-        )
+        read_descriptor = os.open(f"/proc/self/fd/{descriptor}", os.O_RDONLY | os.O_CLOEXEC)
         try:
             validator(read_descriptor, info.st_size)
         finally:
@@ -447,9 +436,7 @@ def publish_large_writer_noreplace(
         os.close(directory)
 
 
-def publish_bytes_noreplace(
-    path: Path, payload: bytes, *, validator: Validator
-) -> PublishedFile:
+def publish_bytes_noreplace(path: Path, payload: bytes, *, validator: Validator) -> PublishedFile:
     if type(payload) is not bytes:
         raise TypeError("immutable publication payload must be bytes")
     return publish_writer_noreplace(

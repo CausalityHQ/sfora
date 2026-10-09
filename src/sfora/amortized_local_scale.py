@@ -84,9 +84,7 @@ def fit_ridge_potential(
         )
         weights = np.asarray(weights_standardized * target_scale, dtype=np.float64)
     intercept = float(target_mean - design_mean @ weights)
-    return RidgePotential(
-        weights=weights, intercept=intercept, ridge_lambda=ridge_lambda
-    )
+    return RidgePotential(weights=weights, intercept=intercept, ridge_lambda=ridge_lambda)
 
 
 def predict_potential(model: RidgePotential, embeddings: np.ndarray) -> np.ndarray:
@@ -115,14 +113,10 @@ def select_ridge_lambda(
     """Select the first ridge lambda attaining the lowest validation MSE."""
 
     fit_design = _validate_design(fit_embeddings, name="fit_embeddings")
-    validation_design = _validate_design(
-        validation_embeddings, name="validation_embeddings"
-    )
+    validation_design = _validate_design(validation_embeddings, name="validation_embeddings")
     if fit_design.shape[1] != validation_design.shape[1]:
         raise ValueError("fit and validation embedding dimensions differ")
-    fit_response = _validate_targets(
-        fit_targets, fit_design.shape[0], name="fit_targets"
-    )
+    fit_response = _validate_targets(fit_targets, fit_design.shape[0], name="fit_targets")
     validation_response = _validate_targets(
         validation_targets,
         validation_design.shape[0],
@@ -148,11 +142,7 @@ def select_ridge_lambda(
 
 
 def _validate_labels(value: np.ndarray, row_count: int, *, name: str) -> np.ndarray:
-    if (
-        not isinstance(value, np.ndarray)
-        or value.shape != (row_count,)
-        or value.dtype != np.int64
-    ):
+    if not isinstance(value, np.ndarray) or value.shape != (row_count,) or value.dtype != np.int64:
         raise ValueError(f"{name} must be a row-aligned int64 vector")
     return value
 
@@ -162,8 +152,7 @@ def _exact_mcnemar(wrong_to_right: int, right_to_wrong: int) -> float:
     if discordant == 0:
         return 1.0
     tail = sum(
-        math.comb(discordant, index)
-        for index in range(min(wrong_to_right, right_to_wrong) + 1)
+        math.comb(discordant, index) for index in range(min(wrong_to_right, right_to_wrong) + 1)
     )
     return min(1.0, float(Fraction(2 * tail, 2**discordant)))
 
@@ -202,9 +191,7 @@ def compare_potentials(
     gallery_matrix = _validate_embeddings(gallery)
     if query_matrix.shape[1] != gallery_matrix.shape[1]:
         raise ValueError("query and gallery embedding dimensions differ")
-    query_targets = _validate_labels(
-        query_labels, query_matrix.shape[0], name="query_labels"
-    )
+    query_targets = _validate_labels(query_labels, query_matrix.shape[0], name="query_labels")
     gallery_targets = _validate_labels(
         gallery_labels, gallery_matrix.shape[0], name="gallery_labels"
     )
@@ -222,9 +209,7 @@ def compare_potentials(
             or potential.dtype != np.float64
             or not np.isfinite(potential).all()
         ):
-            raise ValueError(
-                "each potential must be a finite gallery-aligned float64 vector"
-            )
+            raise ValueError("each potential must be a finite gallery-aligned float64 vector")
         potential32[name] = np.asarray(potential, dtype=np.float32)
 
     raw_indices = np.empty(query_matrix.shape[0], dtype=np.int64)
@@ -240,9 +225,7 @@ def compare_potentials(
         )
         raw_indices[start:stop] = np.argmax(scores, axis=1)
         for name, potential in potential32.items():
-            corrected_indices[name][start:stop] = np.argmax(
-                scores - potential, axis=1
-            )
+            corrected_indices[name][start:stop] = np.argmax(scores - potential, axis=1)
     raw_correct = gallery_targets[raw_indices] == query_targets
     raw_recall = float(np.mean(raw_correct, dtype=np.float64))
     results: dict[str, RetrievalComparison] = {}
@@ -286,14 +269,10 @@ def _correlation(left: np.ndarray, right: np.ndarray) -> float:
     )
     if denominator == 0.0:
         return 0.0
-    return float(
-        np.sum(left_centered * right_centered, dtype=np.float64) / denominator
-    )
+    return float(np.sum(left_centered * right_centered, dtype=np.float64) / denominator)
 
 
-def density_diagnostics(
-    predicted: np.ndarray, observed: np.ndarray
-) -> dict[str, float]:
+def density_diagnostics(predicted: np.ndarray, observed: np.ndarray) -> dict[str, float]:
     """Return Pearson, average-rank Spearman, and MSE diagnostics."""
 
     if (
@@ -409,9 +388,7 @@ def nonself_density(
     return result
 
 
-def split_labels(
-    labels: np.ndarray, fit_fraction: float = 0.8
-) -> tuple[np.ndarray, np.ndarray]:
+def split_labels(labels: np.ndarray, fit_fraction: float = 0.8) -> tuple[np.ndarray, np.ndarray]:
     """Return a deterministic hash-ordered class-disjoint fit/validation split."""
 
     if (

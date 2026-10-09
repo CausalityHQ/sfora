@@ -36,8 +36,10 @@ def barrier_energy_loss(
         raise ValueError("temperature must be positive and path_points must be at least two")
     if np.any(label_array < 0) or np.any(label_array >= proxy_array.shape[0]):
         raise ValueError("labels must index proxies")
+
     def normalize(array: NDArray[np.float64]) -> NDArray[np.float64]:
         return array / np.maximum(np.linalg.norm(array, axis=1, keepdims=True), 1e-12)
+
     anchor_unit = normalize(anchor_array)
     positive_unit = normalize(positive_array)
     proxy_unit = normalize(proxy_array)
