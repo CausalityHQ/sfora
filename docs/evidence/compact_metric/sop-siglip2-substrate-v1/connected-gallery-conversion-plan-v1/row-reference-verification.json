@@ -1,0 +1,12 @@
+{
+  "original_ssh_exit": 0,
+  "authenticated_host": "riomus@spark-2751",
+  "local_synthetic_self_test": "PASS within15s AS1GiB",
+  "remote_same_source_self_test": "PASS before observation",
+  "source_sha256": "106ede885d75d7298db91f5565c77b87f68851e478c6a687c80b87a5a1edf6a4",
+  "original_result_sha256": "b24ab59ab579c10cb701ac7ef344e1eedc39bd6a1d06722e59f5fbb6bcbc05a9",
+  "method": "independent os.pread per recorded ordinal, streamed digest; immutable accepted receipt and full wire SHA checked",
+  "derived_hash_is_not_original_producer_observation": true,
+  "artifact_publication": false,
+  "native_or_serving_qualification": false
+}
