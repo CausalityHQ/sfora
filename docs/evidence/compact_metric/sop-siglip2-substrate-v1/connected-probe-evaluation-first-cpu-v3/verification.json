@@ -1,0 +1,30 @@
+{
+  "before_after_ordered_sha_checks": 18812,
+  "complete_parent_check_receipt_executed": false,
+  "complete_production_accept_unit_required_before_export_cuda": true,
+  "engineering_only": true,
+  "helper_pinned_before_before_and_inside_both_tables": true,
+  "next_gate": "ONE serial export per arm after complete production accept_unit, original source/parity/native exact four/resource gates unchanged",
+  "normal_terminal_full_source_exit": true,
+  "parent_verifier_initial_path_error_corrected_without_native_rerun": true,
+  "pass": true,
+  "quality_read": false,
+  "scalar_original_payload_bootstrap_resource_predicates_pass": true,
+  "schema": "connected-probe-evaluator-cpu-parent-verification-v1",
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "462e354ef9df42668c20b4d257baff12",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-probe-evaluation-source-v1/first-cpu-v3-original.log",
+      "sha256": "6a3757ce542258df080ff5db05d7b181e7b9782bb1141c52cc15981bd93a383d"
+    },
+    "native_peak_rss_kib": 1291372,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-probe-evaluation-first-cpu-v3/receipt.json",
+      "sha256": "5b467400e12ce9a98eb81ea46d8966e2cbc0f9d7dc1f7391393c7f9756efbf37"
+    },
+    "service_seconds": 442.546,
+    "unit": "sfora-connected-probe-evaluation-first-cpu-v3"
+  },
+  "whole_unit_peak_host_bytes": 1849597952
+}

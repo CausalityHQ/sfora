@@ -1,0 +1,17 @@
+{
+  "files": {
+    "authority-export-control-179061-v1.json": "0585ea60b6a38ec3e7ea4da1d9733e9819bb044632cb9c861d33ff585b0687bc",
+    "export-control-179061-v1-command.sh": "45bdbf2b46a6e205e7e7464815176f7a73e1f710069ff0c76ea62f1707a82c3b",
+    "export-control-179061-v1-controller.sh": "6d94e115ad058460ce0af062d130c35ac2793a21bf91919abf059ca9c599bb5a",
+    "export-control-179061-v1-launch.sh": "85f9861cb68c39f0de0e56189790fcdee2ae76089b632331a1124cf3e4559d6c"
+  },
+  "policy": {
+    "cuda_visible_devices": "0",
+    "host_bytes": 8589934592,
+    "seconds": 1500,
+    "swap_bytes": 0
+  },
+  "schema": "connected-probe-first-export-freeze-v1",
+  "stop_rule": "ONE export per arm, serial, after original accepted CPU; complete two-pass B32 tails, parity/source/native exact four/full exit and original limits; no quality/speed eligibility.",
+  "unit": "sfora-connected-probe-evaluation-export-control-179061-v1"
+}

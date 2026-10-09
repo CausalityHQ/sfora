@@ -1,0 +1,15 @@
+{
+  "both_locks_held": true,
+  "invocation_id": "462e354ef9df42668c20b4d257baff12",
+  "log": {
+    "path": "/home/riomus/runs/sfora-connected-probe-evaluation-source-v1/first-cpu-v3-original.log",
+    "sha256": "6a3757ce542258df080ff5db05d7b181e7b9782bb1141c52cc15981bd93a383d"
+  },
+  "native_peak_rss_kib": 1291372,
+  "receipt": {
+    "path": "/home/riomus/runs/sfora-connected-probe-evaluation-first-cpu-v3/receipt.json",
+    "sha256": "5b467400e12ce9a98eb81ea46d8966e2cbc0f9d7dc1f7391393c7f9756efbf37"
+  },
+  "service_seconds": 442.546,
+  "unit": "sfora-connected-probe-evaluation-first-cpu-v3"
+}
