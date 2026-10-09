@@ -1,0 +1,9 @@
+{
+  "ssh_session": 93957,
+  "original_exit": 0,
+  "transport": "authenticated riomus@spark-2751",
+  "stdlib_only": true,
+  "artifact_sha256": "3a5ac3c223e4bd03dd37d287734d738e3597b8c58e1dbf704cb9f57f9d5f3b42",
+  "scope": "fresh original metadata and opaque combined-wire hashes; no decode/conversion/native execution",
+  "gallery_wire_sha256": null
+}
