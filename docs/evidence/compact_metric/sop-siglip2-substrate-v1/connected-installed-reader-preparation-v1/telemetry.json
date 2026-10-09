@@ -1,0 +1,26 @@
+{
+  "gpu_command": "nvidia-smi --query-gpu=timestamp,name,utilization.gpu,memory.used,memory.total --format=csv,noheader",
+  "gpu_exit": 0,
+  "gpu_ssh_session": 67236,
+  "gpu_stdout": "2026/10/09 23:31:16.006, NVIDIA GB10, 0 %, [N/A], [N/A]\n",
+  "host": "riomus@spark-2751",
+  "limitations": [
+    "One utilization snapshot only",
+    "No GPU memory measurement available",
+    "User-service listing does not enumerate arbitrary host processes",
+    "No host mutation or native permission inferred"
+  ],
+  "new_native_job_launched": false,
+  "reader_specialist": {
+    "base": "5066f3ea9407edaf51a4afe1aeeb4d857791e457",
+    "code_hold": true,
+    "name": "sfora/connected-installed-artifact-reader-20261009",
+    "native_hold": true,
+    "route_decision": "f9d56c65-ac5a-42dc-9bb4-ea7c3de85e74"
+  },
+  "schema": "connected-reader-preparation-telemetry-v1",
+  "service_command": "systemctl --user list-units --type=service --state=running --no-legend --no-pager \"sfora-*\"",
+  "service_exit": 0,
+  "service_ssh_session": 36734,
+  "service_stdout": "\n"
+}
