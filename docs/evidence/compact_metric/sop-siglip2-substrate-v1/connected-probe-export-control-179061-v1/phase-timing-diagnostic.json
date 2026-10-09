@@ -1,0 +1,25 @@
+{
+  "cuda_peak_bytes": 2066498560,
+  "gpu_utilization": "UNMEASURED_SUSTAINED; external observer collected only inactive terminal sample",
+  "host_peak_bytes": 5189271552,
+  "overlapping_stages_not_additive": true,
+  "product_latency_qualified": false,
+  "runtime_hash": {
+    "count": 228,
+    "median_seconds": 0.3174201634974452,
+    "sum_seconds": 74.44074228193494
+  },
+  "schema": "connected-probe-export-inclusive-timing-diagnostic-v1",
+  "stages": {
+    "exit_rehash": {
+      "count": 1,
+      "median_seconds": 71.74354902800405,
+      "sum_seconds": 71.74354902800405
+    },
+    "images_outputs": {
+      "count": 218,
+      "median_seconds": 2.70538460399257,
+      "sum_seconds": 670.5847480427765
+    }
+  }
+}

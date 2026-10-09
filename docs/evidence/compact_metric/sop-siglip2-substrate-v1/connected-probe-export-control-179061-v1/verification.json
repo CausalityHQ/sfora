@@ -1,0 +1,31 @@
+{
+  "all_ordered_before_after_fresh_hash_checks": 37590,
+  "complete_parent_check_receipt_executed": false,
+  "complete_production_accept_unit_required_before_score_quality": true,
+  "cuda_peak_bytes": 2066498560,
+  "engineering_only": true,
+  "host_peak_bytes": 5189271552,
+  "native_wire_readback_and_independent_reload_in_original_receipt": true,
+  "pass": true,
+  "quality_read": false,
+  "query_gallery_tail_sizes": [
+    6,
+    19
+  ],
+  "schema": "connected-probe-export-parent-verification-v1",
+  "terminal": {
+    "both_locks_held": true,
+    "invocation_id": "5840abd0a03f42eabfa5fdee3595161d",
+    "log": {
+      "path": "/home/riomus/runs/sfora-connected-probe-evaluation-source-v1/export-control-179061-v1-original.log",
+      "sha256": "3e66639be0ad137e20025e9c625ac592cf603a051cd0a0b48fb3dc2168e0cc98"
+    },
+    "native_peak_rss_kib": 4222124,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-connected-probe-evaluation-export-control-179061-v1/receipt.json",
+      "sha256": "cdf477b87812126e259a8bc0e38a0e152d426a4a63bd82ace2fdce8c68c5728b"
+    },
+    "service_seconds": 1251.502,
+    "unit": "sfora-connected-probe-evaluation-export-control-179061-v1"
+  }
+}
