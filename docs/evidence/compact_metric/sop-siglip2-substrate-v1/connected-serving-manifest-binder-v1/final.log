@@ -1,0 +1,10 @@
+Python 3.12.13
+Python 3.14.4
+ruff 0.15.20
+mypy 2.1.0 (compiled: yes)
+2 files already formatted
+All checks passed!
+pyproject.toml: note: unused section(s): module = ['datasets', 'h5py', 'sentence_transformers', 'sklearn.*', 'torch', 'torchvision', 'torchvision.*']
+Success: no issues found in 2 source files
+102ab0ab54eff3a0f1d4fa9526966b94f18e648a2a69ad41020148e71741bd08  src/sfora/connected_serving_artifact.py
+c5dc648caf0af1e25d927c64a2ba6525c5a061a702038d5f64ff467eb18ed10a  scripts/test_connected_serving_artifact.py

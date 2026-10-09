@@ -1,0 +1,63 @@
+test_all_pins_precede_every_json_parse (__main__.ServingTests.test_all_pins_precede_every_json_parse) ... ok
+test_builtin_types_and_exact_input_sets (__main__.ServingTests.test_builtin_types_and_exact_input_sets) ... ok
+test_canonical_selection_and_ids (__main__.ServingTests.test_canonical_selection_and_ids) ... ok
+test_exact_types_values_and_basenames (__main__.ServingTests.test_exact_types_values_and_basenames) ... ok
+test_fragment_file_facts_must_match_actual_bytes (__main__.ServingTests.test_fragment_file_facts_must_match_actual_bytes) ... ok
+test_genuine_converter_and_detached_nonmutating_result (__main__.ServingTests.test_genuine_converter_and_detached_nonmutating_result) ... ok
+test_json_size_bound_before_parse (__main__.ServingTests.test_json_size_bound_before_parse) ... ok
+test_manifest_exact_keys_and_file_records (__main__.ServingTests.test_manifest_exact_keys_and_file_records) ... ok
+test_minimum_gallery_size (__main__.ServingTests.test_minimum_gallery_size) ... ok
+test_no_filesystem_or_native_access (__main__.ServingTests.test_no_filesystem_or_native_access) ... ok
+test_payload_sha_and_original_identity_are_bound (__main__.ServingTests.test_payload_sha_and_original_identity_are_bound) ... ok
+test_repinned_provenance_cannot_replace_original_producer (__main__.ServingTests.test_repinned_provenance_cannot_replace_original_producer) ... ok
+test_snapshot_keeps_authenticated_bytes_and_pins_together (__main__.ServingTests.test_snapshot_keeps_authenticated_bytes_and_pins_together) ... ok
+test_strict_json_and_utf8 (__main__.ServingTests.test_strict_json_and_utf8) ... ok
+test_wire_reorder_duplicate_and_length (__main__.ServingTests.test_wire_reorder_duplicate_and_length) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.162s
+
+OK
+test_all_pins_precede_every_json_parse (__main__.ServingTests.test_all_pins_precede_every_json_parse) ... ok
+test_builtin_types_and_exact_input_sets (__main__.ServingTests.test_builtin_types_and_exact_input_sets) ... ok
+test_canonical_selection_and_ids (__main__.ServingTests.test_canonical_selection_and_ids) ... ok
+test_exact_types_values_and_basenames (__main__.ServingTests.test_exact_types_values_and_basenames) ... ok
+test_fragment_file_facts_must_match_actual_bytes (__main__.ServingTests.test_fragment_file_facts_must_match_actual_bytes) ... ok
+test_genuine_converter_and_detached_nonmutating_result (__main__.ServingTests.test_genuine_converter_and_detached_nonmutating_result) ... ok
+test_json_size_bound_before_parse (__main__.ServingTests.test_json_size_bound_before_parse) ... ok
+test_manifest_exact_keys_and_file_records (__main__.ServingTests.test_manifest_exact_keys_and_file_records) ... ok
+test_minimum_gallery_size (__main__.ServingTests.test_minimum_gallery_size) ... ok
+test_no_filesystem_or_native_access (__main__.ServingTests.test_no_filesystem_or_native_access) ... ok
+test_payload_sha_and_original_identity_are_bound (__main__.ServingTests.test_payload_sha_and_original_identity_are_bound) ... ok
+test_repinned_provenance_cannot_replace_original_producer (__main__.ServingTests.test_repinned_provenance_cannot_replace_original_producer) ... ok
+test_snapshot_keeps_authenticated_bytes_and_pins_together (__main__.ServingTests.test_snapshot_keeps_authenticated_bytes_and_pins_together) ... ok
+test_strict_json_and_utf8 (__main__.ServingTests.test_strict_json_and_utf8) ... ok
+test_wire_reorder_duplicate_and_length (__main__.ServingTests.test_wire_reorder_duplicate_and_length) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.174s
+
+OK
+	Command being timed: "timeout 120s bash /data/cache/sfora-connected-serving-manifest-binder-20261009/final-command.sh"
+	User time (seconds): 1.96
+	System time (seconds): 0.24
+	Percent of CPU this job got: 81%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:02.70
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 117908
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 3
+	Minor (reclaiming a frame) page faults: 48536
+	Voluntary context switches: 233
+	Involuntary context switches: 462
+	Swaps: 0
+	File system inputs: 9416
+	File system outputs: 31856
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

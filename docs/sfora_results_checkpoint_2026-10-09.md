@@ -1,0 +1,17 @@
+# Results and release checkpoint — 2026-10-09
+
+The joint quality and end-to-end speed goal is unmet. Source verification is not native serving qualification or SOTA evidence.
+
+| Dataset / split | Verified archived result and baseline | Decision |
+| --- | --- | --- |
+| InShop TRAIN selection, 1,734 queries / 1,715 gallery / 498 products, two seeds | Connected MLP mean R@1 97.08766% versus live control 96.74164%; AP 85.06567% versus 82.76548%. Product-bootstrap R@1 delta +0.34602 percentage points, 95% CI [-0.08484, +0.82817]. | Original FULL decision KILL; no sealed-validation admission. |
+| Same InShop training pair, seeds 179061 / 179069 | Candidate/control whole-service ratios 1.03990 / 1.07171; core ratios 1.03211 / 1.05901. | Candidate slower; passing the 1.50 cost ceiling is not a speed win. |
+| SOP official TEST, historical three-seed result | R@1 91.7419% versus paired control 91.1788%; dated UNICOM reference 91.2%. | TEST already observed; not a current SOTA claim. |
+| InShop official query/gallery, historical three-seed result | R@1 95.4823%, below dated UNICOM 96.7%. | Joint quality target unmet. |
+| SOP public B1 latency, historical matched gate | p99 19.622 ms versus control 19.606 ms; interval includes parity. | No verified speed win. |
+
+The latest GPU SHA engineering alternatives remain closed: actual four-worker fresh hashing was 3.8451 times slower; synthetic full-inventory MLP median ratio was 0.99924 from only three alternating pairs, with no product speed claim.
+
+Sources: [FULL InShop original receipt](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/receipt.json), [terminal verification](evidence/compact_metric/sop-siglip2-substrate-v1/connected-mlp-evaluation-full-selection-score-v1/verification.json), [SOP official result](sop_true_freeze_public_official_gate_2026-09-26.md), [InShop official result](inshop_siglip2_official_result_2026-09-25.md), [SOP latency](sop_true_freeze_public_batch1_p99_gate_2026-09-26.md).
+
+Current release work: the independently reviewed serving-manifest binder authenticates opaque gallery provenance and declarations. Its 15 tests pass on Python 3.12 and 3.14; actual payload byte facts and the converted gallery fragment have separate verified receipts. Installed-source admission, typed payload validation, the new public reader and native B1/B2/B32 output/top-10 parity remain required. Next is an actual metadata-only bind, then the bounded installed-reader seam and native parity. No GPU experiment is presently reported live; no current utilization measurement or performance projection is asserted.

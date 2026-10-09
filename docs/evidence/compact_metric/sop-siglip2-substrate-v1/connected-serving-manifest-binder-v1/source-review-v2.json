@@ -1,0 +1,38 @@
+{
+  "schema": "serving-manifest-worker-source-review-v2",
+  "base": "a2deea75d45450241c692a9eb21270b4f9103a10",
+  "provisioned_head": "f860e06147ff7946a14497a1c6c43f67f304ba91",
+  "source_sha256": {
+    "src/sfora/connected_serving_artifact.py": "102ab0ab54eff3a0f1d4fa9526966b94f18e648a2a69ad41020148e71741bd08",
+    "scripts/test_connected_serving_artifact.py": "c5dc648caf0af1e25d927c64a2ba6525c5a061a702038d5f64ff467eb18ed10a"
+  },
+  "evidence_sha256": {
+    "green-key-types.log": "c75c75cabfb7fe8e36577fb053e615e1752157ea27265119f7b660f0307f9b05",
+    "pre-code-contract.txt": "41f2de5544e5ca859216d6b4522cfe2160fcdb894c29b8db2a36b590a391769d",
+    "red-association.log": "9a52924897f84a06b5225d802967a874c88b9ea430ec0f5d2c0db91a5e51320d",
+    "typing-snapshot-green.log": "c82f45ae671375afc077f8d9786337fded4af835b65c7c31a5ed79b68a50203e",
+    "red-producer.log": "d3d1798adf71bbaa2fcddc24e7ef9b93fb13d5f398be6aedfcce1ff8f0d6d41f",
+    "red.log": "c3218408a47a6687f3c42ed3a741bf211ad773445e0a03ab75dffbabaf5ce609",
+    "green-tiny-sentinels.log": "bbf8ecc36b7c71ad4505d3ba42b22977d99cb2f4f16055c2744b36dc9db3adbb",
+    "green-association.log": "d8301e1827bea54f3a68737da04a208891882478012a2f257fbc30aa13b24826",
+    "green-audit-final-source.log": "48799b954c2d2d25684edd5f27b48089628ea45e128789067f5f0c42f347ee7c",
+    "final-command.sh": "49290ef7cb5700ea403d01d9e2d81e0b875e2737a0150ab5ac87c23f72251a45",
+    "green-boundaries.log": "40297d681ab4988609aa6997522aeef8c1ca7ff9baeb1ef9c8f774e433102f58",
+    "green-mapping-snapshot.log": "41ea62bcb57c0416e404ef9f64323e76bc23a94fc1f33e8dd8d9cd7e29a857b8",
+    "red-mapping-snapshot.log": "2ee8e1ef3d8bc52440ecc44b0e2dc44a20ab38c4e43e17069448a07a2a9d9be4",
+    "typing-layer.log": "7ce5b0462fcffcd47d744f75dd113fa036e71ed4ccb4369eefaddb51bcd1aeb3",
+    "typing-layer-green.log": "c82f45ae671375afc077f8d9786337fded4af835b65c7c31a5ed79b68a50203e"
+  },
+  "red": "red-producer.log: encoder/batch/row/null selection mutants accepted without canonical selection equality; four assertion failures",
+  "green": "green-boundaries.log: 14 new affected tests passed, 0.464s; later changed size-bound fixture to tiny length sentinel, focused checks green-tiny-sentinels.log and green-audit-final-source.log",
+  "size_bound_note": "Initial boundary test used 64MiB+1 synthetic ASCII padding under 1GiB AS. Final test uses tiny length sentinel, no large fixture.",
+  "typing": "mypy2.1 strict OWN2 current source passes; follow-imports=silent preserves genuine helper types and suppresses unowned sparse dependency diagnostics; typing-snapshot-green.log",
+  "ruff": "0.15.20 scoped format/lint; final serial gate pending release",
+  "final_serial_gate": "HOLD pending explicit root release",
+  "commit": "HOLD pending explicit root release",
+  "payload_actual_admission": false,
+  "native_qualification": false,
+  "quality_speed_goal_met": false,
+  "additional_review_finding": "Snapshot exact builtin fragment/pin dicts before authentication, keeping authenticated immutable bytes stable across external caller mutation. Added focused red-mapping-snapshot.log and green-mapping-snapshot.log. Key builtin checks precede key equality. Current suite 15 tests.",
+  "frozen_source": true
+}

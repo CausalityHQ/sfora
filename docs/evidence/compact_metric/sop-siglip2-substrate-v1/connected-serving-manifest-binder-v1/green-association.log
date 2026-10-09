@@ -1,0 +1,7 @@
+test_genuine_converter_and_detached_nonmutating_result (__main__.ServingTests.test_genuine_converter_and_detached_nonmutating_result) ... ok
+test_repinned_provenance_cannot_replace_original_producer (__main__.ServingTests.test_repinned_provenance_cannot_replace_original_producer) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.027s
+
+OK

@@ -1,0 +1,8 @@
+test_payload_sha_and_original_identity_are_bound (__main__.ServingTests.test_payload_sha_and_original_identity_are_bound) ... ok
+test_fragment_file_facts_must_match_actual_bytes (__main__.ServingTests.test_fragment_file_facts_must_match_actual_bytes) ... ok
+test_json_size_bound_before_parse (__main__.ServingTests.test_json_size_bound_before_parse) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.038s
+
+OK

@@ -1,0 +1,46 @@
+{
+  "schema": "serving-manifest-worker-final-commit-v1",
+  "commit": "89e3cbed762452f1dcf5a6b1b60b07ba62a362e5",
+  "base": "a2deea75d45450241c692a9eb21270b4f9103a10",
+  "release": "immediate-1791579557456782735-3160204",
+  "files": [
+    "scripts/test_connected_serving_artifact.py",
+    "src/sfora/connected_serving_artifact.py"
+  ],
+  "source_sha256": {
+    "scripts/test_connected_serving_artifact.py": "26f3f981963be4406cfd7bdd04384d57c5f71bb053835239b4a9b5f4a9e266c8",
+    "src/sfora/connected_serving_artifact.py": "102ab0ab54eff3a0f1d4fa9526966b94f18e648a2a69ad41020148e71741bd08"
+  },
+  "accepted_binder_source_unchanged": true,
+  "test_diff": "root-gaps-test.diff: +28/-4 lines; original vision SHA substituted as processor SHA, original receipt/bundle FILE SHA+bytes swapped, all four fragment JSON size-bound sentinels.",
+  "narrow_layer": "3 tests PASS, 0.038s, timeout15s/AS1GiB",
+  "replacement_final": {
+    "exit": 0,
+    "elapsed_seconds": 2.7,
+    "peak_rss_kib": 117908,
+    "timeout_seconds": 120,
+    "address_space_bytes": 1073741824,
+    "python3.12.13": "15PASS 0.162s",
+    "python3.14.4": "15PASS 0.174s",
+    "ruff0.15.20": "OWN2 format/check PASS",
+    "mypy2.1.0": "OWN2 strict follow-imports=silent PASS, genuine helper types via MYPYPATH=src:scripts; unowned sparse diagnostics suppressed, not whole-repo typing"
+  },
+  "raw_evidence_sha256": {
+    "root-gaps-layer.log": "c8ae8158b8e8fb449934a39f2ca4cfce9622d375652ff74ddf145319db503fdd",
+    "root-gaps-test.diff": "83e91f2570877dd2d5fcc13f50adbc3164e9a3adac8b6431f49afb1aabc10f23",
+    "replacement-final.log": "73c5d1d6a5e65d7f80fa765f777e86052567b9b8e96b7f112155a0d7f272e717",
+    "replacement-final.stderr": "5e455eedbdb11703093919a90822c21a53574806e6b4833604c226530e25cbca",
+    "replacement-final.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "replacement-final-before.sha256": "cbb80852a9dce6217e0e5cd6bc42e2fd5b8c98ba9c4ef98b1babc65168c2d3bc",
+    "replacement-final-after.sha256": "cbb80852a9dce6217e0e5cd6bc42e2fd5b8c98ba9c4ef98b1babc65168c2d3bc",
+    "final-command.sh": "49290ef7cb5700ea403d01d9e2d81e0b875e2737a0150ab5ac87c23f72251a45"
+  },
+  "original_final_gate_preserved": true,
+  "source_before_after_equal": true,
+  "author_committer": "Roman Bartusiak <riomus@gmail.com>",
+  "trailers": [],
+  "working_tree_clean": true,
+  "merged_or_pushed": false,
+  "native_qualification": false,
+  "quality_speed_goal_met": false
+}

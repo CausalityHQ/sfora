@@ -1,0 +1,16 @@
+test_repinned_provenance_cannot_replace_original_producer (__main__.ServingTests.test_repinned_provenance_cannot_replace_original_producer) ... 
+  test_repinned_provenance_cannot_replace_original_producer (__main__.ServingTests.test_repinned_provenance_cannot_replace_original_producer) (mutation='null') ... FAIL
+
+======================================================================
+FAIL: test_repinned_provenance_cannot_replace_original_producer (__main__.ServingTests.test_repinned_provenance_cannot_replace_original_producer) (mutation='null')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-connected-serving-manifest-binder-20261009/scripts/test_connected_serving_artifact.py", line 152, in test_repinned_provenance_cannot_replace_original_producer
+    with self.assertRaises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.014s
+
+FAILED (failures=1)

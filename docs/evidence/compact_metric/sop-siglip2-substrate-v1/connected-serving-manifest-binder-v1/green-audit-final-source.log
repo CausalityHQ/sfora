@@ -1,0 +1,6 @@
+test_no_filesystem_or_native_access (__main__.ServingTests.test_no_filesystem_or_native_access) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.008s
+
+OK

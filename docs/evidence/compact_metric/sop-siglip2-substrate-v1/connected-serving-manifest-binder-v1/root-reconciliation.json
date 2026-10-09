@@ -1,0 +1,13 @@
+{
+  "schema": "serving-manifest-binder-root-reconciliation-v1",
+  "integrated_commit": "8b5bb36d79aa6a5fe71f5299349242de89a30bd3",
+  "worker_commit": "89e3cbed762452f1dcf5a6b1b60b07ba62a362e5",
+  "dual_group": "d4f067464e524946",
+  "reviews": "Both accept pure bytes to detached metadata; final production source unchanged from review.",
+  "stale_review_correction": "Full gate was already complete; replacement final gate also passed after requested test-only gaps were covered. No extra rerun needed.",
+  "verification": "15 tests pass on Python 3.12 and 3.14; OWN2 Ruff and strict mypy pass, not whole repository typing.",
+  "native_verified": false,
+  "actual_manifest_bound": false,
+  "typed_payload_verified": false,
+  "quality_speed_goal_met": false
+}

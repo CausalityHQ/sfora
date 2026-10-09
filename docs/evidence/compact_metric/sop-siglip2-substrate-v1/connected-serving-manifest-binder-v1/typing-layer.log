@@ -1,0 +1,3 @@
+scripts/test_connected_serving_artifact.py:251: error: Generator has incompatible item type "tuple[str, bool | int | str | None]"; expected "tuple[str, Collection[object]]"  [misc]
+pyproject.toml: note: unused section(s): module = ['datasets', 'h5py', 'sentence_transformers', 'sklearn.*', 'torch', 'torchvision', 'torchvision.*']
+Found 1 error in 1 file (checked 2 source files)

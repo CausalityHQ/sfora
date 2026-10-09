@@ -1,0 +1,55 @@
+--- accepted-test-c5dc648c
++++ released-test
+@@ -300,6 +300,12 @@
+                 self.manifest["files"][name]["sha256"] = sha(b"substitute payload")
+                 with self.assertRaisesRegex(ValueError, "original payload SHA differs"):
+                     self.bind()
++        self.manifest = copy.deepcopy(original)
++        self.manifest["files"]["processor.json"]["sha256"] = original["files"]["vision.pt"][
++            "sha256"
++        ]
++        with self.assertRaisesRegex(ValueError, "original payload SHA differs"):
++            self.bind()
+         for key in original["origin"]:
+             with self.subTest(origin=key):
+                 self.manifest = copy.deepcopy(original)
+@@ -320,6 +326,15 @@
+                     self.manifest["files"][name][key] = value
+                     with self.assertRaises(ValueError):
+                         self.bind()
++        self.manifest = copy.deepcopy(original)
++        for name, other in (
++            ("origin.json", "origin-export.json"),
++            ("origin-export.json", "origin.json"),
++        ):
++            for key in ("sha256", "bytes"):
++                self.manifest["files"][name][key] = original["files"][other][key]
++        with self.assertRaisesRegex(ValueError, "fragment size differs"):
++            self.bind()
+ 
+     def test_exact_types_values_and_basenames(self) -> None:
+         original = copy.deepcopy(self.manifest)
+@@ -461,10 +476,19 @@
+         ):
+             with self.assertRaisesRegex(ValueError, "JSON exceeds 64 MiB"):
+                 self.bind(oversized)
+-            self.fragment["origin.json"] = oversized
+-            self.pins["origin.json"] = sha(oversized)
+-            with self.assertRaisesRegex(ValueError, "JSON exceeds 64 MiB"):
+-                self.bind()
++            for name in (
++                "origin.json",
++                "origin-export.json",
++                "gallery-ids.json",
++                "gallery-provenance.json",
++            ):
++                with self.subTest(name=name):
++                    original, pin = self.fragment[name], self.pins[name]
++                    self.fragment[name] = oversized
++                    self.pins[name] = sha(oversized)
++                    with self.assertRaisesRegex(ValueError, "^JSON exceeds 64 MiB$"):
++                        self.bind()
++                    self.fragment[name], self.pins[name] = original, pin
+ 
+     def test_no_filesystem_or_native_access(self) -> None:
+         active = False

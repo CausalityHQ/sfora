@@ -1,0 +1,38 @@
+{
+  "schema": "serving-manifest-worker-root-hold-refresh-v3",
+  "root_message": "1791579064686745414-3160204",
+  "base": "a2deea75d45450241c692a9eb21270b4f9103a10",
+  "previous_review_sha256": {
+    "src/sfora/connected_serving_artifact.py": "ced457809a06ef8fc8a82df347133253e193907a64fd7023f04a0b66eac5e828",
+    "scripts/test_connected_serving_artifact.py": "6ee95d827aa9fe60be1853be5ed4be09c880639ae63bf45edebed2d5cb52fba6"
+  },
+  "source_sha256": {
+    "src/sfora/connected_serving_artifact.py": "102ab0ab54eff3a0f1d4fa9526966b94f18e648a2a69ad41020148e71741bd08",
+    "scripts/test_connected_serving_artifact.py": "c5dc648caf0af1e25d927c64a2ba6525c5a061a702038d5f64ff467eb18ed10a"
+  },
+  "lines": {
+    "src/sfora/connected_serving_artifact.py": 184,
+    "scripts/test_connected_serving_artifact.py": 495
+  },
+  "exact_edits": {
+    "src/sfora/connected_serving_artifact.py": [
+      "Added one why-comment and shallow .copy() of fragment and trusted_fragment_sha256 after exact builtin dict validation.",
+      "Moved existing builtin string key validation loop before key-set equality; prevents subclass equality execution before rejection."
+    ],
+    "scripts/test_connected_serving_artifact.py": [
+      "Added only test_snapshot_keeps_authenticated_bytes_and_pins_together (14 lines). It mutates caller receipt bytes and pin after the last fragment hash, then requires the original authenticated producer."
+    ]
+  },
+  "reason": "Caller dictionaries remain mutable despite immutable bytes. Without snapshots, post-hash mapping changes reach parsing. The targeted test failed before and passed after snapshots; no API/helper/runtime changes.",
+  "targeted_evidence": [
+    "red-mapping-snapshot.log",
+    "green-mapping-snapshot.log",
+    "green-key-types.log",
+    "typing-snapshot-green.log"
+  ],
+  "review_v2_already_matched_actual_bytes": true,
+  "source_hold": true,
+  "final_suite_run": false,
+  "commit_created": false,
+  "tests_rerun_for_this_refresh": false
+}

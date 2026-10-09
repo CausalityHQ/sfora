@@ -1,0 +1,6 @@
+test_snapshot_keeps_authenticated_bytes_and_pins_together (__main__.ServingTests.test_snapshot_keeps_authenticated_bytes_and_pins_together) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.008s
+
+OK
