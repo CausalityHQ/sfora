@@ -1,0 +1,28 @@
+{
+  "alarm_cleanup_followup": "Before actual-byte release, protect owned cleanup against SIGALRM between independent attempts and regression-test retained primary/descriptor/module cleanup. Keep deadline/caps unchanged; late survivors diagnostic only.",
+  "child_commit": "ac9d676f9cf082323ea87bf68e1ab83ac1e8a5ed",
+  "child_tests_each_python": 18,
+  "ci_added_single_bounded_source_contract": true,
+  "ci_inverse_sha256": "982caaea83402e75cf76db7f90e97638f41c23165377f167c4ba8c08a16c5f02",
+  "critique_id": "e6d0e70d053748b4",
+  "driver_sha256": "92e1561053babd1e601c3ed308724d0a4219349a8038ab28a8f0cd6dfb1b883e",
+  "integrated_commit": "a30248e8",
+  "next_repair_contract": "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-gallery-fragment-source-v1/publisher-repair-contract.md",
+  "original_final_log_sha256": "9a038b1b2ca1f6844b2e55d4354293e627782d4f5c595780a31aef362c8810b2",
+  "peak_rss_kib": 124004,
+  "python_versions": [
+    "3.12.13",
+    "3.14.4"
+  ],
+  "quality_speed_goal_met": false,
+  "remote_publication_released": false,
+  "reviewer_verdicts": {
+    "astra": "BLOCK shared publisher cleanup",
+    "opus": "ACCEPT with limitations and alarm should-fix"
+  },
+  "root_reproduced_publisher_failure": true,
+  "schema": "connected-gallery-fragment-root-disposition-v1",
+  "serving_accepted": false,
+  "test_sha256": "6860f7e403e7049fc3808ec691f7006051c886be60ada023415a15ff272f506d",
+  "whole_seconds": 7.74
+}

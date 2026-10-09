@@ -55,6 +55,7 @@ jobs:
           check_source_contract scripts/test_connected_installed_environment.py
           check_source_contract scripts/test_connected_gallery_provenance.py
           check_source_contract scripts/test_connected_gallery_conversion.py
+          check_source_contract scripts/test_connected_gallery_fragment.py
 
   test:
     name: Format, lint, type-check, and test
