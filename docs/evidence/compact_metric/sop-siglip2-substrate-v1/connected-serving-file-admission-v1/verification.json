@@ -1,0 +1,24 @@
+{
+  "address_space_bytes": 1073741824,
+  "exit": 0,
+  "files": {
+    "scripts/test_connected_serving_admission.py": "199a37f1b161e53ff9bc73900eb3168a862a65d917d5a1445c0c453eb9ad0681",
+    "src/sfora/connected_serving_admission.py": "c3f608bb98225525629badb07e84567dd198973a7ffa5be161d4f1e600875b0b"
+  },
+  "interpreters": [
+    "3.12.13",
+    "3.14.4"
+  ],
+  "native_serving_verified": false,
+  "peak_rss_kib": 133356,
+  "prior_typing_limitation": "Two unapproved 4GiB typing invocations preceded approved 1GiB evidence; first log overwritten and transcript-only, second retained by worker. Neither is the final gate.",
+  "quality_speed_goal_met": false,
+  "schema": "connected-serving-file-admission-parent-verification-v1",
+  "source_only": true,
+  "swap": 0,
+  "tests_per_interpreter": 23,
+  "timeout_seconds": 120,
+  "wall_seconds": 3.71,
+  "worker_base": "5f141ed3890d16c93a71f1f067f03d7843cb01b1",
+  "worker_commit": "9d66834000db64b88f39029bd23c74149f0e1309"
+}

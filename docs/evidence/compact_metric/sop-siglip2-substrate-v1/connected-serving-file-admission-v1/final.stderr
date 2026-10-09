@@ -1,0 +1,56 @@
+test_admits_fixture_with_exact_facts (__main__.AdmissionTests.test_admits_fixture_with_exact_facts) ... ok
+test_arguments_rejected_before_any_io (__main__.AdmissionTests.test_arguments_rejected_before_any_io) ... ok
+test_change_during_read_rejected (__main__.AdmissionTests.test_change_during_read_rejected) ... ok
+test_close_failure_is_rejected_not_hidden (__main__.AdmissionTests.test_close_failure_is_rejected_not_hidden) ... ok
+test_close_failure_never_replaces_primary (__main__.AdmissionTests.test_close_failure_never_replaces_primary) ... ok
+test_declared_size_gates_before_streaming (__main__.AdmissionTests.test_declared_size_gates_before_streaming) ... ok
+test_directory_chain_replacement_rejected (__main__.AdmissionTests.test_directory_chain_replacement_rejected) ... ok
+test_directory_must_be_exactly_the_ten_names (__main__.AdmissionTests.test_directory_must_be_exactly_the_ten_names) ... ok
+test_every_invocation_rereads_everything (__main__.AdmissionTests.test_every_invocation_rereads_everything) ... ok
+test_failures_leak_no_descriptors_and_close_each_once (__main__.AdmissionTests.test_failures_leak_no_descriptors_and_close_each_once) ... ok
+test_fdopen_failure_keeps_primary_and_closes_once (__main__.AdmissionTests.test_fdopen_failure_keeps_primary_and_closes_once) ... ok
+test_hardlinks_rejected (__main__.AdmissionTests.test_hardlinks_rejected) ... ok
+test_manifest_files_grant_no_authority (__main__.AdmissionTests.test_manifest_files_grant_no_authority) ... ok
+test_membership_change_after_first_listing_rejected (__main__.AdmissionTests.test_membership_change_after_first_listing_rejected) ... ok
+test_metadata_bound_is_explicit (__main__.AdmissionTests.test_metadata_bound_is_explicit) ... ok
+test_only_directory_relative_access_and_no_native_imports (__main__.AdmissionTests.test_only_directory_relative_access_and_no_native_imports) ... ok
+test_opens_are_directory_relative_nofollow_and_nonblocking (__main__.AdmissionTests.test_opens_are_directory_relative_nofollow_and_nonblocking) ... ok
+test_payload_stream_is_bounded_and_uncaptured (__main__.AdmissionTests.test_payload_stream_is_bounded_and_uncaptured) ... ok
+test_payload_substitution_passes_binder_but_not_admission (__main__.AdmissionTests.test_payload_substitution_passes_binder_but_not_admission) ... ok
+test_pins_authenticate_before_any_json (__main__.AdmissionTests.test_pins_authenticate_before_any_json) ... ok
+test_replacement_after_read_caught_by_final_pass (__main__.AdmissionTests.test_replacement_after_read_caught_by_final_pass) ... ok
+test_special_files_rejected_without_blocking (__main__.AdmissionTests.test_special_files_rejected_without_blocking) ... ok
+test_symlinks_rejected (__main__.AdmissionTests.test_symlinks_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.638s
+
+OK
+test_admits_fixture_with_exact_facts (__main__.AdmissionTests.test_admits_fixture_with_exact_facts) ... ok
+test_arguments_rejected_before_any_io (__main__.AdmissionTests.test_arguments_rejected_before_any_io) ... ok
+test_change_during_read_rejected (__main__.AdmissionTests.test_change_during_read_rejected) ... ok
+test_close_failure_is_rejected_not_hidden (__main__.AdmissionTests.test_close_failure_is_rejected_not_hidden) ... ok
+test_close_failure_never_replaces_primary (__main__.AdmissionTests.test_close_failure_never_replaces_primary) ... ok
+test_declared_size_gates_before_streaming (__main__.AdmissionTests.test_declared_size_gates_before_streaming) ... ok
+test_directory_chain_replacement_rejected (__main__.AdmissionTests.test_directory_chain_replacement_rejected) ... ok
+test_directory_must_be_exactly_the_ten_names (__main__.AdmissionTests.test_directory_must_be_exactly_the_ten_names) ... ok
+test_every_invocation_rereads_everything (__main__.AdmissionTests.test_every_invocation_rereads_everything) ... ok
+test_failures_leak_no_descriptors_and_close_each_once (__main__.AdmissionTests.test_failures_leak_no_descriptors_and_close_each_once) ... ok
+test_fdopen_failure_keeps_primary_and_closes_once (__main__.AdmissionTests.test_fdopen_failure_keeps_primary_and_closes_once) ... ok
+test_hardlinks_rejected (__main__.AdmissionTests.test_hardlinks_rejected) ... ok
+test_manifest_files_grant_no_authority (__main__.AdmissionTests.test_manifest_files_grant_no_authority) ... ok
+test_membership_change_after_first_listing_rejected (__main__.AdmissionTests.test_membership_change_after_first_listing_rejected) ... ok
+test_metadata_bound_is_explicit (__main__.AdmissionTests.test_metadata_bound_is_explicit) ... ok
+test_only_directory_relative_access_and_no_native_imports (__main__.AdmissionTests.test_only_directory_relative_access_and_no_native_imports) ... ok
+test_opens_are_directory_relative_nofollow_and_nonblocking (__main__.AdmissionTests.test_opens_are_directory_relative_nofollow_and_nonblocking) ... ok
+test_payload_stream_is_bounded_and_uncaptured (__main__.AdmissionTests.test_payload_stream_is_bounded_and_uncaptured) ... ok
+test_payload_substitution_passes_binder_but_not_admission (__main__.AdmissionTests.test_payload_substitution_passes_binder_but_not_admission) ... ok
+test_pins_authenticate_before_any_json (__main__.AdmissionTests.test_pins_authenticate_before_any_json) ... ok
+test_replacement_after_read_caught_by_final_pass (__main__.AdmissionTests.test_replacement_after_read_caught_by_final_pass) ... ok
+test_special_files_rejected_without_blocking (__main__.AdmissionTests.test_special_files_rejected_without_blocking) ... ok
+test_symlinks_rejected (__main__.AdmissionTests.test_symlinks_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.577s
+
+OK

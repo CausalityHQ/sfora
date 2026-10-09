@@ -58,6 +58,7 @@ jobs:
           check_source_contract scripts/test_connected_gallery_conversion.py
           check_source_contract scripts/test_connected_gallery_fragment.py
           check_source_contract scripts/test_connected_serving_artifact.py
+          check_source_contract scripts/test_connected_serving_admission.py
 
   test:
     name: Format, lint, type-check, and test

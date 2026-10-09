@@ -1,0 +1,8 @@
+Python 3.12.13
+Python 3.14.4
+ruff 0.15.20
+mypy 2.1.0 (compiled: yes)
+2 files already formatted
+All checks passed!
+pyproject.toml: note: unused section(s): module = ['datasets', 'h5py', 'torchvision', 'torchvision.*']
+Success: no issues found in 2 source files
