@@ -1,0 +1,72 @@
+{
+  "original_log_sha256": "8ef4ba828349d1e90f69c7506aee22a0607331a00367af681fe49855e022b423",
+  "records": [
+    {
+      "artifact_written": false,
+      "files": [
+        {
+          "compile_pass": true,
+          "path": "src/sfora/__init__.py",
+          "sha256": "3c80a7bec9ecdb6f09a52c89b17ef3534f7b61d17e4c93fe4166cda15cdb19db"
+        },
+        {
+          "compile_pass": true,
+          "path": "src/sfora/connected_gallery_provenance.py",
+          "sha256": "0e552eb81c3a200bda4568b43a7955cef8018ca43d83c4b0172fc903debaa1ec"
+        },
+        {
+          "compile_pass": true,
+          "path": "src/sfora/connected_gallery_conversion.py",
+          "sha256": "d361dd460a90bc078c3d175088831067f5e198997613c494a00a6dfaecd0d27f"
+        },
+        {
+          "compile_pass": true,
+          "path": "src/sfora/atomic_publication.py",
+          "sha256": "ee0870e4e34a3bb08e82b6aa6d222a1f29dce7f17edfb331973d34dadac8ed30"
+        }
+      ],
+      "native_execution": false,
+      "python": {
+        "path": "/usr/bin/python3.12",
+        "sha256": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960",
+        "version": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]"
+      },
+      "schema": "connected-gallery-dgx-source-compile-v1",
+      "source_executed": false
+    },
+    {
+      "artifact_written": false,
+      "files": [
+        {
+          "compile_pass": true,
+          "path": "src/sfora/__init__.py",
+          "sha256": "3c80a7bec9ecdb6f09a52c89b17ef3534f7b61d17e4c93fe4166cda15cdb19db"
+        },
+        {
+          "compile_pass": true,
+          "path": "src/sfora/connected_gallery_provenance.py",
+          "sha256": "0e552eb81c3a200bda4568b43a7955cef8018ca43d83c4b0172fc903debaa1ec"
+        },
+        {
+          "compile_pass": true,
+          "path": "src/sfora/connected_gallery_conversion.py",
+          "sha256": "d361dd460a90bc078c3d175088831067f5e198997613c494a00a6dfaecd0d27f"
+        },
+        {
+          "compile_pass": true,
+          "path": "src/sfora/atomic_publication.py",
+          "sha256": "ee0870e4e34a3bb08e82b6aa6d222a1f29dce7f17edfb331973d34dadac8ed30"
+        }
+      ],
+      "native_execution": false,
+      "python": {
+        "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+        "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b",
+        "version": "3.13.9 (main, Oct 14 2025, 21:26:54) [Clang 20.1.4 ]"
+      },
+      "schema": "connected-gallery-dgx-source-compile-v1",
+      "source_executed": false
+    }
+  ],
+  "serving_accepted": false
+}
