@@ -1,0 +1,18 @@
+{
+  "all_query_margin_r1_and_cohorts_recomputed": true,
+  "cgroup_peak_bytes": 3826028544,
+  "exact_prior_core_digests": true,
+  "invocation_id": "a04bb0db5fc7432ca36eefea77a4b2ab",
+  "native_peak_rss_kib": 1067980,
+  "original_normal_terminal": true,
+  "quality_eligible": false,
+  "receipt_sha256": "ff2b5ba7394ecfd053f624b74985780316bd8f87cf9aefed4de504e416e6b3e2",
+  "schema": "connected-all-query-margin-parent-verification-v1",
+  "scientific_gate_changed": false,
+  "service_seconds": 14.552,
+  "source_unit": "sfora-connected-all-query-margin-v1",
+  "speed_go": false,
+  "status": "PASS_DESCRIPTIVE_ONLY",
+  "training_release": false,
+  "zero_memory_events_and_swap": true
+}
