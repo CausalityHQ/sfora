@@ -1,0 +1,50 @@
+{
+  "files": {
+    "authority.json": "3fc13eb87561f7a33a395e83fdba5ae78b9a49469a89c0bde47fbe46d4cdd1a6",
+    "command.sh": "d8f949f4ff3af0c72293cc3f60636f6be85711c55891b0fd6199815b1752882f",
+    "connected_control_native_authority.py": "fc8795be3cca792aa328f087b1908c8fc12ff75362802042a35e874c02732442",
+    "controller.sh": "67ec13c4df7d287c117c4cb2d51d02a3248ffda5a151be492ef3b1d6936e007e",
+    "launch.sh": "6e8ee5dcd8a4423a7d9f351b02be25bf41df9ff94bb7e92e8059e7f2b5be8b8a",
+    "observe_connected_serving.py": "b255c6e835ad3d66b1143f2ca2192e500958fe8ffd6f62ec135a0326a6ad48de",
+    "qualify_connected_probe_serving.py": "11019603d8cb88c339ab034c713cd8bce5a03ed429a5c4e960900aefd69467e3",
+    "qualify_connected_serving_requests.py": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163",
+    "test_connected_probe_serving.py": "63933c0f9a00400e742c60605efb791ad356fe6a54debe48dd0a36b3fe9b685a",
+    "test_connected_serving_requests.py": "ad35a7177ddc3be7cc29db3b73c204b16f1afff98ff41c7357f1919da259a57b",
+    "test_observe_connected_serving.py": "085a15c134b504ce72b34ae701bbae0a881c11162bdb9571a82ab0ed1881d2d9"
+  },
+  "launches": 0,
+  "native_qualified": false,
+  "output": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-diagnostic-v4",
+  "quality_decision": "pooling candidate remains FIRST KILL; accepted control parity only",
+  "resource_policy": {
+    "body_seconds": 300,
+    "cuda_allocated_bytes_exclusive": 10000000000,
+    "exit_reserve_seconds": 300,
+    "host_bytes": 8589934592,
+    "swap_bytes": 0,
+    "whole_process_seconds": 1500
+  },
+  "root": "/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v4",
+  "root_review": "Conditional research GO; engineering wrapped-body blocker reproduced and repaired with production-shaped regression plus complete live Source invariants",
+  "schema": "connected-probe-installed-control-serving-freeze-v4",
+  "source_commit": "7d28be1d3849b3c24dbf3a2f8722b73dda75ee5f",
+  "source_files": {
+    "control_native": "connected_control_native_authority.py",
+    "observer": "observe_connected_serving.py",
+    "observer_test": "test_observe_connected_serving.py",
+    "probe_driver": "qualify_connected_probe_serving.py",
+    "probe_test": "test_connected_probe_serving.py",
+    "request_driver": "qualify_connected_serving_requests.py",
+    "request_test": "test_connected_serving_requests.py"
+  },
+  "source_gate": {
+    "exit": 0,
+    "rss_kib": 105016,
+    "swaps": 0,
+    "tests": 122,
+    "wall_seconds": 17.54
+  },
+  "source_worker_commit": "63c2f156c9288eca2d9178c09f669f13613e528e",
+  "stop_rule": "ONE fresh observation unchanged locks/body300/whole1500/exit300/8GiB/noSwap/CUDA<10GB. Complete parity and normal original terminal/full uncached exit required. Prior failures remain FAIL.",
+  "unit": "sfora-connected-probe-installed-control-serving-diagnostic-v4"
+}

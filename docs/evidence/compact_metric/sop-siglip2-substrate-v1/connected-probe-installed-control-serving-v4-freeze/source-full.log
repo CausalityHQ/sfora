@@ -1,0 +1,126 @@
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.......................LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"reference_catch_before_clear_frames","errors":{"diagnostic_complete":true,"root":0,"nodes":[{"id":0,"type":"builtins.RuntimeError","message":"forward failed","notes":[],"suppress_context":false,"traceback":[{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"reference_outputs","line":481},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py","function":"<lambda>","line":1051},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py","function":"<genexpr>","line":1051}]}],"edges":[]}}
+..LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"reference_catch_before_clear_frames","errors":{"diagnostic_complete":true,"root":0,"nodes":[{"id":0,"type":"builtins.RuntimeError","message":"forward failed","notes":[],"suppress_context":false,"traceback":[{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"reference_outputs","line":481},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py","function":"<lambda>","line":1029},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py","function":"forward","line":1021}]}],"edges":[]}}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"reference_catch_before_clear_frames","errors":{"diagnostic_complete":true,"root":0,"nodes":[{"id":0,"type":"builtins.RuntimeError","message":"forward failed","notes":[],"suppress_context":false,"traceback":[{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"reference_outputs","line":481},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py","function":"<lambda>","line":1079},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py","function":"<genexpr>","line":1079}]}],"edges":[]}}
+.........{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.26151905895676464, "item_count": 1346}
+.{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.263103274977766, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2593038429040462, "item_count": 1346}
+.{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.22279795294161886, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.26688792603090405, "item_count": 1346}
+..{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2748809059849009, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2689722760114819, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.27526450296863914, "item_count": 1346}
+..{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.28310046496335417, "item_count": 1346}
+.{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1345}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2759624019963667, "item_count": 1345}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.29973417706787586, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.2832641639979556, "item_count": 1346}
+...................LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+..LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+....LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"reference_catch_before_clear_frames","errors":{"diagnostic_complete":true,"root":0,"nodes":[{"id":0,"type":"builtins.ValueError","message":"diagnostic body300 cap exceeded","notes":[],"suppress_context":false,"traceback":[{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"reference_outputs","line":482},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"deadline","line":771},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"require","line":125}]}],"edges":[]}}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"reference_catch_before_clear_frames","errors":{"diagnostic_complete":true,"root":0,"nodes":[{"id":0,"type":"builtins.ValueError","message":"diagnostic body300 cap exceeded","notes":[],"suppress_context":false,"traceback":[{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"reference_outputs","line":484},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"deadline","line":771},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"require","line":125}]}],"edges":[]}}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"reference_catch_before_clear_frames","errors":{"diagnostic_complete":true,"root":0,"nodes":[{"id":0,"type":"builtins.ValueError","message":"diagnostic body300 cap exceeded","notes":[],"suppress_context":false,"traceback":[{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"reference_outputs","line":484},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"deadline","line":771},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"require","line":125}]}],"edges":[]}}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+....LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+....LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"reference_catch_before_clear_frames","errors":{"diagnostic_complete":true,"root":0,"nodes":[{"id":0,"type":"builtins.RuntimeError","message":"forward failed","notes":[],"suppress_context":false,"traceback":[{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/qualify_connected_probe_serving.py","function":"reference_outputs","line":481},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py","function":"<lambda>","line":1331},{"file":"/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py","function":"<genexpr>","line":1331}]}],"edges":[]}}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+...LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+.LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source/type/auth/AST contract failed"}
+LOADER_OBSERVATION {"event":"observation_ineligible","diagnostic_complete":false,"reason":"source contract or existing trace"}
+...........................
+----------------------------------------------------------------------
+Ran 122 tests in 17.200s
+
+OK

@@ -1,0 +1,133 @@
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "begin", "elapsed_seconds": 0.0, "item_count": 1346}
+{"event": "COMPACT_RUNTIME_HASH", "boundary": "end", "elapsed_seconds": 0.25565960502717644, "item_count": 1346}
+FFFFFFFFFFFFFF
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [__code__]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [read __code__]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [__defaults__]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [read __defaults__]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [__kwdefaults__]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [read __kwdefaults__]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [__wrapped__]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [read __wrapped__]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [cell_contents]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [read cell_contents]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [cached]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [read cached]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [attribute]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+======================================================================
+FAIL: test_active_original_function_tamper_rejected_before_restoration (scripts.test_connected_probe_serving.InstalledIdentityBoundary.test_active_original_function_tamper_rejected_before_restoration) [read attribute]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-probe-identity-active-source-20261009/scripts/test_connected_probe_serving.py", line 2824, in test_active_original_function_tamper_rejected_before_restoration
+    with self.subTest(label): self.assertTrue(refused,'live source tamper accepted')
+                              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : live source tamper accepted
+
+----------------------------------------------------------------------
+Ran 1 test in 0.701s
+
+FAILED (failures=14)
