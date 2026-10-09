@@ -1,0 +1,10 @@
+{
+  "decision": "FAIL_PRE_EVALUATOR_MISSING_HISTORICAL_FILE",
+  "invocation_id": "ff850fb1413544f98ce0f3002d4dcdf4",
+  "exit": 1,
+  "root_cause": "root generator globally renamed historical authority-first-cpu-v1.json basename in table; no evaluator ran",
+  "resource_events": 0,
+  "service_seconds": 0.621,
+  "host_peak_bytes": 43171840,
+  "quality_qualified": false
+}

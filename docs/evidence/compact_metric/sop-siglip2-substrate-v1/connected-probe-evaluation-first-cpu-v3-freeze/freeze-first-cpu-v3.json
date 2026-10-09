@@ -1,0 +1,19 @@
+{
+  "files": {
+    "authority-first-cpu-v3.json": "b1b73e6789b6f3e14e3ee892b4c9ec12abddd8165994866130d2019da3f290e8",
+    "first-cpu-v3-command.sh": "cdac068481779f1dc1d0e0bc682591f9569ac371ef4f0d89b114ec7579226ead",
+    "first-cpu-v3-controller.sh": "cde6d4ae8a4331e9cea5bd6bde1aa653e8725b2f0cc59afb623169d0b79b9829",
+    "first-cpu-v3-launch.sh": "25a1b4d2cb549c0fc19c53fb904c601529179cac8fd2a4728a7c8fe1d06bdf12",
+    "verify_fresh_sha_table.py": "f99170e5c728cb07b8825ec325b56d1c3baf8a455c3143edebbcc939a61b01fb"
+  },
+  "historical_tables_byte_identical": true,
+  "limits": {
+    "cuda": "hidden",
+    "host_bytes": 8589934592,
+    "seconds": 700,
+    "swap_bytes": 0
+  },
+  "reason": "Correct root v2 generator path rewrite; v2 remains FAIL_PRE_EVALUATOR_MISSING_HISTORICAL_FILE. Bounded A/B accepted; same actual models/evaluator/science; ONE complete prospective CPU; no quality/export/speed eligibility until original full terminal/source/resource acceptance.",
+  "rows": 18812,
+  "schema": "connected-probe-evaluator-first-cpu-v3-freeze-v1"
+}
