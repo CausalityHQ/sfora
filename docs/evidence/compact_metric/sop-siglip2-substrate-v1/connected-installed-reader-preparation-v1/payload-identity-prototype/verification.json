@@ -1,0 +1,22 @@
+{
+  "binding_callback": "stand-in, genuine binding checked separately",
+  "command": "ulimit -v 1048576; timeout 15 python3 -B -S docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/payload-identity-prototype/check.py",
+  "evidence_origin": "original exec tool result; no separate raw stdout file persisted",
+  "exit_code": 0,
+  "files": {
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/payload-identity-prototype/candidate.py": "46257c5a789228a73fecfe9180b9049f4d0f8fc666c9533941c1ce737fff8717",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/payload-identity-prototype/check.py": "d7363cfce7e2c07be6bf4550cf66d990dd9dab1ad7dc328589687d95ed1ab447",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/payload-identity-prototype/scope.md": "3a5a68a6d4ab8f7a2f368bd9561df2270293cd9167fed8ef0f1665bf6b58daed",
+    "src/sfora/connected_artifact_identity.py": "75d6e7a862fcee1b1b324e87b7181e3959e539afb0c240da5200a6dc57cf2156",
+    "src/sfora/connected_inference.py": "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8"
+  },
+  "fingerprint_dependency": "JSON stand-in, not original tensor serializer",
+  "native_run": false,
+  "observed_tool_wall_seconds": 0.085765255,
+  "original_predicate_ast_equal": true,
+  "product_go": false,
+  "production_integrated": false,
+  "repinned_negative_cases": 11,
+  "schema": "source-only-serving-payload-identity-v1",
+  "typed_tensor_validation": false
+}
