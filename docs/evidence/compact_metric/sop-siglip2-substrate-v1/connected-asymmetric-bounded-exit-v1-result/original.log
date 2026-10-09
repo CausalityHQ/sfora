@@ -1,0 +1,149 @@
+/home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/command.sh: OK
+Running as unit: sfora-connected-asymmetric-cache-bounded-exit-179061-v1.service; invocation ID: 6f829f87d1134e3baf99c2f76417d773
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/authority.json: OK
+/home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/diagnose_connected_asymmetric_cache.py: OK
+/home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/execution.json: OK
+/home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/test_connected_asymmetric_cache.py: OK
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v5/execution.json: OK
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v5/observe_connected_control_batch_execution.py: OK
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v5/test_connected_control_batch_execution.py: OK
+/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/authority.json: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/diagnose_connected_gallery_freshness.py: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/execution.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/receipt.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/authority-full-export-control-179061-v2.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/evaluate_siglip2_connected_mlp.py: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/execution.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/test_connected_mlp_evaluation.py: OK
+/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json: OK
+/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v5/connected_control_native_authority.py: OK
+/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v5/observe_connected_serving.py: OK
+/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v5/qualify_connected_serving_requests.py: OK
+/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/cutile_int8.py: OK
+/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/packed_int8.py: OK
+/home/riomus/runs/sfora-cutile-threads-v1/candidate.so: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras: OK
+{"event": "COMPACT_PHASE", "phase": "shared_source_preparation", "boundary": "begin", "seconds": 375.1787049009872}
+{"event": "COMPACT_PHASE", "phase": "shared_source_preparation", "boundary": "end", "delta_seconds": 20.958449258003384, "seconds": 396.13715681500616}
+{"event": "COMPACT_PHASE", "phase": "cache_target_preparation", "boundary": "begin", "seconds": 396.13721670300583}
+{"event": "COMPACT_PHASE", "phase": "cache_target_preparation", "boundary": "end", "delta_seconds": 2.7106011919968296, "seconds": 398.8478213509952}
+{"event": "INITIAL_NATIVE_ORIGIN_DIAGNOSTICS_V1", "expected": {"/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9": "3b765736f63d724a0de67b7ce915b0d0a780154fe4a2d515ab14040224aa7db4", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_runtime_compiled.so.9": "7b8f371a7718c29549317efdbdeb8d7c301874f9471762a04830846ac4e83510", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_graph.so.9": "b601fddd333d84ced4a3d833e75bb412c204e39b21755d79cb890335dce660b8", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_heuristic.so.9": "368687b9b5c2c01b55c21f74bd930cb05d3654b4e901e998b7bfb33cebac6ae8"}, "observed_difference": {}, "missing": ["/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_runtime_compiled.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_graph.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_heuristic.so.9"], "extra": [], "missing_native": ["/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_runtime_compiled.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_graph.so.9", "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_heuristic.so.9"]}
+{"phase": "driver_rehash", "boundary": "entry", "monotonic_seconds": 231778.465065024}
+{"phase": "driver_rehash", "boundary": "exit", "monotonic_seconds": 231778.476637907}
+{"diagnostic": "memory_snapshot", "memory.current": 1536507904, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 1570471936, "memory.stat.anon": 1037557760, "memory.stat.file": 484655104, "memory.stat.kernel": 6365184, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-bounded-exit-179061-v1.service", "phase": "after_admission"}
+{"phase": "driver_rehash", "boundary": "entry", "monotonic_seconds": 231787.900846354}
+{"phase": "driver_rehash", "boundary": "exit", "monotonic_seconds": 231787.916116624}
+{"diagnostic": "memory_snapshot", "memory.current": 4607680512, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 4629532672, "memory.stat.anon": 3751669760, "memory.stat.file": 821755904, "memory.stat.kernel": 17698816, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-bounded-exit-179061-v1.service", "phase": "after_tail_replay"}
+{"phase": "driver_rehash", "boundary": "entry", "monotonic_seconds": 231840.786591729}
+{"phase": "driver_rehash", "boundary": "exit", "monotonic_seconds": 231840.801338636}
+{"diagnostic": "memory_snapshot", "memory.current": 4676136960, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 4732223488, "memory.stat.anon": 3829100544, "memory.stat.file": 814481408, "memory.stat.kernel": 17928192, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-bounded-exit-179061-v1.service", "phase": "before_native"}
+{"phase": "driver_rehash", "boundary": "entry", "monotonic_seconds": 231868.79666127}
+{"phase": "driver_rehash", "boundary": "exit", "monotonic_seconds": 231868.814942523}
+{"phase": "cleanup.snapshot", "boundary": "entry", "monotonic_seconds": 231869.045372136}
+{"diagnostic": "memory_snapshot", "memory.current": 4780384256, "memory.events.high": 0, "memory.events.low": 0, "memory.events.max": 0, "memory.events.oom": 0, "memory.events.oom_group_kill": 0, "memory.events.oom_kill": 0, "memory.peak": 4819283968, "memory.stat.anon": 3888320512, "memory.stat.file": 859185152, "memory.stat.kernel": 18333696, "memory.swap.current": 0, "memory.swap.peak": 0, "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-bounded-exit-179061-v1.service", "phase": "before_exit"}
+{"phase": "cleanup.snapshot", "boundary": "exit", "monotonic_seconds": 231869.062357641}
+{"phase": "cleanup.maps", "boundary": "entry", "monotonic_seconds": 231869.062372569}
+{"phase": "cleanup.maps", "boundary": "exit", "monotonic_seconds": 231869.084022232}
+{"phase": "combined.evaluator_exit", "boundary": "entry", "monotonic_seconds": 231869.084045288}
+{"event": "PROTOTYPE_PHASE", "phase": "old_exit_begin", "seconds": 514.734557171003}
+{"event": "QUADRATIC_PHASE", "phase": "exit_rehash", "delta_seconds": 15.525821538001765, "cumulative_seconds": 15.525821538001765}
+{"event": "PROTOTYPE_PHASE", "phase": "old_exit_end", "seconds": 530.2613188399991}
+{"event": "PROTOTYPE_PHASE", "phase": "own_union_begin", "seconds": 530.2613361839904}
+{"event": "PROTOTYPE_PHASE", "phase": "own_union_end", "seconds": 542.9273876750085}
+{"event": "PROTOTYPE_PHASE", "phase": "closure_begin", "seconds": 542.9274216750055}
+{"event": "PROTOTYPE_PHASE", "phase": "closure_end", "seconds": 542.9288615350088}
+{"phase": "combined.evaluator_exit", "boundary": "exit", "monotonic_seconds": 231960.980022614}
+{"phase": "combined.evidence", "boundary": "entry", "monotonic_seconds": 231960.980062246}
+{"phase": "combined.evidence", "boundary": "exit", "monotonic_seconds": 231976.705255103}
+{"phase": "rehash.context", "boundary": "entry", "monotonic_seconds": 231976.705299567}
+{"phase": "rehash.context", "boundary": "exit", "monotonic_seconds": 231986.289132878}
+{"phase": "rehash.prospective", "boundary": "entry", "monotonic_seconds": 231986.289174526}
+{"phase": "rehash.prospective", "boundary": "exit", "monotonic_seconds": 231986.307098208}
+{"phase": "final_guard", "boundary": "entry", "monotonic_seconds": 231986.307119072}
+{"phase": "final_guard.authenticate", "boundary": "entry", "monotonic_seconds": 231986.316094713}
+{"phase": "final_guard.authenticate", "boundary": "exit", "monotonic_seconds": 231986.951378948}
+{"phase": "final_guard.helpers", "boundary": "entry", "monotonic_seconds": 231986.951411732}
+{"phase": "final_guard.helpers", "boundary": "exit", "monotonic_seconds": 231986.955901376}
+{"phase": "final_guard.resources", "boundary": "entry", "monotonic_seconds": 231986.955930241}
+{"phase": "final_guard.resources", "boundary": "exit", "monotonic_seconds": 231986.956327714}
+{"phase": "final_guard", "boundary": "exit", "monotonic_seconds": 231986.95633741}
+{"phase": "cleanup.sources_close", "boundary": "entry", "monotonic_seconds": 231986.956342738}
+{"phase": "cleanup.sources_close", "boundary": "exit", "monotonic_seconds": 231987.137062761}
+{"phase": "cleanup.final_resources", "boundary": "entry", "monotonic_seconds": 231987.137127961}
+{"phase": "cleanup.workspace_dispose", "boundary": "entry", "monotonic_seconds": 231987.137772939}
+{"after": {"allocated_bytes": 0, "reserved_bytes": 60817408}, "before": {"allocated_bytes": 33554432, "reserved_bytes": 60817408}, "diagnostic": "cuda_workspace_disposal", "native_causality_established": false, "ownership_limit": "captured admitted builtin binding; C function pointer not authenticated", "status": "UNACCEPTED"}
+{"phase": "cleanup.workspace_dispose", "boundary": "exit", "monotonic_seconds": 231987.153164326}
+{"phase": "cleanup.final_state", "boundary": "entry", "monotonic_seconds": 231987.15317503}
+{"phase": "cleanup.final_state", "boundary": "exit", "monotonic_seconds": 231987.153780472}
+{"phase": "cleanup.final_resources", "boundary": "exit", "monotonic_seconds": 231987.153787704}
+{"phase": "cleanup.terminal_checks", "boundary": "entry", "monotonic_seconds": 231987.153793016}
+{"phase": "cleanup.terminal_checks", "boundary": "exit", "monotonic_seconds": 231987.154071673}
+{"phase": "cleanup.stage_receipt", "boundary": "entry", "monotonic_seconds": 231987.154079609}
+{"phase": "cleanup.stage_receipt", "boundary": "exit", "monotonic_seconds": 231987.194610169}
+{"phase": "cleanup.registry_dispose", "boundary": "entry", "monotonic_seconds": 231987.194667994}
+{"phase": "cleanup.registry_dispose", "boundary": "exit", "monotonic_seconds": 231987.253224829}
+{"phase": "cleanup.publish_receipt", "boundary": "entry", "monotonic_seconds": 231987.253286893}
+{"phase": "cleanup.publish_receipt", "boundary": "exit", "monotonic_seconds": 231987.253831487}
+{"schema": "connected-asymmetric-cache-diagnostic-v1", "status": "MEASURED", "output": "/home/riomus/runs/sfora-connected-asymmetric-cache-bounded-exit-179061-v1"}
+/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13: OK
+/home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/authority.json: OK
+/home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/diagnose_connected_asymmetric_cache.py: OK
+/home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/execution.json: OK
+/home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/test_connected_asymmetric_cache.py: OK
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v5/execution.json: OK
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v5/observe_connected_control_batch_execution.py: OK
+/home/riomus/runs/sfora-connected-control-batch-execution-source-v5/test_connected_control_batch_execution.py: OK
+/home/riomus/runs/sfora-connected-control-serving-native-authority-v5/native-authority.json: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/authority.json: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/diagnose_connected_gallery_freshness.py: OK
+/home/riomus/runs/sfora-connected-gallery-freshness-source-v3/execution.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-full-export-control-179061-v2/receipt.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/authority-full-export-control-179061-v2.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/evaluate_siglip2_connected_mlp.py: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/execution.json: OK
+/home/riomus/runs/sfora-connected-mlp-evaluation-source-v9/test_connected_mlp_evaluation.py: OK
+/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/bundle.json: OK
+/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v5/connected_control_native_authority.py: OK
+/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v5/observe_connected_serving.py: OK
+/home/riomus/runs/sfora-connected-probe-installed-control-serving-source-v5/qualify_connected_serving_requests.py: OK
+/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/cutile_int8.py: OK
+/home/riomus/runs/sfora-connected-probe-installed-serving-wheel-v1/site-packages/sfora/packed_int8.py: OK
+/home/riomus/runs/sfora-cutile-threads-v1/candidate.so: OK
+/home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py: OK
+/home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py: OK
+/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras: OK
+FINAL_CGROUP {"command_exit_status": 0, "invocation_id": "6f829f87d1134e3baf99c2f76417d773", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-bounded-exit-179061-v1.service", "values": {"memory.current": "769994752", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "4819283968", "memory.stat": "anon 5844992\nfile 758591488\nkernel 2973696\nkernel_stack 32768\npagetables 208896\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 16384\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5677056\ninactive_file 177238016\nactive_file 581353472\nunevictable 0\nslab_reclaimable 2624880\nslab_unreclaimable 79960\nslab 2704840\nworkingset_refault_anon 0\nworkingset_refault_file 334503\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 2\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 1012330\npgmajfault 9609\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1006\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+	Command being timed: "/bin/bash /home/riomus/runs/sfora-connected-asymmetric-cache-source-v3/command.sh"
+	User time (seconds): 419.38
+	System time (seconds): 83.82
+	Percent of CPU this job got: 81%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 10:18.79
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4369684
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 9609
+	Minor (reclaiming a frame) page faults: 921242
+	Voluntary context switches: 8845621
+	Involuntary context switches: 3398
+	Swaps: 0
+	File system inputs: 975608576
+	File system outputs: 5280
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+STOP_CGROUP {"exit_code": "exited", "exit_status": "0", "invocation_id": "6f829f87d1134e3baf99c2f76417d773", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-connected-asymmetric-cache-bounded-exit-179061-v1.service", "service_result": "success", "values": {"memory.current": "769445888", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "4819283968", "memory.stat": "anon 5435392\nfile 758595584\nkernel 2805760\nkernel_stack 0\npagetables 110592\nsec_pagetables 0\npercpu 1760\nsock 0\nvmalloc 0\nshmem 0\nzswap 0\nzswapped 0\nfile_mapped 0\nfile_dirty 20480\nfile_writeback 0\nswapcached 0\nanon_thp 0\nfile_thp 0\nshmem_thp 0\ninactive_anon 0\nactive_anon 5332992\ninactive_file 177242112\nactive_file 581353472\nunevictable 0\nslab_reclaimable 2625904\nslab_unreclaimable 48248\nslab 2674152\nworkingset_refault_anon 0\nworkingset_refault_file 334503\nworkingset_activate_anon 0\nworkingset_activate_file 0\nworkingset_restore_anon 0\nworkingset_restore_file 2\nworkingset_nodereclaim 0\npgdemote_kswapd 0\npgdemote_direct 0\npgdemote_khugepaged 0\npgdemote_proactive 0\npgpromote_success 0\npgscan 0\npgsteal 0\npswpin 0\npswpout 0\npgscan_kswapd 0\npgscan_direct 0\npgscan_khugepaged 0\npgscan_proactive 0\npgsteal_kswapd 0\npgsteal_direct 0\npgsteal_khugepaged 0\npgsteal_proactive 0\npgfault 1013831\npgmajfault 9609\npgrefill 0\npgactivate 0\npgdeactivate 0\npglazyfree 0\npglazyfreed 0\nswpin_zero 0\nswpout_zero 0\nzswpin 0\nzswpout 0\nzswpwb 0\nthp_fault_alloc 1006\nthp_collapse_alloc 3\nthp_swpout 0\nthp_swpout_fallback 0\nnuma_pages_migrated 0\nnuma_pte_updates 0\nnuma_hint_faults 0", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 10min 18.829s
+CPU time consumed: 8min 23.223s
+Memory peak: 4.4G
+Memory swap peak: 0B

@@ -1,0 +1,72 @@
+{
+  "cells": {
+    "FF": {
+      "map_at_r": 0.851517342155608,
+      "recall_at_1": 0.9711649365628604
+    },
+    "FS": {
+      "map_at_r": 0.8366002781378941,
+      "recall_at_1": 0.9688581314878892
+    }
+  },
+  "cuda_peak_bytes": 1808965120,
+  "dataset": "DeepFashion In-Shop official TRAIN-derived selection",
+  "driver_wall_seconds": 616.9087242489913,
+  "engineering_terminal_verified": true,
+  "full_uncached_exit": true,
+  "host_peak_bytes": 4819283968,
+  "invocation_id": "6f829f87d1134e3baf99c2f76417d773",
+  "memory_failure_events": 0,
+  "native_parity": true,
+  "observer_samples": 1235,
+  "observer_terminal": 0,
+  "original_ssh_session": 54145,
+  "paired_fs_minus_ff": {
+    "descriptive_only": true,
+    "gate": false,
+    "map_at_r_delta": -0.014917064017713977,
+    "r1_down": 7,
+    "r1_net": -4,
+    "r1_up": 3,
+    "recall_at_1_delta": -0.0023068050749711633
+  },
+  "phase_seconds": {
+    "cleanup.final_resources": 0.01665974300703965,
+    "cleanup.final_state": 0.0006054420082364231,
+    "cleanup.maps": 0.021649663016432896,
+    "cleanup.publish_receipt": 0.0005445939896162599,
+    "cleanup.registry_dispose": 0.058556835021590814,
+    "cleanup.snapshot": 0.016985505004413426,
+    "cleanup.sources_close": 0.18072002299595624,
+    "cleanup.stage_receipt": 0.040530560014303774,
+    "cleanup.terminal_checks": 0.00027865698211826384,
+    "cleanup.workspace_dispose": 0.015391387016279623,
+    "combined.evaluator_exit": 91.89597732599941,
+    "combined.evidence": 15.725192857004004,
+    "driver_rehash": 0.018281252996530384,
+    "final_guard": 0.6492183379887138,
+    "final_guard.authenticate": 0.635284235002473,
+    "final_guard.helpers": 0.004489643994020298,
+    "final_guard.resources": 0.00039747299160808325,
+    "rehash.context": 9.583833311015042,
+    "rehash.prospective": 0.017923681996762753
+  },
+  "publication_or_product_go": false,
+  "remaining_confound": "FIT export batch composition/preprocessing and frozen-encoder cache versus the updated live encoder; control parity does not prove all candidate arithmetic equivalence",
+  "schema": "bounded-exit-root-review-v1",
+  "scientific_decision": "CLOSE_FS_BRANCH; historical KILL unchanged",
+  "service_seconds": 618.829,
+  "sha256": {
+    "original.log": "70d16efc9265ce4b56e4861971cceab407fb8cc985bb308f8295942d3b614385",
+    "receipt.json": "fe4692a32dca8fffa2ad1578472f18d44bf0d9cf6dfdc57321632c1cbd250a0f",
+    "samples.jsonl": "2d24121b3ef4cc0c3dbb263f1d277ea046dff4117a836147bbda59e918e6af92"
+  },
+  "split": {
+    "gallery": 1715,
+    "products": 498,
+    "queries": 1734,
+    "seed": 179061
+  },
+  "swap_peak_bytes": 0,
+  "unit": "sfora-connected-asymmetric-cache-bounded-exit-179061-v1"
+}
