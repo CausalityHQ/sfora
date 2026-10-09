@@ -1,0 +1,29 @@
+{
+  "head_sha": "47555c2f4947c0bed5f558834558663cde41a785",
+  "jobs": [
+    {
+      "conclusion": "success",
+      "failed_steps": [],
+      "id": 113989020415,
+      "name": "Build Astro site + e2e"
+    },
+    {
+      "conclusion": "failure",
+      "failed_steps": [
+        "Check formatting"
+      ],
+      "id": 113989020745,
+      "name": "Format, lint, type-check, and test"
+    },
+    {
+      "conclusion": "success",
+      "failed_steps": [],
+      "id": 113989020828,
+      "name": "Connected serving source contracts"
+    }
+  ],
+  "raw_jobs_sha256": "1d7d366a03955bdbe39d07f905e698f9a50546050ce62b5109a6a598e0427a4b",
+  "run_id": 37980364824,
+  "schema": "connected-gallery-hosted-ci-check-v1",
+  "whole_product_accepted": false
+}
