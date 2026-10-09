@@ -1,0 +1,19 @@
+{
+  "distribution_owners": 32,
+  "exit_code": 0,
+  "files": {
+    "complete-record-owner-collector.py": "0523c90aa4bf836a571a44513ac55f39c35df2f8183ffb445f49bbd59a5b19bc",
+    "complete-record-owners.json": "8e38d2e503a44cdc1f2fe3cf4bf08c2a86dfb1f86603363aef5dcb262812f36f"
+  },
+  "native_file_bytes_hashed": false,
+  "native_modules_imported": false,
+  "native_qualification": false,
+  "native_record_and_stat_only": 249,
+  "product_go": false,
+  "records": 196,
+  "schema": "connected-original-complete-record-owner-audit-terminal-v1",
+  "source_sha_pass": 1505,
+  "ssh_session": 79965,
+  "system_native_members_bound_separately": 13,
+  "wheel_members": 1754
+}
