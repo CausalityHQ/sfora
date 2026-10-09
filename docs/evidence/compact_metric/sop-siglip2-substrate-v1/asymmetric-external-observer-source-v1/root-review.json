@@ -11,6 +11,11 @@
     "wall_seconds": 0.411259825
   },
   "native": "UNRUN",
+  "raw_diff": {
+    "file": "delta.diff.gz",
+    "reason": "Lossless compression preserves original diff whitespace; no raw evidence normalization",
+    "uncompressed_sha256": "d4dca883ccc6127eedb8429041e7428b8ec250c1d0f88f2dd6986277f42a5bcf"
+  },
   "review": "Read whole160-line stdlib source; original read-only CLI/snapshot/output/signals unchanged. Finite exact new marker predicate and750s/1500sample diagnostic bounds only; original experiment700s untouched. Root-owned external controller still needs freeze/preflight.",
   "schema": "root-asymmetric-external-observer-source-review-v1",
   "worker_commit": "d67a3c635b361aaf24854432b5bde21b1118843d"
