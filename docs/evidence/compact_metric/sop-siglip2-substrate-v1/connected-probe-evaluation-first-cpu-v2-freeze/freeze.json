@@ -1,0 +1,21 @@
+{
+  "evaluator_source_unchanged": true,
+  "files": {
+    "authority-first-cpu-v2.json": "b1b73e6789b6f3e14e3ee892b4c9ec12abddd8165994866130d2019da3f290e8",
+    "first-cpu-v2-command.sh": "578b580f37dc1076768d55b1995ee7462e8513d88d3552d26f7994fc32ae297c",
+    "first-cpu-v2-controller.sh": "8ce219e3666463f497aacf635d6a62bd3ce65efbe46a838775b0c1e34d117c3b",
+    "first-cpu-v2-launch.sh": "8d0006b46020e3f79222fbe83dcaf48b0100d9a9ff58e9d19e87eb9186c3bf31",
+    "verify_fresh_sha_table.py": "f99170e5c728cb07b8825ec325b56d1c3baf8a455c3143edebbcc939a61b01fb"
+  },
+  "helper_sha256": "f99170e5c728cb07b8825ec325b56d1c3baf8a455c3143edebbcc939a61b01fb",
+  "launch_eligibility": "NOT LAUNCHED. Requires bounded launcher A/B no memory events with complete original terminal and root source preflight. Then ONE new complete CPU; original v1 remains FAIL. Complete native/source exit and both ordered fresh table passes, original normal0, no memory events/swap required; no quality/speed admission.",
+  "limits": {
+    "cuda": "hidden",
+    "host_bytes": 8589934592,
+    "seconds": 700,
+    "swap_bytes": 0
+  },
+  "original_input_occurrences_preserved": 18810,
+  "schema": "connected-probe-evaluator-first-cpu-v2-freeze-v1",
+  "unit": "sfora-connected-probe-evaluation-first-cpu-v2"
+}
