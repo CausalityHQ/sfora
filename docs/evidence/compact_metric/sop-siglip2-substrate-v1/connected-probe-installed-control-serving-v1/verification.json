@@ -1,0 +1,18 @@
+{
+  "accepted": false,
+  "cause": "Three check_wheel callers pass the frozen driver parent.parent (/home/riomus/runs), which contains the separately installed sibling wheel; shared parent is not a checkout. Existing helper .git ancestor and containment predicates remain correct.",
+  "error": "installed wheel root must be outside any checkout",
+  "failed_before_native_start": true,
+  "host_peak_bytes": 1838772224,
+  "invocation_id": "cddb55d04747481a8afc6822d46fcb67",
+  "log_sha256": "ad9e516ea2a6f43a6692d0e5ce39bcbb962717db660d5ce99f18721613bc63f2",
+  "native_peak_rss_kib": 33308,
+  "normal_terminal": false,
+  "schema": "connected-probe-installed-control-serving-failure-v1",
+  "service_seconds": 2.365,
+  "source_fix_required": true,
+  "ssh_session": 71350,
+  "terminal_exit": 1,
+  "unit": "sfora-connected-probe-installed-control-serving-diagnostic-v1",
+  "zero_swap": true
+}
