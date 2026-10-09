@@ -1,0 +1,15 @@
+3 files already formatted
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/sfora/losses.py:47:36
+   |
+45 |     proxy_unit = normalize(proxy_array)
+46 |     values = []
+47 |     for anchor, positive, label in zip(anchor_unit, positive_unit, label_array):
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+48 |         ts = np.linspace(0.0, 1.0, path_points)
+49 |         path = (1.0 - ts[:, None]) * anchor[None, :] + ts[:, None] * positive[None, :]
+   |
+help: Add explicit value for parameter `strict=`
+
+Found 1 error.
+No fixes available (1 hidden fix can be enabled with the `--unsafe-fixes` option).

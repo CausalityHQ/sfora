@@ -1,0 +1,40 @@
+{
+  "base": "45b92b1da588f2256d9c4a75174b89a48cf8809e",
+  "command": "timeout30,AS1GiB; ruff format --check assigned3 then ruff check assigned3",
+  "exact_changed_files": [
+    {
+      "file": "src/sfora/atomic_publication.py",
+      "full_ast_sha256": "1b1e234b0ee7f1775a4edd35ebfcf6be73848e9ddc48ac06835c2b7cd6d04d49",
+      "new_sha256": "ee0870e4e34a3bb08e82b6aa6d222a1f29dce7f17edfb331973d34dadac8ed30",
+      "old_sha256": "ec4371328977d42cd19ea5a97f441a5f5e2172c2889d0098ce692ace4460ad5c"
+    },
+    {
+      "file": "src/sfora/amortized_local_scale.py",
+      "full_ast_sha256": "2aaf858a515ab45d09b54c40f3bc1ba308be61c2cd7a8d61e16a1955273cc430",
+      "new_sha256": "259393627cf64b8554b821294e6b5d4d4ab29eb3a106ee079c79383b4e6482b2",
+      "old_sha256": "36f76f821e428218303680ff1e5bd15ea4f669fcd54b89dc874e6e92078b278a"
+    },
+    {
+      "file": "src/sfora/losses.py",
+      "full_ast_sha256": "482c416a78cb18dd3fc4cafb4ac8ccc0a2b87f7a511cd3a2ec838db2e8f889cc",
+      "new_sha256": "e8b471c2f6cacf44846fad7c35456548b26a7fadb8a8e9a7eb661827da4853c0",
+      "old_sha256": "02f0b0046ad319bc5cd12ef656fe8e46ef9d9c907301741582bf65b356e4f9b5"
+    }
+  ],
+  "integrated_commit": "4c480e28745502936783726029fbf6fa64af5f41",
+  "original_controller": 65795,
+  "original_exit": 1,
+  "package_tests_native_unrun": true,
+  "quality_speed_go": false,
+  "root_configured_lint": "FAIL_PREEXISTING_B905_losses.py_47",
+  "root_format_check": "PASS_3_FILES",
+  "root_log_sha256": "c1641537730da0b87d5acda0aa7775881fe7631b25c88ec6bc6a5690729eace8",
+  "ruff_version": "0.15.20",
+  "schema": "package-format-only-root-verification-v1",
+  "scope": "Formatting only, identical executable AST. No scientific loss/roles/caps/native authorities/frozen remote bytes changed. New package source identity requires fresh deployment qualification, not transferred accepted runtime evidence.",
+  "whole_ast_type_comments_preserved": true,
+  "whole_ci_green": false,
+  "worker_commit": "c3bef571cafb28047e5f4178a9ef7e14dad6b336",
+  "worker_lint_scope": "E,W,F subset; not full configured lint",
+  "worker_report_correction": "ast.parse(include_attributes=False) is not a real API; root independently used ast.parse(type_comments=True) followed by ast.dump(include_attributes=False)."
+}

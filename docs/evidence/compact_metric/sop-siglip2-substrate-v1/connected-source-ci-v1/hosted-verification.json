@@ -1,0 +1,24 @@
+{
+  "commit": "45b92b1da588f2256d9c4a75174b89a48cf8809e",
+  "hosted_logs_downloaded": false,
+  "metadata_sha256": {
+    "hosted-jobs-37956129683.json": "daac5dee5f77e8a077d7bd15c660e50dabcc331dab037702b293d2d92aa7c170",
+    "hosted-run-37956129683.json": "494ddc0e1944b69c7cf4d26455c53e914755f43f461bf6b091c46d2c787ec334"
+  },
+  "original_run": 37956129683,
+  "product_job": "FAIL_FORMATTING",
+  "product_lint_typecheck_tests_not_established": true,
+  "proof_scope": "Original public GitHub run/job metadata proves source-contract step success at exact commit; local raw scripts/logs retained separately. Overall CI failure remains failure.",
+  "quality_speed_go": false,
+  "runtime_native_installed_qualification": false,
+  "schema": "connected-source-hosted-ci-verification-v1",
+  "site_job": "PASS",
+  "source_contract_job": {
+    "completed_at": "2026-10-09T16:03:03Z",
+    "conclusion": "success",
+    "id": 113906982924,
+    "started_at": "2026-10-09T16:02:05Z"
+  },
+  "url": "https://github.com/CausalityHQ/sfora/actions/runs/37956129683",
+  "whole_ci": "FAIL"
+}

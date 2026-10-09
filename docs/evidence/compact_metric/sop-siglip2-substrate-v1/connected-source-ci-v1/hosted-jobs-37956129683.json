@@ -1,0 +1,337 @@
+{
+  "total_count": 3,
+  "jobs": [
+    {
+      "id": 113906982924,
+      "run_id": 37956129683,
+      "workflow_name": "CI",
+      "head_branch": "master",
+      "run_url": "https://api.github.com/repos/CausalityHQ/sfora/actions/runs/37956129683",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOTWyYRc8AAAAahWKgDA",
+      "head_sha": "45b92b1da588f2256d9c4a75174b89a48cf8809e",
+      "url": "https://api.github.com/repos/CausalityHQ/sfora/actions/jobs/113906982924",
+      "html_url": "https://github.com/CausalityHQ/sfora/actions/runs/37956129683/job/113906982924",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T16:02:02Z",
+      "started_at": "2026-10-09T16:02:05Z",
+      "completed_at": "2026-10-09T16:03:03Z",
+      "name": "Connected serving source contracts",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T16:02:06Z",
+          "completed_at": "2026-10-09T16:02:06Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T16:02:06Z",
+          "completed_at": "2026-10-09T16:02:22Z"
+        },
+        {
+          "name": "Set up Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T16:02:22Z",
+          "completed_at": "2026-10-09T16:02:32Z"
+        },
+        {
+          "name": "Check packaged inference and bridge contracts without native dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T16:02:32Z",
+          "completed_at": "2026-10-09T16:02:59Z"
+        },
+        {
+          "name": "Post Set up Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T16:02:59Z",
+          "completed_at": "2026-10-09T16:03:00Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-09T16:03:00Z",
+          "completed_at": "2026-10-09T16:03:00Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-09T16:03:00Z",
+          "completed_at": "2026-10-09T16:03:00Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/CausalityHQ/sfora/check-runs/113906982924",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000129962,
+      "runner_name": "GitHub Actions 1000129962",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113906983254,
+      "run_id": 37956129683,
+      "workflow_name": "CI",
+      "head_branch": "master",
+      "run_url": "https://api.github.com/repos/CausalityHQ/sfora/actions/runs/37956129683",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOTWyYRc8AAAAahWKhVg",
+      "head_sha": "45b92b1da588f2256d9c4a75174b89a48cf8809e",
+      "url": "https://api.github.com/repos/CausalityHQ/sfora/actions/jobs/113906983254",
+      "html_url": "https://github.com/CausalityHQ/sfora/actions/runs/37956129683/job/113906983254",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-09T16:02:02Z",
+      "started_at": "2026-10-09T16:02:05Z",
+      "completed_at": "2026-10-09T16:02:55Z",
+      "name": "Build Astro site + e2e",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T16:02:06Z",
+          "completed_at": "2026-10-09T16:02:06Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T16:02:06Z",
+          "completed_at": "2026-10-09T16:02:18Z"
+        },
+        {
+          "name": "Set up Node",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T16:02:18Z",
+          "completed_at": "2026-10-09T16:02:19Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T16:02:19Z",
+          "completed_at": "2026-10-09T16:02:25Z"
+        },
+        {
+          "name": "Build the site",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T16:02:25Z",
+          "completed_at": "2026-10-09T16:02:26Z"
+        },
+        {
+          "name": "Install Playwright browser",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-09T16:02:26Z",
+          "completed_at": "2026-10-09T16:02:49Z"
+        },
+        {
+          "name": "Run e2e tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-09T16:02:49Z",
+          "completed_at": "2026-10-09T16:02:53Z"
+        },
+        {
+          "name": "Post Set up Node",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-09T16:02:53Z",
+          "completed_at": "2026-10-09T16:02:53Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-09T16:02:53Z",
+          "completed_at": "2026-10-09T16:02:53Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-09T16:02:54Z",
+          "completed_at": "2026-10-09T16:02:54Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/CausalityHQ/sfora/check-runs/113906983254",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000129963,
+      "runner_name": "GitHub Actions 1000129963",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 113906983428,
+      "run_id": 37956129683,
+      "workflow_name": "CI",
+      "head_branch": "master",
+      "run_url": "https://api.github.com/repos/CausalityHQ/sfora/actions/runs/37956129683",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOTWyYRc8AAAAahWKiBA",
+      "head_sha": "45b92b1da588f2256d9c4a75174b89a48cf8809e",
+      "url": "https://api.github.com/repos/CausalityHQ/sfora/actions/jobs/113906983428",
+      "html_url": "https://github.com/CausalityHQ/sfora/actions/runs/37956129683/job/113906983428",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-09T16:02:02Z",
+      "started_at": "2026-10-09T16:02:05Z",
+      "completed_at": "2026-10-09T16:02:44Z",
+      "name": "Format, lint, type-check, and test",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-09T16:02:06Z",
+          "completed_at": "2026-10-09T16:02:08Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-09T16:02:08Z",
+          "completed_at": "2026-10-09T16:02:22Z"
+        },
+        {
+          "name": "Install uv",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-09T16:02:22Z",
+          "completed_at": "2026-10-09T16:02:25Z"
+        },
+        {
+          "name": "Set up Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-09T16:02:25Z",
+          "completed_at": "2026-10-09T16:02:25Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-09T16:02:25Z",
+          "completed_at": "2026-10-09T16:02:40Z"
+        },
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 6,
+          "started_at": "2026-10-09T16:02:40Z",
+          "completed_at": "2026-10-09T16:02:41Z"
+        },
+        {
+          "name": "Lint",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-09T16:02:41Z",
+          "completed_at": "2026-10-09T16:02:41Z"
+        },
+        {
+          "name": "Type-check",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-09T16:02:41Z",
+          "completed_at": "2026-10-09T16:02:41Z"
+        },
+        {
+          "name": "Test",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-09T16:02:41Z",
+          "completed_at": "2026-10-09T16:02:41Z"
+        },
+        {
+          "name": "Build reports",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-09T16:02:41Z",
+          "completed_at": "2026-10-09T16:02:41Z"
+        },
+        {
+          "name": "Post Set up Python",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 18,
+          "started_at": "2026-10-09T16:02:41Z",
+          "completed_at": "2026-10-09T16:02:41Z"
+        },
+        {
+          "name": "Post Install uv",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 19,
+          "started_at": "2026-10-09T16:02:41Z",
+          "completed_at": "2026-10-09T16:02:41Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-09T16:02:41Z",
+          "completed_at": "2026-10-09T16:02:42Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-09T16:02:42Z",
+          "completed_at": "2026-10-09T16:02:42Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/CausalityHQ/sfora/check-runs/113906983428",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000129964,
+      "runner_name": "GitHub Actions 1000129964",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}
