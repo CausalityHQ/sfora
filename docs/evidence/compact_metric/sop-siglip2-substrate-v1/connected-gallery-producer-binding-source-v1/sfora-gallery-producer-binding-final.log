@@ -1,0 +1,16 @@
+Python 3.14.4
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.406s
+
+OK
+Python 3.12.13
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.467s
+
+OK
+All checks passed!
+2 files already formatted
+pyproject.toml: note: unused section(s): module = ['datasets', 'h5py', 'sentence_transformers', 'sklearn.*', 'torch', 'torchvision', 'torchvision.*']
+Success: no issues found in 2 source files

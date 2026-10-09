@@ -1,0 +1,59 @@
+FFFFFF
+======================================================================
+FAIL: test_endpoint_and_evaluator_guards_reject_reassociated_originals (__main__.GalleryTests.test_endpoint_and_evaluator_guards_reject_reassociated_originals) (mutation='checkpoint')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-gallery-producer-binding-20261009/scripts/test_connected_gallery_provenance.py", line 359, in test_endpoint_and_evaluator_guards_reject_reassociated_originals
+    with self.assertRaisesRegex(ValueError, "guard|bound endpoint"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_and_evaluator_guards_reject_reassociated_originals (__main__.GalleryTests.test_endpoint_and_evaluator_guards_reject_reassociated_originals) (mutation='launch')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-gallery-producer-binding-20261009/scripts/test_connected_gallery_provenance.py", line 359, in test_endpoint_and_evaluator_guards_reject_reassociated_originals
+    with self.assertRaisesRegex(ValueError, "guard|bound endpoint"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_and_evaluator_guards_reject_reassociated_originals (__main__.GalleryTests.test_endpoint_and_evaluator_guards_reject_reassociated_originals) (mutation='receipt')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-gallery-producer-binding-20261009/scripts/test_connected_gallery_provenance.py", line 359, in test_endpoint_and_evaluator_guards_reject_reassociated_originals
+    with self.assertRaisesRegex(ValueError, "guard|bound endpoint"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_and_evaluator_guards_reject_reassociated_originals (__main__.GalleryTests.test_endpoint_and_evaluator_guards_reject_reassociated_originals) (mutation='log')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-gallery-producer-binding-20261009/scripts/test_connected_gallery_provenance.py", line 359, in test_endpoint_and_evaluator_guards_reject_reassociated_originals
+    with self.assertRaisesRegex(ValueError, "guard|bound endpoint"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_and_evaluator_guards_reject_reassociated_originals (__main__.GalleryTests.test_endpoint_and_evaluator_guards_reject_reassociated_originals) (mutation='source_code')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-gallery-producer-binding-20261009/scripts/test_connected_gallery_provenance.py", line 359, in test_endpoint_and_evaluator_guards_reject_reassociated_originals
+    with self.assertRaisesRegex(ValueError, "guard|bound endpoint"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_endpoint_and_evaluator_guards_reject_reassociated_originals (__main__.GalleryTests.test_endpoint_and_evaluator_guards_reject_reassociated_originals) (mutation='bound_endpoint')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-gallery-producer-binding-20261009/scripts/test_connected_gallery_provenance.py", line 359, in test_endpoint_and_evaluator_guards_reject_reassociated_originals
+    with self.assertRaisesRegex(ValueError, "guard|bound endpoint"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.014s
+
+FAILED (failures=6)

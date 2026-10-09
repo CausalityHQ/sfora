@@ -1,0 +1,14 @@
+{
+  "child_commit": "21e16e0c497e841a8e1d2aecf09277ddf568c4d7",
+  "source_and_original_log_digests_verified": true,
+  "root_integration_exit": 0,
+  "tests": {
+    "gallery": 9,
+    "artifact_identity": 13,
+    "installed_environment": 11
+  },
+  "ruff_check_and_format": "PASS",
+  "ci_addition_exact_inverse": true,
+  "native_qualification": false,
+  "gallery_wire_sha256": null
+}

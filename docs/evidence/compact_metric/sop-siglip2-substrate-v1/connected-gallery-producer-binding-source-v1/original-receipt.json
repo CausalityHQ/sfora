@@ -1,0 +1,40 @@
+{
+  "commit": "21e16e0c497e841a8e1d2aecf09277ddf568c4d7",
+  "parent": "17b0e03cb12d29c0b16a4ad0e8d77f8abadc391a",
+  "working_tree_clean": true,
+  "changed_files": {
+    "src/sfora/connected_gallery_provenance.py": "0e552eb81c3a200bda4568b43a7955cef8018ca43d83c4b0172fc903debaa1ec",
+    "scripts/test_connected_gallery_provenance.py": "cf8225b18270f5b6eb729077763260a159af574c8fd088da9422968a6a2c2a4e"
+  },
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "commit_trailers": [],
+  "final_gate": {
+    "exit_status": 0,
+    "timeout_seconds": 120,
+    "address_space_kib": 1048576,
+    "elapsed_seconds": 17.63,
+    "maximum_rss_kib": 117688,
+    "python3.14.4": {
+      "tests": 9,
+      "pass": true
+    },
+    "python3.12.13": {
+      "tests": 9,
+      "pass": true
+    },
+    "ruff0.15.20_check_and_format": "PASS",
+    "mypy2.1.0_strict_both_files": "PASS"
+  },
+  "logs": {
+    "/tmp/sfora-gallery-producer-binding-final.log": "0ccc284a2563fbfd7562bc62ebca4eb6ad13e33d59599f2d0093409eadc53acd",
+    "/tmp/sfora-gallery-producer-binding-green.log": "1c6216d3e2d5b5cdec3c0ec914f3cfb367b1a6b73ce2150e464f634bea2efef9",
+    "/tmp/sfora-gallery-producer-binding-mypy-narrow.log": "05d5cfedbc0770bae6cca7ed35cc48ffc3f9652fdadece988a76823335e2a3a3",
+    "/tmp/sfora-gallery-producer-binding-real-green.log": "e2e48e35cd2d7a714ed3d695dd14fea403785f86b58b029c27f948d6ca5d4761",
+    "/tmp/sfora-gallery-producer-binding-red.log": "dd2804e697d9edbe370412cd9c2a80b1fe76c837df1fc1c47627aade3be4443f",
+    "/tmp/sfora-gallery-producer-binding-test-mypy.log": "05d5cfedbc0770bae6cca7ed35cc48ffc3f9652fdadece988a76823335e2a3a3",
+    "/tmp/sfora-gallery-producer-binding-final.time": "207d920c47412193a1a0dad805c84fc0c50f3f2de966f98169267ad8e56c4dc2"
+  },
+  "gallery_wire_sha256": null,
+  "native_verification": false,
+  "merge_or_push": false
+}
