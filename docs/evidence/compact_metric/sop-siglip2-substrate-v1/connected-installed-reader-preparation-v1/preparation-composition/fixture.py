@@ -71,6 +71,24 @@ try:
     else: raise AssertionError('independently repinned false installed authority accepted')
     prepared_again = runtime._serving_prepare(str(directory), **kwargs)
     assert prepared_again['installed'] == prepared['installed']
+    checker_function = owner._check_current.__func__
+    checker_code = checker_function.__code__
+    changed_during_admission = []
+    runtime_lines = runtime_path.read_text().splitlines()
+    def trace_checker(frame, event, arg):
+        if event == 'line' and frame.f_code.co_name == '_serving_prepare' and ("bridge changed during native-free admission" in runtime_lines[frame.f_lineno-1] or runtime_lines[frame.f_lineno-1].strip() == "_serving_helper_binding(serving_helpers)"):
+            checker_function.__code__ = (lambda self: None).__code__
+            changed_during_admission.append(True)
+        return trace_checker
+    sys.settrace(trace_checker)
+    try:
+        try: runtime._serving_prepare(str(directory), **kwargs)
+        except ValueError: pass
+        else: raise AssertionError('checker changed during preparation was accepted')
+    finally:
+        sys.settrace(None)
+        checker_function.__code__ = checker_code
+    assert changed_during_admission
     anchor.write_bytes(b'opaque synthetic external mutant')
     try: runtime._serving_prepare(str(directory),**kwargs)
     except ValueError: pass

@@ -1,0 +1,41 @@
+{
+  "command": "ulimit -v 1048576; timeout 15 python3 -B -S docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/preparation-composition/check.py",
+  "evidence_origin": "original exec tool result; no separate raw stdout file persisted",
+  "exit_code": 0,
+  "files": {
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/helper-binding-prototype/core.py": "16caff10e7664767d8a7e99b2c273260304d3412fd2e71e90938cb31bf2156aa",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/metadata-prototype/sfora-serving-metadata-prototype.py": "1c4d6b11e89bffcd9d053b4c2ad2153dcd1497a767bc3edffa7b5c6250342286",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/preparation-composition/check.py": "2abe4a775d5390ddfd45b49e875fcb842ecd137bf6e85ec041b0cbf994082290",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/preparation-composition/fixture.py": "98f050e761ce65ba6306bb4b33817d0fe3329b30d68c8685a3f6760fd465c2f9",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/preparation-composition/scope.md": "acfc2e838a717622ac66c803239fb219948aca631fd1881f2004d7e0bbf37099"
+  },
+  "genuine_helpers": [
+    "connected_gallery_provenance",
+    "connected_serving_artifact",
+    "connected_serving_admission",
+    "connected_artifact_identity",
+    "connected_installed_environment"
+  ],
+  "native_run": false,
+  "negative_cases": [
+    "endpoint bytes",
+    "origin metadata bytes",
+    "selected wheel member bytes",
+    "repinned false installed authority",
+    "external anchor bytes",
+    "foreign callback",
+    "checker code",
+    "checker defaults",
+    "checker keyword defaults",
+    "duplicate checker snapshot",
+    "helper literal",
+    "checker code changed at final preparation boundary"
+  ],
+  "observed_tool_wall_seconds": 0.188506016,
+  "prior_receipt": "verification.json describes commit 417e1e91 only",
+  "product_go": false,
+  "quality_result": null,
+  "schema": "source-only-serving-preparation-composition-v2",
+  "speed_result": null,
+  "synthetic_files": 10
+}

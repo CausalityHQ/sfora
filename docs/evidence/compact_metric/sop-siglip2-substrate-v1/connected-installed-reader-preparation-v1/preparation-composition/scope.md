@@ -19,3 +19,10 @@ model constructor, public factory ledger, installed DGX environment or native
 permission qualification. The checker snapshot starts trusted. No production
 source changed. Complete typed loading, projection, cleanup/exit lifecycle,
 public bridge integration, resource fit, quality and speed remain unverified.
+
+A later RED used a source-only Python trace to replace checker code at the final
+preparation boundary. The initial prototype accepted that replacement. The
+final boundary now repeats the complete authenticated helper binding instead of
+calling the unchecked method directly; GREEN rejects the mid-admission change.
+The trace is disabled and the checker code restored in finally. This proves that
+finite boundary, not arbitrary interpreter compromise or atomic concurrency.

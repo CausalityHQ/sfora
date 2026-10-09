@@ -69,5 +69,5 @@ def _serving_prepare(directory, *, trusted_serving_sha256, trusted_fragment_sha2
         guards[fact['path']] = fact['sha256']
     for path, sha in helper_guards:
         bound_file(guards, path, sha)
-    require(checker() is None, 'bridge changed during native-free admission')
+    _serving_helper_binding(serving_helpers)
     return {'admitted': admitted, 'origin': origin, 'origin_raw': origin_raw, 'owners_raw': owners_raw, 'installed': actual, 'installed_raw': installed_environment, 'installed_sha256': trusted_installed_environment_sha256, 'helpers': modules, 'helper_guards': helper_guards, 'checker': checker, 'guards': guards}
