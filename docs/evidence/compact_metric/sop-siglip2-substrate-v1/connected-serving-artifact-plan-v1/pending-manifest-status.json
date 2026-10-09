@@ -1,0 +1,16 @@
+{
+  "binder_implemented": false,
+  "binder_verified": false,
+  "fragment_count": 6,
+  "member_count": 9,
+  "native_qualification": false,
+  "payload_count": 3,
+  "payload_files_published": false,
+  "producer_association_digest_is_new_not_original": true,
+  "quality_speed_goal_met": false,
+  "raw_manifest_sha256": "eb064ddfc8d845c60e932ba543625f3e13a39ec32117e7d29db14df8cd22e6ab",
+  "remote_metadata_command_exit": 0,
+  "schema": "serving-manifest-pending-status-v1",
+  "serving_accepted": false,
+  "typed_payload_verified": false
+}

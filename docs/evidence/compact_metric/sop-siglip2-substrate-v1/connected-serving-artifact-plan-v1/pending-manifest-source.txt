@@ -1,0 +1,21 @@
+import hashlib,json,os,stat
+from pathlib import Path
+def canon(v):return json.dumps(v,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+def read(row):
+ p=Path(row['path']);assert p.resolve()==p and not p.is_symlink()
+ fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW)
+ try:
+  before=os.fstat(fd);assert stat.S_ISREG(before.st_mode) and before.st_nlink==1 and before.st_size==row['bytes'] and before.st_size<16*1024*1024
+  raw=b''
+  while len(raw)<before.st_size:
+   chunk=os.read(fd,1024*1024);assert chunk;raw+=chunk
+  assert hashlib.sha256(raw).hexdigest()==row['sha256']
+ finally:os.close(fd)
+ return raw
+expected={'gallery-ids.json': {'bytes': 92771, 'path': '/home/riomus/runs/sfora-connected-gallery-fragment-control-179061-v1/gallery-ids.json', 'sha256': 'df9fb988945811be1100b4b95166871a4f840974e6667ecdf249d75732405ad4'}, 'gallery-provenance.json': {'bytes': 835778, 'path': '/home/riomus/runs/sfora-connected-gallery-fragment-control-179061-v1/gallery-provenance.json', 'sha256': '11e6fbc9deb733156b4a574fc38a05c78e8d311a5db82a99794e4cac61581c5b'}, 'gallery.bin': {'bytes': 222950, 'path': '/home/riomus/runs/sfora-connected-gallery-fragment-control-179061-v1/gallery.bin', 'sha256': '386f3b2289f74f7d154efc9d47838f26def6a8c7a18368faac1d3c690ec6bd28'}, 'origin-export.json': {'bytes': 6184623, 'path': '/home/riomus/runs/sfora-connected-gallery-fragment-control-179061-v1/origin-export.json', 'sha256': 'db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407'}, 'origin-owners.json': {'bytes': 967658, 'path': '/home/riomus/runs/sfora-connected-gallery-fragment-control-179061-v1/origin-owners.json', 'sha256': '8e38d2e503a44cdc1f2fe3cf4bf08c2a86dfb1f86603363aef5dcb262812f36f'}, 'origin.json': {'bytes': 546690, 'path': '/home/riomus/runs/sfora-connected-gallery-fragment-control-179061-v1/origin.json', 'sha256': 'e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153'}};payload={'endpoint.pt': {'bytes': 42893040, 'device': 66306, 'inode': 20578309, 'path': '/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/endpoint.pt', 'sha256': '9e27e088ba11f0e6c87af451f810f67ebd975445b1c9686cc816fdb29a6d01b7'}, 'processor.json': {'bytes': 354, 'device': 66306, 'inode': 20578310, 'path': '/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/processor.json', 'sha256': '4aa85cbcaee5034daeaf2dccbbd21f43a04351f707df96ffd602571fb13b0f0a'}, 'vision.pt': {'bytes': 1711945083, 'device': 66306, 'inode': 20578308, 'path': '/home/riomus/runs/sfora-connected-mlp-train-control-179061-v1/control-179061-bundle/vision.pt', 'sha256': '5dade5510a57637019adcf3c37a2ef66af0828ba072d5c847e768c8de2d48189'}}
+bundle=json.loads(read(expected['origin.json']));provenance=json.loads(read(expected['gallery-provenance.json']));producer=provenance['producer'];assert producer['original_bundle_sha256']==expected['origin.json']['sha256'] and producer['gallery_wire_sha256'] is None
+assert bundle['files']=={n:f['sha256'] for n,f in payload.items()}
+files={n:{'path':n,'bytes':f['bytes'],'sha256':f['sha256']} for n,f in {**expected,**payload}.items()}
+association=hashlib.sha256(canon({k:producer[k] for k in ('identity','gallery_batches','gallery_rows')})).hexdigest()
+manifest={'schema':'siglip2-connected-mlp-serving-v2','files':files,'origin':{'bundle_sha256':expected['origin.json']['sha256'],'endpoint_state_sha256':bundle['endpoint_state_sha256'],'fixed_sha256':producer['identity']['fixed_sha256']},'gallery':{'count':len(producer['gallery_rows']),'dimensions':128,'bytes_per_row':130,'wire_sha256':expected['gallery.bin']['sha256'],'ordered_ids_sha256':expected['gallery-ids.json']['sha256'],'provenance_sha256':expected['gallery-provenance.json']['sha256'],'encoder_binding_sha256':association},'request':{'device':'cuda','batch_min':1,'batch_max':32,'dimensions':128,'k':10,'ties':'ordinal-ascending'}}
+print(json.dumps(manifest,indent=2,sort_keys=True))

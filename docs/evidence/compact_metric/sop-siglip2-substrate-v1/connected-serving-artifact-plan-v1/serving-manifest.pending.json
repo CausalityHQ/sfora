@@ -1,0 +1,72 @@
+{
+  "files": {
+    "endpoint.pt": {
+      "bytes": 42893040,
+      "path": "endpoint.pt",
+      "sha256": "9e27e088ba11f0e6c87af451f810f67ebd975445b1c9686cc816fdb29a6d01b7"
+    },
+    "gallery-ids.json": {
+      "bytes": 92771,
+      "path": "gallery-ids.json",
+      "sha256": "df9fb988945811be1100b4b95166871a4f840974e6667ecdf249d75732405ad4"
+    },
+    "gallery-provenance.json": {
+      "bytes": 835778,
+      "path": "gallery-provenance.json",
+      "sha256": "11e6fbc9deb733156b4a574fc38a05c78e8d311a5db82a99794e4cac61581c5b"
+    },
+    "gallery.bin": {
+      "bytes": 222950,
+      "path": "gallery.bin",
+      "sha256": "386f3b2289f74f7d154efc9d47838f26def6a8c7a18368faac1d3c690ec6bd28"
+    },
+    "origin-export.json": {
+      "bytes": 6184623,
+      "path": "origin-export.json",
+      "sha256": "db63db8270f2bf9a75448863e7ff701b7894b0c6aaf45c748730b6ea52393407"
+    },
+    "origin-owners.json": {
+      "bytes": 967658,
+      "path": "origin-owners.json",
+      "sha256": "8e38d2e503a44cdc1f2fe3cf4bf08c2a86dfb1f86603363aef5dcb262812f36f"
+    },
+    "origin.json": {
+      "bytes": 546690,
+      "path": "origin.json",
+      "sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153"
+    },
+    "processor.json": {
+      "bytes": 354,
+      "path": "processor.json",
+      "sha256": "4aa85cbcaee5034daeaf2dccbbd21f43a04351f707df96ffd602571fb13b0f0a"
+    },
+    "vision.pt": {
+      "bytes": 1711945083,
+      "path": "vision.pt",
+      "sha256": "5dade5510a57637019adcf3c37a2ef66af0828ba072d5c847e768c8de2d48189"
+    }
+  },
+  "gallery": {
+    "bytes_per_row": 130,
+    "count": 1715,
+    "dimensions": 128,
+    "encoder_binding_sha256": "e46f8b1314c7166d566ec82349f98c088b53ab92b5f131489a9282c480e178d5",
+    "ordered_ids_sha256": "df9fb988945811be1100b4b95166871a4f840974e6667ecdf249d75732405ad4",
+    "provenance_sha256": "11e6fbc9deb733156b4a574fc38a05c78e8d311a5db82a99794e4cac61581c5b",
+    "wire_sha256": "386f3b2289f74f7d154efc9d47838f26def6a8c7a18368faac1d3c690ec6bd28"
+  },
+  "origin": {
+    "bundle_sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153",
+    "endpoint_state_sha256": "341decea29452d01e7f3bf41ff4a8c77b1fc10ce6d91053d73485ed88577483f",
+    "fixed_sha256": "ed4fde241354ddcd295a98197cdeead4c9b3134f1e7f88ea0266cb24c30b5df6"
+  },
+  "request": {
+    "batch_max": 32,
+    "batch_min": 1,
+    "device": "cuda",
+    "dimensions": 128,
+    "k": 10,
+    "ties": "ordinal-ascending"
+  },
+  "schema": "siglip2-connected-mlp-serving-v2"
+}
