@@ -5,8 +5,9 @@
     "/tmp/sfora-serving-restore-wheel-v1-repeat"
   ],
   "first_exit": 0,
-  "native_or_project_inference_imported": false,
+  "imported_modules_traced": false,
   "original_first_session": 16152,
+  "project_inference_invoked_by_command": false,
   "root_source_commit": "a894d609851d238f0605d5bbeeaa88a896b60da7",
   "second_completed_in_initial_exec": true,
   "second_exit": 0,
