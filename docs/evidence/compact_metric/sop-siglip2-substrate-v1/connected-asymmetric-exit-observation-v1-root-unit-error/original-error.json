@@ -1,0 +1,29 @@
+{
+  "actual_invocation_id": "f2dc68adb6204eb68020f904baa98af5",
+  "actual_launch_unit": "sfora-connected-asymmetric-cache-first-179061-v1",
+  "corrected_observation": {
+    "causal_limits": "Admission span missed; no accepted experiment or successful memory fix claim. Verify first corrected sample counters before interpreting later events.",
+    "late_start": true,
+    "output": "/home/riomus/runs/sfora-asymmetric-exit-residency-observer-source-v1/actual-unit-observation-v1.jsonl",
+    "script_sha256": "c11363abb8719207ddf75b5ed67e9728f9849395ea3faca57213491324fbac70",
+    "ssh_session": 16658,
+    "target_unit": "sfora-connected-asymmetric-cache-first-179061-v1"
+  },
+  "driver_output": "/home/riomus/runs/sfora-connected-asymmetric-cache-exit-observation-179061-v1",
+  "freeze_commit": "588f9b05",
+  "frozen_declared_unit": "sfora-connected-asymmetric-cache-exit-observation-179061-v1",
+  "native_job_stopped": false,
+  "next_source_gate": "Before any future launch, assert parsed systemd --unit equals frozen unit equals output basename, and observer target cgroup basename equals unit.service; include interpreter/resources and source pins as before.",
+  "original_launch_preserved": true,
+  "original_ssh_session": 34093,
+  "schema": "asymmetric-root-unit-binding-error-v1",
+  "scientific_acceptance": false,
+  "status": "RED_ROOT_UNIT_MISMATCH",
+  "wrong_sampler": {
+    "SIGTERM_only_owned_readonly_sampler": true,
+    "exact_cmdline_verified": true,
+    "output_preserved": "samples.jsonl",
+    "pid": 2131106,
+    "wrong_target_cgroup": "sfora-connected-asymmetric-cache-exit-observation-179061-v1.service"
+  }
+}
