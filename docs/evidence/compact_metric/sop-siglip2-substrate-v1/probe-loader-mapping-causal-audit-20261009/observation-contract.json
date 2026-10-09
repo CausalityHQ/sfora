@@ -1,0 +1,63 @@
+{
+  "status": "DESIGN_ONLY_UNIMPLEMENTED_UNLAUNCHED_ROOT_OWNED",
+  "authority": "ONE prospective engineering observation only after root-owned review, new freeze, explicit normal-terminal scheduling; this report gives no native authorization",
+  "base": "d3d3771e4989e8f4c8eff26f72b47bc5c5475cd5",
+  "production_scope": "If root elects to implement, qualifier/test only. Do not edit or derive a replacement copied trainer/runtime/frozen bundle/helper, bind new native globals, change CLI/authority admission/math/resources, or loosen either original predicate.",
+  "exact_seams": [
+    {
+      "file": "scripts/qualify_connected_probe_serving.py",
+      "function": "reference_outputs",
+      "original_line": 467,
+      "ast": "Assign(state, portable.load_inference(Path(directory),bundle_sha,'cuda'))",
+      "addition": "Within the original reads_only block, surround only this existing Assign with a diagnostic trace scope. Install sys.settrace for the current thread only after portable is authenticated; previous trace must be None, otherwise observation is ineligible. Preserve sys.getprofile identity. Restore exact previous trace in an unconditional inner finally before the original reads_only exit. Do not wrap/rebind portable.load_inference or any historical helper."
+    },
+    {
+      "file": "scripts/train_siglip2_connected_probe.py",
+      "function": "load_inference",
+      "original_line": 1352,
+      "ast": "Expr(mapping_absent(path))",
+      "addition": "NO EDIT. Trace exact original load_inference code/globals and the exact line event for this Expr, after original del disk and gc.collect and immediately before original mapping_absent. Verify path is authenticated endpoint.pt by device/inode. The analogous construct_encoder vision.pt guard is a separately labelled event, never attributed to this endpoint guard."
+    },
+    {
+      "file": "scripts/qualify_connected_probe_serving.py",
+      "function": "reference_outputs",
+      "original_line": 483,
+      "ast": "ExceptHandler(BaseException, error): clear_frames(error); failures.append(error)",
+      "addition": "Snapshot the complete caught error graph before original clear_frames(error). Original clear_frames and failures.append must remain byte/AST-identical and in original order. This is before requests.raise_failures can replace an explicit cause with the independent native-exit group."
+    }
+  ],
+  "exception_contract": {
+    "at_mapping_guard": "Snapshot sys.exception() as scalar graph while the ORIGINAL error, if any, is still active. The extracted seam check demonstrates this distinguishes no active error from constructor/copy failures without changing the guard.",
+    "graph": "Walk every __cause__, __context__ and BaseExceptionGroup.exceptions edge, including suppressed context and cycles; emit numbered scalar nodes plus edges. Each node has full qualified type, full message, suppress_context flag, notes and traceback file/function/line entries. Never retain exception, traceback, frame, tensor, storage or callable in observer state.",
+    "completeness": "Proposed telemetry limits: 64 exception nodes, 512 traceback entries, 64KiB encoded error graph. If any limit/str getter/inspection fails, emit diagnostic_complete=false with the reason, without claiming complete original-chain capture or attributing cause. The original failure and cleanup must still execute. These are telemetry quotas only; original frozen resource/admission caps remain unchanged.",
+    "before_final_exit_cause": "The reference_outputs catch snapshot includes mapping error and any original context before the run-level raise_failures assigns the exit ExceptionGroup as explicit cause. Do not alter raise_failures. Full graph traversal is necessary because Python rendering follows the later explicit cause and may hide earlier context."
+  },
+  "owner_contract": {
+    "mapping": "Record actual endpoint.pt stat device/inode and matching /proc/self/maps start/end/offset/mode, plus whether endpoint/copy/page/model/head locals still exist and disk is absent. VMA identity uses the original predicate device/inode rule, never filename guessing.",
+    "candidates": "Inspect CPU torch.Tensor and UntypedStorage already present in loaded Torch, using read-only storage range metadata; require range overlap with exact endpoint VMA. Snapshot only scalar qualified type/object id/storage id/address/range, shape/dtype/device, and labelled owner paths. Never hash tensor values, transfer/copy tensors, invoke a forward, load images, or import new native libraries for diagnostics.",
+    "roots": "Walk original active loader locals; all original exception traceback locals; exact new copied-module dictionaries; relevant already-live parent t/context objects and processor cache scalar info. Also consider GC-tracked Tensor/UntypedStorage candidates to avoid presuming the owner is local. Bound path/referrer traversal and label traceback/local/module/cache/external root independently. Native/C++ aliases may not be GC-visible: report mapping-present/owner-unresolved if no Python owner is proven.",
+    "quotas": "Proposed maximum 64 overlapping candidates, 512 owner edges, depth8 and 64KiB scalar owner record. Any global GC snapshot must be charged against unchanged frozen resources and released before the original predicate; cap exceeded/unsupported object means diagnostic incomplete, never a cause claim.",
+    "noninterference": "Do not clear frames, empty cache, collect GC again, close a mapping, remove modules, mutate dictionaries/tensors or delete an original alias before the original predicate. Drop ALL diagnostic-only strong references and iterators in callback finally before it returns. Preserve even an erroneous owner so the original guard still rejects it.",
+    "no_guess": "Matching storage range establishes a candidate mapping owner; an observed retaining root/traceback path is needed for attribution. A path or surviving VMA alone does not prove pages.copy, metadata, cache, constructor or parent ownership."
+  },
+  "cleanup_and_exit": "Original reference release_inference/after/registry.pop and clear_frames order remains; original run source checks/api.evaluator_exit/full uncached exit/owned source registry cleanup/failure aggregation remains. Diagnostic output is scalar stdout evidence and is never a parity receipt. Any native-exit failure, including exact-four cuDNN missing before first image, keeps parity UNQUALIFIED even if the body later succeeds.",
+  "ast_inverse": {
+    "status": "PROSPECTIVE_CONTRACT_NOT_EXECUTED_NO_DIFF_EXISTS",
+    "base_driver_sha256": "149808c99e9216afdf7aacdc7e4610ea810598ea2dee8d1b963243ac394253dd",
+    "base_driver_ast_sha256": "e9e7ebf63c06be4063a539c6ca4285bcd32359c656135150e1527b7a0479b44b",
+    "base_test_sha256": "37e209bf12e823571a828136d85bb8e9dd5da28cbc2309f4414bd7d17e35db84",
+    "base_test_ast_sha256": "e31c35d7d86b60d5495f938d6822981e0bb3a38a387957a18cdb60aa6f122c1e",
+    "required_inverse": "Delete only explicitly enumerated new diagnostic imports/definitions/local initializers/scalar snapshot statements; unwrap only the new trace try/finally around the original one Assign at reference_outputs line467. Reject missing/multiple/unexpected nodes. Full resulting module AST (all functions/classes/constants/callers) must equal the exact base AST, not a selected helper comparison. Every original test AST/assertion must remain identical; new tests may only be appended.",
+    "existing_test_constraint": "The original test_the_three_argument_edits_are_the_whole_production_change hashes the entire production bytes after restoring .parent at the three wheel calls. Any new qualifier diagnostics would make that unchanged assertion fail. Root must reconcile this explicit test contract before choosing an implementation/freeze; do not silently weaken, monkeypatch, skip or regenerate the old expected pin. This child therefore supplies a design only."
+  },
+  "falsifiers_before_root_freeze": [
+    "Use actual unmodified extracted source seams and real mmap with fake native objects, as in the archived harness; no attribution from fakes.",
+    "Clean success: original mapping predicate passes and copied tensors/metadata are independently owned; diagnostic-only references fully vanish; exact trace/profile restored.",
+    "External mapped owner with no prior error: guard still raises the same original ValueError; active-error null and proven external owner are recorded without inventing a caught error.",
+    "Original copy/constructor exception with mapped traceback tensor: snapshot records complete original chain and owner path BEFORE unchanged predicate; predicate still fails; original clear_frames/cleanup still runs.",
+    "Head failure after independently copied inputs: mapping still passes, original head error stays primary; diagnostic cannot automatically blame any exception.",
+    "Real raise_failures with independent native-exit rejection: earlier original context must be captured before explicit exit-group replacement; final native reject and terminal nonzero remain. No parity qualification on any exit failure.",
+    "Quota or inspection failure: diagnostic incomplete/unresolved, original computation/guard/cleanup not bypassed or replaced; no native rerun merely to complete diagnostic.",
+    "Verify full-module exact AST inverse and original tests unchanged; one narrow <=15s/AS1GiB check; ONE full <=120s/AS1GiB only when root explicitly releases held serial slot."
+  ]
+}
