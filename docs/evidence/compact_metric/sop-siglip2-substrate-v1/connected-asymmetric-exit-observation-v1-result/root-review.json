@@ -1,0 +1,21 @@
+{
+  "actual_unit": "sfora-connected-asymmetric-cache-first-179061-v1",
+  "anon_bytes": 3892645888,
+  "file_bytes": 4653924352,
+  "first_max_phase": "rehash.context",
+  "first_max_sample": 794,
+  "frozen_unit_mismatch": true,
+  "interpretation": "First sampled max event during fresh context rehash, stable anon with growing file cache; individual read cause not yet proven.",
+  "invocation_id": "f2dc68adb6204eb68020f904baa98af5",
+  "memory_max_events": 1443,
+  "observer_exit": 0,
+  "oom": 0,
+  "peak_bytes": 8589934592,
+  "quality_accepted": false,
+  "samples_uncompressed_sha256": "86baa6b0170a43bf9a5eaa3fce98b9f995d16dea447a1f1a554d0bc5416d2854",
+  "service_seconds": 634.541,
+  "speed_accepted": false,
+  "ssh_exit": 1,
+  "status": "FAIL_UNACCEPTED",
+  "swap": 0
+}
