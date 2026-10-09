@@ -439,9 +439,7 @@ def main():
     try:
         with (
             patch.dict(sys.modules, stubs),
-            tempfile.TemporaryDirectory(
-                prefix="connected-bridge-", dir="/home/rb/agents/handoffs"
-            ) as scratch,
+        tempfile.TemporaryDirectory(prefix="connected-bridge-") as scratch,
         ):
             root = Path(scratch)
             bundle = root / "bundle"
