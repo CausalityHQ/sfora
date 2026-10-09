@@ -60,14 +60,14 @@ _MANIFEST = {
 def _installed_authority() -> tuple[Path, str]:
     return (
         Path(__file__).absolute().parent / "_connected_inference_authority.py",
-        "d1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b",
+        "0098f835e48f2b93cfa0621c23199e43ea7eea9a09de8c3f48aa589a20e62c6d",
     )
 
 
 def _installed_probe_authority() -> tuple[Path, str]:
     return (
         Path(__file__).absolute().parent / "_connected_probe_inference_authority.py",
-        "0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab",
+        "26891b010c3e013d1d6132fea08617113563a8451da2b7703ca09fa391d219c1",
     )
 
 

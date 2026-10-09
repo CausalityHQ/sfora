@@ -94,9 +94,9 @@ POLICY = {'body_seconds':300,'host_bytes':8*1024**3,'swap_bytes':0,
 STARTED = time.perf_counter()
 
 # Reviewed SOURCE_GO bytes (connected-probe-library-source-v1); installed files must equal them.
-RUNTIME_SHA = 'ea49b80d2d8c80aea54f71a1f01a58053f04858b9ffe03d168e0bd28c94fac44'
-LEDGER_SHA = '0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab'
-BRIDGE_SHA = 'd3ebfd9a575d7fb77ffbf3a3e1c2d01793edaa03eef0da63faf543596c1d68b3'
+RUNTIME_SHA = 'f6e6796df5931a7c1b384509839320719ce0804ecbebf3630ab643643c64aef4'
+LEDGER_SHA = '26891b010c3e013d1d6132fea08617113563a8451da2b7703ca09fa391d219c1'
+BRIDGE_SHA = 'fae70ec668ef1b24316c3d4554062bee5873fbd7cc2883fd1c6f2375e6a96cd9'
 PACKED_SHA = 'ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4'
 LEDGER_SCHEMA = 'sfora-connected-probe-inference-extraction-v1'
 BUNDLE_SCHEMA = 'siglip2-connected-probe-bundle-v1'

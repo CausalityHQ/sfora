@@ -2500,41 +2500,19 @@ SUBSTITUTIONS = (
         {'base_runtime_sha256': '52afd638cd120dc69d2f9a7764f3574bd4ce5259a865f372d15d1fad14292512',
          'base_authority_sha256': '538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e',
          'base_bridge_sha256': '7c9713d3356c32f0c86feca788f53f299dc386b97964cec11016f88688c91932',
-         'replacements': (('    frozen = fingerprint({n: p for n, p in params.items() if n not in MLP})',
-                           '    tensor_hash = _fingerprint_cuda_dict if serving and state["device"] == '
-                           '"cuda" else fingerprint\n'
-                           '    frozen = tensor_hash({n: p for n, p in params.items() if n not in MLP})'),
-                          ('        "vision_sha256": fingerprint(model.state_dict()),',
-                           '        "vision_sha256": tensor_hash(model.state_dict()),')),
+         'replacements': (),
          'helpers': (('_sha_cpu_bytes',
                       '95c5eeb8bfdc4ead6cbb358d8156c55fc6929573da88f94a651a3972449683c7',
                       'c06c74a807afcc04ccf83c928764465647dfc757b18895296e66758b2aa60781'),
                      ('_fingerprint_cuda_dict',
                       'b27af928b1c3384d80889b9fe6d1798cee23f55a34ff61411cbab5ae32274dba',
                       '2d79f0a0d9a3a45e2f9a46049c6e098dec728f1e17262ce5d6350a19a76686ca')),
-         'encoder': ('9d7f508071d495833a46b8f0219942f14c6839f41da1c10b9623790afcd487bf',
-                     'dd998f72ead9c8ec66dad781ca4505f22f89b4e89284b1a45c875ed6baf3006a'),
-         'encoder_diff': '--- original:encoder_facts\n'
-                         '+++ fresh-sha:encoder_facts\n'
-                         '@@ -51,9 +51,10 @@\n'
-                         '         _processor_cache(processor, state["guards"]) is '
-                         'state["processor_cache"],\n'
-                         '         "authenticated processor cache changed",\n'
-                         '     )\n'
-                         '-    frozen = fingerprint({n: p for n, p in params.items() if n not in MLP})\n'
-                         '+    tensor_hash = _fingerprint_cuda_dict if serving and state["device"] == '
-                         '"cuda" else fingerprint\n'
-                         '+    frozen = tensor_hash({n: p for n, p in params.items() if n not in MLP})\n'
-                         '     require(frozen == ident["frozen_sha256"], "current frozen444 bytes '
-                         'differ")\n'
-                         '     return {\n'
-                         '-        "vision_sha256": fingerprint(model.state_dict()),\n'
-                         '+        "vision_sha256": tensor_hash(model.state_dict()),\n'
-                         '         "encoder": {n: fingerprint(params[n]) for n in MLP},\n'
-                         '     }'}
+         'encoder': ('58a9907a7b932573d428c0a67744e5a364636d9e76c27981ce5fd9235c94f683',
+                     '8750228126fd93a10ffce9dd31545ae74ffb0e502bd63aad2098fc564e7238d4'),
+         'encoder_diff': ''}
     ),
 )
 
-RUNTIME_SHA256 = "ea73430a5cc1a7f7ee769dbd37d27dc9379b03896bcab7e9ae3a7b771a42b9eb"
+RUNTIME_SHA256 = "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8"
 
 PACKED_SHA256 = "ac605a9fd7f412fc50ad158472cfc8cffc0d70e2da124f0459f97ec6d6bb7bc4"

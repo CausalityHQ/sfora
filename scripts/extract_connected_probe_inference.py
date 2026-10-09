@@ -16,8 +16,8 @@ PACKAGE = ROOT / 'src/sfora'
 TRAINER = 'scripts/train_siglip2_connected_probe.py'
 EXTRA = ('_probe_decorators', '_probe_vision_forward', 'probe_source')
 PINS = {
-    'src/sfora/connected_inference.py': 'ea73430a5cc1a7f7ee769dbd37d27dc9379b03896bcab7e9ae3a7b771a42b9eb',
-    'src/sfora/_connected_inference_authority.py': 'd1e23c4527794e9a2940a919547512fa779f3dc20ce8ff5ee807a124f623791b',
+    'src/sfora/connected_inference.py': '33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8',
+    'src/sfora/_connected_inference_authority.py': '0098f835e48f2b93cfa0621c23199e43ea7eea9a09de8c3f48aa589a20e62c6d',
     'scripts/train_siglip2_connected_probe.py': 'e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e',
     'scripts/test_siglip2_connected_probe.py': '4accfd6c276ef2ca3d85b25c98ead7d013972d260656266b1227dd59648f0120',
     'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-probe-cpu-v2-freeze/source-receipt.json':
@@ -178,15 +178,8 @@ def generate():
     order = [n for n in current_defs if n not in {'_sha_cpu_bytes', '_fingerprint_cuda_dict'}]
     order[order.index('model_structure'):order.index('model_structure')] = EXTRA
     base = header + '\n\n\n'.join((helpers | sources)[name] for name in order) + '\n'
-    encoder_before = sources['encoder_facts']
-    replacements = (
-        ('    frozen = fingerprint({n:p for n,p in params.items() if n not in PROBE})',
-         '    tensor_hash = _fingerprint_cuda_dict if serving and state["device"] == "cuda" else fingerprint\n    frozen = tensor_hash({n:p for n,p in params.items() if n not in PROBE})'),
-        ("return {'vision_sha256':fingerprint(model.state_dict()),", "return {'vision_sha256':tensor_hash(model.state_dict()),"),
-    )
-    for before, after in replacements:
-        assert sources['encoder_facts'].count(before) == 1
-        sources['encoder_facts'] = sources['encoder_facts'].replace(before, after)
+    # Serving hashes with the ORIGINAL fingerprint; the CUDA helper is carried only as an unreferenced archived def.
+    assert '_fingerprint_cuda_dict' not in current_defs['encoder_facts'] + sources['encoder_facts'], 'slow default restored'
     hash_helpers = ('_sha_cpu_bytes', '_fingerprint_cuda_dict')
     helpers.update({name: current_defs[name] for name in hash_helpers})
     order[order.index('fingerprint'):order.index('fingerprint')] = hash_helpers
@@ -194,11 +187,11 @@ def generate():
     closed(runtime, {n for names in closure.values() for n in names} | set(helpers))
     for name, byte_sha, ast_sha in authority['SUBSTITUTIONS'][-1][1]['helpers']:
         assert (sha(helpers[name].encode()), astsha(helpers[name])) == (byte_sha, ast_sha)
-    pipeline = {'base_runtime_sha256': sha(base.encode()), 'replacements': replacements,
+    assert runtime.count('_fingerprint_cuda_dict') == 1, 'archived helper must stay unreferenced'
+    pipeline = {'base_runtime_sha256': sha(base.encode()), 'replacements': (),
                 'helpers': authority['SUBSTITUTIONS'][-1][1]['helpers'],
                 'encoder': (sha(sources['encoder_facts'].encode()), astsha(sources['encoder_facts'])),
-                'encoder_diff': ''.join(difflib.unified_diff(encoder_before.splitlines(True), sources['encoder_facts'].splitlines(True),
-                                       fromfile='original:encoder_facts', tofile='fresh-sha:encoder_facts'))}
+                'encoder_diff': ''}
     record = {'SCHEMA': 'sfora-connected-probe-inference-extraction-v1', 'HISTORICAL_CODE': historical,
               'SOURCE_SYMBOLS': tuple(records), 'PACKED_SOURCE_SYMBOLS': authority['PACKED_SOURCE_SYMBOLS'],
               'SUBSTITUTIONS': (*differences, ('_counted_plumbing', tuple(counts)), ('_fresh_cpu_sha_pipeline', pipeline)),

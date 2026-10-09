@@ -75,11 +75,8 @@ def correspondence(oracle, source):
         expected[name] = original_defs[name]
     expected['_bind_runtime'] = expected['_bind_runtime'].replace('"connected_inference.py"', '"connected_probe_inference.py"').replace(
         '"_connected_inference_authority.py"', '"_connected_probe_inference_authority.py"')
-    # Preserve exactly the current two dict routes; derive them independently of the new ledger.
-    expected['encoder_facts'] = expected['encoder_facts'].replace(
-        '    frozen = fingerprint({n:p for n,p in params.items() if n not in PROBE})',
-        '    tensor_hash = _fingerprint_cuda_dict if serving and state["device"] == "cuda" else fingerprint\n    frozen = tensor_hash({n:p for n,p in params.items() if n not in PROBE})').replace(
-        "return {'vision_sha256':fingerprint(model.state_dict()),", "return {'vision_sha256':tensor_hash(model.state_dict()),")
+    # encoder_facts is the unmodified original extraction: serving hashes with fingerprint on every device.
+    assert '_fingerprint_cuda_dict' not in expected['encoder_facts'] and 'tensor_hash' not in expected['encoder_facts']
     actual = definitions(source)
     assert actual.keys() == expected.keys(), 'missing/extra probe guard or runtime helper'
     for name in expected:
@@ -110,9 +107,12 @@ def ledger_check(oracle, closure, values):
     source = RUNTIME.read_text()
     assert values['RUNTIME_SHA256'] == sha(source.encode())
     nodes = definitions(source)
+    astsha = lambda text: sha(ast.dump(ast.parse(text), include_attributes=False).encode())
     pipeline = values['SUBSTITUTIONS'][-1]
     assert pipeline[0] == '_fresh_cpu_sha_pipeline'
     assert pipeline[1]['helpers'] == old['SUBSTITUTIONS'][-1][1]['helpers']
+    assert pipeline[1]['replacements'] == () and pipeline[1]['encoder_diff'] == ''
+    assert (sha(nodes['encoder_facts'].encode()), astsha(nodes['encoder_facts'])) == pipeline[1]['encoder']
     base = source
     for name in ('_sha_cpu_bytes', '_fingerprint_cuda_dict'):
         base = base.replace(nodes[name] + '\n\n\n', '', 1)
@@ -328,19 +328,27 @@ def probe_guard_checks(oracle):
                         'buffers_sha256':fp(buffers),'runtime':{},'frozen_sha256':fp({n:p for n,p in params.items() if n not in runtime.PROBE})}
             state = {'model':model,'encoder_identity':identity,'device':'cpu','arm':'candidate','guards':{},
                      'processor_object':processor,'processor':{'config':{},'backend':'torchvision','origin':{}},'processor_cache':'cache'}
-            routes = []
+            routes, originals = [], []
+            assert callable(runtime._sha_cpu_bytes) and callable(runtime._fingerprint_cuda_dict)
+            assert not [n for n in ast.walk(ast.parse(RUNTIME.read_text()))
+                        if isinstance(n,ast.Name) and n.id in {'_fingerprint_cuda_dict','tensor_hash'}]
             with patch.object(runtime,'probe_source',lambda *a:None), patch.object(runtime,'model_structure',lambda *a:{}),\
                  patch.object(runtime,'module_origin',lambda *a:{}), patch.object(runtime,'_processor_cache',lambda *a:'cache'),\
-                 patch.object(runtime,'fingerprint',fp), patch.object(runtime,'_fingerprint_cuda_dict',lambda v:routes.append(tuple(v)) or fp(v)):
+                 patch.object(runtime,'fingerprint',lambda v:originals.append(tuple(v) if isinstance(v,dict) else v) or fp(v)),\
+                 patch.object(runtime,'_fingerprint_cuda_dict',lambda v:routes.append(tuple(v)) or fp(v)):
                 runtime.encoder_facts(state,{},serving=True)
                 frozen_leaf.value = 1.
                 oracle.reject(lambda:runtime.encoder_facts(state,{},serving=True),'frozen447')
                 frozen_leaf.value = 0.
                 for p in params.values(): p.device.type='cuda'
                 state['device']='cuda'
+                originals.clear()
                 runtime.encoder_facts(state,{},serving=True)
-                assert len(routes)==2 and len(routes[0])==447 and len(routes[1])==448
-                assert 'encoder.layers.26.mlp.fc1.weight' in routes[0] and 'head.probe' not in routes[0]
+                # CUDA serving hashes buffers, frozen447 and the full tree with the ORIGINAL fingerprint, never the helper.
+                dicts = [v for v in originals if isinstance(v,tuple)]
+                assert not routes and [len(v) for v in dicts]==[1,447,448]
+                assert 'encoder.layers.26.mlp.fc1.weight' in dicts[1] and 'head.probe' not in dicts[1]
+                assert 'head.probe' in dicts[2]
     finally:
         sys.modules.pop(runtime.__name__,None)
         sys.modules.pop(fixture.__name__,None)

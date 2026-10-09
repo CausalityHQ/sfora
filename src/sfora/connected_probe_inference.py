@@ -479,10 +479,9 @@ def encoder_facts(state, packages, *, serving=False):
             processor.backend == state['processor']['backend'] and
             module_origin(type(processor),packages) == state['processor']['origin'], 'current processor origin/config differs')
     require(_processor_cache(processor,state['guards']) is state['processor_cache'], 'authenticated processor cache changed')
-    tensor_hash = _fingerprint_cuda_dict if serving and state["device"] == "cuda" else fingerprint
-    frozen = tensor_hash({n:p for n,p in params.items() if n not in PROBE})
+    frozen = fingerprint({n:p for n,p in params.items() if n not in PROBE})
     require(frozen == ident['frozen_sha256'], 'current frozen447 bytes differ')
-    return {'vision_sha256':tensor_hash(model.state_dict()),
+    return {'vision_sha256':fingerprint(model.state_dict()),
             'encoder':{n:fingerprint(params[n]) for n in PROBE}}
 
 

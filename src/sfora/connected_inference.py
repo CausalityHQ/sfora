@@ -519,11 +519,10 @@ def encoder_facts(state, packages, *, serving=False):
         _processor_cache(processor, state["guards"]) is state["processor_cache"],
         "authenticated processor cache changed",
     )
-    tensor_hash = _fingerprint_cuda_dict if serving and state["device"] == "cuda" else fingerprint
-    frozen = tensor_hash({n: p for n, p in params.items() if n not in MLP})
+    frozen = fingerprint({n: p for n, p in params.items() if n not in MLP})
     require(frozen == ident["frozen_sha256"], "current frozen444 bytes differ")
     return {
-        "vision_sha256": tensor_hash(model.state_dict()),
+        "vision_sha256": fingerprint(model.state_dict()),
         "encoder": {n: fingerprint(params[n]) for n in MLP},
     }
 

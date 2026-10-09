@@ -204,7 +204,7 @@ class ReviewedPins(unittest.TestCase):
         self.assertEqual(gate.POLICY,{'body_seconds':300,'host_bytes':8*1024**3,'swap_bytes':0,
             'cuda_allocated_bytes_exclusive':10_000_000_000,'whole_process_seconds':1500,'exit_reserve_seconds':300})
         digests = set(re.findall(r'[0-9a-f]{64}',installed_identity_inverse(DRIVER.read_bytes()).decode()))
-        allowed = {gate.RUNTIME_SHA,gate.LEDGER_SHA,gate.BRIDGE_SHA,gate.PACKED_SHA,gate.ARCHIVED_BINARY_SHA,
+        allowed = {*map(bytes.decode,SERVING_PIN_BLOCK[2]),gate.PACKED_SHA,gate.ARCHIVED_BINARY_SHA,
             gate.ARCHIVED_BUILD_SHA,*(h for _,h in gate.HISTORICAL)}
         self.assertEqual(digests,allowed)
 
@@ -2778,7 +2778,7 @@ class InstalledIdentityBoundary(unittest.TestCase):
         original = installed_identity_inverse(raw)
         installed_identity_test_inverse(Path(__file__).read_bytes())
         original_pins = set(re.findall(r'[0-9a-f]{64}',original.decode()))
-        self.assertEqual(set(re.findall(r'[0-9a-f]{64}',raw.decode())),original_pins | {
+        self.assertEqual(set(re.findall(r'[0-9a-f]{64}',serving_pin_inverse(raw).decode())),original_pins | {
             '95cb8823236408537e04108fd63727fd3a323671f04eb33a6349b23a51ce638d',
             'cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1',
             'f9e19c3c4805ee72b3a9a04bbce65a8645b7501147584322b5c3663de22b1745',
@@ -3407,7 +3407,26 @@ def alias_baseline(name):
     return raw
 
 
+# Exact finite inverse of the restored-original-fingerprint repin: the three adjacent reviewed-byte literals.
+SERVING_PIN_BLOCK = (
+    b"RUNTIME_SHA = '%s'\nLEDGER_SHA = '%s'\nBRIDGE_SHA = '%s'\n",
+    (b'f6e6796df5931a7c1b384509839320719ce0804ecbebf3630ab643643c64aef4',
+     b'26891b010c3e013d1d6132fea08617113563a8451da2b7703ca09fa391d219c1',
+     b'fae70ec668ef1b24316c3d4554062bee5873fbd7cc2883fd1c6f2375e6a96cd9'),
+    (b'ea49b80d2d8c80aea54f71a1f01a58053f04858b9ffe03d168e0bd28c94fac44',
+     b'0e989dd087614499096512a22948f4e8d3f9bb2840a487f2e9fe7e2d9f0371ab',
+     b'd3ebfd9a575d7fb77ffbf3a3e1c2d01793edaa03eef0da63faf543596c1d68b3'))
+
+
+def serving_pin_inverse(raw):
+    template,new,old = SERVING_PIN_BLOCK
+    if raw.count(template % new) != 1 or any(raw.count(h) != 1 for h in new) or any(h in raw for h in old):
+        raise ValueError('restored serving pin block differs')
+    return raw.replace(template % new,template % old)
+
+
 def genuine_alias_inverse(raw):
+    raw = serving_pin_inverse(raw)
     original = alias_baseline(DRIVER.name)
     begin,end = b'class Denial:\n',b'def parity_body('
     if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('denial cardinality')
@@ -3428,7 +3447,7 @@ def genuine_alias_test_inverse(raw):
     if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('genuine alias test cardinality')
     start,stop = raw.index(begin),raw.index(end)+len(end)
     names = [n.name for n in ast.parse(raw[start:stop]).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))]
-    if names != ['alias_baseline','genuine_alias_inverse','genuine_alias_test_inverse','denial_source',
+    if names != ['alias_baseline','serving_pin_inverse','genuine_alias_inverse','genuine_alias_test_inverse','denial_source',
             'denial_seam','genuine_alias_world','GenuineAliases']: raise ValueError('genuine alias test inventory differs')
     raw = raw[:start]+raw[stop:]
     for line in (b'    raw = genuine_alias_inverse(raw)\n',b'    raw = genuine_alias_test_inverse(raw)\n'):
@@ -3437,6 +3456,12 @@ def genuine_alias_test_inverse(raw):
     added = b'        raw, original = genuine_alias_inverse(DRIVER.read_bytes()),(frozen/DRIVER.name).read_bytes()\n'
     if raw.count(added) != 1: raise ValueError('genuine alias frozen inverse normalization differs')
     raw = raw.replace(added,b'        raw, original = DRIVER.read_bytes(),(frozen/DRIVER.name).read_bytes()\n')
+    for line,before in ((b"        allowed = {*map(bytes.decode,SERVING_PIN_BLOCK[2]),gate.PACKED_SHA,gate.ARCHIVED_BINARY_SHA,\n",
+            b"        allowed = {gate.RUNTIME_SHA,gate.LEDGER_SHA,gate.BRIDGE_SHA,gate.PACKED_SHA,gate.ARCHIVED_BINARY_SHA,\n"),
+            (b"        self.assertEqual(set(re.findall(r'[0-9a-f]{64}',serving_pin_inverse(raw).decode())),original_pins | {\n",
+            b"        self.assertEqual(set(re.findall(r'[0-9a-f]{64}',raw.decode())),original_pins | {\n")):
+        if raw.count(line) != 1: raise ValueError('restored serving pin test normalization differs')
+        raw = raw.replace(line,before)
     begin,end = b'    @contextmanager\n    def native_world(self):',b'    def test_exact_s_and_historical_only_authenticate_without_collecting(self):'
     if raw.count(begin) != 1 or raw.count(end) != 1: raise ValueError('genuine fixture cardinality')
     start,stop = raw.index(begin),raw.index(end)
@@ -3491,6 +3516,12 @@ class GenuineAliases(unittest.TestCase):
         tests = genuine_alias_test_inverse(Path(__file__).read_bytes())
         self.assertEqual(tests,alias_baseline(Path(__file__).name))
         self.assertEqual(ast.dump(ast.parse(tests)),ast.dump(ast.parse(alias_baseline(Path(__file__).name))))
+        template,new,old = SERVING_PIN_BLOCK
+        restored = serving_pin_inverse(DRIVER.read_bytes())
+        self.assertTrue(all(h in restored for h in old) and not any(h in restored for h in new))
+        for raw in (DRIVER.read_bytes().replace(new[0],old[0]),DRIVER.read_bytes().replace(new[1],b'0'*64),
+                DRIVER.read_bytes().replace(template % new,template % new+template % new),restored):
+            with self.assertRaises(ValueError): serving_pin_inverse(raw)
         for raw in (DRIVER.read_bytes()+b'\nextra=1\n',DRIVER.read_bytes().replace(b'self.check_aliases()',b'pass'),
                 DRIVER.read_bytes().replace(b'denial = Denial(directory,genuine=',b'denial = Denial(directory,foreign=')):
             with self.assertRaises(ValueError): genuine_alias_inverse(raw)
