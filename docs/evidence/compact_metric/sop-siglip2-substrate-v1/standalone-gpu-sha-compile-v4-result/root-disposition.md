@@ -1,0 +1,1 @@
+Build-only PASS. Original compile-v4 normal terminal exit 0, invocation 58a0c8dcaa7c4fcb96cebc72fda36517. Exact sm_121 SASS and no PTX. Library has not been loaded; CUDA byte correctness, stream/lifecycle safety, and speed remain UNRUN. Prior v1-v3 failed receipts remain failures. This does not authorize a product or speed claim.
