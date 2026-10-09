@@ -1,0 +1,14 @@
+{
+  "caught_type": "PermissionError",
+  "native_ml_execution": false,
+  "new_open_descriptors": {
+    "4": "/tmp/tmpk2q3wbly",
+    "5": "/tmp/tmpk2q3wbly/#13895857 (deleted)"
+  },
+  "primary_in_context": true,
+  "primary_preserved": false,
+  "schema": "atomic-publication-cleanup-original-falsifier-v1",
+  "secondary_replaced_primary": true,
+  "source_sha256": "ee0870e4e34a3bb08e82b6aa6d222a1f29dce7f17edfb331973d34dadac8ed30",
+  "surviving_synthetic_bytes": true
+}
