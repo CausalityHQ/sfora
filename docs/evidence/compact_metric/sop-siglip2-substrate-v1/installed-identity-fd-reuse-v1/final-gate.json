@@ -1,0 +1,70 @@
+{
+  "limits": {
+    "address_bytes": 1073741824,
+    "outer_seconds": 120
+  },
+  "native_qualified": false,
+  "product_go": false,
+  "results": {
+    "mypy-source": {
+      "argv": [
+        "/data/cache/uv/archive-v0/A5hAhU0uya3PTOGc/bin/mypy",
+        "--config-file",
+        "/home/rb/worktrees/sfora-positive-causality/pyproject.toml",
+        "--cache-dir",
+        "/tmp/sfora-identity-fd-reuse-static/mypy",
+        "/tmp/sfora-identity-fd-reuse-static/connected_artifact_identity.py"
+      ],
+      "exit": 0,
+      "seconds": 1.0190992419375107
+    },
+    "ruff-check": {
+      "argv": [
+        "/data/cache/uv/archive-v0/FGM38RAsHizKx-KP/bin/ruff",
+        "check",
+        "--no-cache",
+        "/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_artifact_identity.py",
+        "scripts/test_connected_artifact_identity.py"
+      ],
+      "exit": 0,
+      "seconds": 0.01644785492680967
+    },
+    "ruff-format": {
+      "argv": [
+        "/data/cache/uv/archive-v0/FGM38RAsHizKx-KP/bin/ruff",
+        "format",
+        "--check",
+        "--no-cache",
+        "/home/rb/worktrees/sfora-positive-causality/src/sfora/connected_artifact_identity.py",
+        "scripts/test_connected_artifact_identity.py"
+      ],
+      "exit": 0,
+      "seconds": 0.01590785209555179
+    },
+    "tests-py312": {
+      "argv": [
+        "/home/rb/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/bin/python3.12",
+        "-I",
+        "-B",
+        "scripts/test_connected_artifact_identity.py",
+        "-v"
+      ],
+      "exit": 0,
+      "seconds": 0.9682443629717454
+    },
+    "tests-py314": {
+      "argv": [
+        "/usr/bin/python3.14",
+        "-I",
+        "-B",
+        "scripts/test_connected_artifact_identity.py",
+        "-v"
+      ],
+      "exit": 0,
+      "seconds": 0.21489569696132094
+    }
+  },
+  "schema": "identity-fd-reuse-source-gate-v1",
+  "source_sha256": "d7044e438d687eb21a0502ff352d5a6b592c09ee337255901bdc6281c3830690",
+  "test_sha256": "6c61d0c3b956b9fc258555915d4de887b51c453c71bda75049e586dc078a8e2b"
+}

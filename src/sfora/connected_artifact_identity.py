@@ -176,22 +176,26 @@ def _installed_sha(path: PurePosixPath) -> str:
             os.close(directory)
             directory = child
         source = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+        failure: BaseException | None = None
         try:
-            stream = os.fdopen(source, "rb")
+            with os.fdopen(source, "rb", closefd=False) as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    raise ValueError("installed source must be a regular nonsymlink file")
+                digest = hashlib.sha256()
+                while block := stream.read(1024 * 1024):
+                    digest.update(block)
+                return digest.hexdigest()
         except BaseException as primary:
-            # Adoption failed: release source, but never let cleanup replace the failure.
+            failure = primary
+            raise
+        finally:
+            # The stream never owns the fd, including partial-construction failures.
             try:
                 os.close(source)
             except BaseException as cleanup:
-                primary.add_note("source descriptor close failed: " + repr(cleanup))
-            raise
-        with stream:
-            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
-                raise ValueError("installed source must be a regular nonsymlink file")
-            digest = hashlib.sha256()
-            while block := stream.read(1024 * 1024):
-                digest.update(block)
-            return digest.hexdigest()
+                if failure is None:
+                    raise
+                failure.add_note("source descriptor close failed: " + repr(cleanup))
     except OSError as error:
         raise ValueError("installed source must exist beneath nonsymlink directories") from error
     finally:

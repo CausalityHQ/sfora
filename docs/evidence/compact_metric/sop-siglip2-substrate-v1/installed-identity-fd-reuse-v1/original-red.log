@@ -1,0 +1,14 @@
+F
+======================================================================
+FAIL: test_partial_stream_failure_never_closes_a_reused_foreign_descriptor (__main__.InstalledSourceOwnershipTests.test_partial_stream_failure_never_closes_a_reused_foreign_descriptor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rb/worktrees/sfora-positive-causality/scripts/test_connected_artifact_identity.py", line 791, in test_partial_stream_failure_never_closes_a_reused_foreign_descriptor
+    self.assertTrue(still_open(state["fd"], state["info"]), "foreign owner was closed")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : foreign owner was closed
+
+----------------------------------------------------------------------
+Ran 1 test in 0.006s
+
+FAILED (failures=1)

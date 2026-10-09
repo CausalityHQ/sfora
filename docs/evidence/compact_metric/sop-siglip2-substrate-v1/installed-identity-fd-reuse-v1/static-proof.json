@@ -1,0 +1,19 @@
+{
+  "all_prior_test_members_byte_identical": true,
+  "new_methods": [
+    "InstalledSourceOwnershipTests.test_partial_stream_failure_never_closes_a_reused_foreign_descriptor"
+  ],
+  "new_sha256": "d7044e438d687eb21a0502ff352d5a6b592c09ee337255901bdc6281c3830690",
+  "old_sha256": "75b02e17324bbf588fbd3d4091cfb6b2044c50854718c8d3fc1a24e7873ffe1b",
+  "prior_test_methods": 21,
+  "schema": "fd-reuse-source-correspondence-v1",
+  "unchanged_other_functions": [
+    "_clone_json",
+    "_absolute_path",
+    "_roots",
+    "_origins",
+    "project_identity",
+    "restore_identity",
+    "materialize_identity"
+  ]
+}

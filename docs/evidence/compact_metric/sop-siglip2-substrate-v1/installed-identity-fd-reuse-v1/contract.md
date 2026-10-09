@@ -1,0 +1,9 @@
+# Sole-owner source descriptor correction
+
+The integrated adoption-only fix can close a foreign descriptor after io.FileIO closes the source during partial buffer construction and its number is reused. A real FileIO + real os.open synthetic failure seam reproduces this: the original MemoryError survives, but the foreign owner is closed. This is a mechanism falsifier, not an attribution to any original native failure.
+
+Supersede the root-selected adoption-only ownership constraint: os.fdopen(closefd=False) keeps the helper the sole descriptor owner through all success/failure paths. The original stream body and regular-file/source/symlink/digest predicates remain unchanged. Independently close the source once in finally; retain an original primary and attach a cleanup note if close fails. Successful close failure still rejects. No retry, descriptor inventory sweep, cache, GC workaround or native work. Directory traversal/cleanup remain unchanged. All seven other production functions, old 21 test bodies and original source inverse remain intact; add one descriptor-reuse falsifier only.
+
+Root owns this small integration correction while the separate manifest-binder child owns disjoint new files. Preserve prior commit/test evidence as historical, not proof for new bytes. Selected red/green <=15s with AS1GiB; one final source-only serial Python3.12/3.14 full identity gate <=120s AS1GiB plus scoped Ruff and source standalone mypy, actual exit files. No model/ML/payload/image/embedding/SSH/GPU/native. Native serving and scientific goal remain unmet.
+
+Residual: arbitrary async interruption between os.open returning and entry into try, and original directory handoff, remain outside this narrow correction. closefd=False prevents FileIO destructor closing the helper-owned descriptor; no close is retried after a reported failure. Hostile code ignoring closefd is outside the genuine stdlib contract.

@@ -763,6 +763,36 @@ class InstalledSourceOwnershipTests(unittest.TestCase):
                 (note,) = error.__notes__
                 self.assertIn("Bad file descriptor" if released else "injected close", note)
 
+    def test_partial_stream_failure_never_closes_a_reused_foreign_descriptor(self):
+        foreign = self.dir / "foreign.bin"
+        foreign.write_bytes(b"foreign owner")
+        state = {}
+        failure = MemoryError("buffer construction failed")
+        real_close = os.close
+
+        def failing(fd, mode="rb", **kwargs):
+            # FileIO owns the fd by default; failure building the buffer releases it.
+            raw = io.FileIO(fd, mode, closefd=kwargs.get("closefd", True))
+            raw.close()
+            replacement = os.open(foreign, os.O_RDONLY)
+            state.update(fd=replacement, info=os.fstat(replacement))
+            if kwargs.get("closefd", True):
+                self.assertEqual(replacement, fd)
+            else:
+                self.assertNotEqual(replacement, fd)
+            raise failure
+
+        before = open_fds()
+        try:
+            with mock.patch.object(os, "fdopen", failing), self.assertRaises(MemoryError) as caught:
+                self.sha()
+            self.assertIs(caught.exception, failure)
+            self.assertTrue(still_open(state["fd"], state["info"]), "foreign owner was closed")
+        finally:
+            if state and still_open(state["fd"], state["info"]):
+                real_close(state["fd"])
+        self.assertEqual(open_fds(), before)
+
 
 if __name__ == "__main__":
     unittest.main()
