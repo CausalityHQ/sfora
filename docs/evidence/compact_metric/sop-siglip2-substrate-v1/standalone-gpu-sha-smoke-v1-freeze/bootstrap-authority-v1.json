@@ -1,0 +1,34 @@
+{
+  "files": {
+    "driver": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_cuda_sha256_native.py",
+      "sha256": "4786116278231bf17c36dd83dc4ac769df032f27678957a63297b3ca88399174"
+    },
+    "mlp_serializer": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/train_siglip2_connected_mlp.py",
+      "sha256": "79efb320da6fa59bcae7f5dbe19ccc33be8c961bfdf2a210cbc77b1925d4135b"
+    },
+    "probe_serializer": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/train_siglip2_connected_probe.py",
+      "sha256": "e2496033a958cc83bf8d3204c87b4d3b8284528f03f44c1cb64517df04c8cc1e"
+    },
+    "requests": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/qualify_connected_serving_requests.py",
+      "sha256": "6a4d310d4eb883b7bf3d2ea74a1e96223cee096d0bdb9bc6c2a651eecf9ff163"
+    },
+    "test": {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/test_cuda_sha256_native.py",
+      "sha256": "881a029518dbb21a5f98e4bab7f8d994db426433fea87dd9a02c0d5d6c0a3780"
+    }
+  },
+  "interpreter": {
+    "path": "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13",
+    "sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b"
+  },
+  "native_authority": {
+    "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/native-authority-v1.json",
+    "sha256": "86116d1dae3e5d412507c36b8df8c41649b66c0b3a1511c5bc7cc1b0a57ff328"
+  },
+  "output": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-v1",
+  "schema": "cuda-sha256-smoke-bootstrap-v1"
+}

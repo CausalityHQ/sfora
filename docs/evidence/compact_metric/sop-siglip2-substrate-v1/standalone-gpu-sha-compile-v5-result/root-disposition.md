@@ -1,0 +1,1 @@
+Build-only PASS, original normal0 invocation842fd48c6b59411aa898e7b697d1231d. No CUDA/library load. Caller-compatible authority frozen before compiler, all input hashes/exit checks passed. Native correctness and speed UNRUN.

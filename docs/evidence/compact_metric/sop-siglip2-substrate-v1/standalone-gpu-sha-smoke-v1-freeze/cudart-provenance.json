@@ -1,0 +1,14 @@
+{
+  "evidence": [
+    {
+      "path": "/home/riomus/runs/sfora-standalone-gpu-sha-smoke-source-v1/original-native-proof-receipt.json.gz",
+      "sha256": "a31e2d30c5f40379ced727f6650ce43b847f42dcdfc2befc42f17a652d219582"
+    }
+  ],
+  "file": {
+    "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcudart.so.13",
+    "sha256": "7bdba2b5b08cbdc85203c41cc94598adedb1bcfea7cb574ca693ac73599e4e63"
+  },
+  "origin": "Exact original accepted combined-native inventory; unchanged bytes required",
+  "schema": "cuda-sha256-native-file-provenance-v1"
+}

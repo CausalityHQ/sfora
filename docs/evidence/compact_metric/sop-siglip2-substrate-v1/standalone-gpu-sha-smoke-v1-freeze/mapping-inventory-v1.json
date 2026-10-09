@@ -1,0 +1,1065 @@
+{
+  "files": {
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/81d243bd2c585b0f4821__mypyc.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "43ec7be7cd6f9b15bd3e29fca57a6e3be6fbe7f8152cc7b27a0eda754560f956",
+      "size": 544192
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/PIL/_imaging.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "d27fa92df34d600513b271730a607dbbc5477e44b61933b75f22ba337ea13adb",
+      "size": 3550009
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/PIL/_imagingft.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "596ef23aa5dcc55a1fab08c21eb6d9a066e32a2316d2e33aaf4228ee5fe2e833",
+      "size": 527737
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/cd.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "12fb9cc199fd48481b3ece86aa70bf06aaa469d0f74045d9e5be722d1ef4f216",
+      "size": 201304
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_bindings/cydriver.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "4fd071f81f0846df6599eff9ebeb20648ed5f3aa9a0cf978582c145d0b5c4d3c",
+      "size": 533024
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_bindings/cyruntime.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "034c6db3ae15d097d728a198754fed51121f5d447b670a355d6038240fa5fb20",
+      "size": 995272
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_bindings/cyruntime_ptds.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "6b8064cdc19b71e23515c844c2dc8d5c8991a35f34909723215165eacfcdaf40",
+      "size": 861168
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/cydriver.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "073465cddfee0c73836668a2ebe0f93cd25732a6c1e31dd22880082d2c732c26",
+      "size": 338664
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/cyruntime.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "20c0eb639638a86c647fc9c144f087187900c69efacbea390cad320306a11985",
+      "size": 205120
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/driver.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "80b0232b106210a4a8e7eeb7f65ac909806fe6dd62bd3842394adbce00398142",
+      "size": 6976472
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/runtime.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "52e87813b66bfcdc59fdac900207e4f992fc87529dbd6eb33d7bbca3b79b52b7",
+      "size": 5097792
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/markupsafe/_speedups.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "7e463d86e5d5efd445e51685f47c0fbefe3d3a7b220866b90902c9b1b0368862",
+      "size": 230712
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy.libs/libgfortran-e1b7dfc8-d8198c01.so.5.0.0": {
+      "sha256": "ed5004f8d46630fec79eb82c6511b86bdc55ab0eadb8acacbe7cdd0fc184d7cb",
+      "size": 1671545
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy.libs/libscipy_openblas64_-4135cacc.so": {
+      "sha256": "d6958f19aefe0b80916eb19eecb384afb1f3ce3f76890d4d3218a121f679040b",
+      "size": 26203137
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/_core/_multiarray_umath.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "b3532b2c6af106e8801c8f2f2dda0d181ffef6c20f84ffd61493fa43761bbd52",
+      "size": 6056345
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/fft/_pocketfft_umath.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "a8fa11339eabeda65359d74b829219ad80fad7685e122d07e4ff3741a5e35992",
+      "size": 624968
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/linalg/_umath_linalg.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "501361a419152a9c7268e3d412c908829dbd2d5624ed6582e0df7aeb0dcbe4d5",
+      "size": 395793
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/random/_bounded_integers.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c16a7a120f19bf487ceca23be927deae7b1b59d5bd819019c61f281f3e02ba6c",
+      "size": 411464
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/random/_common.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "94d49f96712eeb3d033153a5718cbfc50936c653b0f7a452ad91efb173d7e3b0",
+      "size": 349128
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/random/_generator.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "8747feafa99b1f74c5b6036937a8640ca710ce3f4047265a957b523b95204528",
+      "size": 845664
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/random/_mt19937.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "a663b145e44b8926e993b1c2a06e0c809ab5e5ba563b1393e5d36f3dc5260ff2",
+      "size": 217608
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/random/_pcg64.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "f40cb9f44dbb04ca407cab178e1c5a01c8462e36a74a323f3bde61ee984a3388",
+      "size": 285904
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/random/_philox.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "4d63541d609399371444235c7760fe032eb5cbf55ae743e0b9484201322c2d58",
+      "size": 217432
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/random/_sfc64.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "8bc8caa20132dd064f2305d30ffb5da68c5e643ec6bfc4e555459c2da5b317d1",
+      "size": 215640
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/random/bit_generator.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "8a5413c10ff21134e512b59c9f0f2c0cff444422a18c73b90f39669589d2a4ed",
+      "size": 298312
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/numpy/random/mtrand.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "56d5670b3c880cfdcc436755973cf681ff556ef360efc524f8e69a7326097b8b",
+      "size": 703752
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcublas.so.13": {
+      "sha256": "4e346a7b60a01552bd9bf4bbc6c862e11eb851559c3da3572293345de6aaed75",
+      "size": 61910216
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcublasLt.so.13": {
+      "sha256": "930418840b747413584867cb7167dd5911dcf4184135589e0334527e9abbac9f",
+      "size": 629945952
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcudart.so.13": {
+      "sha256": "7bdba2b5b08cbdc85203c41cc94598adedb1bcfea7cb574ca693ac73599e4e63",
+      "size": 707752
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcufft.so.12": {
+      "sha256": "58d0f3c53a56aa8e407df4a53be21969b60fa464b4dfa71631188f4e13596c28",
+      "size": 283285752
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcufile.so.0": {
+      "sha256": "0dc9520a096013cc4009564dcd7824923eb2850fc35dc5812efe3ec9fa4d0068",
+      "size": 3006936
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcupti.so.13": {
+      "sha256": "a55e03ccab21830f5b9d1ca7a02ecd59c557e0d54c769a181ad1140a3cff8ac1",
+      "size": 3850656
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcurand.so.10": {
+      "sha256": "80aedb15af13cf3b43cf8394fc9b5f9f299d6eaa5d2ddd6411b26af25b5334a2",
+      "size": 147889368
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcusolver.so.12": {
+      "sha256": "84a09b45594744af44ecf19011e70b43d33fd2e0fd7e8474b7213bf0039256cf",
+      "size": 153574032
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcusparse.so.12": {
+      "sha256": "a6643e78b7f002021a5e8d3b64a3ef7ce7caf8b9d05758cfee7e2b53f13d8988",
+      "size": 174842648
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libnvJitLink.so.13": {
+      "sha256": "2ad249d2d60c87ea4941f5ce7ce1b06d4096032e95381c237f929cdaa5c7d5cc",
+      "size": 89258944
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libnvrtc-builtins.so.13.0": {
+      "sha256": "84f1c5031bfe1146375b367b2c7fb8d31ea00430be7172177eeb5d04ab813b69",
+      "size": 4380456
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libnvrtc.so.13": {
+      "sha256": "64db9c3fc128f4a57a22c314fda08831a8e3a725d439a70076a0fb98f7bea1b7",
+      "size": 99505944
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn.so.9": {
+      "sha256": "119059d6ad15f576608a0daa547444538062bf5e6be970f090298b50636e13b6",
+      "size": 6328728
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9": {
+      "sha256": "3b765736f63d724a0de67b7ce915b0d0a780154fe4a2d515ab14040224aa7db4",
+      "size": 299909640
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_runtime_compiled.so.9": {
+      "sha256": "7b8f371a7718c29549317efdbdeb8d7c301874f9471762a04830846ac4e83510",
+      "size": 33571912
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_graph.so.9": {
+      "sha256": "b601fddd333d84ced4a3d833e75bb412c204e39b21755d79cb890335dce660b8",
+      "size": 10749656
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_heuristic.so.9": {
+      "sha256": "368687b9b5c2c01b55c21f74bd930cb05d3654b4e901e998b7bfb33cebac6ae8",
+      "size": 65015024
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cusparselt/lib/libcusparseLt.so.0": {
+      "sha256": "fbb03bbf8d2238670f24256c5452281c2a660162899b838bb4d0cc06dad027df",
+      "size": 274143825
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/nccl/lib/libnccl.so.2": {
+      "sha256": "cc01f863461ea28f3ecc4390716a2d7a5aca9bc00e04eeb6fc7a5c2e666b3dfb",
+      "size": 237975080
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/nvshmem/lib/libnvshmem_host.so.3": {
+      "sha256": "868de4fbf53f19f0a2537e42c70d77396db981475303f3c57ce40e82653c8bba",
+      "size": 40950048
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/_cyutility.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "f43f7748c95727ba13425b66de1bbd68ac5a78dbe7fcc884b85c5606d614a9f3",
+      "size": 268344
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/algos.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "846ff454a9f806445480e203095596b61d88ff66f73a9f6e0ab93a796b8b7187",
+      "size": 1587800
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/arrays.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "86d6935d325eabb90d5b2b0eda828d8d79c5dadbad41d74cd24176e1095fcf9c",
+      "size": 268488
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/groupby.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "ebc5d8f5a8bca40330b93562c16e2739ccff6424dab00399ff804ef7c2cec986",
+      "size": 1784672
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/hashing.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "d873613a7c24e3147085a3592204f72fce9bcc522674eb8a29ef0abcfb493fd4",
+      "size": 201840
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/hashtable.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "3a884ffccc28c1e511539fe0feead8ebd1a9077ad5b425e3b96d748cae31bb2e",
+      "size": 1936504
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/index.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "5fbe228e98a01904a5cb9a6b716b99a3db4e8acf60bf00c4ee09e64c2da21108",
+      "size": 741392
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/indexing.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "65350ace1b4e4a3a6f9197a404f473b9738ef58aa222578d2491fb210cc4af1d",
+      "size": 201880
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/internals.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "a87f5a130f61945d79f87c7cf31efeb101685ef75573c25a249627187b2c8a9e",
+      "size": 337336
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/interval.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "28b9321e18d2706740fac84431d1a48004a5e5e5d50fe9abeaa24e2804f4e66f",
+      "size": 939368
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/join.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "06736c03e8b80ba07b29a0fcdaa0757e8ffa3f07666d41c3b5d5c3caffbc6998",
+      "size": 991792
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/json.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c189f23aeade28a9166940e9a9e501aa587b19db53b27472d1eebc0da6569acc",
+      "size": 199992
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/lib.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "52d79bf26fd333e11445eecac520b82fbf486d454960c1f4d7bd562cda75206a",
+      "size": 670440
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/missing.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "3fa89d8680eaed9dfd1e7f5ba7d49eb47f3294c66d60abe56b18ba3f6bf34ec7",
+      "size": 268696
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/ops.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "f89a50c9466b073ab394ae436b0ba92ea2c022a1e96a8a90a48a244d7b7be6b5",
+      "size": 267560
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/ops_dispatch.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "8375392306898b793d7d3d2e9f7721420bee6b68857b986de6b598630e405df2",
+      "size": 201328
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/pandas_datetime.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "b04cd97406c363402d43ad754f0c48a1e23f45ad85902f9559dbb0abfd03cbbd",
+      "size": 199328
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/pandas_parser.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "1a16d9d65fb5a2da84adaf468dba7494a7b17857b66d7570d372d3c787979bfe",
+      "size": 199416
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/parsers.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "ac04d17404729b2df3bfe0e7141c5a811a507492f88da7076797bbe1a1ac55dd",
+      "size": 467696
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/properties.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c4c773f84a879c7cc42d5633f59b666316eb561a3b0c025ca9de525ae7cd037d",
+      "size": 202424
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/reshape.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "a5552ca925cb5ccb7423656d6f4c980736f3a98dd478b9ec6946aed538b6c179",
+      "size": 268416
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/sparse.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "e81fbbf704308aed9d965918359ef44f807071e75fd60dc4af11773626449f1e",
+      "size": 664888
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/testing.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "9c4f5cf8a1b4fb1bb5a9bfa072289daa3ad448fb1331de8befef1711b6df2d2e",
+      "size": 201600
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslib.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "e53234bd52556b33869b98502975937f85ffa07d5386897b7830a31376b3192d",
+      "size": 268032
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/base.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "71dee2dddd2254f98f24be060b11aba9c64be52041d9c49872c5ae5c6efbabbf",
+      "size": 201584
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/ccalendar.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "f14f916a9e1fdcee070d08e95c9c810f9959fa0fdf6ef6f438df8ff79473540d",
+      "size": 201552
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/conversion.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "699139afd612cfc8bc9109e9b17a5dfbbaac442ccb82c844b9965ea9920872da",
+      "size": 268416
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/dtypes.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "dcfa99ae0afe5f815efb2755a1760203515814c800ad65a9eb57a5ff7a81d4a8",
+      "size": 268408
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/fields.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "8de71346107f4bc4937fd34fdb82f40c65b5e2e09b6d5d7c7b5e0a904404f142",
+      "size": 268456
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/nattype.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "311aeeffc6392c3d64d614829c0b7ea55b9f5880ee091cc9e8796324c255bc7b",
+      "size": 269984
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/np_datetime.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0e250e21839df574444f80c157ed721f351e90f2bdd364ce7f3f4c551019554a",
+      "size": 267512
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/offsets.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "eb46400e1c85be9b280011b981bd0aa184298ec666fb5dbc09999e899e604cf2",
+      "size": 1011536
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/parsing.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "a8b222e9fea071ba8c6d56747958376f72861c7c6d7537f1852943f7dc3dd7a2",
+      "size": 333936
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/period.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "5c23f5a773775b26206685cfa3e8878a07fed0721b04c7b5afbac22cd304b734",
+      "size": 467944
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/strptime.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "a3c0d02c3888e3f37fa2a6ce3fc8ee1013f0ca4ddbd63b955d954a6065bb853d",
+      "size": 268424
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/timedeltas.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "577ece94e2f068803661547620c4f4ce3942a0479a0902445024c8755915c913",
+      "size": 534576
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/timestamps.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "afbf555a73653dc71246ef103e5ad1d2b4b86ec98f8c748410e2811191ba16f7",
+      "size": 536072
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/timezones.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c1aa4957287875e5b9e90adf6480593c540df4d1a4249fd5c425330aba25d3cc",
+      "size": 267720
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/tzconversion.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "90a090c34ba5cb7f0b0f4eb2ace3933a01bfc1f174bdd8aa64498c47c193b79c",
+      "size": 268304
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/tslibs/vectorized.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "9dbe2208fefa5782d3cc557601f2f639389788bf287f7e06ba0616ef67a412ef",
+      "size": 202152
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/window/aggregations.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "18697752b935db978a9963e5fc13484464f1e759ab44b8c7bed94a0f33516338",
+      "size": 468456
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/window/indexers.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "24153b1836364c7c0b0abfb83f5176dd924c066ec59aea1810ac39d84b6fde13",
+      "size": 269464
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/writers.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "fbd3f1a475422bd896d4407ef986054ae74144f717dbcfa9caa86dce83ede030",
+      "size": 202712
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libXau-7926f62a.so.6.0.0": {
+      "sha256": "c7088cf9b8e8043b951c8cdcef1c2a1707d7952546e8d142545d5db5abd5a92b",
+      "size": 132921
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libbrotlicommon-832abbb5.so.1.2.0": {
+      "sha256": "efb0870c7967df1edf60eb8aea1fdefe902304c0894bb5b06c53d4ebbf2e4bef",
+      "size": 328825
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libbrotlidec-e7b3f852.so.1.2.0": {
+      "sha256": "05091e742c8d67c8c857d1fb77357d3ebf27ea3e277cc13c2911121e668a1ddb",
+      "size": 328569
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libfreetype-dbb39902.so.6.20.6": {
+      "sha256": "ee717a76b55a687422543db5f642f7d56434f08b7e1ab9148a06652048d49373",
+      "size": 1709345
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libharfbuzz-c18df3fe.so.0.61321.0": {
+      "sha256": "9e045a7c1a9cf8f325f43f8f6825c674149b5c7fcf53604bef20e23484e1b9be",
+      "size": 1129617
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libjpeg-4f0ae557.so.62.4.0": {
+      "sha256": "1e5e1857ad004fe803cf1ee77491afb373078f5f665cfea5c05e4f4077d8ef5b",
+      "size": 922297
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/liblzma-b567d2fd.so.5.8.3": {
+      "sha256": "41353a5fb8e2bd19852a1110a4d8e023cb66107e44fd6748c7201303e64144f4",
+      "size": 462921
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libopenjp2-b5c5afe9.so.2.5.4": {
+      "sha256": "c88f55ecdc20311fe1440601e53df1627aec817e0f8898895c141e52bb44fb92",
+      "size": 794721
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libpng16-9238b08b.so.16.56.0": {
+      "sha256": "70748d0c134736447eabf15f23479f2cbb6fe037d1bda8ef0c7a2f0a4f19f05f",
+      "size": 466409
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libtiff-76d51d59.so.6.2.0": {
+      "sha256": "7c675db9905db206783da3922228eb757dc577757846a6d17a460ed3972e34c1",
+      "size": 988177
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libxcb-7f570eb0.so.1.1.0": {
+      "sha256": "587d984ec0bc33fdf043c6b0d52d82f9d97cf4616a79ee5a7be5d5797e066b5b",
+      "size": 411185
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow.libs/libzstd-ad98d567.so.1.5.7": {
+      "sha256": "6e67e78306fa721eab3c920b4d1d7d9ecd24ff65f93c033116e9170f2b2e6eff",
+      "size": 1644817
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/psutil/_psutil_linux.abi3.so": {
+      "sha256": "463d351dd4b4d93957d30a7b645dd0bccd09276fd5d26c0ebd8c10e5088ba1a3",
+      "size": 321912
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_compute.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "11ba50c45fe069307a773a4e3a7b9156b4413a8fa71e42713c0a7f68cc849bd4",
+      "size": 1240656
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/lib.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "d04a50d7bdc82de21c2f94f5a6fd915cf84975487bbf7046d8af84c3673c186c",
+      "size": 4103512
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/libarrow.so.2400": {
+      "sha256": "b29099a80dd154ec88602eb9f3629ed5846bfa2a2e37c73cdf5700f9d91c1e08",
+      "size": 48100160
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/libarrow_acero.so.2400": {
+      "sha256": "3a17663582f5535e77ad141d781449f4f9d5d2991e09d3fe71dd2756713003cd",
+      "size": 1753896
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/libarrow_compute.so.2400": {
+      "sha256": "e0684020d58b13db132104641b1e963a0528579185b8a7f6252123272165a4e5",
+      "size": 15170608
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/libarrow_dataset.so.2400": {
+      "sha256": "837055e218ffa04b9cd21734c0fce6e17c4df45c28f9f6ccaf1ffb98ef07b6d2",
+      "size": 2268808
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/libarrow_python.so.2400": {
+      "sha256": "bff00b33a2a5f150adf6b39eedb6b09b1199cb902e97937424ae1d24e9801d4d",
+      "size": 2182256
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/libarrow_substrait.so.2400": {
+      "sha256": "02af9e840faa4c2b42b1ae7866923ec8fc70bf75e3370195cb81d59e6f573ac8",
+      "size": 5139032
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/libparquet.so.2400": {
+      "sha256": "37aad1a846ceb3edeeb47b617eca70191c7bc1a55e67295589fd38486c831a81",
+      "size": 11840128
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/regex/_regex.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "35ba1f976dd2498d81c35366be54b47a4129f2a0db3bba0733bbd94c324df404",
+      "size": 2675472
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/safetensors/_safetensors_rust.abi3.so": {
+      "sha256": "8c623b2077a05539bbdeb345edf3970a33597fbda0e3c9f3e1377865c55b3873",
+      "size": 1203048
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn.libs/libgomp-a49a47f9.so.1.0.0": {
+      "sha256": "43642df04bdf20f9b4122d336ef3e2e6a486c536e614159ac0e981a901d54537",
+      "size": 343345
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy.libs/libgfortran-daac5196-038a5e3c.so.5.0.0": {
+      "sha256": "8c13f44b44e4dd0005632ea4173f5f5014d2829d50aa12b2054034297c07f233",
+      "size": 1671529
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy.libs/libgfortran-e1b7dfc8.so.5.0.0": {
+      "sha256": "296e40e3d92d0c4377e1f8b40a929045fee6bc5686226faf940fc824e469a7be",
+      "size": 1484433
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy.libs/libscipy_openblas-b7e2810b.so": {
+      "sha256": "5d4ef10608de957609e27942c23e092ce27415dc8394a796d014633ae2995f82",
+      "size": 28750121
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/_cyutility.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "886b12d326a0af3be7ae26db17392f176c315f0584c79454dc61933d45185ab9",
+      "size": 290440
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/_lib/_ccallback_c.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "266f02ba57382f17e32d65d5c7f3f22c3f09b4bba5f9227992b0c84eb39e64a4",
+      "size": 215712
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/_lib/_uarray/_uarray.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "31188bde59f9c02a62fbde767d24d507d89743548a7e1a6828d01d7eb9a4c865",
+      "size": 223368
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/_lib/messagestream.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "07d7136068f4489f1b8783deb630d0baeae711b19a3142284edaf05390d30bed",
+      "size": 215576
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/fft/_duccfft/pyduccfft.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "8590266dc5a7318d9a01950655d9a3c132189e723da8e8118bbc8e067f014fd6",
+      "size": 2288288
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/integrate/_dop.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "6c6cd0de8d79d4cf11a7369010c66bf6d022cfce0ba611f5baba4228f50c7413",
+      "size": 203888
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/integrate/_odepack.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "867ce1c576e1c732e7518f0db6cf135eb35730ca5339ca87c9a4d2923e816175",
+      "size": 329129
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/integrate/_quadpack.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "453eba2e46dbd4fb5e51043e50051bc6cc35d91a829c5b77a895581f25a2732d",
+      "size": 206992
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/integrate/_vode.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "5862fb5dd35f18d6483988ea7303b47191e316c9ff2bcb49e1429ab224ac8638",
+      "size": 329201
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/interpolate/_dierckx.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "cc40ac325a03d3d4a34d2b4a8043aec942596da0d808072a877b1a7ef9076140",
+      "size": 330009
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/interpolate/_fitpack.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "e6fb8394e7e7f374b1a4280fb35ba39f92c9493e06cc03dbadf534ee345e8019",
+      "size": 405104
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/interpolate/_interpnd.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "8d6c905fb7c32385d5725499d766841343f0f19ea1404774a6b8f4cc394bc195",
+      "size": 360216
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/interpolate/_ppoly.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "59ecc8aee3a4030fe23b5ce4effd0054d221b4d971938aeb9bb598d5ea052737",
+      "size": 290560
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/interpolate/_rbfinterp_pythran.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "6ec305c674df8cd6cc9df55d51b99315ec934ac6c5a3e4f2721ba2da6b040ff5",
+      "size": 298952
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/interpolate/_rgi_cython.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "94be7d4f14049584f1230ce2b467e0e81ce13f9ec6eca0ac14d75aaafa601824",
+      "size": 219784
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_batched_linalg.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "1312f0704eba0dd9113c46b02224ad25c6a4b5ada85e8e9ae532ebd553ea6abc",
+      "size": 528369
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_cythonized_array_utils.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "9456e3c68a8bed0db629bb86a243b295443c083c5538ca603e54365cb4ef40e5",
+      "size": 297640
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_decomp_interpolative.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "7c56d96633919e19634e88fdbf292dded6ccadd4121522fa02975c4c84876220",
+      "size": 754584
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_decomp_update.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "1178d92013331d65bcd1d6186f3cc2c4fec8e957ab2b8bb74d865e510adfc7d3",
+      "size": 355176
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_fblas.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "44d22205b2c182fa8b179d868d748f52b571b4d99be899d6a436532a7456d336",
+      "size": 1139129
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_flapack.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "681f39faf54071e0e6dd3e988c2ad669880a5c0b048ae57d0fd4bb46ce19192f",
+      "size": 2515441
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_internal_matfuncs.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "895347e9573a28f35fbf6eb23ed557113335429017b6685c198d9dd4f56130c0",
+      "size": 395065
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_linalg_pythran.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "d5582779b3d0c48a310401a7fabd1a3f0a149844ad43d3b3eb9c646b12ed08ca",
+      "size": 221728
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_solve_toeplitz.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "736b8eeb93919d13ae4146d42e6f80f4e6caea231567babb5ad219b8c557097f",
+      "size": 219200
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/cython_blas.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0295cf2776d8572f0adb701910fd6de1e12362006b1afa38097076eb34064c60",
+      "size": 332481
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/cython_lapack.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "bdf509ee25f4e11579c55ad8ac7be01120336e32050cd903c0073eb1167f767d",
+      "size": 744569
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/ndimage/_nd_image.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "391107d8c540617cd5775b566e24104a0d295c366dc3f9824e92a8b3c86194ef",
+      "size": 275664
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/ndimage/_ni_label.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "d899ef707b517dadc47cb6dfe6b80d76f38981d0b0dde4ba1618ba6b7e6cf6f4",
+      "size": 295448
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/ndimage/_rank_filter_1d.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "af3e1529a8985bc49282cfd4283c53fefa6f0e7009957f25f95a106ffedcf519",
+      "size": 204752
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_bglu_dense.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "940310027d7189ae58c3c554280cdac646dad2801aefd4a592ff80a8a5f6218f",
+      "size": 295152
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_direct.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0fc620a59eeb608f6ece45b2f89db745e2ddc998e1cc7ac0e3b9cfeca0b571fe",
+      "size": 204640
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_group_columns.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "e7d8c1bba694f45dbffdeecff2bf07c682587939c0accd1f68d1764130a7c4ac",
+      "size": 216128
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_highspy/_core.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "8a66d4608b845d0b39400e1fae0b1efe0c5304a994071300af1a9cd0558160fc",
+      "size": 6065000
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_highspy/_highs_options.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0287b5226dbde2736d552f5491617b61c9f00a65642c389ab609eff06889a3c4",
+      "size": 480216
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_lbfgsb.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0054ee9fe5e626ce870eb033242f59581db73b0a7a0cf978e75220472020b21d",
+      "size": 328881
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_lsap.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c2b7436c5500c1da22ccd293e602a4d2134593ebe39906b873ee35f8f583a9e5",
+      "size": 206744
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_lsq/givens_elimination.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "cff094db47074373f11a3023b0ec34721258dbc40fa035977898a245e3d411d2",
+      "size": 214456
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_minpack.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "78981003a4ceb72ad7d76d3df860edb2d5278ffec1f959cd69b32d774ac0a0cd",
+      "size": 212080
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_moduleTNC.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "f6115295ad003043df9136f0e5c4cef32ea050f2ddb366616266cdbf35d2891b",
+      "size": 279576
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_pava_pybind.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "4e937af4807ac09e20f7133fca92a5b4d19a75469a71b0b8e123d57a6a44fa81",
+      "size": 311880
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_slsqplib.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "7932fe262ca634a292a80d0a24aaa397372eec7eeae4ef7b7c367e4f965ff145",
+      "size": 329225
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_trlib/_trlib.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "389360e595b08cec0b98901196f5e0f50cbdfdc4638318ef4a3e5f9a9583772d",
+      "size": 396801
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/optimize/_zeros.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "59428c453b105045426d12f9b3df8285f7aa9b89d7ae41a150506b5258574cbf",
+      "size": 206400
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/_csparsetools.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "eeba53fa33d101076478a14be612d33f6dc57e0744d1fc4f8aa6c0bd7d379fe9",
+      "size": 497936
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/_sparsetools.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "626c7b3ef48e60c0a65efeec0838daf9499d631b6dfbe4a288493d68088936fc",
+      "size": 4126776
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/csgraph/_flow.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c6a4928e13c2b614bfe4be537fddc00482a475c53c258b8ec20a03f37b08e387",
+      "size": 284824
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/csgraph/_matching.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "daf4c5cf74645cf957e64fe35d99017fe289dcd9981307edb2b49e305fc75fd3",
+      "size": 283616
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/csgraph/_min_spanning_tree.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "9455270e6e76a3bd21ef8e8f1113ad8fe0e22498653bbd70be310ac9e47f0cc7",
+      "size": 216112
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/csgraph/_reordering.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c0129ac203eb16071d460c1f23d784848ccecaa391df77736349b9a8c8b314e2",
+      "size": 286424
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/csgraph/_shortest_path.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0d490cb029bc6d25b3f1155ac2a4bc54c9f9eb98d651a7b40ce27236de82e80a",
+      "size": 497232
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/csgraph/_tools.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "db51541614b6403950e156fa426c686c160a29d9e3bcd50b8b25faed42186890",
+      "size": 283280
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/csgraph/_traversal.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c23c23cadc30a0890e0a1eb6928729b810799e4fbea143063123f4fe2840d8c1",
+      "size": 430992
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/linalg/_dsolve/_superlu.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "52bd06be57fbbb0fc0cf9f263d129b493767b314c818778ada776635115c51c8",
+      "size": 592249
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/linalg/_eigen/arpack/_arpacklib.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "a41244b71b05d904553c8f656239eec0d71d7dcf9e1e81fae1d2ad8b07f74de9",
+      "size": 395729
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/sparse/linalg/_propack.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "a9250c719a6eab4561ffbff66db3e5a7f6fc1e65703fd328bc8fe7f73fa7a795",
+      "size": 394993
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/spatial/_ckdtree.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c755f4d929907041ee32ba0ded906c825bc0412f9d6eabcad7a602f35eab6ef4",
+      "size": 725224
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/spatial/_distance_pybind.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "755aceb559ba4210eba70517271d321b51e8a8c686ccd68073ebc83667b4f5ff",
+      "size": 618560
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/spatial/_distance_wrap.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0ccc8e7177ecd3ca68a7c310c57d8bf6b9edfe2ee22fd45bcc2d1286c64feb20",
+      "size": 273440
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/spatial/_hausdorff.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "5ab7cc69fb321707b724759b335acb0e027fa5e4d9fa3d9c6ac07b5137246ada",
+      "size": 216168
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/spatial/_qhull.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "7927f9af0c4e6b536cd10db2324ce63e90f93a6d5757e8d682acb56707f1d396",
+      "size": 915072
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/spatial/_voronoi.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "e6a167ec1da7782e42274fca7c0349281b616bcbcb7efa4f9c6372b234678b3a",
+      "size": 215688
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/spatial/transform/_rigid_transform_cy.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c4741b99547780594fd06ccd7adb080fa5c9b8c6580623a664957f64ba2fe449",
+      "size": 354552
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/spatial/transform/_rotation_cy.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c009960ee945c00e8ce2663137b3f537cd3fb93af1f72ee3ed7a8090ab41b3e3",
+      "size": 564688
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/special/_comb.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c39aebc3911e9ebc58b9d14b92e612cd599b57bb231256360715eb25417a9ed5",
+      "size": 211576
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/special/_ellip_harm_2.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "1e0ead17f4c94e6342a91155d136f2e297c526e8ef4adc01424814d028aee8bd",
+      "size": 215272
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/special/_gufuncs.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "6491c8d9699d6d93420d6f6569d0ecba3a35d2ced2d6acfbf209d2bf81626d57",
+      "size": 871552
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/special/_specfun.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "6c6bf15588d14c043cdcf7c7b630455392e066816797afd4fa9d5c118674d1de",
+      "size": 287760
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/special/_special_ufuncs.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "a1aab40b4a279b82f1b9684c4f52b303b833d3bbbdc4f500f68ac4bd75e5a9b3",
+      "size": 1451056
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/special/_ufuncs.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "da6bfde497ea763a18d16a6bcf61b6b013063f0cefc8f8c51d0ab82ffba57e82",
+      "size": 1318856
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/special/_ufuncs_cxx.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0cdf51bdf3cbaef27dfff26786bed12f0e69bbcf8c95cd676e9f6553d665b125",
+      "size": 1713360
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/special/cython_special.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "4a5f40c17ede58d4462cddb39806b64f9bc8bc3a7836cdc8fc31fc58c723cf54",
+      "size": 2219912
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/stats/_ansari_swilk_statistics.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "99fb914eb432fa88594cc88f1997f5b4a6a8ab6d252349876ebd30ebc5ef3ad2",
+      "size": 216888
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/stats/_biasedurn.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "907c78ecf40cc176584c54ab143d5c789fb7d8e76fd75fca1f0dbc6e96bdc835",
+      "size": 305864
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/stats/_levy_stable/levyst.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "dd732eec9673e8b52ba67114315ddbc420a3a3c6a43ab896510a422a6bce8639",
+      "size": 214264
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/stats/_qmc_cy.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "2bc2a2ad6528f126b31d22224b0ffdc41587debd66ce0c52f6b9e63d16aa1ce7",
+      "size": 226880
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/stats/_qmvnt_cy.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "c640124012fcc2747dd47f90d3a2e19276a129da36cfdbbedc9c7775352d7d03",
+      "size": 284304
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/stats/_rcont/rcont.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0da4eb4b0ef9142a8cc815ac1f552620e1d5a2d23ff68c080af0f48a1993717d",
+      "size": 216776
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/stats/_sobol.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "ecf9ef1bc4eccb1572a9d71ac8e89705953b3825970c5fac26dc157711e6cf01",
+      "size": 290016
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/stats/_stats.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "ed85edd69d8aceaba5bcb8d450086b57309b7ecdaa5d47af8d2f91bc76890350",
+      "size": 566968
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/stats/_stats_pythran.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "588b438ac537e2d64eb15b1973a5a0b6c5bcd87c31e9b9292d61d491b5983c90",
+      "size": 221576
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/__check_build/_check_build.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "55cab239463c10856ad0e2cbe5beb702a770c5a5aea8751e70e9c4a4ac5b9ac0",
+      "size": 209712
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/_cyutility.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "6b553be83f805b7ead72f1f70b758105d53a5cfc3e654fe346351e6f28b58aed",
+      "size": 290440
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/_dist_metrics.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "3661690a13a5ee8df983fc676e86f8c602322d912b6dc7552f9e8817268a61f1",
+      "size": 619064
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/_pairwise_distances_reduction/_argkmin.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "5eb938398ac9bf02077094785cd6988fa11999cee23ebb5000fe6005386855f5",
+      "size": 396841
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/_pairwise_distances_reduction/_argkmin_classmode.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "0b7498f90684cfa7c50548675db581c9700074b112759167321d294a6292877c",
+      "size": 331081
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/_pairwise_distances_reduction/_base.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "3a8040778ad7f411fbebe7cedb3411cc071155a0023bac8d40f54c5d79f23fd3",
+      "size": 397369
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/_pairwise_distances_reduction/_datasets_pair.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "3906fdeaef49dba883a905561e669e49e922e505d23fc215347b73a7556e5158",
+      "size": 394280
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/_pairwise_distances_reduction/_middle_term_computer.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "7bb62c95c865bd357933ee9424972218452fc96bc3cd980fd90ec6a85fde0295",
+      "size": 393864
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/_pairwise_distances_reduction/_radius_neighbors.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "8a304f48bc4ce4c06349a6478233a71790cc750453b5ed6d3f9b8636851bd0e5",
+      "size": 398609
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/_pairwise_distances_reduction/_radius_neighbors_classmode.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "dcc8c058ec8efd5b798f9132fd60ef69138ff7558e6dfa86192393751beb1559",
+      "size": 396745
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/_pairwise_fast.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "93fd950b45c9126e0cc46c235d307b173ac851d9c9754c101f5ad892f2f329ab",
+      "size": 330913
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/metrics/cluster/_expected_mutual_info_fast.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "31060b26c649d9bd398ddde38fc4b47ca548dd4e8fabdfc067f642ece93e38f6",
+      "size": 216096
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/preprocessing/_csr_polynomial_expansion.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "3cf060d65f9999145ed5b96b140dbc60a411b1eb1c43d7810526e588cc6a5e38",
+      "size": 359928
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/preprocessing/_target_encoder_fast.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "41e637b5d789e960307f072c82c0cc895cb067d8f6a7348509b65270c6b1780a",
+      "size": 427296
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_cython_blas.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "5996fe726aacdfdff378dfae7ab081a00bb5dcda40cc1ee4356629f7464c947e",
+      "size": 297248
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_heap.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "fa0cc77c8d1b4dc5c72d520e6c835254e1a36236bb8cc8aedc02311e25cbbdac",
+      "size": 204568
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_isfinite.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "80172f00ee64ec78a5a946c4db29d9dc7c872ee2616e6124c46f22fa8dfd7ac1",
+      "size": 218168
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_openmp_helpers.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "96d010b4815c43ee364e64e8263be58648f56a3b24656717e10ae7cf374cf053",
+      "size": 330577
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_sorting.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "7821cb9fc62cb10b11b97de5b2a5312df61c90dac83044b84b9487a87b97e0c7",
+      "size": 218360
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_vector_sentinel.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "1901215016fcb28a20f2ef4884e4d34258dfa46a78a6055d9d476526674cf0f3",
+      "size": 297720
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/murmurhash.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "780e119fd96af5538ee27518b07abb1ac2f72c61f8b449193076e84b1f6dc2dd",
+      "size": 218696
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/sparsefuncs_fast.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "447342dac65725b530bc96f4677117e3cc20985ee38477dc2b810be853b8fe48",
+      "size": 630072
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/tokenizers/tokenizers.abi3.so": {
+      "sha256": "fa049ce975669d8a90fb48960f412e626fa54cf596c2f75d6820949f4888e910",
+      "size": 9768912
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/_C.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "d08ec5b4468e5b235a48bb34469282b18a7c1b9fc13e9ccf39a63682d9b58d13",
+      "size": 263057
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libarm_compute.so": {
+      "sha256": "c48a2a9977cb7954aadb55c81e007f9cbdb5d89645bf148892dc63f6b61d3878",
+      "size": 17850537
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libarm_compute_graph.so": {
+      "sha256": "98b45299d32d2027c46f07bf413aa55832b88f6ffa40cb7f50345417cf990aab",
+      "size": 1310433
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libc10.so": {
+      "sha256": "53c9bb05dbe6bb7ce052d97dbd6c9b6835e6a7ff9ebf30bbf78b8fbd79b36d77",
+      "size": 1794945
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libc10_cuda.so": {
+      "sha256": "6cd0dabf969675749758a732e35617161b420558b5c4568b7fd3862cbfa1cf03",
+      "size": 737265
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libgomp.so.1": {
+      "sha256": "dfee810d70d5df631d5cbf4170273938cf0ab5756caa65c7cd264746cdf886ad",
+      "size": 344073
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_blas_core.so.0": {
+      "sha256": "5d74d2a7d48ace2b563405d42695053f8dd058a92db19a5e54ecdeab21a3f6d5",
+      "size": 2562097
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_blas_lp64_gomp.so.0": {
+      "sha256": "4ba3cde968a086163fcfc923c0fabcfb43be2cfbea7662399889b3cf086f4077",
+      "size": 469313
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_lapack_core.so.0": {
+      "sha256": "10ef87919b461fe818a9bfabf149526150cf463d938ad1aa0863311ea4a10c15",
+      "size": 1710681
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libnvpl_lapack_lp64_gomp.so.0": {
+      "sha256": "0e02dc39b705e466bb887d6967140ff4c02595f0e10b1865adb012fc232352de",
+      "size": 5936761
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libshm.so": {
+      "sha256": "f8167f9bb6830db314687136622aca5776235138105ebfae800f5b4478121524",
+      "size": 265993
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch.so": {
+      "sha256": "29b7b83e8c6331b093c7dd0479e00d855be00469568f695ccf16ee94e8133b3f",
+      "size": 273553
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cpu.so": {
+      "sha256": "ca4731792047052952907b87b4ddb7bf6715750df9203575a4de4ed92653521e",
+      "size": 256136105
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cuda.so": {
+      "sha256": "670899254ce625244d8d882b8a7d0a12883fd7c4dc8c4bf4cb9a1309a197e754",
+      "size": 423376097
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_global_deps.so": {
+      "sha256": "03301852e6bf75fa1c57009e0822526fada43202a8f2d81976d407e8671f4f49",
+      "size": 262993
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_nvshmem.so": {
+      "sha256": "0b2e45e65a869f697449da941bba53254a3b5503c53b5eb6585d13b176025f49",
+      "size": 3974953
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_python.so": {
+      "sha256": "aeb4dde01f01ed3f713bd143eeca734f86368d58710f150122599fee1ff71111",
+      "size": 30374673
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision.libs/ld-linux-aarch64.5cbc5e90.so.1": {
+      "sha256": "a5fb769b315921cd57312fc62910b15a3a0420e9281b6fab8e9e8c8c56067d54",
+      "size": 1044648
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision.libs/libcudart.faf08d9a.so.13": {
+      "sha256": "7bdba2b5b08cbdc85203c41cc94598adedb1bcfea7cb574ca693ac73599e4e63",
+      "size": 707752
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision.libs/libjpeg.a5de3380.so.8": {
+      "sha256": "fcd0224a79da269108569fa4e9bf4bcb9266505ba07227012910280fd4355560",
+      "size": 794073
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision.libs/libnvjpeg.36e11081.so.13": {
+      "sha256": "ae5a5fd164f93b3ccd12e6017270a17c08acc156adfcf991e81fcc3ac859fe14",
+      "size": 5526168
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision.libs/libpng16.0971a14f.so.16": {
+      "sha256": "8741f829d67af8421405727604955ffbb7ea9dae2e21ca2c5777c0066b3ca764",
+      "size": 464737
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision.libs/libsharpyuv.64be9cfc.so.0": {
+      "sha256": "9aa1bdd4f746bb36d5c52216e2108096b200b05ae09d30a93c0aef9b710914e4",
+      "size": 132409
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision.libs/libwebp.ca5f525c.so.7": {
+      "sha256": "38215b0b784213a61659aea11e927b6da6a8ad52a45f6ad87878a62490429f12",
+      "size": 658129
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision.libs/libz.bacc89b3.so.1": {
+      "sha256": "8efad8c97e94a208cc343bde44dcc8ee9595615112ddfa62a059159658ad2dbd",
+      "size": 200169
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision/_C.so": {
+      "sha256": "d66bf810f4a131d077a84da3972d7aadffbc6ea48c5a96c3d965edad63394c72",
+      "size": 8725320
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torchvision/image.so": {
+      "sha256": "2c893bdc36b1821cbce3f11900857e95a9552101eb548fa9f9285251aa76d65f",
+      "size": 1027609
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/triton/_C/libtriton.so": {
+      "sha256": "10222cb36d781a1057f632de67995a0054d5b0b40fa0ff44722a44bf550ea56a",
+      "size": 472992264
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/yaml/_yaml.cpython-313-aarch64-linux-gnu.so": {
+      "sha256": "79ad11601a93f2148b42ca3c4bd779bc2e8887d87c8ac78bbb1b49fb1418b74f",
+      "size": 2666184
+    },
+    "/home/riomus/runs/sfora-cutile-threads-v1/candidate.so": {
+      "sha256": "3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526",
+      "size": 10857112
+    },
+    "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/compile-v5/libsha256_occurrences.so": {
+      "sha256": "c9fcd633340e327d1330cd473277bec22bdf6444ed5171d874b5e0392015da19",
+      "size": 73688
+    },
+    "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1": {
+      "sha256": "393384096ffa869e1be20d2f91fdf08dfadb9f3e531dfe724085d8501d3f85d9",
+      "size": 203968
+    },
+    "/usr/lib/aarch64-linux-gnu/libc.so.6": {
+      "sha256": "fe5966a43e068ad7cb389c3affa069f4ee6f296e07d7ccc0398a23cfde4f0b7e",
+      "size": 1722920
+    },
+    "/usr/lib/aarch64-linux-gnu/libcuda.so.580.159.03": {
+      "sha256": "f6fb476bbefda386491dc5151a593a98bedeff6a4eb0ec4ef766e3b2fe3b9032",
+      "size": 96460560
+    },
+    "/usr/lib/aarch64-linux-gnu/libdl.so.2": {
+      "sha256": "97387fb55ccfc0cc109dfe99b81de2b7bbaac723d1c215107dc69a068c4b1fae",
+      "size": 67440
+    },
+    "/usr/lib/aarch64-linux-gnu/libfribidi.so.0.4.0": {
+      "sha256": "f25617883b0c10df0f143174c49454ca61c571a1051b5480070341223f95fbdb",
+      "size": 133200
+    },
+    "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1": {
+      "sha256": "f2d3ad2bf0b61f6bc944cc37d7b6ab7f88d2582b41ff989ca164803f56cc5f20",
+      "size": 133696
+    },
+    "/usr/lib/aarch64-linux-gnu/libm.so.6": {
+      "sha256": "d5b262e559d38769e4959f036a1cc2c4009fa60b4ec836a7a19ca8554aebf5a5",
+      "size": 591800
+    },
+    "/usr/lib/aarch64-linux-gnu/libnvidia-gpucomp.so.580.159.03": {
+      "sha256": "f9e19c3c4805ee72b3a9a04bbce65a8645b7501147584322b5c3663de22b1745",
+      "size": 58730832
+    },
+    "/usr/lib/aarch64-linux-gnu/libnvidia-ml.so.580.159.03": {
+      "sha256": "66763ad0d2cf14c12eca195de0f8c1065390d0b0bbf66fb495f65762893cbbd3",
+      "size": 2205200
+    },
+    "/usr/lib/aarch64-linux-gnu/libpthread.so.0": {
+      "sha256": "97b288827c0ab29659dfcdcfab6c2e9e1225c19fc5abfe106d8a53c2c7b34402",
+      "size": 67440
+    },
+    "/usr/lib/aarch64-linux-gnu/librt.so.1": {
+      "sha256": "4b38331a53bc2bd10c1ecf4f02a71c913c40bad13f5fbf93bee5a0e1f25dd493",
+      "size": 67512
+    },
+    "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.33": {
+      "sha256": "6e3112d35cfc86db7ee85b27e1746f67408e2837ff8628b46386c3eabd5682a4",
+      "size": 2633224
+    },
+    "/usr/lib/aarch64-linux-gnu/libutil.so.1": {
+      "sha256": "fe15c414e7e585bf749be683eba39d2f8db556b678ed8253f6884be660caac31",
+      "size": 67440
+    },
+    "/usr/lib/aarch64-linux-gnu/libz.so.1.3": {
+      "sha256": "170380b4e7ab28ec86eb090b48df90f84089392cb72fecd5067e5b7a4dc5239f",
+      "size": 133272
+    }
+  },
+  "schema": "cuda-sha256-mapping-inventory-v1"
+}

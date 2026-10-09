@@ -1,0 +1,8 @@
+Running as unit: sfora-standalone-gpu-sha-compile-v5.service; invocation ID: 842fd48c6b59411aa898e7b697d1231d
+{"build_admitted": true, "compiler_exit": 0, "unknown_inputs": [], "resources": {"memory_peak_bytes": 79843328, "memory_events": {"low": "0", "high": "0", "max": "0", "oom": "0", "oom_kill": "0", "oom_group_kill": "0"}, "swap_current_bytes": 0, "wall_seconds": 1.895489880000241}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 2.082s
+CPU time consumed: 1.697s
+Memory peak: 256.0K
+Memory swap peak: 0B
