@@ -1,0 +1,23 @@
+Running as unit: sfora-standalone-gpu-sha-compile-v2.service; invocation ID: 8b5701772d054bc4a6414803f62fff71
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-control-v1/build.py", line 113, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-control-v1/build.py", line 84, in main
+    observed = observed_inputs((output / 'files.trace').read_text(), output)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-standalone-gpu-sha-build-source-v1/build-control-v1/build.py", line 52, in observed_inputs
+    path = path.resolve(strict=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/pathlib.py", line 1242, in resolve
+    s = self._flavour.realpath(self, strict=strict)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen posixpath>", line 432, in realpath
+  File "<frozen posixpath>", line 476, in _joinrealpath
+FileNotFoundError: [Errno 2] No such file or directory: '/dev/urandom<char 1:9'
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 2.460s
+CPU time consumed: 1.956s
+Memory peak: 256.0K
+Memory swap peak: 0B
