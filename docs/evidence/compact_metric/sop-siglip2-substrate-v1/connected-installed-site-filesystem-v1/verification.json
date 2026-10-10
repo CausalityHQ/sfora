@@ -1,0 +1,21 @@
+{
+  "authority_fetch_ssh_exit": 0,
+  "authority_sha256": "383d7200392b1531ccdda52f13081f42fe4c3a27f589922d14025efdee1cea5f",
+  "copied_bytes": 4178434223,
+  "copied_files": 1818,
+  "elapsed_seconds": 17.344718068023212,
+  "installed_file_verification": true,
+  "native_qualified": false,
+  "original_failed_attempt": {
+    "before_first_copy": true,
+    "ssh_exit": 1,
+    "ssh_session": 52208
+  },
+  "original_sha256": "4e700102850423f4ea012c76abf759c33d42cbad4ff4326b5674e25ae86172d0",
+  "peak_rss_kib": 36736,
+  "quality_speed_qualified": false,
+  "schema": "actual-installed-site-filesystem-parent-v1",
+  "source_sha256": "9c0523e42c2aa3405f13dba8936f50228559128b730366e94e8f0085db5a744c",
+  "ssh_exit": 0,
+  "ssh_session": 45522
+}

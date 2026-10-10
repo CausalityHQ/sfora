@@ -1,0 +1,11 @@
+{
+  "members": 1754,
+  "native_qualified": false,
+  "original_sha256": "b997843b04f902cae037d93a35077ce15b64683f0e6b586fa5fc82a396c85671",
+  "profiles": 32,
+  "schema": "actual-installed-metadata-preflight-parent-v1",
+  "selected_bytes": 4175803935,
+  "source_sha256": "268ec96b5784281236e656d6ba08387fa6522d87b032cbafce5a69905209e7e7",
+  "ssh_exit": 0,
+  "ssh_session": 74506
+}
