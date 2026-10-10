@@ -175,7 +175,23 @@ def pipeline_inverse(source):
 BRIDGE_FACTORY_INVERSE = (('def _literal_state(', 'def _installed_probe_authority() -> tuple[Path, str]:\n    return (\n        Path(__file__).absolute().parent / "_connected_probe_inference_authority.py",\n        "26891b010c3e013d1d6132fea08617113563a8451da2b7703ca09fa391d219c1",\n    )\n\n\ndef _literal_state(', 1), ('    @classmethod\n    def from_bundle(\n        cls,\n        *,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        """Load explicit caller-pinned bytes; device, dimensions and k are fixed."""\n', '    @classmethod\n    def from_bundle(\n        cls,\n        *,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        """Load an explicit MLP bundle; device, dimensions and k are fixed."""\n        return cls._from_bundle(\n            _probe=False,\n            bundle_dir=bundle_dir,\n            expected_bundle_sha256=expected_bundle_sha256,\n            gallery_path=gallery_path,\n            expected_gallery_sha256=expected_gallery_sha256,\n            gallery_count=gallery_count,\n            native_library_path=native_library_path,\n            expected_native_library_sha256=expected_native_library_sha256,\n        )\n\n    @classmethod\n    def from_probe_bundle(\n        cls,\n        *,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        """Load an explicit probe bundle; installed/native parity remains unqualified."""\n        return cls._from_bundle(\n            _probe=True,\n            bundle_dir=bundle_dir,\n            expected_bundle_sha256=expected_bundle_sha256,\n            gallery_path=gallery_path,\n            expected_gallery_sha256=expected_gallery_sha256,\n            gallery_count=gallery_count,\n            native_library_path=native_library_path,\n            expected_native_library_sha256=expected_native_library_sha256,\n        )\n\n    @classmethod\n    def _from_bundle(\n        cls,\n        *,\n        _probe: bool,\n        bundle_dir: Path,\n        expected_bundle_sha256: str,\n        gallery_path: Path,\n        expected_gallery_sha256: str,\n        gallery_count: int,\n        native_library_path: Path,\n        expected_native_library_sha256: str,\n    ) -> ConnectedCompactIndex:\n        """Share the original lifecycle across exactly two fixed installed bindings."""\n', 1), ('        self = cls()\n        try:\n', '        self = cls()\n        try:\n            _require(type(_probe) is bool, "fixed internal connected binding required")\n            if _probe:\n                schema = "siglip2-connected-probe-bundle-v1"\n                code_names = (_CODE - {_TRAINER, "test_siglip2_connected_mlp.py"}) | {\n                    "train_siglip2_connected_probe.py", "test_siglip2_connected_probe.py"\n                }\n                authority_factory = _installed_probe_authority\n                authority_schema = "sfora-connected-probe-inference-extraction-v1"\n                runtime_filename = "connected_probe_inference.py"\n            else:\n                schema = "siglip2-connected-mlp-bundle-v1"\n                code_names = _CODE\n                authority_factory = _installed_authority\n                authority_schema = "sfora-connected-inference-extraction-v1"\n                runtime_filename = "connected_inference.py"\n', 1), ('manifest["schema"] == "siglip2-connected-mlp-bundle-v1"', 'manifest["schema"] == schema', 1), ('manifest["code"].keys() == _CODE', 'manifest["code"].keys() == code_names', 1), ('authority_path, authority_sha = _installed_authority()', 'authority_path, authority_sha = authority_factory()', 1), ('record["SCHEMA"] == "sfora-connected-inference-extraction-v1"', 'record["SCHEMA"] == authority_schema', 1), ('runtime_path = Path(__file__).resolve().parent / "connected_inference.py"', 'runtime_path = Path(__file__).resolve().parent / runtime_filename', 1))
 
 
+def artifact_factory_inverse(source):
+    if '\n_SERVING_HELPERS = (' not in source:
+        return source
+    path = ROOT / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/public-factory-inverse.json'
+    raw = path.read_bytes()
+    assert sha(raw) == '1d74c1efbde418eab47a7ffff74ca435b345ab4785d2813cdbcbf36365d2affa', 'artifact factory inverse changed'
+    record = json.loads(raw)
+    assert sha(source.encode()) == record['bridge_sha256'], 'artifact factory whole source differs'
+    for before, after in reversed(record['replacements']):
+        assert source.count(after) == 1, 'finite artifact factory inverse occurrence differs'
+        source = source.replace(after, before)
+    assert sha(source.encode()) == record['base_bridge_sha256'] == '5da8991b076474f1d7ebf70ee76f954c0789a7d39dff866c258f619633303e06'
+    return source
+
+
 def bridge_factory_inverse(source):
+    source = artifact_factory_inverse(source)
     record = serving_reader_record()
     source = source.replace(record["authority_sha256"], record["base_authority_sha256"])
     for before, after, count in reversed(BRIDGE_FACTORY_INVERSE):
@@ -254,7 +270,7 @@ def dependency_check():
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
     # The shared packed module is imported by both public serving paths, never copied.
-    bridge = ast.parse((ROOT / 'src/sfora/connected_compact_serving.py').read_text())
+    bridge = ast.parse(artifact_factory_inverse((ROOT / 'src/sfora/connected_compact_serving.py').read_text()))
     imports = [node for node in ast.walk(bridge) if isinstance(node, ast.ImportFrom)
                and any(alias.name == 'PackedInt8Embeddings' for alias in node.names)]
     assert len(imports) == 2 and all(node.module == 'sfora.packed_int8' for node in imports)

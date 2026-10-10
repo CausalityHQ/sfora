@@ -1,0 +1,22 @@
+{
+  "files": {
+    ".github/workflows/ci.yml": "e2ca061856ac62bde7fde062caf09464aa319a740f0e89d8ec20199633c701fb",
+    "scripts/test_connected_inference_extraction.py": "26791d11676b01f141a1438a25289c2bacca7729ed6c82f388afc1d91cac3144",
+    "scripts/test_connected_serving_factory.py": "effaafb00ea2e2acaa75fd095bdb72eb75c0bfd8f7452ae7f8231f6e04c67c17",
+    "scripts/test_connected_serving_inference.py": "215d7a0c29d2f57134d5ec710e7c9fc995c55601cf81b3edb3a90f34834c1e2a",
+    "src/sfora/connected_compact_serving.py": "3a8925ae5cf809c6b7260d044bf593453543b5e6040d25e8e6405031b9031c5d"
+  },
+  "native_qualified": false,
+  "quality_qualified": false,
+  "reviews_final_bytes": false,
+  "schema": "public-artifact-factory-source-verification-v1",
+  "source_gate": {
+    "address_space_bytes": 1073741824,
+    "exit": 0,
+    "log": "public-factory-final.log",
+    "maxrss_kib": 118260,
+    "timeout_seconds": 120,
+    "wall_seconds": 25.24
+  },
+  "speed_qualified": false
+}

@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from contextlib import suppress
 from importlib.machinery import ModuleSpec
 from pathlib import Path
-from types import CodeType, FunctionType, ModuleType
+from types import CellType, CodeType, FunctionType, ModuleType
 from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
@@ -30,6 +30,29 @@ if TYPE_CHECKING:
 # must acquire this lock. Arbitrary unsynchronized sys.modules writes are outside
 # that ownership contract.
 _REGISTRY_LOCK = threading.RLock()
+
+_SERVING_HELPERS = (
+    (
+        "connected_gallery_provenance",
+        "0e552eb81c3a200bda4568b43a7955cef8018ca43d83c4b0172fc903debaa1ec",
+    ),
+    (
+        "connected_serving_artifact",
+        "102ab0ab54eff3a0f1d4fa9526966b94f18e648a2a69ad41020148e71741bd08",
+    ),
+    (
+        "connected_serving_admission",
+        "c3f608bb98225525629badb07e84567dd198973a7ffa5be161d4f1e600875b0b",
+    ),
+    (
+        "connected_artifact_identity",
+        "75d6e7a862fcee1b1b324e87b7181e3959e539afb0c240da5200a6dc57cf2156",
+    ),
+    (
+        "connected_installed_environment",
+        "1ec916430dee8dc08c8f4a9a05f0616ffc4d0b0731444fd6314fc53533d9dd0a",
+    ),
+)
 
 _TRAINER = "train_siglip2_connected_mlp.py"
 _CODE = {
@@ -150,6 +173,215 @@ class ConnectedCompactIndex:
             tuple[FunctionType, CodeType, object, object, object, object, object]
         ] = []
         self._shared: tuple[ModuleType, ...] = ()
+        self._artifact: dict[str, Any] | None = None
+
+    @classmethod
+    def from_serving_artifact(
+        cls,
+        *,
+        serving_dir: Path,
+        trusted_serving_sha256: str,
+        trusted_fragment_sha256: dict[str, str],
+        installed_environment: bytes,
+        trusted_installed_environment_sha256: str,
+        native_library_path: Path,
+        expected_native_library_sha256: str,
+    ) -> ConnectedCompactIndex:
+        """Load a pinned installed artifact; CUDA, dimensions and top-10 are fixed.
+
+        Native/import/ISA qualification is a separate prerequisite. Startup and
+        release authenticate full artifact/environment bytes; request guards
+        retain only the executable closure and original complete model checks.
+        """
+        _require(
+            cls is ConnectedCompactIndex
+            and __name__ == "sfora.connected_compact_serving"
+            and sys.modules.get(__name__) is not None
+            and vars(sys.modules[__name__]) is globals(),
+            "canonical installed connected index required",
+        )
+        self = cls()
+        try:
+            _require(
+                isinstance(serving_dir, Path)
+                and serving_dir.is_absolute()
+                and serving_dir.resolve() == serving_dir
+                and serving_dir.is_dir(),
+                "canonical serving directory required",
+            )
+            _require(type(trusted_fragment_sha256) is dict, "independent fragment pins required")
+            fragment_pins = trusted_fragment_sha256.copy()
+            _require(type(installed_environment) is bytes, "immutable installed authority required")
+            authority_path, authority_sha = _installed_authority()
+            tree = ast.parse(_read_checked(authority_path, authority_sha))
+            _require(
+                all(isinstance(node, (ast.Assign, ast.Expr)) for node in tree.body),
+                "literal-only installed authority required",
+            )
+            record = {
+                cast(ast.Name, node.targets[0]).id: ast.literal_eval(node.value)
+                for node in tree.body
+                if isinstance(node, ast.Assign)
+            }
+            _require(
+                record.keys()
+                == {
+                    "SCHEMA",
+                    "HISTORICAL_CODE",
+                    "SOURCE_SYMBOLS",
+                    "PACKED_SOURCE_SYMBOLS",
+                    "SUBSTITUTIONS",
+                    "RUNTIME_SHA256",
+                    "PACKED_SHA256",
+                }
+                and record["SCHEMA"] == "sfora-connected-inference-extraction-v1",
+                "unsupported installed inference authority",
+            )
+            root = authority_path.parent
+            runtime_path = root / "connected_inference.py"
+            packed_path = root / "packed_int8.py"
+            bridge_path = root / "connected_compact_serving.py"
+            runtime_source = _read_checked(runtime_path, record["RUNTIME_SHA256"])
+            bridge_source = bridge_path.read_bytes()
+            bridge_sha = hashlib.sha256(bridge_source).hexdigest()
+            _read_checked(bridge_path, bridge_sha)
+            helper_sources = tuple(
+                (name, root / (name + ".py"), sha, _read_checked(root / (name + ".py"), sha))
+                for name, sha in _SERVING_HELPERS
+            )
+            _checked_file(packed_path, record["PACKED_SHA256"])
+            _checked_file(native_library_path, expected_native_library_sha256)
+            self._guards = (
+                (runtime_path, record["RUNTIME_SHA256"], False),
+                (authority_path, authority_sha, False),
+                (packed_path, record["PACKED_SHA256"], False),
+                (bridge_path, bridge_sha, False),
+                *((path, sha, False) for _, path, sha, _ in helper_sources),
+            )
+            with _REGISTRY_LOCK:
+                package_name = "_sfora_connected_artifact_" + uuid.uuid4().hex
+                package = ModuleType(package_name)
+                package.__file__ = "<" + package_name + ">"
+                package.__package__ = package_name
+                package.__spec__ = ModuleSpec(package_name, loader=None, is_package=True)
+                package.__path__ = cast(list[str], package.__spec__.submodule_search_locations)
+                _require(package_name not in sys.modules, "fresh private serving package required")
+                self._owned[package_name] = package
+                sys.modules[package_name] = package
+                self._artifact = {"package": package, "helpers": (), "release_context": None}
+
+                def install(name: str, path: Path, raw: bytes) -> ModuleType:
+                    full_name = package_name + "." + name
+                    _require(full_name not in sys.modules, "fresh private serving module required")
+                    spec = importlib.util.spec_from_file_location(full_name, path)
+                    _require(
+                        spec is not None and spec.loader is not None, "private source spec required"
+                    )
+                    module = importlib.util.module_from_spec(cast(ModuleSpec, spec))
+                    self._owned[full_name] = module
+                    sys.modules[full_name] = module
+                    setattr(package, name, module)
+                    exec(compile(raw, str(path), "exec", dont_inherit=True), vars(module))
+                    return module
+
+                self._module = install("connected_inference", runtime_path, runtime_source)
+                self._snapshot(self._module, runtime_source)
+                self._module._bind_runtime(
+                    record["HISTORICAL_CODE"],
+                    tuple((str(path), sha) for path, sha, _ in self._guards[:3]),
+                )
+                self._namespaces.clear()
+                self._callables.clear()
+                self._snapshot(self._module, runtime_source)
+                helpers = tuple(install(name, path, raw) for name, path, _, raw in helper_sources)
+                self._artifact["helpers"] = helpers
+                for module, (_, _, _, raw) in zip(helpers, helper_sources, strict=True):
+                    self._snapshot(module, raw)
+                self._snapshot(package, b"")
+                # This one snapshot includes the canonical class/checker; a
+                # second checker row would invalidate the loader's exact check.
+                bridge = sys.modules[__name__]
+                _require(bridge.__file__ == str(bridge_path), "canonical bridge source differs")
+                self._snapshot(bridge, bridge_source)
+                self._check_current()
+                release_globals = dict(vars(self._module))
+                for key, value in tuple(release_globals.items()):
+                    if key != "__builtins__" and type(value) in (dict, list, set, tuple):
+                        release_globals[key] = copy.deepcopy(value)
+                for key, value in tuple(release_globals.items()):
+                    if type(value) is FunctionType and value.__globals__ is vars(self._module):
+                        clone = FunctionType(
+                            value.__code__,
+                            release_globals,
+                            value.__name__,
+                            copy.deepcopy(value.__defaults__),
+                            value.__closure__,
+                        )
+                        clone.__kwdefaults__ = copy.deepcopy(value.__kwdefaults__)
+                        release_globals[key] = clone
+                self._release = release_globals["release_inference"]
+                binding = (
+                    helpers,
+                    tuple((str(path), sha) for _, path, sha, _ in helper_sources),
+                    self._check_current,
+                )
+                self._endpoint = self._apis["load_serving_inference"][0](
+                    str(serving_dir),
+                    trusted_serving_sha256=trusted_serving_sha256,
+                    trusted_fragment_sha256=fragment_pins,
+                    installed_environment=installed_environment,
+                    trusted_installed_environment_sha256=trusted_installed_environment_sha256,
+                    serving_helpers=binding,
+                )
+                context = self._endpoint["_serving"]
+                self._release_modules = tuple(self._endpoint["modules"].values())
+                self._remember(self._release_modules)
+                release_context = context.copy()
+                checker = context["exit_check"]
+
+                # Preserve the genuine retained verifier graph in separate cells,
+                # with globals matching the saved release functions.
+                def cell(value: object) -> CellType:
+                    return cast(tuple[CellType, ...], (lambda: value).__closure__)[0]
+
+                release_context["exit_check"] = FunctionType(
+                    checker.__code__,
+                    release_globals,
+                    checker.__name__,
+                    checker.__defaults__,
+                    tuple(cell(item.cell_contents) for item in checker.__closure__),
+                )
+                for key, value in context.items():
+                    if key not in {"helpers", "checker", "exit_check", "owned_registry"}:
+                        release_context[key] = copy.deepcopy(value)
+                self._artifact["release_context"] = release_context
+                self._check_current()
+                gallery = context["admitted"]["manifest"]["gallery"]
+                gallery_path = serving_dir / "gallery.bin"
+                gallery_wire = _read_checked(gallery_path, fragment_pins["gallery.bin"], True)
+                from sfora.packed_int8 import PackedInt8Embeddings  # noqa: I001
+                from sfora.cutile_int8 import CutilePackedInt8Gallery
+
+                shared = sys.modules["sfora.packed_int8"]
+                _require(
+                    shared.__file__ == str(packed_path)
+                    and cast(ModuleSpec, shared.__spec__).origin == str(packed_path),
+                    "canonical shared packing origin differs",
+                )
+                self._shared = (shared,)
+                self._snapshot(shared, _read_checked(packed_path, record["PACKED_SHA256"]))
+                self._check_current()
+                packed = PackedInt8Embeddings.from_bytes(
+                    gallery_wire, count=gallery["count"], dimensions=128
+                )
+                _checked_file(native_library_path, expected_native_library_sha256)
+                self._gallery = CutilePackedInt8Gallery.open_packed(native_library_path, packed)
+                self._check_current()
+            return self
+        except BaseException as error:
+            self._capture_failure(error)
+            self._close_after_error(error)
+            raise
 
     @classmethod
     def from_bundle(
@@ -219,7 +451,8 @@ class ConnectedCompactIndex:
             if _probe:
                 schema = "siglip2-connected-probe-bundle-v1"
                 code_names = (_CODE - {_TRAINER, "test_siglip2_connected_mlp.py"}) | {
-                    "train_siglip2_connected_probe.py", "test_siglip2_connected_probe.py"
+                    "train_siglip2_connected_probe.py",
+                    "test_siglip2_connected_probe.py",
                 }
                 authority_factory = _installed_probe_authority
                 authority_schema = "sfora-connected-probe-inference-extraction-v1"
@@ -276,7 +509,7 @@ class ConnectedCompactIndex:
                 "literal installed inference authority required",
             )
             record = {
-                node.targets[0].id: ast.literal_eval(node.value)
+                cast(ast.Name, node.targets[0]).id: ast.literal_eval(node.value)
                 for node in tree.body
                 if isinstance(node, ast.Assign)
             }
@@ -364,7 +597,8 @@ class ConnectedCompactIndex:
 
             shared = sys.modules["sfora.packed_int8"]
             _require(
-                shared.__file__ == str(packed_path) and shared.__spec__.origin == str(packed_path),
+                shared.__file__ == str(packed_path)
+                and cast(ModuleSpec, shared.__spec__).origin == str(packed_path),
                 "canonical shared packing origin differs",
             )
             self._shared = (shared,)
@@ -401,7 +635,7 @@ class ConnectedCompactIndex:
 
     def _snapshot(self, module: ModuleType, source: bytes) -> None:
         namespace = vars(module)
-        expected = compile(source, module.__file__, "exec", dont_inherit=True)
+        expected = compile(source, cast(str, module.__file__), "exec", dont_inherit=True)
         declarations = {
             node.name
             for node in ast.parse(source).body
@@ -478,7 +712,10 @@ class ConnectedCompactIndex:
             frame = trace.tb_frame
             if self._module is not None and frame.f_globals is vars(self._module):
                 frames.append(frame)
-                if frame.f_code is self._apis.get("load_inference", (None, None))[1]:
+                if (
+                    self._artifact is None
+                    and frame.f_code is self._apis.get("load_inference", (None, None))[1]
+                ):
                     self._remember(frame.f_locals.get("modules", {}).values())
                     endpoint = frame.f_locals.get("endpoint")
                     if isinstance(endpoint, dict):
@@ -512,6 +749,35 @@ class ConnectedCompactIndex:
             and all(sys.modules.get(module.__name__) is module for module in self._shared),
             "owned connected registry changed",
         )
+        if self._artifact is not None:
+            package = self._artifact["package"]
+            _require(
+                package.__package__ == package.__name__
+                and package.__spec__.name == package.__name__
+                and package.__spec__.origin is None
+                and package.__spec__.loader is None
+                and package.__path__ is package.__spec__.submodule_search_locations
+                and package.__path__ == []
+                and sys.modules.get(package.__name__) is package,
+                "private serving package changed",
+            )
+            helpers = self._artifact["helpers"]
+            _require(
+                len(helpers) == 5 or (helpers == () and self._endpoint is None),
+                "complete private serving closure required",
+            )
+            for module, (name, _) in zip(helpers, _SERVING_HELPERS if helpers else (), strict=True):
+                _require(
+                    module.__name__ == package.__name__ + "." + name
+                    and module.__package__ == package.__name__
+                    and module.__spec__.name == module.__name__
+                    and module.__spec__.parent == package.__name__
+                    and module.__spec__.origin
+                    == module.__file__
+                    == str(self._guards[0][0].parent / (name + ".py"))
+                    and getattr(package, name) is module,
+                    "private serving helper origin changed",
+                )
         for name, (fn, code) in self._apis.items():
             _require(
                 getattr(cast(ModuleType, self._module), name) is fn
@@ -548,8 +814,8 @@ class ConnectedCompactIndex:
         for module in self._shared:
             _require(
                 module.__file__ == str(self._guards[2][0])
-                and module.__spec__.origin == module.__file__
-                and module.__spec__.name == module.__name__,
+                and cast(ModuleSpec, module.__spec__).origin == module.__file__
+                and cast(ModuleSpec, module.__spec__).name == module.__name__,
                 "canonical shared packing origin changed",
             )
         _require(
@@ -562,10 +828,14 @@ class ConnectedCompactIndex:
         )
 
     def _close_after_error(self, error: BaseException) -> None:
+        artifact = self._artifact is not None
         try:
             self.close()
         except BaseException as cleanup:
             error.add_note("connected cleanup also failed: " + repr(cleanup))
+            if artifact:
+                for note in tuple(getattr(cleanup, "__notes__", ())):
+                    error.add_note(note)
 
     def search_images(self, images: list[object] | tuple[object, ...]) -> tuple[object, object]:
         """Return unchanged native IDs/scores for 1..32 PIL image objects."""
@@ -610,6 +880,7 @@ class ConnectedCompactIndex:
             if self._closed:
                 return
             self._closed = True
+            artifact = self._artifact is not None
             errors = []
             modules = self._release_modules
             with _REGISTRY_LOCK:
@@ -631,7 +902,51 @@ class ConnectedCompactIndex:
                     # The authenticated release retains processor-cache authority,
                     # cache clearing/emptiness, endpoint clearing, GC, every resource
                     # lifetime predicate and CUDA cleanup using its original globals.
-                    self._endpoint["modules"] = {}
+                    if self._artifact is None:
+                        self._endpoint["modules"] = {}
+                    else:
+                        try:
+                            context = self._artifact["release_context"]
+                            if context is None:
+                                # A factory setup error can occur immediately
+                                # after the genuine loader returns. Its complete
+                                # context is still available before publication.
+                                context = self._endpoint["_serving"].copy()
+                                checker = context["exit_check"]
+                                release_globals = cast(FunctionType, self._release).__globals__
+                                expected = next(
+                                    code
+                                    for code in release_globals[
+                                        "_serving_exit_functions"
+                                    ].__code__.co_consts
+                                    if isinstance(code, CodeType) and code.co_name == "check"
+                                )
+                                _require(
+                                    type(checker) is FunctionType
+                                    and checker.__code__ is expected
+                                    and checker.__globals__ is vars(cast(ModuleType, self._module))
+                                    and checker.__defaults__ is None
+                                    and checker.__kwdefaults__ is None,
+                                    "genuine unfinished serving exit checker required",
+                                )
+
+                                def cell(value: object) -> CellType:
+                                    return cast(tuple[CellType, ...], (lambda: value).__closure__)[
+                                        0
+                                    ]
+
+                                context["exit_check"] = FunctionType(
+                                    checker.__code__,
+                                    release_globals,
+                                    checker.__name__,
+                                    checker.__defaults__,
+                                    tuple(cell(item.cell_contents) for item in checker.__closure__),
+                                )
+                            self._endpoint["_serving"] = context
+                        except BaseException as setup:
+                            # Retain the loader's context and still attempt the
+                            # genuine resource release if reconstruction fails.
+                            errors.append(setup)
                     cast(FunctionType, self._release)(self._endpoint)
             except BaseException as error:
                 errors.append(error)
@@ -644,7 +959,12 @@ class ConnectedCompactIndex:
                     except BaseException as error:
                         errors.append(error)
                     # Identity check + delete is atomic for supported writers.
-                    for name, module in self._owned.items():
+                    entries = (
+                        self._owned.items()
+                        if self._artifact is None
+                        else reversed(tuple(self._owned.items()))
+                    )
+                    for name, module in entries:
                         if sys.modules.get(name) is module:
                             del sys.modules[name]
                 for failure in errors:
@@ -656,9 +976,13 @@ class ConnectedCompactIndex:
                 self._namespaces.clear()
                 self._callables.clear()
                 self._shared = ()
+                self._artifact = None
             if errors:
                 for failure in errors[1:]:
                     errors[0].add_note("connected cleanup also failed: " + repr(failure))
+                    if artifact:
+                        for note in tuple(getattr(failure, "__notes__", ())):
+                            errors[0].add_note(note)
                 raise errors[0]
 
     def __enter__(self) -> ConnectedCompactIndex:

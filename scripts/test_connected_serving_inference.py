@@ -30,6 +30,8 @@ def main():
         ('connected_compact_serving.py', 'bridge_sha256', 'authority_sha256', 'base_authority_sha256'),
     ):
         raw = (ROOT / 'src/sfora' / name).read_text()
+        if name == 'connected_compact_serving.py':
+            raw = oracle.artifact_factory_inverse(raw)
         assert hashlib.sha256(raw.encode()).hexdigest() == record[current]
         restored = raw.replace(record[before], record[after])
         assert hashlib.sha256(restored.encode()).hexdigest() == record['base_'+current]
