@@ -1,0 +1,3 @@
+REPRO finder: unapproved loader executed and exit accepted
+REPRO registry: unowned entry reused and exit accepted
+REPRO globals: class behavior changed and exit accepted

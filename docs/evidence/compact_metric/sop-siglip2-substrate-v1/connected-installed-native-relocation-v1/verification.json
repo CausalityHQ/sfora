@@ -1,0 +1,31 @@
+{
+  "address_space_bytes": 1073741824,
+  "classification": "H-only data correspondence; not integrated native admission",
+  "cross_member_old_inode_alias_check": false,
+  "exit": 0,
+  "files": {
+    "scripts/connected_installed_native_relocation.py": "55d7756b9f27a0a78b42b52a0a2aa7da1c5333d6c09f80faead00df2639f4947",
+    "scripts/test_connected_installed_native_relocation.py": "2f66d863343688235d851df1cb075990df8585d0abfb37f8e993b8b3db150271"
+  },
+  "integrated_commit": "cc63a88fdedfd6bc735601db9bcb86a5096e8c3c",
+  "native_executed": false,
+  "original_log_sha256": "7197133f3bc9468c25b34bca8d1faa4bf38a40cd945c9109473ab5d88436cb60",
+  "peak_rss_kib": 38756,
+  "product_go": false,
+  "root_repeated_identical_suite": false,
+  "schema": "installed-native-relocation-source-verification-v1",
+  "serving_qualified": false,
+  "swaps": 0,
+  "test_seconds": 0.506,
+  "tests": 36,
+  "timeout_seconds": 120,
+  "unconsumed_seams": [
+    "physical hash/stat redirects",
+    "fitter merged guard sweep",
+    "evaluator bundle environment read",
+    "complete nested exit adapter",
+    "finite source/metadata/native composition"
+  ],
+  "wall_seconds": 0.7,
+  "worker_commit": "ae7e221424f5f8eecf8fe37f9a6b62953bcfc13a"
+}

@@ -57,6 +57,7 @@ jobs:
           check_source_contract scripts/test_connected_directory_handoff.py
           check_source_contract scripts/test_connected_installed_environment.py
           check_source_contract scripts/test_connected_installed_source_guard.py
+          check_source_contract scripts/test_connected_installed_native_relocation.py
           check_source_contract scripts/test_connected_gallery_provenance.py
           check_source_contract scripts/test_connected_gallery_conversion.py
           check_source_contract scripts/test_connected_gallery_fragment.py

@@ -1,0 +1,20 @@
+{
+  "consultation_id": "c200cf839c814f68",
+  "elapsed_seconds": 455,
+  "exit_code": 0,
+  "export_serialization": "UTF-8 final answer export with trailing newline; original retained by durable consult_result",
+  "exported_answer_bytes": 8099,
+  "exported_answer_sha256": "2f2284fb3906609be0eaf95c2f5dbabab9b2e08b91497004a0df7b2f2e422a7b",
+  "fallback": false,
+  "frontier_certified": false,
+  "model": "claude-fable-5-1",
+  "native_executed": false,
+  "new_experiment_launched": false,
+  "original_answer_location": "durable consult_result c200cf839c814f68",
+  "provider": "fable",
+  "quality_target_changed": false,
+  "root_reconciliation": "docs/connected_reference_audit_reconciliation_2026-10-10.md",
+  "schema": "read-only-reference-audit-reconciliation-v1",
+  "speed_target_changed": false,
+  "status": "completed"
+}

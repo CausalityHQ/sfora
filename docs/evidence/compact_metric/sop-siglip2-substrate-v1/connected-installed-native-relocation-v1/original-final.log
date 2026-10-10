@@ -1,0 +1,88 @@
+	Command being timed: "timeout 120 python3 -B -m py_compile scripts/connected_installed_native_relocation.py scripts/test_connected_installed_native_relocation.py"
+	User time (seconds): 0.04
+	System time (seconds): 0.01
+	Percent of CPU this job got: 56%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.10
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 19788
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 3825
+	Voluntary context switches: 6
+	Involuntary context switches: 5
+	Swaps: 0
+	File system inputs: 24
+	File system outputs: 256
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+py_compile exit 0
+test_actual_authority_binding_mutations_are_rejected (scripts.test_connected_installed_native_relocation.ActualEvidence.test_actual_authority_binding_mutations_are_rejected) ... ok
+test_candidate_graph_extensions_are_not_in_the_accepted_inventory (scripts.test_connected_installed_native_relocation.ActualEvidence.test_candidate_graph_extensions_are_not_in_the_accepted_inventory) ... ok
+test_committed_bytes_match_the_accepted_digests (scripts.test_connected_installed_native_relocation.ActualEvidence.test_committed_bytes_match_the_accepted_digests) ... ok
+test_exact_four_cudnn_members_are_relocated_with_their_accepted_digests (scripts.test_connected_installed_native_relocation.ActualEvidence.test_exact_four_cudnn_members_are_relocated_with_their_accepted_digests) ... ok
+test_finite_inventory_counts_and_mapping (scripts.test_connected_installed_native_relocation.ActualEvidence.test_finite_inventory_counts_and_mapping) ... ok
+test_installed_authority_is_the_genuine_helper_derivation (scripts.test_connected_installed_native_relocation.ActualEvidence.test_installed_authority_is_the_genuine_helper_derivation) ... ok
+test_thirteen_external_anchors_are_exactly_the_audited_system_members (scripts.test_connected_installed_native_relocation.ActualEvidence.test_thirteen_external_anchors_are_exactly_the_audited_system_members) ... ok
+test_anchors_stay_exact_original_paths (scripts.test_connected_installed_native_relocation.Construction.test_anchors_stay_exact_original_paths) ... ok
+test_exact_correspondence_is_accepted_and_immutable (scripts.test_connected_installed_native_relocation.Construction.test_exact_correspondence_is_accepted_and_immutable) ... ok
+test_installed_authority_grants_nothing (scripts.test_connected_installed_native_relocation.Construction.test_installed_authority_grants_nothing) ... ok
+test_original_environment_is_exact (scripts.test_connected_installed_native_relocation.Construction.test_original_environment_is_exact) ... ok
+test_pins_and_types_are_checked_before_parsing (scripts.test_connected_installed_native_relocation.Construction.test_pins_and_types_are_checked_before_parsing) ... ok
+test_private_package_tables_are_frozen_at_both_levels (scripts.test_connected_installed_native_relocation.Construction.test_private_package_tables_are_frozen_at_both_levels) ... ok
+test_roots_are_declared_disjoint_and_exact (scripts.test_connected_installed_native_relocation.Construction.test_roots_are_declared_disjoint_and_exact) ... ok
+test_strict_json (scripts.test_connected_installed_native_relocation.Construction.test_strict_json) ... ok
+test_candidate_extensions_absent_from_the_original_table_are_not_granted (scripts.test_connected_installed_native_relocation.Correspondence.test_candidate_extensions_absent_from_the_original_table_are_not_granted) ... ok
+test_every_path_round_trips_and_rejects_foreign_spellings (scripts.test_connected_installed_native_relocation.Correspondence.test_every_path_round_trips_and_rejects_foreign_spellings) ... ok
+test_original_selected_wheel_path_is_rejected_even_with_equal_bytes (scripts.test_connected_installed_native_relocation.Correspondence.test_original_selected_wheel_path_is_rejected_even_with_equal_bytes) ... ok
+test_canonical_map_scanner_agrees_between_genuine_loops (scripts.test_connected_installed_native_relocation.Inverse.test_canonical_map_scanner_agrees_between_genuine_loops) ... ok
+test_duplicate_inode_and_hardlink_aliases_are_rejected (scripts.test_connected_installed_native_relocation.Inverse.test_duplicate_inode_and_hardlink_aliases_are_rejected) ... ok
+test_fresh_hash_bytes_must_equal_original_accepted_digest (scripts.test_connected_installed_native_relocation.Inverse.test_fresh_hash_bytes_must_equal_original_accepted_digest) ... ok
+test_genuine_collector_output_inverts_exactly (scripts.test_connected_installed_native_relocation.Inverse.test_genuine_collector_output_inverts_exactly) ... ok
+test_inode_identity_is_fresh_and_uncached (scripts.test_connected_installed_native_relocation.Inverse.test_inode_identity_is_fresh_and_uncached) ... ok
+test_installed_file_that_is_a_hardlink_of_the_original_wheel_file_is_rejected (scripts.test_connected_installed_native_relocation.Inverse.test_installed_file_that_is_a_hardlink_of_the_original_wheel_file_is_rejected) ... ok
+test_inverse_does_not_depend_on_how_the_roots_sort_against_anchors (scripts.test_connected_installed_native_relocation.Inverse.test_inverse_does_not_depend_on_how_the_roots_sort_against_anchors) ... ok
+test_inverse_never_opens_or_reads_original_wheel_bytes (scripts.test_connected_installed_native_relocation.Inverse.test_inverse_never_opens_or_reads_original_wheel_bytes) ... ok
+test_malformed_observations_are_rejected (scripts.test_connected_installed_native_relocation.Inverse.test_malformed_observations_are_rejected) ... ok
+test_mapped_files_must_be_declared_natives_and_directory_aliases_are_rejected (scripts.test_connected_installed_native_relocation.Inverse.test_mapped_files_must_be_declared_natives_and_directory_aliases_are_rejected) ... ok
+test_module_source_has_no_reads_execution_or_foreign_imports (scripts.test_connected_installed_native_relocation.Inverse.test_module_source_has_no_reads_execution_or_foreign_imports) ... ok
+test_supplemental_files_must_be_split_out_before_inversion (scripts.test_connected_installed_native_relocation.Inverse.test_supplemental_files_must_be_split_out_before_inversion) ... ok
+test_symlink_missing_and_replaced_files_are_rejected (scripts.test_connected_installed_native_relocation.Inverse.test_symlink_missing_and_replaced_files_are_rejected) ... ok
+test_unknown_foreign_and_original_mappings_are_rejected (scripts.test_connected_installed_native_relocation.Inverse.test_unknown_foreign_and_original_mappings_are_rejected) ... ok
+test_genuine_seam_sources_are_pinned_and_mutations_are_rejected (scripts.test_connected_installed_native_relocation.Seams.test_genuine_seam_sources_are_pinned_and_mutations_are_rejected) ... ok
+test_unconsumed_seams_are_where_the_contract_says (scripts.test_connected_installed_native_relocation.Seams.test_unconsumed_seams_are_where_the_contract_says) ... ok
+test_exact_inverse_passes_every_unchanged_genuine_predicate_with_one_mappings_seam (scripts.test_connected_installed_native_relocation.UnchangedCollect.test_exact_inverse_passes_every_unchanged_genuine_predicate_with_one_mappings_seam) ... ok
+test_original_space_control_passes_and_installed_space_is_the_causal_blocker (scripts.test_connected_installed_native_relocation.UnchangedCollect.test_original_space_control_passes_and_installed_space_is_the_causal_blocker) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 0.506s
+
+OK
+	Command being timed: "timeout 120 python3 -B -m unittest -v scripts.test_connected_installed_native_relocation"
+	User time (seconds): 0.56
+	System time (seconds): 0.06
+	Percent of CPU this job got: 88%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.70
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 38756
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7827
+	Voluntary context switches: 11
+	Involuntary context switches: 258
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

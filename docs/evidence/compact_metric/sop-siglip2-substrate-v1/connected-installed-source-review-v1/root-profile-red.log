@@ -1,0 +1,5 @@
+expected rejection: replacement class binding changed
+previous profiler restored: False
+Traceback (most recent call last):
+  File "<stdin>", line 16, in <module>
+AssertionError: original profiler lost before restoration block
