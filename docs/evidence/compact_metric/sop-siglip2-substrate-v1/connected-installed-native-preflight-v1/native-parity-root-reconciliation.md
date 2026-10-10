@@ -1,0 +1,11 @@
+# Native parity next gate
+
+Planning consultation 0b04bdf3cb524b68 completed normally. It is a read-only plan, not native qualification. Root independently confirmed the genuine CombinedAuthority collector is tied by identity to original package roots and complete H/S inventories; using it unchanged with a new installed root would reject. The finite relocation correspondence must preserve fresh hash, inode, complete mapping and exact-four predicates through an authenticated inverse. No broad native permission follows from the installed-file authority.
+
+One next gate: control179061, original reference and installed-artifact processes sequentially under the same original lifetime locks and unchanged 300-second body / 1500-second whole / 300-second exit reserve / 8 GiB / zero swap / CUDA allocation <10 GB envelope. Compare identical B1/B2/B32 groups, complete typed outputs and exact native top10 ordinals/score bits. B2 must have its own same-group reference. No timing or scientific selection claim.
+
+Mandatory preparation remains: finite transitive Python/metadata closure, current noneditable Sfora wheel, canonical factory import, original interpreter pin, source/pyc/pth resolution guards, and a source-authenticated artifact witness binder. Preserve the existing factory and original observer. The actual pre-native factory composition already passed on the DGX, with a synthetic parent package; this does not prove an installed wheel or imports.
+
+The fresh static observation reports NVIDIA GB10 compute capability 12.1 and AArch64; candidate.so has an ELF64 AArch64 header. This is current hardware/header evidence only, not kernel execution or complete build-to-ISA correspondence. Its raw output is retained separately. Torch libtorch_python RPATH is relative to its own image; live resolution and all other images remain unproven.
+
+First implement the narrow prospective qualifier/test and finite source/native relocation guards, then run cheap source falsifiers and consequential dual critique before a single authenticated native launch. Do not duplicate jobs, weaken original receipts or reinterpret the failed 8 GiB training gate. The 12 GiB CPU-only amendment remains unauthorized. The joint quality-and-speed goal remains unmet.
