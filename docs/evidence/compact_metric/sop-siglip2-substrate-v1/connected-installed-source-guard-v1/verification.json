@@ -1,0 +1,18 @@
+{
+  "address_space_bytes": 1073741824,
+  "command": "python3 -B -S scripts/test_connected_installed_source_guard.py",
+  "exit": 0,
+  "files": {
+    "scripts/connected_installed_source_guard.py": "3eda5d81806ee072dc597f13250db17f6a882fbf7bd255a1b7f73875cdfbce5a",
+    "scripts/test_connected_installed_source_guard.py": "4dead6dc10ea673a1eabff880c357aa2fa6bcb3001e5ec3a761603a501c6a823"
+  },
+  "full_framework_compatibility_verified": false,
+  "log_sha256": "f66de6cdc197bee96613c286698c5d15b8d753f8007412bdfcc890c0c9cde3e1",
+  "maxrss_kib": 36248,
+  "native_executed": false,
+  "schema": "installed-source-guard-stdlib-verification-v1",
+  "serving_qualified": false,
+  "tests": 11,
+  "timeout_seconds": 120,
+  "wall_seconds": 0.17
+}
