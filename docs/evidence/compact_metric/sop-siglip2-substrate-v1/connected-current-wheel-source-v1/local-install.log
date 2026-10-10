@@ -1,0 +1,8 @@
+Using CPython 3.12.13
+Resolved 1 package in 3ms
+Prepared 1 package in 16ms
+warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+         If the cache and target directories are on different filesystems, hardlinking may not be supported.
+         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+Installed 1 package in 19ms
+ + sfora==0.3.0rc4 (from file:///data/target/sfora-installed-native-wheel-d3c17a98/dist/sfora-0.3.0rc4-py3-none-any.whl)

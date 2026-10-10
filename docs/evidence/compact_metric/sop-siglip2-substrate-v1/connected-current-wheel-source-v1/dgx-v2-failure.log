@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+AssertionError: Using CPython 3.13.9 interpreter at: .local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/bin/python3.13
+Resolved 1 package in 3ms
+memory allocation of 544 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+

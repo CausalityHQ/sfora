@@ -1,0 +1,3 @@
+# Original RECORD-backed dependency catalog
+
+Read-only actual metadata audit. Exactly 196 original RECORD SHA pins recovered by literal AST from accepted collector SHA0523c90a; require unchanged complete RECORD inventory. Read/hash every RECORD and its exact METADATA row. Catalogue versions, raw Requires-Dist and .py row counts/bytes without reading source bodies. Derive conservative dependency candidates from six model roots, excluding explicit extra-marker requirements but retaining non-extra host markers unevaluated. Report missing candidates and existing target metadata. No source execution/permission, exact static import-closure claim, native import, target write or new dependency install. AS 1 GiB / alarm120 / output16MiB. Root requires original SSH exit0.

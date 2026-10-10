@@ -1,0 +1,7 @@
+# Current pure-Python Sfora wheel
+
+Build once with pinned Hatchling1.32.3 via offline uv from git archive of committed d3c17a98 pyproject/README/LICENSE/src only. Do not include dirty Rust or run a native build. Install wheel offline, no dependencies or bytecode compilation, into new target. Inspect complete wheel RECORD and compare every sfora member to Git blob and installed bytes. With ML import sentinel, import real canonical installed bridge, check factory API and empty double-close; no model execution. AS1GiB/build120/import120. Target local Python3.14 source gate does not establish DGX3.13/native parity.
+
+DGX staging uses the pinned original Python3.13.9 and a fresh v2 target, with the exact existing /snap/astral-uv/1779/bin/uv SHAf0b0e0f0 checked before/after execution. The v1 attempt through /snap/bin/uv failed in Snap Go pthread creation before installation; original log and source SHA are retained, no cap raised or target reused.
+
+The direct UV attempt also failed allocation under unchanged AS1GiB. Final v3 uses the original interpreter bundled pip25.2 wheel SHA6d67a2b4, loaded only in a subprocess with isolated/no-index/no-deps/no-compile/no-cache flags. Only the fresh target is installed; the original interpreter environment is unchanged. Source member bytes and complete wheel RECORD are checked. Original failed source scripts remain under /data/target with their hashes in verification.json; failed logs are retained here. Wheel bytes are stored outside Git to avoid embedding build artifacts.

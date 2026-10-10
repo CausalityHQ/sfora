@@ -1,0 +1,36 @@
+{
+  "committed_source": "d3c17a98",
+  "dgx_elapsed_seconds": 0.7380999499582686,
+  "dgx_original_sha256": "8e8b8b524db6859eaaab80f2be9efc2bd6ed355278fbf68dc5aa447fda66532e",
+  "dgx_peak_rss_kib": 45300,
+  "dgx_source_sha256": "5a66640da068395563e4e27cd2c49509327912f0043d530a12ed5683282ea08a",
+  "dgx_ssh_exit": 0,
+  "dgx_ssh_session": 39565,
+  "failed_installer_attempts": [
+    {
+      "cause_observed": "Snap Go pthread creation failure; precise cause unproven",
+      "source_sha256": "5496fe5f3747da6c1c70eaad8886dfd671b1733d9a4858226b468f707cbf9020",
+      "ssh_exit": 1,
+      "ssh_session": 34026
+    },
+    {
+      "cause_observed": "direct UV memory allocation failure under unchanged AS1GiB",
+      "source_sha256": "d678cc394205e2972a5b666c9a37f965616cc135dd241bd4bf6ec90339071871",
+      "ssh_exit": 1,
+      "ssh_session": 62673
+    }
+  ],
+  "failed_source_location": "/data/target/sfora-installed-native-wheel-d3c17a98",
+  "local_build_exit": 0,
+  "local_install_exit": 0,
+  "local_source_check_exit": 0,
+  "model_requests_run": 0,
+  "native_qualified": false,
+  "python_sha256": "9258c53dcfde55ba0d0ba9dfdb03bd3f0f30328dc1950f0275f32929fa879b6b",
+  "quality_speed_qualified": false,
+  "schema": "current-wheel-source-parent-v1",
+  "source_members": 118,
+  "wheel_binary_location": "/data/target/sfora-installed-native-wheel-d3c17a98/dist/sfora-0.3.0rc4-py3-none-any.whl",
+  "wheel_bytes": 905622,
+  "wheel_sha256": "73525cee710db1235662409a3befc4e47102ab76f0196b9d815cacd6b6a2ae13"
+}

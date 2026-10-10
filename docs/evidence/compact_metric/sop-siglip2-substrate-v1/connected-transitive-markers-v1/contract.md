@@ -1,0 +1,3 @@
+# Exact target-marker dependency audit
+
+Use original pinned CPython3.13.9 AArch64 executable, AS1GiB/alarm120. Compile only actual packaging pure-Python sources from its original SHA-pinned RECORD rows, through a finite loader with no pyc use; block ML imports. Evaluate genuine Requirement/Marker semantics against actual interpreter/host, including propagated dependency extras. Derive active metadata dependencies and version mismatch evidence, not exact source/import closure or native permission. Rehash packaging sources and RECORD before return. Do not install dependencies or modify target. Original SSH exit0 required.

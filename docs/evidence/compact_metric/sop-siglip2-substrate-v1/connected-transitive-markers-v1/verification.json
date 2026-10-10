@@ -1,0 +1,13 @@
+{
+  "active_distribution_count": 54,
+  "elapsed_seconds": 0.09847262396942824,
+  "exact_import_closure": false,
+  "missing_target_metadata_count": 28,
+  "native_qualified": false,
+  "original_sha256": "26698f43df1a3cb45fa2cf9b98d2857f1ca9c3ce4d0c01401e94c580033364c4",
+  "peak_rss_kib": 59576,
+  "schema": "original-markers-parent-v1",
+  "source_sha256": "9512d790acf14b24a12789ff3b10fef3e73a4ec69dec35e8e877cee43efe818f",
+  "ssh_exit": 0,
+  "ssh_session": 34317
+}
