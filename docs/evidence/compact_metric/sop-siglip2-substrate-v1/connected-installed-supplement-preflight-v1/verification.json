@@ -1,0 +1,21 @@
+{
+  "authority_sha256": "cf085f68dc2cfd10d41ab87e44256f21aec059e925f3b646cf7159aa054a17b1",
+  "bundle_sha256": "e12429efd5cf1a6bd43d4bbf1c55fc163548fffb415813e5c3315658c144f153",
+  "classification": "authenticated metadata path composition only; native bytes not rehashed or admitted",
+  "disjoint_from_H": true,
+  "elapsed_seconds": 0.0336295900051482,
+  "input_source_sha256": "5f4e7695e73b6772133893f776c9aa29ed4a1363b2237210324647da24585509",
+  "native_executed": false,
+  "original_ssh_exit": 0,
+  "original_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "original_stdout_sha256": "43d963c7ac47125c947e60b476d7107da37c305a0216ce99e9d3e49401cdd9c7",
+  "peak_rss_kib": 40908,
+  "product_go": false,
+  "schema": "supplemental-path-preflight-verification-v1",
+  "supplemental_count": 2,
+  "supplemental_files": {
+    "/home/riomus/runs/sfora-cutile-threads-v1/candidate.so": "3d1ec7968713aa0f069f742b9454976c77ad77d115cf39c0844b6f14d6b6b526",
+    "/usr/lib/aarch64-linux-gnu/libnvidia-gpucomp.so.580.159.03": "f9e19c3c4805ee72b3a9a04bbce65a8645b7501147584322b5c3663de22b1745"
+  },
+  "under_old_site": []
+}
