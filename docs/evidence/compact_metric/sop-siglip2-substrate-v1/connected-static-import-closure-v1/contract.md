@@ -1,0 +1,9 @@
+# Static source closure audit
+
+This is a read-only preparation audit, not import, execution, native or serving permission. It reads only original SHA-pinned RECORDs and Python source rows selected by those RECORDs. The roots are the 1,505 original model sources and the exact finite RUNTIME_SOURCES inventory already present in the historical evaluator. Supporting distribution candidates are the marker-resolved model dependencies plus that historical inventory. Every discovered import outside those candidates is reported, not silently authorized.
+
+Parse source with stdlib AST, never execute it. Follow both branches conservatively, resolve relative imports, and consider a from-import's child only when an actual Python module exists. Record unresolved/dynamic imports as limitations. The result is a candidate superset; it cannot prove actual eager execution or preserve optional-package availability by itself. Extension imports are reported separately; no native bytes are read or admitted. Namespace packages are traversed through indexed source descendants without executing initializers.
+
+Read every selected file freshly through a canonical regular path, bind its current bytes and size to the original RECORD row, and reject duplicate path ownership or conflicting original model hashes. Rehash all consumed sources and original RECORDs before a successful terminal. Do not modify either original or target environment. No payload/image/tensor reads, ML imports or CUDA initialization.
+
+Local falsifiers use synthetic RECORDs and Python text: relative/module-child imports, missing/foreign distribution candidates, extension reporting, source/RECORD mutations, symlinks and duplicate ownership. One bounded source-only DGX audit follows passing local falsifiers under a 1 GiB address-space limit and 120-second alarm. Preserve a nonzero terminal rather than publish a partial closure as complete. Existing DGX jobs and locks remain untouched.

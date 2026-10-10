@@ -1,0 +1,452 @@
+{
+  "ML_code_executed": false,
+  "address_space_bytes": 1073741824,
+  "alarm_seconds": 120,
+  "candidate_graph_is_execution_permission": false,
+  "decision": "Use only as a pinned conservative candidate graph for a pre-native import guard; do not authorize optional imports or new DSOs from this audit.",
+  "dynamic_import_sites": 158,
+  "edge_count": 65185,
+  "elapsed_seconds": 15.822972857975401,
+  "files": {
+    "collector.py": "2601677897554c1e5419e76cf26be1f15341fdfe7a9066c6263ca0454ea92c1b",
+    "contract.md": "79c66628570efedf7028f111d7b9c4fe9b9883c23a6aa5bfbd249b7fe1c9ea9b",
+    "input-pins.json": "f6080bb1ebdeb32af7e4c5fdd90167b2a792dbaac813d3184d79223c63517ef6",
+    "original.json": "17eef08e994f80509ac76fbb1d2bbb636367c15c3dfc411419ecb4e186529cc8",
+    "original.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source.py": "ad7a462b5cde7d144c3a73f269ddb9b6228e16e39a57fd1ebff6659eec02c60b",
+    "test_collector.py": "ffe575ad04e8f92951c315fb4f0dcccc8191890a7cdbc862e90a0b26e6b13030"
+  },
+  "local_falsifiers": {
+    "exit": 0,
+    "seconds": 0.012,
+    "tests": 3
+  },
+  "native_candidates_absent_from_original_selected_members": {
+    "PIL._imagingcms": {
+      "bytes": 395401,
+      "distribution": "pillow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/PIL/_imagingcms.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow-12.2.0.dist-info/RECORD",
+      "sha256": "208db254c199b85fddf7c31029b593777dd0b42dfc6bc51f7bab18b48b2db18f"
+    },
+    "PIL._imagingmath": {
+      "bytes": 330200,
+      "distribution": "pillow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/PIL/_imagingmath.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pillow-12.2.0.dist-info/RECORD",
+      "sha256": "6c77d4b8743dc4dfefc9e2ed1fd645509dc562512f946b8a3201715dee69134b"
+    },
+    "charset_normalizer.md": {
+      "bytes": 201304,
+      "distribution": "charset-normalizer",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer/md.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/charset_normalizer-3.4.7.dist-info/RECORD",
+      "sha256": "118cf2b232c78c6d6097d7e3f26146211aecd073de4a0c19c39016712c6287b0"
+    },
+    "cuda.bindings._internal.nvvm": {
+      "bytes": 201368,
+      "distribution": "cuda-bindings",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/_internal/nvvm.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda_bindings-13.3.1.dist-info/RECORD",
+      "sha256": "707ea0e7505141e119158268305e07343460554bcb2c52d465a4ac919734aa75"
+    },
+    "cuda.bindings.nvvm": {
+      "bytes": 202248,
+      "distribution": "cuda-bindings",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda/bindings/nvvm.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/cuda_bindings-13.3.1.dist-info/RECORD",
+      "sha256": "6b53430d244058c0bc0d6489ac0fd1dd8a25772475d1dd379582a0b441e903a5"
+    },
+    "hf_xet.hf_xet": {
+      "bytes": 10753824,
+      "distribution": "hf-xet",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/hf_xet/hf_xet.abi3.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/hf_xet-1.5.1.dist-info/RECORD",
+      "sha256": "a8d44d1317538f17f2417a21ca4bfab4b68d3afdd49cdd0ab6d328e7b478bdca"
+    },
+    "pandas._libs.byteswap": {
+      "bytes": 201328,
+      "distribution": "pandas",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/byteswap.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas-3.0.3.dist-info/RECORD",
+      "sha256": "fe72010e0d6899b453c9e0b272d2e19292e778d87e8534cbd786d6541565cbac"
+    },
+    "pandas._libs.sas": {
+      "bytes": 267832,
+      "distribution": "pandas",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas/_libs/sas.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pandas-3.0.3.dist-info/RECORD",
+      "sha256": "06b2e79d8fb918879398d519992fc3fd785d40f017ba3cf5e8f062a8c24b1b4a"
+    },
+    "pyarrow._azurefs": {
+      "bytes": 222824,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_azurefs.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "b758fbc72c2c0ca0c75fc93e2c1c5102d2f3523b481691d69166a759793f657a"
+    },
+    "pyarrow._csv": {
+      "bytes": 460480,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_csv.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "0eb0f20738ccba84b374a315ab77612b23dd2f57f8b924f297e0c608af7bad4a"
+    },
+    "pyarrow._dataset": {
+      "bytes": 1036880,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_dataset.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "e9025b02f63da5178e5796c1927f26bad4a4012b51bf3772c23014aba38c282a"
+    },
+    "pyarrow._dataset_orc": {
+      "bytes": 220808,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_dataset_orc.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "f6471b6d5a16abd34ab9545b6f4074772d45432bc66d3c4f95fef053c377e491"
+    },
+    "pyarrow._dataset_parquet": {
+      "bytes": 400960,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_dataset_parquet.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "ac166e374a1fc076f760ce8827187c231601aa408c9555d160e0b3afd0be4c2e"
+    },
+    "pyarrow._dataset_parquet_encryption": {
+      "bytes": 228128,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_dataset_parquet_encryption.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "a25ce568ddf799c624f11643c7744108256af349c72ebafd6ff6c4bb844def45"
+    },
+    "pyarrow._feather": {
+      "bytes": 224472,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_feather.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "9e5522ceee9d65acd4a637489e7a7dff54c4567fcad8602117f32cd1b3e57cd7"
+    },
+    "pyarrow._fs": {
+      "bytes": 470768,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_fs.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "4a4c9b4ad6347e4cc009251f0987388bf3bf0b6fe40bb4a8e242de9dc49cc67c"
+    },
+    "pyarrow._gcsfs": {
+      "bytes": 225360,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_gcsfs.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "0f34d7eef8ad008f7b3dd41fa96239ce679408acd7287f26096954febbbb1adf"
+    },
+    "pyarrow._hdfs": {
+      "bytes": 225304,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_hdfs.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "a5ab50f5fff35267213bbe558b8c3af6d5a8727192f251953a34bb754ee0ceba"
+    },
+    "pyarrow._parquet": {
+      "bytes": 703408,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_parquet.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "8851329e16fddb05a5b049ae7441bc3c3a2b0927aae2ea6e02e798aaa4226df3"
+    },
+    "pyarrow._s3fs": {
+      "bytes": 296216,
+      "distribution": "pyarrow",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow/_s3fs.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pyarrow-24.0.0.dist-info/RECORD",
+      "sha256": "cb9d3b23f1e3f53e4ff7f5acef56cdafebecb6b427c83d73d5b53799c444bf21"
+    },
+    "pydantic_core._pydantic_core": {
+      "bytes": 4217912,
+      "distribution": "pydantic-core",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pydantic_core/_pydantic_core.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/pydantic_core-2.46.4.dist-info/RECORD",
+      "sha256": "fd471937b539c445cbcee5846ba2d7e1c1410fda7b5df0ddf20133a48783efc5"
+    },
+    "scipy.cluster.hierarchy._hierarchy": {
+      "bytes": 363184,
+      "distribution": "scipy",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/cluster/hierarchy/_hierarchy.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy-1.18.0.dist-info/RECORD",
+      "sha256": "67747677587b2115591916c583364155872d0408bbfeb80d188f1a192e695d11"
+    },
+    "scipy.cluster.hierarchy._optimal_leaf_ordering": {
+      "bytes": 287496,
+      "distribution": "scipy",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/cluster/hierarchy/_optimal_leaf_ordering.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy-1.18.0.dist-info/RECORD",
+      "sha256": "95300daf4f007c3f9254744430f179bb376934022c618a86ec44860c2bc2551b"
+    },
+    "scipy.cluster.vq._vq": {
+      "bytes": 214144,
+      "distribution": "scipy",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/cluster/vq/_vq.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy-1.18.0.dist-info/RECORD",
+      "sha256": "158b975f7e3c81c64e11835c9ee49a4aa0e7f1184254026fe6c1e2893431d706"
+    },
+    "scipy.io._fast_matrix_market._fmm_core": {
+      "bytes": 4219224,
+      "distribution": "scipy",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/io/_fast_matrix_market/_fmm_core.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy-1.18.0.dist-info/RECORD",
+      "sha256": "4f7e7d154779faba5bf5905c8e72cffc7ba5b8a280c7ac1c04343ea0f61a1d32"
+    },
+    "scipy.io.matlab._mio5_utils": {
+      "bytes": 294400,
+      "distribution": "scipy",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/io/matlab/_mio5_utils.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy-1.18.0.dist-info/RECORD",
+      "sha256": "4a82e7cd7e69f7e44d05c93a0b4becdf35cfec4454ab23d699dd39d652dfed35"
+    },
+    "scipy.io.matlab._mio_utils": {
+      "bytes": 212584,
+      "distribution": "scipy",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/io/matlab/_mio_utils.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy-1.18.0.dist-info/RECORD",
+      "sha256": "dccf68f34464bddbdd908cff584501369385d208b82d242ac80d50caba9a7ced"
+    },
+    "scipy.io.matlab._streams": {
+      "bytes": 287080,
+      "distribution": "scipy",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/io/matlab/_streams.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy-1.18.0.dist-info/RECORD",
+      "sha256": "1608724483e02cd1d4da61f4e0b00a109d1312dd47fbb2fbadf84900edd516ca"
+    },
+    "scipy.linalg._matfuncs_sqrtm_triu": {
+      "bytes": 218552,
+      "distribution": "scipy",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy/linalg/_matfuncs_sqrtm_triu.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scipy-1.18.0.dist-info/RECORD",
+      "sha256": "a0517e2da6d5dd1b85081853e7a1dc02e0157f7d78251bfaec0e8ceeabbc0569"
+    },
+    "sklearn._isotonic": {
+      "bytes": 285320,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/_isotonic.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "6135f287bb7d8967a0a0b8756c68055a6465e7fd3d30bcb7aeb1a9030c579ae8"
+    },
+    "sklearn._loss._loss": {
+      "bytes": 1445441,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/_loss/_loss.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "ee567ce2679afdfb68875fdc649b107e31c9edb76b8c6d9299e132efd7da8e75"
+    },
+    "sklearn.cluster._dbscan_inner": {
+      "bytes": 217432,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/cluster/_dbscan_inner.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "bfd90a3b140cf77e7b72b79c1275e3118098b144b9b1ec3125744ad227011289"
+    },
+    "sklearn.cluster._hdbscan._linkage": {
+      "bytes": 218072,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/cluster/_hdbscan/_linkage.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "275116cb0772f9856dc1aa99a061fe967003f3ca03701c2cb16e177179745cf7"
+    },
+    "sklearn.cluster._hdbscan._reachability": {
+      "bytes": 290240,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/cluster/_hdbscan/_reachability.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "2b6e5b5f9163c1b95271199924d471e95f2175ed610a7a2879d85c22bc26cf23"
+    },
+    "sklearn.cluster._hdbscan._tree": {
+      "bytes": 356736,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/cluster/_hdbscan/_tree.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "a3b53edc236a245dc6e79b9f7ac6353970ce19338e7440f4f21251faf368cbdd"
+    },
+    "sklearn.cluster._hierarchical_fast": {
+      "bytes": 295864,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/cluster/_hierarchical_fast.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "4512838b223a4c6233045baa0abbfc53a862e08c2d7d2345015f0fe1883ad4f5"
+    },
+    "sklearn.cluster._k_means_common": {
+      "bytes": 462297,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/cluster/_k_means_common.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "5b922b69a190351ee38a8e80602c9fb6417a81ac8b9d26e4b1fde5783fca993c"
+    },
+    "sklearn.cluster._k_means_elkan": {
+      "bytes": 462241,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/cluster/_k_means_elkan.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "0d55c345694c1a35021bbc1805b6f2aa3b31089382562d81f1439c3c816fc888"
+    },
+    "sklearn.cluster._k_means_lloyd": {
+      "bytes": 396681,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/cluster/_k_means_lloyd.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "7a49d59375564ebca61ebda47a2ce0cde853812c1bd93dfc3b5d5892b0d6f33d"
+    },
+    "sklearn.cluster._k_means_minibatch": {
+      "bytes": 396377,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/cluster/_k_means_minibatch.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "175b543fe6aee1c0d9671356b04b1bf11f581b99ba87c5fc73caf734935248b0"
+    },
+    "sklearn.decomposition._cdnmf_fast": {
+      "bytes": 217720,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/decomposition/_cdnmf_fast.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "036ea7bdcc951c089ae78ef8f856ba360778d377296f73dce36004faf8b1ccb8"
+    },
+    "sklearn.decomposition._online_lda_fast": {
+      "bytes": 220656,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/decomposition/_online_lda_fast.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "d26827ad1ec27c6f4c9c459e78ae7218f8522bc5b9e15dcce68c592f1822ac53"
+    },
+    "sklearn.linear_model._cd_fast": {
+      "bytes": 489640,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/linear_model/_cd_fast.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "872e3e241cab6afba924715fce8c5f60a2891a4d247c7f05cd52e0baa591f67d"
+    },
+    "sklearn.linear_model._sag_fast": {
+      "bytes": 282280,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/linear_model/_sag_fast.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "943555f4463b6c8b3d8c4b117330cf6840e8be5ac41e15e826e65083226641e3"
+    },
+    "sklearn.linear_model._sgd_fast": {
+      "bytes": 296848,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/linear_model/_sgd_fast.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "4da75f646a3db3ee4d55f1723b7a58532e49d3d76c8e7b069a6cc771a88564e5"
+    },
+    "sklearn.manifold._barnes_hut_tsne": {
+      "bytes": 330825,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/manifold/_barnes_hut_tsne.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "9c8cc7abfe2ae3494211c71cba397b28dae11cfa1ff57408f3b04a8254bbe998"
+    },
+    "sklearn.manifold._utils": {
+      "bytes": 215352,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/manifold/_utils.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "47407ee82752be8c0fc70feae5c7b2fe1593e58d0b59679d4cb2b4224c7c4d3d"
+    },
+    "sklearn.neighbors._ball_tree": {
+      "bytes": 645872,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/neighbors/_ball_tree.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "13b94d59fe36a174ef3a253d8d0ef7944827bdb7d9ebfe59b35cbc7cbb6d61b9"
+    },
+    "sklearn.neighbors._kd_tree": {
+      "bytes": 645264,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/neighbors/_kd_tree.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "1b75f60eeeb45dfe8309379022ee8cb21227a61f605487629846ef3163dd4cd7"
+    },
+    "sklearn.svm._liblinear": {
+      "bytes": 290096,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/svm/_liblinear.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "0bb2ae025213398d124ad8eadff8ce2ab1aa4cbc03dd1dc11002c10046e1d9cf"
+    },
+    "sklearn.svm._libsvm": {
+      "bytes": 436648,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/svm/_libsvm.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "06cce242043cd160ad3a7652537f3e3afcce0f58587d2f8e6ae6a157e3289299"
+    },
+    "sklearn.svm._libsvm_sparse": {
+      "bytes": 366880,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/svm/_libsvm_sparse.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "62e51d3f9ec96e153386de68f5de0b4c05bc13c132c6f2f7053ebd55e117a262"
+    },
+    "sklearn.utils._fast_dict": {
+      "bytes": 230976,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_fast_dict.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "d66f85c47c25b96b95e59e907566826c555f41eff1d70667aef8f63d700f72ff"
+    },
+    "sklearn.utils._random": {
+      "bytes": 290464,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_random.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "55645bef2a7ec65cdb6868c5a45fba4b6a45d07259b60647acaf77dd8a3a3889"
+    },
+    "sklearn.utils._seq_dataset": {
+      "bytes": 298104,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/_seq_dataset.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "567ac4107913cd03f498aec3dcde92b55d904c01bd4c613d213e185ed0970c04"
+    },
+    "sklearn.utils.arrayfuncs": {
+      "bytes": 287448,
+      "distribution": "scikit-learn",
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/sklearn/utils/arrayfuncs.cpython-313-aarch64-linux-gnu.so",
+      "record": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/scikit_learn-1.9.0.dist-info/RECORD",
+      "sha256": "36bcc8f5b56360d0162a77dbcb7ab39567cb5f35fc0d11fe70d87c524c182b3d"
+    }
+  },
+  "native_import_candidates": 213,
+  "native_qualified": false,
+  "original_RECORDs_rehashed": 196,
+  "original_session": 63211,
+  "original_ssh_exit": 0,
+  "outside_candidate_distributions": [
+    "annotated-types",
+    "attrs",
+    "beautifulsoup4",
+    "cffi",
+    "datasets",
+    "defusedxml",
+    "dill",
+    "gdown",
+    "ipython",
+    "matplotlib",
+    "opencv-python-headless",
+    "pydantic-core",
+    "pytest",
+    "requests",
+    "timm",
+    "tornado",
+    "traitlets",
+    "typing-inspection",
+    "urllib3"
+  ],
+  "outside_candidate_modules": 56,
+  "peak_rss_kib": 148648,
+  "product_go": false,
+  "schema": "static-import-closure-parent-verification-v1",
+  "source_bytes": 136294623,
+  "sources": 7183,
+  "target_modified": false,
+  "unindexed_candidates_include_from_import_attributes": true
+}
