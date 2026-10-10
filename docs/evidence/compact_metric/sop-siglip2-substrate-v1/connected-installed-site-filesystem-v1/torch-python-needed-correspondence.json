@@ -1,0 +1,23 @@
+{
+  "native_resolution_proven": false,
+  "needed": [
+    "libtorch.so",
+    "libshm.so",
+    "libtorch_cpu.so",
+    "libtorch_cuda.so",
+    "libc10_cuda.so",
+    "libcudart.so.13",
+    "libc10.so",
+    "libcudnn.so.9",
+    "libcufile.so.0",
+    "libstdc++.so.6",
+    "libgcc_s.so.1",
+    "libpthread.so.0",
+    "libc.so.6"
+  ],
+  "not_exact_basename_in_native_table": [
+    "libstdc++.so.6"
+  ],
+  "note": "Versioned system SONAME aliases require actual canonical symlink/loader evidence; basename presence does not prove resolution.",
+  "schema": "static-needed-basename-correspondence-v1"
+}

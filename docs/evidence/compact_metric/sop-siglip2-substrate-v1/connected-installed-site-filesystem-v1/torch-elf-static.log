@@ -1,0 +1,126 @@
+
+Dynamic section at offset 0x2fdd0 contains 27 entries:
+  Tag        Type                         Name/Value
+ 0x0000000000000001 (NEEDED)             Shared library: [libcudart.so.13]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x000000000000000e (SONAME)             Library soname: [libtorch_global_deps.so]
+ 0x000000000000000f (RPATH)              Library rpath: [$ORIGIN/../../nvidia/cudnn/lib:$ORIGIN/../../nvidia/nvshmem/lib:$ORIGIN/../../nvidia/nccl/lib:$ORIGIN/../../nvidia/cusparselt/lib:$ORIGIN/../../nvidia/cu13/lib:$ORIGIN]
+ 0x000000000000000c (INIT)               0x410000
+ 0x000000000000000d (FINI)               0x410144
+ 0x0000000000000019 (INIT_ARRAY)         0x43fdb8
+ 0x000000000000001b (INIT_ARRAYSZ)       8 (bytes)
+ 0x000000000000001a (FINI_ARRAY)         0x43fdc0
+ 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
+ 0x000000006ffffef5 (GNU_HASH)           0x450028
+ 0x0000000000000005 (STRTAB)             0x4501b8
+ 0x0000000000000006 (SYMTAB)             0x450068
+ 0x000000000000000a (STRSZ)              402 (bytes)
+ 0x000000000000000b (SYMENT)             24 (bytes)
+ 0x0000000000000003 (PLTGOT)             0x43ffe8
+ 0x0000000000000002 (PLTRELSZ)           48 (bytes)
+ 0x0000000000000014 (PLTREL)             RELA
+ 0x0000000000000017 (JMPREL)             0x4005c0
+ 0x0000000000000007 (RELA)               0x400518
+ 0x0000000000000008 (RELASZ)             168 (bytes)
+ 0x0000000000000009 (RELAENT)            24 (bytes)
+ 0x000000006ffffffe (VERNEED)            0x4004f8
+ 0x000000006fffffff (VERNEEDNUM)         1
+ 0x000000006ffffff0 (VERSYM)             0x4004da
+ 0x000000006ffffff9 (RELACOUNT)          3
+ 0x0000000000000000 (NULL)               0x0
+
+Dynamic section at offset 0x127b978 contains 40 entries:
+  Tag        Type                         Name/Value
+ 0x0000000000000001 (NEEDED)             Shared library: [libtorch.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libshm.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libtorch_cpu.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libtorch_cuda.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc10_cuda.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcudart.so.13]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc10.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcudnn.so.9]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcufile.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x000000000000000e (SONAME)             Library soname: [libtorch_python.so]
+ 0x000000000000000f (RPATH)              Library rpath: [$ORIGIN/../../nvidia/cudnn/lib:$ORIGIN/../../nvidia/nvshmem/lib:$ORIGIN/../../nvidia/nccl/lib:$ORIGIN/../../nvidia/cusparselt/lib:$ORIGIN/../../nvidia/cu13/lib:$ORIGIN]
+ 0x000000000000000c (INIT)               0x5c0000
+ 0x000000000000000d (FINI)               0x12c0b2c
+ 0x0000000000000019 (INIT_ARRAY)         0x16687d0
+ 0x000000000000001b (INIT_ARRAYSZ)       840 (bytes)
+ 0x000000000000001a (FINI_ARRAY)         0x1668b18
+ 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
+ 0x000000006ffffef5 (GNU_HASH)           0x1770028
+ 0x0000000000000005 (STRTAB)             0x1774e58
+ 0x0000000000000006 (SYMTAB)             0x4050c8
+ 0x000000000000000a (STRSZ)              601271 (bytes)
+ 0x000000000000000b (SYMENT)             24 (bytes)
+ 0x0000000000000003 (PLTGOT)             0x168ffe8
+ 0x0000000000000002 (PLTRELSZ)           125688 (bytes)
+ 0x0000000000000014 (PLTREL)             RELA
+ 0x0000000000000017 (JMPREL)             0x594dc8
+ 0x000000006ffffef6 (TLSDESC_PLT)        0x5d4620
+ 0x000000006ffffef7 (TLSDESC_GOT)        0x168ffd8
+ 0x0000000000000007 (RELA)               0x4cd610
+ 0x0000000000000008 (RELASZ)             817080 (bytes)
+ 0x0000000000000009 (RELAENT)            24 (bytes)
+ 0x000000006ffffffe (VERNEED)            0x4cd420
+ 0x000000006fffffff (VERNEEDNUM)         6
+ 0x000000006ffffff0 (VERSYM)             0x4c9250
+ 0x000000006ffffff9 (RELACOUNT)          23348
+ 0x0000000000000000 (NULL)               0x0
+
+Dynamic section at offset 0x15211108 contains 50 entries:
+  Tag        Type                         Name/Value
+ 0x0000000000000001 (NEEDED)             Shared library: [libtorch_nvshmem.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc10_cuda.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcudart.so.13]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcusparse.so.12]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcufft.so.12]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcufile.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcusparseLt.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libnccl.so.2]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcurand.so.10]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcublas.so.13]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcublasLt.so.13]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcudnn.so.9]
+ 0x0000000000000001 (NEEDED)             Shared library: [libnvrtc.so.13]
+ 0x0000000000000001 (NEEDED)             Shared library: [libdl.so.2]
+ 0x0000000000000001 (NEEDED)             Shared library: [librt.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc10.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libtorch_cpu.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-aarch64.so.1]
+ 0x000000000000000e (SONAME)             Library soname: [libtorch_cuda.so]
+ 0x000000000000000f (RPATH)              Library rpath: [$ORIGIN/../../nvidia/cudnn/lib:$ORIGIN/../../nvidia/nvshmem/lib:$ORIGIN/../../nvidia/nccl/lib:$ORIGIN/../../nvidia/cusparselt/lib:$ORIGIN/../../nvidia/cu13/lib:$ORIGIN]
+ 0x000000000000000c (INIT)               0xa70000
+ 0x000000000000000d (FINI)               0x37602b0
+ 0x0000000000000019 (INIT_ARRAY)         0x155c6d70
+ 0x000000000000001b (INIT_ARRAYSZ)       5288 (bytes)
+ 0x000000000000001a (FINI_ARRAY)         0x155c8218
+ 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
+ 0x000000006ffffef5 (GNU_HASH)           0x16420028
+ 0x0000000000000005 (STRTAB)             0x16448530
+ 0x0000000000000006 (SYMTAB)             0x4287a0
+ 0x000000000000000a (STRSZ)              4304810 (bytes)
+ 0x000000000000000b (SYMENT)             24 (bytes)
+ 0x0000000000000003 (PLTGOT)             0x1561ffe8
+ 0x0000000000000002 (PLTRELSZ)           220584 (bytes)
+ 0x0000000000000014 (PLTREL)             RELA
+ 0x0000000000000017 (JMPREL)             0xa30a88
+ 0x000000006ffffef6 (TLSDESC_PLT)        0xa92ef0
+ 0x000000006ffffef7 (TLSDESC_GOT)        0x1561ffd8
+ 0x0000000000000007 (RELA)               0x8dcc90
+ 0x0000000000000008 (RELASZ)             1392120 (bytes)
+ 0x0000000000000009 (RELAENT)            24 (bytes)
+ 0x000000006ffffffe (VERNEED)            0x8dc990
+ 0x000000006fffffff (VERNEEDNUM)         14
+ 0x000000006ffffff0 (VERSYM)             0x8d0d02
+ 0x000000006ffffff9 (RELACOUNT)          39299
+ 0x0000000000000000 (NULL)               0x0

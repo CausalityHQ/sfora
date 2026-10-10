@@ -1,0 +1,15 @@
+{
+  "actual_filesystem_preparation": true,
+  "elapsed_seconds": 7.122098947002087,
+  "full_package_installation_qualified": false,
+  "native_qualified": false,
+  "original_sha256": "bac717215dc487e13b6d8b53292684c61d532a71a3f84379b9f5e2340cc4ed9d",
+  "peak_rss_kib": 67536,
+  "quality_speed_qualified": false,
+  "schema": "actual-installed-factory-pre-native-parent-v1",
+  "source_sha256": "d826c11903a1e37e1e2b2c39d46911fcd5d7e58aebab2f647ee7736d186745d0",
+  "ssh_exit": 0,
+  "ssh_session": 37794,
+  "synthetic_parent_package": true,
+  "typed_payload_qualified": false
+}

@@ -1,0 +1,19 @@
+{
+  "limitations": [
+    "Only three original dynamic tables inspected",
+    "Narrow readelf output truncates RPATH; wide followup covers libtorch_python only",
+    "DT_NEEDED/RPATH is not live mapping or complete import qualification",
+    "No native library import or GPU experiment"
+  ],
+  "rpath_rows": [
+    " 0x000000000000000f (RPATH)              Library rpath: [$ORIGIN/../../nvidia/cudnn/lib:$ORIGIN/../../nvidia/nvshmem/lib:$ORIGIN/../../nvidia/nccl/lib:$ORIGIN/../../nvidia/cusparselt/lib:$ORIGIN/../../nvidia/cu13/lib:$ORIGIN]"
+  ],
+  "schema": "installed-torch-elf-static-observation-v1",
+  "ssh_exit": 0,
+  "ssh_sessions": [
+    71554
+  ],
+  "wide_file": "torch-python-elf-wide.log",
+  "wide_followup_ssh_exit": 0,
+  "wide_sha256": "3606a3f1731db200e12fef0a0a0aea5b74ae28556a8e0bbecdc726ee5b8de592"
+}
