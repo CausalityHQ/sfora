@@ -12,11 +12,12 @@ import math
 import os
 import re
 import sys
+import stat
 import weakref
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
-from types import CodeType, FunctionType
+from types import CodeType, FunctionType, MethodType, ModuleType, MappingProxyType
 
 INFERENCE_SCHEMA = "siglip2-connected-mlp-inference-v1"
 
@@ -409,6 +410,7 @@ def construct_encoder(construct_context, config, buffers, processor_config, base
     path = bound_file(guards, fact["path"], fact["sha256"])
     model = construct(config, construct_context).eval()
     disk = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+    primary = None
     try:
         with path.open("rb") as stream:
             pages = CheckpointPages(stream)
@@ -459,10 +461,31 @@ def construct_encoder(construct_context, config, buffers, processor_config, base
         structure = model_structure(model, construct_context["packages"])
         base = {"checkpoint": copy.deepcopy(fact), "sha256": digest}
         del pages
+    except BaseException as error:
+        primary = error
+        raise
     finally:
         del disk
-        gc.collect()
-        mapping_absent(path)
+        if "_serving" not in construct_context:
+            gc.collect()
+            mapping_absent(path)
+        else:
+            try:
+                gc.collect()
+            except BaseException as cleanup:
+                if primary is None:
+                    primary = cleanup
+                else:
+                    primary.add_note("serving constructor collection failed: " + repr(cleanup))
+            try:
+                mapping_absent(path)
+            except BaseException as cleanup:
+                if primary is None:
+                    primary = cleanup
+                else:
+                    primary.add_note("serving constructor mapping check failed: " + repr(cleanup))
+            if primary is not None:
+                raise primary
     return model, processor, cache, base, structure
 
 
@@ -725,16 +748,23 @@ def load_inference(directory, bundle_sha256, device):
 
 
 def inference_outputs(endpoint, images):
+    if "_serving" in endpoint:
+        _check_runtime()
+        context = endpoint["_serving"]
+        _serving_helper_binding((context["helpers"], context["helper_guards"], context["checker"]))
     import torch
     from torch.nn import functional as F
 
     modules, device = endpoint["modules"], endpoint["device"]
     _check_runtime()
-    for module in modules.values():
-        bound_file({}, module.__file__, endpoint["guards"][module.__file__])
-    for filename in SERVING_FILES | {"joint_relational_compaction.py"}:
-        path = endpoint["directory"] / filename
-        bound_file({}, path, endpoint["guards"][str(path)])
+    if "_serving" in endpoint:
+        _serving_live_identity(endpoint)
+    else:
+        for module in modules.values():
+            bound_file({}, module.__file__, endpoint["guards"][module.__file__])
+        for filename in SERVING_FILES | {"joint_relational_compaction.py"}:
+            path = endpoint["directory"] / filename
+            bound_file({}, path, endpoint["guards"][str(path)])
     require(
         0 < len(images) <= 32 and numerical_flags() == endpoint["flags"],
         "serving batch/numerics differ",
@@ -812,6 +842,8 @@ def inference_outputs(endpoint, images):
 
 
 def release_inference(endpoint):
+    if "_serving" in endpoint:
+        return _serving_release(endpoint)
     modules = tuple(endpoint["modules"].values())
     refs = [
         weakref.ref(endpoint[n])
@@ -1374,3 +1406,525 @@ def _check_features(features, device, train=False):
 
 def _finite(torch, values):
     require(all(torch.isfinite(value).all().item() for value in values), "nonfinite readout tensor")
+
+
+def _serving_metadata(path, expected):
+    return read_serving_metadata(path, expected, require)
+
+
+def _serving_helper_binding(binding):
+    require(type(binding) is tuple and len(binding) == 3, 'exact serving helper binding required')
+    modules, guards, checker = binding
+    names = ('connected_gallery_provenance', 'connected_serving_artifact', 'connected_serving_admission', 'connected_artifact_identity', 'connected_installed_environment')
+    require(type(modules) is tuple and len(modules) == 5 and type(guards) is tuple and len(guards) == 5, 'complete helper source closure required')
+    require(all(type(module) is ModuleType and type(module.__name__) is str and module.__spec__ is not None for module in modules), 'exact helper modules required')
+    require(len({module.__name__.rsplit('.', 1)[0] for module in modules}) == 1 and all(module.__package__ == module.__name__.rsplit('.', 1)[0] and module.__spec__.parent == module.__package__ and module.__spec__.name == module.__name__ for module in modules), 'one canonical private helper package required')
+    bridge = sys.modules.get('sfora.connected_compact_serving')
+    require(bridge is not None and type(checker) is MethodType, 'genuine installed bridge checker required')
+    owner = checker.__self__
+    require(type(owner) is bridge.ConnectedCompactIndex and checker.__func__ is bridge.ConnectedCompactIndex._check_current and checker.__func__.__globals__ is vars(bridge), 'genuine bridge owner/method required')
+    require(owner._module is sys.modules[__name__], 'bridge must own this runtime')
+    root = Path(__file__).parent
+    require(bridge.__file__ == str(root / 'connected_compact_serving.py') and bridge.__spec__.origin == bridge.__file__, 'bridge source sibling differs')
+    require(any(row[0] is bridge for row in owner._namespaces) and any(row[0] is type(owner) for row in owner._namespaces) and any(row[0] is checker.__func__ for row in owner._callables), 'bridge checker snapshot coverage missing')
+    snapshots = [row for row in owner._callables if row[0] is checker.__func__]
+    require(len(snapshots) == 1, 'one authenticated checker snapshot required')
+    saved = snapshots[0]
+    require(checker.__func__.__code__ is saved[1] and checker.__func__.__defaults__ is saved[2] is None and checker.__func__.__kwdefaults__ is saved[3] is None and checker.__func__.__closure__ is saved[4] is None, 'bridge checker executable identity changed')
+    for name, module, guard in zip(names, modules, guards, strict=True):
+        require(type(module) is ModuleType and type(guard) is tuple and len(guard) == 2, 'exact helper module/guard required')
+        path, sha = guard
+        require(type(path) is str and path == str(root / (name + '.py')) and module.__file__ == path and module.__spec__.origin == path and module.__name__.rsplit('.', 1)[-1] == name, 'helper installed origin differs')
+        require(sys.modules.get(module.__name__) is module and owner._owned.get(module.__name__) is module and any(row[0] is module for row in owner._namespaces), 'helper ownership/snapshot missing')
+        bound_file({}, path, sha)
+    for source, target, imported in (
+        (modules[0], modules[1], ('JSONObject', '_canonical', '_count', '_list', '_object', '_parse', '_require', '_same', '_sha', '_string', 'bind_gallery_provenance')),
+        (modules[0], modules[2], ('JSONObject', '_count', '_object', '_path', '_require', '_sha')),
+        (modules[1], modules[2], ('_FRAGMENT', '_PAYLOAD', 'bind_serving_manifest')),
+    ):
+        require(all(getattr(target, name) is getattr(source, name) for name in imported), 'helper relative dependency binding differs')
+    require(checker() is None, 'genuine bridge checker return differs')
+    return modules, guards, checker
+
+
+def _serving_json(raw):
+    value = strict_json(raw)
+    # Canonical encoding preserves bool/int/float distinctions and rejects overflow.
+    json.dumps(value, allow_nan=False)
+    return value
+
+
+def _serving_prepare(directory, *, trusted_serving_sha256, trusted_fragment_sha256, installed_environment, trusted_installed_environment_sha256, serving_helpers):
+    require(type(directory) is str and Path(directory).is_absolute(), 'absolute serving directory required')
+    require(type(trusted_fragment_sha256) is dict and trusted_fragment_sha256.keys() == {'origin.json', 'origin-export.json', 'origin-owners.json', 'gallery.bin', 'gallery-ids.json', 'gallery-provenance.json'}, 'exact independent fragment pins required')
+    trusted_fragment_sha256 = trusted_fragment_sha256.copy()
+    require(type(installed_environment) is bytes and len(installed_environment) <= 64 * 1024**2 and type(trusted_installed_environment_sha256) is str and hashlib.sha256(installed_environment).hexdigest() == trusted_installed_environment_sha256, 'independent installed environment bytes differ')
+    _check_runtime()
+    modules, helper_guards, checker = _serving_helper_binding(serving_helpers)
+    expected = _serving_json(installed_environment)
+    require(type(expected) is dict and expected.keys() == {'schema', 'original_bundle_sha256', 'original_ownership_audit_sha256', 'site_packages', 'distributions', 'expected_environment'}, 'exact installed environment authority required')
+    admitted = modules[2].admit_serving_artifact(directory, trusted_serving_sha256=trusted_serving_sha256, trusted_fragment_sha256=trusted_fragment_sha256)
+    require(expected['original_bundle_sha256'] == trusted_fragment_sha256['origin.json'] and expected['original_ownership_audit_sha256'] == trusted_fragment_sha256['origin-owners.json'], 'installed authority original pins differ')
+    origin_raw = _serving_metadata(Path(directory) / 'origin.json', trusted_fragment_sha256['origin.json'])
+    owners_raw = _serving_metadata(Path(directory) / 'origin-owners.json', trusted_fragment_sha256['origin-owners.json'])
+    origin = _serving_json(origin_raw)
+    require(type(origin) is dict and origin.keys() == {'schema', 'code', 'files', 'endpoint_state_sha256', 'environment', 'encoder_identity', 'base_vision_sha256', 'vision_sha256', 'scope'} and origin['schema'] == BUNDLE_SCHEMA and tuple(sorted(origin['code'].items())) == _binding[0], 'original inference authority differs')
+    actual = modules[4].verify_installed_environment(origin_raw, owners_raw, trusted_bundle_sha256=trusted_fragment_sha256['origin.json'], trusted_ownership_audit_sha256=trusted_fragment_sha256['origin-owners.json'], site_packages=expected['site_packages'])
+    canonical = lambda value: json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    require(canonical(actual) == canonical(expected), 'fresh installed environment differs from independent authority')
+    env = origin['environment']
+    require(type(env) is dict and env.keys() == {'packages', 'files', 'native_files', 'vision_constructor'} and env['packages'].keys() == NATIVE - {'sfora'} and env['vision_constructor'] in env['files'] and set(env['native_files']) <= set(env['files']), 'original environment shape differs')
+    sites = {Path(row['root']).parent for row in env['packages'].values()}
+    require(len(sites) == 1, 'one original site root required')
+    site = next(iter(sites))
+    anchors = {path: sha for path, sha in env['files'].items() if not Path(path).is_relative_to(site)}
+    require(all(env['native_files'].get(path) == sha and actual['expected_environment']['files'].get(path) == sha and actual['expected_environment']['native_files'].get(path) == sha for path, sha in anchors.items()), 'external anchor association differs')
+    guards = {}
+    batch_bound_files(guards, anchors.items())
+    for path, sha in actual['expected_environment']['files'].items():
+        require(guards.get(path, sha) == sha, 'installed environment guard conflict')
+        guards[path] = sha
+    for name, fact in admitted['files'].items():
+        require(guards.setdefault(fact['path'], fact['sha256']) == fact['sha256'], 'serving artifact guard conflict')
+    for path, sha in helper_guards:
+        bound_file(guards, path, sha)
+    _serving_helper_binding(serving_helpers)
+    return {'admitted': admitted, 'origin': origin, 'origin_raw': origin_raw, 'owners_raw': owners_raw, 'installed': actual, 'installed_raw': installed_environment, 'installed_sha256': trusted_installed_environment_sha256, 'helpers': modules, 'helper_guards': helper_guards, 'checker': checker, 'guards': guards, 'directory': directory, 'serving_sha256': trusted_serving_sha256, 'fragment_sha256': trusted_fragment_sha256, 'anchors': anchors, 'owned_registry': tuple(checker.__self__._owned.items()), 'exit_check': _serving_exit_functions(serving_helpers)}
+
+
+def read_serving_metadata(path, expected, require):
+    require(type(expected) is str and len(expected)==64 and all(c in '0123456789abcdef' for c in expected), 'metadata SHA required')
+    path=Path(path)
+    require(path.is_absolute() and path.resolve()==path, 'canonical metadata path required')
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    primary=None
+    try:
+        before=os.fstat(fd)
+        require(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and before.st_size<=64*1024**2, 'bounded single-link metadata required')
+        with os.fdopen(fd,'rb',closefd=False) as stream:
+            raw=stream.read(64*1024**2+1)
+        after=os.fstat(fd)
+        stamp=lambda info:(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,info.st_nlink,info.st_mode)
+        require(stamp(before)==stamp(after)==stamp(path.lstat()) and path.resolve()==path, 'metadata changed during read')
+        require(len(raw)==before.st_size and len(raw)<=64*1024**2 and hashlib.sha256(raw).hexdigest()==expected, 'metadata size/current SHA differs')
+        return raw
+    except BaseException as error:
+        primary=error
+        raise
+    finally:
+        try: os.close(fd)
+        except BaseException as cleanup:
+            if primary is None: raise
+            primary.add_note('metadata descriptor close failed: '+repr(cleanup))
+
+
+def _serving_validate_payload(disk, manifest):
+    require(
+        disk.keys() == INFERENCE_KEYS
+        and disk["schema"] == INFERENCE_SCHEMA
+        and disk["arm"] in ARMS
+        and fingerprint(disk) == manifest["endpoint_state_sha256"]
+        and fingerprint({k: v for k, v in disk.items() if k != "fixed_sha256"})
+        == disk["fixed_sha256"]
+        and numerical_flags() == disk["numerical_flags"]
+        and disk["vision_sha256"] == manifest["vision_sha256"]
+        and disk["encoder_identity"] == manifest["encoder_identity"]
+        and disk["base_vision"]["sha256"] == manifest["base_vision_sha256"]
+        and disk["scope"]["arm"] == "control"
+        and disk["scope"]["payload"]["scope_sha256"] == CONTROL_SHA256
+        and len(disk["scope"]["payload"]["class_names"]) == 1008,
+        "complete original-scope/updated inference identity differs",
+    )
+
+
+def _serving_expected_identities(prepared, disk):
+    manifest = prepared['origin']
+    _serving_validate_payload(disk, manifest)
+    identity = prepared['helpers'][3]
+    original_env = manifest['environment']
+    original_roots = {name: row['root'] for name, row in original_env['packages'].items()}
+    installed_roots = {name: row['root'] for name, row in prepared['installed']['expected_environment']['packages'].items()}
+    result = {}
+    for kind, original in (('model', disk['encoder_identity']), ('processor', disk['processor'])):
+        projected = identity.project_identity(original, kind=kind, package_roots=original_roots, source_files=original_env['files'])
+        result[kind] = identity.materialize_identity(projected, original, kind=kind, package_roots=original_roots, source_files=original_env['files'], installed_roots=installed_roots)
+    _serving_helper_binding((prepared['helpers'], prepared['helper_guards'], prepared['checker']))
+    return result
+
+
+def _serving_load_payload(prepared):
+    directory = Path(prepared['directory'])
+    manifest = copy.deepcopy(prepared['origin'])
+    manifest['environment'] = copy.deepcopy(prepared['installed']['expected_environment'])
+    guards, device = prepared['guards'], 'cuda'
+    modules = {"runtime": sys.modules[__name__]}
+    import torch
+
+    path = directory / "endpoint.pt"
+    disk = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+    primary = None
+    try:
+        expected = _serving_expected_identities(prepared, disk)
+        manifest['encoder_identity'] = expected['model']
+        env = manifest["environment"]
+        construct_context = {
+            "_serving": prepared,
+            "packages": env["packages"],
+            "guards": guards,
+            "sources": {
+                "native_environment": {"vision_constructor": {"path": env["vision_constructor"]}}
+            },
+        }
+        owned_base = {
+            "checkpoint": {
+                "path": str(directory / "vision.pt"),
+                "sha256": manifest["files"]["vision.pt"],
+            },
+            "sha256": disk["base_vision"]["sha256"],
+        }
+        model, processor, cache, _, structure = construct_encoder(
+            construct_context,
+            disk["config"],
+            disk["buffers"],
+            directory / "processor.json",
+            owned_base,
+            disk["encoder"],
+        )
+        # The overlay is copied by apply_overlay within the shared strict CPU
+        # constructor before device transfer; the full updated identity is checked.
+        require(
+            fingerprint(model.state_dict()) == disk["vision_sha256"]
+            and _serving_exact_json(structure, expected["model"]["runtime"]),
+            "updated full448 portable reload differs",
+        )
+        model.requires_grad_(False).eval().to(device)
+        with path.open("rb") as stream:
+            pages = CheckpointPages(stream)
+            copied = {
+                k: owned_copy(disk[k], pages, device)
+                for k in ("head", "A", "C", "means", "mu_train", "common_statistics")
+            }
+            head = (
+                head_from("control", tensors=copied.pop("head"))
+                .to(device)
+                .requires_grad_(False)
+                .train()
+            )
+            endpoint = {
+                **copied,
+                "A": torch.nn.Parameter(copied["A"], requires_grad=True),
+                "C": torch.nn.Parameter(copied["C"], requires_grad=True),
+                "head_object": head,
+                "model": model,
+                "processor_object": processor,
+                "processor_cache": cache,
+                "processor": expected["processor"],
+                "arm": disk["arm"],
+                "scope": copy.deepcopy(disk["scope"]),
+                "mu_train_provenance": copy.deepcopy(disk["mu_train_provenance"]),
+                "encoder_identity": copy.deepcopy(expected["model"]),
+                "vision_sha256": disk["vision_sha256"],
+                "flags": copy.deepcopy(disk["numerical_flags"]),
+                "device": device,
+                "modules": modules,
+                "guards": guards,
+                "manifest": manifest,
+                "directory": directory,
+                "_serving": prepared,
+            }
+            endpoint["readout_sha256"] = fingerprint(inference_readout_tree(endpoint))
+            del copied, pages, model, processor, head
+    except BaseException as error:
+        primary = error
+        raise
+    finally:
+        del disk
+        try:
+            gc.collect()
+        except BaseException as cleanup:
+            if primary is None:
+                primary = cleanup
+            else:
+                primary.add_note('serving endpoint collection failed: '+repr(cleanup))
+        try:
+            mapping_absent(path)
+        except BaseException as cleanup:
+            if primary is None:
+                primary = cleanup
+            else:
+                primary.add_note('serving endpoint mapping check failed: '+repr(cleanup))
+        if primary is not None:
+            raise primary
+    _serving_live_identity(endpoint)
+    require(
+        encoder_facts(endpoint, manifest["environment"]["packages"], serving=True)["vision_sha256"]
+        == endpoint["vision_sha256"],
+        "public updated encoder identity differs",
+    )
+    return endpoint
+
+
+def _serving_full_exit(context, primary=None):
+    checks = (
+        ('runtime', lambda: _check_runtime()),
+        ('helpers', lambda: _serving_helper_binding((context['helpers'], context['helper_guards'], context['checker']))),
+        ('artifact', lambda: _serving_exit_callables(context)[0](context['directory'], trusted_serving_sha256=context['serving_sha256'], trusted_fragment_sha256=context['fragment_sha256'])),
+        ('installed environment', lambda: _serving_exit_environment(context)),
+        ('external anchors', lambda: batch_bound_files({}, context['anchors'].items())),
+    )
+    for label, check in checks:
+        try:
+            check()
+        except BaseException as error:
+            if primary is None:
+                primary = error
+            else:
+                primary.add_note('serving exit '+label+' failed: '+repr(error))
+    if primary is not None:
+        raise primary
+
+
+def _serving_exit_environment(context):
+    raw = context['installed_raw']
+    require(hashlib.sha256(raw).hexdigest() == context['installed_sha256'], 'installed authority changed before exit')
+    expected = _serving_json(raw)
+    actual = _serving_exit_callables(context)[1](context['origin_raw'], context['owners_raw'], trusted_bundle_sha256=context['fragment_sha256']['origin.json'], trusted_ownership_audit_sha256=context['fragment_sha256']['origin-owners.json'], site_packages=expected['site_packages'])
+    require(json.dumps(actual, sort_keys=True, separators=(',', ':'), allow_nan=False) == json.dumps(expected, sort_keys=True, separators=(',', ':'), allow_nan=False), 'installed environment changed before exit')
+
+
+def _serving_release(endpoint):
+    context = endpoint.pop('_serving')
+    inventory, modules, refs = (), (), []
+    primary = None
+    try:
+        inventory = tuple(context['owned_registry'])
+        modules = tuple(endpoint['modules'].values())
+        refs = [weakref.ref(endpoint[name]) for name in ('model', 'processor_object', 'head_object', 'A', 'C', 'mu_train')]
+        refs += [weakref.ref(value) for value in (*endpoint['model'].parameters(), *endpoint['model'].buffers(), *endpoint['head_object'].parameters(), *endpoint['head_object'].buffers())]
+        for name in ('means', 'common_statistics'):
+            _serving_tensor_refs(endpoint.get(name), refs)
+        _serving_helper_binding((context['helpers'], context['helper_guards'], context['checker']))
+        require(all(sys.modules.get(name) is module for name, module in inventory), 'serving pre-release registry changed')
+        require(all(any(module is owned for _, owned in inventory) for module in modules), 'serving release module is not owned')
+    except BaseException as error:
+        primary = error
+    endpoint['modules'] = {}
+    try:
+        release_inference(endpoint)
+    except BaseException as error:
+        if primary is None:
+            primary = error
+        else:
+            primary.add_note('serving original release failed: '+repr(error))
+        # Only finished runtime frames; foreign frames and references remain intact.
+        trace = error.__traceback__
+        while trace is not None:
+            if trace.tb_frame.f_globals is globals():
+                try:
+                    trace.tb_frame.clear()
+                except RuntimeError:
+                    pass
+            trace = trace.tb_next
+    finally:
+        endpoint.clear()
+    try:
+        gc.collect()
+        require(all(ref() is None for ref in refs), 'serving lifetime survived artifact release')
+    except BaseException as error:
+        if primary is None:
+            primary = error
+        else:
+            primary.add_note('serving lifetime check failed: '+repr(error))
+    try:
+        _serving_full_exit(context, primary)
+    except BaseException as error:
+        if primary is None:
+            primary = error
+        elif error is not primary:
+            primary.add_note('serving full exit failed: '+repr(error))
+            for note in getattr(error, '__notes__', ()):
+                primary.add_note(note)
+    try:
+        require(all(sys.modules.get(name) is module for name, module in inventory), 'serving post-release registry changed')
+    except BaseException as error:
+        if primary is None:
+            primary = error
+        else:
+            primary.add_note('serving registry postcheck failed: '+repr(error))
+    if primary is not None:
+        raise primary
+
+
+def _serving_exact_json(left, right):
+    return json.dumps(left, sort_keys=True, separators=(',', ':'), allow_nan=False) == json.dumps(right, sort_keys=True, separators=(',', ':'), allow_nan=False)
+
+
+def _serving_live_identity(endpoint):
+    packages = endpoint['manifest']['environment']['packages']
+    require(_serving_exact_json(model_structure(endpoint['model'], packages), endpoint['encoder_identity']['runtime']), 'serving typed installed model identity differs')
+    processor = endpoint['processor_object']
+    observed = {'config': json.loads(processor.to_json_string()), 'backend': processor.backend, 'origin': module_origin(type(processor), packages)}
+    require(_serving_exact_json(observed, endpoint['processor']), 'serving typed installed processor identity differs')
+
+
+def _serving_tensor_refs(value, refs):
+    torch = sys.modules.get('torch')
+    if torch is not None and isinstance(value, torch.Tensor):
+        refs.append(weakref.ref(value))
+    elif type(value) is dict:
+        for item in value.values():
+            _serving_tensor_refs(item, refs)
+    elif type(value) in (tuple, list):
+        for item in value:
+            _serving_tensor_refs(item, refs)
+
+
+def _serving_drop_partial(partial, guards):
+    processor = partial.get('processor')
+    if processor is not None:
+        cache = _processor_cache(processor, guards)
+        cache.cache_clear()
+        require(cache.cache_info().currsize == 0, 'partial serving processor cache survived')
+    partial.clear()
+
+
+def _serving_failed_load(context, primary, *, exit_attempted=False):
+    frames, pending, seen = [], [primary], set()
+    endpoint, partial, refs = None, {}, []
+    while pending:
+        error = pending.pop()
+        if id(error) in seen:
+            continue
+        seen.add(id(error))
+        pending.extend(value for value in (error.__cause__, error.__context__) if value is not None)
+        trace = error.__traceback__
+        while trace is not None:
+            frame = trace.tb_frame
+            if frame.f_globals is globals():
+                frames.append(frame)
+                if frame.f_code is _serving_load_payload.__code__:
+                    candidate = frame.f_locals.get('endpoint')
+                    if type(candidate) is dict:
+                        endpoint = candidate
+                if frame.f_code in (_serving_load_payload.__code__, construct_encoder.__code__):
+                    for name in ('disk', 'copied'):
+                        _serving_tensor_refs(frame.f_locals.get(name), refs)
+                    for name in ('model', 'processor', 'head'):
+                        value = frame.f_locals.get(name)
+                        if value is not None:
+                            partial[name] = value
+            trace = trace.tb_next
+    for value in partial.values():
+        try:
+            refs.append(weakref.ref(value))
+        except TypeError as error:
+            primary.add_note('partial serving owner is not weak-referenceable: '+repr(error))
+    value = candidate = frame = trace = error = None
+    for owned_frame in frames:
+        try:
+            owned_frame.clear()
+        except RuntimeError:
+            pass
+    owned_frame = None
+    if endpoint is not None:
+        exit_attempted = True
+        partial.clear()
+        try:
+            _serving_release(endpoint)
+        except BaseException as error:
+            primary.add_note('failed serving endpoint release failed: '+repr(error))
+    else:
+        try:
+            _serving_drop_partial(partial, context['guards'])
+        except BaseException as error:
+            primary.add_note('partial serving release failed: '+repr(error))
+        finally:
+            partial.clear()
+    endpoint = None
+    try:
+        gc.collect()
+        require(all(ref() is None for ref in refs), 'failed serving owner survived cleanup')
+    except BaseException as error:
+        primary.add_note('failed serving lifetime check failed: '+repr(error))
+    for filename in ('endpoint.pt', 'vision.pt'):
+        try:
+            mapping_absent(Path(context['directory']) / filename)
+        except BaseException as error:
+            primary.add_note('failed serving mapping check '+filename+' failed: '+repr(error))
+    if not exit_attempted:
+        try:
+            _serving_full_exit(context, primary)
+        except BaseException as error:
+            if error is not primary:
+                primary.add_note('failed serving full exit failed: '+repr(error))
+                for note in getattr(error, '__notes__', ()):
+                    primary.add_note(note)
+    raise primary
+
+
+def load_serving_inference(directory, *, trusted_serving_sha256, trusted_fragment_sha256, installed_environment, trusted_installed_environment_sha256, serving_helpers):
+    prepared = _serving_prepare(directory, trusted_serving_sha256=trusted_serving_sha256, trusted_fragment_sha256=trusted_fragment_sha256, installed_environment=installed_environment, trusted_installed_environment_sha256=trusted_installed_environment_sha256, serving_helpers=serving_helpers)
+    endpoint = None
+    exit_attempted = False
+    try:
+        endpoint = _serving_load_payload(prepared)
+        _serving_helper_binding(serving_helpers)
+        return endpoint
+    except BaseException as primary:
+        # A post-load guard can fail after the payload helper has returned.
+        if endpoint is not None:
+            exit_attempted = True
+            try:
+                _serving_release(endpoint)
+            except BaseException as error:
+                primary.add_note('post-load serving release failed: '+repr(error))
+                for note in getattr(error, '__notes__', ()):
+                    primary.add_note(note)
+            endpoint = None
+        _serving_failed_load(prepared, primary, exit_attempted=exit_attempted)
+
+
+def _serving_exit_functions(binding):
+    modules, guards, checker = _serving_helper_binding(binding)
+    names = tuple(module.__name__.rsplit('.', 1)[-1] for module in modules)
+    sources = tuple(read_serving_metadata(path, sha, require) for path, sha in guards)
+    graph = {name: ModuleType(module.__name__) for name, module in zip(names, modules, strict=True)}
+    builtins = __builtins__ if type(__builtins__) is dict else vars(__builtins__)
+    original_import = builtins['__import__']
+
+    def imports(name, globals=None, locals=None, fromlist=(), level=0):
+        if level:
+            require(level == 1 and name in graph, 'finite exit helper relative import required')
+            return graph[name]
+        return original_import(name, globals, locals, fromlist, level)
+
+    guardian = type(checker.__self__)()
+    for name, module, raw, (path, sha) in zip(names, modules, sources, guards, strict=True):
+        namespace = vars(graph[name])
+        namespace.update(__file__=path, __package__=module.__package__, __builtins__=MappingProxyType({**builtins, '__import__':imports}))
+        exec(compile(raw, path, 'exec', dont_inherit=True), namespace)
+        guardian._snapshot(graph[name], raw)
+    namespaces, callables = tuple(guardian._namespaces), tuple(guardian._callables)
+    bridge = sys.modules['sfora.connected_compact_serving']
+    state_globals = bridge._literal_state.__globals__.copy()
+    literal_state = FunctionType(bridge._literal_state.__code__, state_globals)
+    state_globals['_literal_state'] = literal_state
+    state_code = literal_state.__code__
+    functions = graph[names[2]].admit_serving_artifact, graph[names[4]].verify_installed_environment
+
+    def check():
+        require(literal_state.__code__ is state_code and literal_state.__globals__ is state_globals and state_globals['_literal_state'] is literal_state, 'retained literal checker changed')
+        for fn, code, defaults, kwdefaults, closure, default_state, kwdefault_state in callables:
+            require(fn.__code__ is code and fn.__defaults__ is defaults and fn.__kwdefaults__ is kwdefaults and fn.__closure__ is closure and literal_state(fn.__defaults__) == default_state and literal_state(fn.__kwdefaults__) == kwdefault_state, 'retained exit callable changed')
+        for module, values, literals in namespaces:
+            namespace = vars(module)
+            require(namespace.keys() == values.keys() and all(namespace[key] is value for key, value in values.items()) and all(literal_state(namespace[key]) == state for key, state in literals.items()), 'retained exit namespace changed')
+        return functions
+    return check
+
+
+def _serving_exit_callables(context):
+    check = context['exit_check']
+    expected = next(code for code in _serving_exit_functions.__code__.co_consts if isinstance(code, CodeType) and code.co_name == 'check')
+    require(type(check) is FunctionType and check.__code__ is expected and check.__globals__ is globals() and check.__defaults__ is None and check.__kwdefaults__ is None, 'authenticated retained exit checker required')
+    return check()

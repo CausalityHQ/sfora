@@ -1,0 +1,154 @@
+{
+  "authority_sha256": "31cce1783e99f2b109ce8f162551d01b662cbb7808da1788a807586a33c75c48",
+  "base_authority_sha256": "0098f835e48f2b93cfa0621c23199e43ea7eea9a09de8c3f48aa589a20e62c6d",
+  "base_bridge_sha256": "fae70ec668ef1b24316c3d4554062bee5873fbd7cc2883fd1c6f2375e6a96cd9",
+  "base_runtime_sha256": "33fae50ee868869aeac48cfc3d5dba23dc8976dbb2d8c68c2c6583947b36c7b8",
+  "bridge_sha256": "5da8991b076474f1d7ebf70ee76f954c0789a7d39dff866c258f619633303e06",
+  "prototype_replacements": {
+    "_serving_exit_environment": [
+      [
+        "context['helpers'][4].verify_installed_environment(",
+        "_serving_exit_callables(context)[1]("
+      ]
+    ],
+    "_serving_failed_load": [
+      [
+        "        _serving_full_exit(context)\n",
+        "        _serving_full_exit(context, primary)\n"
+      ],
+      [
+        "        primary.add_note('failed serving full exit failed: '+repr(error))\n",
+        "        if error is not primary:\n            primary.add_note('failed serving full exit failed: '+repr(error))\n            for note in getattr(error, '__notes__', ()):\n                primary.add_note(note)\n"
+      ],
+      [
+        "def _serving_failed_load(context, primary):",
+        "def _serving_failed_load(context, primary, *, exit_attempted=False):"
+      ],
+      [
+        "    if endpoint is not None:\n",
+        "    if endpoint is not None:\n        exit_attempted = True\n"
+      ],
+      [
+        "    try:\n        _serving_full_exit(context, primary)\n    except BaseException as error:\n        if error is not primary:\n            primary.add_note('failed serving full exit failed: '+repr(error))\n            for note in getattr(error, '__notes__', ()):\n                primary.add_note(note)\n",
+        "    if not exit_attempted:\n        try:\n            _serving_full_exit(context, primary)\n        except BaseException as error:\n            if error is not primary:\n                primary.add_note('failed serving full exit failed: '+repr(error))\n                for note in getattr(error, '__notes__', ()):\n                    primary.add_note(note)\n"
+      ]
+    ],
+    "_serving_full_exit": [
+      [
+        "context['helpers'][2].admit_serving_artifact(",
+        "_serving_exit_callables(context)[0]("
+      ]
+    ],
+    "_serving_helper_binding": [
+      [
+        "    bridge = sys.modules.get('sfora.connected_compact_serving')",
+        "    require(len({module.__name__.rsplit('.', 1)[0] for module in modules}) == 1 and all(module.__package__ == module.__name__.rsplit('.', 1)[0] and module.__spec__.parent == module.__package__ and module.__spec__.name == module.__name__ for module in modules), 'one canonical private helper package required')\n    bridge = sys.modules.get('sfora.connected_compact_serving')"
+      ],
+      [
+        "    require(len({module.__name__.rsplit('.', 1)[0] for module in modules})",
+        "    require(all(type(module) is ModuleType and type(module.__name__) is str and module.__spec__ is not None for module in modules), 'exact helper modules required')\n    require(len({module.__name__.rsplit('.', 1)[0] for module in modules})"
+      ],
+      [
+        "    require(checker() is None, 'genuine bridge checker return differs')",
+        "    for source, target, imported in (\n        (modules[0], modules[1], ('JSONObject', '_canonical', '_count', '_list', '_object', '_parse', '_require', '_same', '_sha', '_string', 'bind_gallery_provenance')),\n        (modules[0], modules[2], ('JSONObject', '_count', '_object', '_path', '_require', '_sha')),\n        (modules[1], modules[2], ('_FRAGMENT', '_PAYLOAD', 'bind_serving_manifest')),\n    ):\n        require(all(getattr(target, name) is getattr(source, name) for name in imported), 'helper relative dependency binding differs')\n    require(checker() is None, 'genuine bridge checker return differs')"
+      ]
+    ],
+    "_serving_load_payload": [
+      [
+        "\"encoder_identity\": expected[\"model\"],",
+        "\"encoder_identity\": copy.deepcopy(expected[\"model\"]),"
+      ]
+    ],
+    "_serving_prepare": [
+      [
+        "'owned_registry': tuple(checker.__self__._owned.items())}",
+        "'owned_registry': tuple(checker.__self__._owned.items()), 'exit_check': _serving_exit_functions(serving_helpers)}"
+      ],
+      [
+        "        guards[fact['path']] = fact['sha256']",
+        "        require(guards.setdefault(fact['path'], fact['sha256']) == fact['sha256'], 'serving artifact guard conflict')"
+      ]
+    ],
+    "_serving_release": [
+      [
+        "        _serving_full_exit(context)\n",
+        "        _serving_full_exit(context, primary)\n"
+      ],
+      [
+        "        else:\n            primary.add_note('serving full exit failed: '+repr(error))\n",
+        "        elif error is not primary:\n            primary.add_note('serving full exit failed: '+repr(error))\n            for note in getattr(error, '__notes__', ()):\n                primary.add_note(note)\n"
+      ]
+    ],
+    "load_serving_inference": [
+      [
+        "    endpoint = None\n    try:",
+        "    endpoint = None\n    exit_attempted = False\n    try:"
+      ],
+      [
+        "        if endpoint is not None:\n",
+        "        if endpoint is not None:\n            exit_attempted = True\n"
+      ],
+      [
+        "                primary.add_note('post-load serving release failed: '+repr(error))\n",
+        "                primary.add_note('post-load serving release failed: '+repr(error))\n                for note in getattr(error, '__notes__', ()):\n                    primary.add_note(note)\n"
+      ],
+      [
+        "        _serving_failed_load(prepared, primary)",
+        "        _serving_failed_load(prepared, primary, exit_attempted=exit_attempted)"
+      ]
+    ]
+  },
+  "release_setup_replacements": [
+    [
+      "    inventory = tuple(context['owned_registry'])\n    modules = tuple(endpoint['modules'].values())\n    refs = [weakref.ref(endpoint[name]) for name in ('model', 'processor_object', 'head_object', 'A', 'C', 'mu_train')]\n    refs += [weakref.ref(value) for value in (*endpoint['model'].parameters(), *endpoint['model'].buffers(), *endpoint['head_object'].parameters(), *endpoint['head_object'].buffers())]\n    for name in ('means', 'common_statistics'):\n        _serving_tensor_refs(endpoint.get(name), refs)\n    primary = None\n    try:\n",
+      "    inventory, modules, refs = (), (), []\n    primary = None\n    try:\n        inventory = tuple(context['owned_registry'])\n        modules = tuple(endpoint['modules'].values())\n        refs = [weakref.ref(endpoint[name]) for name in ('model', 'processor_object', 'head_object', 'A', 'C', 'mu_train')]\n        refs += [weakref.ref(value) for value in (*endpoint['model'].parameters(), *endpoint['model'].buffers(), *endpoint['head_object'].parameters(), *endpoint['head_object'].buffers())]\n        for name in ('means', 'common_statistics'):\n            _serving_tensor_refs(endpoint.get(name), refs)\n"
+    ]
+  ],
+  "replacements": [
+    [
+      "def construct_encoder(construct_context, config, buffers, processor_config, base, overlay=None):\n    \"\"\"One genuine CPU factory/strict base load, then exact overlay and transfer.\"\"\"\n    import torch\n    from transformers import AutoImageProcessor\n\n    guards = construct_context[\"guards\"]\n    fact = base[\"checkpoint\"]\n    path = bound_file(guards, fact[\"path\"], fact[\"sha256\"])\n    model = construct(config, construct_context).eval()\n    disk = torch.load(path, map_location=\"cpu\", weights_only=True, mmap=True)\n    try:\n        with path.open(\"rb\") as stream:\n            pages = CheckpointPages(stream)\n            require(\n                disk.keys() == {\"vision\", \"buffers\", \"config\", \"runtime\", \"cpu_rng\"}\n                and disk[\"config\"] == config\n                and fingerprint(disk[\"buffers\"]) == fingerprint(buffers)\n                and len(disk[\"vision\"]) == 448,\n                \"complete authenticated original base differs\",\n            )\n            digest = fingerprint(disk[\"vision\"], consumed=pages.consume)\n            require(\n                base.get(\"sha256\", digest) == digest, \"original typed base vision identity differs\"\n            )\n            load_vision(model, disk[\"vision\"], pages)\n            require(\n                dict(model.named_buffers()).keys() == buffers.keys() == {\"embeddings.position_ids\"},\n                \"complete nonpersistent buffer inventory differs\",\n            )\n            with torch.no_grad():\n                for name, value in model.named_buffers():\n                    require(\n                        value.shape == disk[\"buffers\"][name].shape\n                        and value.dtype == disk[\"buffers\"][name].dtype,\n                        \"buffer shape/dtype differs\",\n                    )\n                    value.copy_(disk[\"buffers\"][name])\n                    pages.consume(disk[\"buffers\"][name])\n            del value\n            require(\n                fingerprint(model.state_dict()) == digest,\n                \"genuine strict copied original448 differs\",\n            )\n        processor = AutoImageProcessor.from_pretrained(\n            processor_config, local_files_only=True, backend=\"torchvision\"\n        )\n        cache = _processor_cache(processor, guards, empty=True)\n        require(\n            \"position_ids\" in model.embeddings._non_persistent_buffers_set\n            and torch.equal(\n                dict(model.named_buffers())[\"embeddings.position_ids\"],\n                torch.arange(256).expand(1, -1),\n            ),\n            \"original nonpersistent position buffer differs\",\n        )\n        if overlay is not None:\n            apply_overlay(model, overlay)\n        structure = model_structure(model, construct_context[\"packages\"])\n        base = {\"checkpoint\": copy.deepcopy(fact), \"sha256\": digest}\n        del pages\n    finally:\n        del disk\n        gc.collect()\n        mapping_absent(path)\n    return model, processor, cache, base, structure",
+      "def construct_encoder(construct_context, config, buffers, processor_config, base, overlay=None):\n    \"\"\"One genuine CPU factory/strict base load, then exact overlay and transfer.\"\"\"\n    import torch\n    from transformers import AutoImageProcessor\n\n    guards = construct_context[\"guards\"]\n    fact = base[\"checkpoint\"]\n    path = bound_file(guards, fact[\"path\"], fact[\"sha256\"])\n    model = construct(config, construct_context).eval()\n    disk = torch.load(path, map_location=\"cpu\", weights_only=True, mmap=True)\n    primary = None\n    try:\n        with path.open(\"rb\") as stream:\n            pages = CheckpointPages(stream)\n            require(\n                disk.keys() == {\"vision\", \"buffers\", \"config\", \"runtime\", \"cpu_rng\"}\n                and disk[\"config\"] == config\n                and fingerprint(disk[\"buffers\"]) == fingerprint(buffers)\n                and len(disk[\"vision\"]) == 448,\n                \"complete authenticated original base differs\",\n            )\n            digest = fingerprint(disk[\"vision\"], consumed=pages.consume)\n            require(\n                base.get(\"sha256\", digest) == digest, \"original typed base vision identity differs\"\n            )\n            load_vision(model, disk[\"vision\"], pages)\n            require(\n                dict(model.named_buffers()).keys() == buffers.keys() == {\"embeddings.position_ids\"},\n                \"complete nonpersistent buffer inventory differs\",\n            )\n            with torch.no_grad():\n                for name, value in model.named_buffers():\n                    require(\n                        value.shape == disk[\"buffers\"][name].shape\n                        and value.dtype == disk[\"buffers\"][name].dtype,\n                        \"buffer shape/dtype differs\",\n                    )\n                    value.copy_(disk[\"buffers\"][name])\n                    pages.consume(disk[\"buffers\"][name])\n            del value\n            require(\n                fingerprint(model.state_dict()) == digest,\n                \"genuine strict copied original448 differs\",\n            )\n        processor = AutoImageProcessor.from_pretrained(\n            processor_config, local_files_only=True, backend=\"torchvision\"\n        )\n        cache = _processor_cache(processor, guards, empty=True)\n        require(\n            \"position_ids\" in model.embeddings._non_persistent_buffers_set\n            and torch.equal(\n                dict(model.named_buffers())[\"embeddings.position_ids\"],\n                torch.arange(256).expand(1, -1),\n            ),\n            \"original nonpersistent position buffer differs\",\n        )\n        if overlay is not None:\n            apply_overlay(model, overlay)\n        structure = model_structure(model, construct_context[\"packages\"])\n        base = {\"checkpoint\": copy.deepcopy(fact), \"sha256\": digest}\n        del pages\n    except BaseException as error:\n        primary = error\n        raise\n    finally:\n        del disk\n        if \"_serving\" not in construct_context:\n            gc.collect()\n            mapping_absent(path)\n        else:\n            try:\n                gc.collect()\n            except BaseException as cleanup:\n                if primary is None:\n                    primary = cleanup\n                else:\n                    primary.add_note(\"serving constructor collection failed: \" + repr(cleanup))\n            try:\n                mapping_absent(path)\n            except BaseException as cleanup:\n                if primary is None:\n                    primary = cleanup\n                else:\n                    primary.add_note(\"serving constructor mapping check failed: \" + repr(cleanup))\n            if primary is not None:\n                raise primary\n    return model, processor, cache, base, structure"
+    ],
+    [
+      "def inference_outputs(endpoint, images):\n    import torch\n    from torch.nn import functional as F\n\n    modules, device = endpoint[\"modules\"], endpoint[\"device\"]\n    _check_runtime()\n    for module in modules.values():\n        bound_file({}, module.__file__, endpoint[\"guards\"][module.__file__])\n    for filename in SERVING_FILES | {\"joint_relational_compaction.py\"}:\n        path = endpoint[\"directory\"] / filename\n        bound_file({}, path, endpoint[\"guards\"][str(path)])\n    require(\n        0 < len(images) <= 32 and numerical_flags() == endpoint[\"flags\"],\n        \"serving batch/numerics differ\",\n    )\n    require(\n        endpoint[\"encoder_identity\"] == endpoint[\"manifest\"][\"encoder_identity\"]\n        and endpoint[\"vision_sha256\"] == endpoint[\"manifest\"][\"vision_sha256\"]\n        and all(\n            p.grad is None\n            and not p.requires_grad\n            and p.dtype == torch.float32\n            and p.device.type == device\n            for p in endpoint[\"head_object\"].parameters()\n        )\n        and all(\n            m.training\n            and not m._forward_hooks\n            and not m._forward_pre_hooks\n            and not m._backward_hooks\n            for m in endpoint[\"head_object\"].modules()\n        ),\n        \"serving authenticated encoder/frozen head roles/hooks differ\",\n    )\n    require(\n        encoder_facts(endpoint, endpoint[\"manifest\"][\"environment\"][\"packages\"], serving=True)[\n            \"vision_sha256\"\n        ]\n        == endpoint[\"vision_sha256\"]\n        and fingerprint(inference_readout_tree(endpoint)) == endpoint[\"readout_sha256\"],\n        \"current .data updated encoder/readout/role substitution rejected\",\n    )\n    cpu_rng = torch.random.get_rng_state().clone()\n    cuda_rng = torch.cuda.get_rng_state_all() if device == \"cuda\" else []\n    pixels = endpoint[\"processor_object\"](images=images, return_tensors=\"pt\")[\"pixel_values\"]\n    require(\n        pixels.shape == (len(images), 3, 256, 256)\n        and pixels.dtype == torch.float32\n        and torch.isfinite(pixels).all().item(),\n        \"owned processor pixels differ\",\n    )\n    with torch.no_grad():\n        with torch.autocast(device, dtype=torch.float16, enabled=device == \"cuda\"):\n            pooled = endpoint[\"model\"](pixel_values=pixels.to(device)).pooler_output\n        with torch.autocast(device, enabled=False):\n            features = F.normalize(pooled.float(), dim=1)\n            raw = fullfeature_raw_features(\n                features,\n                endpoint[\"head_object\"],\n                endpoint[\"A\"],\n                endpoint[\"means\"],\n                endpoint[\"C\"],\n                endpoint[\"mu_train\"],\n                endpoint[\"arm\"],\n            )\n            require((raw.norm(dim=1) > 0).all().item(), \"nonzero portable raw required\")\n            unit = F.normalize(raw, dim=1)\n            packed = _pack(unit.cpu())\n    require(\n        torch.equal(cpu_rng, torch.random.get_rng_state())\n        and all(\n            torch.equal(a, b)\n            for a, b in zip(\n                cuda_rng, torch.cuda.get_rng_state_all() if device == \"cuda\" else [], strict=True\n            )\n        ),\n        \"serving complete RNG changed\",\n    )\n    return {\n        \"raw\": raw.cpu(),\n        \"unit\": unit.cpu(),\n        \"codes\": packed.codes.cpu(),\n        \"inverse_norms\": packed.inverse_norms.cpu(),\n        \"wire\": packed.to_bytes(),\n    }",
+      "def inference_outputs(endpoint, images):\n    if \"_serving\" in endpoint:\n        _check_runtime()\n        context = endpoint[\"_serving\"]\n        _serving_helper_binding((context[\"helpers\"], context[\"helper_guards\"], context[\"checker\"]))\n    import torch\n    from torch.nn import functional as F\n\n    modules, device = endpoint[\"modules\"], endpoint[\"device\"]\n    _check_runtime()\n    if \"_serving\" in endpoint:\n        _serving_live_identity(endpoint)\n    else:\n        for module in modules.values():\n            bound_file({}, module.__file__, endpoint[\"guards\"][module.__file__])\n        for filename in SERVING_FILES | {\"joint_relational_compaction.py\"}:\n            path = endpoint[\"directory\"] / filename\n            bound_file({}, path, endpoint[\"guards\"][str(path)])\n    require(\n        0 < len(images) <= 32 and numerical_flags() == endpoint[\"flags\"],\n        \"serving batch/numerics differ\",\n    )\n    require(\n        endpoint[\"encoder_identity\"] == endpoint[\"manifest\"][\"encoder_identity\"]\n        and endpoint[\"vision_sha256\"] == endpoint[\"manifest\"][\"vision_sha256\"]\n        and all(\n            p.grad is None\n            and not p.requires_grad\n            and p.dtype == torch.float32\n            and p.device.type == device\n            for p in endpoint[\"head_object\"].parameters()\n        )\n        and all(\n            m.training\n            and not m._forward_hooks\n            and not m._forward_pre_hooks\n            and not m._backward_hooks\n            for m in endpoint[\"head_object\"].modules()\n        ),\n        \"serving authenticated encoder/frozen head roles/hooks differ\",\n    )\n    require(\n        encoder_facts(endpoint, endpoint[\"manifest\"][\"environment\"][\"packages\"], serving=True)[\n            \"vision_sha256\"\n        ]\n        == endpoint[\"vision_sha256\"]\n        and fingerprint(inference_readout_tree(endpoint)) == endpoint[\"readout_sha256\"],\n        \"current .data updated encoder/readout/role substitution rejected\",\n    )\n    cpu_rng = torch.random.get_rng_state().clone()\n    cuda_rng = torch.cuda.get_rng_state_all() if device == \"cuda\" else []\n    pixels = endpoint[\"processor_object\"](images=images, return_tensors=\"pt\")[\"pixel_values\"]\n    require(\n        pixels.shape == (len(images), 3, 256, 256)\n        and pixels.dtype == torch.float32\n        and torch.isfinite(pixels).all().item(),\n        \"owned processor pixels differ\",\n    )\n    with torch.no_grad():\n        with torch.autocast(device, dtype=torch.float16, enabled=device == \"cuda\"):\n            pooled = endpoint[\"model\"](pixel_values=pixels.to(device)).pooler_output\n        with torch.autocast(device, enabled=False):\n            features = F.normalize(pooled.float(), dim=1)\n            raw = fullfeature_raw_features(\n                features,\n                endpoint[\"head_object\"],\n                endpoint[\"A\"],\n                endpoint[\"means\"],\n                endpoint[\"C\"],\n                endpoint[\"mu_train\"],\n                endpoint[\"arm\"],\n            )\n            require((raw.norm(dim=1) > 0).all().item(), \"nonzero portable raw required\")\n            unit = F.normalize(raw, dim=1)\n            packed = _pack(unit.cpu())\n    require(\n        torch.equal(cpu_rng, torch.random.get_rng_state())\n        and all(\n            torch.equal(a, b)\n            for a, b in zip(\n                cuda_rng, torch.cuda.get_rng_state_all() if device == \"cuda\" else [], strict=True\n            )\n        ),\n        \"serving complete RNG changed\",\n    )\n    return {\n        \"raw\": raw.cpu(),\n        \"unit\": unit.cpu(),\n        \"codes\": packed.codes.cpu(),\n        \"inverse_norms\": packed.inverse_norms.cpu(),\n        \"wire\": packed.to_bytes(),\n    }"
+    ],
+    [
+      "def release_inference(endpoint):\n",
+      "def release_inference(endpoint):\n    if \"_serving\" in endpoint:\n        return _serving_release(endpoint)\n"
+    ],
+    [
+      "import sys\n",
+      "import sys\nimport stat\n"
+    ],
+    [
+      "from types import CodeType, FunctionType\n",
+      "from types import CodeType, FunctionType, MethodType, ModuleType, MappingProxyType\n"
+    ]
+  ],
+  "runtime_sha256": "20e085e7339525d5314de4cf2dc2ac8f317b25c019c0cf1665e3f37ef62bf7d7",
+  "schema": "connected-installed-reader-source-inverse-v1",
+  "suffix_bytes": 29598,
+  "suffix_names": [
+    "_serving_metadata",
+    "_serving_helper_binding",
+    "_serving_json",
+    "_serving_prepare",
+    "read_serving_metadata",
+    "_serving_validate_payload",
+    "_serving_expected_identities",
+    "_serving_load_payload",
+    "_serving_full_exit",
+    "_serving_exit_environment",
+    "_serving_release",
+    "_serving_exact_json",
+    "_serving_live_identity",
+    "_serving_tensor_refs",
+    "_serving_drop_partial",
+    "_serving_failed_load",
+    "load_serving_inference",
+    "_serving_exit_functions",
+    "_serving_exit_callables"
+  ],
+  "suffix_sha256": "0d82f4d83e7103b0de288c170a68fc6d7fa0fb8cba3fc285f9557f7e2c082ad8"
+}

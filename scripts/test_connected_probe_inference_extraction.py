@@ -69,7 +69,7 @@ def correspondence(oracle, source):
     for path, names in closure.items():
         for name in names:
             expected[name] = namespace['expected_definition'](path, name)
-    current = oracle.RUNTIME.read_text()
+    current = oracle.serving_reader_inverse(oracle.RUNTIME.read_text())
     original_defs = definitions(current)
     for name in ('_bind_runtime', '_check_runtime', '_head_method_code', '_pack', '_sha_cpu_bytes', '_fingerprint_cuda_dict'):
         expected[name] = original_defs[name]

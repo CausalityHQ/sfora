@@ -131,7 +131,32 @@ def pipeline_record():
     return substitutions[-1][1]
 
 
+def serving_reader_record():
+    path = ROOT / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/connected-installed-reader-preparation-v1/serving-reader-inverse.json'
+    raw = path.read_bytes()
+    assert sha(raw) == '0467e325d7bb6aa2d51c1941732c1d22b73cd5c0d0492a20598d468e07a3f830', 'serving inverse record changed'
+    return json.loads(raw)
+
+
+def serving_reader_inverse(source):
+    if '\n\ndef _serving_metadata(' not in source:
+        return source
+    record = serving_reader_record()
+    start = source.index('\n\ndef _serving_metadata(')
+    suffix = source[start:]
+    assert sha(suffix.encode()) == record['suffix_sha256']
+    assert len(suffix.encode()) == record['suffix_bytes']
+    assert [n.name for n in ast.parse(suffix).body] == record['suffix_names']
+    source = source[:start]
+    for before, after in reversed(record['replacements']):
+        assert source.count(after) == 1, 'serving inverse occurrence differs'
+        source = source.replace(after, before)
+    assert sha(source.encode()) == record['base_runtime_sha256'], 'serving inverse whole source differs'
+    return source
+
+
 def pipeline_inverse(source):
+    source = serving_reader_inverse(source)
     record = pipeline_record()
     start = source.index('\n\ndef _sha_cpu_bytes(')
     end = source.index('\n\ndef fingerprint(', start)
@@ -151,6 +176,8 @@ BRIDGE_FACTORY_INVERSE = (('def _literal_state(', 'def _installed_probe_authorit
 
 
 def bridge_factory_inverse(source):
+    record = serving_reader_record()
+    source = source.replace(record["authority_sha256"], record["base_authority_sha256"])
     for before, after, count in reversed(BRIDGE_FACTORY_INVERSE):
         assert source.count(after) == count, 'finite bridge factory inverse occurrence differs'
         source = source.replace(after, before)
@@ -189,10 +216,12 @@ def pipeline_contract_check():
                 fromfile='original:encoder_facts', tofile='fresh-sha:encoder_facts')) == record['encoder_diff']
     assert nodes['encoder_facts'] == original
     authority = (ROOT / 'src/sfora/_connected_inference_authority.py').read_text()
+    reader = serving_reader_record()
+    authority = authority.replace(reader['runtime_sha256'], reader['base_runtime_sha256'])
     start = authority.index('\n    (\n        "_fresh_cpu_sha_pipeline",')
     end = authority.index('\n)\n\nRUNTIME_SHA256', start)
     historical = authority[:start] + authority[end:]
-    historical = historical.replace(sha(source.encode()), record['base_runtime_sha256'])
+    historical = historical.replace(reader['base_runtime_sha256'], record['base_runtime_sha256'])
     assert sha(historical.encode()) == record['base_authority_sha256'] == '538291c1cf14ead854760ad9400ee01dacc2ad73dec5b4ae56677d18bfd9412e'
     bridge = bridge_factory_inverse((ROOT / 'src/sfora/connected_compact_serving.py').read_text())
     bridge = bridge.replace(sha(authority.encode()), record['base_authority_sha256'])
@@ -203,7 +232,7 @@ def dependency_check():
     source = RUNTIME.read_text()
     tree = ast.parse(source)
     allowed_imports = {'copy', 'gc', 'hashlib', 'inspect', 'json', 'math', 'os', 're',
-                       'sys', 'weakref', 'concurrent.futures', 'functools', 'pathlib', 'types'}
+                       'sys', 'stat', 'weakref', 'concurrent.futures', 'functools', 'pathlib', 'types'}
     for node in tree.body:
         assert isinstance(node, (ast.Import, ast.ImportFrom, ast.Assign, ast.FunctionDef, ast.ClassDef, ast.Expr))
         if isinstance(node, ast.Import):
@@ -213,7 +242,7 @@ def dependency_check():
         if isinstance(node, ast.Expr):
             assert isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
     table = symtable.symtable(source, str(RUNTIME), 'exec')
-    defined = set(table.get_identifiers()) | {'__file__', '__name__'} | set(vars(builtins))
+    defined = set(table.get_identifiers()) | {'__file__', '__name__', '__builtins__'} | set(vars(builtins))
     def walk(scope):
         for symbol in scope.get_symbols():
             assert not symbol.is_referenced() or not symbol.is_global() or symbol.get_name() in defined, symbol.get_name()
@@ -232,7 +261,7 @@ def dependency_check():
 
 
 def correspondence():
-    nodes = {node.name: node for node in ast.parse(RUNTIME.read_text()).body
+    nodes = {node.name: node for node in ast.parse(serving_reader_inverse(RUNTIME.read_text())).body
              if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
     names = {name for symbols in CLOSURE.values() for name in symbols}
     assert nodes.keys() == names | {'_bind_runtime', '_check_runtime', '_head_method_code', '_pack',

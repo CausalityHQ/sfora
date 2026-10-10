@@ -1,0 +1,30 @@
+{
+  "address_space_bytes": 1073741824,
+  "affected_suites": [
+    "test_connected_inference_extraction.py",
+    "test_connected_probe_inference_extraction.py",
+    "test_connected_serving_inference.py"
+  ],
+  "exit": 0,
+  "files": {
+    "scripts/test_connected_inference_extraction.py": "6a410f5200b0b4f07577fde7dc5c826fba669bbf0f8f8e7225574e2ad78ab7fb",
+    "scripts/test_connected_probe_inference_extraction.py": "06ab919a6aa682dae0c24504ae4c0205abf32ec3ef1c7bd40ed86367ff75799e",
+    "scripts/test_connected_serving_inference.py": "4b731088dcaf786cf5a8e6d1d85e5eebf70c89e9b36262afc67fee354d5e42aa",
+    "src/sfora/_connected_inference_authority.py": "31cce1783e99f2b109ce8f162551d01b662cbb7808da1788a807586a33c75c48",
+    "src/sfora/connected_compact_serving.py": "5da8991b076474f1d7ebf70ee76f954c0789a7d39dff866c258f619633303e06",
+    "src/sfora/connected_inference.py": "20e085e7339525d5314de4cf2dc2ac8f317b25c019c0cf1665e3f37ef62bf7d7"
+  },
+  "initial_log": "integration-initial.log",
+  "log_sha256": "7d9f96a8570268d50a56aa751facb7d30c81c2f8dabb98c842487628768ee27e",
+  "native_run": false,
+  "original_log": "integration-final.log",
+  "peak_rss_kib": 117820,
+  "quality_go": false,
+  "review_final_source_coverage": "Original labelled answers concern earlier source snapshots; final root repairs independently falsified and checked. No claim reviewers read final bytes.",
+  "review_group": "126b9fe468fb403a",
+  "review_pending": false,
+  "schema": "connected-installed-reader-integration-source-only-v1",
+  "speed_go": false,
+  "timeout_seconds": 120,
+  "wall_seconds": 22.06
+}

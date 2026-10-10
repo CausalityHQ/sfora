@@ -1,0 +1,5 @@
+# Installed-reader integration boundary
+Production: src/sfora/connected_inference.py adds the reviewed fixed-CUDA artifact API, bounded startup, expected installed identities, owned constructor/load/release cleanup and complete uncached exit. Existing load_inference remains unchanged; original numerical request suffix and legacy release body recover exactly. No encoder/hash/kernel/loss/resource policy edits.
+Authority: update only RUNTIME_SHA256. Bridge: update only the literal authority SHA so existing legacy API continues to work; no artifact factory yet.
+Tests: finite whole-byte inverse ahead of historical extraction pipeline; probe correspondence consumes only the inverse of the changed MLP source. New serving test executes actual integrated definitions with existing source-only checks; all native/math/448-member/hardware/parity gates remain unqualified.
+Source snapshots and managed-reader held draft remain preserved. No native job or new consultation launched during integration. Final affected stdlib gate <=120s/1GiB after narrow failures repaired, serial only. Final review/integration remains conditional on genuine checks.
