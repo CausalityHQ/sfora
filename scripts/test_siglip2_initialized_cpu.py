@@ -67,7 +67,9 @@ def main():
         own.mkdir()
         pca.mkdir()
         for name in driver.FILES:
-            source = path.parent / name if name != 'joint_relational_compaction.py' else path.parent.parent / 'src/sfora' / name
+            # The packing helper pin is the pre-extraction 9bcdd0a1 bytes; c6eb09e3 later changed src/sfora.
+            source = path.parent / name if name != 'joint_relational_compaction.py' else (path.parent.parent /
+                'docs/evidence/compact_metric/sop-siglip2-substrate-v1/native256-historical-helpers' / name)
             shutil.copyfile(source, own / name)
         for name in driver.INITIALIZER_FILES:
             source = path.parent / name if name != 'representation_ceiling.py' else path.parent.parent / 'src/sfora' / name

@@ -785,6 +785,10 @@ def flat_chain_checks(driver, base):
             local = repo / name
             if not local.exists():
                 local = repo.parent / 'src/sfora' / name
+            if name == 'joint_relational_compaction.py':
+                # The qualifier pins the pre-extraction helper (9bcdd0a1); c6eb09e3 later changed src/sfora.
+                local = (repo.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1'
+                         / 'native256-historical-helpers' / name)
             shutil.copyfile(local, root / name)
         code = {n: sha(root / n) for n in names}
         return code, write(root / 'execution.json', code)
