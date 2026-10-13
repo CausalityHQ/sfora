@@ -15,7 +15,7 @@ Original failure, archived unchanged: `evidence/compact_metric/sop-siglip2-subst
 
 ## Frozen source
 
-Commit `79e449bfb73e43ede217c524304ee6047fd4febd` on side branch `devbox/native256-v9-source`. It is **not** merged to
+Commit `f19b62f7c8414c7204194bd63965058009383064` on side branch `devbox/native256-v9-source`. It is **not** merged to
 master: master keeps the v6 trainer and scorer bytes, because `src/sfora/_connected_inference_authority.py` and five evaluators
 pin them (`a1684917…`, `5be3d922…`). The v9 bytes are staged to a fresh DGX root under the same file names.
 
@@ -23,11 +23,11 @@ pin them (`a1684917…`, `5be3d922…`). The v9 bytes are staged to a fresh DGX 
 |---|---|---|---|
 | `train_siglip2_substrate_adaptation.py` | `a168491758481a10…` | `1b73b2a6bdc1ee0cc468109e15746c8c5cde32569ac3b5de05d07f9e2f0b573f` | `policy()` seconds 300 → `HANG_BACKSTOP_SECONDS = 3600` (mechanics and train) |
 | `test_siglip2_substrate_adaptation.py` | `03c31bf456ca84a6…` | `7df1d58718709b3a1230ec6fef0cc9a806abcb9e4eceaba4c0267df5edc3e9c2` | Policy assertion; original-policy AST restore before the frozen whole-contract pin; historical packing-helper fixture |
-| `export_siglip2_substrate_adaptation.py` | `b4f58e3d…` (master) | `79499c576c10c65b99090d5ef55ee7650c5eb9da558e8adc23e8c0c23f9101a5` | Held cpu/export/score seconds → 3600; cost gate report-only |
-| `score_siglip2_substrate_adaptation.py` | `5be3d922b198bd2f…` | `cb63a08252752fc14fade80bf93c5dd5b51d3ab132a043018f815d4eec5628ed` | `cost_pass` reports the actual cost result instead of literal `True` |
+| `export_siglip2_substrate_adaptation.py` | `b4f58e3d…` (master) | `30bc6b08714821bf92f2457a7446f93c8cc18abbea0765d8229bc36a4c028194` | Held cpu/export/score seconds → 3600 (policy and the held CPU-proof admission); cost gate report-only |
+| `score_siglip2_substrate_adaptation.py` | `5be3d922b198bd2f…` | `47fc5c73dc8825669a41f0a9a0c2a895a49c4b750b00475e395e105bb08d6338` | `cost_pass` reports the actual cost result; held CPU/export admission uses held policy seconds; `decision_scope` = quality only |
 | `deployed_code_rank.py`, `reference_train_sop_siglip2_compact.py`, `reference_unicom_training.py` | `435bd73d…`, `1946bafe…`, `a40b0dac…` | unchanged | — |
 
-All science, math, admission, parity, reload, exit-rehash and integrity predicates are byte-identical to v6. The test's
+All science, math, parity, reload, exit-rehash and integrity predicates are byte-identical to v6. Changed predicates: the resource seconds listed above and the pre-read cost gate, which no longer raises: `decision` (GO/KILL) is now quality-only and `cost_pass` is reported beside it, so readers must not treat `decision` as a cost verdict. The test's
 frozen whole-contract AST pin passes after restoring only the original `policy` and dropping the new constant.
 
 Verification (local, Python 3.14, ≤2 GiB AS, no native imports):
@@ -92,10 +92,10 @@ v6 measured peaks: host 6.47–7.35 GB, CUDA 6.13–7.29 GB, swap 0, events 0.
 
 ## Order and budget
 
-1. Stage `/home/riomus/runs/sfora-native256-adaptation-source-v9` from the frozen commit, `execution.json`, six authorities.
-2. Mechanics Large, then So400m (v6: 170.8 s / 194.1 s).
+1. Stage `/home/riomus/runs/sfora-native256-adaptation-source-v9` from the frozen commit (`stage` asserts the v9 trainer/test SHAs) and `execution.json`; copy the master watchdog to `sfora-native256-v9-tools` (SHA-256 `d7ddb72392fa0b38bad51ec4bc4995efec64f3cfe46fb99b6009a046cc8090f6`).
+2. Write the two mechanics authorities; run mechanics Large, then So400m (v6: 170.8 s / 194.1 s). Only then write the four TRAIN authorities (they bind the completed v9 mechanics terminals).
 3. TRAIN100 in exporter order: (179032 Large), (179032 So400m), (179041 So400m), (179041 Large).
-   Expected ≈ 215 s updates + ≈ 90 s reload/exit each (So400m slightly longer).
+   Expected ≈ 44 s admission + 215 s updates + ≈ 90 s reload/exit ≈ 350 s each (So400m slightly longer).
 4. Held cpu, export and score (held tooling never ran natively; first execution may surface engineering failures).
 
 Estimate: ≈ 7 min mechanics + ≈ 22 min TRAIN + held stage ≈ 20–40 min, about 1–1.5 GPU-hours on the owned DGX in total.
@@ -127,3 +127,25 @@ completed v9 mechanics log/receipt, and writes the command script with v6's head
 authenticated root). Checks: `scripts/test_stage_native256_v9.py` PASS (hermetic). DGX dry run in a `/tmp` copy of the real
 v6 root: authority diff = `execution_sha256` + `resource_policy` only; `bash -n` and both hash blocks pass; copy removed.
 Nothing has been written under `/home/riomus/runs`.
+
+## Scoped operational review (critique `5fe01051bdac4a9b`: Opus `62d0f16ba87944fb`, Astra `5efaf85c455040f4`)
+
+Both critics: fix two blockers before launch; science/math unchanged; authority derivation matches admission; quiet
+CPU-active phases are not stopped. Resolution:
+
+| Finding | Resolution |
+|---|---|
+| B1 launch line split `ExecStopPost` under shell parsing | `shlex.join`; test parses the printed command and checks the property token |
+| B2 held CPU proof (120 s) and export (300 s) admission literals gated new runs | v9 `f19b62f7`: both use held `policy()` seconds; remaining literal admits historical initialized-CPU receipts only |
+| Empty `ControlGroup` read the root cgroup (false alive) | Probe prints nothing unless the unit's cgroup exists |
+| `Service runtime: 5min 716ms` not parseable by frozen admission | Pre-registered: such a valid run is rerun under a new unit name (not a failed state); `stage` refuses to bind it |
+| Watchdog-stopped run could be admitted after a completion race | `stage` refuses any log with a `^watchdog:` line; watchdog stop is always invalid |
+| Staged bytes unpinned; branch carried an old watchdog | `stage` asserts v9 trainer/test SHAs; tools copy the master watchdog with recorded SHA |
+| Report-only cost changes the meaning of GO | Documented above; scorer records `decision_scope` |
+| Liveness accepts any CPU change | Accepted design: only blocked units are stopped at 600 s; CPU-spinning or GPU hangs run to the backstop (3780 s, after systemd `RuntimeMaxSec=3600`) |
+| Unbounded control calls / unchecked stop | Liveness probe `timeout 30`, stop `timeout 120` with its rc logged; stall vs backstop reason logged; existing log refused |
+
+Open, accepted for this run: no held-root staging tool yet (written after TRAIN receipts exist); v6's exact `systemd-run`
+property list was never recorded in the repo (v9 properties are reconstructed from the admitted log format and sibling
+launchers; `OOMPolicy` is not set, matching nothing we can verify for v6); the DGX dry run left no archived evidence
+beyond the command diff summarised above.
