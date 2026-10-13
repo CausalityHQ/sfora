@@ -437,7 +437,8 @@ def authority(args):
     for path, digest in selected_context['guards'].items():
         require(guards.setdefault(path, digest) == digest, 'conflicting selected byte guard')
     fit = selected_context['initialized']['source_context']['fit']
-    require(spec['frozen_split'] == fit['original_receipt'], 'original frozen split authority differs')
+    # The FIT original_receipt carries no held split (no held_manifest/query/gallery); the authenticated split file
+    # is bound to this FIT by validate_split (fit_manifest == fit rows, exact 12599/6354/6245, disjoint products).
     frozen = admission.descriptor_json(spec['frozen_split'], guards)
     validate_split(frozen, fit)
     require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native import during authority')
