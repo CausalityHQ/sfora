@@ -1,0 +1,26 @@
+H1 2026-10-13T20:54:19Z BEGIN pid=1060495
+held_execution_sha256 55407aebebb677d05e1cfe5eb90c3cce0ce1d55290c778bf2eab84e3a2c72255
+held_authority_sha256 8b929d22bde50f7ae90ea3601a5d5244eee52eb6d27332882d31754dad9eb908
+HELD 2026-10-13T20:54:35Z BEGIN pid=1060501
+HELD 2026-10-13T20:54:35Z START cpu 179032 large
+HELD 2026-10-13T20:57:20Z UNIT_RC cpu 179032 large rc=0
+/home/riomus/runs/sfora-native256-held-v9h1/cpu-terminal-large-179032.json f836c8a83ac1e4e8080cd345c2e366a90e15f25c3678319f10088315adc7597a
+HELD 2026-10-13T20:57:20Z START export 179032 large
+HELD 2026-10-13T21:04:01Z UNIT_RC export 179032 large rc=0
+HELD 2026-10-13T21:04:01Z START cpu 179032 so400
+HELD 2026-10-13T21:07:01Z UNIT_RC cpu 179032 so400 rc=0
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-native256-v9h1-tools/stage_native256_v9_held.py", line 153, in <module>
+    {'stage': stage, 'authority': authority, 'launch': launch, 'cpu-terminal': cpu_terminal,
+  File "/home/riomus/runs/sfora-native256-v9h1-tools/stage_native256_v9_held.py", line 106, in cpu_terminal
+    print(path, dump(path, terminal(unit('cpu', seed, arm), RUNS / unit('cpu', seed, arm) / 'proof.json')))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native256-v9h1-tools/stage_native256_v9_held.py", line 100, in terminal
+    return train.terminal_from(HELD / f'{name}.log', receipt, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native256-v9h1-tools/stage_native256_v9.py", line 76, in terminal_from
+    assert re.search(r'^Service runtime: (?:\d+min )?\d+(?:\.\d+)?s$', text, re.M), 'unadmissible runtime format: rerun'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: unadmissible runtime format: rerun
+HELD 2026-10-13T21:07:01Z TOOL_FAIL cpu-terminal 179032 so400
+H1 2026-10-13T21:07:01Z HELD_RC rc=1

@@ -1,0 +1,15 @@
+{
+ "schema": "native256-v9-attempt-hold-v1",
+ "campaign": {"attempt": "h1 (held-only on r1 TRAIN endpoints)", "driver_pid": 1060495,
+  "log": "/home/riomus/runs/sfora-native256-v9h1-tools/held.log", "began": "2026-10-13T20:54:19Z", "ended": "2026-10-13T21:07:01Z",
+  "authorization": "orchestrator 1791909842849719268-1307188"},
+ "frozen": {"tools_master": "9d363b531038b91509616eef826e42f635233215", "v9_source": "b8401e6cd004a5e0cdc9ca0cae7022bb66249af3",
+  "exporter_sha256": "fc547d4af03fc1549bf832bc3dbf5f7ecd00716dda50bea3af4a5aae1cfb0bd6",
+  "held_execution_sha256": "55407aebebb677d05e1cfe5eb90c3cce0ce1d55290c778bf2eab84e3a2c72255",
+  "held_authority_sha256": "8b929d22bde50f7ae90ea3601a5d5244eee52eb6d27332882d31754dad9eb908", "review": "dual critique 5ff2ca51e1244dee"},
+ "valid_units": ["cpu large 179032 rc0 (2m45s)", "export large 179032 rc0 (6m41s; receipt frozen_split + input_guard == 41b5fe09; quality_read false)", "cpu so400 179032 rc0, zero failures (inv 9345be8ecc4240d992dbfe5cef6f731a, 'Service runtime: 3min 81ms')"],
+ "failed_step": "stage tool cpu-terminal 179032 so400 (no unit): AssertionError 'unadmissible runtime format: rerun'",
+ "quality_read": false,
+ "decision": "HOLD at first failure; no rerun under this authority",
+ "root_cause": "systemd omits the seconds term when it is 0 ('3min 81ms'); frozen terminal_from accepts only '[Nmin ]S[.f]s'. Pre-registered policy: such a valid run is rerun under a new unit name, never re-parsed."
+}
