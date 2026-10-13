@@ -62,7 +62,19 @@ launch authority/profile/locks differ". They now copy the committed historical b
 | systemd unit `RuntimeMaxSec` | 300 | 3600 (hang backstop) |
 | Trainer internal whole-job wall predicate | < 300 s | < 3600 s |
 | Held cpu/export/score internal predicate | 120 / 300 / 300 s | 3600 s |
-| Stuck guard | none | `scripts/run_with_progress_watchdog.sh`: `STALL_SECONDS=600` without log growth (trainer flushes per-update rows and 36 phase diagnostics), then `STOP_CMD="systemctl --user stop <unit>"` |
+| Stuck guard | none | `scripts/run_with_progress_watchdog.sh`: stop only when **neither** the unit log grows **nor** the unit cgroup `cpu.stat` changes for `STALL_SECONDS=600`; then `STOP_CMD="systemctl --user stop <unit>"` exactly once, `GRACE_SECONDS=60` for systemd-run to print its original summary, then signals |
+
+Liveness: on DGX each user service cgroup exposes `cpu.stat` (`usage_usec`); the io controller is not delegated, so
+`io.stat` is unavailable. Quiet phases (weight load, CUDA warm-up/compile, checkpoint reload, exit rehash, held export)
+all consume CPU in the unit and therefore count as alive; a blocked unit (no output, no CPU) is stopped. A hang that spins
+CPU forever is caught only by the 3600 s backstop. Watchdog checks (`scripts/test_run_with_progress_watchdog.sh`, 37 s):
+quiet-but-CPU-busy child kept alive; the same child without a liveness signal is stopped (signal matters); blocked child
+stopped once with exactly one `STOP_CMD`, rc 124 and no orphan; a child that exits within grace keeps its original summary
+line; healthy exit status passes through.
+
+Mechanics also uses the backstop. `admit_mechanics` binds `execution_sha256` and `code`, so no new execution can admit the
+historical v6 mechanics receipts whatever the cap; fresh mechanics must run, and the historical receipts stay untouched and
+archived. Keeping 300 s there would reinstate the cap the operator rejected (v6 mechanics took 170.8 s / 194.1 s).
 
 A watchdog stop, backstop expiry or any nonzero exit is an **invalid run** with no quality read. Failed states are never
 reused. Admission of historical prerequisite receipts keeps their original literal caps; those runs already passed.

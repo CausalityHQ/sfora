@@ -1,22 +1,29 @@
 #!/usr/bin/env bash
-# Stuck-process guard instead of a wall-time gate: kill CMD only when LOG stops growing
-# for STALL_SECONDS (default 600) or the hang backstop BACKSTOP_SECONDS (default 3600) passes.
-# Usage: run_with_progress_watchdog.sh LOG -- CMD [ARGS...]   (exit 124 = killed as stuck)
-# STOP_CMD (optional) runs first on a stall, e.g. "systemctl --user stop UNIT" when CMD is systemd-run --wait.
+# Stuck-process guard instead of a wall-time gate. CMD is stopped only when NOTHING shows progress for
+# STALL_SECONDS (default 600): LOG size and the output of LIVENESS_CMD (e.g. the unit's cgroup cpu.stat,
+# so quiet compile/export/load phases that still use CPU count as alive). BACKSTOP_SECONDS (default 3600)
+# is a pure hang backstop. On a stall STOP_CMD (e.g. "systemctl --user stop UNIT") runs exactly once, then CMD gets
+# GRACE_SECONDS (default 60) to exit by itself so its original exit/summary is collected before any signal.
+# Usage: run_with_progress_watchdog.sh LOG -- CMD [ARGS...]
+# Exit: CMD's own status, or 124 when stopped as stuck (always an invalid run, never a quality result).
+# LIVENESS_CMD runs via bash with WATCHDOG_PID set to CMD's pid (= its process group).
 set -u
 log=$1; shift; [ "$1" = -- ] && shift
-stall=${STALL_SECONDS:-600}; backstop=${BACKSTOP_SECONDS:-3600}
+stall=${STALL_SECONDS:-600}; backstop=${BACKSTOP_SECONDS:-3600}; grace=${GRACE_SECONDS:-60}; poll=${POLL_SECONDS:-5}
 setsid "$@" >>"$log" 2>&1 &
-pid=$!; start=$SECONDS; last_size=-1; last_change=$SECONDS
+pid=$!; export WATCHDOG_PID=$pid
+start=$SECONDS; last=; last_change=$SECONDS
+token() { stat -c %s "$log" 2>/dev/null; [ -n "${LIVENESS_CMD:-}" ] && bash -c "$LIVENESS_CMD" 2>/dev/null; }
 while kill -0 "$pid" 2>/dev/null; do
-  size=$(stat -c %s "$log" 2>/dev/null || echo 0)
-  [ "$size" != "$last_size" ] && { last_size=$size; last_change=$SECONDS; }
+  now=$(token)
+  [ "$now" != "$last" ] && { last=$now; last_change=$SECONDS; }
   if (( SECONDS - last_change >= stall || SECONDS - start >= backstop )); then
-    echo "watchdog: stuck (no log progress ${stall}s or backstop ${backstop}s); killing $pid" >>"$log"
+    echo "watchdog: no progress for $((SECONDS - last_change))s (stall ${stall}s) or backstop ${backstop}s; stopping $pid" >>"$log"
     [ -n "${STOP_CMD:-}" ] && bash -c "$STOP_CMD" >>"$log" 2>&1
-    kill -TERM -- "-$pid" 2>/dev/null; sleep 10; kill -KILL -- "-$pid" 2>/dev/null
+    for _ in $(seq "$grace"); do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+    kill -TERM -- "-$pid" 2>/dev/null; sleep 2; kill -KILL -- "-$pid" 2>/dev/null
     wait "$pid" 2>/dev/null; exit 124
   fi
-  sleep "${POLL_SECONDS:-5}"
+  sleep "$poll"
 done
 wait "$pid"

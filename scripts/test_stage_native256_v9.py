@@ -68,6 +68,7 @@ def main():
         launch = run(runs, 'launch', 'train', 'large', '179041')
         assert 'RuntimeMaxSec=3600' in launch and 'stop sfora-native256-train-large-179041-v9.service' in launch
         assert 'sfora-native256-v9-tools/run_with_progress_watchdog.sh' in launch and 'large-train-179041-command.sh' in launch
+        assert "LIVENESS_CMD='cat /sys/fs/cgroup$(systemctl --user show -P ControlGroup sfora-native256-train-large-179041-v9.service)/cpu.stat" in launch
 
         try:  # refuses to restage over an existing root
             run(runs, 'stage', str(src))

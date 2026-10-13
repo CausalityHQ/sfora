@@ -103,7 +103,10 @@ def launch(phase, arm, seed=None):
             '--setenv=CUDA_VISIBLE_DEVICES=0', '--setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8',
             '/usr/bin/flock', '-n', LOCKS[0], '/usr/bin/flock', '-n', LOCKS[1],
             '/usr/bin/time', '-v', '/bin/bash', str(command)]
-    print(f'STOP_CMD="systemctl --user stop {name_}.service" {TOOLS / "run_with_progress_watchdog.sh"} {NEW / (name_ + ".log")} -- '
+    # Liveness = log growth OR the unit cgroup's cpu.stat moving (io controller is not delegated on DGX).
+    cgroup = f'/sys/fs/cgroup$(systemctl --user show -P ControlGroup {name_}.service)'
+    print(f"LIVENESS_CMD='cat {cgroup}/cpu.stat' STOP_CMD='systemctl --user stop {name_}.service' "
+          f'{TOOLS / "run_with_progress_watchdog.sh"} {NEW / (name_ + ".log")} -- '
           + ' '.join(argv))
 
 
