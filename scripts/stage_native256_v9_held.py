@@ -85,8 +85,9 @@ def authority():
                                          'fact': receipt['identity']['schedule_facts'][str(seed)],
                                          'sha256': receipt['identity']['schedule_sha256']})
     test_mode = os.environ.get('SFORA_NATIVE256_TEST_BYTES') == '1'
-    assert test_mode or sha(FROZEN_SPLIT) == FROZEN_SPLIT_SHA256, 'frozen TRAIN-held split bytes differ'
-    frozen = {'path': str(FROZEN_SPLIT), 'sha256': sha(FROZEN_SPLIT)}
+    split_sha256 = sha(FROZEN_SPLIT)  # hash once: the checked digest is the recorded digest (no re-read swap)
+    assert test_mode or split_sha256 == FROZEN_SPLIT_SHA256, 'frozen TRAIN-held split bytes differ'
+    frozen = {'path': str(FROZEN_SPLIT), 'sha256': split_sha256}
     value = {'schema': held.AUTHORITY_SCHEMA, 'execution_sha256': sha(HELD / 'execution.json'),
              'training_root': str(TRAIN_ROOT), 'training_execution_sha256': sha(TRAIN_ROOT / 'execution.json'),
              'prerequisites': prerequisites, 'endpoints': endpoints, 'schedules': schedules, 'frozen_split': frozen,
