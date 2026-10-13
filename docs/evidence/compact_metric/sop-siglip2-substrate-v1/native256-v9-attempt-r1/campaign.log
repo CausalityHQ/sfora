@@ -1,0 +1,27 @@
+CAMPAIGN 2026-10-13T16:06:04Z BEGIN pid=900278
+/home/riomus/runs/sfora-native256-adaptation-source-v9/authority-large-mechanics-v9r1.json 9c530a2d35c90823037a129d7d465b23f72a00af5ad43e3f796fad7262ce6ae8 /home/riomus/runs/sfora-native256-adaptation-source-v9/large-mechanics-v9r1-command.sh
+CAMPAIGN 2026-10-13T16:06:04Z START mechanics large
+CAMPAIGN 2026-10-13T16:08:49Z UNIT_RC mechanics large rc=0
+/home/riomus/runs/sfora-native256-adaptation-source-v9/authority-so400-mechanics-v9r1.json 8099f49d5e0c64c727a5ed97e5bdb52c7c268d269287a2e68e8274b1cba395dc /home/riomus/runs/sfora-native256-adaptation-source-v9/so400-mechanics-v9r1-command.sh
+CAMPAIGN 2026-10-13T16:08:49Z START mechanics so400
+CAMPAIGN 2026-10-13T16:12:00Z UNIT_RC mechanics so400 rc=0
+/home/riomus/runs/sfora-native256-adaptation-source-v9/authority-large-train-179032-v9r1.json 991e53b65b23922cd222fec40a5e0bd2f3790b869dc80bf3f5aaeaf201e29d78 /home/riomus/runs/sfora-native256-adaptation-source-v9/large-train-179032-v9r1-command.sh
+CAMPAIGN 2026-10-13T16:12:00Z START train large 179032
+CAMPAIGN 2026-10-13T16:16:50Z UNIT_RC train large 179032 rc=0
+/home/riomus/runs/sfora-native256-adaptation-source-v9/authority-so400-train-179032-v9r1.json ba72d3fe0e0ad7b3c69e8fed3d2f970e6dba58461d29b69b85ecfa730e6b28c1 /home/riomus/runs/sfora-native256-adaptation-source-v9/so400-train-179032-v9r1-command.sh
+CAMPAIGN 2026-10-13T16:16:50Z START train so400 179032
+CAMPAIGN 2026-10-13T16:22:16Z UNIT_RC train so400 179032 rc=0
+/home/riomus/runs/sfora-native256-adaptation-source-v9/authority-so400-train-179041-v9r1.json 00c52283957a915a8bc6ec19990d8bb704b13b711d00b75c690b21bef4d975fc /home/riomus/runs/sfora-native256-adaptation-source-v9/so400-train-179041-v9r1-command.sh
+CAMPAIGN 2026-10-13T16:22:16Z START train so400 179041
+CAMPAIGN 2026-10-13T16:27:47Z UNIT_RC train so400 179041 rc=0
+/home/riomus/runs/sfora-native256-adaptation-source-v9/authority-large-train-179041-v9r1.json 41579d2f200671c676f6f3cfa329c56538bb2dc1db496a645e553e3c37fc9be7 /home/riomus/runs/sfora-native256-adaptation-source-v9/large-train-179041-v9r1-command.sh
+CAMPAIGN 2026-10-13T16:27:47Z START train large 179041
+CAMPAIGN 2026-10-13T16:32:43Z UNIT_RC train large 179041 rc=0
+CAMPAIGN 2026-10-13T16:32:43Z DONE all six units rc=0
+held_execution_sha256 fc88c0e097011f88a085369989d02167f158e24f3c8708473ac5dc58fcace8b5
+held_authority_sha256 ceae1507c4f5706e6188a322857886dbccbb93cffd519875f96327afda1a13d8
+HELD 2026-10-13T16:32:58Z BEGIN pid=946934
+HELD 2026-10-13T16:32:58Z START cpu 179032 large
+HELD 2026-10-13T16:33:49Z UNIT_RC cpu 179032 large rc=1
+HELD 2026-10-13T16:33:49Z HOLD after cpu 179032 large
+CAMPAIGN 2026-10-13T16:33:49Z HELD_RC rc=1

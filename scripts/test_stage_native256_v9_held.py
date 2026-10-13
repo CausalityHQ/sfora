@@ -46,7 +46,10 @@ def main():
                   'reference_compare_inshop_sop_warmstart_100.py', 'reference_score_inshop_crop_view_pair.py'):
             (src / f).write_text(f)
         fit = runs / 'fit.json'
-        fit.write_text(json.dumps({'original_receipt': {'path': '/split/receipt.json', 'sha256': 'f' * 64}}))
+        fit.write_text('{}')
+        (runs / 'sfora-pe-augmented-100-v2').mkdir()
+        split = runs / 'sfora-pe-augmented-100-v2' / 'preflight.json'
+        split.write_text('{"held_manifest": []}')
         for arm in ('large', 'so400'):
             (new / f'authority-{arm}-mechanics-v9.json').write_text(json.dumps(
                 {'qualifier_root': f'/q/{arm}', 'qualifier_execution_sha256': arm, 'qualifier_authority': {'path': arm},
@@ -72,7 +75,7 @@ def main():
         run('authority')
         auth = json.loads((held / 'native256-held-authority.json').read_text())
         assert [(e['seed'], e['arm']) for e in auth['endpoints']] == list(ORDER)
-        assert auth['frozen_split'] == {'path': '/split/receipt.json', 'sha256': 'f' * 64}
+        assert auth['frozen_split'] == {'path': str(split), 'sha256': sha(split)}
         assert auth['schedules']['179041']['batches'][3] == [179041, 3] and auth['schedules']['179032']['sha256'] == '179032'
         assert auth['prerequisites']['so400']['cpu'] == {'unit': 'cpu-so400'}
         assert auth['prerequisites']['large']['mechanics']['service_seconds'] == 181.5

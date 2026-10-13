@@ -22,9 +22,14 @@ spec = importlib.util.spec_from_file_location('stage_train', Path(__file__).with
 train = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(train)
 RUNS, TRAIN_ROOT = train.RUNS, train.NEW
-HELD = RUNS / 'sfora-native256-held-v9'
+HELD_TAG = 'v9' + os.environ.get('SFORA_NATIVE256_HELD_ATTEMPT', '')  # fresh held root/units per held attempt
+HELD = RUNS / f'sfora-native256-held-{HELD_TAG}'
+# The FIT original_receipt has no held split; this preflight carries the 12599/6354/6245 TRAIN-held manifest whose
+# fit_manifest equals the FIT rows (exporter validate_split re-checks that binding).
+FROZEN_SPLIT = RUNS / 'sfora-pe-augmented-100-v2' / 'preflight.json'
+FROZEN_SPLIT_SHA256 = '41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293'
 ORDER = ((179032, 'large'), (179032, 'so400'), (179041, 'so400'), (179041, 'large'))
-PINS = {'export_siglip2_substrate_adaptation.py': '30bc6b08714821bf92f2457a7446f93c8cc18abbea0765d8229bc36a4c028194',
+PINS = {'export_siglip2_substrate_adaptation.py': 'fc547d4af03fc1549bf832bc3dbf5f7ecd00716dda50bea3af4a5aae1cfb0bd6',
         'score_siglip2_substrate_adaptation.py': '47fc5c73dc8825669a41f0a9a0c2a895a49c4b750b00475e395e105bb08d6338',
         'reference_compare_inshop_sop_warmstart_100.py': '8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250',
         'reference_score_inshop_crop_view_pair.py': '16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed'}
@@ -34,7 +39,7 @@ sha, dump = train.sha, train.dump
 
 
 def unit(phase, seed=None, arm=None):
-    return f'sfora-native256-held-{phase}' + (f'-{arm}-{seed}' if seed else '') + '-v9'
+    return f'sfora-native256-held-{phase}' + (f'-{arm}-{seed}' if seed else '') + f'-{HELD_TAG}'
 
 
 def exporter():
@@ -79,9 +84,9 @@ def authority():
         schedules.setdefault(str(seed), {'batches': [row['batch'] for row in receipt['steps']],
                                          'fact': receipt['identity']['schedule_facts'][str(seed)],
                                          'sha256': receipt['identity']['schedule_sha256']})
-        fits = [p for p in receipt['input_guards'] if p.endswith('/fit.json')]
-        assert len(fits) == 1, 'one FIT manifest guard expected'
-        frozen = json.loads(Path(fits[0]).read_text())['original_receipt']
+    test_mode = os.environ.get('SFORA_NATIVE256_TEST_BYTES') == '1'
+    assert test_mode or sha(FROZEN_SPLIT) == FROZEN_SPLIT_SHA256, 'frozen TRAIN-held split bytes differ'
+    frozen = {'path': str(FROZEN_SPLIT), 'sha256': sha(FROZEN_SPLIT)}
     value = {'schema': held.AUTHORITY_SCHEMA, 'execution_sha256': sha(HELD / 'execution.json'),
              'training_root': str(TRAIN_ROOT), 'training_execution_sha256': sha(TRAIN_ROOT / 'execution.json'),
              'prerequisites': prerequisites, 'endpoints': endpoints, 'schedules': schedules, 'frozen_split': frozen,

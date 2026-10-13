@@ -1,0 +1,14 @@
+{
+  "schema": "native256-v9-attempt-hold-v1",
+  "campaign": {"attempt": "r1", "driver_pid": 900278, "log": "/home/riomus/runs/sfora-native256-v9r1-tools/campaign.log",
+               "began": "2026-10-13T16:06:04Z", "ended": "2026-10-13T16:33:49Z", "authorization": "orchestrator 1791906910442341877-1307188"},
+  "frozen": {"tools_master": "7b36d1e214f6cf3c7ec893c72a4d83788dce666c", "v9_source": "f19b62f7c8414c7204194bd63965058009383064",
+             "execution_sha256": "a74746f333a60d2774c2905258630458e1a80e2a2726c960de9128047477839d"},
+  "valid_units": "mechanics large/so400 + TRAIN100 032L, 032S, 041S, 041L all rc 0, pass, exit rehash; see units.txt",
+  "failed_unit": {"unit": "sfora-native256-held-cpu-large-179032-v9", "invocation_id": "f460de287ce5431a9084358432567080",
+                  "service_runtime": "46.907s", "error": "Substrate held export rejected: 'held_manifest'"},
+  "quality_read": false,
+  "decision": "HOLD at first failure; TRAIN endpoints remain valid, unconsumed by any quality read",
+  "root_cause": "exporter authority required frozen_split == fit.json original_receipt (sfora-large-teacher-fit-targets-v1/receipt.json), but validate_split reads held_manifest/query/gallery, which that receipt lacks. Never-run held path; source-only fixtures masked it.",
+  "proposed_fix": "v9 bb6361e2 (exporter fc547d4a): drop the equality; validate_split keeps fit_manifest==FIT rows + exact 12599/6354/6245 disjoint split. Held stage pins sfora-pe-augmented-100-v2/preflight.json sha 41b5fe09 (fit_manifest == FIT rows verified on DGX). Fresh held names via SFORA_NATIVE256_HELD_ATTEMPT=h1."
+}
