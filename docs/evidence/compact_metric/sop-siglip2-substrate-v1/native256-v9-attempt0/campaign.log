@@ -1,0 +1,18 @@
+CAMPAIGN 2026-10-13T15:38:01Z BEGIN pid=886724
+/home/riomus/runs/sfora-native256-adaptation-source-v9/authority-large-mechanics-v9.json 9c530a2d35c90823037a129d7d465b23f72a00af5ad43e3f796fad7262ce6ae8 /home/riomus/runs/sfora-native256-adaptation-source-v9/large-mechanics-command.sh
+CAMPAIGN 2026-10-13T15:38:01Z START mechanics large
+CAMPAIGN 2026-10-13T15:40:46Z UNIT_RC mechanics large rc=0
+/home/riomus/runs/sfora-native256-adaptation-source-v9/authority-so400-mechanics-v9.json 8099f49d5e0c64c727a5ed97e5bdb52c7c268d269287a2e68e8274b1cba395dc /home/riomus/runs/sfora-native256-adaptation-source-v9/so400-mechanics-command.sh
+CAMPAIGN 2026-10-13T15:40:46Z START mechanics so400
+CAMPAIGN 2026-10-13T15:43:52Z UNIT_RC mechanics so400 rc=0
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-native256-v9-tools/stage_native256_v9.py", line 123, in <module>
+    {'stage': stage, 'authority': authority, 'launch': launch}[sys.argv[1]](*sys.argv[2:])
+  File "/home/riomus/runs/sfora-native256-v9-tools/stage_native256_v9.py", line 86, in authority
+    value['selected_mechanics'] = None if phase == 'mechanics' else terminal('mechanics', arm, 179032)
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native256-v9-tools/stage_native256_v9.py", line 72, in terminal
+    invocation = re.search(r'^Running as unit: \S+\.service; invocation ID: ([0-9a-f]{32})$', text, re.M).group(1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'group'
+CAMPAIGN 2026-10-13T15:43:52Z AUTHORITY_FAIL train large 179032

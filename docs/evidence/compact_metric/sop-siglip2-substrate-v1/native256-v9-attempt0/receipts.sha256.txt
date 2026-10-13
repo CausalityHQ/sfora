@@ -1,0 +1,9 @@
+db75c6fa51c21d23d5236d238daf653dad64f62bd4444bd797e213b668496994  sfora-native256-mechanics-large-v9/receipt.json
+0b053c66503757c1077c75a02d1ed360961709649a02afad46fdcbcbc80c11ee  sfora-native256-mechanics-so400-v9/receipt.json
+9c530a2d35c90823037a129d7d465b23f72a00af5ad43e3f796fad7262ce6ae8  sfora-native256-adaptation-source-v9/authority-large-mechanics-v9.json
+8099f49d5e0c64c727a5ed97e5bdb52c7c268d269287a2e68e8274b1cba395dc  sfora-native256-adaptation-source-v9/authority-so400-mechanics-v9.json
+a74746f333a60d2774c2905258630458e1a80e2a2726c960de9128047477839d  sfora-native256-adaptation-source-v9/execution.json
+bcff998c33d9782999e25c80978ce45dc5b1d9784c465b7c4b00e09cabd44e99  sfora-native256-adaptation-source-v9/large-mechanics-command.sh
+19743f4050a3f10b5368a73b440372803e03a3a627c78da78da71deffa4d7369  sfora-native256-adaptation-source-v9/so400-mechanics-command.sh
+large True 17 True True 160.9 6128466432 cbb7765459f640b7a156ce15cc8f6a09
+so400 True 17 True True 180.8 7286658048 0025c1f08eca4006afd1b8c652c757d0

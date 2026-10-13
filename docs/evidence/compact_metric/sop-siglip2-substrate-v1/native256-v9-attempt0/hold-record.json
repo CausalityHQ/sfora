@@ -1,0 +1,18 @@
+{
+  "schema": "native256-v9-attempt-hold-v1",
+  "campaign": {"driver_pid": 886724, "log": "/home/riomus/runs/sfora-native256-v9-tools/campaign.log",
+               "began": "2026-10-13T15:38:01Z", "ended": "2026-10-13T15:43:52Z", "authorization": "orchestrator 1791904217689457628-1307188"},
+  "frozen": {"tools_master": "f13ea3b4e2b576e3548b7b1720809e86642dd352", "v9_source": "f19b62f7c8414c7204194bd63965058009383064",
+             "execution_sha256": "a74746f333a60d2774c2905258630458e1a80e2a2726c960de9128047477839d"},
+  "units": {
+    "sfora-native256-mechanics-large-v9": {"internal_pass": true, "invocation_id": "cbb7765459f640b7a156ce15cc8f6a09", "wall_seconds": 160.9,
+      "peak_cuda_allocated_bytes": 6128466432, "service_runtime": "2min 42.652s"},
+    "sfora-native256-mechanics-so400-v9": {"internal_pass": true, "invocation_id": "0025c1f08eca4006afd1b8c652c757d0", "wall_seconds": 180.8,
+      "peak_cuda_allocated_bytes": 7286658048}},
+  "train_units_launched": 0,
+  "quality_read": false,
+  "decision": "HOLD: both mechanics terminals unadmissible (log header lacks '; invocation ID: ...'); stage tool refused TRAIN authority before any TRAIN launch",
+  "root_cause": "systemd 255 run.c: with --pipe (arg_stdio != NONE) systemd-run skips bus_wait_for_jobs_one, then reads InvocationID immediately; empty property -> 'Running as unit: X' without ID. Race; v6 won it, both v9 attempts lost it.",
+  "verified_fix": "drop --pipe; --wait waits for the start job; unit StandardOutput/StandardError=append:LOG. Detached DGX probes 3/3 print the ID with v6-format log lines.",
+  "preserved": "original logs/receipts untouched on DGX; first-attempt names never reused (attempt tag r1 for any rerun)"
+}

@@ -65,12 +65,12 @@ def authority():
     held = exporter()
     prerequisites, endpoints, schedules = {}, [], {}
     for arm in ('large', 'so400'):
-        launch = json.loads((TRAIN_ROOT / f'authority-{arm}-mechanics-v9.json').read_text())
+        launch = json.loads((TRAIN_ROOT / f'authority-{train.name("mechanics", arm, 179032, train.TAG)}.json').read_text())
         prerequisites[arm] = {k: launch[k] for k in ('qualifier_root', 'qualifier_execution_sha256', 'qualifier_authority')}
         prerequisites[arm].update(cpu=launch['selected_cpu'], mechanics=train.terminal('mechanics', arm, 179032))
     for seed, arm in ORDER:
         receipt = json.loads(train_receipt(seed, arm).read_text())
-        launch = TRAIN_ROOT / f'authority-{arm}-train-{seed}-v9.json'
+        launch = TRAIN_ROOT / f'authority-{train.name("train", arm, seed, train.TAG)}.json'
         checkpoint = train_receipt(seed, arm).parent / 'resume.pt'
         endpoints.append({'seed': seed, 'arm': arm, 'launch': {'path': str(launch), 'sha256': sha(launch)},
                           'terminal': train.terminal('train', arm, seed),

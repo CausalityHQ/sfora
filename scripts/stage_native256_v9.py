@@ -19,6 +19,8 @@ from pathlib import Path
 
 RUNS = Path(os.environ.get('SFORA_NATIVE256_RUNS', '/home/riomus/runs'))
 OLD, NEW = RUNS / 'sfora-native256-adaptation-source-v6', RUNS / 'sfora-native256-adaptation-source-v9'
+# A new attempt (e.g. 'r1') gets fresh unit/output/log/authority/command names; earlier attempts stay untouched.
+TAG = 'v9' + os.environ.get('SFORA_NATIVE256_ATTEMPT', '')
 FILES = ('deployed_code_rank.py', 'reference_train_sop_siglip2_compact.py', 'reference_unicom_training.py',
          'test_siglip2_substrate_adaptation.py', 'train_siglip2_substrate_adaptation.py')
 CHANGED = {'test_siglip2_substrate_adaptation.py', 'train_siglip2_substrate_adaptation.py'}
@@ -45,7 +47,7 @@ def name(phase, arm, seed, version):
 
 
 def unit(phase, arm, seed):
-    return f'sfora-native256-{phase}-{arm}' + (f'-{seed}' if phase == 'train' else '') + '-v9'
+    return f'sfora-native256-{phase}-{arm}' + (f'-{seed}' if phase == 'train' else '') + f'-{TAG}'
 
 
 def stage(src):
@@ -80,6 +82,11 @@ def terminal_from(log, receipt, name_):
             'service_seconds': float(Decimal(minutes or '0') * 60 + Decimal(seconds)), 'unit': name_}
 
 
+def command_path(phase, arm, seed):
+    plain = f'{name(phase, arm, seed, TAG)}-command.sh'
+    return NEW / (plain.replace('-v9-command', '-command') if TAG == 'v9' else plain)
+
+
 def authority(phase, arm, seed=None):
     seed = int(seed or 179032)
     value = json.loads((OLD / f'authority-{name(phase, arm, seed, "v6")}.json').read_text())
@@ -87,7 +94,7 @@ def authority(phase, arm, seed=None):
     value['execution_sha256'] = sha(NEW / 'execution.json')
     value['resource_policy'] = {**value['resource_policy'], 'seconds': SECONDS}
     value['selected_mechanics'] = None if phase == 'mechanics' else terminal('mechanics', arm, 179032)
-    path = NEW / f'authority-{name(phase, arm, seed, "v9")}.json'
+    path = NEW / f'authority-{name(phase, arm, seed, TAG)}.json'
     digest = dump(path, value)
     old_command = (OLD / f'{name(phase, arm, seed, "v6")}-command.sh'.replace('-v6-command', '-command')).read_text()
     header = old_command.split('sha256sum -c', 1)[0]
@@ -99,20 +106,25 @@ def authority(phase, arm, seed=None):
     run = (f'{PYTHON} -B {NEW / "train_siglip2_substrate_adaptation.py"} --execution-sha256 {value["execution_sha256"]} '
            f'--authority {path} --authority-sha256 {digest} --phase {phase} --arm {arm} --seed {seed} '
            f'--output {RUNS / unit(phase, arm, seed)}\n')
-    command = NEW / f'{name(phase, arm, seed, "v9")}-command.sh'.replace('-v9-command', '-command')
+    command = command_path(phase, arm, seed)
     command.write_text(header + check + run + check)
     print(path, digest, command)
 
 
 def launch(phase, arm, seed=None):
     seed = int(seed or 179032)
-    command = NEW / f'{name(phase, arm, seed, "v9")}-command.sh'.replace('-v9-command', '-command')
+    command = command_path(phase, arm, seed)
     print(launch_line(unit(phase, arm, seed), NEW, command,
                       ['--setenv=CUDA_VISIBLE_DEVICES=0', '--setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8']))
 
 
 def launch_line(name_, root, command, cuda_env):
-    argv = ['systemd-run', '--user', '--wait', '--collect', '--pipe', f'--unit={name_}',
+    # No --pipe: with --pipe systemd-run 255 skips waiting for the start job and can print "Running as unit"
+    # without the invocation ID that admission requires (observed for both first-attempt mechanics units).
+    # Unit stdout/stderr append to the same log the client writes, keeping the v6 line format.
+    log = root / f'{name_}.log'
+    argv = ['systemd-run', '--user', '--wait', '--collect', f'--unit={name_}',
+            '-p', f'StandardOutput=append:{log}', '-p', f'StandardError=append:{log}',
             '-p', f'WorkingDirectory={root}', '-p', f'RuntimeMaxSec={SECONDS}', '-p', 'MemoryMax=8G',
             '-p', 'MemorySwapMax=0', '-p', 'KillMode=control-group', '-p', f'ExecStopPost=/usr/bin/python3 {FOOTERS[1]}',
             *cuda_env, '/usr/bin/flock', '-n', LOCKS[0], '/usr/bin/flock', '-n', LOCKS[1],
@@ -122,7 +134,7 @@ def launch_line(name_, root, command, cuda_env):
     liveness = f'cg=$(systemctl --user show -P ControlGroup {name_}.service); [ -n "$cg" ] && cat "/sys/fs/cgroup$cg/cpu.stat"'
     return (f"LIVENESS_CMD='{liveness}' STOP_CMD='systemctl --user stop {name_}.service' "
             f'BACKSTOP_SECONDS={BACKSTOP} {Path(__file__).absolute().parent / "run_with_progress_watchdog.sh"} '
-            f'{root / (name_ + ".log")} -- ' + shlex.join(argv))
+            f'{log} -- ' + shlex.join(argv))
 
 
 if __name__ == '__main__':

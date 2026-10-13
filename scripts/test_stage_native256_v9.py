@@ -80,6 +80,21 @@ def main():
         argv = shlex.split(launch.split(' -- ', 1)[1])
         assert argv[argv.index('-p', argv.index('KillMode=control-group')) + 1].startswith('ExecStopPost=/usr/bin/python3 ')
         assert argv[-2:] == ['/bin/bash', str(new / 'large-train-179041-command.sh')] and 'BACKSTOP_SECONDS=3780' in launch
+        unit_log = str(new / 'sfora-native256-train-large-179041-v9.log')
+        assert '--pipe' not in argv and '--wait' in argv and f'StandardOutput=append:{unit_log}' in argv
+        assert f'StandardError=append:{unit_log}' in argv and launch.split(' -- ', 1)[0].endswith(unit_log)
+
+        # A second attempt gets fresh names and never rewrites first-attempt files.
+        before = {p.name: p.read_bytes() for p in new.iterdir()}
+        retry = {**os.environ, 'SFORA_NATIVE256_RUNS': str(runs), 'SFORA_NATIVE256_TEST_BYTES': '1',
+                 'SFORA_NATIVE256_ATTEMPT': 'r1'}
+        subprocess.run([sys.executable, '-B', str(TOOL), 'authority', 'mechanics', 'large'], env=retry, check=True,
+                       capture_output=True)
+        assert all((new / n).read_bytes() == b for n, b in before.items())
+        assert (new / 'authority-large-mechanics-v9r1.json').exists() and (new / 'large-mechanics-v9r1-command.sh').exists()
+        r1 = subprocess.run([sys.executable, '-B', str(TOOL), 'launch', 'mechanics', 'large'], env=retry, check=True,
+                            capture_output=True, text=True).stdout
+        assert '--unit=sfora-native256-mechanics-large-v9r1' in r1 and 'sfora-native256-mechanics-large-v9r1.log' in r1
         assert 'RuntimeMaxSec=3600' in launch and 'stop sfora-native256-train-large-179041-v9.service' in launch
         assert str(TOOL.with_name('run_with_progress_watchdog.sh')) in launch and 'large-train-179041-command.sh' in launch
         assert ("LIVENESS_CMD='cg=$(systemctl --user show -P ControlGroup sfora-native256-train-large-179041-v9.service); "
