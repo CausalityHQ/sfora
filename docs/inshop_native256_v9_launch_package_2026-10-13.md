@@ -104,3 +104,14 @@ and 0% utilisation; no training processes; 118 GiB RAM available; load 0.48. Re-
   credential was read or copied.
 - Needed: the operator's Hugging Face account accepts the DINOv3 license for this one repo, plus a read-scoped token provisioned
   on DGX by the operator. Purpose: one frozen-substrate In-Shop TRAIN-held paired pilot under the same procedure as above.
+
+## Staging and launch tooling
+
+`scripts/stage_native256_v9.py` (stdlib, runs on DGX) derives every v9 file from the frozen v6 root: `stage SRC` copies
+the v9 trainer/test (from commit `79e449bf`) and the unchanged references; `authority PHASE ARM [SEED]` copies the same-arm
+v6 authority, changing only `execution_sha256`, `resource_policy.seconds` and (TRAIN) `selected_mechanics` taken from the
+completed v9 mechanics log/receipt, and writes the command script with v6's header/trap and both `sha256sum -c` blocks;
+`launch` prints the watchdog-wrapped `systemd-run` command (tools live in `sfora-native256-v9-tools`, outside the
+authenticated root). Checks: `scripts/test_stage_native256_v9.py` PASS (hermetic). DGX dry run in a `/tmp` copy of the real
+v6 root: authority diff = `execution_sha256` + `resource_policy` only; `bash -n` and both hash blocks pass; copy removed.
+Nothing has been written under `/home/riomus/runs`.
