@@ -705,7 +705,7 @@ def run(args):
         cpu_terminal = read_json({'path': str(args.cpu_terminal), 'sha256': args.cpu_terminal_sha256}, context['guards'])
         cpu_proof = read_json(cpu_terminal['receipt'], context['guards'])
         validate_cpu(cpu_proof, context, endpoint)
-        zero_events(context['selected_context']['initialized']['init'].admit_terminal(cpu_proof, cpu_terminal, 120, context['guards']))
+        zero_events(context['selected_context']['initialized']['init'].admit_terminal(cpu_proof, cpu_terminal, policy('cpu')['seconds'], context['guards']))
     else:
         require(args.cpu_terminal is None and args.cpu_terminal_sha256 is None, 'CPU phase cannot supply prior proof')
     rng = torch.random.get_rng_state().clone()
