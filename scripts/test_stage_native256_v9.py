@@ -81,7 +81,7 @@ def main():
         assert argv[argv.index('-p', argv.index('KillMode=control-group')) + 1].startswith('ExecStopPost=/usr/bin/python3 ')
         assert argv[-2:] == ['/bin/bash', str(new / 'large-train-179041-command.sh')] and 'BACKSTOP_SECONDS=3780' in launch
         assert 'RuntimeMaxSec=3600' in launch and 'stop sfora-native256-train-large-179041-v9.service' in launch
-        assert 'sfora-native256-v9-tools/run_with_progress_watchdog.sh' in launch and 'large-train-179041-command.sh' in launch
+        assert str(TOOL.with_name('run_with_progress_watchdog.sh')) in launch and 'large-train-179041-command.sh' in launch
         assert ("LIVENESS_CMD='cg=$(systemctl --user show -P ControlGroup sfora-native256-train-large-179041-v9.service); "
                 '[ -n "$cg" ] && cat "/sys/fs/cgroup$cg/cpu.stat"\'' in launch)
 

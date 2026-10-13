@@ -18,7 +18,6 @@ from decimal import Decimal
 from pathlib import Path
 
 RUNS = Path(os.environ.get('SFORA_NATIVE256_RUNS', '/home/riomus/runs'))
-TOOLS = RUNS / 'sfora-native256-v9-tools'  # watchdog lives outside the authenticated source root
 OLD, NEW = RUNS / 'sfora-native256-adaptation-source-v6', RUNS / 'sfora-native256-adaptation-source-v9'
 FILES = ('deployed_code_rank.py', 'reference_train_sop_siglip2_compact.py', 'reference_unicom_training.py',
          'test_siglip2_substrate_adaptation.py', 'train_siglip2_substrate_adaptation.py')
@@ -61,9 +60,13 @@ def stage(src):
 
 
 def terminal(phase, arm, seed):
-    """Descriptor of a completed v9 unit, from its original log and receipt (admission re-checks everything)."""
-    log = NEW / f'{unit(phase, arm, seed)}.log'
-    receipt = RUNS / unit(phase, arm, seed) / 'receipt.json'
+    """Descriptor of a completed v9 TRAIN-root unit, from its original log and receipt."""
+    name_ = unit(phase, arm, seed)
+    return terminal_from(NEW / f'{name_}.log', RUNS / name_ / 'receipt.json', name_)
+
+
+def terminal_from(log, receipt, name_):
+    """TERMINAL descriptor from an original unit log + receipt (admission re-checks everything)."""
     text = log.read_text()
     assert not re.search(r'^watchdog:', text, re.M), 'watchdog-stopped run is invalid and never reused'
     # Admission parses only '[Nmin ]S[.f]s'; systemd may print '...ms' or omit seconds. Pre-registered: such a
@@ -74,7 +77,7 @@ def terminal(phase, arm, seed):
     rss = int(re.search(r'^\tMaximum resident set size \(kbytes\): (\d+)$', text, re.M).group(1))
     return {'both_locks_held': True, 'invocation_id': invocation, 'log': {'path': str(log), 'sha256': sha(log)},
             'native_peak_rss_kib': rss, 'receipt': {'path': str(receipt), 'sha256': sha(receipt)},
-            'service_seconds': float(Decimal(minutes or '0') * 60 + Decimal(seconds)), 'unit': unit(phase, arm, seed)}
+            'service_seconds': float(Decimal(minutes or '0') * 60 + Decimal(seconds)), 'unit': name_}
 
 
 def authority(phase, arm, seed=None):
@@ -103,20 +106,23 @@ def authority(phase, arm, seed=None):
 
 def launch(phase, arm, seed=None):
     seed = int(seed or 179032)
-    name_ = unit(phase, arm, seed)
     command = NEW / f'{name(phase, arm, seed, "v9")}-command.sh'.replace('-v9-command', '-command')
+    print(launch_line(unit(phase, arm, seed), NEW, command,
+                      ['--setenv=CUDA_VISIBLE_DEVICES=0', '--setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8']))
+
+
+def launch_line(name_, root, command, cuda_env):
     argv = ['systemd-run', '--user', '--wait', '--collect', '--pipe', f'--unit={name_}',
-            '-p', f'WorkingDirectory={NEW}', '-p', f'RuntimeMaxSec={SECONDS}', '-p', 'MemoryMax=8G',
+            '-p', f'WorkingDirectory={root}', '-p', f'RuntimeMaxSec={SECONDS}', '-p', 'MemoryMax=8G',
             '-p', 'MemorySwapMax=0', '-p', 'KillMode=control-group', '-p', f'ExecStopPost=/usr/bin/python3 {FOOTERS[1]}',
-            '--setenv=CUDA_VISIBLE_DEVICES=0', '--setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8',
-            '/usr/bin/flock', '-n', LOCKS[0], '/usr/bin/flock', '-n', LOCKS[1],
+            *cuda_env, '/usr/bin/flock', '-n', LOCKS[0], '/usr/bin/flock', '-n', LOCKS[1],
             '/usr/bin/time', '-v', '/bin/bash', str(command)]
     # Liveness = log growth OR the unit cgroup's cpu.stat moving (io controller is not delegated on DGX).
     # Empty ControlGroup (unit not yet started/already collected) must print nothing, never the root cgroup.
     liveness = f'cg=$(systemctl --user show -P ControlGroup {name_}.service); [ -n "$cg" ] && cat "/sys/fs/cgroup$cg/cpu.stat"'
-    print(f"LIVENESS_CMD='{liveness}' STOP_CMD='systemctl --user stop {name_}.service' "
-          f'BACKSTOP_SECONDS={BACKSTOP} {TOOLS / "run_with_progress_watchdog.sh"} {NEW / (name_ + ".log")} -- '
-          + shlex.join(argv))
+    return (f"LIVENESS_CMD='{liveness}' STOP_CMD='systemctl --user stop {name_}.service' "
+            f'BACKSTOP_SECONDS={BACKSTOP} {Path(__file__).absolute().parent / "run_with_progress_watchdog.sh"} '
+            f'{root / (name_ + ".log")} -- ' + shlex.join(argv))
 
 
 if __name__ == '__main__':
