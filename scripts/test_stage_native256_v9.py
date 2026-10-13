@@ -11,7 +11,7 @@ TOOL = Path(__file__).with_name('stage_native256_v9.py')
 
 
 def run(runs, *args):
-    env = {**os.environ, 'SFORA_NATIVE256_RUNS': str(runs)}
+    env = {**os.environ, 'SFORA_NATIVE256_RUNS': str(runs), 'SFORA_NATIVE256_TEST_BYTES': '1'}
     return subprocess.run([sys.executable, '-B', str(TOOL), *args], env=env, check=True, capture_output=True, text=True).stdout
 
 
@@ -65,10 +65,25 @@ def main():
         selected = train['selected_mechanics']
         assert selected['service_seconds'] == 170.814 and selected['invocation_id'] == 'a' * 32
         assert selected['native_peak_rss_kib'] == 4448844 and selected['unit'] == 'sfora-native256-mechanics-large-v9'
+        log = new / 'sfora-native256-mechanics-large-v9.log'
+        good = log.read_text()
+        for bad in (good + 'watchdog: stall (no progress 600s)\n', good.replace('2min 50.814s', '5min 716ms')):
+            log.write_text(bad)
+            try:
+                run(runs, 'authority', 'train', 'large', '179041')
+                raise AssertionError('invalid mechanics terminal admitted')
+            except subprocess.CalledProcessError:
+                pass
+        log.write_text(good)
         launch = run(runs, 'launch', 'train', 'large', '179041')
+        import shlex
+        argv = shlex.split(launch.split(' -- ', 1)[1])
+        assert argv[argv.index('-p', argv.index('KillMode=control-group')) + 1].startswith('ExecStopPost=/usr/bin/python3 ')
+        assert argv[-2:] == ['/bin/bash', str(new / 'large-train-179041-command.sh')] and 'BACKSTOP_SECONDS=3780' in launch
         assert 'RuntimeMaxSec=3600' in launch and 'stop sfora-native256-train-large-179041-v9.service' in launch
         assert 'sfora-native256-v9-tools/run_with_progress_watchdog.sh' in launch and 'large-train-179041-command.sh' in launch
-        assert "LIVENESS_CMD='cat /sys/fs/cgroup$(systemctl --user show -P ControlGroup sfora-native256-train-large-179041-v9.service)/cpu.stat" in launch
+        assert ("LIVENESS_CMD='cg=$(systemctl --user show -P ControlGroup sfora-native256-train-large-179041-v9.service); "
+                '[ -n "$cg" ] && cat "/sys/fs/cgroup$cg/cpu.stat"\'' in launch)
 
         try:  # refuses to restage over an existing root
             run(runs, 'stage', str(src))

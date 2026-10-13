@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import sys
 from decimal import Decimal
 from pathlib import Path
@@ -23,6 +24,9 @@ FILES = ('deployed_code_rank.py', 'reference_train_sop_siglip2_compact.py', 'ref
          'test_siglip2_substrate_adaptation.py', 'train_siglip2_substrate_adaptation.py')
 CHANGED = {'test_siglip2_substrate_adaptation.py', 'train_siglip2_substrate_adaptation.py'}
 SECONDS = 3600
+BACKSTOP = SECONDS + 180  # watchdog backstop strictly after systemd RuntimeMaxSec
+V9 = {'train_siglip2_substrate_adaptation.py': '1b73b2a6bdc1ee0cc468109e15746c8c5cde32569ac3b5de05d07f9e2f0b573f',
+      'test_siglip2_substrate_adaptation.py': '7df1d58718709b3a1230ec6fef0cc9a806abcb9e4eceaba4c0267df5edc3e9c2'}
 PYTHON = '/home/riomus/group-learning/.venv/bin/python'
 FOOTERS = (RUNS / 'sfora-native256-initialized-cpu-final-footer-v1.py', RUNS / 'sfora-native256-stop-cgroup-footer-v1.py')
 LOCKS = ('/home/riomus/runs/.sfora-siglip2-gpu.lock', '/home/riomus/.sfora-siglip2-gpu.lock')
@@ -52,7 +56,7 @@ def stage(src):
         (NEW / file).write_bytes(((Path(src) if file in CHANGED else OLD) / file).read_bytes())
     code = {file: sha(NEW / file) for file in FILES}
     assert all(code[f] == old_code[f] for f in FILES if f not in CHANGED), 'unchanged reference bytes differ from v6'
-    assert all(code[f] != old_code[f] for f in CHANGED), 'v9 trainer/test must differ from v6'
+    assert all(code[f] == V9[f] for f in CHANGED) or os.environ.get('SFORA_NATIVE256_TEST_BYTES') == '1', 'v9 bytes differ from 79e449bf'
     print('execution_sha256', dump(NEW / 'execution.json', code))
 
 
@@ -61,6 +65,10 @@ def terminal(phase, arm, seed):
     log = NEW / f'{unit(phase, arm, seed)}.log'
     receipt = RUNS / unit(phase, arm, seed) / 'receipt.json'
     text = log.read_text()
+    assert not re.search(r'^watchdog:', text, re.M), 'watchdog-stopped run is invalid and never reused'
+    # Admission parses only '[Nmin ]S[.f]s'; systemd may print '...ms' or omit seconds. Pre-registered: such a
+    # valid run is rerun under a new unit name (not a failed state), never re-parsed.
+    assert re.search(r'^Service runtime: (?:\d+min )?\d+(?:\.\d+)?s$', text, re.M), 'unadmissible runtime format: rerun'
     invocation = re.search(r'^Running as unit: \S+\.service; invocation ID: ([0-9a-f]{32})$', text, re.M).group(1)
     minutes, seconds = re.search(r'^Service runtime: (?:(\d+)min )?(\d+(?:\.\d+)?)s$', text, re.M).groups()
     rss = int(re.search(r'^\tMaximum resident set size \(kbytes\): (\d+)$', text, re.M).group(1))
@@ -104,10 +112,11 @@ def launch(phase, arm, seed=None):
             '/usr/bin/flock', '-n', LOCKS[0], '/usr/bin/flock', '-n', LOCKS[1],
             '/usr/bin/time', '-v', '/bin/bash', str(command)]
     # Liveness = log growth OR the unit cgroup's cpu.stat moving (io controller is not delegated on DGX).
-    cgroup = f'/sys/fs/cgroup$(systemctl --user show -P ControlGroup {name_}.service)'
-    print(f"LIVENESS_CMD='cat {cgroup}/cpu.stat' STOP_CMD='systemctl --user stop {name_}.service' "
-          f'{TOOLS / "run_with_progress_watchdog.sh"} {NEW / (name_ + ".log")} -- '
-          + ' '.join(argv))
+    # Empty ControlGroup (unit not yet started/already collected) must print nothing, never the root cgroup.
+    liveness = f'cg=$(systemctl --user show -P ControlGroup {name_}.service); [ -n "$cg" ] && cat "/sys/fs/cgroup$cg/cpu.stat"'
+    print(f"LIVENESS_CMD='{liveness}' STOP_CMD='systemctl --user stop {name_}.service' "
+          f'BACKSTOP_SECONDS={BACKSTOP} {TOOLS / "run_with_progress_watchdog.sh"} {NEW / (name_ + ".log")} -- '
+          + shlex.join(argv))
 
 
 if __name__ == '__main__':

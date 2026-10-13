@@ -17,7 +17,9 @@ rc=$?; [ $rc -eq 0 ] || fail "quiet-but-alive killed (rc $rc)"
 LIVENESS_CMD='ps -o times= -g "$WATCHDOG_PID"' STOP_CMD="echo stop >> $d/stops" "$W" "$d/dead.log" -- sleep 317
 rc=$?; [ $rc -eq 124 ] || fail "dead child rc $rc"
 [ "$(wc -l < "$d/stops")" -eq 1 ] || fail "STOP_CMD ran $(wc -l < "$d/stops") times"
-[ "$(grep -c '^watchdog:' "$d/dead.log")" -eq 1 ] || fail "duplicate stop message"
+[ "$(grep -c '^watchdog: stall' "$d/dead.log")" -eq 1 ] || fail "duplicate stop message"
+grep -q '^watchdog: stop rc=0$' "$d/dead.log" || fail "stop rc not recorded"
+"$W" "$d/dead.log" -- true 2>/dev/null; [ $? -eq 2 ] || fail "existing log not refused"
 ps -eo args | grep -qx 'sleep 317' && fail "orphan left"
 
 # 3. Exit collection after STOP_CMD: a child that exits by itself within grace keeps its summary in the log.
