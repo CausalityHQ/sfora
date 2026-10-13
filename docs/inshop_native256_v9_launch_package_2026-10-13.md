@@ -23,7 +23,7 @@ pin them (`a1684917…`, `5be3d922…`). The v9 bytes are staged to a fresh DGX 
 |---|---|---|---|
 | `train_siglip2_substrate_adaptation.py` | `a168491758481a10…` | `1b73b2a6bdc1ee0cc468109e15746c8c5cde32569ac3b5de05d07f9e2f0b573f` | `policy()` seconds 300 → `HANG_BACKSTOP_SECONDS = 3600` (mechanics and train) |
 | `test_siglip2_substrate_adaptation.py` | `03c31bf456ca84a6…` | `7df1d58718709b3a1230ec6fef0cc9a806abcb9e4eceaba4c0267df5edc3e9c2` | Policy assertion; original-policy AST restore before the frozen whole-contract pin; historical packing-helper fixture |
-| `export_siglip2_substrate_adaptation.py` | `b4f58e3d…` (master) | `30bc6b08714821bf92f2457a7446f93c8cc18abbea0765d8229bc36a4c028194` | Held cpu/export/score seconds → 3600 (policy and the held CPU-proof admission); cost gate report-only |
+| `export_siglip2_substrate_adaptation.py` | `89eed215…` (master; pinned by five evaluators) | `30bc6b08714821bf92f2457a7446f93c8cc18abbea0765d8229bc36a4c028194` | Held cpu/export/score seconds → 3600 (policy and the held CPU-proof admission); cost gate report-only |
 | `score_siglip2_substrate_adaptation.py` | `5be3d922b198bd2f…` | `47fc5c73dc8825669a41f0a9a0c2a895a49c4b750b00475e395e105bb08d6338` | `cost_pass` reports the actual cost result; held CPU/export admission uses held policy seconds; `decision_scope` = quality only |
 | `deployed_code_rank.py`, `reference_train_sop_siglip2_compact.py`, `reference_unicom_training.py` | `435bd73d…`, `1946bafe…`, `a40b0dac…` | unchanged | — |
 
