@@ -140,13 +140,19 @@ def main():
     endpoints[179032, 'so400']['training_wall_seconds'] = 201.
     costs = held.paired_cost(endpoints)
     assert costs['179032']['training_wall_ratio'] == 2.01 and not costs['179032']['training_wall_ratio_gate']
+    assert costs['179032']['cost_gate_pass'] and costs['179041']['cost_gate_pass']
+    # Cost overrun is reported, never a reason to skip the quality read (operator hill-climb policy).
     endpoints[179041, 'so400']['service_seconds'] = 226.
+    costs = held.paired_cost(endpoints)
+    assert costs['179041']['whole_service_ratio'] > 1.50 and not costs['179041']['cost_gate_pass']
+    assert costs['179032']['cost_gate_pass'] and held.COST_POLICY['enforcement'] == 'report_only'
+    endpoints[179041, 'so400']['service_seconds'] = -1.
     rejected('whole-service cost', lambda: held.paired_cost(endpoints))
     endpoints[179041, 'so400']['service_seconds'] = 150.
     endpoints[179041, 'so400']['steps'][20]['pixels_sha256'] = '0' * 64
     rejected('paired pixels', lambda: held.paired_cost(endpoints))
     policies = {phase: held.policy(phase) for phase in ('cpu', 'export', 'score')}
-    assert policies['cpu']['seconds'] == 120 and policies['export']['seconds'] == policies['score']['seconds'] == 300
+    assert policies['cpu']['seconds'] == policies['export']['seconds'] == policies['score']['seconds'] == 3600
     assert policies['score']['cuda_visible_devices'] == ''
     held.validate_resource_policies(policies)
     wrong_score_cap = copy.deepcopy(policies); wrong_score_cap['score']['seconds'] = 120
@@ -175,7 +181,7 @@ def main():
                 assert len(nodes[0].decorator_list) == 1
     assert not any(n.split('.')[0] in held.NATIVE for n in sys.modules), 'native package entered stdlib falsifier'
     assert time.perf_counter() - started < 5
-    print('PASS: four synthetic endpoints; metadata/order/draw/augmentation/closure/cost tampering rejected; no native imports')
+    print('PASS: four synthetic endpoints; metadata/order/draw/augmentation/closure/invalid-cost tampering rejected; cost overrun reported; no native imports')
 
 
 if __name__ == '__main__':

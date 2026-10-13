@@ -210,7 +210,7 @@ def run(args):
         'execution_sha256': args.execution_sha256, 'inputs': inputs, 'quality': quality,
         'arm_mapping': {'control': 'large', 'candidate': 'so400'},
         'paired_seed_average_intervals': intervals, 'each_seed_quality_pass': each_seed, 'quality_pass': quality_go,
-        'cost_pass': True, 'cost': context['costs'], 'cost_policy': export.COST_POLICY,
+        'cost_pass': all(v['cost_gate_pass'] for v in context['costs'].values()), 'cost': context['costs'], 'cost_policy': export.COST_POLICY,
         'preparation': context['preparation'],
         'bootstrap_draws': 5000, 'bootstrap_seed': 179019, 'query_images': 6354, 'gallery_images': 6245,
         'fit_images': 13283, 'fit_products': 2004, 'held_products': 1993, 'updates_per_endpoint': 100,

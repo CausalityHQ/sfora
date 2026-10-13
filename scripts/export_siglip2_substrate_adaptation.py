@@ -57,8 +57,9 @@ ORDER = ((179032, 'large'), (179032, 'so400'), (179041, 'so400'), (179041, 'larg
 NATIVE = {'torch', 'numpy', 'PIL', 'transformers', 'safetensors', 'torchvision', 'sfora'}
 AUGMENTATION = {'seed': 179032, 'formula': '179032*100000+step', 'steps': [1, 100]}
 PRECISION = 'private_native_fp16'
+# Operator hill-climb policy (2026-10-13): cost is reported, never a reason to skip the quality read.
 COST_POLICY = {'whole_service_ratio_max': 1.50, 'median_update_ratio_max': 1.50,
-               'training_wall_ratio': 'report_only'}
+               'training_wall_ratio': 'report_only', 'enforcement': 'report_only'}
 
 
 def require(condition, message):
@@ -71,9 +72,13 @@ def canonical(value):
     return json.loads(json.dumps(value, allow_nan=False))
 
 
+HANG_BACKSTOP_SECONDS = 3600
+
+
 def policy(phase):
     require(phase in ('cpu', 'export', 'score'), 'fixed held phase required')
-    value = {'seconds': 120 if phase == 'cpu' else 300, 'host_bytes': 8 * 1024**3, 'swap_bytes': 0}
+    # Hang backstop only; the launcher's no-progress watchdog stops stuck runs.
+    value = {'seconds': HANG_BACKSTOP_SECONDS, 'host_bytes': 8 * 1024**3, 'swap_bytes': 0}
     value.update({'cuda_allocated_bytes_exclusive': 10_000_000_000} if phase == 'export'
                  else {'cuda_visible_devices': ''})
     return value
@@ -259,10 +264,9 @@ def paired_cost(endpoints):
         ratios = {name: so400[key] / large[key] for name, key in
                   (('whole_service_ratio', 'service_seconds'), ('median_update_ratio', 'median_update_seconds'),
                    ('training_wall_ratio', 'training_wall_seconds'))}
-        require(all(math.isfinite(v) and v > 0 for v in ratios.values()) and
-                ratios['whole_service_ratio'] <= 1.50 and ratios['median_update_ratio'] <= 1.50,
-                'fresh whole-service/median cost gate failed')
+        require(all(math.isfinite(v) and v > 0 for v in ratios.values()), 'fresh whole-service/median cost ratios invalid')
         result[str(seed)] = {**ratios, 'training_wall_ratio_gate': False,
+                            'cost_gate_pass': ratios['whole_service_ratio'] <= 1.50 and ratios['median_update_ratio'] <= 1.50,
                             'large_service_seconds': large['service_seconds'], 'so400_service_seconds': so400['service_seconds']}
     return result
 

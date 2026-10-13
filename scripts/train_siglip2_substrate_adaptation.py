@@ -81,9 +81,14 @@ def require(condition, message):
         raise ValueError(message)
 
 
+HANG_BACKSTOP_SECONDS = 3600
+
+
 def policy(phase):
     require(phase in ('mechanics', 'train'), 'fixed phase required')
-    return {'seconds': 300, 'host_bytes': 8 * 1024**3,
+    # Hang backstop only; the launcher's no-progress watchdog stops stuck runs. A new trainer execution
+    # cannot admit older mechanics receipts anyway (admit_mechanics binds execution_sha256 and code).
+    return {'seconds': HANG_BACKSTOP_SECONDS, 'host_bytes': 8 * 1024**3,
             'swap_bytes': 0, 'cuda_allocated_bytes_exclusive': 10_000_000_000}
 
 

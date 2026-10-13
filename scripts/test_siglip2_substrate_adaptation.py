@@ -308,6 +308,16 @@ require(closure(context['root'], args.execution_sha256, FILES, {}) == context['c
     assert hashlib.sha256('\n'.join(sorted(ast.dump(node, include_attributes=False)
                                            for node in predicates)).encode()).hexdigest() == (
         'bf2f4c8aa1174c86bac0218f34306da28c995cb8289ebd7abb7d436e37b9bb79')
+    # Restore the original fixed-300s policy (now only a hang backstop, checked separately)
+    # before applying the old whole-contract pin.
+    original_policy = ast.parse('''
+def policy(phase):
+    require(phase in ('mechanics', 'train'), 'fixed phase required')
+    return {'seconds': 300, 'host_bytes': 8 * 1024**3,
+            'swap_bytes': 0, 'cuda_allocated_bytes_exclusive': 10_000_000_000}
+''').body[0]
+    tree.body = [original_policy if getattr(node, 'name', None) == 'policy' else node for node in tree.body
+                 if not (isinstance(node, ast.Assign) and ast.unparse(node) == 'HANG_BACKSTOP_SECONDS = 3600')]
     changed = {'fingerprint', 'restore_independent', 'CheckpointPages', 'load_vision', 'exit_rehash'}
     tree.body = [node for node in tree.body if getattr(node, 'name', None) not in changed]
     assert hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest() == (
@@ -1044,7 +1054,7 @@ def main():
         result = subprocess.run([sys.executable, '-B', '-S', *flags, str(path), *arguments],
                                 capture_output=True, text=True)
         assert result.returncode == code and marker in result.stdout + result.stderr
-    assert driver.policy('mechanics')['seconds'] == 300 and driver.policy('train')['seconds'] == 300
+    assert driver.policy('mechanics')['seconds'] == driver.policy('train')['seconds'] == 3600
     rejects(lambda: driver.policy('quality'), 'fixed phase')
     native_facts = {'seed': 179041, 'counter': 0, 'parameter_names': ['original'],
                     'optimizer_defaults': {'betas': (.9, .999), 'eps': 1e-8},
