@@ -123,6 +123,33 @@ def main():
     rejected('duplicate endpoint', lambda: held.validate_order(duplicate))
     swapped = copy.deepcopy(ordered); swapped[0], swapped[1] = swapped[1], swapped[0]
     rejected('wrong endpoint order', lambda: held.validate_order(swapped))
+    # Frozen TRAIN-held split: structure/FIT binding only; split identity is the authority's pinned sha256 descriptor.
+    fit = {'rows': [{'relative_path': 'fit/' + str(i)} for i in range(8)], 'class_names': ['fit' + str(i) for i in range(4)]}
+    rows = [{'relative_path': 'Img/img/' + str(i) + '.jpg', 'image_sha256': 'b' * 64, 'product': 'p' + str(i % 1993)} for i in range(12599)]
+    split = {'fit_manifest': copy.deepcopy(fit['rows']), 'held_manifest': rows, 'query': list(range(6354)), 'gallery': list(range(6354, 12599))}
+    held.validate_split(split, fit)
+    for label, mutate in (
+        ('wrong FIT receipt rows', lambda s, f: f['rows'].append({'relative_path': 'fit/extra'})),
+        ('truncated held manifest', lambda s, f: s['held_manifest'].pop()),
+        ('truncated gallery', lambda s, f: s['gallery'].pop()),
+        ('query/gallery overlap', lambda s, f: s['gallery'].__setitem__(0, 0)),
+        ('FIT/held product overlap', lambda s, f: f['class_names'].append('p7')),
+        ('held product count', lambda s, f: [r.update(product='p1') for r in s['held_manifest'] if r['product'] == 'p0']),
+        ('query-only product', lambda s, f: [r.update(product='p1') for r in s['held_manifest'] if r['product'] == 'p0'] and
+                                            s['held_manifest'][0].update(product='p0')),
+        ('non-int index', lambda s, f: s['query'].__setitem__(0, 0.0)),
+        ('escaping held path', lambda s, f: s['held_manifest'][5].update(relative_path='Img/img/../../x.jpg')),
+        ('extra held row key', lambda s, f: s['held_manifest'][5].update(extra=1)),
+    ):
+        values = copy.deepcopy((split, fit))
+        mutate(*values)
+        rejected(label, lambda: held.validate_split(*values))
+    try:
+        held.validate_split({'path': 'fit/receipt.json'}, fit)  # r1 shape: FIT original_receipt has no held split
+    except KeyError:
+        pass
+    else:
+        raise AssertionError('FIT receipt without held split was admitted')
     original = {name: '1' * 64 for name in held.TRAIN_FILES}
     code = {**original, **{name: '2' * 64 for name in held.ADDED},
             **{name: pin['source'] for name, pin in held.REFERENCES.items()}}
@@ -181,7 +208,7 @@ def main():
                 assert len(nodes[0].decorator_list) == 1
     assert not any(n.split('.')[0] in held.NATIVE for n in sys.modules), 'native package entered stdlib falsifier'
     assert time.perf_counter() - started < 5
-    print('PASS: four synthetic endpoints; metadata/order/draw/augmentation/closure/invalid-cost tampering rejected; cost overrun reported; no native imports')
+    print('PASS: four synthetic endpoints; metadata/order/draw/augmentation/closure/invalid-cost tampering rejected; cost overrun reported; split FIT-binding/truncation/overlap rejected; no native imports')
 
 
 if __name__ == '__main__':
