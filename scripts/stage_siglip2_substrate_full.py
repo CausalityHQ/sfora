@@ -53,27 +53,69 @@ LOCAL = tuple(f for f in PINS if f not in (*PILOT_FILES, 'pilot-execution.json')
 FILES = (*LOCAL, *PILOT_FILES, 'pilot-execution.json', 'command-header.sh')
 
 
+USERDB_DIRS = ('/etc/userdb', '/run/userdb', '/run/host/userdb', '/usr/local/lib/userdb', '/usr/lib/userdb')
+PROC = Path('/proc')
+LOGIND = ('org.freedesktop.login1', '/org/freedesktop/login1', 'org.freedesktop.login1.Manager')
+
+
 def lifetime():
-    measured = {}
-    for name, argv in (
-        ('KillUserProcesses', ['busctl', 'get-property', 'org.freedesktop.login1', '/org/freedesktop/login1',
-                               'org.freedesktop.login1.Manager', 'KillUserProcesses']),
-        ('Linger', ['loginctl', 'show-user', os.environ.get('USER', ''), '-p', 'Linger']),
-    ):
+    """Refuse unless logout cannot kill this driver (systemd 255 logind manager_shall_kill + session GC).
+
+    The driver must sit in a logind session scope of its own UID (a closing session with live processes keeps
+    user@UID and its systemd-run --user units alive), with effective KillUserProcesses off for that UID: global
+    false, empty KillOnlyUsers, and no userdb record setting killProcesses. Linger is recorded only: it keeps the
+    user manager but not a session-scope driver, so it is never an alternative.
+    """
+    uid, driver = os.getuid(), os.getppid()
+    measured = {'uid': uid, 'driver_pid': driver}
+
+    def query(name, argv):
         try:
             result = subprocess.run(argv, capture_output=True, text=True, timeout=10)
             measured[name] = {'rc': result.returncode, 'stdout': result.stdout.strip(), 'stderr': result.stderr.strip()}
         except (OSError, subprocess.TimeoutExpired) as error:
             measured[name] = {'rc': None, 'stdout': '', 'stderr': str(error)}
+        return measured[name]['stdout'] if measured[name]['rc'] == 0 else None
+
+    kill = query('KillUserProcesses', ['busctl', 'get-property', *LOGIND, 'KillUserProcesses'])
+    only = query('KillOnlyUsers', ['busctl', 'get-property', *LOGIND, 'KillOnlyUsers'])
+    query('Linger', ['loginctl', 'show-user', str(uid), '-p', 'Linger'])
+    session = query('Session', ['busctl', 'call', *LOGIND, 'GetSessionByPID', 'u', str(driver)])
+    path = session[3:-1] if session and session.startswith('o "') and session.endswith('"') else None
+    owner = query('SessionUser', ['busctl', 'get-property', 'org.freedesktop.login1', path,
+                                  'org.freedesktop.login1.Session', 'User']) if path else None
+    scope = query('SessionScope', ['busctl', 'get-property', 'org.freedesktop.login1', path,
+                                   'org.freedesktop.login1.Session', 'Scope']) if path else None
+    try:
+        cgroup = (PROC / str(driver) / 'cgroup').read_text().strip()
+    except OSError as error:
+        cgroup = 'unreadable: ' + str(error)
+    records = {}
+    for directory in USERDB_DIRS:
+        for record in sorted(Path(directory).glob('*.user')) if Path(directory).is_dir() else ():
+            try:
+                value = json.loads(record.read_text())
+            except (OSError, ValueError):
+                value = {'unparseable': True}
+            if value.get('uid') == uid or value.get('unparseable'):
+                records[str(record)] = value.get('killProcesses', 'unset') if not value.get('unparseable') else 'unparseable'
+    measured.update(driver_cgroup=cgroup, userdb_records=records)
     streams = [{'fd': fd, 'mode': os.fstat(fd).st_mode, 'tty': os.isatty(fd)} for fd in range(3)]
-    policy = any(measured[name]['rc'] == 0 and measured[name]['stdout'] == expected for name, expected in
-                 (('KillUserProcesses', 'b false'), ('Linger', 'Linger=yes')))
-    detached = stat.S_ISREG(streams[1]['mode']) and all(
-        not value['tty'] and not stat.S_ISFIFO(value['mode']) and not stat.S_ISSOCK(value['mode']) for value in streams)
+    scope_name = scope[3:-1] if scope and scope.startswith('s "') and scope.endswith('"') else None
+    checks = {
+        'kill_user_processes_false': kill == 'b false',
+        'kill_only_users_empty': only == 'as 0',
+        'no_userdb_kill_override': all(value is False or value == 'unset' for value in records.values()),
+        'driver_in_own_session': owner is not None and owner.split()[1:2] == [str(uid)] and scope_name is not None and
+                                 scope_name.startswith('session-') and scope_name.endswith('.scope') and
+                                 cgroup.splitlines() == [f'0::/user.slice/user-{uid}.slice/{scope_name}'],
+        'detached_io': stat.S_ISREG(streams[1]['mode']) and all(
+            not value['tty'] and not stat.S_ISFIFO(value['mode']) and not stat.S_ISSOCK(value['mode']) for value in streams),
+    }
     print('LIFETIME', datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-          json.dumps({**measured, 'streams': streams}, sort_keys=True), flush=True)
-    if not (policy and detached):
-        print('LIFETIME_REFUSED: require KillUserProcesses=false or Linger=yes, detached I/O and regular stdout', flush=True)
+          json.dumps({**measured, 'streams': streams, 'checks': checks}, sort_keys=True), flush=True)
+    if not all(checks.values()):
+        print('LIFETIME_REFUSED: ' + ', '.join(k for k, v in checks.items() if not v), flush=True)
         raise SystemExit(1)
 
 
