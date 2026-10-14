@@ -72,6 +72,38 @@ class Contract(unittest.TestCase):
     def terminal_ref(self, receipt):
         return full.descriptor(Path(receipt['path']).parent / 'terminal.json')
 
+    def test_direct_held_receipt_invocation_binding(self):
+        with TemporaryDirectory() as temporary:
+            record, terminal, _ = self.terminal_fixture(Path(temporary), {})
+            record['invocation']['invocation_id'] = '2' * 32
+            with self.assertRaisesRegex(ValueError, 'original terminal invocation differs'):
+                full.admit_held_terminal(full, record, terminal, 3600, {})
+
+    def test_direct_held_footer_invocation_binding(self):
+        with TemporaryDirectory() as temporary:
+            record, terminal, log = self.terminal_fixture(Path(temporary), {})
+            log.write_text(log.read_text().replace('"invocation_id": "' + '1' * 32, '"invocation_id": "' + '2' * 32))
+            terminal['log'] = full.descriptor(log)
+            with self.assertRaisesRegex(ValueError, 'original final cgroup footer differs'):
+                full.admit_held_terminal(full, record, terminal, 3600, {})
+
+    def test_direct_chain_reused_unit_or_invocation(self):
+        for repeated in ('unit', 'invocation_id'):
+            with self.subTest(repeated=repeated), TemporaryDirectory() as temporary:
+                ref, source, code = self.chain(Path(temporary))
+                folder = Path(ref['path']).parent
+                row = full.read_json(ref)
+                original = full.read_json(self.terminal_ref(row['previous']))
+                latest = full.read_json(self.terminal_ref(ref))
+                unit = original['unit'] if repeated == 'unit' else latest['unit']
+                inv = original['invocation_id'] if repeated == 'invocation_id' else latest['invocation_id']
+                for name in ('receipt.json', 'terminal.json', 'unit.log'):
+                    (folder / name).unlink()
+                self.terminal_fixture(folder, row, unit, inv)
+                changed = full.descriptor(folder / 'receipt.json')
+                with self.assertRaisesRegex(ValueError, 'reused original unit/invocation'):
+                    full.check_chain(changed, 200, 'large', source, code, self.terminal_ref(changed))
+
     def test_held_v2_runtime_grammar(self):
         for text, value in (('3min 81ms', '180.081'), ('2min 45.123s', '165.123'), ('46.907s', '46.907'), ('999ms', '0.999'),
                             ('5min', '300'), ('59min 59.999s', '3599.999'), ('0.5s', '0.5'), ('1min 0.004s', '60.004')):
@@ -237,14 +269,14 @@ class Contract(unittest.TestCase):
         with self.assertRaises(ValueError):
             full.check_payload(context, changed, record, {})
 
-    def chain(self, root, count=2, arm='large'):
+    def chain(self, root, count=2, arm='large', *, code=None, rows='rows', schedule='schedule'):
         source, code = {'checkpoint': {'path': '/source/resume.pt', 'sha256': '1' * 64},
-                        'receipt': {'path': '/source/receipt.json', 'sha256': '2' * 64}}, {'trainer': '3' * 64}
+                        'receipt': {'path': '/source/receipt.json', 'sha256': '2' * 64}}, code or {'trainer': '3' * 64}
         for name in full.WIDTHS:
             (root / name).mkdir(exist_ok=True)
         previous = checkpoint = previous_terminal = None
         identity = {'schema': full.SCHEMA, 'arm': arm, 'source': source, 'code': code,
-                    'full_rows_sha256': 'rows', 'schedule_sha256': 'schedule'}
+                    'full_rows_sha256': rows, 'schedule_sha256': schedule}
         for end in range(100, count * 100 + 1, 100):
             folder = root / arm / f'chunk-{end:04d}'
             folder.mkdir()
@@ -344,6 +376,73 @@ class Contract(unittest.TestCase):
                     export.assert_not_called()
                     native.assert_not_called()
                     self.assertFalse((root / 'official').exists())
+
+    def score_gate_context(self, root, *, mismatch=None):
+        code = {'trainer': full.sha(Path(full.__file__)), 'partition_parser': full.PARSER_SHA}
+        refs = {arm: self.chain(root, 20, arm, code=code,
+                               **({mismatch: 'different'} if arm == 'so400' and mismatch else {}))[0]
+                for arm in ('large', 'so400')}
+        terminals = {arm: self.terminal_ref(ref) for arm, ref in refs.items()}
+        args = SimpleNamespace(arm='large', run_root=root, output=root / 'official/large', control_terminal_sha256=None,
+                               large_terminal_sha256=terminals['large']['sha256'], so400_terminal_sha256=terminals['so400']['sha256'])
+        return args, refs, terminals
+
+    def assert_score_gate(self, args, message):
+        reader = full.read_json
+        def read(ref):
+            return {} if ref['path'] == '/source/receipt.json' else reader(ref)
+        # Bypass only the fake pilot fixture's pin. Real chains, terminals and the tested predicates run.
+        with (patch.object(full, 'read_json', side_effect=read), patch.object(score, 'validate_source_pin'),
+              patch.object(full, 'install_backstop'), patch('builtins.__import__', stdlib_import),
+              patch.object(full, 'invocation', side_effect=AssertionError('advanced beyond admission')) as invocation,
+              patch.object(full, 'native_start') as native, patch.object(score, 'export_role') as export):
+            with self.assertRaisesRegex(ValueError, message):
+                score.run(args)
+            invocation.assert_not_called()
+            native.assert_not_called()
+            export.assert_not_called()
+        self.assertFalse(args.output.exists())
+
+    def test_direct_pair_rows_and_schedule_gate_before_large_read(self):
+        for field in ('rows', 'schedule'):
+            with self.subTest(field=field), TemporaryDirectory() as temporary:
+                args, _, _ = self.score_gate_context(Path(temporary), mismatch=field)
+                self.assert_score_gate(args, 'matched full-TRAIN rows/schedule differ')
+
+    def control_gate_fixture(self, root):
+        args, refs, terminals = self.score_gate_context(root)
+        folder = root / 'official/large'
+        folder.mkdir(parents=True)
+        for name in ('query.pt', 'gallery.pt'):
+            (folder / name).write_bytes(b'fake wire')
+        record = {'schema': score.SCHEMA, 'pass': True, 'exit_rehash_pass': True, 'resource_policy': full.POLICY,
+                  'training': full.read_json(refs['large']), 'paired_training_terminals': terminals}
+        self.terminal_fixture(folder, record, 'score-large', 'f' * 32)
+        args.arm, args.output = 'so400', root / 'official/so400'
+        return args, folder
+
+    def test_direct_so400_control_binds_large_training_and_terminals(self):
+        for field in ('training', 'paired_training_terminals'):
+            with self.subTest(field=field), TemporaryDirectory() as temporary:
+                args, folder = self.control_gate_fixture(Path(temporary))
+                receipt, terminal = folder / 'receipt.json', folder / 'terminal.json'
+                record = full.read_json(full.descriptor(receipt))
+                record[field] = {'wrong': 'chain'}
+                receipt.write_text(json.dumps(record))
+                value = full.read_json(full.descriptor(terminal))
+                value['receipt'] = full.descriptor(receipt)
+                terminal.write_text(json.dumps(value))
+                args.control_terminal_sha256 = full.sha(terminal)
+                self.assert_score_gate(args, 'control must bind these same admitted chains')
+
+    def test_direct_so400_admits_large_score_terminal(self):
+        with TemporaryDirectory() as temporary:
+            args, folder = self.control_gate_fixture(Path(temporary))
+            terminal = folder / 'terminal.json'
+            value = full.read_json(full.descriptor(terminal))
+            terminal.write_text(json.dumps({**value, 'both_locks_held': False}))
+            args.control_terminal_sha256 = full.sha(terminal)
+            self.assert_score_gate(args, 'terminal descriptor/both locks differ')
 
     def test_pair_admits_all_forty_original_terminals(self):
         with TemporaryDirectory() as temporary, patch('builtins.__import__', stdlib_import):

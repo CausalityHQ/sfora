@@ -274,51 +274,162 @@ class Staging(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'SHA256'):
             stage.decision()
 
+    def test_direct_decision_recomputes_paired_gate(self):
+        self.complete()
+        self.score_receipt('large')
+        self.score_receipt('so400')
+        receipt = stage.OUTPUT / 'official/so400/receipt.json'
+        record = self.full.read_json(self.full.descriptor(receipt))
+        record['paired']['candidate_minus_control']['per_query_r1']['mean_delta'] = -.01
+        receipt.write_text(json.dumps(record))
+        terminal = receipt.parent / 'terminal.json'
+        value = self.full.read_json(self.full.descriptor(terminal))
+        value['receipt'] = self.full.descriptor(receipt)
+        terminal.write_text(json.dumps(value))
+        # Direct decision execution: a source PIN cannot kill this mutant for us.
+        with patch.object(stage, 'modules', return_value=(self.full, self.score, self.code)):
+            with self.assertRaisesRegex(AssertionError, 'paired decision differs'):
+                self.capture(stage.decision)
+
+    def test_direct_decision_rejects_extra_official_directory(self):
+        self.complete()
+        self.score_receipt('large')
+        self.score_receipt('so400')
+        (stage.OUTPUT / 'official/extra').mkdir()
+        with patch.object(stage, 'modules', return_value=(self.full, self.score, self.code)):
+            with self.assertRaisesRegex(AssertionError, 'extra official attempt'):
+                self.capture(stage.decision)
+
 
 class Driver(unittest.TestCase):
-    def test_fixed_order_and_fail_fast(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            driver = root / 'run_siglip2_substrate_full.sh'
-            driver.write_bytes((HERE / driver.name).read_bytes())
-            tool = root / 'stage_siglip2_substrate_full.py'
-            tool.write_text("""import json, os, sys
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.driver = self.root / 'run_siglip2_substrate_full.sh'
+        self.driver.write_bytes((HERE / self.driver.name).read_bytes())
+        tool = self.root / 'stage_siglip2_substrate_full.py'
+        tool.write_text('REAL_STAGE = ' + repr(str(HERE / tool.name)) + '\n' + """import json, os, runpy, sys
 from pathlib import Path
 args = sys.argv[1:]
 with (Path(__file__).parent / 'calls').open('a') as stream:
     stream.write(json.dumps(args) + '\\n')
 fail = os.environ.get('FAIL_AT') == ' '.join(args)
-if args[0] == 'launch':
+if args[0] == 'lifetime':
+    runpy.run_path(REAL_STAGE, run_name='__main__')
+elif args[0] == 'launch':
     print('exit 7' if fail else 'exit 0')
 elif fail:
     raise SystemExit(9)
+elif args[0] == 'environment':
+    count = sum(json.loads(line) == ['environment'] for line in (Path(__file__).parent / 'calls').read_text().splitlines())
+    value = {'nvidia_version': 'fake NVIDIA version\\n', 'kernel_release': 'fake kernel'}
+    if str(count) == os.environ.get('CHANGE_AT'):
+        value[os.environ['CHANGE_FIELD']] = 'changed'
+    print(json.dumps(value, sort_keys=True))
 elif args[0] == 'admit':
     print('ADMIT fake')
 else:
     print('DECISION fake')
 """)
-            units = [('train', arm, str(end)) for arm in ('large', 'so400') for end in range(100, 2001, 100)]
-            units += [('score', 'large'), ('score', 'so400')]
-            for failure in ('', 'launch train large 200', 'admit train large 100'):
-                calls = root / 'calls'
-                calls.unlink(missing_ok=True)
-                result = subprocess.run(['bash', str(driver)], env={**os.environ, 'FAIL_AT': failure},
-                                        capture_output=True, text=True, timeout=30)
-                actual = [json.loads(line) for line in calls.read_text().splitlines()]
-                expected = [list((operation, *unit)) for unit in units for operation in ('launch', 'admit')] + [['decision']]
-                if failure:
-                    index = expected.index(failure.split())
-                    self.assertEqual(actual, expected[:index + 1])
-                    self.assertNotEqual(result.returncode, 0)
-                    self.assertNotIn('DECISION', result.stdout)
-                else:
-                    self.assertEqual(result.returncode, 0, result.stderr)
-                    self.assertEqual(actual, expected)
-                    self.assertEqual(result.stdout.count('START '), 42)
-                    self.assertEqual(result.stdout.count('UNIT_RC '), 42)
-                    self.assertEqual(result.stdout.count('ADMIT '), 42)
-                    self.assertRegex(result.stdout, r'FULL \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ START train large 100')
-                    self.assertIn('DECISION', result.stdout)
+        for name, arguments, variable in (
+            ('busctl', 'get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager KillUserProcesses', 'FAKE_KILL'),
+            ('loginctl', 'show-user fixture-user -p Linger', 'FAKE_LINGER'),
+        ):
+            path = self.root / name
+            path.write_text('#!/bin/sh\n[ "$*" = ' + shlex.quote(arguments) + ' ] || exit 66\n' +
+                            'printf \'%s\\n\' "$' + variable + '"\nexit "${' + variable + '_RC:-0}"\n')
+            path.chmod(0o755)
+        self.env = {**os.environ, 'PATH': str(self.root) + os.pathsep + os.environ['PATH'], 'USER': 'fixture-user',
+                    'FAKE_KILL': 'b false', 'FAKE_LINGER': 'Linger=no', 'FAIL_AT': '', 'CHANGE_AT': ''}
+
+    def run_driver(self, env=None, streams=None):
+        calls = self.root / 'calls'
+        calls.unlink(missing_ok=True)
+        log = self.root / 'driver.log'
+        with log.open('w') as output:
+            io_args = {'stdin': subprocess.DEVNULL, 'stdout': output, 'stderr': subprocess.STDOUT}
+            io_args.update(streams or {})
+            result = subprocess.run(['bash', str(self.driver)], env={**self.env, **(env or {})},
+                                    text=True, timeout=30, **io_args)
+        return result, result.stdout if result.stdout is not None else log.read_text(), [json.loads(line) for line in calls.read_text().splitlines()]
+
+    def test_fixed_order_and_fail_fast(self):
+        units = [('train', arm, str(end)) for arm in ('large', 'so400') for end in range(100, 2001, 100)]
+        units += [('score', 'large'), ('score', 'so400')]
+        expected = [['lifetime'], ['environment']]
+        for unit in units:
+            expected += [['environment'], ['launch', *unit], ['admit', *unit]]
+        expected += [['decision']]
+        for failure in ('', 'launch train large 200', 'admit train large 100', 'launch score so400'):
+            result, out, actual = self.run_driver({'FAIL_AT': failure})
+            if failure:
+                index = expected.index(failure.split())
+                self.assertEqual(actual, expected[:index + 1])
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn('DECISION', out)
+                self.assertIn('HOLD', out)
+                if failure == 'launch score so400':
+                    self.assertIn('HOLD after score so400', out)
+                    self.assertEqual(actual.count(['launch', 'score', 'large']), 1)
+                    self.assertEqual(actual.count(['launch', 'score', 'so400']), 1)
+            else:
+                self.assertEqual(result.returncode, 0, out)
+                self.assertEqual(actual, expected)
+                for word in ('START ', 'UNIT_RC ', 'ADMIT '):
+                    self.assertEqual(out.count(word), 42)
+                self.assertRegex(out, r'FULL \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ START train large 100')
+                self.assertIn('DECISION', out)
+                self.assertIn('Linger=no', out)
+                self.assertIn('b false', out)
+
+    def test_lifetime_refuses_policy_and_attached_streams_before_any_unit(self):
+        for env in ({'FAKE_KILL': 'b true'}, {'FAKE_KILL_RC': '1'}, {'FAKE_KILL': 'unknown', 'FAKE_LINGER': 'unknown'}):
+            result, out, calls = self.run_driver(env)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('LIFETIME_REFUSED', out)
+            self.assertEqual(calls, [['lifetime']])
+        for stream in ('stdin', 'stdout', 'stderr'):
+            result, out, calls = self.run_driver(streams={stream: subprocess.PIPE})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('LIFETIME_REFUSED', out)
+            self.assertEqual(calls, [['lifetime']])
+        master, slave = os.openpty()
+        try:
+            result, out, calls = self.run_driver(streams={'stdin': slave})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('LIFETIME_REFUSED', out)
+            self.assertEqual(calls, [['lifetime']])
+        finally:
+            os.close(master)
+            os.close(slave)
+
+    def test_linger_alternative_passes_without_host_changes(self):
+        result, out, calls = self.run_driver({'FAKE_KILL': 'b true', 'FAKE_LINGER': 'Linger=yes', 'FAIL_AT': 'launch train large 100'})
+        self.assertNotIn('LIFETIME_REFUSED', out)
+        self.assertIn('Linger=yes', out)
+        self.assertIn(['launch', 'train', 'large', '100'], calls)
+        self.assertEqual(result.returncode, 7)
+
+    def test_environment_record_and_stop_before_changed_unit(self):
+        for field, count in (('nvidia_version', 2), ('kernel_release', 43)):
+            result, out, calls = self.run_driver({'CHANGE_FIELD': field, 'CHANGE_AT': str(count)})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('HOLD driver/kernel changed before', out)
+            self.assertIn('environment={"kernel_release": "fake kernel", "nvidia_version": "fake NVIDIA version', out)
+            self.assertEqual(sum(row[0] == 'launch' for row in calls), count - 2)
+            self.assertNotIn(['launch', 'score', 'so400'], calls)
+            if count == 43:
+                self.assertIn(['admit', 'score', 'large'], calls)
+                self.assertIn('ENVIRONMENT before score large', out)
+                self.assertIn('ENVIRONMENT before score so400', out)
+        with (patch.object(stage.Path, 'read_text', autospec=True, return_value='NVIDIA fixture\n') as read,
+              patch.object(stage.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'kernel-fixture\n', '')) as uname,
+              contextlib.redirect_stdout(io.StringIO()) as out):
+            stage.environment()
+        self.assertEqual(read.call_args.args[0], Path('/proc/driver/nvidia/version'))
+        self.assertEqual(uname.call_args.args[0], ['uname', '-r'])
+        self.assertEqual(json.loads(out.getvalue()), {'nvidia_version': 'NVIDIA fixture\n', 'kernel_release': 'kernel-fixture'})
 
 
 if __name__ == '__main__':

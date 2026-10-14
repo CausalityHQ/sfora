@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shlex
+import stat
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -36,7 +37,7 @@ TRAINER, SCORER = 'train_siglip2_substrate_full.py', 'score_siglip2_substrate_of
 PINS = {
     TRAINER: 'b34089def204658f231c05b05036a300352e2b00defddfe12ff0e11e7aa6b1e9',
     SCORER: 'b17e4ab4f88f7d4754387006927870a459856361da3da8a5a724209fe44a2752',
-    'test_siglip2_substrate_full.py': '39685db5e22714cb2656b81a930f300fe2005d0d33f95871da54f8a5dbdffbb7',
+    'test_siglip2_substrate_full.py': '6f7f0339e517f6d37a59f84fc2aca52e61dfda0f6764615e4abc68c65c8b87c9',
     'unicom_inshop.py': '635d300c66b2bebe7753707c9196d4735a97f07c7dd999f186f9b9b1251b7f1f',
     'evaluate_inshop_siglip2_official.py': '6fee591bffdb2af8d77355bd4f0c282ac52979fa2125ff46bfb31df0ea985411',
     'qualify_pe_large_inshop_official.py': 'd6d52da270f9c983ede3ccb23dc4374964a6e520e040758d73193c33ca5fa5a5',
@@ -50,6 +51,37 @@ LOCAL = tuple(f for f in PINS if f not in (*PILOT_FILES, 'pilot-execution.json')
     'stage_siglip2_substrate_full.py', 'run_siglip2_substrate_full.sh', 'test_stage_siglip2_substrate_full.py',
     'run_with_progress_watchdog.sh')
 FILES = (*LOCAL, *PILOT_FILES, 'pilot-execution.json', 'command-header.sh')
+
+
+def lifetime():
+    measured = {}
+    for name, argv in (
+        ('KillUserProcesses', ['busctl', 'get-property', 'org.freedesktop.login1', '/org/freedesktop/login1',
+                               'org.freedesktop.login1.Manager', 'KillUserProcesses']),
+        ('Linger', ['loginctl', 'show-user', os.environ.get('USER', ''), '-p', 'Linger']),
+    ):
+        try:
+            result = subprocess.run(argv, capture_output=True, text=True, timeout=10)
+            measured[name] = {'rc': result.returncode, 'stdout': result.stdout.strip(), 'stderr': result.stderr.strip()}
+        except (OSError, subprocess.TimeoutExpired) as error:
+            measured[name] = {'rc': None, 'stdout': '', 'stderr': str(error)}
+    streams = [{'fd': fd, 'mode': os.fstat(fd).st_mode, 'tty': os.isatty(fd)} for fd in range(3)]
+    policy = any(measured[name]['rc'] == 0 and measured[name]['stdout'] == expected for name, expected in
+                 (('KillUserProcesses', 'b false'), ('Linger', 'Linger=yes')))
+    detached = stat.S_ISREG(streams[1]['mode']) and all(
+        not value['tty'] and not stat.S_ISFIFO(value['mode']) and not stat.S_ISSOCK(value['mode']) for value in streams)
+    print('LIFETIME', datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+          json.dumps({**measured, 'streams': streams}, sort_keys=True), flush=True)
+    if not (policy and detached):
+        print('LIFETIME_REFUSED: require KillUserProcesses=false or Linger=yes, detached I/O and regular stdout', flush=True)
+        raise SystemExit(1)
+
+
+def environment():
+    version = Path('/proc/driver/nvidia/version').read_text()
+    kernel = subprocess.run(['uname', '-r'], capture_output=True, text=True, check=True, timeout=10).stdout.strip()
+    assert version.strip() and kernel, 'NVIDIA driver/kernel version missing'
+    print(json.dumps({'nvidia_version': version, 'kernel_release': kernel}, sort_keys=True), flush=True)
 
 
 def sha(path):
@@ -253,4 +285,5 @@ def decision():
 
 
 if __name__ == '__main__':
-    {'stage': stage, 'launch': launch, 'admit': admit, 'decision': decision}[sys.argv[1]](*sys.argv[2:])
+    {'stage': stage, 'launch': launch, 'admit': admit, 'decision': decision,
+     'lifetime': lifetime, 'environment': environment}[sys.argv[1]](*sys.argv[2:])
