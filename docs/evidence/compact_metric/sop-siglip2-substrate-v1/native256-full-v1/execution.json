@@ -1,0 +1,20 @@
+{
+  "command-header.sh": "7562f834d615d4427981127328bddcf35806d7c34e98a6c330a2f652c7372fde",
+  "deployed_code_rank.py": "435bd73d9a3dde04c9daa819ec3694e228b4cadcc2523c35e4c877ae5d034870",
+  "evaluate_inshop_siglip2_official.py": "6fee591bffdb2af8d77355bd4f0c282ac52979fa2125ff46bfb31df0ea985411",
+  "pilot-execution.json": "a74746f333a60d2774c2905258630458e1a80e2a2726c960de9128047477839d",
+  "qualify_pe_large_inshop_official.py": "d6d52da270f9c983ede3ccb23dc4374964a6e520e040758d73193c33ca5fa5a5",
+  "reference_train_sop_siglip2_compact.py": "1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610",
+  "reference_unicom_training.py": "a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272",
+  "run_siglip2_substrate_full.sh": "fee48fdbc0f0ec493ae3d8a36552381f76e969f6e54e436e280ef53f7c7c833c",
+  "run_with_progress_watchdog.sh": "d7ddb72392fa0b38bad51ec4bc4995efec64f3cfe46fb99b6009a046cc8090f6",
+  "score_inshop_crop_view_pair.py": "16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed",
+  "score_siglip2_substrate_official.py": "b17e4ab4f88f7d4754387006927870a459856361da3da8a5a724209fe44a2752",
+  "stage_siglip2_substrate_full.py": "d1fc0d2e56f1d58f8d0d15e5e1622af941a9009f5e9deded7faf3bde9e702b34",
+  "test_siglip2_substrate_adaptation.py": "7df1d58718709b3a1230ec6fef0cc9a806abcb9e4eceaba4c0267df5edc3e9c2",
+  "test_siglip2_substrate_full.py": "6f7f0339e517f6d37a59f84fc2aca52e61dfda0f6764615e4abc68c65c8b87c9",
+  "test_stage_siglip2_substrate_full.py": "818000bde3f287b0636227a209ba9fa6c565904fb95e152e3f2dc56be0ffa21a",
+  "train_siglip2_substrate_adaptation.py": "1b73b2a6bdc1ee0cc468109e15746c8c5cde32569ac3b5de05d07f9e2f0b573f",
+  "train_siglip2_substrate_full.py": "b34089def204658f231c05b05036a300352e2b00defddfe12ff0e11e7aa6b1e9",
+  "unicom_inshop.py": "635d300c66b2bebe7753707c9196d4735a97f07c7dd999f186f9b9b1251b7f1f"
+}

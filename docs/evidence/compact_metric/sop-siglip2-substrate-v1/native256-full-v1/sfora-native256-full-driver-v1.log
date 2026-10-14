@@ -1,0 +1,213 @@
+LIFETIME 2026-10-14T15:44:23Z {"KillOnlyUsers": {"rc": 0, "stderr": "", "stdout": "as 0"}, "KillUserProcesses": {"rc": 0, "stderr": "", "stdout": "b false"}, "Linger": {"rc": 0, "stderr": "", "stdout": "Linger=no"}, "Session": {"rc": 0, "stderr": "", "stdout": "o \"/org/freedesktop/login1/session/_33979\""}, "SessionScope": {"rc": 0, "stderr": "", "stdout": "s \"session-3979.scope\""}, "SessionUser": {"rc": 0, "stderr": "", "stdout": "(uo) 1000 \"/org/freedesktop/login1/user/_1000\""}, "StopIdleSessionUSec": {"rc": 0, "stderr": "", "stdout": "t 18446744073709551615"}, "UserTimestamp": {"rc": 0, "stderr": "", "stdout": "Timestamp=Wed 2026-10-14 17:25:16 CEST"}, "checks": {"detached_io": true, "driver_in_own_session": true, "idle_sessions_never_stopped": true, "kill_only_users_empty": true, "kill_user_processes_false": true, "no_userdb_dropins": true, "only_safe_userdb_providers": true}, "driver_cgroup": "0::/user.slice/user-1000.slice/session-3979.scope", "driver_pid": 1644374, "streams": [{"fd": 0, "mode": 8630, "tty": false}, {"fd": 1, "mode": 33204, "tty": false}, {"fd": 2, "mode": 33204, "tty": false}], "uid": 1000, "userdb_dropins": {}, "userdb_providers": ["io.systemd.DynamicUser"]}
+FULL 2026-10-14T15:44:23Z BEGIN pid=1644374 order=large-100..2000,so400-100..2000,large-score,so400-score environment={"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T15:44:23Z ENVIRONMENT before train large 100 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T15:44:27Z START train large 100
+FULL 2026-10-14T15:54:03Z UNIT_RC train large 100 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0100/terminal.json", "sha256": "6e95849dbf56eb827118a7828df10898d91e72bf7645bef2302561559d60e965"}
+ADMIT 2026-10-14T15:54:03Z sfora-native256-full-train-large-0100-v1 6e95849dbf56eb827118a7828df10898d91e72bf7645bef2302561559d60e965
+FULL 2026-10-14T15:54:03Z ENVIRONMENT before train large 200 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T15:54:10Z START train large 200
+FULL 2026-10-14T15:59:51Z UNIT_RC train large 200 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0200/terminal.json", "sha256": "33edd84b0b24c31bbc40be80d2c3131e60ec91e5a335b292d82d39f7e4b605ef"}
+ADMIT 2026-10-14T15:59:51Z sfora-native256-full-train-large-0200-v1 33edd84b0b24c31bbc40be80d2c3131e60ec91e5a335b292d82d39f7e4b605ef
+FULL 2026-10-14T15:59:51Z ENVIRONMENT before train large 300 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T15:59:57Z START train large 300
+FULL 2026-10-14T16:05:18Z UNIT_RC train large 300 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0300/terminal.json", "sha256": "6891cf62a7f0e7be44e52298d0529322b98f47fb4ec24f9f6cfad3f5e30d3561"}
+ADMIT 2026-10-14T16:05:18Z sfora-native256-full-train-large-0300-v1 6891cf62a7f0e7be44e52298d0529322b98f47fb4ec24f9f6cfad3f5e30d3561
+FULL 2026-10-14T16:05:19Z ENVIRONMENT before train large 400 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:05:25Z START train large 400
+FULL 2026-10-14T16:10:56Z UNIT_RC train large 400 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0400/terminal.json", "sha256": "e65f6b201c9ef7ea13548340c8b0599cef9626066d07480a1265f995c786d552"}
+ADMIT 2026-10-14T16:10:56Z sfora-native256-full-train-large-0400-v1 e65f6b201c9ef7ea13548340c8b0599cef9626066d07480a1265f995c786d552
+FULL 2026-10-14T16:10:56Z ENVIRONMENT before train large 500 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:11:02Z START train large 500
+FULL 2026-10-14T16:16:28Z UNIT_RC train large 500 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0500/terminal.json", "sha256": "d48aec8782712b91acfb587192e085345f55a1db662c8795ce0da95bd003665a"}
+ADMIT 2026-10-14T16:16:28Z sfora-native256-full-train-large-0500-v1 d48aec8782712b91acfb587192e085345f55a1db662c8795ce0da95bd003665a
+FULL 2026-10-14T16:16:29Z ENVIRONMENT before train large 600 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:16:36Z START train large 600
+FULL 2026-10-14T16:22:12Z UNIT_RC train large 600 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0600/terminal.json", "sha256": "c56456b4b4f43e8a6a5da3fb1d77fa63c23f013bc9194b0d09bd117a3987bbba"}
+ADMIT 2026-10-14T16:22:12Z sfora-native256-full-train-large-0600-v1 c56456b4b4f43e8a6a5da3fb1d77fa63c23f013bc9194b0d09bd117a3987bbba
+FULL 2026-10-14T16:22:12Z ENVIRONMENT before train large 700 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:22:20Z START train large 700
+FULL 2026-10-14T16:27:51Z UNIT_RC train large 700 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0700/terminal.json", "sha256": "1e0e5d609e4fe9b66251dadfae4054bab2a5ca19fc9263a28e3492550cd19937"}
+ADMIT 2026-10-14T16:27:51Z sfora-native256-full-train-large-0700-v1 1e0e5d609e4fe9b66251dadfae4054bab2a5ca19fc9263a28e3492550cd19937
+FULL 2026-10-14T16:27:51Z ENVIRONMENT before train large 800 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:27:58Z START train large 800
+FULL 2026-10-14T16:33:24Z UNIT_RC train large 800 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0800/terminal.json", "sha256": "f6523714e26214b0db20eb447f043a3b552fb8e3f9feaea935fd77c15ab31897"}
+ADMIT 2026-10-14T16:33:24Z sfora-native256-full-train-large-0800-v1 f6523714e26214b0db20eb447f043a3b552fb8e3f9feaea935fd77c15ab31897
+FULL 2026-10-14T16:33:24Z ENVIRONMENT before train large 900 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:33:31Z START train large 900
+FULL 2026-10-14T16:39:02Z UNIT_RC train large 900 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0900/terminal.json", "sha256": "540ccec605fb7888416d0300cb1c074ef73c80754a66aa82b94c7e05c4f6132d"}
+ADMIT 2026-10-14T16:39:02Z sfora-native256-full-train-large-0900-v1 540ccec605fb7888416d0300cb1c074ef73c80754a66aa82b94c7e05c4f6132d
+FULL 2026-10-14T16:39:02Z ENVIRONMENT before train large 1000 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:39:10Z START train large 1000
+FULL 2026-10-14T16:44:36Z UNIT_RC train large 1000 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1000/terminal.json", "sha256": "85292cb6260968fae3e48e305bdcec5fb41fde3f6c9682cee371a73e99beea49"}
+ADMIT 2026-10-14T16:44:36Z sfora-native256-full-train-large-1000-v1 85292cb6260968fae3e48e305bdcec5fb41fde3f6c9682cee371a73e99beea49
+FULL 2026-10-14T16:44:36Z ENVIRONMENT before train large 1100 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:44:43Z START train large 1100
+FULL 2026-10-14T16:50:09Z UNIT_RC train large 1100 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1100/terminal.json", "sha256": "ac2d87300518b9ed83b166fb235377f3cd7fe974f6d8979dfa8d7b4fe05c45bf"}
+ADMIT 2026-10-14T16:50:09Z sfora-native256-full-train-large-1100-v1 ac2d87300518b9ed83b166fb235377f3cd7fe974f6d8979dfa8d7b4fe05c45bf
+FULL 2026-10-14T16:50:09Z ENVIRONMENT before train large 1200 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:50:18Z START train large 1200
+FULL 2026-10-14T16:55:53Z UNIT_RC train large 1200 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1200/terminal.json", "sha256": "2a6bef958ec2ceb62097fbcfc25f5116133d7fc3e1135a081dc5abf0e99b3761"}
+ADMIT 2026-10-14T16:55:54Z sfora-native256-full-train-large-1200-v1 2a6bef958ec2ceb62097fbcfc25f5116133d7fc3e1135a081dc5abf0e99b3761
+FULL 2026-10-14T16:55:54Z ENVIRONMENT before train large 1300 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T16:56:02Z START train large 1300
+FULL 2026-10-14T17:01:23Z UNIT_RC train large 1300 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1300/terminal.json", "sha256": "f2d3a615f8214d656ad4fcad0fb1e09ea1e06274200c3d8495512f7d1dab2ff8"}
+ADMIT 2026-10-14T17:01:24Z sfora-native256-full-train-large-1300-v1 f2d3a615f8214d656ad4fcad0fb1e09ea1e06274200c3d8495512f7d1dab2ff8
+FULL 2026-10-14T17:01:24Z ENVIRONMENT before train large 1400 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T17:01:32Z START train large 1400
+FULL 2026-10-14T17:06:58Z UNIT_RC train large 1400 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1400/terminal.json", "sha256": "e877b9deebf8a894f52823ab7f7da9e540a5ecd6f0b5f59eadec7916d850fc2d"}
+ADMIT 2026-10-14T17:06:58Z sfora-native256-full-train-large-1400-v1 e877b9deebf8a894f52823ab7f7da9e540a5ecd6f0b5f59eadec7916d850fc2d
+FULL 2026-10-14T17:06:58Z ENVIRONMENT before train large 1500 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T17:07:06Z START train large 1500
+FULL 2026-10-14T17:12:32Z UNIT_RC train large 1500 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1500/terminal.json", "sha256": "bd5377e0c1dd862f9bb5c4f241adfcdb5276a7e1fe5893920fb30f5ebcd08cfd"}
+ADMIT 2026-10-14T17:12:33Z sfora-native256-full-train-large-1500-v1 bd5377e0c1dd862f9bb5c4f241adfcdb5276a7e1fe5893920fb30f5ebcd08cfd
+FULL 2026-10-14T17:12:33Z ENVIRONMENT before train large 1600 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T17:12:42Z START train large 1600
+FULL 2026-10-14T17:18:13Z UNIT_RC train large 1600 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1600/terminal.json", "sha256": "f0dfd0ed9d039cc9666c07b5b28898f58219d743d2b7f0326abce9a8c7d2cd62"}
+ADMIT 2026-10-14T17:18:14Z sfora-native256-full-train-large-1600-v1 f0dfd0ed9d039cc9666c07b5b28898f58219d743d2b7f0326abce9a8c7d2cd62
+FULL 2026-10-14T17:18:14Z ENVIRONMENT before train large 1700 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T17:18:24Z START train large 1700
+FULL 2026-10-14T17:23:54Z UNIT_RC train large 1700 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1700/terminal.json", "sha256": "b505b612c119f47e0bbcf5af51fa3c3d2115dcb155074cea048e374e8afe2382"}
+ADMIT 2026-10-14T17:23:55Z sfora-native256-full-train-large-1700-v1 b505b612c119f47e0bbcf5af51fa3c3d2115dcb155074cea048e374e8afe2382
+FULL 2026-10-14T17:23:55Z ENVIRONMENT before train large 1800 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T17:24:02Z START train large 1800
+FULL 2026-10-14T17:29:28Z UNIT_RC train large 1800 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1800/terminal.json", "sha256": "2ba1fc66fcfaad9e4dc4ad24abf94d5782b022aed81607808eb28cf010213379"}
+ADMIT 2026-10-14T17:29:28Z sfora-native256-full-train-large-1800-v1 2ba1fc66fcfaad9e4dc4ad24abf94d5782b022aed81607808eb28cf010213379
+FULL 2026-10-14T17:29:28Z ENVIRONMENT before train large 1900 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T17:29:35Z START train large 1900
+FULL 2026-10-14T17:35:11Z UNIT_RC train large 1900 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-1900/terminal.json", "sha256": "11e88946b1b166b5b300f74d1a01bb5ebf2b90d19f9c114bb4a10346ef3d9cc0"}
+ADMIT 2026-10-14T17:35:11Z sfora-native256-full-train-large-1900-v1 11e88946b1b166b5b300f74d1a01bb5ebf2b90d19f9c114bb4a10346ef3d9cc0
+FULL 2026-10-14T17:35:11Z ENVIRONMENT before train large 2000 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T17:35:19Z START train large 2000
+FULL 2026-10-14T17:40:55Z UNIT_RC train large 2000 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-2000/terminal.json", "sha256": "6892279851f70fa921ae65b294d0ded0c2d329098c8df7554ffe056a6bc7432a"}
+ADMIT 2026-10-14T17:40:55Z sfora-native256-full-train-large-2000-v1 6892279851f70fa921ae65b294d0ded0c2d329098c8df7554ffe056a6bc7432a
+FULL 2026-10-14T17:40:55Z ENVIRONMENT before train so400 100 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T17:40:59Z START train so400 100
+FULL 2026-10-14T17:53:36Z UNIT_RC train so400 100 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-0100/terminal.json", "sha256": "49aa33e3b18fce851e77eb43d699760b4c52f872d7d8f0f6d2d2168ea6a0efed"}
+ADMIT 2026-10-14T17:53:36Z sfora-native256-full-train-so400-0100-v1 49aa33e3b18fce851e77eb43d699760b4c52f872d7d8f0f6d2d2168ea6a0efed
+FULL 2026-10-14T17:53:36Z ENVIRONMENT before train so400 200 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T17:53:44Z START train so400 200
+FULL 2026-10-14T18:00:30Z UNIT_RC train so400 200 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-0200/terminal.json", "sha256": "3853d4a922b05820e7e2e69a49c98dca08928ba87d795d5187fadf0dffbcffb2"}
+ADMIT 2026-10-14T18:00:30Z sfora-native256-full-train-so400-0200-v1 3853d4a922b05820e7e2e69a49c98dca08928ba87d795d5187fadf0dffbcffb2
+FULL 2026-10-14T18:00:30Z ENVIRONMENT before train so400 300 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T18:00:38Z START train so400 300
+FULL 2026-10-14T18:07:34Z UNIT_RC train so400 300 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-0300/terminal.json", "sha256": "ef4317147e5ca3f6fc666bb7c2794adaddc19c708bb249f1cb6b16b763129ecc"}
+ADMIT 2026-10-14T18:07:34Z sfora-native256-full-train-so400-0300-v1 ef4317147e5ca3f6fc666bb7c2794adaddc19c708bb249f1cb6b16b763129ecc
+FULL 2026-10-14T18:07:34Z ENVIRONMENT before train so400 400 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T18:07:42Z START train so400 400
+FULL 2026-10-14T18:14:54Z UNIT_RC train so400 400 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-0400/terminal.json", "sha256": "b6aacb38cf1d25f0e2a059f48db28b0558870691ccd473e8789fb683e28e4a6c"}
+ADMIT 2026-10-14T18:14:54Z sfora-native256-full-train-so400-0400-v1 b6aacb38cf1d25f0e2a059f48db28b0558870691ccd473e8789fb683e28e4a6c
+FULL 2026-10-14T18:14:54Z ENVIRONMENT before train so400 500 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T18:15:02Z START train so400 500
+FULL 2026-10-14T18:21:58Z UNIT_RC train so400 500 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-0500/terminal.json", "sha256": "897705b66627752217931c096dbf0bb5990fa4075da31ea4f994623436b46593"}
+ADMIT 2026-10-14T18:21:58Z sfora-native256-full-train-so400-0500-v1 897705b66627752217931c096dbf0bb5990fa4075da31ea4f994623436b46593
+FULL 2026-10-14T18:21:58Z ENVIRONMENT before train so400 600 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T18:22:06Z START train so400 600
+FULL 2026-10-14T18:29:02Z UNIT_RC train so400 600 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-0600/terminal.json", "sha256": "ce321697f22276cf9c2d26d9ecc647657c2640dc3abf8981925df17e67b4c433"}
+ADMIT 2026-10-14T18:29:03Z sfora-native256-full-train-so400-0600-v1 ce321697f22276cf9c2d26d9ecc647657c2640dc3abf8981925df17e67b4c433
+FULL 2026-10-14T18:29:03Z ENVIRONMENT before train so400 700 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T18:29:13Z START train so400 700
+FULL 2026-10-14T18:36:09Z UNIT_RC train so400 700 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-0700/terminal.json", "sha256": "e145a3ce1ebddcb38a67d2ff6386db3f692883f264dee6b3c3f1456599d31286"}
+ADMIT 2026-10-14T18:36:09Z sfora-native256-full-train-so400-0700-v1 e145a3ce1ebddcb38a67d2ff6386db3f692883f264dee6b3c3f1456599d31286
+FULL 2026-10-14T18:36:09Z ENVIRONMENT before train so400 800 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T18:36:18Z START train so400 800
+FULL 2026-10-14T18:43:14Z UNIT_RC train so400 800 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-0800/terminal.json", "sha256": "2eb9b2af398460ea27e7cca248fe2ba869be83eed24a7411281f6bf6b9b5e064"}
+ADMIT 2026-10-14T18:43:15Z sfora-native256-full-train-so400-0800-v1 2eb9b2af398460ea27e7cca248fe2ba869be83eed24a7411281f6bf6b9b5e064
+FULL 2026-10-14T18:43:15Z ENVIRONMENT before train so400 900 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T18:43:26Z START train so400 900
+FULL 2026-10-14T18:50:32Z UNIT_RC train so400 900 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-0900/terminal.json", "sha256": "73f04eb52c9cc850f2986ed58f8d8eb6b26942841e8f9707534175f00114605e"}
+ADMIT 2026-10-14T18:50:33Z sfora-native256-full-train-so400-0900-v1 73f04eb52c9cc850f2986ed58f8d8eb6b26942841e8f9707534175f00114605e
+FULL 2026-10-14T18:50:33Z ENVIRONMENT before train so400 1000 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T18:50:42Z START train so400 1000
+FULL 2026-10-14T18:57:28Z UNIT_RC train so400 1000 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1000/terminal.json", "sha256": "54b84338896340472f40fbbf7b268635122392f03a49633ebc1cd95a401bb706"}
+ADMIT 2026-10-14T18:57:28Z sfora-native256-full-train-so400-1000-v1 54b84338896340472f40fbbf7b268635122392f03a49633ebc1cd95a401bb706
+FULL 2026-10-14T18:57:28Z ENVIRONMENT before train so400 1100 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T18:57:36Z START train so400 1100
+FULL 2026-10-14T19:04:33Z UNIT_RC train so400 1100 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1100/terminal.json", "sha256": "baf3027cb8b22714cfa4ce6f5e08dba6002e6a14b7102eaadd258b7d06d80a91"}
+ADMIT 2026-10-14T19:04:33Z sfora-native256-full-train-so400-1100-v1 baf3027cb8b22714cfa4ce6f5e08dba6002e6a14b7102eaadd258b7d06d80a91
+FULL 2026-10-14T19:04:33Z ENVIRONMENT before train so400 1200 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T19:04:41Z START train so400 1200
+FULL 2026-10-14T19:11:37Z UNIT_RC train so400 1200 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1200/terminal.json", "sha256": "01888ee5e5aac5328bc44318db05a16ef247c834682dda6d6c76da30f1da48b8"}
+ADMIT 2026-10-14T19:11:38Z sfora-native256-full-train-so400-1200-v1 01888ee5e5aac5328bc44318db05a16ef247c834682dda6d6c76da30f1da48b8
+FULL 2026-10-14T19:11:38Z ENVIRONMENT before train so400 1300 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T19:11:47Z START train so400 1300
+FULL 2026-10-14T19:18:33Z UNIT_RC train so400 1300 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1300/terminal.json", "sha256": "035518871d83cb64fab4f0c644071edc7b32580caaedb1379d1c13fcb4164b50"}
+ADMIT 2026-10-14T19:18:33Z sfora-native256-full-train-so400-1300-v1 035518871d83cb64fab4f0c644071edc7b32580caaedb1379d1c13fcb4164b50
+FULL 2026-10-14T19:18:33Z ENVIRONMENT before train so400 1400 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T19:18:42Z START train so400 1400
+FULL 2026-10-14T19:25:33Z UNIT_RC train so400 1400 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1400/terminal.json", "sha256": "49d98fb80b26c454f8686bf4d33a61cc6473a05d1b37e8712dd87a3d12b5a5d4"}
+ADMIT 2026-10-14T19:25:33Z sfora-native256-full-train-so400-1400-v1 49d98fb80b26c454f8686bf4d33a61cc6473a05d1b37e8712dd87a3d12b5a5d4
+FULL 2026-10-14T19:25:33Z ENVIRONMENT before train so400 1500 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T19:25:42Z START train so400 1500
+FULL 2026-10-14T19:32:28Z UNIT_RC train so400 1500 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1500/terminal.json", "sha256": "bc31f64c3781fa9763e921d7643a6b513bf91be4454154029216413e90807b84"}
+ADMIT 2026-10-14T19:32:28Z sfora-native256-full-train-so400-1500-v1 bc31f64c3781fa9763e921d7643a6b513bf91be4454154029216413e90807b84
+FULL 2026-10-14T19:32:28Z ENVIRONMENT before train so400 1600 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T19:32:37Z START train so400 1600
+FULL 2026-10-14T19:39:38Z UNIT_RC train so400 1600 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1600/terminal.json", "sha256": "ab2fde8edec6978123f999326994b2fe2a0bb3f3df6a134df742c8f24b76f17d"}
+ADMIT 2026-10-14T19:39:38Z sfora-native256-full-train-so400-1600-v1 ab2fde8edec6978123f999326994b2fe2a0bb3f3df6a134df742c8f24b76f17d
+FULL 2026-10-14T19:39:38Z ENVIRONMENT before train so400 1700 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T19:39:47Z START train so400 1700
+FULL 2026-10-14T19:46:28Z UNIT_RC train so400 1700 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1700/terminal.json", "sha256": "31fbacd0cd597dc8bfdef9becfd35c0fb900a4857ff045b56bcef2454a931377"}
+ADMIT 2026-10-14T19:46:28Z sfora-native256-full-train-so400-1700-v1 31fbacd0cd597dc8bfdef9becfd35c0fb900a4857ff045b56bcef2454a931377
+FULL 2026-10-14T19:46:28Z ENVIRONMENT before train so400 1800 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T19:46:37Z START train so400 1800
+FULL 2026-10-14T19:53:33Z UNIT_RC train so400 1800 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1800/terminal.json", "sha256": "83edf5d28eb0447499496df6bbe0b09f75bdbe3f3ac6a743e1c7bfe0bedfcc53"}
+ADMIT 2026-10-14T19:53:34Z sfora-native256-full-train-so400-1800-v1 83edf5d28eb0447499496df6bbe0b09f75bdbe3f3ac6a743e1c7bfe0bedfcc53
+FULL 2026-10-14T19:53:34Z ENVIRONMENT before train so400 1900 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T19:53:43Z START train so400 1900
+FULL 2026-10-14T20:00:34Z UNIT_RC train so400 1900 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-1900/terminal.json", "sha256": "f65f9ca82efaa919877ef9d057da7e4c26846136a060b709ea13770886d84f46"}
+ADMIT 2026-10-14T20:00:34Z sfora-native256-full-train-so400-1900-v1 f65f9ca82efaa919877ef9d057da7e4c26846136a060b709ea13770886d84f46
+FULL 2026-10-14T20:00:34Z ENVIRONMENT before train so400 2000 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T20:00:43Z START train so400 2000
+FULL 2026-10-14T20:07:44Z UNIT_RC train so400 2000 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/so400/chunk-2000/terminal.json", "sha256": "7f4c2948e0c97155d404c58da6ab0eeaa59b31ec6bebbd1cc368b11ae8f283f5"}
+ADMIT 2026-10-14T20:07:44Z sfora-native256-full-train-so400-2000-v1 7f4c2948e0c97155d404c58da6ab0eeaa59b31ec6bebbd1cc368b11ae8f283f5
+FULL 2026-10-14T20:07:44Z ENVIRONMENT before score large {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T20:07:54Z START score large
+FULL 2026-10-14T20:13:15Z UNIT_RC score large rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/official/large/terminal.json", "sha256": "24a8930ddd31586ea9c7bba3b447893690a34739969900abdc2d8f6a7619831f"}
+ADMIT 2026-10-14T20:13:15Z sfora-native256-full-score-large-v1 24a8930ddd31586ea9c7bba3b447893690a34739969900abdc2d8f6a7619831f
+FULL 2026-10-14T20:13:15Z ENVIRONMENT before score so400 {"kernel_release": "6.17.0-1026-nvidia", "nvidia_version": "NVRM version: NVIDIA UNIX Open Kernel Module for aarch64  580.159.03  Release Build  (dvs-builder@U22-I3-AK02-23-4)  Fri Apr 24 05:57:43 UTC 2026\nGCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) \n"}
+FULL 2026-10-14T20:13:26Z START score so400
+FULL 2026-10-14T20:20:32Z UNIT_RC score so400 rc=0
+{"path": "/home/riomus/runs/sfora-native256-full-run-v1/official/so400/terminal.json", "sha256": "dcc45cc7cce9ca77189658cd9cc13ba5a1af90bffca9c4aa5ca14929e4bba1cd"}
+ADMIT 2026-10-14T20:20:33Z sfora-native256-full-score-so400-v1 dcc45cc7cce9ca77189658cd9cc13ba5a1af90bffca9c4aa5ca14929e4bba1cd
+DECISION 2026-10-14T20:20:43Z {"bootstrap_draws": 5000, "bootstrap_seed": 179019, "candidate_minus_control": {"per_query_ap": {"mean_delta": 0.006525708922314831, "product_lower95": 0.003388425989300125, "product_upper95": 0.009625283893707943}, "per_query_r1": {"mean_delta": 0.00014066676044450696, "product_lower95": -0.002753756112053879, "product_upper95": 0.0029659708628588287}}, "decision": "KILL", "decision_scope": "positive paired product R@1 gain; mAP@R reported; fixed training seed"}
