@@ -1,0 +1,12 @@
+{
+  "deployed_code_rank.py": "435bd73d9a3dde04c9daa819ec3694e228b4cadcc2523c35e4c877ae5d034870",
+  "export_siglip2_substrate_adaptation.py": "672acd76c9d227999733b8c8b6a055bf668e35dbb279f2e3665c14fbc5e3b518",
+  "reference_compare_inshop_sop_warmstart_100.py": "8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250",
+  "reference_score_inshop_crop_view_pair.py": "16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed",
+  "reference_train_sop_siglip2_compact.py": "1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610",
+  "reference_unicom_training.py": "a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272",
+  "score_siglip2_substrate_adaptation.py": "91d2ef4d8fa4b5e67dc3149aa2dbefb2c8f6410ebef1fb7bcd38d6c3b31ed498",
+  "test_siglip2_substrate_adaptation.py": "7df1d58718709b3a1230ec6fef0cc9a806abcb9e4eceaba4c0267df5edc3e9c2",
+  "test_siglip2_substrate_held.py": "d57b616246d9bcee090aa9385b3e46bd8a0a7e81e081c9ab1e5518a013f62b6d",
+  "train_siglip2_substrate_adaptation.py": "1b73b2a6bdc1ee0cc468109e15746c8c5cde32569ac3b5de05d07f9e2f0b573f"
+}

@@ -1,0 +1,100 @@
+{
+  "authority_sha256": "bded9ab1d8f95a2d64662570370ff1126ac4602311dfa37dda6903d2b45d1b87",
+  "both_locks_held": true,
+  "execution_sha256": "b8bef632439620f6750d08a9b8bfd7dc8e5ddbc1c98ed0b0baecd56e6f6ffb5e",
+  "schema": "native256-held-wires-v1",
+  "wires": [
+    {
+      "arm": "large",
+      "cpu_terminal": {
+        "path": "/home/riomus/runs/sfora-native256-held-v9h2/cpu-terminal-large-179032.json",
+        "sha256": "f82066a70ef86b8a4ad5c8a4903aa1bf9091adeb4f561e7895532a0b0789051e"
+      },
+      "seed": 179032,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "d6990c6ee4164d3a9723c3b41d90ca8a",
+        "log": {
+          "path": "/home/riomus/runs/sfora-native256-held-v9h2/sfora-native256-held-export-large-179032-v9h2.log",
+          "sha256": "51effccedb53252c51190becab174ee1a072441479c4d3f225dad96c307729ce"
+        },
+        "native_peak_rss_kib": 4811576,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-native256-held-export-large-179032-v9h2/receipt.json",
+          "sha256": "fc05d64176e4e19b3dd64ff0ce6cf587f7b8e5c63bf2cdafd87427cb5226be07"
+        },
+        "service_seconds": 387.631,
+        "unit": "sfora-native256-held-export-large-179032-v9h2"
+      }
+    },
+    {
+      "arm": "so400",
+      "cpu_terminal": {
+        "path": "/home/riomus/runs/sfora-native256-held-v9h2/cpu-terminal-so400-179032.json",
+        "sha256": "aa621a27991b9fd6a250bc2c41c3ed6d6a267f094cc97c8b9e212348e7a8ab67"
+      },
+      "seed": 179032,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "7a5804fe1a954ebb93d7ed7d5dda615b",
+        "log": {
+          "path": "/home/riomus/runs/sfora-native256-held-v9h2/sfora-native256-held-export-so400-179032-v9h2.log",
+          "sha256": "e935bb318f80dde9dac511e3dd52d6309d7bdc8acd8f4f2e749b833160341095"
+        },
+        "native_peak_rss_kib": 5726456,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-native256-held-export-so400-179032-v9h2/receipt.json",
+          "sha256": "74fede306f0225b03a3540ff5e3cef3daa2e108624a3df3e587bf602bb87641b"
+        },
+        "service_seconds": 501.227,
+        "unit": "sfora-native256-held-export-so400-179032-v9h2"
+      }
+    },
+    {
+      "arm": "so400",
+      "cpu_terminal": {
+        "path": "/home/riomus/runs/sfora-native256-held-v9h2/cpu-terminal-so400-179041.json",
+        "sha256": "27c13452393a19ec5c0a3e214f983bb0e1d8a34745ba912f0c604df1557c5a30"
+      },
+      "seed": 179041,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "d9419452cdec42109a3abed1210b0cd0",
+        "log": {
+          "path": "/home/riomus/runs/sfora-native256-held-v9h2/sfora-native256-held-export-so400-179041-v9h2.log",
+          "sha256": "64f3b1c7937ede11194cedb5507f2d83415990d21ac493625394025af34ec8f0"
+        },
+        "native_peak_rss_kib": 5727296,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-native256-held-export-so400-179041-v9h2/receipt.json",
+          "sha256": "167b02ed2dc5f9673e34ee38b9aba8cea9903fef9e753e3ceaeca7187e6d7d00"
+        },
+        "service_seconds": 499.333,
+        "unit": "sfora-native256-held-export-so400-179041-v9h2"
+      }
+    },
+    {
+      "arm": "large",
+      "cpu_terminal": {
+        "path": "/home/riomus/runs/sfora-native256-held-v9h2/cpu-terminal-large-179041.json",
+        "sha256": "86977db2acca0716069b53a1a26b3706125a84048860f04a134d6f230470f10b"
+      },
+      "seed": 179041,
+      "terminal": {
+        "both_locks_held": true,
+        "invocation_id": "30c5f7d4df8740719a162c96f3fe4e86",
+        "log": {
+          "path": "/home/riomus/runs/sfora-native256-held-v9h2/sfora-native256-held-export-large-179041-v9h2.log",
+          "sha256": "ee957f4bb85018ab5709fe34db323eee1704865c0c4bec779c0d267cf29f7516"
+        },
+        "native_peak_rss_kib": 4805788,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-native256-held-export-large-179041-v9h2/receipt.json",
+          "sha256": "2b989cf523a2b9f2f4e6db787423c707357f8e571089fcaa05a25d45dc313e66"
+        },
+        "service_seconds": 397.522,
+        "unit": "sfora-native256-held-export-large-179041-v9h2"
+      }
+    }
+  ]
+}
