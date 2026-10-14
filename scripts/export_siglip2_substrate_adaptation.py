@@ -32,6 +32,7 @@ import re
 import resource
 import statistics
 import sys
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -284,6 +285,62 @@ def logged_steps(path, steps):
 def zero_events(value):
     events = dict(line.split() for line in value['values']['memory.events'].splitlines())
     require(events and all(int(count) == 0 for count in events.values()), 'whole-unit memory events must be zero')
+
+
+def service_runtime(text):
+    """Held-v2 parse of systemd 'Service runtime:' (format_timespan, < 1h): 'Nmin', '[Nmin ]S[.f]s', '[Nmin ]Mms'.
+
+    systemd omits a zero seconds term ('3min 81ms', h1 HOLD); the frozen trainer/initializer regex rejects it.
+    ASCII digits only, no leading zeros, minutes 1..59, seconds < 60, milliseconds 1..999, total > 0.
+    """
+    match = re.fullmatch(r'(?:([1-9][0-9]?)min)?( ?)(?:((?:0|[1-9][0-9]?)(?:\.[0-9]+)?)s|([1-9][0-9]{0,2})ms)?', text)
+    require(match is not None, 'held service runtime format differs')
+    minutes, space, seconds, millis = match.groups()
+    tail = seconds is not None or millis is not None
+    require(bool(space) == (minutes is not None and tail) and (minutes is not None or tail) and
+            (minutes is None or int(minutes) < 60) and (seconds is None or Decimal(seconds) < 60),
+            'held service runtime format differs')
+    total = Decimal(minutes or '0') * 60 + (Decimal(seconds) if seconds else Decimal(millis or '0') / 1000)
+    require(total > 0, 'held service runtime must be positive')
+    return total
+
+
+def admit_held_terminal(init, record, descriptor, seconds, guards):
+    """Held CPU/export units only: the frozen initializer admit_terminal checks unchanged, with service_runtime.
+
+    TRAIN/mechanics/prerequisite terminals keep the frozen parser (their logs were admitted under it).
+    """
+    require(descriptor.keys() == {'receipt', 'log', 'unit', 'invocation_id', 'service_seconds',
+                                  'native_peak_rss_kib', 'both_locks_held'} and
+            descriptor['both_locks_held'] is True, 'terminal descriptor/both locks differ')
+    identity, unit = descriptor['invocation_id'], descriptor['unit']
+    require(isinstance(identity, str) and re.fullmatch('[0-9a-f]{32}', identity) is not None and
+            isinstance(unit, str) and re.fullmatch('[A-Za-z0-9_.@-]+', unit) is not None and
+            record['invocation']['invocation_id'] == identity and record['invocation']['optimize'] == 0,
+            'original terminal invocation differs')
+    require(0 < record['wall_seconds'] <= descriptor['service_seconds'] <= seconds and
+            0 < record['process_peak_rss_kib'] <= descriptor['native_peak_rss_kib'] <= 8 * 1024**2,
+            'original whole-service duration/RSS caps differ')
+    log_descriptor = descriptor['log']
+    require(log_descriptor.keys() == {'path', 'sha256'}, 'log descriptor differs')
+    lines = init.bound_file(guards, log_descriptor['path'], log_descriptor['sha256']).read_text().splitlines()
+    required = [f'Running as unit: {unit}.service; invocation ID: {identity}', '\tExit status: 0',
+                'Finished with result: success', 'Main processes terminated with: code=exited/status=0',
+                '\tSwaps: 0', 'Memory swap peak: 0B',
+                f"\tMaximum resident set size (kbytes): {descriptor['native_peak_rss_kib']}"]
+    require(all(lines.count(line) == 1 for line in required), 'original normal-exit log differs')
+    runtimes = [line.removeprefix('Service runtime: ') for line in lines if line.startswith('Service runtime: ')]
+    require(len(runtimes) == 1, 'original service runtime line differs')
+    require(service_runtime(runtimes[0]) == Decimal(str(descriptor['service_seconds'])), 'original service runtime numeric binding differs')
+    footers = [init.strict_json(line[len('FINAL_CGROUP '):]) for line in lines if line.startswith('FINAL_CGROUP ')]
+    require(len(footers) == 1 and footers[0]['invocation_id'] == identity, 'original final cgroup footer differs')
+    final = footers[0]
+    for value in (record['cgroup_before'], record['cgroup_after'], final):
+        init.admit_cgroup(value, unit)
+        require(value['path'] == final['path'], 'enclosing cgroup changed')
+    require(int(final['values']['memory.peak']) >= int(record['cgroup_after']['values']['memory.peak']) >=
+            int(record['cgroup_before']['values']['memory.peak']), 'complete whole-unit peak differs')
+    return final
 
 
 def validate_split(frozen, fit):
@@ -706,7 +763,7 @@ def run(args):
         cpu_terminal = read_json({'path': str(args.cpu_terminal), 'sha256': args.cpu_terminal_sha256}, context['guards'])
         cpu_proof = read_json(cpu_terminal['receipt'], context['guards'])
         validate_cpu(cpu_proof, context, endpoint)
-        zero_events(context['selected_context']['initialized']['init'].admit_terminal(cpu_proof, cpu_terminal, policy('cpu')['seconds'], context['guards']))
+        zero_events(admit_held_terminal(context['selected_context']['initialized']['init'], cpu_proof, cpu_terminal, policy('cpu')['seconds'], context['guards']))
     else:
         require(args.cpu_terminal is None and args.cpu_terminal_sha256 is None, 'CPU phase cannot supply prior proof')
     rng = torch.random.get_rng_state().clone()

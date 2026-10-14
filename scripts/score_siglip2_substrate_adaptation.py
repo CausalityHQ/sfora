@@ -149,12 +149,12 @@ def run(args):
         cpu_terminal = admission.descriptor_json(wire['cpu_terminal'], context['guards'])
         cpu = admission.descriptor_json(cpu_terminal['receipt'], context['guards'])
         export.validate_cpu(cpu, context, endpoint)
-        export.zero_events(admission.admit_terminal(cpu, cpu_terminal, export.policy('cpu')['seconds'], context['guards']))
+        export.zero_events(export.admit_held_terminal(admission.init, cpu, cpu_terminal, export.policy('cpu')['seconds'], context['guards']))
         terminal = wire['terminal']
         receipt = admission.descriptor_json(terminal['receipt'], context['guards'])
         export.require(receipt['cpu_terminal'] == wire['cpu_terminal'], 'original CPU terminal/wire link differs')
         validate_wire(receipt, endpoint, context, cpu)
-        export.zero_events(admission.admit_terminal(receipt, terminal, export.policy('export')['seconds'], context['guards']))
+        export.zero_events(export.admit_held_terminal(admission.init, receipt, terminal, export.policy('export')['seconds'], context['guards']))
         export.require(0 < receipt['peak_cuda_allocated_bytes'] < 10_000_000_000, 'complete export CUDA peak differs')
         for value in (cpu, receipt):
             for path, digest in value['input_guards'].items():

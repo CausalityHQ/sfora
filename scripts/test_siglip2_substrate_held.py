@@ -13,7 +13,9 @@ import copy
 import hashlib
 import sys
 import time
+from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 import export_siglip2_substrate_adaptation as held
 import score_siglip2_substrate_adaptation as score
@@ -144,6 +146,36 @@ def main():
         values = copy.deepcopy((split, fit))
         mutate(*values)
         rejected(label, lambda: held.validate_split(*values))
+    # Held-v2 systemd runtime parser (h1 HOLD: '3min 81ms').
+    for text, value in (('3min 81ms', '180.081'), ('2min 45.123s', '165.123'), ('46.907s', '46.907'), ('999ms', '0.999'),
+                        ('5min', '300'), ('59min 59.999s', '3599.999'), ('0.5s', '0.5'), ('1min 0.004s', '60.004')):
+        assert held.service_runtime(text) == Decimal(value), text
+    for text in ('', ' ', '3min81ms', '3min  81ms', ' 81ms', '81ms ', '3min ', '0min 5s', '03min 5s', '60min', '1h 2min',
+                 '3min 60s', '3min 61.5s', '1000ms', '081ms', '0ms', '0s', '0.000s', '-5s', '5', '5sec', '3min 81ms 2s',
+                 '3min 5s 81ms', '1.5min', '3min 81us', '٣min 5s', '5.s', '.5s', '1e3ms', '3min\t81ms', '3min 81ms\n'):
+        rejected('runtime ' + repr(text), lambda: held.service_runtime(text))
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        unit, inv = 'sfora-native256-held-cpu-so400-179032-v9h1', '9' * 32
+        cgroup = {'path': '/u', 'values': {'memory.peak': '5'}}
+        def log_text(runtime):
+            return '\n'.join((f'Running as unit: {unit}.service; invocation ID: {inv}', '\tMaximum resident set size (kbytes): 100',
+                              '\tSwaps: 0', '\tExit status: 0', 'FINAL_CGROUP ' + held.json.dumps({**cgroup, 'invocation_id': inv}),
+                              'Finished with result: success', 'Main processes terminated with: code=exited/status=0',
+                              runtime, 'Memory swap peak: 0B')) + '\n'
+        def admit(runtime, service_seconds):
+            log = Path(tmp) / (str(abs(hash(runtime))) + '.log')
+            log.write_text(log_text(runtime))
+            init = SimpleNamespace(bound_file=lambda guards, path, sha: Path(path), admit_cgroup=lambda value, name: None, strict_json=held.json.loads)
+            record = {'invocation': {'invocation_id': inv, 'optimize': 0}, 'wall_seconds': 170, 'process_peak_rss_kib': 90,
+                      'cgroup_before': cgroup, 'cgroup_after': cgroup}
+            descriptor = {'receipt': {}, 'log': {'path': str(log), 'sha256': 'c' * 64}, 'unit': unit, 'invocation_id': inv,
+                          'service_seconds': service_seconds, 'native_peak_rss_kib': 100, 'both_locks_held': True}
+            return held.admit_held_terminal(init, record, descriptor, 3600, {})
+        assert admit('Service runtime: 3min 81ms', 180.081)['invocation_id'] == inv
+        rejected('runtime numeric binding', lambda: admit('Service runtime: 3min 81ms', 180.81))
+        rejected('two runtime lines', lambda: admit('Service runtime: 3min 81ms\nService runtime: 3min 81ms', 180.081))
+        rejected('malformed runtime', lambda: admit('Service runtime: 3min81ms', 180.081))
     try:
         held.validate_split({'path': 'fit/receipt.json'}, fit)  # r1 shape: FIT original_receipt has no held split
     except KeyError:
