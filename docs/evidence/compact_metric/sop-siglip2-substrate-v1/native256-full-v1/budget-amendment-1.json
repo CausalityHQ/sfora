@@ -1,0 +1,22 @@
+{
+  "schema": "native256-full-budget-amendment-v1",
+  "recorded_at": "2026-10-14T15:58Z",
+  "prospective": true,
+  "campaign": {"authorization": "orchestrator 1791988363307152996-4031287", "driver_pid": 1644374, "driver_start": "2026-10-14T15:44:23Z",
+               "driver_log": "/home/riomus/runs/sfora-native256-full-driver-v1.log", "execution_sha256": "a48414bae32117e8856141602ff045567a12525b644325d8cd714af183d4b948",
+               "source": "devbox/so400-full-scale-source-20261013@289d18a351a49d680090b8f59275b694d9471294"},
+  "original_budget": {"dgx_gpu_hours": 2.1, "paid_usd": 0, "basis": "pre-registration 8b29b903 formula: 2441.79s*(1+r_med) + 836s*(1+r_service) chunk overhead + 255s*(1+r_inf) scoring with pilot ratios ~1.10/1.12"},
+  "measured_evidence": {"unit": "sfora-native256-full-train-large-0100-v1", "service_seconds": 575.175, "update_seconds_sum": 204.25, "median_update_seconds": 1.996,
+                        "non_update_overhead_seconds_per_chunk": "~370 (checkpoint restore/save/rehash of 2.6-3.3 GB + exit rehash)",
+                        "peak_cuda_allocated_bytes": 6548377600, "unit_memory_peak": "4.9G of 8G", "swap": 0, "terminal_admitted": "6e95849dbf56eb827118a7828df10898d91e72bf7645bef2302561559d60e965",
+                        "formula_error": "pre-reg assumed ~836 s TOTAL chunk overhead; actual ~370 s PER chunk x 40"},
+  "revised_projection": {"large_hours": 3.2, "so400_hours": 3.5, "scoring_hours": 0.3, "total_dgx_gpu_hours": 7.0},
+  "amendment": {"approved_by": "orchestrator 1791993379765870637-4031287 (option A)", "dgx_gpu_hours_cap": 8, "paid_usd": 0,
+                "deadline": "2026-10-14T23:44:23Z", "scope": "ONLY the same running campaign (original handle 1644374); unchanged disk/source/order/science/resources/locks/stop-first-failure/no-retry; no extra experiments, concurrent GPU jobs or paid resources",
+                "official_read": "only after BOTH 20-chunk chains and 40 original terminals admitted; once per arm at step 2000",
+                "at_cap": "budget guard stops the active unit; driver records HOLD; collect partial receipts; no retry"},
+  "budget_guard": {"script": "/home/riomus/runs/sfora-native256-full-budget-guard-v1.sh", "sha256": "8d331bde23d1f514439be6e94f1e23b122d7a48ae9276898f6634708257aa686",
+                   "pid": 1647922, "log": "/home/riomus/runs/sfora-native256-full-budget-guard-v1.log", "started": "2026-10-14T15:57:00Z",
+                   "binds": "driver pid 1644374 + exact start time + args"},
+  "follow_up": "checkpoint-overhead optimization is separate causal work, not part of this campaign"
+}
