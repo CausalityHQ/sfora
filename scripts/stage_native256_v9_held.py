@@ -29,7 +29,7 @@ HELD = RUNS / f'sfora-native256-held-{HELD_TAG}'
 FROZEN_SPLIT = RUNS / 'sfora-pe-augmented-100-v2' / 'preflight.json'
 FROZEN_SPLIT_SHA256 = '41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293'
 ORDER = ((179032, 'large'), (179032, 'so400'), (179041, 'so400'), (179041, 'large'))
-PINS = {'export_siglip2_substrate_adaptation.py': '29025adf6ecc827b85a26d21d96419c97105eaf0e4aad99491caa031c1517065',
+PINS = {'export_siglip2_substrate_adaptation.py': '672acd76c9d227999733b8c8b6a055bf668e35dbb279f2e3665c14fbc5e3b518',
         'score_siglip2_substrate_adaptation.py': '91d2ef4d8fa4b5e67dc3149aa2dbefb2c8f6410ebef1fb7bcd38d6c3b31ed498',
         'reference_compare_inshop_sop_warmstart_100.py': '8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250',
         'reference_score_inshop_crop_view_pair.py': '16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed'}
