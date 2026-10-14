@@ -6,6 +6,12 @@ the arm's seed-179032 TRAIN100 resume.pt, its SHA and receipt SHA on EVERY chunk
 The receipt locates the immutable original pilot closure/authority; never stage
 this file inside that closure. --previous is the previous receipt.json, bound by
 --previous-sha256. Retain every output directory. No quality is read here.
+Parent creates an exclusive run root with empty large/ and so400/ directories.
+Outputs must be <root>/<arm>/chunk-NNNN. After each original unit exits, run
+this script's `admit-terminal` subcommand with its receipt/log SHA256 and the
+explicit --both-locks-held attestation. It creates adjacent terminal.json.
+Pass its SHA as --previous-terminal-sha256 to the next chunk. Failed/orphan
+directories remain in place: any retry or extra sibling is INVALID/HOLD.
 
 The full stage resets AdamW/scaler/counter, preserves learned FIT proxies, adds
 new proxies from the normalized class means of one unaugmented B32 source pass,
@@ -21,11 +27,13 @@ import importlib.util
 import json
 import math
 import os
+import re
 import resource
 import signal
 import sys
 import time
 from pathlib import Path
+from decimal import Decimal
 from types import SimpleNamespace
 
 if not __debug__ or os.environ.get('PYTHONOPTIMIZE'):
@@ -73,10 +81,7 @@ def descriptor(path, digest=None):
     return {'path': str(path), 'sha256': actual}
 
 
-def read_json(ref):
-    descriptor(ref['path'], ref['sha256'])
-    raw = Path(ref['path']).read_bytes()
-    require(len(raw) < 64 * 1024**2 and hashlib.sha256(raw).hexdigest() == ref['sha256'], 'JSON size/SHA differs')
+def strict_json(raw):
     def pairs(items):
         value = {}
         for key, item in items:
@@ -86,6 +91,172 @@ def read_json(ref):
     def constant(value):
         raise ValueError('nonfinite JSON: ' + value)
     return json.loads(raw, object_pairs_hook=pairs, parse_constant=constant)
+
+
+def read_json(ref):
+    descriptor(ref['path'], ref['sha256'])
+    raw = Path(ref['path']).read_bytes()
+    require(len(raw) < 64 * 1024**2 and hashlib.sha256(raw).hexdigest() == ref['sha256'], 'JSON size/SHA differs')
+    return strict_json(raw)
+
+
+def bound_file(guards, path, expected):
+    ref = descriptor(path, expected)
+    require(guards.setdefault(ref['path'], expected) == expected, 'conflicting terminal file authority')
+    return Path(ref['path'])
+
+
+def invocation():
+    identity = os.environ.get('INVOCATION_ID', '')
+    require(re.fullmatch('[0-9a-f]{32}', identity) is not None, 'original systemd invocation required')
+    python = Path(sys.executable).resolve()
+    return {'argv': sys.argv.copy(), 'python': str(python), 'python_sha256': sha(python),
+            'python_version': sys.version, 'optimize': sys.flags.optimize, 'pid': os.getpid(),
+            'invocation_id': identity, 'cuda_visible_devices': os.environ.get('CUDA_VISIBLE_DEVICES')}
+
+
+def admit_cgroup(value, unit):
+    # Same predicates as initialize_siglip2_substrate_fit.admit_cgroup.
+    path, values = Path(value['path']), value['values']
+    require(path.is_absolute() and '..' not in path.parts and path.name == unit + '.service', 'enclosing unit cgroup differs')
+    require(values['memory.max'] == str(POLICY['host_bytes']) and
+            0 < int(values['memory.current']) <= int(values['memory.peak']) <= POLICY['host_bytes'] and
+            all(values[k] == '0' for k in ('memory.swap.current', 'memory.swap.peak', 'memory.swap.max')),
+            'whole-cgroup memory/swap caps differ')
+    events = dict(line.split() for line in values['memory.events'].splitlines())
+    require(all(events.get(k) == '0' for k in ('max', 'oom', 'oom_kill')), 'whole-cgroup memory failure events')
+
+
+# Copied verbatim from reviewed held-v2 7593e99f (exporter SHA672acd76).
+def service_runtime(text):
+    """Held-v2 parse of systemd 'Service runtime:' (format_timespan, < 1h): 'Nmin', '[Nmin ]S[.f]s', '[Nmin ]Mms'.
+
+    systemd omits a zero seconds term ('3min 81ms', h1 HOLD); the frozen trainer/initializer regex rejects it.
+    ASCII digits only, no leading zeros, minutes 1..59, seconds < 60 with <= 3 decimals (ms accuracy; no Decimal
+    context rounding), milliseconds 1..999, total > 0.
+    """
+    match = re.fullmatch(r'(?:([1-9][0-9]?)min)?( ?)(?:((?:0|[1-9][0-9]?)(?:\.[0-9]{1,3})?)s|([1-9][0-9]{0,2})ms)?', text)
+    require(match is not None, 'held service runtime format differs')
+    minutes, space, seconds, millis = match.groups()
+    tail = seconds is not None or millis is not None
+    require(bool(space) == (minutes is not None and tail) and (minutes is not None or tail) and
+            (minutes is None or int(minutes) < 60) and (seconds is None or Decimal(seconds) < 60),
+            'held service runtime format differs')
+    total = Decimal(minutes or '0') * 60 + (Decimal(seconds) if seconds else Decimal(millis or '0') / 1000)
+    require(total > 0, 'held service runtime must be positive')
+    return total
+
+
+def admit_held_terminal(init, record, descriptor, seconds, guards):
+    """Held CPU/export units only: the frozen initializer admit_terminal checks unchanged, with service_runtime.
+
+    TRAIN/mechanics/prerequisite terminals keep the frozen parser (their logs were admitted under it).
+    """
+    require(descriptor.keys() == {'receipt', 'log', 'unit', 'invocation_id', 'service_seconds',
+                                  'native_peak_rss_kib', 'both_locks_held'} and
+            descriptor['both_locks_held'] is True, 'terminal descriptor/both locks differ')
+    identity, unit = descriptor['invocation_id'], descriptor['unit']
+    require(isinstance(identity, str) and re.fullmatch('[0-9a-f]{32}', identity) is not None and
+            isinstance(unit, str) and re.fullmatch('[A-Za-z0-9_.@-]+', unit) is not None and
+            record['invocation']['invocation_id'] == identity and record['invocation']['optimize'] == 0,
+            'original terminal invocation differs')
+    require(0 < record['wall_seconds'] <= descriptor['service_seconds'] <= seconds and
+            0 < record['process_peak_rss_kib'] <= descriptor['native_peak_rss_kib'] <= 8 * 1024**2,
+            'original whole-service duration/RSS caps differ')
+    log_descriptor = descriptor['log']
+    require(log_descriptor.keys() == {'path', 'sha256'}, 'log descriptor differs')
+    lines = init.bound_file(guards, log_descriptor['path'], log_descriptor['sha256']).read_text().splitlines()
+    required = [f'Running as unit: {unit}.service; invocation ID: {identity}', '\tExit status: 0',
+                'Finished with result: success', 'Main processes terminated with: code=exited/status=0',
+                '\tSwaps: 0', 'Memory swap peak: 0B',
+                f"\tMaximum resident set size (kbytes): {descriptor['native_peak_rss_kib']}"]
+    require(all(lines.count(line) == 1 for line in required), 'original normal-exit log differs')
+    runtimes = [line.removeprefix('Service runtime: ') for line in lines if line.startswith('Service runtime: ')]
+    require(len(runtimes) == 1, 'original service runtime line differs')
+    require(service_runtime(runtimes[0]) == Decimal(str(descriptor['service_seconds'])), 'original service runtime numeric binding differs')
+    footers = [init.strict_json(line[len('FINAL_CGROUP '):]) for line in lines if line.startswith('FINAL_CGROUP ')]
+    require(len(footers) == 1 and footers[0]['invocation_id'] == identity, 'original final cgroup footer differs')
+    final = footers[0]
+    for value in (record['cgroup_before'], record['cgroup_after'], final):
+        init.admit_cgroup(value, unit)
+        require(value['path'] == final['path'], 'enclosing cgroup changed')
+    require(int(final['values']['memory.peak']) >= int(record['cgroup_after']['values']['memory.peak']) >=
+            int(record['cgroup_before']['values']['memory.peak']), 'complete whole-unit peak differs')
+    return final
+
+
+def admit_terminal(record, terminal):
+    """Parent/consumer admission from original bytes; never a worker self-attestation."""
+    require(read_json(terminal['receipt']) == record and record['pass'] is True and
+            record['exit_rehash_pass'] is True and record['resource_policy'] == POLICY and
+            0 < record['peak_cuda_allocated_bytes'] < POLICY['cuda_allocated_bytes_exclusive'],
+            'terminal receipt/resources differ')
+    inv = record['invocation']
+    require(inv.keys() == {'argv', 'python', 'python_sha256', 'python_version', 'optimize', 'pid', 'invocation_id', 'cuda_visible_devices'} and
+            isinstance(inv['argv'], list) and inv['argv'] and all(isinstance(v, str) for v in inv['argv']) and
+            Path(inv['python']).is_absolute() and re.fullmatch('[0-9a-f]{64}', inv['python_sha256']) is not None and
+            isinstance(inv['python_version'], str) and inv['python_version'] and type(inv['pid']) is int and inv['pid'] > 0,
+            'complete original invocation metadata required')
+    log = bound_file({}, terminal['log']['path'], terminal['log']['sha256']).read_text().splitlines()
+    require(not any(line.lstrip().startswith('watchdog:') for line in log), 'watchdog stop is INVALID/HOLD')
+    for prefix in ('Running as unit: ', '\tExit status: ', 'Finished with result: ', 'Main processes terminated with: ',
+                   '\tSwaps: ', 'Memory swap peak: ', '\tMaximum resident set size (kbytes): '):
+        require(sum(line.startswith(prefix) for line in log) == 1, 'ambiguous original terminal log')
+    init = SimpleNamespace(bound_file=bound_file, strict_json=strict_json, admit_cgroup=admit_cgroup)
+    return admit_held_terminal(init, record, terminal, HANG_BACKSTOP_SECONDS, {})
+
+
+def admit_terminal_cli(argv):
+    p = argparse.ArgumentParser(description='Parent: admit an original full-training/scoring unit; create terminal.json', allow_abbrev=False)
+    p.add_argument('--receipt', type=Path, required=True)
+    p.add_argument('--receipt-sha256', required=True)
+    p.add_argument('--log', type=Path, required=True)
+    p.add_argument('--log-sha256', required=True)
+    p.add_argument('--both-locks-held', action='store_true', required=True)
+    args = p.parse_args(argv)
+    receipt = descriptor(args.receipt, args.receipt_sha256)
+    log = descriptor(args.log, args.log_sha256)
+    record = read_json(receipt)
+    require(args.receipt.name == 'receipt.json' and record['schema'] in (SCHEMA, 'siglip2-substrate-official-v1'), 'full-stage receipt required')
+    lines = args.log.read_text().splitlines()
+    def one(prefix):
+        values = [line[len(prefix):] for line in lines if line.startswith(prefix)]
+        require(len(values) == 1, 'original terminal line differs: ' + prefix)
+        return values[0]
+    match = re.fullmatch(r'([A-Za-z0-9_.@-]+)\.service; invocation ID: ([0-9a-f]{32})', one('Running as unit: '))
+    require(match is not None, 'original unit header differs')
+    terminal = {'receipt': receipt, 'log': log, 'unit': match[1], 'invocation_id': match[2],
+                'service_seconds': float(service_runtime(one('Service runtime: '))),
+                'native_peak_rss_kib': int(one('\tMaximum resident set size (kbytes): ')), 'both_locks_held': True}
+    admit_terminal(record, terminal)
+    output = args.receipt.parent / 'terminal.json'
+    publish(output, terminal)
+    print(json.dumps(descriptor(output)), flush=True)
+
+
+def inspect_layout(root, *, complete=False):
+    """Only a contiguous single attempt per arm; no unaccounted siblings/dirs."""
+    require(root.is_absolute() and root.resolve() == root and root.is_dir(), 'canonical run root required')
+    entries = {p.name for p in root.iterdir()}
+    require({'large', 'so400'} <= entries <= {'large', 'so400', 'official'}, 'extra/orphan run-root entry: INVALID/HOLD')
+    if 'official' in entries:
+        require((root / 'official').is_dir() and (root / 'official').resolve() == root / 'official', 'canonical official directory required')
+    ends = {}
+    for arm in WIDTHS:
+        folder = root / arm
+        require(folder.is_dir() and folder.resolve() == folder, 'canonical arm directory required')
+        chunks = list(folder.iterdir())
+        require(len(chunks) <= 20 and {p.name for p in chunks} ==
+                {f'chunk-{i:04d}' for i in range(100, len(chunks) * 100 + 1, 100)}, 'extra/missing/orphan chunk: INVALID/HOLD')
+        for chunk in chunks:
+            require(chunk.is_dir() and chunk.resolve() == chunk, 'canonical chunk directory required')
+            files = list(chunk.iterdir())
+            require({'resume.pt', 'receipt.json', 'terminal.json'} <= {p.name for p in files} <=
+                    {'resume.pt', 'receipt.json', 'terminal.json', 'unit.log'} and
+                    all(p.is_file() and p.resolve() == p for p in files), 'incomplete/orphan chunk: INVALID/HOLD')
+        ends[arm] = len(chunks) * 100
+    require(not complete or all(v == TOTAL_UPDATES for v in ends.values()), 'both complete 20-chunk chains required')
+    return ends
 
 
 def publish(path, value):
@@ -141,13 +312,23 @@ def validate_receipt(row, end, arm, source, code):
             isinstance(row['previous_checkpoint_sha256'], str), 'previous checkpoint link differs')
 
 
-def check_chain(previous, end, arm, source, code):
+def check_chain(previous, end, arm, source, code, terminal=None, *, seen=None):
     require(type(end) is int and 0 <= end <= TOTAL_UPDATES and end % 100 == 0, 'chunk endpoint differs')
-    require(bool(previous) == bool(end), 'previous receipt required exactly after chunk one')
+    require(bool(previous) == bool(terminal) == bool(end), 'previous receipt and terminal required exactly after chunk one')
+    seen = set() if seen is None else seen
+    root = Path(previous['path']).parents[2] if previous else None
     latest = child = None
     while end:
         row = read_json(previous)
         validate_receipt(row, end, arm, source, code)
+        require(Path(previous['path']) == root / arm / f'chunk-{end:04d}' / 'receipt.json' and
+                Path(terminal['path']) == Path(previous['path']).parent / 'terminal.json', 'fixed chunk/terminal path differs')
+        original = read_json(terminal)
+        require(original['receipt'] == previous, 'original terminal receipt binding differs')
+        admit_terminal(row, original)
+        for value in (('unit', original['unit']), ('invocation', original['invocation_id'])):
+            require(value not in seen, 'reused original unit/invocation: INVALID/HOLD')
+            seen.add(value)
         require(Path(row['checkpoint']['path']) == Path(previous['path']).parent / 'resume.pt', 'checkpoint path differs')
         if child is not None:
             require(child['previous_checkpoint_sha256'] == row['checkpoint']['sha256'] and
@@ -155,8 +336,8 @@ def check_chain(previous, end, arm, source, code):
         else:
             descriptor(row['checkpoint']['path'], row['checkpoint']['sha256'])
             latest = row
-        child, previous, end = row, row['previous'], end - 100
-        require(bool(previous) == bool(end), 'truncated or extended chunk chain')
+        child, previous, terminal, end = row, row['previous'], row['previous_terminal'], end - 100
+        require(bool(previous) == bool(terminal) == bool(end), 'truncated or extended chunk chain')
     return latest
 
 
@@ -534,6 +715,7 @@ def parser():
     result.add_argument('--chunk-end', type=int, choices=range(100, TOTAL_UPDATES + 1, 100), required=True)
     result.add_argument('--previous', type=Path)
     result.add_argument('--previous-sha256')
+    result.add_argument('--previous-terminal-sha256')
     result.add_argument('--partition-parser', type=Path, default=Path(__file__).resolve().parents[1] / 'src/sfora/unicom_inshop.py')
     result.add_argument('--output', type=Path, required=True)
     return result
@@ -544,13 +726,22 @@ def run(args):
     install_backstop()
     require(args.output.is_absolute() and args.output.parent.resolve() == args.output.parent and
             not args.output.exists() and not args.output.is_symlink(), 'exclusive canonical output required')
+    root = args.output.parent.parent
+    require(args.output == root / args.arm / f'chunk-{args.chunk_end:04d}', 'fixed chunk-NNNN output required')
+    require(inspect_layout(root)[args.arm] == args.chunk_end - 100 and not (root / 'official').exists(),
+            'chunk retry or training after official attempt: INVALID/HOLD')
+    original_invocation = invocation()
+    args.output.mkdir()  # Reserve before source I/O/admission; a failed attempt remains visible.
     source = {'checkpoint': descriptor(args.source_resume, args.source_sha256),
               'receipt': descriptor(args.source_resume.parent / 'receipt.json', args.source_receipt_sha256)}
     code = {'trainer': sha(Path(__file__)), 'partition_parser': PARSER_SHA}
-    require(bool(args.previous) == bool(args.previous_sha256), 'previous path/SHA pair required')
+    require(bool(args.previous) == bool(args.previous_sha256) == bool(args.previous_terminal_sha256), 'previous receipt/terminal SHA required')
     previous = descriptor(args.previous, args.previous_sha256) if args.previous else None
-    prior = check_chain(previous, args.chunk_end - 100, args.arm, source, code)
-    context = admit_source(source, args.arm, args.output)
+    previous_terminal = descriptor(args.previous.parent / 'terminal.json', args.previous_terminal_sha256) if previous else None
+    require(previous is None or Path(previous['path']) == root / args.arm / f'chunk-{args.chunk_end - 100:04d}' / 'receipt.json',
+            'previous chunk must belong to this run root')
+    prior = check_chain(previous, args.chunk_end - 100, args.arm, source, code, previous_terminal)
+    context = admit_source(source, args.arm, args.output / 'admission')
     context['pilot'].bound_file(context['guards'], Path(__file__).resolve(), code['trainer'])
     before, flags = native_start(context)
     import torch
@@ -564,7 +755,6 @@ def run(args):
         state, identity = initialize_full(context, state, identity, rows, code)
     require(torch.equal(state['schedules'][str(SEED)], torch.from_numpy(schedule(state['target'].cpu().numpy()))), 'full schedule differs')
     cpu_rng, cuda_rng = torch.random.get_rng_state().clone(), torch.cuda.get_rng_state_all()
-    args.output.mkdir()
     tick = time.monotonic()
     steps = [update(context, context['ref'], state, identity, flags, step)
              for step in range(args.chunk_end - 99, args.chunk_end + 1)]
@@ -573,7 +763,8 @@ def run(args):
     record = {'schema': SCHEMA, 'pass': True, 'arm': args.arm, 'width': WIDTHS[args.arm], 'seed': SEED,
               'source': source, 'code': code, 'identity': canonical(identity), 'chunk_start': args.chunk_end - 100,
               'completed_step': args.chunk_end, 'steps': steps, 'checkpoint': checkpoint, 'terminal_state_sha256': terminal,
-              'previous': previous, 'previous_checkpoint_sha256': prior['checkpoint']['sha256'] if prior else None,
+              'previous': previous, 'previous_terminal': previous_terminal, 'invocation': original_invocation,
+              'previous_checkpoint_sha256': prior['checkpoint']['sha256'] if prior else None,
               'training_wall_seconds': training_seconds, 'quality_read': False, 'resource_policy': POLICY}
     del state
     gc.collect(); torch.cuda.empty_cache()
@@ -584,7 +775,7 @@ def run(args):
     gc.collect(); torch.cuda.empty_cache()
     context['pilot'].exit_rehash(context)
     if previous:
-        check_chain(previous, args.chunk_end - 100, args.arm, source, code)
+        check_chain(previous, args.chunk_end - 100, args.arm, source, code, previous_terminal)
     require(context['source'].numerical_flags() == flags, 'exit numerical flags drift')
     record.update(resources(context, before, started), reload_exact=True, exit_rehash_pass=True,
                   terminal_exit_and_both_locks_require_parent_receipt=True)
@@ -593,6 +784,9 @@ def run(args):
 
 
 def main():
+    if sys.argv[1:2] == ['admit-terminal']:
+        admit_terminal_cli(sys.argv[2:])
+        return
     args = parser().parse_args()
     result = run(args)
     print(json.dumps({'pass': True, 'arm': args.arm, 'completed_step': result['completed_step'], 'quality_read': False}), flush=True)
