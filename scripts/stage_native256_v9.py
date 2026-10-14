@@ -67,15 +67,24 @@ def terminal(phase, arm, seed):
     return terminal_from(NEW / f'{name_}.log', RUNS / name_ / 'receipt.json', name_)
 
 
-def terminal_from(log, receipt, name_):
-    """TERMINAL descriptor from an original unit log + receipt (admission re-checks everything)."""
+def terminal_from(log, receipt, name_, runtime=None):
+    """TERMINAL descriptor from an original unit log + receipt (admission re-checks everything).
+
+    runtime=None: frozen TRAIN/mechanics parser. Held v2 passes the staged exporter's service_runtime, which its
+    admit_held_terminal re-checks ('3min 81ms' = systemd omitting a zero seconds term).
+    """
     text = log.read_text()
     assert not re.search(r'^watchdog:', text, re.M), 'watchdog-stopped run is invalid and never reused'
-    # Admission parses only '[Nmin ]S[.f]s'; systemd may print '...ms' or omit seconds. Pre-registered: such a
-    # valid run is rerun under a new unit name (not a failed state), never re-parsed.
-    assert re.search(r'^Service runtime: (?:\d+min )?\d+(?:\.\d+)?s$', text, re.M), 'unadmissible runtime format: rerun'
     invocation = re.search(r'^Running as unit: \S+\.service; invocation ID: ([0-9a-f]{32})$', text, re.M).group(1)
-    minutes, seconds = re.search(r'^Service runtime: (?:(\d+)min )?(\d+(?:\.\d+)?)s$', text, re.M).groups()
+    if runtime is not None:
+        lines = [line.removeprefix('Service runtime: ') for line in text.splitlines() if line.startswith('Service runtime: ')]
+        assert len(lines) == 1, 'exactly one service runtime line required'
+        minutes, seconds = None, str(runtime(lines[0]))
+    else:
+        # Admission parses only '[Nmin ]S[.f]s'; systemd may print '...ms' or omit seconds. Pre-registered: such a
+        # valid run is rerun under a new unit name (not a failed state), never re-parsed.
+        assert re.search(r'^Service runtime: (?:\d+min )?\d+(?:\.\d+)?s$', text, re.M), 'unadmissible runtime format: rerun'
+        minutes, seconds = re.search(r'^Service runtime: (?:(\d+)min )?(\d+(?:\.\d+)?)s$', text, re.M).groups()
     rss = int(re.search(r'^\tMaximum resident set size \(kbytes\): (\d+)$', text, re.M).group(1))
     return {'both_locks_held': True, 'invocation_id': invocation, 'log': {'path': str(log), 'sha256': sha(log)},
             'native_peak_rss_kib': rss, 'receipt': {'path': str(receipt), 'sha256': sha(receipt)},

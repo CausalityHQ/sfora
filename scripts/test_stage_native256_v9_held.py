@@ -18,9 +18,9 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def log(path, unit):
+def log(path, unit, runtime='3min 1.5s'):
     path.write_text(f'Running as unit: {unit}.service; invocation ID: {hashlib.md5(unit.encode()).hexdigest()}\n'
-                    '\tMaximum resident set size (kbytes): 1234\nService runtime: 3min 1.5s\n')
+                    f'\tMaximum resident set size (kbytes): 1234\nService runtime: {runtime}\n')
 
 
 def main():
@@ -41,7 +41,9 @@ def main():
         (new / 'execution.json').write_text(json.dumps({f: sha(new / f) for f in files}, indent=2, sort_keys=True) + '\n')
         (src / 'export_siglip2_substrate_adaptation.py').write_text(
             "AUTHORITY_SCHEMA = 'native256-held-authority-v1'\nCOST_POLICY = {'enforcement': 'report_only'}\n"
-            "def policy(phase):\n    return {'seconds': 3600, 'phase': phase}\n")
+            "def policy(phase):\n    return {'seconds': 3600, 'phase': phase}\n"
+            "from decimal import Decimal\ndef service_runtime(text):\n"
+            "    return {'3min 1.5s': Decimal('181.5'), '3min 81ms': Decimal('180.081')}[text]\n")
         for f in ('score_siglip2_substrate_adaptation.py', 'test_siglip2_substrate_held.py',
                   'reference_compare_inshop_sop_warmstart_100.py', 'reference_score_inshop_crop_view_pair.py'):
             (src / f).write_text(f)
@@ -95,8 +97,11 @@ def main():
                 unit = f'sfora-native256-held-{phase}-{arm}-{seed}-v9'
                 (runs / unit).mkdir()
                 (runs / unit / name).write_text('{}')
-                log(held / f'{unit}.log', unit)
+                log(held / f'{unit}.log', unit, '3min 81ms' if (phase, seed, arm) == ('cpu', 179032, 'so400') else '3min 1.5s')
             run('cpu-terminal', str(seed), arm)
+        # h1 HOLD shape: systemd omits a zero seconds term; held v2 parses it via the staged exporter.
+        assert json.loads((held / 'cpu-terminal-so400-179032.json').read_text())['service_seconds'] == 180.081
+        assert json.loads((held / 'cpu-terminal-large-179032.json').read_text())['service_seconds'] == 181.5
         export_line = run('launch', 'export', '179041', 'so400')
         assert 'CUBLAS_WORKSPACE_CONFIG=:4096:8' in export_line and '--cpu-terminal' in \
             (held / 'sfora-native256-held-export-so400-179041-v9-command.sh').read_text()
