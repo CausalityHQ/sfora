@@ -55,6 +55,9 @@ FILES = (*LOCAL, *PILOT_FILES, 'pilot-execution.json', 'command-header.sh')
 
 USERDB_DIRS = ('/etc/userdb', '/run/userdb', '/run/host/userdb', '/usr/local/lib/userdb', '/usr/lib/userdb')
 PROC = Path('/proc')
+USERDB_PROVIDERS = '/run/systemd/userdb'
+# Providers that cannot carry a killProcesses override for an ordinary passwd UID (no homed, no unknown provider).
+SAFE_PROVIDERS = {'io.systemd.DynamicUser', 'io.systemd.NameServiceSwitch', 'io.systemd.Multiplexer', 'io.systemd.Machine'}
 LOGIND = ('org.freedesktop.login1', '/org/freedesktop/login1', 'org.freedesktop.login1.Manager')
 
 
@@ -63,7 +66,8 @@ def lifetime():
 
     The driver must sit in a logind session scope of its own UID (a closing session with live processes keeps
     user@UID and its systemd-run --user units alive), with effective KillUserProcesses off for that UID: global
-    false, empty KillOnlyUsers, and no userdb record setting killProcesses. Linger is recorded only: it keeps the
+    false, empty KillOnlyUsers, no userdb drop-in and only providers that cannot override killProcesses,
+    and StopIdleSessionUSec infinite (an idle stop is forced and ignores the kill policy). Linger is recorded only: it keeps the
     user manager but not a session-scope driver, so it is never an alternative.
     """
     uid, driver = os.getuid(), os.getppid()
@@ -90,22 +94,34 @@ def lifetime():
         cgroup = (PROC / str(driver) / 'cgroup').read_text().strip()
     except OSError as error:
         cgroup = 'unreadable: ' + str(error)
-    records = {}
+    # Positive exclusion instead of parsing records (perMachine/binding, retained records): any drop-in directory or
+    # unknown Varlink provider refuses; unreadable state refuses.
+    dropins = {}
     for directory in USERDB_DIRS:
-        for record in sorted(Path(directory).glob('*.user')) if Path(directory).is_dir() else ():
-            try:
-                value = json.loads(record.read_text())
-            except (OSError, ValueError):
-                value = {'unparseable': True}
-            if value.get('uid') == uid or value.get('unparseable'):
-                records[str(record)] = value.get('killProcesses', 'unset') if not value.get('unparseable') else 'unparseable'
-    measured.update(driver_cgroup=cgroup, userdb_records=records)
+        try:
+            os.lstat(directory)
+            dropins[directory] = 'present'
+        except FileNotFoundError:
+            pass
+        except OSError as error:
+            dropins[directory] = 'unreadable: ' + str(error)
+    try:
+        providers = sorted(os.listdir(USERDB_PROVIDERS))
+    except FileNotFoundError:
+        providers = []
+    except OSError as error:
+        providers = ['unreadable: ' + str(error)]
+    idle = query('StopIdleSessionUSec', ['busctl', 'get-property', *LOGIND, 'StopIdleSessionUSec'])
+    query('UserTimestamp', ['loginctl', 'show-user', str(uid), '-p', 'Timestamp'])
+    measured.update(driver_cgroup=cgroup, userdb_dropins=dropins, userdb_providers=providers)
     streams = [{'fd': fd, 'mode': os.fstat(fd).st_mode, 'tty': os.isatty(fd)} for fd in range(3)]
     scope_name = scope[3:-1] if scope and scope.startswith('s "') and scope.endswith('"') else None
     checks = {
         'kill_user_processes_false': kill == 'b false',
         'kill_only_users_empty': only == 'as 0',
-        'no_userdb_kill_override': all(value is False or value == 'unset' for value in records.values()),
+        'no_userdb_dropins': not dropins,
+        'only_safe_userdb_providers': set(providers) <= SAFE_PROVIDERS,
+        'idle_sessions_never_stopped': idle == 't 18446744073709551615',
         'driver_in_own_session': owner is not None and owner.split()[1:2] == [str(uid)] and scope_name is not None and
                                  scope_name.startswith('session-') and scope_name.endswith('.scope') and
                                  cgroup.splitlines() == [f'0::/user.slice/user-{uid}.slice/{scope_name}'],

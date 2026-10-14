@@ -10,6 +10,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import patch
 
@@ -322,6 +323,7 @@ if args[0] == 'lifetime':
     (proc / 'cgroup').write_text(os.environ['FAKE_CGROUP'].replace('UID', str(os.getuid())) + '\\n')
     real['lifetime'].__globals__['PROC'] = Path(__file__).parent / 'proc'
     real['lifetime'].__globals__['USERDB_DIRS'] = (str(Path(__file__).parent / 'userdb'),)
+    real['lifetime'].__globals__['USERDB_PROVIDERS'] = str(Path(__file__).parent / 'providers')
     real['lifetime']()
 elif args[0] == 'launch':
     print('exit 7' if fail else 'exit 0')
@@ -342,23 +344,33 @@ else:
         session = 'org.freedesktop.login1 /org/freedesktop/login1/session/_37 org.freedesktop.login1.Session'
         cases = [('get-property ' + manager + ' KillUserProcesses', 'FAKE_KILL'),
                  ('get-property ' + manager + ' KillOnlyUsers', 'FAKE_ONLY'),
-                 ('call ' + manager + ' GetSessionByPID u *', 'FAKE_SESSION'),
+                 ('call ' + manager + ' GetSessionByPID u ' + 'DRIVER_PID', 'FAKE_SESSION'),
+                 ('get-property ' + manager + ' StopIdleSessionUSec', 'FAKE_IDLE'),
                  ('get-property ' + session + ' User', 'FAKE_OWNER'),
                  ('get-property ' + session + ' Scope', 'FAKE_SCOPE')]
         busctl = self.root / 'busctl'
-        busctl.write_text('#!' + sys.executable + '\nimport fnmatch, os, sys\nargs = " ".join(sys.argv[1:])\n'
-                          'for pattern, variable in ' + repr(cases) + ':\n'
-                          '    if fnmatch.fnmatchcase(args, pattern):\n'
-                          '        print(os.environ[variable]); sys.exit(int(os.environ.get(variable + "_RC", "0")))\n'
-                          'sys.exit(66)\n')
+        busctl.write_text('#!' + sys.executable + '\n' + textwrap.dedent(f"""\
+            import fnmatch, os, sys
+            args = " ".join(sys.argv[1:])
+            # busctl's parent is the stage process; the driver is the stage process's parent.
+            driver = open("/proc/%d/stat" % os.getppid()).read().rsplit(")", 1)[1].split()[1]
+            for pattern, variable in {cases!r}:
+                if fnmatch.fnmatchcase(args, pattern.replace("DRIVER_PID", driver)):
+                    print(os.environ[variable])
+                    sys.exit(int(os.environ.get(variable + "_RC", "0")))
+            sys.exit(66)
+            """))
         busctl.chmod(0o755)
         loginctl = self.root / 'loginctl'
-        loginctl.write_text('#!/bin/sh\n[ "$*" = "show-user ' + str(os.getuid()) + ' -p Linger" ] || exit 66\n'
-                            'printf \'%s\\n\' "$FAKE_LINGER"\nexit "${FAKE_LINGER_RC:-0}"\n')
+        loginctl.write_text('#!/bin/sh\ncase "$*" in\n'
+                            '  "show-user ' + str(os.getuid()) + ' -p Linger") printf \'%s\\n\' "$FAKE_LINGER"; exit "${FAKE_LINGER_RC:-0}";;\n'
+                            '  "show-user ' + str(os.getuid()) + ' -p Timestamp") echo "Timestamp=fixture"; exit 0;;\n'
+                            '  *) exit 66;;\nesac\n')
         loginctl.chmod(0o755)
-        (self.root / 'userdb').mkdir()
+        (self.root / 'providers').mkdir()
+        (self.root / 'providers' / 'io.systemd.DynamicUser').touch()
         self.env = {**os.environ, 'PATH': str(self.root) + os.pathsep + os.environ['PATH'],
-                    'FAKE_KILL': 'b false', 'FAKE_ONLY': 'as 0', 'FAKE_LINGER': 'Linger=no',
+                    'FAKE_KILL': 'b false', 'FAKE_ONLY': 'as 0', 'FAKE_LINGER': 'Linger=no', 'FAKE_IDLE': 't 18446744073709551615',
                     'FAKE_SESSION': 'o "/org/freedesktop/login1/session/_37"',
                     'FAKE_OWNER': f'(uo) {os.getuid()} "/org/freedesktop/login1/user/_{os.getuid()}"',
                     'FAKE_SCOPE': 's "session-7.scope"', 'FAKE_CGROUP': '0::/user.slice/user-UID.slice/session-7.scope',
@@ -407,6 +419,7 @@ else:
     def test_lifetime_refuses_policy_and_attached_streams_before_any_unit(self):
         for env in ({'FAKE_KILL': 'b true'}, {'FAKE_KILL_RC': '1'}, {'FAKE_KILL': 'unknown', 'FAKE_LINGER': 'unknown'},
                     {'FAKE_ONLY': f'as 1 "{os.environ.get("USER", "x")}"'}, {'FAKE_ONLY_RC': '1'},
+                    {'FAKE_IDLE': 't 3600000000'}, {'FAKE_IDLE_RC': '1'},
                     {'FAKE_SESSION_RC': '1', 'FAKE_SESSION': 'PID does not belong to any known session'},
                     {'FAKE_OWNER': '(uo) 0 "/org/freedesktop/login1/user/_0"'}, {'FAKE_SCOPE': 's "session-8.scope"'},
                     {'FAKE_SCOPE': 's "user@1000.service"', 'FAKE_CGROUP': '0::/user.slice/user-UID.slice/user@UID.service/app.slice/x.service'},
@@ -438,17 +451,22 @@ else:
         self.assertEqual(calls, [['lifetime']])
         self.assertNotEqual(result.returncode, 0)
 
-    def test_userdb_kill_override_refused(self):
-        record = self.root / 'userdb' / 'fixture.user'
-        for value, refused in ((True, True), (False, False)):
-            record.write_text(json.dumps({'userName': 'fixture', 'uid': os.getuid(), 'killProcesses': value}))
-            result, out, calls = self.run_driver({'FAIL_AT': 'launch train large 100'})
-            self.assertEqual('LIFETIME_REFUSED' in out, refused, out)
-            self.assertEqual(calls == [['lifetime']], refused)
-        record.write_text('{not json')
+    def test_userdb_dropins_and_unknown_providers_refused(self):
+        dropin = self.root / 'userdb'
+        dropin.mkdir()
         result, out, calls = self.run_driver()
-        self.assertIn('no_userdb_kill_override', out)
+        self.assertIn('no_userdb_dropins', out)
         self.assertEqual(calls, [['lifetime']])
+        dropin.rmdir()
+        for provider in ('io.systemd.Home', 'com.example.Unknown'):
+            (self.root / 'providers' / provider).touch()
+            result, out, calls = self.run_driver()
+            self.assertIn('only_safe_userdb_providers', out)
+            self.assertEqual(calls, [['lifetime']])
+            (self.root / 'providers' / provider).unlink()
+        result, out, calls = self.run_driver({'FAIL_AT': 'launch train large 100'})
+        self.assertNotIn('LIFETIME_REFUSED', out)
+        self.assertIn(['launch', 'train', 'large', '100'], calls)
 
     def test_environment_record_and_stop_before_changed_unit(self):
         for field, count in (('nvidia_version', 2), ('kernel_release', 43)):
