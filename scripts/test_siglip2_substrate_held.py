@@ -152,7 +152,7 @@ def main():
         assert held.service_runtime(text) == Decimal(value), text
     for text in ('', ' ', '3min81ms', '3min  81ms', ' 81ms', '81ms ', '3min ', '0min 5s', '03min 5s', '60min', '1h 2min',
                  '3min 60s', '3min 61.5s', '1000ms', '081ms', '0ms', '0s', '0.000s', '-5s', '5', '5sec', '3min 81ms 2s',
-                 '3min 5s 81ms', '1.5min', '3min 81us', '٣min 5s', '5.s', '.5s', '1e3ms', '3min\t81ms', '3min 81ms\n'):
+                 '3min 5s 81ms', '1.5min', '3min 81us', '٣min 5s', '5.s', '.5s', '1e3ms', '1.0000s', '1.0000000000000001s', '59min 59.' + '9' * 30 + 's', '45.1234s', '3min\t81ms', '3min 81ms\n'):
         rejected('runtime ' + repr(text), lambda: held.service_runtime(text))
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:

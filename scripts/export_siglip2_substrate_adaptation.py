@@ -291,9 +291,10 @@ def service_runtime(text):
     """Held-v2 parse of systemd 'Service runtime:' (format_timespan, < 1h): 'Nmin', '[Nmin ]S[.f]s', '[Nmin ]Mms'.
 
     systemd omits a zero seconds term ('3min 81ms', h1 HOLD); the frozen trainer/initializer regex rejects it.
-    ASCII digits only, no leading zeros, minutes 1..59, seconds < 60, milliseconds 1..999, total > 0.
+    ASCII digits only, no leading zeros, minutes 1..59, seconds < 60 with <= 3 decimals (ms accuracy; no Decimal
+    context rounding), milliseconds 1..999, total > 0.
     """
-    match = re.fullmatch(r'(?:([1-9][0-9]?)min)?( ?)(?:((?:0|[1-9][0-9]?)(?:\.[0-9]+)?)s|([1-9][0-9]{0,2})ms)?', text)
+    match = re.fullmatch(r'(?:([1-9][0-9]?)min)?( ?)(?:((?:0|[1-9][0-9]?)(?:\.[0-9]{1,3})?)s|([1-9][0-9]{0,2})ms)?', text)
     require(match is not None, 'held service runtime format differs')
     minutes, space, seconds, millis = match.groups()
     tail = seconds is not None or millis is not None
