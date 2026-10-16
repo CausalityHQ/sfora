@@ -1,0 +1,24 @@
+{"pass": true, "quality_read": false, "raw_terminal_hash_equal": false, "state_fingerprints": {"bank": "dee28a1fd6ac600ff11294da9799075978053f66e5fb23f8e2e1ee77c53d63bc", "buffers": "b26f9760da636d62483ceb3fad7fadd6fe618bb54e7fc0bba1f9a31468019a10", "classifier": "e44b8a027ee586da3b09e2d7e9b1fa5700dfdde7bea80ebcd55e2ba758642ae2", "config": "e72c6d45b11be5e292384d75a55a3e1cc0acb37531c41c2ee852669b7da2c426", "counter": "1f3c1e84d297a88c64658e0901185226dacb16e5b1315ec8724f1e7718002e73", "cpu_rng": "9617d11cfd23b872593107a10928243dccda73d578c7d36cbe7c04f55dbbcb5d", "cuda_rng": "fcee35ba6a23a04c08b2ce3af392b9ae68f9f01e17eba4e0f7b82b8ebe50e3aa", "head": "da34bb2d0bdb537756c0bbe25a253320772fb862f69b283ac2113ceedf3f898d", "numerical_flags": "7e4a057ebb2f145759fd353cb2ec8536ef220e7b2a93c6cf041b3283a2cbb3be", "optimizer": "da9e7ff1d5459f5492ab1470a57a8eb3f5c428ed1ec226a30d6e14ef437834e5", "optimizer_defaults": "898110651660af2303ae48468f654b4fc02e7098530e4354f0d813cecbd4476a", "pca": "39fa137f52be7efa57722dad0aeea31e9e3d70d8c2e30c80a7bf5bc5f1009a07", "positive": "677909751a35a997bfc4cac3f7a15ec8c6fd06ccb71cf8609cef70ec18655e2b", "scaler": "ef499f5312e3bd23ee3d6404826ac05bf4891c98f33b0b04dbdb02b3373b694f", "schedules": "2ab579ca9c460e79ad6582ff03f3555d0423b8a36864a4e71683ee28e72ca430", "seed": "17e0badbbef44d7cd3091dd9cb6c2e01eb53ccfbbc694c23395da5ec26b38f91", "target": "7d1590e79fdb9a02c3593c58d286c5c90d9f4786dacff930bce37cf4668a1969", "vision": "ac070634ac26a69799b8d8a4451389432b70f1acfaf1faecee9e469316712f62"}, "steps": 500, "v1_terminal": {"path": "/home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0500/terminal.json", "sha256": "d48aec8782712b91acfb587192e085345f55a1db662c8795ce0da95bd003665a"}, "v1_terminal_state_sha256": "fd46fb2b6d1eeeadb862ba00f829073a44bb63a5582e7942469fe468b69a3710", "v2_terminal": {"path": "/home/riomus/runs/sfora-native256-full-run-v2/large/chunk-0500/terminal.json", "sha256": "f7b0c0a65e76ed976211fa11909967bf3ec75f6b8515527cfe2cd826426b9205"}, "v2_terminal_state_sha256": "0666d4f7f044a188d5a392c0dfd3561a8e4bf143e6ec7e303ceec6fb5440eb93"}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -B falsify_siglip2_substrate_full_v2.py --v1-chunk500 /home/riomus/runs/sfora-native256-full-run-v1/large/chunk-0500 --v1-terminal-sha256 d48aec8782712b91acfb587192e085345f55a1db662c8795ce0da95bd003665a --v2-chunk500 /home/riomus/runs/sfora-native256-full-run-v2/large/chunk-0500 --v2-terminal-sha256 f7b0c0a65e76ed976211fa11909967bf3ec75f6b8515527cfe2cd826426b9205"
+	User time (seconds): 17.30
+	System time (seconds): 2.79
+	Percent of CPU this job got: 44%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:45.08
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 660120
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 382
+	Minor (reclaiming a frame) page faults: 391658
+	Voluntary context switches: 113537
+	Involuntary context switches: 191
+	Swaps: 0
+	File system inputs: 67329688
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

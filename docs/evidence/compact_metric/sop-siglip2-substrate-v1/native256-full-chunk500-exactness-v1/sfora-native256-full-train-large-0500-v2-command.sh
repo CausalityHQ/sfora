@@ -1,0 +1,73 @@
+#!/bin/bash
+set -euo pipefail
+cd /home/riomus/runs/sfora-native256-full-v2
+trap 'sfora_command_status=$?; trap - EXIT; set +e; export SFORA_COMMAND_STATUS=$sfora_command_status; /usr/bin/python3 /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py; sfora_footer_status=$?; if (( sfora_command_status != 0 )); then exit "$sfora_command_status"; fi; exit "$sfora_footer_status"' EXIT
+sha256sum -c <<'HASHES'
+bef497084fdf4f6763945e85a47ce021b877f69d81e62b62998f3b7b44d992ef  /home/riomus/runs/sfora-native256-full-v2/command-header.sh
+435bd73d9a3dde04c9daa819ec3694e228b4cadcc2523c35e4c877ae5d034870  /home/riomus/runs/sfora-native256-full-v2/deployed_code_rank.py
+6fee591bffdb2af8d77355bd4f0c282ac52979fa2125ff46bfb31df0ea985411  /home/riomus/runs/sfora-native256-full-v2/evaluate_inshop_siglip2_official.py
+a7a7bd22417f1a3c250664d961a7f6d52e02b5033c044f67bf4305579fd884f5  /home/riomus/runs/sfora-native256-full-v2/falsify_siglip2_substrate_full_v2.py
+a74746f333a60d2774c2905258630458e1a80e2a2726c960de9128047477839d  /home/riomus/runs/sfora-native256-full-v2/pilot-execution.json
+d6d52da270f9c983ede3ccb23dc4374964a6e520e040758d73193c33ca5fa5a5  /home/riomus/runs/sfora-native256-full-v2/qualify_pe_large_inshop_official.py
+1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610  /home/riomus/runs/sfora-native256-full-v2/reference_train_sop_siglip2_compact.py
+a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272  /home/riomus/runs/sfora-native256-full-v2/reference_unicom_training.py
+09e5b221538da2cefa543a1cb7b25c97d82556e1b6f63a9d0bf843c2f7445754  /home/riomus/runs/sfora-native256-full-v2/run_siglip2_substrate_full_v2.sh
+d7ddb72392fa0b38bad51ec4bc4995efec64f3cfe46fb99b6009a046cc8090f6  /home/riomus/runs/sfora-native256-full-v2/run_with_progress_watchdog.sh
+16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed  /home/riomus/runs/sfora-native256-full-v2/score_inshop_crop_view_pair.py
+b17e4ab4f88f7d4754387006927870a459856361da3da8a5a724209fe44a2752  /home/riomus/runs/sfora-native256-full-v2/score_siglip2_substrate_official.py
+d3ede7fd593d71a7193df6262eafd14c74f51d4ae7cb39dcb5696335cbc9dd04  /home/riomus/runs/sfora-native256-full-v2/score_siglip2_substrate_official_v2.py
+d1fc0d2e56f1d58f8d0d15e5e1622af941a9009f5e9deded7faf3bde9e702b34  /home/riomus/runs/sfora-native256-full-v2/stage_siglip2_substrate_full.py
+f0de593528b9401bc0c906ec76b40e9700cac7af01c384314bd5d725d248dfdd  /home/riomus/runs/sfora-native256-full-v2/stage_siglip2_substrate_full_v2.py
+7df1d58718709b3a1230ec6fef0cc9a806abcb9e4eceaba4c0267df5edc3e9c2  /home/riomus/runs/sfora-native256-full-v2/test_siglip2_substrate_adaptation.py
+6f7f0339e517f6d37a59f84fc2aca52e61dfda0f6764615e4abc68c65c8b87c9  /home/riomus/runs/sfora-native256-full-v2/test_siglip2_substrate_full.py
+34b61a073dddbf26c579160cdd4d216526314e12df263f833cbd4d7c0bad139d  /home/riomus/runs/sfora-native256-full-v2/test_siglip2_substrate_full_v2.py
+818000bde3f287b0636227a209ba9fa6c565904fb95e152e3f2dc56be0ffa21a  /home/riomus/runs/sfora-native256-full-v2/test_stage_siglip2_substrate_full.py
+1b73b2a6bdc1ee0cc468109e15746c8c5cde32569ac3b5de05d07f9e2f0b573f  /home/riomus/runs/sfora-native256-full-v2/train_siglip2_substrate_adaptation.py
+b34089def204658f231c05b05036a300352e2b00defddfe12ff0e11e7aa6b1e9  /home/riomus/runs/sfora-native256-full-v2/train_siglip2_substrate_full.py
+e45950332286548f3cb793f750f87a953408025e657bff6c9080f5b73c440c48  /home/riomus/runs/sfora-native256-full-v2/train_siglip2_substrate_full_v2.py
+635d300c66b2bebe7753707c9196d4735a97f07c7dd999f186f9b9b1251b7f1f  /home/riomus/runs/sfora-native256-full-v2/unicom_inshop.py
+49237c20345a8d1cfa086bced75b96601bef79bd05c147d98b9735972c5f039d  /home/riomus/runs/sfora-native256-full-v2/execution.json
+435bd73d9a3dde04c9daa819ec3694e228b4cadcc2523c35e4c877ae5d034870  /home/riomus/runs/sfora-native256-adaptation-source-v9/deployed_code_rank.py
+1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610  /home/riomus/runs/sfora-native256-adaptation-source-v9/reference_train_sop_siglip2_compact.py
+a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272  /home/riomus/runs/sfora-native256-adaptation-source-v9/reference_unicom_training.py
+7df1d58718709b3a1230ec6fef0cc9a806abcb9e4eceaba4c0267df5edc3e9c2  /home/riomus/runs/sfora-native256-adaptation-source-v9/test_siglip2_substrate_adaptation.py
+1b73b2a6bdc1ee0cc468109e15746c8c5cde32569ac3b5de05d07f9e2f0b573f  /home/riomus/runs/sfora-native256-adaptation-source-v9/train_siglip2_substrate_adaptation.py
+a74746f333a60d2774c2905258630458e1a80e2a2726c960de9128047477839d  /home/riomus/runs/sfora-native256-adaptation-source-v9/execution.json
+bfe7cd329ad359bdcbc077e732ce654a94ef248b8567f0f32fd4234652df1995  /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py
+e5f08a75c38ee6579ccc9681aee4946fbc59ddfa36e376a3fb81e27d9e58ef45  /home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py
+HASHES
+/home/riomus/group-learning/.venv/bin/python -B /home/riomus/runs/sfora-native256-full-v2/train_siglip2_substrate_full_v2.py --arm large --partition-parser /home/riomus/runs/sfora-native256-full-v2/unicom_inshop.py --output /home/riomus/runs/sfora-native256-full-run-v2/large/chunk-0500 --source-resume /home/riomus/runs/sfora-native256-train-large-179032-v9r1/resume.pt --source-sha256 cf338ecd33c9f6120a86ca884f72bf0c6d853f8c66d0ceb4fbc9aef4c6e00840 --source-receipt-sha256 89f0d4a726db59e9e53a29bcfe7032144665b92131310dfe981467834fdc4ebe --chunk-end 500
+sha256sum -c <<'HASHES'
+bef497084fdf4f6763945e85a47ce021b877f69d81e62b62998f3b7b44d992ef  /home/riomus/runs/sfora-native256-full-v2/command-header.sh
+435bd73d9a3dde04c9daa819ec3694e228b4cadcc2523c35e4c877ae5d034870  /home/riomus/runs/sfora-native256-full-v2/deployed_code_rank.py
+6fee591bffdb2af8d77355bd4f0c282ac52979fa2125ff46bfb31df0ea985411  /home/riomus/runs/sfora-native256-full-v2/evaluate_inshop_siglip2_official.py
+a7a7bd22417f1a3c250664d961a7f6d52e02b5033c044f67bf4305579fd884f5  /home/riomus/runs/sfora-native256-full-v2/falsify_siglip2_substrate_full_v2.py
+a74746f333a60d2774c2905258630458e1a80e2a2726c960de9128047477839d  /home/riomus/runs/sfora-native256-full-v2/pilot-execution.json
+d6d52da270f9c983ede3ccb23dc4374964a6e520e040758d73193c33ca5fa5a5  /home/riomus/runs/sfora-native256-full-v2/qualify_pe_large_inshop_official.py
+1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610  /home/riomus/runs/sfora-native256-full-v2/reference_train_sop_siglip2_compact.py
+a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272  /home/riomus/runs/sfora-native256-full-v2/reference_unicom_training.py
+09e5b221538da2cefa543a1cb7b25c97d82556e1b6f63a9d0bf843c2f7445754  /home/riomus/runs/sfora-native256-full-v2/run_siglip2_substrate_full_v2.sh
+d7ddb72392fa0b38bad51ec4bc4995efec64f3cfe46fb99b6009a046cc8090f6  /home/riomus/runs/sfora-native256-full-v2/run_with_progress_watchdog.sh
+16e27ccaa7325b9ef7efdb3512cb95791a682afdd5ae59bd1f0847d63b87f5ed  /home/riomus/runs/sfora-native256-full-v2/score_inshop_crop_view_pair.py
+b17e4ab4f88f7d4754387006927870a459856361da3da8a5a724209fe44a2752  /home/riomus/runs/sfora-native256-full-v2/score_siglip2_substrate_official.py
+d3ede7fd593d71a7193df6262eafd14c74f51d4ae7cb39dcb5696335cbc9dd04  /home/riomus/runs/sfora-native256-full-v2/score_siglip2_substrate_official_v2.py
+d1fc0d2e56f1d58f8d0d15e5e1622af941a9009f5e9deded7faf3bde9e702b34  /home/riomus/runs/sfora-native256-full-v2/stage_siglip2_substrate_full.py
+f0de593528b9401bc0c906ec76b40e9700cac7af01c384314bd5d725d248dfdd  /home/riomus/runs/sfora-native256-full-v2/stage_siglip2_substrate_full_v2.py
+7df1d58718709b3a1230ec6fef0cc9a806abcb9e4eceaba4c0267df5edc3e9c2  /home/riomus/runs/sfora-native256-full-v2/test_siglip2_substrate_adaptation.py
+6f7f0339e517f6d37a59f84fc2aca52e61dfda0f6764615e4abc68c65c8b87c9  /home/riomus/runs/sfora-native256-full-v2/test_siglip2_substrate_full.py
+34b61a073dddbf26c579160cdd4d216526314e12df263f833cbd4d7c0bad139d  /home/riomus/runs/sfora-native256-full-v2/test_siglip2_substrate_full_v2.py
+818000bde3f287b0636227a209ba9fa6c565904fb95e152e3f2dc56be0ffa21a  /home/riomus/runs/sfora-native256-full-v2/test_stage_siglip2_substrate_full.py
+1b73b2a6bdc1ee0cc468109e15746c8c5cde32569ac3b5de05d07f9e2f0b573f  /home/riomus/runs/sfora-native256-full-v2/train_siglip2_substrate_adaptation.py
+b34089def204658f231c05b05036a300352e2b00defddfe12ff0e11e7aa6b1e9  /home/riomus/runs/sfora-native256-full-v2/train_siglip2_substrate_full.py
+e45950332286548f3cb793f750f87a953408025e657bff6c9080f5b73c440c48  /home/riomus/runs/sfora-native256-full-v2/train_siglip2_substrate_full_v2.py
+635d300c66b2bebe7753707c9196d4735a97f07c7dd999f186f9b9b1251b7f1f  /home/riomus/runs/sfora-native256-full-v2/unicom_inshop.py
+49237c20345a8d1cfa086bced75b96601bef79bd05c147d98b9735972c5f039d  /home/riomus/runs/sfora-native256-full-v2/execution.json
+435bd73d9a3dde04c9daa819ec3694e228b4cadcc2523c35e4c877ae5d034870  /home/riomus/runs/sfora-native256-adaptation-source-v9/deployed_code_rank.py
+1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610  /home/riomus/runs/sfora-native256-adaptation-source-v9/reference_train_sop_siglip2_compact.py
+a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272  /home/riomus/runs/sfora-native256-adaptation-source-v9/reference_unicom_training.py
+7df1d58718709b3a1230ec6fef0cc9a806abcb9e4eceaba4c0267df5edc3e9c2  /home/riomus/runs/sfora-native256-adaptation-source-v9/test_siglip2_substrate_adaptation.py
+1b73b2a6bdc1ee0cc468109e15746c8c5cde32569ac3b5de05d07f9e2f0b573f  /home/riomus/runs/sfora-native256-adaptation-source-v9/train_siglip2_substrate_adaptation.py
+a74746f333a60d2774c2905258630458e1a80e2a2726c960de9128047477839d  /home/riomus/runs/sfora-native256-adaptation-source-v9/execution.json
+bfe7cd329ad359bdcbc077e732ce654a94ef248b8567f0f32fd4234652df1995  /home/riomus/runs/sfora-native256-initialized-cpu-final-footer-v1.py
+e5f08a75c38ee6579ccc9681aee4946fbc59ddfa36e376a3fb81e27d9e58ef45  /home/riomus/runs/sfora-native256-stop-cgroup-footer-v1.py
+HASHES
