@@ -1,0 +1,42 @@
+{
+ "decision": "ADVANCE",
+ "delta_pp": {
+  "packed_full_train_gallery_r1": 2.170569133481459,
+  "packed_holdout_r1": 1.2305588788241395
+ },
+ "export": {
+  "encode_wall_seconds": 1137.9984768080758,
+  "features_sha256": "13e750983bd7b375dddbe5984ae4fa69201073a1628ddcaf58bd1779a07c5790",
+  "peak_cuda_allocated_bytes": 3006538752,
+  "width": 1152
+ },
+ "large": {
+  "float_full_width": {
+   "holdout_only": 0.9106135703298581
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.7829430866518544,
+   "holdout_only": 0.9030934882925996
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.7834558195180311,
+   "holdout_only": 0.9029225773372073
+  }
+ },
+ "official_read": false,
+ "ordered_rows_sha256": "52c1852ad85633ea402a38880a362d3548aba070f0fcf3fbf660df81233373f3",
+ "schema": "sop-so400m-pretrained-screen-v1",
+ "so400": {
+  "float_full_width": {
+   "holdout_only": 0.9206973166980004
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.8049905998974535,
+   "holdout_only": 0.9157408989916254
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.8051615108528457,
+   "holdout_only": 0.9152281661254487
+  }
+ }
+}

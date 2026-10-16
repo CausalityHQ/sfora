@@ -1,0 +1,69 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  18%|█▊        | 156/888 [00:00<00:00, 1511.45it/s]Loading weights:  47%|████▋     | 420/888 [00:00<00:00, 2158.08it/s]Loading weights:  77%|███████▋  | 681/888 [00:00<00:00, 2335.66it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2322.12it/s]
+{"export": {"width": 1152, "encode_wall_seconds": 1137.9984768080758, "peak_cuda_allocated_bytes": 3006538752, "features_sha256": "13e750983bd7b375dddbe5984ae4fa69201073a1628ddcaf58bd1779a07c5790"}}
+{
+ "decision": "ADVANCE",
+ "delta_pp": {
+  "packed_full_train_gallery_r1": 2.170569133481459,
+  "packed_holdout_r1": 1.2305588788241395
+ },
+ "export": {
+  "encode_wall_seconds": 1137.9984768080758,
+  "features_sha256": "13e750983bd7b375dddbe5984ae4fa69201073a1628ddcaf58bd1779a07c5790",
+  "peak_cuda_allocated_bytes": 3006538752,
+  "width": 1152
+ },
+ "large": {
+  "float_full_width": {
+   "holdout_only": 0.9106135703298581
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.7829430866518544,
+   "holdout_only": 0.9030934882925996
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.7834558195180311,
+   "holdout_only": 0.9029225773372073
+  }
+ },
+ "official_read": false,
+ "ordered_rows_sha256": "52c1852ad85633ea402a38880a362d3548aba070f0fcf3fbf660df81233373f3",
+ "schema": "sop-so400m-pretrained-screen-v1",
+ "so400": {
+  "float_full_width": {
+   "holdout_only": 0.9206973166980004
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.8049905998974535,
+   "holdout_only": 0.9157408989916254
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.8051615108528457,
+   "holdout_only": 0.9152281661254487
+  }
+ }
+}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -B /home/riomus/runs/sfora-sop-so400m-screen-src-v1/scripts/screen_sop_so400m_pretrained_v1.py --unicom-train-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --so400-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-so400m-patch14-384/snapshots/e8e487298228002f3d8a82e0cd5c8ea9c567f57f --large-features /home/riomus/runs/sfora-siglip2-train-28e19203/train_features.npy --output-dir /home/riomus/runs/sfora-sop-so400m-screen-v1-a2"
+	User time (seconds): 1683.55
+	System time (seconds): 82.31
+	Percent of CPU this job got: 153%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 19:13.15
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7684440
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 88
+	Minor (reclaiming a frame) page faults: 14201059
+	Voluntary context switches: 2603307
+	Involuntary context switches: 20114
+	Swaps: 0
+	File system inputs: 3227848
+	File system outputs: 544960
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

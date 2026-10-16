@@ -1,0 +1,9 @@
+DRIVER 2026-10-16T11:35:18Z pid=2905937 cgroup=0::/user.slice/user-1000.slice/session-4507.scope
+Running as unit: sfora-sop-so400m-screen-v1-a2.service; invocation ID: 8f4cb3b47770494cbc41076b0ea0eb3b
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 19min 13.160s
+CPU time consumed: 29min 25.871s
+Memory peak: 256.0K
+Memory swap peak: 0B
+DONE 2026-10-16T11:54:31Z
