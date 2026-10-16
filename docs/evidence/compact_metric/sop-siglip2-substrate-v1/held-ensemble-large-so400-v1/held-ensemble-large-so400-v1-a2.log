@@ -1,0 +1,28 @@
+Traceback (most recent call last):
+  File "/home/riomus/runs/held_ensemble_large_so400_v1.py", line 88, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/held_ensemble_large_so400_v1.py", line 59, in main
+    packed_quality, bootstrap_lower, cpu = reference()
+                                           ~~~~~~~~~^^
+  File "/home/riomus/runs/held_ensemble_large_so400_v1.py", line 44, in reference
+    spec.loader.exec_module(packing)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 1027, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/riomus/runs/sfora-native256-initialized-cpu-source-v3/joint_relational_compaction.py", line 115, in <module>
+    @dataclass(frozen=True, slots=True)
+     ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/dataclasses.py", line 1295, in wrap
+    return _process_class(cls, init, repr, eq, order, unsafe_hash,
+                          frozen, match_args, kw_only, slots,
+                          weakref_slot)
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/dataclasses.py", line 997, in _process_class
+    and _is_type(type, cls, dataclasses, dataclasses.KW_ONLY,
+        ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 _is_kw_only))):
+                 ^^^^^^^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/dataclasses.py", line 757, in _is_type
+    ns = sys.modules.get(cls.__module__).__dict__
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute '__dict__'. Did you mean: '__dir__'?
