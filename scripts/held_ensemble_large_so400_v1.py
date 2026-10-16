@@ -41,6 +41,7 @@ def reference():
     checked(*PACKING)
     spec = importlib.util.spec_from_file_location('_packing', PACKING[0])
     packing = importlib.util.module_from_spec(spec)
+    sys.modules['_packing'] = packing
     spec.loader.exec_module(packing)
     ns = {'np': np, 'torch': torch, 'pack_int8_unit_embeddings': packing.pack_int8_unit_embeddings}
     for name, (pin, fn) in PINS.items():
