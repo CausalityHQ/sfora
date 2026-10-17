@@ -35,10 +35,34 @@ from sfora.live_head_bank import live_head_bank_loss
 from sfora.representation_ceiling import deterministic_class_partition, fit_centered_pca
 from sfora.sop_compact_training import (
     CompactTrainingArm,
-    compact_head_features,
     compact_training_terms,
 )
 from sfora.unicom_rank_finish import identity_balanced_batches
+
+
+def compact_head_features(
+    source: torch.Tensor, head: nn.Linear, *, output_dim: int = 128
+) -> torch.Tensor:
+    """Pinned sfora.sop_compact_training.compact_head_features (29a45d38) with the So400m width
+    1152 added to the accepted source widths; body otherwise byte-for-byte identical."""
+
+    if (
+        type(source) is not torch.Tensor
+        or source.ndim != 2
+        or source.shape[1] not in (768, 1024, 1152)
+        or not source.is_floating_point()
+        or not bool(torch.isfinite(source).all())
+        or bool((torch.linalg.vector_norm(source.float(), dim=1) == 0).any())
+        or type(head) is not nn.Linear
+        or head.in_features != source.shape[1]
+        or output_dim not in (128, 768)
+        or (output_dim == 768 and source.shape[1] != 768)
+        or head.out_features != output_dim
+        or source.device != head.weight.device
+    ):
+        raise ValueError("SOP compact source geometry differs")
+    with torch.autocast(device_type=source.device.type, enabled=False):
+        return head(F.normalize(source.float(), dim=1))
 
 ARCHIVE_SHA256 = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
 NATIVE_SHA256 = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
