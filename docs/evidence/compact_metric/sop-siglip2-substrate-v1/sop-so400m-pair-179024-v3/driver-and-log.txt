@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Detached session driver: SOP So400m vs Large pair (design docs/sop_so400m_pair_design_2026-10-16.md).
+# Smokes (17 updates, both arms) must succeed before the 1000-update pair. No retries.
+set -euo pipefail
+R=/home/riomus/runs; D=$R/sfora-sop-so400m-pair-src-v3; PY=/home/riomus/group-learning/.venv/bin/python
+HUB=/home/riomus/.cache/huggingface/hub
+declare -A MODEL=([large]=$HUB/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c
+                  [so400]=$HUB/models--google--siglip2-so400m-patch14-384/snapshots/e8e487298228002f3d8a82e0cd5c8ea9c567f57f)
+declare -A FEAT=([large]=$R/sfora-siglip2-train-28e19203 [so400]=$R/sfora-sop-so400m-train-features-v1)
+TILE=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras
+say() { echo "PAIR $(date -u +%FT%TZ) $*"; }
+say "BEGIN pid=$$ cgroup=$(cat /proc/$$/cgroup) commit=$(cat $D/COMMIT)"
+run() {  # substrate updates
+  local s=$1 u=$2 name=sfora-sop-pair-$1-179024-$2-v3 extra=()
+  [[ $u == 1000 ]] && extra=(--evaluate)
+  test ! -e $R/$name
+  say "START $s $u"
+  systemd-run --user --wait --collect --unit=$name -p StandardOutput=append:$R/$name.log -p StandardError=append:$R/$name.log \
+    -p WorkingDirectory=$D/scripts -p MemoryMax=24G -p MemorySwapMax=0 -p RuntimeMaxSec=7200 \
+    --setenv=PYTHONPATH=$D/src:$D/scripts --setenv=HF_HUB_OFFLINE=1 --setenv=CUTILE_TILEIRAS_PATH=$TILE \
+    --setenv=PATH=$(dirname $TILE):/usr/local/bin:/usr/bin:/bin --setenv=CUDA_VISIBLE_DEVICES=0 \
+    /usr/bin/flock -n $R/.sfora-siglip2-gpu.lock /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock \
+    /usr/bin/time -v $PY $D/scripts/train_sop_siglip2_substrate_pair.py --substrate $s \
+    --model-snapshot ${MODEL[$s]} --candidate-dir ${FEAT[$s]} \
+    --unicom-l14-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz \
+    --dataset-root /home/riomus/datasets/Stanford_Online_Products \
+    --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so \
+    --output-dir $R/$name --arm float_rank --seed 179024 --updates $u --batch-size 64 --workers 2 \
+    --rank-coefficient 8.0 --train-vision-dtype bf16 --coverage-first-schedule --freeze-lower-stack \
+    --member-bank --member-bank-preflight $R/sfora-siglip2-arcface-1000-v10-55040a7/member_bank_preflight_v1.json \
+    --expected-member-bank-preflight-sha256 54e806715e76b2caa7e877d55b0fecbdc921718386bce845e04367164828624c \
+    --member-bank-cost-receipt $R/sfora-siglip2-member-bank-cost-v1/receipt_v2.json \
+    --expected-member-bank-cost-sha256 8f6867ff4de768ffd3bfa108cb86d7537b913d6ae5cb4f8cb16a43bc87f741a9 \
+    "${extra[@]}" || { say "HOLD $s $u failed"; exit 1; }
+  say "DONE $s $u receipt=$(sha256sum $R/$name/receipt.json | cut -c1-64)"
+}
+run large 17; run so400 17
+run large 1000; run so400 1000
+say "ALLDONE"
+PAIR 2026-10-17T00:05:14Z BEGIN pid=3250718 cgroup=0::/user.slice/user-1000.slice/session-4670.scope commit=src=29a45d38 new-scripts=78546d9c
+PAIR 2026-10-17T00:05:14Z START large 17
+PAIR 2026-10-17T00:05:46Z DONE large 17 receipt=4c8a65915030133a9c5f9b6047e2383083ba24c4c4d8178e4183d6423f70264d
+PAIR 2026-10-17T00:05:46Z START so400 17
+PAIR 2026-10-17T00:06:56Z DONE so400 17 receipt=862e9ea77388adafb0c703545f9c49a71b83f4535b50ac8531a6d29dcae9c6e1
+PAIR 2026-10-17T00:06:56Z START large 1000
+PAIR 2026-10-17T00:25:03Z DONE large 1000 receipt=d7f7383f9c8320e9d4ca5143880a637ed9bf4bc63ef61a10767c04e8305c8494
+PAIR 2026-10-17T00:25:03Z START so400 1000
+PAIR 2026-10-17T01:34:22Z DONE so400 1000 receipt=05e87eaf5aeb5f80231fb0d3edd2240fe41d599416e1b2e6d64297a0e037f91a
+PAIR 2026-10-17T01:34:22Z ALLDONE
