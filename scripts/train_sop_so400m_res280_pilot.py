@@ -12,7 +12,6 @@ Pre-registered decision (committed before the run):
   Also reported, not gating: vs So400m@384 tested at 280 (92.360) and at 336 (93.796), GPU img/s 87.9 @280.
 """
 import sys
-from functools import partialmethod
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -22,8 +21,9 @@ from transformers.models.siglip import modeling_siglip  # noqa: E402
 
 CROP = 280
 pair.ARMS["so400_280"] = {**pair.ARMS["so400"], "crop": CROP}
-modeling_siglip.SiglipVisionEmbeddings.forward = partialmethod(
-    modeling_siglip.SiglipVisionEmbeddings.forward, interpolate_pos_encoding=True)
+_embed = modeling_siglip.SiglipVisionEmbeddings.forward
+modeling_siglip.SiglipVisionEmbeddings.forward = (
+    lambda self, pixel_values, interpolate_pos_encoding=False: _embed(self, pixel_values, True))
 _from_pretrained = AutoImageProcessor.from_pretrained.__func__
 
 
