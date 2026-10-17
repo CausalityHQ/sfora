@@ -1,0 +1,98 @@
+{
+ "dAP": {
+  "mean": 0.0359354815241418,
+  "product_95": [
+   0.03388110101665409,
+   0.037925763814178115
+  ]
+ },
+ "dR1": {
+  "mean": 0.01471025751214836,
+  "product_95": [
+   0.012893078546287205,
+   0.01654206380429983
+  ]
+ },
+ "decision": "PROMOTE",
+ "large": {
+  "claim_eligible": false,
+  "export_images_per_second": 190.61090622803383,
+  "export_seconds": 317.4110086209839,
+  "float": {
+   "map_at_r": 0.7676419258008507,
+   "max_relevant": 11,
+   "queries": 60502,
+   "recall_at_1": 0.9168787808667482,
+   "recall_at_10": 0.9816204422994281,
+   "recall_at_100": 0.9957522065386268,
+   "recall_at_1000": 0.9988925985917821
+  },
+  "native_per_query_r1_equal": true,
+  "native_top10_exact": true,
+  "native_top10_max_score_abs_delta": 0.0,
+  "packed": {
+   "map_at_r": 0.7675748274521892,
+   "max_relevant": 11,
+   "queries": 60502,
+   "recall_at_1": 0.916597798419887,
+   "recall_at_10": 0.9816700274371095,
+   "recall_at_100": 0.995768734917854,
+   "recall_at_1000": 0.9989091269710092
+  },
+  "peak_cuda_allocated_bytes": 1886288384,
+  "peak_parent_host_rss_bytes": 6413590528,
+  "prior_official_r1": 0.917419,
+  "queries": 60502,
+  "schema": "sfora-sop-substrate-pair-official-test-v1",
+  "seed": 179024,
+  "source_sha256": "5b0143273d2fa65ec811f072c8ec23744ea34efa2886c864d39dbeef0cf41586",
+  "split": "SOP official TEST, symmetric query/gallery, self excluded",
+  "substrate": "large",
+  "test_embeddings_sha256": "80563458c105aa9d6b7be85d65b08746214bb2787f2923470e2af69e2ba7d070",
+  "test_image_manifest_sha256": "28a3ec0561cd83ee426f3d1c301c70799316af91c1e9083a5a1ffdf3414327c1",
+  "total_wall_seconds": 335.02986770507414,
+  "training_checkpoint_sha256": "2c838561b6c23242d74eb29329fd026cc8fba9bf965dcc4529348028dfe6d172",
+  "training_receipt_sha256": "d7f7383f9c8320e9d4ca5143880a637ed9bf4bc63ef61a10767c04e8305c8494"
+ },
+ "schema": "sfora-sop-substrate-pair-official-summary-v1",
+ "so400": {
+  "claim_eligible": false,
+  "export_images_per_second": 46.85392273265445,
+  "export_seconds": 1291.2899597589858,
+  "float": {
+   "map_at_r": 0.803766400957205,
+   "max_relevant": 11,
+   "queries": 60502,
+   "recall_at_1": 0.9315890383788966,
+   "recall_at_10": 0.9853062708670788,
+   "recall_at_100": 0.9963472281908036,
+   "recall_at_1000": 0.9991074675217348
+  },
+  "native_per_query_r1_equal": true,
+  "native_top10_exact": true,
+  "native_top10_max_score_abs_delta": 0.0,
+  "packed": {
+   "map_at_r": 0.8035103089763309,
+   "max_relevant": 11,
+   "queries": 60502,
+   "recall_at_1": 0.9313080559320353,
+   "recall_at_10": 0.985339327625533,
+   "recall_at_100": 0.9964298700869393,
+   "recall_at_1000": 0.9991074675217348
+  },
+  "peak_cuda_allocated_bytes": 3529621504,
+  "peak_parent_host_rss_bytes": 7884320768,
+  "prior_official_r1": 0.917419,
+  "queries": 60502,
+  "schema": "sfora-sop-substrate-pair-official-test-v1",
+  "seed": 179024,
+  "source_sha256": "5b0143273d2fa65ec811f072c8ec23744ea34efa2886c864d39dbeef0cf41586",
+  "split": "SOP official TEST, symmetric query/gallery, self excluded",
+  "substrate": "so400",
+  "test_embeddings_sha256": "b2ac440c0747276f89e92d54242d867e91ebdb99d04b8cfec6c1b9c3564fa19c",
+  "test_image_manifest_sha256": "28a3ec0561cd83ee426f3d1c301c70799316af91c1e9083a5a1ffdf3414327c1",
+  "total_wall_seconds": 1309.7372973809252,
+  "training_checkpoint_sha256": "49fe1dedd899eebd1d05f8cd791c523e413ec8ca0523e4f35b1a719f9f4997d6",
+  "training_receipt_sha256": "05e87eaf5aeb5f80231fb0d3edd2240fe41d599416e1b2e6d64297a0e037f91a"
+ }
+}

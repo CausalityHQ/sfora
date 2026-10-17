@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Detached session driver: ONE official SOP TEST read per pair arm (evaluator e88fffcc, pre-registered). No retries.
+set -euo pipefail
+R=/home/riomus/runs; D=$R/sfora-sop-so400m-pair-src-v3; PY=/home/riomus/group-learning/.venv/bin/python
+HUB=/home/riomus/.cache/huggingface/hub
+declare -A MODEL=([large]=$HUB/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c
+                  [so400]=$HUB/models--google--siglip2-so400m-patch14-384/snapshots/e8e487298228002f3d8a82e0cd5c8ea9c567f57f)
+TILE=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras
+say() { echo "OFFICIAL $(date -u +%FT%TZ) $*"; }
+say "BEGIN pid=$$ cgroup=$(cat /proc/$$/cgroup) evaluator=$(sha256sum $D/scripts/evaluate_sop_substrate_pair_official.py | cut -c1-64)"
+run() {
+  local s=$1 name=sfora-sop-pair-official-$1-179024-v1 train=$R/sfora-sop-pair-$1-179024-1000-v3
+  test ! -e $R/$name
+  say "START $s"
+  systemd-run --user --wait --collect --unit=$name -p StandardOutput=append:$R/$name.log -p StandardError=append:$R/$name.log \
+    -p WorkingDirectory=$D/scripts -p MemoryMax=24G -p MemorySwapMax=0 -p RuntimeMaxSec=7200 \
+    --setenv=PYTHONPATH=$D/src:$D/scripts --setenv=HF_HUB_OFFLINE=1 --setenv=CUTILE_TILEIRAS_PATH=$TILE \
+    --setenv=PATH=$(dirname $TILE):/usr/local/bin:/usr/bin:/bin --setenv=CUDA_VISIBLE_DEVICES=0 \
+    /usr/bin/flock -n $R/.sfora-siglip2-gpu.lock /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock \
+    /usr/bin/time -v $PY $D/scripts/evaluate_sop_substrate_pair_official.py --substrate $s \
+    --training-receipt $train/receipt.json --training-checkpoint $train/checkpoint.pt --training-source-root $D \
+    --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz \
+    --test-image-manifest $R/sfora-sop-reference-b8f85611-179019/sop-test-image-sha256.bin \
+    --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot ${MODEL[$s]} \
+    --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so \
+    --output-dir $R/$name || { say "HOLD $s failed"; exit 1; }
+  say "DONE $s receipt=$(sha256sum $R/$name/receipt.json | cut -c1-64)"
+}
+run large; run so400
+say "ALLDONE"
+OFFICIAL 2026-10-17T01:39:29Z BEGIN pid=3326878 cgroup=0::/user.slice/user-1000.slice/session-4796.scope evaluator=5b0143273d2fa65ec811f072c8ec23744ea34efa2886c864d39dbeef0cf41586
+OFFICIAL 2026-10-17T01:39:29Z START large
+Running as unit: sfora-sop-pair-official-large-179024-v1.service; invocation ID: b8bf97d61c134137bccd09ada1e7caed
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 5min 38.167s
+CPU time consumed: 10min 38.128s
+Memory peak: 512.0K
+Memory swap peak: 0B
+OFFICIAL 2026-10-17T01:45:07Z DONE large receipt=41b9a0c09b2ae039bff5fd272086604a24900a283587da2874d407389a46928a
+OFFICIAL 2026-10-17T01:45:07Z START so400
+Running as unit: sfora-sop-pair-official-so400-179024-v1.service; invocation ID: d3cc63afc241433d992495cb1bf4562e
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 21min 53.136s
+CPU time consumed: 30min 4.737s
+Memory peak: 256.0K
+Memory swap peak: 0B
+OFFICIAL 2026-10-17T02:07:00Z DONE so400 receipt=491d90fad76ee4c0f8e43d210d0a495e09161c4d861b249ac66cc261c70fa366
+OFFICIAL 2026-10-17T02:07:00Z ALLDONE
