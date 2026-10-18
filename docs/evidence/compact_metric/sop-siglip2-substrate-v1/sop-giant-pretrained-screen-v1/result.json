@@ -1,0 +1,42 @@
+{
+ "decision": "CLOSE",
+ "delta_pp": {
+  "packed_full_train_gallery_r1": -0.37600410186293676,
+  "packed_holdout_r1": 0.06836438215689356
+ },
+ "export": {
+  "encode_wall_seconds": 1516.0842912519583,
+  "features_sha256": "ace05f89facfc50ca1673b87b6a58c36c6f3a5849d227b0ae639217325a357f5",
+  "peak_cuda_allocated_bytes": 4116362752,
+  "width": 1536
+ },
+ "giant": {
+  "float_full_width": {
+   "holdout_only": 0.9280464877798666
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.8022560246111776,
+   "holdout_only": 0.9162536318578021
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.8014014698342163,
+   "holdout_only": 0.9159118099470176
+  }
+ },
+ "official_read": false,
+ "ordered_rows_sha256": "52c1852ad85633ea402a38880a362d3548aba070f0fcf3fbf660df81233373f3",
+ "schema": "sop-giant-pretrained-screen-v1",
+ "so400": {
+  "float_full_width": {
+   "holdout_only": 0.9206973166980004
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.8049905998974535,
+   "holdout_only": 0.9157408989916254
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.8051615108528457,
+   "holdout_only": 0.9152281661254487
+  }
+ }
+}
