@@ -1,0 +1,33 @@
+GFLIP 2026-10-18T09:43:10Z BEGIN pid=65543 cgroup=0::/user.slice/user-1000.slice/session-5360.scope screen=6efed2b1cf96e134018cddb2a632202e4aa134c9df53769bfb0eaf4c011461d2
+GFLIP 2026-10-18T10:06:22Z ALLDONE result=44d0c7401eaa7636dccdcf9d68b3d3fb84e896fa6cb2a6fb58a4579c3d334f7e
+{
+ "decision": "KILL gflip",
+ "gflip": {
+  "d_vs_plain": 0.0008545547769612033,
+  "d_vs_plain_product_95": [
+   -0.001535646319215676,
+   0.003185450126107661
+  ],
+  "recall_at_1": 0.93744659032644
+ },
+ "official_read": false,
+ "plain": {
+  "d_vs_plain": 0.0,
+  "d_vs_plain_product_95": [
+   0.0,
+   0.0
+  ],
+  "recall_at_1": 0.9365920355494787
+ },
+ "schema": "sop-so400m-gallery-flip-screen-v1",
+ "sflip": {
+  "d_vs_plain": 0.001367287643137925,
+  "d_vs_plain_product_95": [
+   -0.0010456787450323223,
+   0.003907793539536218
+  ],
+  "recall_at_1": 0.9379593231926167
+ }
+}
+
+[exited with code 0]
