@@ -8,7 +8,8 @@ patch14-384 model (interpolated position embeddings). On SOP, training/eval 280 
 
 Pre-registered (committed before any number exists):
   rows/split: In-Shop official TRAIN only (25,882 rows, 3,997 products; query/gallery never read),
-              product-disjoint fit/held partition seed 179019 fit 0.5.
+              product-disjoint fit/held partition seed 179019 fit 0.5 over products with >= 2
+              images; single-image products always fit (they stay in the gallery).
   arms      : google/siglip2-so400m-patch14-384 @ e8e48729, fp16, pooled image features;
               r256 = processor size 256 + interpolated pos-encoding (as the native256 campaign);
               r384 = unchanged processor/model (native).
@@ -91,9 +92,11 @@ def main() -> None:
     assert len(rows) == 25_882
     ids = {label: i for i, label in enumerate(sorted({r.label for r in rows}))}
     labels = np.asarray([ids[r.label] for r in rows], dtype=np.int64)
-    part = deterministic_class_partition(tuple(map(int, labels)), fit_fraction=0.5, seed=179019)
-    fit = np.asarray(part.fit_row_indexes, dtype=np.int64)
-    held = np.asarray(part.validation_row_indexes, dtype=np.int64)
+    counts = np.bincount(labels)
+    multi = np.flatnonzero(counts[labels] >= 2)  # singleton products cannot be held queries: always fit
+    part = deterministic_class_partition(tuple(map(int, labels[multi])), fit_fraction=0.5, seed=179019)
+    held = multi[np.asarray(part.validation_row_indexes, dtype=np.int64)]
+    fit = np.setdiff1d(np.arange(len(rows), dtype=np.int64), held)
     args.output_dir.mkdir(parents=True)
     result = {'schema': 'inshop-so400m-resolution-screen-v1', 'official_read': False,
               'rows': len(rows), 'products': len(ids), 'fit_rows': len(fit), 'held_rows': len(held),
