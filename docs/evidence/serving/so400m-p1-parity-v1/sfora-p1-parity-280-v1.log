@@ -1,0 +1,27 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:00<00:23, 37.65it/s]Loading weights:  43%|████▎     | 380/888 [00:00<00:00, 2157.24it/s]Loading weights:  72%|███████▏  | 643/888 [00:00<00:00, 2351.85it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2262.50it/s]
+{"train_embeddings_bitwise_equal": true, "train_embeddings_max_abs_diff": 0.0, "per_query_r1_equal": true, "encode_images_per_second": 72.40366370141078}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-p1-serving-src-v1/scripts/check_so400m_serving_parity_v1.py --run-dir /home/riomus/runs/sfora-sop-res280d512-so400_280-179024-1000-v1 --resolution 280 --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-so400m-patch14-384/snapshots/e8e487298228002f3d8a82e0cd5c8ea9c567f57f --archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --output /home/riomus/runs/sfora-p1-parity-280-v1.json"
+	User time (seconds): 1461.79
+	System time (seconds): 92.60
+	Percent of CPU this job got: 185%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 13:57.42
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 9470576
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 24
+	Minor (reclaiming a frame) page faults: 20007848
+	Voluntary context switches: 4487594
+	Involuntary context switches: 40383
+	Swaps: 0
+	File system inputs: 5504
+	File system outputs: 232
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
