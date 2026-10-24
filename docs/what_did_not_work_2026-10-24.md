@@ -93,3 +93,6 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
   - The next serving lever is the input pipeline, not kernels.
 - **Process: a specialist child's brief never became a turn.** The child sat idle for 30+ min with its durable message still queued.
   - The child was stopped and the work was done in-root, without a duplicate child.
+- **In-Shop 280 px efficiency point: KILL** (735d57ed). Held R@1 −0.23 [−0.39, −0.06] and mAP@R −1.33 vs the 384 pilot, which misses the −0.30 non-inferiority bar.
+  - In-Shop needs 384 more than SOP did. Resolution is the lever that won In-Shop, so cutting it gives the gain back.
+  - Efficiency has to come from the arithmetic at 384, not from fewer tokens.

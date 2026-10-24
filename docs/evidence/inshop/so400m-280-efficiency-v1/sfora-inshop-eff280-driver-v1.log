@@ -1,0 +1,11 @@
+EFF280 2026-10-24T22:56:16Z BEGIN pid=2306805 cgroup=0::/user.slice/user-1000.slice/session-7457.scope wrapper=5e3d413a9591b7b2
+Running as unit: sfora-inshop-so400m-c280-179024-1000-v1.service; invocation ID: efd99b5dfb0b4e2c9ec90d0693a8ecc1
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 32min 32.658s
+CPU time consumed: 38min 40.674s
+Memory peak: 256.0K
+Memory swap peak: 0B
+EFF280 2026-10-24T23:28:52Z SCREEN lower95=-0.39279527438894507
+EFF280 2026-10-24T23:28:52Z KILL
+EFF280 2026-10-24T23:28:52Z ALLDONE
