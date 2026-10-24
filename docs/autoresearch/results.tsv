@@ -1,0 +1,16 @@
+commit	loop	metric	value	lower95	cost	status	description
+392f833b	Q	held_r1_vs_large	+1.282	+0.707	2876s/34.8GB	keep	So400m@384 128-D vs Large pair (TRAIN)
+fba76296	Q	official_r1	93.131	+1.289	46.9img/s/130B	official	So400m@384 128-D official
+800bda09	Q	held_r1_vs_large	+0.974	+0.412	61.0img/s	keep	test-time 336 (280/224 fail)
+8d263a59	Q	official_r1	92.594	-	60.1img/s/130B	official	So400m tested@336 official (dominated by res280)
+9d88516b	Q	official_r1	92.594	+0.755	86.0img/s/130B	official	So400m trained+tested@280 official
+36107cfb	Q	held_r1_vs_res280	+0.205	-0.206	3204s	discard	2000 updates
+82585309	Q	held_r1_vs_res280	+0.085	-0.154	2x gallery encode	discard	gallery flip TTA
+92f5af1b	Q	held_r1_vs_res280	-0.222	-0.589	1838s/26.3GB	discard	freeze 9 of 27
+3a0b7a75	Q	pretrained_full_gallery_r1	-0.376	-	39img/s	discard	giant-opt/256 substrate
+712f3b30	Q	held_r1_vs_res280	+0.137	-0.211	1606s	discard	super-category batches (mAP -0.58 sig)
+2ba9b4e3	Q	held_r1_ema_vs_final	-0.547	-0.920	+0.9GB	discard	EMA 0.996 (seed 179025 replicate -0.02)
+8537a321	Q	held_r1_vs_res280	+0.855	+0.411	1615s/21.2GB/514B	keep	512-D head @280
+571491c8	Q	official_r1	93.480	+0.194	85.7img/s/514B	official	512-D @280 official (vs @384/128)
+7e12c180	Q	held_r1_vs_280d512	+0.410	+0.083	2884s/35.0GB/514B	keep	512-D head @384
+21102577	Q	official_r1	93.967	+0.355	46.3img/s/514B	official	512-D @384 official (new SOP best)
