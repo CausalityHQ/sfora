@@ -41,6 +41,7 @@ from sfora.unicom_rank_finish import identity_balanced_batches  # noqa: E402
 pair = dim512.pair
 FEATURES_SHA256 = {256: "e119f6721210963fbbfcca7bf6e049d6ed80dd6e30454b5940acc68a9d95d5e1",
                    384: "b56aec2e3a2ff19860131b2ef71800f23c0a12fdb6d2fd8643eba3fda0cdf6d3"}
+FEATURES_SHA256[280] = FEATURES_SHA256[384]  # 280 inits from 384 pretrained features (as the SOP 280 wrapper)
 ORDERED_ROWS_SHA256 = "2d43ad5cee694b2f38d7e3d806c5f983b9161ede48b54bd9cc7841b31d53ee5c"
 RANK_COEFFICIENT = 8.0
 
@@ -117,7 +118,7 @@ def patch_crop(crop: int) -> None:
 def main() -> None:
     started_program = time.perf_counter()
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    p.add_argument("--crop", type=int, choices=(256, 384), required=True)
+    p.add_argument("--crop", type=int, choices=(256, 280, 384), required=True)
     p.add_argument("--seed", type=int, default=179024)
     p.add_argument("--updates", type=int, default=1000)
     p.add_argument("--workers", type=int, default=2)
