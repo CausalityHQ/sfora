@@ -1,0 +1,18 @@
+FOLLOWUP 2026-10-24T21:47:14Z BEGIN pid=2249493 cgroup=0::/user.slice/user-1000.slice/session-7403.scope
+Running as unit: sfora-inshop-serving-v1.service; invocation ID: bc47d90ab5654ff4adbd20c58082b187
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 7min 22.991s
+CPU time consumed: 10min 37.985s
+Memory peak: 256.0K
+Memory swap peak: 0B
+FOLLOWUP 2026-10-24T21:54:37Z DONE serving
+Running as unit: sfora-inshop-so400m-full-c384-179025-1000-v1.service; invocation ID: 6287563b71bd4dae80eeafa938add03d
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 59min 42.396s
+CPU time consumed: 1h 11min 5.136s
+Memory peak: 544.0K
+Memory swap peak: 0B
+FOLLOWUP 2026-10-24T22:54:19Z DONE seed179025
+FOLLOWUP 2026-10-24T22:54:19Z ALLDONE

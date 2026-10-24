@@ -27,3 +27,5 @@ feeb1e24	Q	inshop_held_r1_384_vs_256	+0.594	+0.400	~3s/step 35GB 514B	keep	In-Sh
 f41f5309	P	e2e_img_s_384	46.4	-	bitwise	keep	ref + 8 workers @384 (vs P1 41.8)
 f41f5309	P	e2e_img_s_384	59.9	-	net +4/5851	keep	fp16-native @384 (1.29x)
 f41f5309	P	e2e_img_s_384	64.2	-	net +2/5851	keep	fp16 + compile @384 (+7.3% over fp16; 1.54x vs P1)
+13c41e5f	Q	official_r1_inshop_seed179025	96.856	-	mean 96.832	official	In-Shop seed replicate; two-seed mean 96.832 > 96.7
+13c41e5f	P	inshop_e2e_img_s_384	68.1	-	p50 36ms/p99 41ms	keep	shipped In-Shop model, fp16+compile+workers, R@1 net +1 vs official read
