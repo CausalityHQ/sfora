@@ -24,3 +24,6 @@ f41f5309	P	e2e_img_s_280	111.9	-	net +1/5851	keep	fp16-native vision weights + 8
 f41f5309	P	e2e_img_s_280	114.7	-	net 0	discard	+torch.compile max-autotune (+2.5% < 5% bar)
 feeb1e24	Q	inshop_held_r1_384_vs_256	+0.594	+0.400	~3s/step 35GB 514B	keep	In-Shop So400m 512-D fine-tuned 384 vs 256 (held 98.61 vs 98.02; mAP +2.00 [1.67,2.33])
 72e6fd19	Q	official_r1_inshop	96.807	-	2968s/37.5GB/514B	official	In-Shop So400m@384 512-D full TRAIN official (> 96.7 target, > 96.307 incumbent; mAP 83.78)
+f41f5309	P	e2e_img_s_384	46.4	-	bitwise	keep	ref + 8 workers @384 (vs P1 41.8)
+f41f5309	P	e2e_img_s_384	59.9	-	net +4/5851	keep	fp16-native @384 (1.29x)
+f41f5309	P	e2e_img_s_384	64.2	-	net +2/5851	keep	fp16 + compile @384 (+7.3% over fp16; 1.54x vs P1)

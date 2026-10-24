@@ -1,0 +1,47 @@
+{
+ "arms": {
+  "fp16_compile": {
+   "bitwise_equal": false,
+   "broken": 0,
+   "fixed": 2,
+   "images_per_second": 64.24734400715165,
+   "keep": true,
+   "mean_abs_cos_drift": 2.238300567114493e-06,
+   "net_correct_vs_receipt": 2,
+   "observed_r1": 0.949581268159289,
+   "peak_cuda_allocated_bytes": 3531245056,
+   "seconds": 926.9021298899315
+  },
+  "fp16_native": {
+   "bitwise_equal": false,
+   "broken": 0,
+   "fixed": 4,
+   "images_per_second": 59.8661368358092,
+   "keep": true,
+   "mean_abs_cos_drift": 2.980998942803126e-06,
+   "net_correct_vs_receipt": 4,
+   "observed_r1": 0.9499230900700735,
+   "peak_cuda_allocated_bytes": 3531245056,
+   "seconds": 994.7359750859905
+  },
+  "ref_workers": {
+   "bitwise_equal": true,
+   "broken": 0,
+   "fixed": 0,
+   "images_per_second": 46.38708287401223,
+   "keep": true,
+   "mean_abs_cos_drift": 4.826043564776228e-08,
+   "net_correct_vs_receipt": 0,
+   "observed_r1": 0.9492394462485045,
+   "peak_cuda_allocated_bytes": 3531245056,
+   "seconds": 1283.7841120930389
+  }
+ },
+ "output_dim": 512,
+ "receipt_r1": 0.9492394462485045,
+ "resolution": 384,
+ "run_dir": "/home/riomus/runs/sfora-sop-384d512-so400-179024-1000-v1",
+ "schema": "sfora-so400m-serving-variants-v1",
+ "torch": "2.12.1+cu130",
+ "workers": 8
+}
