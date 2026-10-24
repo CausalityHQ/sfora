@@ -61,7 +61,7 @@ def inshop_split(dataset_root: Path):
 
 
 @torch.inference_mode()
-def official_read(vision, head, processor, dataset_root: Path, workers: int) -> dict:
+def official_read(vision, head, processor, dataset_root: Path, workers: int, out_dir: Path) -> dict:
     """Official In-Shop: 14,218 queries vs 12,612 gallery, packed int8, exact torch scores (R@1, mAP@R)."""
     records = parse_inshop_partition(dataset_root)
     query = [r for r in records if r.split == "query"]
@@ -74,8 +74,14 @@ def official_read(vision, head, processor, dataset_root: Path, workers: int) -> 
         packed = pair.pack_int8_unit_embeddings(values)
         return packed.codes.float().cuda(), packed.inverse_norms.float().cuda()
 
+    train_ids = {r.label for r in records if r.split == "train"}
+    assert train_ids.isdisjoint(ids), "TRAIN and query/gallery item_ids overlap"
     q, qn = encode(query)
     g, gn = encode(gallery)
+    np.savez(out_dir / "official_packed.npz", query_codes=q.cpu().numpy().astype(np.int8), query_inv=qn.cpu().numpy(),
+             gallery_codes=g.cpu().numpy().astype(np.int8), gallery_inv=gn.cpu().numpy(),
+             query_labels=np.asarray([ids[r.label] for r in query]),
+             gallery_labels=np.asarray([ids[r.label] for r in gallery]))
     ql = torch.tensor([ids[r.label] for r in query], device="cuda")
     gl = torch.tensor([ids[r.label] for r in gallery], device="cuda")
     relevant = torch.bincount(gl, minlength=len(ids))[ql]
@@ -221,19 +227,21 @@ def main() -> None:
                 "classifier": classifier.detach().cpu(), "seed": a.seed, "updates": a.updates, "crop": a.crop},
                a.output_dir / "checkpoint.pt")
     export_started = time.perf_counter()
-    values = pair.export_all(vision, head, paths, tuple(map(int, labels)), processor, workers=a.workers,
-                             batch_size=64)
-    export_seconds = time.perf_counter() - export_started
-    np.save(a.output_dir / "train_embeddings.npy", values.numpy(), allow_pickle=False)
-    packed = pair.pack_int8_unit_embeddings(values)
-    if a.full_train:  # held rows were trained on: the TRAIN-held score is meaningless, read official once
-        quality = official_read(vision, head, processor, a.dataset_root, a.workers)
+    if a.full_train:  # held rows were trained on: no TRAIN export; read official once
+        quality = official_read(vision, head, processor, a.dataset_root, a.workers, a.output_dir)
+        bytes_per_row = pair.OUTPUT_WIDTH + 2
     else:
+        values = pair.export_all(vision, head, paths, tuple(map(int, labels)), processor, workers=a.workers,
+                                 batch_size=64)
+        np.save(a.output_dir / "train_embeddings.npy", values.numpy(), allow_pickle=False)
+        packed = pair.pack_int8_unit_embeddings(values)
+        bytes_per_row = len(packed.to_bytes()) // len(packed.codes)
         quality = pair.score_packed_full_gallery(packed.codes.float(), packed.inverse_norms,
                                                  torch.from_numpy(labels.copy()),
                                                  torch.from_numpy(held_rows.copy()), device=torch.device("cuda"))
+    export_seconds = time.perf_counter() - export_started
     quality["output_width"] = pair.OUTPUT_WIDTH
-    quality["gallery_wire_bytes_per_row"] = len(packed.to_bytes()) // len(packed.codes)
+    quality["gallery_wire_bytes_per_row"] = bytes_per_row
     receipt = {
         "schema": "sfora-inshop-so400m-pilot-v1", "claim_eligible": False,
         "split": ("In-Shop full TRAIN; ONE official query->gallery read" if a.full_train else
@@ -241,8 +249,9 @@ def main() -> None:
         "full_train": a.full_train,
         "seed": a.seed, "updates": a.updates, "crop": a.crop,
         "substrate_config": {k: v for k, v in pair.ARM.items() if k != "model_hashes"},
-        "fit_images": len(fit_rows), "train_images": len(train_rows), "train_products": len(names),
-        "holdout_queries": len(held_rows), "gallery_images": len(labels),
+        "fit_images": None if a.full_train else len(fit_rows), "train_images": len(train_rows), "train_products": len(names),
+        "holdout_queries": None if a.full_train else len(held_rows),
+        "gallery_images": quality.get("gallery", len(labels)),
         "ordered_rows_sha256": ordered, "pretrained_features_sha256": FEATURES_SHA256[a.crop],
         "source_pca_sha256": pca_sha,
         "schedule_sha256": hashlib.sha256(np.asarray(schedule, dtype="<i4").tobytes()).hexdigest(),
