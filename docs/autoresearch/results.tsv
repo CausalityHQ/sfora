@@ -32,3 +32,4 @@ f41f5309	P	e2e_img_s_384	64.2	-	net +2/5851	keep	fp16 + compile @384 (+7.3% over
 735d57ed	Q	inshop_held_r1_280_vs_384	-0.229	-0.393	1625s train	discard	In-Shop 280 px efficiency pilot KILL (non-inferiority -0.30 missed; mAP -1.33 sig)
 bench-fp8	P	gpu_img_s_384_b64	107.8	-	cos min .9954	keep	FP8 dynamic linears vs fp16 compiled 69.2 (1.56x GPU-only); needs held gate
 f41f5309+fp8	P	e2e_img_s_384	95.1	-	net -2/5851	keep	FP8 dynamic linears + compile @384 SOP held (1.48x over 64.2; 17 fixed/19 broken)
+fp8-lib	P	inshop_e2e_img_s_384	101.3	-	p50 18.5ms/p99 22.7ms	keep	shipped In-Shop model FP8+compile+workers; R@1 96.856 vs read 96.807 (net +7); library fp8=True bitwise-equal to gated path

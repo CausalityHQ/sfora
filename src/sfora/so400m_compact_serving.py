@@ -31,6 +31,36 @@ BATCH_SIZE = 64
 _INDEX_MAGIC = b"SFORA-SO400M-INDEX-v1\0"
 
 
+class _FP8Linear(nn.Module):
+    """Dynamic FP8 (e4m3) linear: per-output-channel weight scales, per-row activation scales, fp16 out."""
+
+    def __init__(self, linear: nn.Linear) -> None:
+        super().__init__()
+        fmax = torch.finfo(torch.float8_e4m3fn).max
+        w = linear.weight.detach().float()
+        scale = w.abs().amax(dim=1, keepdim=True).clamp(min=1e-12) / fmax
+        self.register_buffer("w_t", (w / scale).to(torch.float8_e4m3fn).t())
+        self.register_buffer("w_scale", scale.t().contiguous())
+        self.bias = None if linear.bias is None else nn.Parameter(linear.bias.detach().half(), requires_grad=False)
+        self.out_features = linear.out_features
+        self.fmax = fmax
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x2 = x.reshape(-1, x.shape[-1])
+        x_scale = x2.abs().amax(dim=1, keepdim=True).float().clamp(min=1e-12) / self.fmax
+        y = torch._scaled_mm((x2.float() / x_scale).to(torch.float8_e4m3fn), self.w_t, scale_a=x_scale,
+                             scale_b=self.w_scale, bias=self.bias, out_dtype=torch.float16)
+        return y.reshape(*x.shape[:-1], self.out_features)
+
+
+def _swap_fp8(module: nn.Module) -> None:
+    for name, child in module.named_children():
+        if isinstance(child, nn.Linear) and child.in_features % 16 == 0 and child.out_features % 16 == 0:
+            setattr(module, name, _FP8Linear(child))
+        elif not isinstance(child, nn.MultiheadAttention):  # MHA reads out_proj.weight directly
+            _swap_fp8(child)
+
+
 class So400mCompactEncoder:
     """A trained So400m vision tower plus linear compact head, in the reference export arithmetic."""
 
@@ -43,6 +73,7 @@ class So400mCompactEncoder:
         resolution: int,
         device: torch.device,
         fp16_native: bool = False,
+        fp8: bool = False,
     ) -> None:
         config = getattr(vision, "config", None)
         if (
@@ -66,9 +97,12 @@ class So400mCompactEncoder:
         self.output_dim = head.out_features
         self.device = device
         # fp16 weights, no autocast: 1.32x e2e @280, held R@1 net +1/5,851 (evidence so400m-p-variants-v1).
-        self.fp16_native = fp16_native
-        if fp16_native:
+        # fp8 (implies fp16_native): CUDA sm_89+; In-Shop official 101 img/s, R@1 net +7/14,218 (inshop-so400m-384-fp8).
+        self.fp16_native = fp16_native or fp8
+        if self.fp16_native:
             self.vision = self.vision.half()
+        if fp8:
+            _swap_fp8(self.vision)
         # Reference: 384 runs unpatched (no interpolation); 280 interpolates position embeddings.
         self.interpolate = resolution != config.image_size
 
@@ -82,6 +116,7 @@ class So400mCompactEncoder:
         output_dim: int,
         device: torch.device,
         fp16_native: bool = False,
+        fp8: bool = False,
     ) -> So400mCompactEncoder:
         if (
             resolution not in RESOLUTIONS
@@ -114,7 +149,7 @@ class So400mCompactEncoder:
         if device.type == "cuda":
             # ponytail: process-global flag, as in the reference scripts; encode re-checks it.
             torch.backends.cuda.matmul.allow_tf32 = False
-        return cls(processor, vision, head, resolution=resolution, device=device, fp16_native=fp16_native)
+        return cls(processor, vision, head, resolution=resolution, device=device, fp16_native=fp16_native, fp8=fp8)
 
     @torch.inference_mode()
     def _encode_batch(self, images: Sequence[Any]) -> torch.Tensor:

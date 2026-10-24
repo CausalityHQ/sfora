@@ -1,0 +1,1 @@
+library fp8=True vs gated swap path, 128 official query images: bitwise_equal True max_abs 0.0; CPU tests 5 passed
