@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 
 import torch
+from torch.optim.optimizer import register_optimizer_step_post_hook
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import train_sop_so400m_res280_pilot as base  # noqa: E402
@@ -75,7 +76,7 @@ def _ema_step(optimizer, args, kwargs):
 def main():
     out = Path(sys.argv[sys.argv.index("--output-dir") + 1])
     updates = int(sys.argv[sys.argv.index("--updates") + 1])
-    handle = torch.optim.optimizer.register_optimizer_step_post_hook(_ema_step)
+    handle = register_optimizer_step_post_hook(_ema_step)
     pair.main()
     handle.remove()
     assert STEPS[0] == updates, (STEPS[0], updates)
