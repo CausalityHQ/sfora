@@ -22,3 +22,4 @@ af7fb873	Q	inshop_pretrained_r1_384_vs_256	+5.670	-	56 vs 67 img/s	keep	In-Shop 
 f41f5309	P	e2e_img_s_280	84.7	-	bitwise	keep	ref arithmetic + 8 preprocessing workers (+17% vs P1 72.4)
 f41f5309	P	e2e_img_s_280	111.9	-	net +1/5851	keep	fp16-native vision weights + 8 workers (1.32x; 2 fixed/1 broken)
 f41f5309	P	e2e_img_s_280	114.7	-	net 0	discard	+torch.compile max-autotune (+2.5% < 5% bar)
+feeb1e24	Q	inshop_held_r1_384_vs_256	+0.594	+0.400	~3s/step 35GB 514B	keep	In-Shop So400m 512-D fine-tuned 384 vs 256 (held 98.61 vs 98.02; mAP +2.00 [1.67,2.33])
