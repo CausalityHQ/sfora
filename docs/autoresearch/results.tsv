@@ -30,3 +30,4 @@ f41f5309	P	e2e_img_s_384	64.2	-	net +2/5851	keep	fp16 + compile @384 (+7.3% over
 13c41e5f	Q	official_r1_inshop_seed179025	96.856	-	mean 96.832	official	In-Shop seed replicate; two-seed mean 96.832 > 96.7
 13c41e5f	P	inshop_e2e_img_s_384	68.1	-	p50 36ms/p99 41ms	keep	shipped In-Shop model, fp16+compile+workers, R@1 net +1 vs official read
 735d57ed	Q	inshop_held_r1_280_vs_384	-0.229	-0.393	1625s train	discard	In-Shop 280 px efficiency pilot KILL (non-inferiority -0.30 missed; mAP -1.33 sig)
+bench-fp8	P	gpu_img_s_384_b64	107.8	-	cos min .9954	keep	FP8 dynamic linears vs fp16 compiled 69.2 (1.56x GPU-only); needs held gate

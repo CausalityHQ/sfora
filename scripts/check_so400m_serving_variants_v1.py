@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Loop P gate: end-to-end So400m serving variants on the real 5,851 SOP TRAIN-held queries.
+"""Loop P gate (v1 arms; --fp8 adds arm D, pre-registered 2026-10-24 after bench_so400m_fp8_linear_v1 1.56x): end-to-end So400m serving variants on the real 5,851 SOP TRAIN-held queries.
 
 Arms (all encode the 59,551 TRAIN images, pack int8, search held vs full gallery, self excluded):
   A ref_workers : reference arithmetic (fp32 weights, fp16 autocast), preprocessing moved into 8
                   DataLoader workers. Same ops => must be bitwise equal to train_embeddings.npy.
   B fp16_native : vision weights cast to fp16 (no autocast), head fp32, 8 workers.
   C fp16_compile: B + torch.compile(mode='max-autotune-no-cudagraphs'), 8 workers.
+  D fp8_compile : C with every vision nn.Linear outside nn.MultiheadAttention as dynamic FP8
+                  (bench_so400m_fp8_linear_v1.FP8Linear); only with --fp8. Same keep rule as B/C.
 Pre-registered keep rule (committed before any number exists):
   A keeps iff bitwise equal and img/s > P1 parity (72.4 @280 / 41.8 @384).
   B/C keep iff img/s beats the best already-kept arm by > 5% AND net held correct-at-1 change
@@ -54,7 +56,10 @@ def run_arm(name: str, enc: So400mCompactEncoder, paths: list[Path]) -> tuple[to
     native = name != "ref_workers"
     if native:
         vision = vision.half()
-    if name == "fp16_compile":
+    if name == "fp8_compile":
+        from bench_so400m_fp8_linear_v1 import swap
+        swap(vision)
+    if name in ("fp16_compile", "fp8_compile"):
         vision = torch.compile(vision, mode="max-autotune-no-cudagraphs")
     loader = DataLoader(Pixels(paths, enc.processor), batch_size=None, num_workers=WORKERS,
                         prefetch_factor=4, pin_memory=True, persistent_workers=False)
@@ -70,7 +75,7 @@ def run_arm(name: str, enc: So400mCompactEncoder, paths: list[Path]) -> tuple[to
         with torch.autocast(device_type="cuda", enabled=False):
             return F.normalize(enc.head(F.normalize(pooled.float(), dim=1)), dim=1).cpu()
 
-    if name == "fp16_compile":  # compile/autotune outside the timed region
+    if name in ("fp16_compile", "fp8_compile"):  # compile/autotune outside the timed region
         warm = Pixels(paths[:BATCH_SIZE], enc.processor)[0]
         encode(warm)
     torch.cuda.synchronize()
@@ -88,6 +93,8 @@ def main() -> int:
     p.add_argument("--archive", type=Path, required=True)
     p.add_argument("--dataset-root", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--fp8", action="store_true")
+    p.add_argument("--best-img-s", type=float, help="already-kept best img/s for this resolution (fp8-only run)")
     a = p.parse_args()
     if a.output.exists() or not torch.cuda.is_available():
         raise SystemExit("output exists or CUDA unavailable")
@@ -109,7 +116,10 @@ def main() -> int:
               "resolution": a.resolution, "output_dim": output_dim, "workers": WORKERS,
               "receipt_r1": float(expected.mean()), "torch": torch.__version__, "arms": {}}
     best = P1_IMG_S[a.resolution]
-    for name in ("ref_workers", "fp16_native", "fp16_compile"):
+    arms = ("ref_workers", "fp16_native", "fp16_compile")
+    if a.fp8:
+        arms, best = ("fp8_compile",), a.best_img_s
+    for name in arms:
         values, seconds = run_arm(name, enc, paths)
         packed = pack_int8_unit_embeddings(values)
         index = So400mCompactIndex(packed, device=enc.device)

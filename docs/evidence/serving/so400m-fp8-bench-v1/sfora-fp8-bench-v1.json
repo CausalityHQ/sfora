@@ -1,0 +1,15 @@
+{
+ "schema": "sfora-so400m-fp8-linear-bench-v1",
+ "batch": 64,
+ "resolution": 384,
+ "fp16_compiled_img_s": 69.16224406920205,
+ "fp8_compiled_img_s": 107.77184083906964,
+ "speedup": 1.5582467325848446,
+ "linears_swapped": 164,
+ "gemm_share_of_fp16_gpu_time": 0.5661715228777546,
+ "pooled_cos_min": 0.995395839214325,
+ "pooled_cos_mean": 0.9975146055221558,
+ "decision": "CONTINUE",
+ "device": "NVIDIA GB10",
+ "torch": "2.12.1+cu130"
+}
