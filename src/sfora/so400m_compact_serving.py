@@ -42,6 +42,7 @@ class So400mCompactEncoder:
         *,
         resolution: int,
         device: torch.device,
+        fp16_native: bool = False,
     ) -> None:
         config = getattr(vision, "config", None)
         if (
@@ -64,6 +65,10 @@ class So400mCompactEncoder:
         self.resolution = resolution
         self.output_dim = head.out_features
         self.device = device
+        # fp16 weights, no autocast: 1.32x e2e @280, held R@1 net +1/5,851 (evidence so400m-p-variants-v1).
+        self.fp16_native = fp16_native
+        if fp16_native:
+            self.vision = self.vision.half()
         # Reference: 384 runs unpatched (no interpolation); 280 interpolates position embeddings.
         self.interpolate = resolution != config.image_size
 
@@ -76,6 +81,7 @@ class So400mCompactEncoder:
         resolution: int,
         output_dim: int,
         device: torch.device,
+        fp16_native: bool = False,
     ) -> So400mCompactEncoder:
         if (
             resolution not in RESOLUTIONS
@@ -108,7 +114,7 @@ class So400mCompactEncoder:
         if device.type == "cuda":
             # ponytail: process-global flag, as in the reference scripts; encode re-checks it.
             torch.backends.cuda.matmul.allow_tf32 = False
-        return cls(processor, vision, head, resolution=resolution, device=device)
+        return cls(processor, vision, head, resolution=resolution, device=device, fp16_native=fp16_native)
 
     @torch.inference_mode()
     def _encode_batch(self, images: Sequence[Any]) -> torch.Tensor:
@@ -116,8 +122,12 @@ class So400mCompactEncoder:
         tensors = {k: v.to(self.device) for k, v in batch.items() if torch.is_tensor(v)}
         if tensors.get("pixel_values") is None or tensors["pixel_values"].shape[0] != len(images):
             raise ValueError("So400m compact processor batch geometry differs")
-        with torch.autocast(device_type=self.device.type, dtype=torch.float16):
+        if self.fp16_native:
+            tensors["pixel_values"] = tensors["pixel_values"].half()
             pooled = self.vision(**tensors, interpolate_pos_encoding=self.interpolate).pooler_output
+        else:
+            with torch.autocast(device_type=self.device.type, dtype=torch.float16):
+                pooled = self.vision(**tensors, interpolate_pos_encoding=self.interpolate).pooler_output
         if (
             pooled is None
             or pooled.shape != (len(images), self.head.in_features)
