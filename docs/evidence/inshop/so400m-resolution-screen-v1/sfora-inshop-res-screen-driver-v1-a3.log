@@ -1,0 +1,9 @@
+DRIVER 2026-10-24T17:12:11Z pid=1966423 cgroup=0::/user.slice/user-1000.slice/session-7138.scope
+Running as unit: sfora-inshop-res-screen-v1-a3.service; invocation ID: f4258fe0509c4fbab4b01728b90b3d1b
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 14min 21.124s
+CPU time consumed: 19min 37.999s
+Memory peak: 764.0K
+Memory swap peak: 0B
+DONE 2026-10-24T17:26:32Z

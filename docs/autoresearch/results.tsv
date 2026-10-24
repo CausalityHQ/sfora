@@ -18,3 +18,4 @@ cd73781f	P	gpu_img_s_280	87.4	-	ref	keep	encode bench reference (sdpa fp32+autoc
 cd73781f	P	gpu_img_s_280	127.1	-	1.45x drift top10 .978	pending	fp16 native + compile max-autotune (needs real held gate)
 01694072	P	e2e_img_s_280	72.4	-	p50 42.9ms/p99 48.4ms b1	keep	P1 parity 280/512: bitwise train-export equal, per-query R@1 equal (94.514), disk+preprocess+fwd
 01694072	P	e2e_img_s_384	41.8	-	p50 52.5ms/p99 56.9ms b1	keep	P1 parity 384/512: bitwise train-export equal, per-query R@1 equal (94.924), disk+preprocess+fwd
+af7fb873	Q	inshop_pretrained_r1_384_vs_256	+5.670	-	56 vs 67 img/s	keep	In-Shop pretrained So400m 384 vs 256 px: ADVANCE (77.46 -> 83.13 packed full-TRAIN R@1; holdout +4.57)

@@ -1,0 +1,56 @@
+{
+ "decision": "ADVANCE",
+ "delta_pp": {
+  "packed_full_train_gallery_r1": 5.670299519853672,
+  "packed_holdout_r1": 4.572822193430381
+ },
+ "fit_rows": 12761,
+ "held_rows": 13121,
+ "official_read": false,
+ "ordered_rows_sha256": "2d43ad5cee694b2f38d7e3d806c5f983b9161ede48b54bd9cc7841b31d53ee5c",
+ "products": 3997,
+ "r256": {
+  "float_full_width": {
+   "holdout_only": 0.8617483423519549
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.7741787973477632,
+   "holdout_only": 0.8247846962883927
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.7746360795671061,
+   "holdout_only": 0.8245560551787211
+  }
+ },
+ "r256_export": {
+  "encode_wall_seconds": 388.93277243408374,
+  "features_sha256": "e119f6721210963fbbfcca7bf6e049d6ed80dd6e30454b5940acc68a9d95d5e1",
+  "images_per_second": 66.5462049855582,
+  "peak_cuda_allocated_bytes": 2617648128,
+  "pixels": 256,
+  "width": 1152
+ },
+ "r384": {
+  "float_full_width": {
+   "holdout_only": 0.8981022787897264
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.8320249980946575,
+   "holdout_only": 0.8710464141452633
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.8313390747656428,
+   "holdout_only": 0.8702842771130249
+  }
+ },
+ "r384_export": {
+  "encode_wall_seconds": 461.32538303895853,
+  "features_sha256": "b56aec2e3a2ff19860131b2ef71800f23c0a12fdb6d2fd8643eba3fda0cdf6d3",
+  "images_per_second": 56.10356800552266,
+  "peak_cuda_allocated_bytes": 2975158784,
+  "pixels": 384,
+  "width": 1152
+ },
+ "rows": 25882,
+ "schema": "inshop-so400m-resolution-screen-v1"
+}
