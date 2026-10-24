@@ -1,0 +1,23 @@
+{
+ "arms": {
+  "fp8_compile": {
+   "bitwise_equal": false,
+   "broken": 19,
+   "fixed": 17,
+   "images_per_second": 95.08538069066407,
+   "keep": true,
+   "mean_abs_cos_drift": 0.005714927334338427,
+   "net_correct_vs_receipt": -2,
+   "observed_r1": 0.9488976243377201,
+   "peak_cuda_allocated_bytes": 1718053888,
+   "seconds": 626.2897573469672
+  }
+ },
+ "output_dim": 512,
+ "receipt_r1": 0.9492394462485045,
+ "resolution": 384,
+ "run_dir": "/home/riomus/runs/sfora-sop-384d512-so400-179024-1000-v1",
+ "schema": "sfora-so400m-serving-variants-v1",
+ "torch": "2.12.1+cu130",
+ "workers": 8
+}

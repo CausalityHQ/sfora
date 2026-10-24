@@ -37,6 +37,7 @@ def main() -> int:
     p.add_argument("--dataset-root", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--resolution", type=int, choices=(280, 384), default=384)
+    p.add_argument("--fp8", action="store_true", help="dynamic FP8 vision linears (kept on SOP TRAIN-held 95.1 img/s, net -2); same PASS rule")
     a = p.parse_args()
     if a.output.exists() or not torch.cuda.is_available():
         raise SystemExit("output exists or CUDA unavailable")
@@ -46,6 +47,9 @@ def main() -> int:
     gallery = [r for r in records if r.split == "gallery"]
     enc = So400mCompactEncoder.from_checkpoint(a.model_snapshot, a.run_dir / "checkpoint.pt", resolution=a.resolution,
                                                output_dim=512, device=torch.device("cuda"), fp16_native=True)
+    if a.fp8:
+        from bench_so400m_fp8_linear_v1 import swap
+        swap(enc.vision)
     vision = torch.compile(enc.vision, mode="max-autotune-no-cudagraphs")
 
     @torch.inference_mode()
@@ -99,7 +103,7 @@ def main() -> int:
               "search_seconds_all_queries": search_seconds,
               "latency_b1_ms": {"p50": float(np.percentile(lat, 50)), "p99": float(np.percentile(lat, 99))},
               "gallery_index_bytes": len(index.to_bytes()), "peak_cuda_bytes": torch.cuda.max_memory_allocated(),
-              "resolution": a.resolution,
+              "resolution": a.resolution, "fp8": a.fp8,
               "decision": "PASS" if net >= -3 and img_s > 46.4 else "FAIL", "torch": torch.__version__}
     a.output.write_text(json.dumps(result, indent=1, sort_keys=True) + "\n")
     print(json.dumps(result), flush=True)
