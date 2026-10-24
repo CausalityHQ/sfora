@@ -1,0 +1,9 @@
+DRIVER 2026-10-24T17:13:59Z pid=1967868 cgroup=0::/user.slice/user-1000.slice/session-7145.scope
+Running as unit: sfora-p-variants-280-v1.service; invocation ID: 5d9774d5bcc2404aba31a602e8bf895f
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 42min 16.975s
+CPU time consumed: 46min 30.859s
+Memory peak: 512.0K
+Memory swap peak: 0B
+DONE 2026-10-24T17:56:16Z

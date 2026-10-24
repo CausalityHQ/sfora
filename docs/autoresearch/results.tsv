@@ -19,3 +19,6 @@ cd73781f	P	gpu_img_s_280	127.1	-	1.45x drift top10 .978	pending	fp16 native + co
 01694072	P	e2e_img_s_280	72.4	-	p50 42.9ms/p99 48.4ms b1	keep	P1 parity 280/512: bitwise train-export equal, per-query R@1 equal (94.514), disk+preprocess+fwd
 01694072	P	e2e_img_s_384	41.8	-	p50 52.5ms/p99 56.9ms b1	keep	P1 parity 384/512: bitwise train-export equal, per-query R@1 equal (94.924), disk+preprocess+fwd
 af7fb873	Q	inshop_pretrained_r1_384_vs_256	+5.670	-	56 vs 67 img/s	keep	In-Shop pretrained So400m 384 vs 256 px: ADVANCE (77.46 -> 83.13 packed full-TRAIN R@1; holdout +4.57)
+f41f5309	P	e2e_img_s_280	84.7	-	bitwise	keep	ref arithmetic + 8 preprocessing workers (+17% vs P1 72.4)
+f41f5309	P	e2e_img_s_280	111.9	-	net +1/5851	keep	fp16-native vision weights + 8 workers (1.32x; 2 fixed/1 broken)
+f41f5309	P	e2e_img_s_280	114.7	-	net 0	discard	+torch.compile max-autotune (+2.5% < 5% bar)
