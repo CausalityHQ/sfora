@@ -81,3 +81,15 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
    - In torch 2.12, `torch.optim.optimizer` must be imported explicitly.
 5. **Delegation stalls.** Specialist children died at MCP initialize, or blocked on a codex "Hooks need review" prompt that the owner had no supported control to decline. Message queues to the orchestrator were frequently full.
 6. **Pinned-source friction.** Receipts pin historical trainer bytes, so every change needs a new wrapper and staged source. Done consistently, this kept the provenance valid.
+
+## D. Added 2026-10-24 (later)
+
+- **The premise rejection "trained 288 px on 256 px In-Shop only supersamples" was wrong.** It was never measured.
+  - Pretrained So400m/14 at its native 384 beats 256 by **+5.67 pp** packed full-TRAIN R@1 on In-Shop TRAIN (447bddc4).
+  - Every In-Shop So400m run (official 96.244) had been run at 256, downscaled from the model's native 384.
+  - Lesson: measure a cheap zero-training screen before rejecting a lever on argument alone.
+- **`torch.compile` (max-autotune) on top of fp16-native serving: +2.5 % end to end, discarded** (bar was 5 %).
+  - End-to-end encode is now partly bound by decode and preprocessing.
+  - The next serving lever is the input pipeline, not kernels.
+- **Process: a specialist child's brief never became a turn.** The child sat idle for 30+ min with its durable message still queued.
+  - The child was stopped and the work was done in-root, without a duplicate child.
