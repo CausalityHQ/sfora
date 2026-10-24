@@ -60,6 +60,43 @@ def inshop_split(dataset_root: Path):
     return tuple(r.image_path for r in rows), labels, fit, held, train, ordered
 
 
+@torch.inference_mode()
+def official_read(vision, head, processor, dataset_root: Path, workers: int) -> dict:
+    """Official In-Shop: 14,218 queries vs 12,612 gallery, packed int8, exact torch scores (R@1, mAP@R)."""
+    records = parse_inshop_partition(dataset_root)
+    query = [r for r in records if r.split == "query"]
+    gallery = [r for r in records if r.split == "gallery"]
+    ids = {label: i for i, label in enumerate(sorted({r.label for r in query + gallery}))}
+
+    def encode(rows):
+        values = pair.export_all(vision, head, tuple(r.image_path for r in rows), tuple(ids[r.label] for r in rows),
+                                 processor, workers=workers, batch_size=64)
+        packed = pair.pack_int8_unit_embeddings(values)
+        return packed.codes.float().cuda(), packed.inverse_norms.float().cuda()
+
+    q, qn = encode(query)
+    g, gn = encode(gallery)
+    ql = torch.tensor([ids[r.label] for r in query], device="cuda")
+    gl = torch.tensor([ids[r.label] for r in gallery], device="cuda")
+    relevant = torch.bincount(gl, minlength=len(ids))[ql]
+    assert int(relevant.min()) >= 1
+    width = int(relevant.max())
+    ranks = torch.arange(1, width + 1, device="cuda")
+    r1, ap = [], []
+    for start in range(0, len(q), 64):
+        sl = slice(start, start + 64)
+        scores = (q[sl] @ g.T) * qn[sl, None] * gn[None, :]
+        ranked = torch.argsort(scores, dim=1, descending=True, stable=True)[:, :width]
+        matches = gl[ranked] == ql[sl, None]
+        rel = relevant[sl]
+        precision = matches.cumsum(1) / ranks[None, :]
+        ap.extend(((precision * matches * (ranks[None, :] <= rel[:, None])).sum(1) / rel).tolist())
+        r1.extend(matches[:, 0].float().tolist())
+    return {"official": True, "queries": len(query), "gallery": len(gallery),
+            "recall_at_1": float(np.mean(r1)), "map_at_r": float(np.mean(ap)),
+            "per_query_r1": r1, "per_query_ap": ap}
+
+
 def patch_crop(crop: int) -> None:
     pair.ARM = {**pair.ARMS["so400"], "crop": crop}
     pair.MODEL_HASHES, pair.WIDTH = pair.ARM["model_hashes"], pair.ARM["width"]
@@ -82,6 +119,8 @@ def main() -> None:
     p.add_argument("--model-snapshot", type=Path, required=True)
     p.add_argument("--pretrained-features", type=Path, required=True)
     p.add_argument("--output-dir", type=Path, required=True)
+    p.add_argument("--full-train", action="store_true",
+                   help="train on ALL TRAIN products (>= 2 images), then ONE official query->gallery read")
     a = p.parse_args()
     patch_crop(a.crop)
     if (a.output_dir.exists() or not torch.cuda.is_available() or not torch.cuda.is_bf16_supported()
@@ -94,6 +133,9 @@ def main() -> None:
     source = np.load(a.pretrained_features, mmap_mode="r")
     assert source.shape == (len(paths), pair.WIDTH)
     a.output_dir.mkdir(parents=True)
+    if a.full_train:
+        counts = np.bincount(labels)
+        train_rows = np.flatnonzero(counts[labels] >= 2)
 
     train_labels = tuple(map(int, labels[train_rows]))
     names = tuple(sorted(set(train_labels)))
@@ -184,14 +226,19 @@ def main() -> None:
     export_seconds = time.perf_counter() - export_started
     np.save(a.output_dir / "train_embeddings.npy", values.numpy(), allow_pickle=False)
     packed = pair.pack_int8_unit_embeddings(values)
-    quality = pair.score_packed_full_gallery(packed.codes.float(), packed.inverse_norms,
-                                             torch.from_numpy(labels.copy()), torch.from_numpy(held_rows.copy()),
-                                             device=torch.device("cuda"))
+    if a.full_train:  # held rows were trained on: the TRAIN-held score is meaningless, read official once
+        quality = official_read(vision, head, processor, a.dataset_root, a.workers)
+    else:
+        quality = pair.score_packed_full_gallery(packed.codes.float(), packed.inverse_norms,
+                                                 torch.from_numpy(labels.copy()),
+                                                 torch.from_numpy(held_rows.copy()), device=torch.device("cuda"))
     quality["output_width"] = pair.OUTPUT_WIDTH
     quality["gallery_wire_bytes_per_row"] = len(packed.to_bytes()) // len(packed.codes)
     receipt = {
         "schema": "sfora-inshop-so400m-pilot-v1", "claim_eligible": False,
-        "split": "In-Shop official TRAIN product-disjoint fit/held (screen partition); no query/gallery rows",
+        "split": ("In-Shop full TRAIN; ONE official query->gallery read" if a.full_train else
+                  "In-Shop official TRAIN product-disjoint fit/held (screen partition); no query/gallery rows"),
+        "full_train": a.full_train,
         "seed": a.seed, "updates": a.updates, "crop": a.crop,
         "substrate_config": {k: v for k, v in pair.ARM.items() if k != "model_hashes"},
         "fit_images": len(fit_rows), "train_images": len(train_rows), "train_products": len(names),
