@@ -47,7 +47,7 @@ def swap(module: nn.Module) -> int:
         if isinstance(child, nn.Linear) and child.in_features % 16 == 0 and child.out_features % 16 == 0:
             setattr(module, name, FP8Linear(child))
             count += 1
-        else:
+        elif not isinstance(child, nn.MultiheadAttention):  # MHA reads out_proj.weight directly; keep fp16
             count += swap(child)
     return count
 
