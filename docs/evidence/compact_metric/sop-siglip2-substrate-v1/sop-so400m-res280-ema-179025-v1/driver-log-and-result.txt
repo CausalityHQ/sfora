@@ -1,0 +1,68 @@
+EMA 2026-10-24T00:08:59Z BEGIN pid=1061685 cgroup=0::/user.slice/user-1000.slice/session-6607.scope wrapper=c060dfb862b99bc4d395d5f74b43c947443a60bc4119ac3f46570696fe618936 screen=7bf525f397e5c11be6fa99edb5f7d3c37c28dfa88e5bd3d23083e0b1dd863a63
+EMA 2026-10-24T00:08:59Z START train 17
+EMA 2026-10-24T00:09:50Z DONE train 17 receipt=bfb04d56410fc1b5777bbebbd6b543254188301f3e2fc0f933ce3ef78516dace ema=4db63ec7ddc23e729751f3181d674365739683d27b22834dddccdb64f4422c34
+EMA 2026-10-24T00:09:50Z START train 1000
+EMA 2026-10-24T00:48:52Z DONE train 1000 receipt=0ba07587f6c932dc1d4ac0763ab10b19316baac9dbd3fbaa7b9eb1e324d88e65 ema=6b7ca82d4690c876ca4448b03866ea46b1e57c4eb38429b02b4aa2bac35e9958
+EMA 2026-10-24T00:48:52Z START screen
+EMA 2026-10-24T01:12:15Z ALLDONE result=470d6e14f28d202aadc09afd9619adc971ffb274ded69b55c62babded12819be
+{
+ "decision": "KILL EMA",
+ "ema": {
+  "decay": 0.996,
+  "ema_elements": 228741296,
+  "ema_parameters": 239,
+  "ema_state_sha256": "6b7ca82d4690c876ca4448b03866ea46b1e57c4eb38429b02b4aa2bac35e9958",
+  "steps": 1000
+ },
+ "ema_minus_final": {
+  "dR1": {
+   "mean": -0.0054691505725517,
+   "product_95": [
+    -0.009203026587015651,
+    -0.0017325556344664494
+   ]
+  },
+  "dmAP": {
+   "mean": -0.014861880030105449,
+   "product_95": [
+    -0.018205335012856896,
+    -0.01161825693143873
+   ]
+  }
+ },
+ "ema_quality": {
+  "map_at_r": 0.7887005921260001,
+  "native_top10_exact": true,
+  "recall_at_1": 0.9309519740215347
+ },
+ "final": {
+  "map_at_r": 0.8035624721561055,
+  "recall_at_1": 0.9364211245940864
+ },
+ "info_final_embeddings_bitwise_equal": true,
+ "official_read": false,
+ "schema": "sop-so400m-res280-ema-screen-v1",
+ "seed179024_final": {
+  "map_at_r": 0.8014354642746113,
+  "recall_at_1": 0.9365920355494787
+ },
+ "seed_replicate_final179025_minus_final179024": {
+  "dR1": {
+   "mean": -0.00017091095539224064,
+   "product_95": [
+    -0.0040844111640571815,
+    0.00348180913913672
+   ]
+  },
+  "dmAP": {
+   "mean": 0.0021270078814942966,
+   "product_95": [
+    -0.0017732222132498417,
+    0.0058329354530441855
+   ]
+  }
+ },
+ "validity_final_per_query_r1_reproduced": true
+}
+
+[exited with code 0]
