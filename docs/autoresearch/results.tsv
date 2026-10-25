@@ -43,3 +43,4 @@ highres	Q	inshop_pretrained_r1_512_vs_384	+1.052	-	30 vs 31 img/s	discard	pretra
 head1024	Q	inshop_held_r1_1024_vs_512	-0.152	-0.275	1026B/row	discard	1024-D head KILL (mAP -0.05 ns); width saturates at 512
 expo	Q	inshop_held_r1_1000_vs_500	+0.267	+0.113	-	keep	exposure proxy ADVANCE (mAP +1.34); full-TRAIN 1000 (~2.5 ep) likely under-exposed
 expo-full	Q	official_r1_inshop_full2000	97.039	+0.035	~2h train	official	NEW In-Shop incumbent: So400m@384/512 2000 updates (mAP 84.88); vs 1000-update incumbent +0.23 [+0.03,+0.43]; vs matched Large +0.81 [+0.52,+1.09]
+expo2	Q	inshop_held_r1_1500_vs_1000	+0.076	-0.069	-	discard	exposure saturates ~5 epochs (mAP +0.31 ns); no 3000-update full run
