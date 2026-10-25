@@ -1,0 +1,9 @@
+FULL2000 2026-10-25T12:58:14Z BEGIN pid=3078007 cgroup=0::/user.slice/user-1000.slice/session-8082.scope wrapper=cac7ea2f67ad68913027df4ce5340011489ea04c1a1c9c841557a79491185fd5
+Running as unit: sfora-inshop-so400m-full-c384-179024-2000-v1.service; invocation ID: ada6c6d7e4854859a1cd8e911b4a6fd4
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1h 49min 11.001s
+CPU time consumed: 2h 8min 47.419s
+Memory peak: 760.0K
+Memory swap peak: 0B
+FULL2000 2026-10-25T14:47:25Z DONE

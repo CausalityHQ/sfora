@@ -33,6 +33,19 @@ Paired comparisons, 5,000 product-bootstrap draws (evidence `inshop/so400m-384-p
 - Dated UNICOM ViT-L/14@336: 91.2 (SOP) and 96.7 (In-Shop). Both are exceeded.
 - A literature search (2026-10-24) found no higher published number. Most other results were older ResNet50-era (~81 SOP, ~93 In-Shop R@1). No SOTA claim is made beyond this.
 
+### In-Shop incumbent update, 2026-10-25: 2,000 updates (exposure lever)
+
+**Official R@1 97.039, mAP@R 84.88.** Trained on full TRAIN for ~5 epochs. Paired comparisons:
+
+| Comparison | ΔR@1 [95% CI] | ΔmAP@R [95% CI] |
+|---|---|---|
+| vs the 1000-update incumbent | +0.23 [+0.03, +0.43] | +1.10 [+0.86, +1.33] |
+| vs the matched Large control | +0.81 [+0.52, +1.09] | +2.93 [+2.60, +3.27] |
+
+- Selected by a TRAIN-only proxy: on the pilot, 1000 updates beat 500 by +0.27 [+0.11, +0.42].
+- Evidence: `inshop/so400m-384-full2000-official-v1`.
+- Serving is identical in architecture to the 1000-update model. FP8 numbers carry over in architecture terms but are not re-measured.
+
 ## Serving: shipped In-Shop model, full pipeline
 
 Pipeline: decode → preprocess → encode → pack → exact search. Measured on official images, GB10.
