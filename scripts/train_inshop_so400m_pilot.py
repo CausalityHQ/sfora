@@ -123,9 +123,11 @@ def sop_official_read(vision, head, processor, dataset_root: Path, archive: Path
     packed = pair.pack_int8_unit_embeddings(values)
     np.savez(out_dir / "official_packed.npz", codes=packed.codes.numpy(), inverse_norms=packed.inverse_norms.numpy(),
              labels=labels)
-    quality = pair.score_packed_full_gallery(packed.codes.float(), packed.inverse_norms, torch.from_numpy(labels.copy()),
-                                             torch.arange(len(labels)), device=torch.device("cuda"))
-    return {"official": True, "queries": len(labels), "gallery": len(labels), **quality}
+    from sfora.sop_evaluation import score_symmetric  # the official SOP evaluator's scorer (parity: 2-query tie gap)
+
+    quality = dict(score_symmetric(packed.codes.float().cuda(), torch.from_numpy(labels.copy()).cuda(),
+                                   inverse_norms=packed.inverse_norms.cuda()))
+    return {"official": True, "gallery": len(labels), **quality}
 
 
 @torch.inference_mode()
