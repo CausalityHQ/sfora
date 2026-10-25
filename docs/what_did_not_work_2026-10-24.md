@@ -96,3 +96,8 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **In-Shop 280 px efficiency point: KILL** (735d57ed). Held R@1 −0.23 [−0.39, −0.06] and mAP@R −1.33 vs the 384 pilot, which misses the −0.30 non-inferiority bar.
   - In-Shop needs 384 more than SOP did. Resolution is the lever that won In-Shop, so cutting it gives the gain back.
   - Efficiency has to come from the arithmetic at 384, not from fewer tokens.
+- **In-Shop Large/16@384 as a faster substitute: KILL** (3b289e72).
+  - Pretrained, 384 helped Large as much as So400m: +5.01 pp vs 256.
+  - Fine-tuned at 512-D: held 97.94 vs So400m@384 98.61 (−0.67 [−0.88, −0.46], mAP −3.46). That is also below So400m@256 (98.02).
+  - **Lesson:** "substrate ≈ 0 at matched 256" (native256 campaign, 128-D, older recipe) does not carry over to the 512-D member-bank recipe. Substrate and resolution are both needed.
+  - The efficiency gap is now a model-level problem. Remaining options: distill So400m@384 into a cheaper student, or token reduction inside So400m.

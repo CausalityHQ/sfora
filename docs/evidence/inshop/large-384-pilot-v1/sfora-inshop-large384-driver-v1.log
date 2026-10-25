@@ -1,0 +1,19 @@
+LARGE384 2026-10-25T00:09:08Z BEGIN pid=2378550 cgroup=0::/user.slice/user-1000.slice/session-7580.scope wrapper=88bd2a762929a27c
+Running as unit: sfora-inshop-large-c384-179024-17-v1.service; invocation ID: 0847af40f7984bd79560b016f003dcaa
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 5min 51.636s
+CPU time consumed: 9min 15.447s
+Memory peak: 256.0K
+Memory swap peak: 0B
+LARGE384 2026-10-25T00:15:00Z DONE 17
+Running as unit: sfora-inshop-large-c384-179024-1000-v1.service; invocation ID: 82ecb3a6967944b9a52cac367739907b
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 32min 11.890s
+CPU time consumed: 42min 50.800s
+Memory peak: 596.0K
+Memory swap peak: 0B
+LARGE384 2026-10-25T00:47:12Z DONE 1000
+LARGE384 2026-10-25T00:47:16Z SCREEN {'delta_pp': -0.6706805883697888, 'lower95': -0.8849217536953163, 'upper95': -0.462784086108442} {'delta_pp': -3.45683913389328, 'lower95': -3.895237549206887, 'upper95': -3.0451702357013843}
+LARGE384 2026-10-25T00:47:16Z ALLDONE
