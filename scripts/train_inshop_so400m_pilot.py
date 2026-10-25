@@ -132,6 +132,9 @@ def main() -> None:
     p.add_argument("--model-snapshot", type=Path, required=True)
     p.add_argument("--pretrained-features", type=Path, required=True)
     p.add_argument("--output-dir", type=Path, required=True)
+    p.add_argument("--teacher-embeddings", type=Path,
+                   help="unit (rows, 512) teacher TRAIN embeddings in screen row order; adds distillation terms")
+    p.add_argument("--distill-weight", type=float, default=1.0)
     p.add_argument("--full-train", action="store_true",
                    help="train on ALL TRAIN products (>= 2 images), then ONE official query->gallery read")
     a = p.parse_args()
@@ -163,6 +166,10 @@ def main() -> None:
     torch.set_num_threads(16)
     torch.backends.cuda.matmul.allow_tf32 = False
     train_features = torch.from_numpy(np.asarray(source[train_rows]).copy()).float()
+    teacher = None
+    if a.teacher_embeddings is not None:
+        teacher = torch.from_numpy(np.load(a.teacher_embeddings)[train_rows].copy()).float().cuda()
+        assert teacher.shape == (len(train_rows), pair.OUTPUT_WIDTH)
     head, classifier, pca_sha = pair.initialize_head_and_classifier(train_features, train_labels)
     bank = pair.member_bank_initial_values(train_features, head, live_head=False)
 
@@ -212,6 +219,11 @@ def main() -> None:
         rank = pair.member_bank_rank_loss(features, bank, head, positive_table[ordinals], ordinals,
                                           live_head=False)
         loss = control + RANK_COEFFICIENT * rank
+        if teacher is not None:  # cosine to the clean-view teacher row + in-batch similarity-structure match
+            s_unit = torch.nn.functional.normalize(features.float(), dim=1)
+            t_unit = teacher[ordinals]
+            distill = (1 - (s_unit * t_unit).sum(1)).mean() + ((s_unit @ s_unit.T - t_unit @ t_unit.T) ** 2).mean()
+            loss = loss + a.distill_weight * distill
         if not bool(torch.isfinite(loss)):
             raise ValueError("In-Shop train loss is nonfinite")
         scaler.scale(loss).backward()
@@ -265,7 +277,9 @@ def main() -> None:
         "schedule_sha256": hashlib.sha256(np.asarray(schedule, dtype="<i4").tobytes()).hexdigest(),
         "wrapper_sha256": pair.sha256(Path(__file__)), "pair_sha256": pair.sha256(Path(pair.__file__)),
         "dim512_sha256": pair.sha256(Path(dim512.__file__)),
-        "training_objective": "ArcFace 0.3/64 + 8.0 x full-fit float SmoothAP member bank (512-D)",
+        "training_objective": "ArcFace 0.3/64 + 8.0 x full-fit float SmoothAP member bank (512-D)"
+        + (f" + {a.distill_weight} x (cosine + batch-similarity MSE) distillation" if teacher is not None else ""),
+        "teacher_embeddings_sha256": pair.sha256(a.teacher_embeddings) if teacher is not None else None,
         "optimizer": "AdamW wd 0.05; vision 1e-5; head/classifier 1e-4; clip 1.0; bf16 autocast",
         "frozen": f"embeddings + first {pair.ARM['frozen_blocks']} of {pair.ARM['blocks']} blocks",
         "training_wall_seconds": training_wall, "training_peak_cuda_allocated_bytes": training_peak,
