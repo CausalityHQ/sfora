@@ -119,3 +119,4 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
   - It is still the best speed/quality trade found: it beats So400m@256 (98.02), Large@384 (97.94) and distilled Large (97.97) at ~1.4× fewer FLOPs.
   - If the operator accepts a ~0.35 pp R@1 cost, this is the lane to fund: dropping fewer blocks (4–6), or depth pruning combined with FP8.
 - **Resolution above 384 (pretrained So400m 448 / 512): CLOSE.** 448: −0.18 pp. 512: +1.05 pp (bar +2.0). Resolution gains saturate at the model's native 384.
+- **1024-D head (In-Shop So400m@384 pilot): KILL.** Held R@1 −0.15 [−0.27, −0.03] vs 512-D; mAP −0.05 (not significant). Width saturates at 512.
