@@ -67,3 +67,4 @@ Pipeline: decode → preprocess → encode → pack → exact search. Measured o
   - Other hits were older: ResNet-era In-Shop 80.9–92.8, SOP 74.8–81.7.
 - The search did not independently confirm the UNICOM 91.2 / 96.7 figures; they come from our earlier source-bound reference notes.
 - Status: this is "no higher published number found", not "SOTA confirmed".
+- **UNICOM reference confirmed (2026-10-25):** in the UNICOM ICLR 2023 paper (arXiv 2304.05884) and its model docs, supervised ViT-L/14@336 is SOP 91.2 / In-Shop 96.7 R@1, and zero-shot L/14-336 is 74.5 / 86.7. Our official reads (93.967 / 96.832) exceed the supervised figures under the same official splits.
