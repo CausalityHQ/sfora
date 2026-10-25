@@ -135,6 +135,7 @@ def main() -> None:
     p.add_argument("--teacher-embeddings", type=Path,
                    help="unit (rows, 512) teacher TRAIN embeddings in screen row order; adds distillation terms")
     p.add_argument("--distill-weight", type=float, default=1.0)
+    p.add_argument("--drop-last-blocks", type=int, default=0, help="remove the last N encoder blocks (depth pruning)")
     p.add_argument("--full-train", action="store_true",
                    help="train on ALL TRAIN products (>= 2 images), then ONE official query->gallery read")
     a = p.parse_args()
@@ -183,6 +184,9 @@ def main() -> None:
     del full
     vision.embeddings.requires_grad_(False)
     assert len(vision.encoder.layers) == pair.ARM["blocks"]
+    if a.drop_last_blocks:
+        vision.encoder.layers = vision.encoder.layers[: -a.drop_last_blocks]
+        vision.config.num_hidden_layers = len(vision.encoder.layers)
     for block in vision.encoder.layers[: pair.ARM["frozen_blocks"]]:
         block.requires_grad_(False)
     head = head.cuda().train()
@@ -272,7 +276,7 @@ def main() -> None:
         "holdout_queries": None if a.full_train else len(held_rows),
         "gallery_images": quality.get("gallery", len(labels)),
         "ordered_rows_sha256": ordered, "pretrained_features_sha256": FEATURES_SHA256[(a.substrate, a.crop)],
-        "substrate": a.substrate,
+        "substrate": a.substrate, "drop_last_blocks": a.drop_last_blocks,
         "source_pca_sha256": pca_sha,
         "schedule_sha256": hashlib.sha256(np.asarray(schedule, dtype="<i4").tobytes()).hexdigest(),
         "wrapper_sha256": pair.sha256(Path(__file__)), "pair_sha256": pair.sha256(Path(pair.__file__)),
