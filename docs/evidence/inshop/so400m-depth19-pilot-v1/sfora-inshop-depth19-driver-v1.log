@@ -1,0 +1,19 @@
+DEPTH19 2026-10-25T01:59:37Z BEGIN pid=2499542 cgroup=0::/user.slice/user-1000.slice/session-7704.scope wrapper=373a895fff23c9df
+Running as unit: sfora-inshop-depth19-c384-179024-17-v1.service; invocation ID: 4f3b13f59fd248a1834215a4df9b222e
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 7min 24.885s
+CPU time consumed: 10min 49.060s
+Memory peak: 512.0K
+Memory swap peak: 0B
+DEPTH19 2026-10-25T02:07:02Z DONE 17
+Running as unit: sfora-inshop-depth19-c384-179024-1000-v1.service; invocation ID: 253a370723f54ba38f11552f2b951ddc
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 34min 48.371s
+CPU time consumed: 45min 51.133s
+Memory peak: 288.0K
+Memory swap peak: 0B
+DEPTH19 2026-10-25T02:41:50Z DONE 1000
+DEPTH19 2026-10-25T02:41:53Z SCREEN {'delta_pp': -0.3505830348296624, 'lower95': -0.5288691740687158, 'upper95': -0.17255579683620914} {'delta_pp': -0.8716628817554228, 'lower95': -1.2885110026123, 'upper95': -0.4404221934473309}
+DEPTH19 2026-10-25T02:41:53Z ALLDONE

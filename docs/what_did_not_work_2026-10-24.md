@@ -114,3 +114,7 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **Efficiency status:** the cheap and medium falsifiers are exhausted (280 px, Large@384, ToMe, distillation). Kept efficiency wins: workers, fp16, compile at 384, and FP8 (end to end 42 → 101 img/s, p50 52 → 18.5 ms).
   - The remaining distance to Large-level speed (~190 img/s) has no causally supported cheap lever left in this campaign.
   - Longer-horizon options, unscreened: merge-aware fine-tuning, structured pruning of So400m blocks, and FP8 attention kernels. Each is a multi-hour project with a low prior from today's evidence.
+- **Depth pruning So400m@384 (drop the last 8 of 27 blocks, fine-tuned): KILL by margin.**
+  - Held 98.26 vs full depth 98.61 (−0.35 [−0.53, −0.17]; bar −0.30), mAP −0.87.
+  - It is still the best speed/quality trade found: it beats So400m@256 (98.02), Large@384 (97.94) and distilled Large (97.97) at ~1.4× fewer FLOPs.
+  - If the operator accepts a ~0.35 pp R@1 cost, this is the lane to fund: dropping fewer blocks (4–6), or depth pruning combined with FP8.
