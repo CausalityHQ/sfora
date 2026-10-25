@@ -42,6 +42,10 @@ pair = dim512.pair
 FEATURES_SHA256 = {256: "e119f6721210963fbbfcca7bf6e049d6ed80dd6e30454b5940acc68a9d95d5e1",
                    384: "b56aec2e3a2ff19860131b2ef71800f23c0a12fdb6d2fd8643eba3fda0cdf6d3"}
 FEATURES_SHA256[280] = FEATURES_SHA256[384]  # 280 inits from 384 pretrained features (as the SOP 280 wrapper)
+FEATURES_SHA256 = {("so400", crop): sha for crop, sha in FEATURES_SHA256.items()}
+LARGE_FEATURES_SHA256: dict[int, str] = {}  # filled from screen_inshop_large_resolution_v1 before any Large run
+FEATURES_SHA256.update({("large", crop): sha for crop, sha in LARGE_FEATURES_SHA256.items()})
+NATIVE = {"so400": 384, "large": 256}
 ORDERED_ROWS_SHA256 = "2d43ad5cee694b2f38d7e3d806c5f983b9161ede48b54bd9cc7841b31d53ee5c"
 RANK_COEFFICIENT = 8.0
 
@@ -104,10 +108,10 @@ def official_read(vision, head, processor, dataset_root: Path, workers: int, out
             "per_query_r1": r1, "per_query_ap": ap}
 
 
-def patch_crop(crop: int) -> None:
-    pair.ARM = {**pair.ARMS["so400"], "crop": crop}
+def patch_crop(crop: int, substrate: str = "so400") -> None:
+    pair.ARM = {**pair.ARMS[substrate], "crop": crop}
     pair.MODEL_HASHES, pair.WIDTH = pair.ARM["model_hashes"], pair.ARM["width"]
-    if crop != 384:
+    if crop != NATIVE[substrate]:
         from transformers.models.siglip import modeling_siglip
 
         embed = modeling_siglip.SiglipVisionEmbeddings.forward
@@ -119,6 +123,7 @@ def main() -> None:
     started_program = time.perf_counter()
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument("--crop", type=int, choices=(256, 280, 384), required=True)
+    p.add_argument("--substrate", choices=("so400", "large"), default="so400")
     p.add_argument("--seed", type=int, default=179024)
     p.add_argument("--updates", type=int, default=1000)
     p.add_argument("--workers", type=int, default=2)
@@ -129,9 +134,9 @@ def main() -> None:
     p.add_argument("--full-train", action="store_true",
                    help="train on ALL TRAIN products (>= 2 images), then ONE official query->gallery read")
     a = p.parse_args()
-    patch_crop(a.crop)
+    patch_crop(a.crop, a.substrate)
     if (a.output_dir.exists() or not torch.cuda.is_available() or not torch.cuda.is_bf16_supported()
-            or pair.sha256(a.pretrained_features) != FEATURES_SHA256[a.crop]
+            or pair.sha256(a.pretrained_features) != FEATURES_SHA256.get((a.substrate, a.crop))
             or any(pair.sha256(a.model_snapshot / n) != v for n, v in pair.MODEL_HASHES.items())):
         raise ValueError("In-Shop pilot authority differs")
     paths, labels, fit_rows, held_rows, train_rows, ordered = inshop_split(a.dataset_root)
@@ -253,7 +258,8 @@ def main() -> None:
         "fit_images": None if a.full_train else len(fit_rows), "train_images": len(train_rows), "train_products": len(names),
         "holdout_queries": None if a.full_train else len(held_rows),
         "gallery_images": quality.get("gallery", len(labels)),
-        "ordered_rows_sha256": ordered, "pretrained_features_sha256": FEATURES_SHA256[a.crop],
+        "ordered_rows_sha256": ordered, "pretrained_features_sha256": FEATURES_SHA256[(a.substrate, a.crop)],
+        "substrate": a.substrate,
         "source_pca_sha256": pca_sha,
         "schedule_sha256": hashlib.sha256(np.asarray(schedule, dtype="<i4").tobytes()).hexdigest(),
         "wrapper_sha256": pair.sha256(Path(__file__)), "pair_sha256": pair.sha256(Path(pair.__file__)),
