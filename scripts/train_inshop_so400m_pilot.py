@@ -92,6 +92,42 @@ def inshop_split(dataset_root: Path):
     return tuple(r.image_path for r in rows), labels, fit, held, train, ordered
 
 
+SOP_ARCHIVE_SHA256 = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
+SOP_ORDERED_ROWS_SHA256 = "52c1852ad85633ea402a38880a362d3548aba070f0fcf3fbf660df81233373f3"
+SOP_FEATURES_SHA256 = {("so400", 384): "13e750983bd7b375dddbe5984ae4fa69201073a1628ddcaf58bd1779a07c5790"}
+
+
+def sop_split(dataset_root: Path, archive: Path):
+    """SOP TRAIN rows/labels in UNICOM archive order and the seed-179019 fit 0.9 partition of every SOP pilot."""
+    assert pair.sha256(archive) == SOP_ARCHIVE_SHA256
+    with np.load(archive, allow_pickle=False) as z:
+        labels = np.asarray(z["train_labels"], dtype=np.int64)
+        ids = np.asarray(z["train_image_ids"], dtype=np.int64)
+        relatives = np.asarray(z["train_relative_paths"])
+    ordered = pair.ordered_rows_sha256(ids, labels, relatives)
+    part = deterministic_class_partition(tuple(map(int, labels)), fit_fraction=0.9, seed=179019)
+    fit = np.asarray(part.fit_row_indexes, dtype=np.int64)
+    held = np.asarray(part.validation_row_indexes, dtype=np.int64)
+    return pair.paths_from_archive(dataset_root, relatives), labels, fit, held, fit, ordered
+
+
+@torch.inference_mode()
+def sop_official_read(vision, head, processor, dataset_root: Path, archive: Path, workers: int, out_dir: Path) -> dict:
+    """Official SOP TEST: all 60,502 images as query and gallery, self excluded, packed int8, exact torch scores."""
+    with np.load(archive, allow_pickle=False) as z:
+        labels = np.asarray(z["test_labels"], dtype=np.int64)
+        relatives = np.asarray(z["test_relative_paths"])
+    assert labels.shape == (60_502,)
+    paths = pair.paths_from_archive(dataset_root, relatives)
+    values = pair.export_all(vision, head, paths, tuple(map(int, labels)), processor, workers=workers, batch_size=64)
+    packed = pair.pack_int8_unit_embeddings(values)
+    np.savez(out_dir / "official_packed.npz", codes=packed.codes.numpy(), inverse_norms=packed.inverse_norms.numpy(),
+             labels=labels)
+    quality = pair.score_packed_full_gallery(packed.codes.float(), packed.inverse_norms, torch.from_numpy(labels.copy()),
+                                             torch.arange(len(labels)), device=torch.device("cuda"))
+    return {"official": True, "queries": len(labels), "gallery": len(labels), **quality}
+
+
 @torch.inference_mode()
 def official_read(vision, head, processor, dataset_root: Path, workers: int, out_dir: Path) -> dict:
     """Official In-Shop: 14,218 queries vs 12,612 gallery, packed int8, exact torch scores (R@1, mAP@R)."""
@@ -163,18 +199,28 @@ def main() -> None:
     p.add_argument("--distill-weight", type=float, default=1.0)
     p.add_argument("--drop-last-blocks", type=int, default=0, help="remove the last N encoder blocks (depth pruning)")
     p.add_argument("--head-dim", type=int, default=512)
+    p.add_argument("--dataset", choices=("inshop", "sop"), default="inshop")
+    p.add_argument("--eval-checkpoint", type=Path,
+                   help="no training: load this checkpoint's vision/head, then run the selected read (scorer parity)")
+    p.add_argument("--sop-archive", type=Path, help="UNICOM SOP archive (row order, labels, test split)")
     p.add_argument("--full-train", action="store_true",
                    help="train on ALL TRAIN products (>= 2 images), then ONE official query->gallery read")
     a = p.parse_args()
     patch_crop(a.crop, a.substrate)
     set_head_dim(a.head_dim)
     if (a.output_dir.exists() or not torch.cuda.is_available() or not torch.cuda.is_bf16_supported()
-            or pair.sha256(a.pretrained_features) != FEATURES_SHA256.get((a.substrate, a.crop))
+            or pair.sha256(a.pretrained_features) != (SOP_FEATURES_SHA256 if a.dataset == "sop"
+                                                      else FEATURES_SHA256).get((a.substrate, a.crop))
             or any(pair.sha256(a.model_snapshot / n) != v for n, v in pair.MODEL_HASHES.items())):
         raise ValueError("In-Shop pilot authority differs")
-    paths, labels, fit_rows, held_rows, train_rows, ordered = inshop_split(a.dataset_root)
-    if ordered != ORDERED_ROWS_SHA256 or (len(fit_rows), len(held_rows)) != (12_761, 13_121):
-        raise ValueError("In-Shop TRAIN rows/partition differ from the resolution screen")
+    if a.dataset == "sop":
+        paths, labels, fit_rows, held_rows, train_rows, ordered = sop_split(a.dataset_root, a.sop_archive)
+        if ordered != SOP_ORDERED_ROWS_SHA256 or (len(fit_rows), len(held_rows)) != (53_700, 5_851):
+            raise ValueError("SOP TRAIN rows/partition differ from the SOP pilots")
+    else:
+        paths, labels, fit_rows, held_rows, train_rows, ordered = inshop_split(a.dataset_root)
+        if ordered != ORDERED_ROWS_SHA256 or (len(fit_rows), len(held_rows)) != (12_761, 13_121):
+            raise ValueError("In-Shop TRAIN rows/partition differ from the resolution screen")
     source = np.load(a.pretrained_features, mmap_mode="r")
     assert source.shape == (len(paths), pair.WIDTH)
     a.output_dir.mkdir(parents=True)
@@ -186,9 +232,9 @@ def main() -> None:
     names = tuple(sorted(set(train_labels)))
     class_index = {name: i for i, name in enumerate(names)}
     class_ids = np.asarray([class_index[x] for x in train_labels], dtype=np.int64)
-    schedule = identity_balanced_batches(tuple(map(str, train_labels)), batch_size=64,
-                                         images_per_identity=pair.IMAGES_PER_IDENTITY, seed=a.seed,
-                                         epoch=1, steps=a.updates, coverage_first=True)
+    schedule = () if a.eval_checkpoint else identity_balanced_batches(
+        tuple(map(str, train_labels)), batch_size=64, images_per_identity=pair.IMAGES_PER_IDENTITY, seed=a.seed,
+        epoch=1, steps=a.updates, coverage_first=True)
     torch.manual_seed(a.seed)
     np.random.seed(a.seed)
     random.seed(a.seed)
@@ -217,6 +263,10 @@ def main() -> None:
         vision.config.num_hidden_layers = len(vision.encoder.layers)
     for block in vision.encoder.layers[: pair.ARM["frozen_blocks"]]:
         block.requires_grad_(False)
+    if a.eval_checkpoint:
+        state = torch.load(a.eval_checkpoint, map_location="cpu", weights_only=True)
+        vision.load_state_dict(state["vision"], strict=True)
+        head.load_state_dict(state["head"], strict=True)
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
     bank = bank.cuda()
@@ -279,7 +329,9 @@ def main() -> None:
                a.output_dir / "checkpoint.pt")
     export_started = time.perf_counter()
     if a.full_train:  # held rows were trained on: no TRAIN export; read official once
-        quality = official_read(vision, head, processor, a.dataset_root, a.workers, a.output_dir)
+        quality = (sop_official_read(vision, head, processor, a.dataset_root, a.sop_archive, a.workers, a.output_dir)
+                   if a.dataset == "sop" else
+                   official_read(vision, head, processor, a.dataset_root, a.workers, a.output_dir))
         bytes_per_row = pair.OUTPUT_WIDTH + 2
     else:
         values = pair.export_all(vision, head, paths, tuple(map(int, labels)), processor, workers=a.workers,
@@ -294,7 +346,7 @@ def main() -> None:
     quality["output_width"] = pair.OUTPUT_WIDTH
     quality["gallery_wire_bytes_per_row"] = bytes_per_row
     receipt = {
-        "schema": "sfora-inshop-so400m-pilot-v1", "claim_eligible": False,
+        "schema": "sfora-inshop-so400m-pilot-v1", "dataset": a.dataset, "claim_eligible": False,
         "split": ("In-Shop full TRAIN; ONE official query->gallery read" if a.full_train else
                   "In-Shop official TRAIN product-disjoint fit/held (screen partition); no query/gallery rows"),
         "full_train": a.full_train,
@@ -315,7 +367,8 @@ def main() -> None:
         "optimizer": "AdamW wd 0.05; vision 1e-5; head/classifier 1e-4; clip 1.0; bf16 autocast",
         "frozen": f"embeddings + first {pair.ARM['frozen_blocks']} of {pair.ARM['blocks']} blocks",
         "training_wall_seconds": training_wall, "training_peak_cuda_allocated_bytes": training_peak,
-        "export_seconds": export_seconds, "first_last_loss": [losses[0], losses[-1]],
+        "export_seconds": export_seconds, "first_last_loss": [losses[0], losses[-1]] if losses else None,
+        "eval_checkpoint_sha256": pair.sha256(a.eval_checkpoint) if a.eval_checkpoint else None,
         "total_wall_seconds": time.perf_counter() - started_program,
         "peak_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
         "quality": quality,
