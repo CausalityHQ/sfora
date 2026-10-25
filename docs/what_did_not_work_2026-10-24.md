@@ -101,3 +101,10 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
   - Fine-tuned at 512-D: held 97.94 vs So400m@384 98.61 (−0.67 [−0.88, −0.46], mAP −3.46). That is also below So400m@256 (98.02).
   - **Lesson:** "substrate ≈ 0 at matched 256" (native256 campaign, 128-D, older recipe) does not carry over to the 512-D member-bank recipe. Substrate and resolution are both needed.
   - The efficiency gap is now a model-level problem. Remaining options: distill So400m@384 into a cheaper student, or token reduction inside So400m.
+- **Training-free token merging (ToMe, start layer 4, r 24) on So400m@384: KILL.**
+  - GPU speed 1.21× (bar 1.30×). Held In-Shop R@1 −0.86 [−1.07, −0.66].
+  - End to end it was 2× *slower*: the gather/scatter merges break the compiled graph.
+  - With the 280 px KILL, In-Shop retrieval is token-sensitive at 384. Dropping or merging tokens costs accuracy.
+- **Efficiency state after five falsifiers** (280 px, Large@384, ToMe killed; workers and fp16/FP8 kept):
+  - The serving frontier is So400m@384 FP8 at ~101 img/s e2e / 18.5 ms p50.
+  - Remaining options all need training: a distilled cheaper student, or merging-aware fine-tuning. None is pre-registered yet.

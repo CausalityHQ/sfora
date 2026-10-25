@@ -53,7 +53,7 @@ Pipeline: decode → preprocess → encode → pack → exact search. Measured o
 | SOP 280/512 | 112 img/s (fp16) | 93.48 | Faster SOP point |
 | So400m@384/512 FP8 | ~95–101 img/s | 93.97 (SOP), 96.83 (In-Shop) | Quality frontier |
 
-- The In-Shop 280 px point was KILLed (held −0.23, significant).
+- Faster In-Shop alternatives were all KILLed: 280 px (held −0.23), Large@384 (−0.67, mAP −3.46), and training-free ToMe (1.21×, −0.86). See `what_did_not_work_2026-10-24.md`.
 
 ## Limits
 

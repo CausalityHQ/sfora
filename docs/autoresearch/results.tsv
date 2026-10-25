@@ -36,3 +36,4 @@ fp8-lib	P	inshop_e2e_img_s_384	101.3	-	p50 18.5ms/p99 22.7ms	keep	shipped In-Sho
 paired	Q	inshop_official_dr1_vs_large_matched	+0.577	+0.260	-	official	shipped In-Shop vs protocol-matched Large full-TRAIN control (seed 179025: +0.626 [+0.330])
 3b289e72	Q	inshop_pretrained_large_r1_384_vs_256	+5.007	-	102.6 vs 56.1 img/s (So400m@384)	keep	In-Shop pretrained Large/16 384 vs 256 ADVANCE; Large@384 -1.37 vs So400m@384 pretrained
 3b289e72	Q	inshop_held_r1_large384_vs_so400m384	-0.671	-0.885	1.83x pretrained encode	discard	In-Shop Large@384 512-D pilot KILL (held 97.94 vs 98.61; mAP -3.46 sig); below So400m@256 pilot too
+tome	P	gpu_speedup_384_tome	1.21	-	held R@1 -0.86 [-1.07,-0.66]	discard	training-free ToMe start 4 r 24: KILL (speed < 1.30x, quality loss significant; e2e slower)
