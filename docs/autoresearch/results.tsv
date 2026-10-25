@@ -41,3 +41,4 @@ distill	Q	inshop_held_r1_distilled_large384_vs_so400m384	-0.648	-0.860	1.83x pre
 depth19	Q	inshop_held_r1_depth19_vs_full27	-0.351	-0.529	~1.4x FLOPs, 16.7GB	discard	So400m@384 minus last 8 blocks KILL by margin (98.26 vs 98.61; mAP -0.87); best speed candidate so far
 highres	Q	inshop_pretrained_r1_512_vs_384	+1.052	-	30 vs 31 img/s	discard	pretrained So400m 448/512 vs 384: CLOSE (448 -0.18, 512 +1.05 < 2.0 bar)
 head1024	Q	inshop_held_r1_1024_vs_512	-0.152	-0.275	1026B/row	discard	1024-D head KILL (mAP -0.05 ns); width saturates at 512
+expo	Q	inshop_held_r1_1000_vs_500	+0.267	+0.113	-	keep	exposure proxy ADVANCE (mAP +1.34); full-TRAIN 1000 (~2.5 ep) likely under-exposed
