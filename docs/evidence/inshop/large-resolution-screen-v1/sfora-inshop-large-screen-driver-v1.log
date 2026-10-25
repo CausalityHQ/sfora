@@ -1,0 +1,9 @@
+DRIVER 2026-10-25T00:00:20Z pid=2374834 cgroup=0::/user.slice/user-1000.slice/session-7560.scope
+Running as unit: sfora-inshop-large-screen-v1.service; invocation ID: 671667d9b70c485399a8662f2601ab60
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 8min 1.713s
+CPU time consumed: 13min 14.069s
+Memory peak: 256.0K
+Memory swap peak: 0B
+DONE 2026-10-25T00:08:21Z

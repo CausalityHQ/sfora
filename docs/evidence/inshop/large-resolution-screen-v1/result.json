@@ -1,0 +1,55 @@
+{
+ "decision": "ADVANCE",
+ "delta_pp": {
+  "large384_minus_so400m384_full_train_gallery": -1.3718466580290993,
+  "packed_full_train_gallery_r1": 5.00724030180627,
+  "packed_holdout_r1": 4.107918603764949
+ },
+ "fit_rows": 12761,
+ "held_rows": 13121,
+ "official_read": false,
+ "ordered_rows_sha256": "2d43ad5cee694b2f38d7e3d806c5f983b9161ede48b54bd9cc7841b31d53ee5c",
+ "r256": {
+  "float_full_width": {
+   "holdout_only": 0.8561085283133908
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.7674719914640652,
+   "holdout_only": 0.8215837207529914
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.767548205167289,
+   "holdout_only": 0.8205929426110815
+  }
+ },
+ "r256_export": {
+  "encode_wall_seconds": 217.26913789100945,
+  "features_sha256": "f232584491bf4ed1cf75daa7fcc03f218e7db5df797f4d57dd2bf034ac110885",
+  "images_per_second": 119.12414368295329,
+  "peak_cuda_allocated_bytes": 2011045376,
+  "pixels": 256,
+  "width": 1024
+ },
+ "r384": {
+  "float_full_width": {
+   "holdout_only": 0.8836978888804207
+  },
+  "float_pca128": {
+   "full_train_gallery": 0.818458958920814,
+   "holdout_only": 0.8620531971648503
+  },
+  "packed_pca128": {
+   "full_train_gallery": 0.8176206081853518,
+   "holdout_only": 0.861672128648731
+  }
+ },
+ "r384_export": {
+  "encode_wall_seconds": 252.2754469111096,
+  "features_sha256": "6f0d95a526ec6919929c79abeae0ccec504c3266c10badefe4cdbaaf7157f3fe",
+  "images_per_second": 102.59420929346183,
+  "peak_cuda_allocated_bytes": 2279480832,
+  "pixels": 384,
+  "width": 1024
+ },
+ "schema": "inshop-large-resolution-screen-v1"
+}

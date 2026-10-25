@@ -34,3 +34,4 @@ bench-fp8	P	gpu_img_s_384_b64	107.8	-	cos min .9954	keep	FP8 dynamic linears vs 
 f41f5309+fp8	P	e2e_img_s_384	95.1	-	net -2/5851	keep	FP8 dynamic linears + compile @384 SOP held (1.48x over 64.2; 17 fixed/19 broken)
 fp8-lib	P	inshop_e2e_img_s_384	101.3	-	p50 18.5ms/p99 22.7ms	keep	shipped In-Shop model FP8+compile+workers; R@1 96.856 vs read 96.807 (net +7); library fp8=True bitwise-equal to gated path
 paired	Q	inshop_official_dr1_vs_large_matched	+0.577	+0.260	-	official	shipped In-Shop vs protocol-matched Large full-TRAIN control (seed 179025: +0.626 [+0.330])
+3b289e72	Q	inshop_pretrained_large_r1_384_vs_256	+5.007	-	102.6 vs 56.1 img/s (So400m@384)	keep	In-Shop pretrained Large/16 384 vs 256 ADVANCE; Large@384 -1.37 vs So400m@384 pretrained

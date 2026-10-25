@@ -43,7 +43,8 @@ FEATURES_SHA256 = {256: "e119f6721210963fbbfcca7bf6e049d6ed80dd6e30454b5940acc68
                    384: "b56aec2e3a2ff19860131b2ef71800f23c0a12fdb6d2fd8643eba3fda0cdf6d3"}
 FEATURES_SHA256[280] = FEATURES_SHA256[384]  # 280 inits from 384 pretrained features (as the SOP 280 wrapper)
 FEATURES_SHA256 = {("so400", crop): sha for crop, sha in FEATURES_SHA256.items()}
-LARGE_FEATURES_SHA256: dict[int, str] = {}  # filled from screen_inshop_large_resolution_v1 before any Large run
+LARGE_FEATURES_SHA256 = {256: "f232584491bf4ed1cf75daa7fcc03f218e7db5df797f4d57dd2bf034ac110885",
+                         384: "6f0d95a526ec6919929c79abeae0ccec504c3266c10badefe4cdbaaf7157f3fe"}  # screen 2026-10-25
 FEATURES_SHA256.update({("large", crop): sha for crop, sha in LARGE_FEATURES_SHA256.items()})
 NATIVE = {"so400": 384, "large": 256}
 ORDERED_ROWS_SHA256 = "2d43ad5cee694b2f38d7e3d806c5f983b9161ede48b54bd9cc7841b31d53ee5c"
