@@ -27,6 +27,8 @@ from sfora.joint_relational_compaction import PackedInt8Embeddings, pack_int8_un
 RESOLUTIONS = (280, 384)
 OUTPUT_DIMS = (128, 512)
 SO400M_WIDTH = 1152
+# Accepted (hidden width, native image size) snapshots: So400m/14@384 and Large/16@256 (served at 384, interpolated).
+SNAPSHOT_GEOMETRIES = ((SO400M_WIDTH, 384), (1024, 256))
 BATCH_SIZE = 64
 _INDEX_MAGIC = b"SFORA-SO400M-INDEX-v1\0"
 
@@ -128,7 +130,7 @@ class So400mCompactEncoder:
             raise ValueError("So400m compact serving geometry differs")
         state = torch.load(checkpoint, map_location="cpu", weights_only=True)
         head_weight = state.get("head", {}).get("weight") if isinstance(state, dict) else None
-        if head_weight is None or tuple(head_weight.shape) != (output_dim, SO400M_WIDTH):
+        if head_weight is None or tuple(head_weight.shape) not in {(output_dim, w) for w, _ in SNAPSHOT_GEOMETRIES}:
             raise ValueError("So400m compact serving head differs from output_dim")
         from transformers import AutoImageProcessor, AutoModel
 
@@ -141,10 +143,10 @@ class So400mCompactEncoder:
         )
         vision = full.vision_model.float().to(device).eval()
         del full
-        head = nn.Linear(SO400M_WIDTH, output_dim).to(device).eval()
+        head = nn.Linear(vision.config.hidden_size, output_dim).to(device).eval()
         vision.load_state_dict(state["vision"], strict=True)
         head.load_state_dict(state["head"], strict=True)
-        if vision.config.hidden_size != SO400M_WIDTH or vision.config.image_size != 384:
+        if (vision.config.hidden_size, vision.config.image_size) not in SNAPSHOT_GEOMETRIES:
             raise ValueError("So400m compact serving snapshot differs")
         if device.type == "cuda":
             # ponytail: process-global flag, as in the reference scripts; encode re-checks it.
