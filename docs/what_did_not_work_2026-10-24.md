@@ -118,3 +118,4 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
   - Held 98.26 vs full depth 98.61 (−0.35 [−0.53, −0.17]; bar −0.30), mAP −0.87.
   - It is still the best speed/quality trade found: it beats So400m@256 (98.02), Large@384 (97.94) and distilled Large (97.97) at ~1.4× fewer FLOPs.
   - If the operator accepts a ~0.35 pp R@1 cost, this is the lane to fund: dropping fewer blocks (4–6), or depth pruning combined with FP8.
+- **Resolution above 384 (pretrained So400m 448 / 512): CLOSE.** 448: −0.18 pp. 512: +1.05 pp (bar +2.0). Resolution gains saturate at the model's native 384.

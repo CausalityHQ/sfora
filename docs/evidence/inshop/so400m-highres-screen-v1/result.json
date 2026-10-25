@@ -1,0 +1,43 @@
+{
+ "schema": "inshop-so400m-highres-screen-v1",
+ "official_read": false,
+ "r384_export": {
+  "width": 1152,
+  "encode_wall_seconds": 839.230792936869,
+  "images_per_second": 30.84014578329107,
+  "peak_cuda_allocated_bytes": 2654217216,
+  "features_sha256": "0fe3049a52bb66d32f2c1e1ee6d29588c11b6405462d7c7790f1fd3418206b20",
+  "pixels": 384
+ },
+ "r384": {
+  "packed_pca128": 0.8311866473591952,
+  "holdout": 0.8702080634098011
+ },
+ "r448_export": {
+  "width": 1152,
+  "encode_wall_seconds": 669.3518435570877,
+  "images_per_second": 38.66725736117671,
+  "peak_cuda_allocated_bytes": 2777371136,
+  "features_sha256": "8ee6736b1bf5d898b41fadc9316ac28d14c38701c62b8c08fb1dc56150e97b58",
+  "pixels": 448
+ },
+ "r448": {
+  "packed_pca128": 0.8294337321850469,
+  "holdout": 0.8715036963646063
+ },
+ "r512_export": {
+  "width": 1152,
+  "encode_wall_seconds": 863.9909576468635,
+  "images_per_second": 29.956332032098274,
+  "peak_cuda_allocated_bytes": 2900136448,
+  "features_sha256": "0659805c16d09c3e40b49f24a26688ac096da6a6710e5aa8590172037a3b7200",
+  "pixels": 512
+ },
+ "r512": {
+  "packed_pca128": 0.8417041384040851,
+  "holdout": 0.8817925462998247
+ },
+ "best": 512,
+ "delta_pp": 1.051749104488986,
+ "decision": "CLOSE"
+}

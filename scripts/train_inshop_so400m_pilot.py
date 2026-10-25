@@ -39,6 +39,32 @@ from sfora.unicom_inshop import parse_inshop_partition  # noqa: E402
 from sfora.unicom_rank_finish import identity_balanced_batches  # noqa: E402
 
 pair = dim512.pair
+
+
+def set_head_dim(width: int) -> None:
+    """Head width other than 512: same math as dim512's local copies, without their fixed width sets."""
+    if width == 512:
+        return
+    from torch.nn import functional as F
+    from sfora.unicom_training import sharded_mask_arcface_loss
+
+    pair.OUTPUT_WIDTH = dim512.OUTPUT_WIDTH = width
+
+    def compact_head_features(source, head, *, output_dim=width):
+        assert head.out_features == output_dim and source.shape[1] == head.in_features
+        with torch.autocast(device_type=source.device.type, enabled=False):
+            return head(F.normalize(source.float(), dim=1))
+
+    def compact_training_terms(features, classifier, labels, masks, *, arm, arcface_margin=0.3,
+                               arcface_scale=64.0, output_dim=width):
+        assert arm is CompactTrainingArm.ARCFACE and features.shape[1] == output_dim
+        with torch.autocast(device_type=features.device.type, enabled=False):
+            control = sharded_mask_arcface_loss(features.float(), classifier, labels, masks,
+                                                margin=arcface_margin, scale=arcface_scale)
+        return control, control.new_zeros(())
+
+    pair.compact_head_features = compact_head_features
+    pair.compact_training_terms = compact_training_terms
 FEATURES_SHA256 = {256: "e119f6721210963fbbfcca7bf6e049d6ed80dd6e30454b5940acc68a9d95d5e1",
                    384: "b56aec2e3a2ff19860131b2ef71800f23c0a12fdb6d2fd8643eba3fda0cdf6d3"}
 FEATURES_SHA256[280] = FEATURES_SHA256[384]  # 280 inits from 384 pretrained features (as the SOP 280 wrapper)
@@ -136,10 +162,12 @@ def main() -> None:
                    help="unit (rows, 512) teacher TRAIN embeddings in screen row order; adds distillation terms")
     p.add_argument("--distill-weight", type=float, default=1.0)
     p.add_argument("--drop-last-blocks", type=int, default=0, help="remove the last N encoder blocks (depth pruning)")
+    p.add_argument("--head-dim", type=int, default=512)
     p.add_argument("--full-train", action="store_true",
                    help="train on ALL TRAIN products (>= 2 images), then ONE official query->gallery read")
     a = p.parse_args()
     patch_crop(a.crop, a.substrate)
+    set_head_dim(a.head_dim)
     if (a.output_dir.exists() or not torch.cuda.is_available() or not torch.cuda.is_bf16_supported()
             or pair.sha256(a.pretrained_features) != FEATURES_SHA256.get((a.substrate, a.crop))
             or any(pair.sha256(a.model_snapshot / n) != v for n, v in pair.MODEL_HASHES.items())):
