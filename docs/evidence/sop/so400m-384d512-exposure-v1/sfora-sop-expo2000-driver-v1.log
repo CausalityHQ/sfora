@@ -1,0 +1,11 @@
+SOPEXPO 2026-10-25T16:12:45Z BEGIN pid=3255201 cgroup=0::/user.slice/user-1000.slice/session-8224.scope commit=src=29a45d38 new-scripts=78546d9c
+SOPEXPO 2026-10-25T16:12:45Z START so400 2000
+Running as unit: sfora-sop-384d512-so400-179024-2000-v1.service; invocation ID: c5ad96b9baf043bc890b1ead07c82c42
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1h 58min 28.849s
+CPU time consumed: 2h 23min 10.309s
+Memory peak: 512.0K
+Memory swap peak: 0B
+SOPEXPO 2026-10-25T18:11:14Z DONE so400 2000 receipt=6949da0d3c84ff144fe7e921ed99b8f7b5e5848d2af199a64260a27c9ebebe74
+SOPEXPO 2026-10-25T18:11:14Z ALLDONE

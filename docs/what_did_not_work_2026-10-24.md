@@ -121,3 +121,5 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **Resolution above 384 (pretrained So400m 448 / 512): CLOSE.** 448: −0.18 pp. 512: +1.05 pp (bar +2.0). Resolution gains saturate at the model's native 384.
 - **1024-D head (In-Shop So400m@384 pilot): KILL.** Held R@1 −0.15 [−0.27, −0.03] vs 512-D; mAP −0.05 (not significant). Width saturates at 512.
 - **In-Shop exposure beyond ~5 epochs: KILL.** Pilot 1500 vs 1000 updates: +0.08 [−0.07, +0.22], mAP +0.31 (not significant). No 3000-update full run. The 2000-update full-TRAIN incumbent (97.039) sits at the exposure optimum.
+- **SOP exposure on the 384/512 recipe (2000 vs 1000 updates): KILL.** −0.03 [−0.35, +0.29], mAP −0.06.
+  - SOP saturates at ~1.2 epochs, unlike In-Shop (~5 epochs). With ~11k SOP products seen once each, the member bank already covers the data.
