@@ -45,3 +45,4 @@ expo	Q	inshop_held_r1_1000_vs_500	+0.267	+0.113	-	keep	exposure proxy ADVANCE (m
 expo-full	Q	official_r1_inshop_full2000	97.039	+0.035	~2h train	official	NEW In-Shop incumbent: So400m@384/512 2000 updates (mAP 84.88); vs 1000-update incumbent +0.23 [+0.03,+0.43]; vs matched Large +0.81 [+0.52,+1.09]
 expo2	Q	inshop_held_r1_1500_vs_1000	+0.076	-0.069	-	discard	exposure saturates ~5 epochs (mAP +0.31 ns); no 3000-update full run
 sopexpo	Q	sop_held_r1_2000_vs_1000_384d512	-0.034	-0.349	~1.6h	discard	SOP exposure KILL on 384/512 recipe (mAP -0.06); SOP saturated at 1000 updates
+sopfull	Q	official_r1_sop_fulltrain	93.721	-0.358	~70min	discard	SOP full-TRAIN 384/512 KILL: -0.25 [-0.36,-0.14] vs 93.967 (mAP -0.45); incumbent stays

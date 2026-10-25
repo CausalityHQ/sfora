@@ -123,3 +123,8 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **In-Shop exposure beyond ~5 epochs: KILL.** Pilot 1500 vs 1000 updates: +0.08 [−0.07, +0.22], mAP +0.31 (not significant). No 3000-update full run. The 2000-update full-TRAIN incumbent (97.039) sits at the exposure optimum.
 - **SOP exposure on the 384/512 recipe (2000 vs 1000 updates): KILL.** −0.03 [−0.35, +0.29], mAP −0.06.
   - SOP saturates at ~1.2 epochs, unlike In-Shop (~5 epochs). With ~11k SOP products seen once each, the member bank already covers the data.
+- **SOP full-TRAIN (59,551 rows) vs the 90% fit split, 384/512, 1000 updates: KILL.**
+  - Official 93.721 vs 93.967 (−0.25 [−0.36, −0.14]), mAP −0.45.
+  - Likely causes: at fixed updates, 11% more products dilutes per-product exposure, and seed variance (SD ~0.2 pp) may contribute.
+  - SOP data and exposure levers are both closed for this recipe.
+- **Parity lesson:** official receipts hold both `float_quality` and `packed_quality`. Always gate on `packed_quality` (the headline number).

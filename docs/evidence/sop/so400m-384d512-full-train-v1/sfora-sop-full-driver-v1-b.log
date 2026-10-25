@@ -1,0 +1,10 @@
+SOPFULL 2026-10-25T19:02:20Z BEGIN pid=3416294 cgroup=0::/user.slice/user-1000.slice/session-8342.scope wrapper=e5a24c4b2cf120bc
+Running as unit: sfora-sop-full-c384-179024-1000-v1.service; invocation ID: 44f36e49f7de4477be5eb65c14ce6813
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1h 10min 29.635s
+CPU time consumed: 1h 27min 41.428s
+Memory peak: 256.0K
+Memory swap peak: 0B
+SOPFULL 2026-10-25T20:12:50Z OFFICIAL 0.9372086873161218 0.8224698302948473
+SOPFULL 2026-10-25T20:12:50Z ALLDONE
