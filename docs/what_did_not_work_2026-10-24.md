@@ -108,3 +108,9 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **Efficiency state after five falsifiers** (280 px, Large@384, ToMe killed; workers and fp16/FP8 kept):
   - The serving frontier is So400m@384 FP8 at ~101 img/s e2e / 18.5 ms p50.
   - Remaining options all need training: a distilled cheaper student, or merging-aware fine-tuning. None is pre-registered yet.
+- **Distillation So400m@384 → Large/16@384 (cosine + batch-similarity MSE, weight 1.0, 1000 updates): KILL.**
+  - Held 97.97 vs undistilled Large 97.94 (+0.02). Vs the teacher pilot: −0.65 [−0.86, −0.44], mAP −3.41.
+  - Embedding-level distillation at this budget doesn't transfer the So400m advantage. The Large substrate ceiling under this recipe is about 97.95 held.
+- **Efficiency status:** the cheap and medium falsifiers are exhausted (280 px, Large@384, ToMe, distillation). Kept efficiency wins: workers, fp16, compile at 384, and FP8 (end to end 42 → 101 img/s, p50 52 → 18.5 ms).
+  - The remaining distance to Large-level speed (~190 img/s) has no causally supported cheap lever left in this campaign.
+  - Longer-horizon options, unscreened: merge-aware fine-tuning, structured pruning of So400m blocks, and FP8 attention kernels. Each is a multi-hour project with a low prior from today's evidence.

@@ -1,0 +1,19 @@
+DISTILL 2026-10-25T01:20:12Z BEGIN pid=2445077 cgroup=0::/user.slice/user-1000.slice/session-7664.scope wrapper=f75672a3a3da14e8
+Running as unit: sfora-inshop-large-distill-c384-179024-17-v1.service; invocation ID: 622eaa34bf2f47f1b0d4863ec7763fe8
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 5min 47.990s
+CPU time consumed: 8min 58.724s
+Memory peak: 256.0K
+Memory swap peak: 0B
+DISTILL 2026-10-25T01:26:00Z DONE 17
+Running as unit: sfora-inshop-large-distill-c384-179024-1000-v1.service; invocation ID: 5d5008f9504f4534911422333388faa0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 31min 57.637s
+CPU time consumed: 42min 44.235s
+Memory peak: 508.0K
+Memory swap peak: 0B
+DISTILL 2026-10-25T01:57:57Z DONE 1000
+DISTILL 2026-10-25T01:58:00Z SCREEN {'delta_pp': -0.6478164774026369, 'lower95': -0.8603204076058096, 'upper95': -0.4439864425160355} {'delta_pp': -3.414866593099603, 'lower95': -3.8443726775784195, 'upper95': -2.990639840827941}
+DISTILL 2026-10-25T01:58:00Z ALLDONE
