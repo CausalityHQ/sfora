@@ -60,3 +60,10 @@ Pipeline: decode → preprocess → encode → pack → exact search. Measured o
 - GPU-only FP8 forward is 108 img/s, so end-to-end serving is near the encoder bound.
 - Closing more of the speed gap to Large needs a model-level change (distillation or token pruning).
 - No ensembles, re-ranking or test-time augmentation are used.
+
+## Literature check, 2026-10-25 (extended web search)
+- No 2025–2026 SOP or In-Shop R@1 above ours was found.
+  - The closest 2026 work, LookBench (arXiv 2601.14706), is a different fashion benchmark. Its harder split has many models below 60 R@1, and it reports no In-Shop numbers.
+  - Other hits were older: ResNet-era In-Shop 80.9–92.8, SOP 74.8–81.7.
+- The search did not independently confirm the UNICOM 91.2 / 96.7 figures; they come from our earlier source-bound reference notes.
+- Status: this is "no higher published number found", not "SOTA confirmed".
