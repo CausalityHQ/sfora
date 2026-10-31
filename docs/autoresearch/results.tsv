@@ -46,3 +46,4 @@ expo-full	Q	official_r1_inshop_full2000	97.039	+0.035	~2h train	official	NEW In-
 expo2	Q	inshop_held_r1_1500_vs_1000	+0.076	-0.069	-	discard	exposure saturates ~5 epochs (mAP +0.31 ns); no 3000-update full run
 sopexpo	Q	sop_held_r1_2000_vs_1000_384d512	-0.034	-0.349	~1.6h	discard	SOP exposure KILL on 384/512 recipe (mAP -0.06); SOP saturated at 1000 updates
 sopfull	Q	official_r1_sop_fulltrain	93.721	-0.358	~70min	discard	SOP full-TRAIN 384/512 KILL: -0.25 [-0.36,-0.14] vs 93.967 (mAP -0.45); incumbent stays
+4ccf42be	Q	official_r1	94.129	+0.088	2x encode/1026B	official	two-seed 384/512 ensemble (new SOP incumbent)
