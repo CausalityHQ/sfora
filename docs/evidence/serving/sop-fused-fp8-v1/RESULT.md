@@ -51,3 +51,9 @@ Gate ≥ 95.166 (fp32 ensemble 95.266 − 0.10); served per-layer FP8: 95.197 / 
 Note for future gates: all FP8 variants measured (per-layer 95.197, segment 95.078, mx 95.129, plain 95.061) fall in a
 ±0.07 band, so a −0.10 point threshold vs fp32 is inside FP8 rounding noise. Future serving numerics changes should be
 pre-registered with a paired product-bootstrap non-inferiority test against the served path, not a point threshold.
+
+## SOP single model (seed 179025) fused mx, official-TEST parity (Pareto speed candidate): FAIL
+scripts/check_sop_fused_single_parity_v1.py: serving R@1 93.961 vs read 93.990, net −18 (gate ≥ −13/60,502),
+fixed 240 / broken 258, mAP 82.73, 113.5 img/s e2e incl. warmup, 2.09 GB. Not kept.
+SOP top-1 churn under FP8 (≈ 500 flips / 60,502) is far larger than In-Shop's (net 0, gate −3/14,218): SOP rankings
+sit on near-ties, so any FP8 numerics change moves R@1 by ±0.03–0.1 pp regardless of kernel quality.

@@ -1,0 +1,12 @@
+Running as unit: run-u12.service; invocation ID: 68182b6440194ce68eea3c28b75a9fc3
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:00<00:22, 38.52it/s]Loading weights:  43%|████▎     | 382/888 [00:00<00:00, 2202.81it/s]Loading weights:  72%|███████▏  | 643/888 [00:00<00:00, 2364.19it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2235.83it/s]
+RESULT {"serving_r1": 0.939605302304056, "serving_map": 0.8272758435471429, "read_r1": 0.9399028131301445, "net": -18, "fixed": 240, "broken": 258, "e2e_img_s_incl_warmup": 113.52684959608375, "peak_gb": 2.09314816, "decision": "FAIL"}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 9min 9.344s
+CPU time consumed: 14min 45.359s
+Memory peak: 256.0K
+Memory swap peak: 0B
+SSDONE
