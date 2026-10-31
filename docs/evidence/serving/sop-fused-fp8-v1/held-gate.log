@@ -1,0 +1,25 @@
+Running as unit: run-u12.service; invocation ID: 0c8eb05eff264262a53ade37af5fa52b
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  13%|█▎        | 114/888 [00:00<00:00, 1128.05it/s]Loading weights:  46%|████▌     | 410/888 [00:00<00:00, 2174.87it/s]Loading weights:  77%|███████▋  | 683/888 [00:00<00:00, 2418.87it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2369.44it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  19%|█▉        | 172/888 [00:00<00:00, 1716.22it/s]Loading weights:  50%|████▉     | 442/888 [00:00<00:00, 2272.82it/s]Loading weights:  81%|████████  | 721/888 [00:00<00:00, 2493.79it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2460.64it/s]
+RESULT {"arm": "mx", "r1": 0.9512903777132115, "map": 0.8435754199069642, "gate": 0.95166, "e2e_img_s_incl_warmup": 76.34780120921141, "peak_gb": 2.681610752, "decision": "FAIL"}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 13min 8.609s
+CPU time consumed: 18min 55.917s
+Memory peak: 256.0K
+Memory swap peak: 0B
+Running as unit: run-u13.service; invocation ID: 7a3cc8de385340a987045867646267c9
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  30%|██▉       | 266/888 [00:00<00:00, 2651.16it/s]Loading weights:  60%|█████▉    | 532/888 [00:00<00:00, 2562.11it/s]Loading weights:  89%|████████▉ | 793/888 [00:00<00:00, 2565.20it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2590.02it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  19%|█▉        | 170/888 [00:00<00:00, 1698.19it/s]Loading weights:  50%|████▉     | 443/888 [00:00<00:00, 2298.07it/s]Loading weights:  82%|████████▏ | 731/888 [00:00<00:00, 2550.34it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2515.24it/s]
+RESULT {"arm": "plain", "r1": 0.9506067338916424, "map": 0.8425776917475286, "gate": 0.95166, "e2e_img_s_incl_warmup": 76.17263168276332, "peak_gb": 2.733947392, "decision": "FAIL"}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 13min 10.556s
+CPU time consumed: 19min 52.800s
+Memory peak: 512.0K
+Memory swap peak: 0B
+FGDONE

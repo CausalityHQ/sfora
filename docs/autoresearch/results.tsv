@@ -69,3 +69,4 @@ d13f472c	Q	held_r1_role_rescore	-0.051	-0.283	+2B/row	discard	learned role-condi
 a322a300	P	segment_compile_held_r1	0.95078	-	+4.7% e2e	discard	fails gate 0.95166 (FP8 rounding); opt-in only
 a322a300	P	fusion_ceiling_b64	1.789	-	126.8 img/s floor	keep	GEMM+attn floor vs served 70.9; BUILD
 1bbbdcb9	P	nvfp4_vs_fp8_gemm_fc1_tflops	133.2	-	-	discard	NVFP4 ~= FP8 rowwise on GB10 cuBLAS; MXFP8 slower
+0f22cf70	P	fused_fp8_mx_held_r1	0.95129	-	76.3 img/s e2e	discard	fails gate 0.95166; plain 0.95061; +20% e2e

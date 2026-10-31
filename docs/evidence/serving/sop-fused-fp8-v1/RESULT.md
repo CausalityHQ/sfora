@@ -41,3 +41,13 @@ as a compiled extension — the only route to native-FP8 fused epilogues on this
 
 Assumptions: drift is fused-vs-served on the same process/weights; served arm measured after the fused arms (rerun of
 fused arms after served confirms no order effect); GPU-only timing excludes preprocessing.
+
+## Root held quality gate (scripts/check_sop_fused_fp8_held_v1.py, pre-registered order mx → plain): FAIL
+| arm | held R@1 | mAP@R | e2e img/s (8 workers, full TRAIN, incl. warmup) | peak GB |
+|---|---|---|---|---|
+| mx | 95.129 | 84.36 | 76.3 | 2.68 |
+| plain | 95.061 | 84.26 | 76.2 | 2.73 |
+Gate ≥ 95.166 (fp32 ensemble 95.266 − 0.10); served per-layer FP8: 95.197 / 84.34 @ 63.7 img/s. Not served.
+Note for future gates: all FP8 variants measured (per-layer 95.197, segment 95.078, mx 95.129, plain 95.061) fall in a
+±0.07 band, so a −0.10 point threshold vs fp32 is inside FP8 rounding noise. Future serving numerics changes should be
+pre-registered with a paired product-bootstrap non-inferiority test against the served path, not a point threshold.
