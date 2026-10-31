@@ -23,6 +23,7 @@ ens = SharedTrunkEnsemble(enc)
 dl = torch.utils.data.DataLoader(b.Rows(b.pair.paths_from_archive(root, rel), enc[0].processor), batch_size=64, num_workers=8, pin_memory=True)
 e = torch.cat([ens.encode_pixels(px.to(dev, non_blocking=True)).float().cpu() for px in dl])
 held = np.asarray(deterministic_class_partition(tuple(map(int, lab)), fit_fraction=0.9, seed=179019).validation_row_indexes, dtype=np.int64)
+e = torch.nn.functional.normalize(e[:, :512] + e[:, 512:], dim=1)  # renormalised mean, as the 95.266 screen
 pk = pack_int8_unit_embeddings(e)
 q = dim512.score_packed_full_gallery(pk.codes.float(), pk.inverse_norms, torch.from_numpy(lab.copy()), torch.from_numpy(held.copy()), device=dev)
 out = {"r1": q["recall_at_1"], "map": q["map_at_r"], "gate": 0.95266 - 0.001}
