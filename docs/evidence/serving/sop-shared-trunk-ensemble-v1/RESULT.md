@@ -23,3 +23,8 @@ Compiling the inference_mode method crashed (storage weakref); compiling layer m
 Held R@1 95.197 (gate ≥ 95.166; fp32 incumbent 95.266, −0.07), mAP@R 84.34 (−0.13). FP8-compiled shared-trunk
 ensemble is the serving Pareto point: 63.7 img/s e2e for the 2-seed SOP ensemble (vs 39.8 fp16, ~30 for two separate
 fp16 towers). Official TEST stays 94.129 for fp32 arithmetic; FP8 official not read (serving drift, not selection).
+
+## Official SOP TEST read of the served FP8 configuration: ACCEPT
+scripts/evaluate_sop_shared_trunk_fp8_official_v1.py: R@1 94.042 (gate ≥ 94.029; fp32 ensemble 94.129, −0.09),
+mAP@R 82.95, 60,502 images, concat/√2 packed int8 1,026 B/row. Above the fp32 single model (93.967).
+Served SOP frontier: 94.042 at 63.7 img/s e2e on one GB10.
