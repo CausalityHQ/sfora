@@ -17,7 +17,7 @@ from sfora.so400m_compact_serving import BATCH_SIZE, So400mCompactEncoder
 
 
 class SharedTrunkEnsemble:
-    def __init__(self, members: Sequence[So400mCompactEncoder], *, split: int = 13, compile: bool = False) -> None:
+    def __init__(self, members: Sequence[So400mCompactEncoder], *, split: int = 13, compile: str | bool = False) -> None:
         first = members[0]
         shared = [p for n, p in first.vision.named_parameters() if n.startswith("embeddings.") or
                   any(n.startswith(f"encoder.layers.{i}.") for i in range(split))]
@@ -30,11 +30,15 @@ class SharedTrunkEnsemble:
                 raise ValueError("ensemble members do not share the frozen trunk")
         self.members, self.split, self.first = list(members), split, first
         self._trunk_fn, self._upper_fn = self._trunk, self._upper
-        if compile:  # whole-segment graphs (trunk; each member's upper stack + heads) so residual adds fuse across
-            # layer boundaries: +5.7 % GPU-only over per-layer compile (sop-shared-trunk-ensemble-v1). no_grad, not
-            # inference_mode: compiling under inference_mode crashes (storage weakref).
-            self._trunk_fn = torch.compile(self._trunk, mode="max-autotune-no-cudagraphs")
-            self._upper_fn = torch.compile(self._upper, mode="max-autotune-no-cudagraphs")
+        mode = "max-autotune-no-cudagraphs"
+        if compile == "segment":  # whole-segment graphs: +4.7 % e2e but held R@1 95.078 < gate 95.166 (FP8 rounding) -> opt-in
+            self._trunk_fn, self._upper_fn = torch.compile(self._trunk, mode=mode), torch.compile(self._upper, mode=mode)
+        elif compile:  # served: per-layer modules. FP8: 63.7 img/s e2e, held R@1 95.197, official SOP 94.042
+            for m in self.members:
+                ls = m.vision.encoder.layers
+                for i in range(len(ls)):
+                    ls[i] = torch.compile(ls[i], mode=mode)
+                m.vision.head = torch.compile(m.vision.head, mode=mode)
 
     @torch.no_grad()
     def _encode_batch(self, images: Sequence[Any]) -> torch.Tensor:

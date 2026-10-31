@@ -66,3 +66,5 @@ d13f472c	Q	held_r1_role_rescore	-0.051	-0.283	+2B/row	discard	learned role-condi
 5dc04222	P	held_r1_freeze18	-0.273	-0.539	-14% ens encode	discard	freeze 18/27 for larger shared trunk; mAP -0.90 sig
 4d0ddff8	P	ens2_fp8_batch_sweep_gpu_img_s	67.9	-	b128	discard	b64/128/256 flat (67.8/67.9/66.3); compute-bound
 77ea088d	P	fp8_static_scale_speedup	1.065	-	-	discard	static FP8 act scales; bar 1.10x; drift 0.0145
+a322a300	P	segment_compile_held_r1	0.95078	-	+4.7% e2e	discard	fails gate 0.95166 (FP8 rounding); opt-in only
+a322a300	P	fusion_ceiling_b64	1.789	-	126.8 img/s floor	keep	GEMM+attn floor vs served 70.9; BUILD

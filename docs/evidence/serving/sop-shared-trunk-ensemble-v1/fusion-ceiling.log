@@ -1,0 +1,16 @@
+Running as unit: run-u19.service; invocation ID: 7fe288f5fd374997ae2a82980833cf58
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:00<00:28, 30.92it/s]Loading weights:  42%|████▏     | 370/888 [00:00<00:00, 1917.40it/s]Loading weights:  72%|███████▏  | 641/888 [00:00<00:00, 2234.58it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2114.30it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:00<00:23, 37.16it/s]Loading weights:  48%|████▊     | 426/888 [00:00<00:00, 2384.19it/s]Loading weights:  81%|████████▏ | 723/888 [00:00<00:00, 2640.42it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2414.26it/s]
+W1031 15:00:42.467000 2483946 torch/_inductor/utils.py:1717] [0/1] Not enough SMs to use max_autotune_gemm mode
+/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/_inductor/compile_fx.py:320: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+  warnings.warn(
+RESULT {"served_b64_img_s": 70.88876948201506, "served_b1_p50_ms": 18.68512690998614, "graphs_error": "RuntimeError('Error: accessing tensor output of CUDAGraphs that has been overwritten by a subsequent run. Stack trace: File \"/home/riomus/runs/sfora-sop-fusion-ceiling-v1/src/sfora/so400m_shared_trunk_ensemble.py\", line 50, in _trunk\\n    h = _hidden(layer(h, None))\\n  File \"/home/riomus/group-learn", "floor_b64_img_s": 126.8023346517303, "gemm_tflops": 149.52043650411915, "attn_ms_per_layer": 2.8088660910725594, "gemm_ms_per_layer": 9.501440450549126, "fusion_ceiling": 1.7887506805136584, "decision": "BUILD"}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 2min 20.427s
+CPU time consumed: 3min 17.410s
+Memory peak: 256.0K
+Memory swap peak: 0B
+FCDONE rc=0

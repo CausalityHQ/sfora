@@ -1,0 +1,39 @@
+Running as unit: run-u12.service; invocation ID: a908861900794c1d9d785d6db7a373f9
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  26%|██▌       | 228/888 [00:00<00:00, 2259.49it/s]Loading weights:  58%|█████▊    | 519/888 [00:00<00:00, 2637.29it/s]Loading weights:  91%|█████████▏| 811/888 [00:00<00:00, 2758.34it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2710.39it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:00<00:29, 29.97it/s]Loading weights:  54%|█████▍    | 483/888 [00:00<00:00, 2489.94it/s]Loading weights:  89%|████████▊ | 787/888 [00:00<00:00, 2717.24it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2412.85it/s]
+fp16_eager {'img_s': 39.60212530545611, 'warmup_s': 52.69420764176175, 'peak_gb': 3.153724416, 'max_cos_drift_vs_fp16_eager': 2.384185791015625e-07}
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:01<04:29,  3.28it/s]Loading weights: 100%|██████████| 888/888 [00:01<00:00, 723.36it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:01<04:21,  3.38it/s]Loading weights: 100%|██████████| 888/888 [00:01<00:00, 745.29it/s]
+W1031 14:39:53.904000 2476214 torch/_inductor/utils.py:1717] [0/0] Not enough SMs to use max_autotune_gemm mode
+/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/_inductor/compile_fx.py:320: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+  warnings.warn(
+fp16_compile {'img_s': 44.15777984540137, 'warmup_s': 98.65593508444726, 'peak_gb': 3.29062144, 'max_cos_drift_vs_fp16_eager': 0.00020611286163330078}
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:01<04:32,  3.25it/s]Loading weights: 100%|██████████| 888/888 [00:01<00:00, 715.04it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:01<04:11,  3.52it/s]Loading weights: 100%|██████████| 888/888 [00:01<00:00, 773.57it/s]
+fp8_compile {'img_s': 66.673184667677, 'warmup_s': 47.788833893835545, 'peak_gb': 3.975448576, 'max_cos_drift_vs_fp16_eager': 0.039084017276763916}
+{"n": 2048, "fp16_eager": {"img_s": 39.60212530545611, "warmup_s": 52.69420764176175, "peak_gb": 3.153724416, "max_cos_drift_vs_fp16_eager": 2.384185791015625e-07}, "fp16_compile": {"img_s": 44.15777984540137, "warmup_s": 98.65593508444726, "peak_gb": 3.29062144, "max_cos_drift_vs_fp16_eager": 0.00020611286163330078}, "fp8_compile": {"img_s": 66.673184667677, "warmup_s": 47.788833893835545, "peak_gb": 3.975448576, "max_cos_drift_vs_fp16_eager": 0.039084017276763916}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 5min 43.838s
+CPU time consumed: 7min 55.166s
+Memory peak: 256.0K
+Memory swap peak: 0B
+ALLDONE rc=0
+Running as unit: run-u13.service; invocation ID: 7d912c07d5e14f9e8d0866edbbc59e67
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  19%|█▉        | 170/888 [00:00<00:00, 1690.99it/s]Loading weights:  47%|████▋     | 420/888 [00:00<00:00, 2138.85it/s]Loading weights:  74%|███████▍  | 659/888 [00:00<00:00, 2227.51it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2288.07it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:00<00:24, 36.83it/s]Loading weights:  44%|████▍     | 394/888 [00:00<00:00, 2207.31it/s]Loading weights:  75%|███████▍  | 665/888 [00:00<00:00, 2429.51it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2273.57it/s]
+W1031 14:58:52.168000 2478505 torch/_inductor/utils.py:1717] [0/1] Not enough SMs to use max_autotune_gemm mode
+/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/_inductor/compile_fx.py:320: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
+  warnings.warn(
+RESULT {"r1": 0.9507776448470346, "map": 0.8418712742885164, "gate": 0.95166, "decision": "FAIL"}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 16min 25.528s
+CPU time consumed: 23min 49.711s
+Memory peak: 512.0K
+Memory swap peak: 0B
+GATEDONE rc=0

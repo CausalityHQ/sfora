@@ -39,3 +39,13 @@ residual add 10 %; rest < 3 %.
 ## Static per-layer FP8 activation scales (scripts/bench_sop_fp8_static_scale_v1.py): KILL
 Calibrated on 512 TRAIN-FIT images (margin 1.0). GPU-only 68.1 → 72.6 img/s = 1.065× (bar 1.10×); cos drift vs dynamic
 max 0.0145 / mean 0.0033. The amax reduction is fused with neighbouring elementwise work, so removing it saves little.
+
+## Segment compile (trunk + per-member upper graphs): FAIL on quality gate → opt-in only
+GPU-only 1.057× (67.6 → 71.4), e2e 63.7 → 66.7 img/s, cos drift vs per-layer FP8 0.006; but held R@1 95.078 < gate
+95.166 (per-layer FP8: 95.197). FP8 rounding differences flip ~7 held queries. Served default stays per-layer.
+
+## Fusion / megakernel ceiling (scripts/bench_sop_fusion_ceiling_v1.py): BUILD
+Served b64 70.9 img/s GPU-only; GEMM+attention-only floor 126.8 img/s → fusion ceiling 1.79×. FP8 GEMM 149.5 TFLOPS
+achieved; per layer pass GEMM 9.5 ms + attention 2.8 ms (b64). b1 p50 18.7 ms (≈53 img/s: batch 1 is not launch-bound).
+CUDA-graph arm errored (trunk output overwritten between replays; needs a clone between segments).
+Any fused kernel changes FP8 rounding, so it must pass the same held gate (≥ 95.166) before serving.
