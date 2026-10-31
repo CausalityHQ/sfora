@@ -49,3 +49,14 @@ Served b64 70.9 img/s GPU-only; GEMM+attention-only floor 126.8 img/s → fusion
 achieved; per layer pass GEMM 9.5 ms + attention 2.8 ms (b64). b1 p50 18.7 ms (≈53 img/s: batch 1 is not launch-bound).
 CUDA-graph arm errored (trunk output overwritten between replays; needs a clone between segments).
 Any fused kernel changes FP8 rounding, so it must pass the same held gate (≥ 95.166) before serving.
+
+## Inductor Triton FP8 GEMM templates: unavailable
+max_autotune_gemm_backends="TRITON" → NoValidChoicesError for _scaled_mm on sm_121; ATEN 68.1 / ATEN,TRITON 68.4 img/s.
+
+## Block-scaled GEMM formats on GB10 (torch 2.12 F.scaled_mm, cuBLAS; M = 64×729): no speed lever
+| K→N | FP8 rowwise | MXFP8 (1×32, e8m0, swizzled) | NVFP4 (1×16) | TFLOPS |
+|---|---|---|---|---|
+| 1152→4304 (fc1) | 138.7 | 98.2 | 133.2 | |
+| 4304→1152 (fc2) | 193.7 | 183.7 | 217.8 | |
+| 1152→1152 (q/k/v/o) | 126.8 | 136.7 | 131.0 | |
+NVFP4 gives no ~2× on this part/library; MXFP8 no faster. The 1.79× ceiling is fusion only (custom kernels).
