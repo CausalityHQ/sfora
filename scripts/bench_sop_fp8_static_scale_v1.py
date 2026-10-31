@@ -27,7 +27,9 @@ def batches(ids): return [enc[0].processor(images=[Image.open(paths[i]).convert(
 calib, test = batches(fit[:512]), batches(fit[512:1024])
 lin = [m for e in enc for m in e.vision.modules() if isinstance(m, _FP8Linear)]
 amax = {id(m): torch.zeros((), device=dev) for m in lin}
-hooks = [m.register_forward_pre_hook(lambda m, a: amax[id(m)].copy_(torch.maximum(amax[id(m)], a[0].abs().amax().float()))) for m in lin]
+def track(m, a):
+    amax[id(m)].copy_(torch.maximum(amax[id(m)], a[0].abs().amax().float()))  # returns None: keep inputs
+hooks = [m.register_forward_pre_hook(track) for m in lin]
 ens = SharedTrunkEnsemble(enc)
 with torch.inference_mode():
     for px in calib: ens.encode_pixels(px)
