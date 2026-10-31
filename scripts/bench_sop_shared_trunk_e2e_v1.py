@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """End-to-end SOP 2-seed shared-trunk encode: JPEG decode + preprocess in 8 DataLoader workers -> GPU encode.
-Arms: fp16 eager, fp16 compiled, fp8 compiled (compile = torch.compile(encode_pixels, mode='max-autotune-no-cudagraphs')).
+Arms: fp16 eager, fp16 compiled, fp8 compiled (compile = each encoder layer + pooling head compiled in place, max-autotune-no-cudagraphs).
 Reports img/s over N TRAIN images (after a warmup pass) and max cos drift vs fp16 eager. Not a quality read.
 """
 import argparse, json, sys, time
@@ -28,7 +28,12 @@ def main():
     for arm, fp8, comp in (("fp16_eager", False, False), ("fp16_compile", False, True), ("fp8_compile", True, True)):
         enc = [So400mCompactEncoder.from_checkpoint(a.snapshot, c, resolution=384, output_dim=512, device=dev,
                                                     fp16_native=True, fp8=fp8) for c in (a.ckpt_a, a.ckpt_b)]
-        ens = SharedTrunkEnsemble(enc); fn = torch.compile(ens.encode_pixels, mode="max-autotune-no-cudagraphs") if comp else ens.encode_pixels
+        ens = SharedTrunkEnsemble(enc); fn = ens.encode_pixels
+        if comp:  # compile modules in place (compiling the inference_mode method crashes: storage weakref)
+            for m in enc:
+                ls = m.vision.encoder.layers
+                for i in range(len(ls)): ls[i] = torch.compile(ls[i], mode="max-autotune-no-cudagraphs")
+                m.vision.head = torch.compile(m.vision.head, mode="max-autotune-no-cudagraphs")
         dl = lambda: torch.utils.data.DataLoader(Rows(paths, enc[0].processor), batch_size=64, num_workers=8, pin_memory=True)
         t0 = time.perf_counter()
         for px in dl(): fn(px.to(dev, non_blocking=True))
