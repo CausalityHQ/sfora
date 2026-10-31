@@ -144,3 +144,9 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
   - Every single-image re-scoring idea (tokens, zoom, context, learned re-ranker, VLM) is therefore closed for rank-1.
   - Next levers must use legible text or cross-image structure. Evidence: sop-vlm-verifier-probe-v1.
 - **OCR text index (diagnostic): CLOSE.** Errors whose query text matches a positive but not the wrong top-1: 2.4 % [1.1, 4.8] (bar ≥ 10 %). Text overlaps the wrong image more often (19.5 %) than a positive (12.5 %). Evidence abba3547, sop-ocr-text-overlap-diag-v1.
+- **Gallery competition / hubness normalisation (ρ, typed by detail-ness, leave-query-out, CV): KILL.**
+  - Full gallery: +0.10 [−0.12, +0.34]. Held-only: mAP −0.33.
+  - Close-ups are not distinguishable hubs (AUC 0.55).
+- **Multi-view token coverage, ORACLE ceiling with true product clusters: KILL.** −0.55 [−0.80, −0.32] R@1. Union over views adds +0.02 over the best single view. Even perfect clustering cannot make token evidence fix rank-1.
+- **Provenance / JPEG-metadata kernel: not run, rejected on validity.** It exploits upload-session encoding artefacts, not product appearance.
+- Evidence e811cc9a, sop-gallery-d2-d3-screen-v1.
