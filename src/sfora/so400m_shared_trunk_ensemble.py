@@ -17,7 +17,7 @@ from sfora.so400m_compact_serving import BATCH_SIZE, So400mCompactEncoder
 
 
 class SharedTrunkEnsemble:
-    def __init__(self, members: Sequence[So400mCompactEncoder], *, split: int = 13) -> None:
+    def __init__(self, members: Sequence[So400mCompactEncoder], *, split: int = 13, compile: bool = False) -> None:
         first = members[0]
         shared = [p for n, p in first.vision.named_parameters() if n.startswith("embeddings.") or
                   any(n.startswith(f"encoder.layers.{i}.") for i in range(split))]
@@ -29,6 +29,12 @@ class SharedTrunkEnsemble:
                     not torch.equal(own[n], p) for n, p in zip(names, shared)):
                 raise ValueError("ensemble members do not share the frozen trunk")
         self.members, self.split, self.first = list(members), split, first
+        if compile:  # per-module; compiling the inference_mode method crashes. fp8+compile: 63.7 img/s e2e, held R@1 95.197
+            for m in self.members:
+                ls = m.vision.encoder.layers
+                for i in range(len(ls)):
+                    ls[i] = torch.compile(ls[i], mode="max-autotune-no-cudagraphs")
+                m.vision.head = torch.compile(m.vision.head, mode="max-autotune-no-cudagraphs")
 
     @torch.inference_mode()
     def _encode_batch(self, images: Sequence[Any]) -> torch.Tensor:
