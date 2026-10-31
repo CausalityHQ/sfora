@@ -37,7 +37,7 @@ with torch.inference_mode():
 for h in hooks: h.remove()
 
 def static_forward(self, x):
-    x2 = x.reshape(-1, x.shape[-1]); s = self.static_scale.expand(x2.shape[0], 1)
+    x2 = x.reshape(-1, x.shape[-1]); s = self.static_scale.expand(x2.shape[0], 1).contiguous()
     q = (x2.float() * self.static_inv).clamp(-self.fmax, self.fmax).to(torch.float8_e4m3fn)
     y = torch._scaled_mm(q, self.w_t, scale_a=s, scale_b=self.w_scale, bias=self.bias, out_dtype=torch.float16)
     return y.reshape(*x.shape[:-1], self.out_features)
