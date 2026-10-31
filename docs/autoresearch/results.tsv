@@ -56,3 +56,4 @@ abba3547	Q	discriminative_text_frac	0.024	0.011	-	discard	OCR text-overlap diagn
 e811cc9a	Q	held_r1_d2_hubness_cv	+0.103	-0.123	+3B/row	discard	gallery competition normalisation
 e811cc9a	Q	held_r1_d3_oracle_union	-0.547	-0.801	-	discard	oracle multi-view token union ceiling
 eefa09c8	Q	held_r1_detailcrop_rrc015	+0.000	-0.302	+0 (train-only)	discard	detail-crop RRC 0.15-1.0 at 384/512; 34 fixed / 34 broken
+e658a480	Q	held_r1_ens3_vs_ens2	-0.103	-0.290	+514B/row,+1x encode	discard	3rd member (detail-crop) on 2-seed incumbent; mAP +0.17 sig
