@@ -57,3 +57,4 @@ e811cc9a	Q	held_r1_d2_hubness_cv	+0.103	-0.123	+3B/row	discard	gallery competiti
 e811cc9a	Q	held_r1_d3_oracle_union	-0.547	-0.801	-	discard	oracle multi-view token union ceiling
 eefa09c8	Q	held_r1_detailcrop_rrc015	+0.000	-0.302	+0 (train-only)	discard	detail-crop RRC 0.15-1.0 at 384/512; 34 fixed / 34 broken
 e658a480	Q	held_r1_ens3_vs_ens2	-0.103	-0.290	+514B/row,+1x encode	discard	3rd member (detail-crop) on 2-seed incumbent; mAP +0.17 sig
+2ad1a1e1	P	ens2_shared_trunk_speedup_fp16	1.338	-	-0.5x tower	keep	exact shared frozen trunk (blocks 0-12), drift 4.8e-7

@@ -1,0 +1,67 @@
+Running as unit: run-u12.service; invocation ID: 17fca800310e4be7a1d28f11e6973584
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:00<00:22, 39.93it/s]Loading weights:  44%|████▎     | 388/888 [00:00<00:00, 2241.38it/s]Loading weights:  74%|███████▍  | 657/888 [00:00<00:00, 2424.69it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2277.54it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  25%|██▌       | 226/888 [00:00<00:00, 2251.26it/s]Loading weights:  57%|█████▋    | 505/888 [00:00<00:00, 2530.67it/s]Loading weights:  88%|████████▊ | 785/888 [00:00<00:00, 2651.43it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2599.35it/s]
+{
+ "n": 1024,
+ "fp8": false,
+ "separate": {
+  "img_s": 28.599520473665233,
+  "seconds": [
+   35.80479613086209,
+   36.11294920090586,
+   36.24391588475555
+  ]
+ },
+ "shared": {
+  "img_s": 38.25994979350871,
+  "seconds": [
+   26.899699846748263,
+   26.76427976321429,
+   26.792645547073334
+  ]
+ },
+ "max_abs_cos_drift": 4.76837158203125e-07,
+ "speedup": 1.3377829124351546
+}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 19.446s
+CPU time consumed: 5min 15.965s
+Memory peak: 764.0K
+Memory swap peak: 0B
+Running as unit: run-u13.service; invocation ID: da0b2327ab1a44a89fc97040f0ecf252
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:00<00:22, 39.24it/s]Loading weights:  41%|████      | 362/888 [00:00<00:00, 2103.15it/s]Loading weights:  71%|███████   | 627/888 [00:00<00:00, 2299.22it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2199.32it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  29%|██▉       | 258/888 [00:00<00:00, 2564.34it/s]Loading weights:  60%|█████▉    | 529/888 [00:00<00:00, 2646.38it/s]Loading weights:  90%|█████████ | 803/888 [00:00<00:00, 2684.12it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2700.78it/s]
+{
+ "n": 1024,
+ "fp8": true,
+ "separate": {
+  "img_s": 14.759479497539266,
+  "seconds": [
+   69.43060348089784,
+   69.41034441022202,
+   69.3791403803043
+  ]
+ },
+ "shared": {
+  "img_s": 19.78062771565851,
+  "seconds": [
+   51.774589149747044,
+   51.76782126026228,
+   51.85427578398958
+  ]
+ },
+ "max_abs_cos_drift": 4.76837158203125e-07,
+ "speedup": 1.340198190522666
+}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 6min 18.410s
+CPU time consumed: 8min 17.128s
+Memory peak: 288.0K
+Memory swap peak: 0B
+ALLDONE
