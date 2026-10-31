@@ -34,6 +34,12 @@ class SharedTrunkEnsemble:
     def _encode_batch(self, images: Sequence[Any]) -> torch.Tensor:
         f = self.first
         px = f.processor(images=[i.convert("RGB") for i in images], return_tensors="pt")["pixel_values"].to(f.device)
+        return self.encode_pixels(px).cpu()
+
+    @torch.inference_mode()
+    def encode_pixels(self, px: torch.Tensor) -> torch.Tensor:
+        """Processor output (B, 3, R, R) on device -> unit ensemble rows on device."""
+        f = self.first
         ctx = torch.autocast(device_type=f.device.type, dtype=torch.float16, enabled=not f.fp16_native)
         with ctx:
             h = f.vision.embeddings(px.half() if f.fp16_native else px, interpolate_pos_encoding=f.interpolate)
@@ -48,7 +54,7 @@ class SharedTrunkEnsemble:
                 pooled = m.vision.head(x)
                 with torch.autocast(device_type=f.device.type, enabled=False):
                     outs.append(F.normalize(m.head(F.normalize(pooled.float(), dim=1)), dim=1))
-        return (torch.cat(outs, 1) / math.sqrt(len(outs))).cpu()
+        return torch.cat(outs, 1) / math.sqrt(len(outs))
 
     def encode_images(self, images: Sequence[Any]) -> torch.Tensor:
         images = list(images)
