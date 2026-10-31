@@ -150,3 +150,4 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **Multi-view token coverage, ORACLE ceiling with true product clusters: KILL.** −0.55 [−0.80, −0.32] R@1. Union over views adds +0.02 over the best single view. Even perfect clustering cannot make token evidence fix rank-1.
 - **Provenance / JPEG-metadata kernel: not run, rejected on validity.** It exploits upload-session encoding artefacts, not product appearance.
 - Evidence e811cc9a, sop-gallery-d2-d3-screen-v1.
+- **Detail-crop training (RandomResizedCrop scale 0.15–1.0 instead of 0.8–1.0), 384/512, seed 179024: KILL.** Held R@1 +0.00 [−0.30, +0.29], mAP +0.06 ns. Fixed 34 baseline errors, broke 34. Patch verified active (different first batches, first loss 9.86 vs 5.49). Training-data exposure to close-ups does not fix the close-up → full-shot errors. Evidence 923c69eb, sop-so400m-384d512-detailcrop-179024-v1.

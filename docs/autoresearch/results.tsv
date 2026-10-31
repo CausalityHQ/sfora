@@ -55,3 +55,4 @@ c4df2d53	Q	held_r1_token_reranker	-0.068	-0.632	+41KB/row,1.5ms/q	discard	learne
 abba3547	Q	discriminative_text_frac	0.024	0.011	-	discard	OCR text-overlap diagnostic CLOSE
 e811cc9a	Q	held_r1_d2_hubness_cv	+0.103	-0.123	+3B/row	discard	gallery competition normalisation
 e811cc9a	Q	held_r1_d3_oracle_union	-0.547	-0.801	-	discard	oracle multi-view token union ceiling
+eefa09c8	Q	held_r1_detailcrop_rrc015	+0.000	-0.302	+0 (train-only)	discard	detail-crop RRC 0.15-1.0 at 384/512; 34 fixed / 34 broken
