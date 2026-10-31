@@ -143,3 +143,4 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **Error anatomy (the important result).** About 2/3 of inspected held errors are detail or label close-ups: stamps, rating plates, parts, undersides. They show little of the product and their positives are full shots. Near-duplicate listings are NOT the main residual.
   - Every single-image re-scoring idea (tokens, zoom, context, learned re-ranker, VLM) is therefore closed for rank-1.
   - Next levers must use legible text or cross-image structure. Evidence: sop-vlm-verifier-probe-v1.
+- **OCR text index (diagnostic): CLOSE.** Errors whose query text matches a positive but not the wrong top-1: 2.4 % [1.1, 4.8] (bar ≥ 10 %). Text overlaps the wrong image more often (19.5 %) than a positive (12.5 %). Evidence abba3547, sop-ocr-text-overlap-diag-v1.

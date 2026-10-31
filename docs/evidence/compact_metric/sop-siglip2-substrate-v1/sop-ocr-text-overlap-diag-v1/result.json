@@ -1,0 +1,120 @@
+{
+ "baseline": {
+  "held_recall_at_k": {
+   "R@1": 0.9492394462485045,
+   "R@10": 0.9863271235686207,
+   "R@32": 0.9933344727397025,
+   "R@5": 0.980857972996069
+  },
+  "map_at_r": 83.94732357670844,
+  "recall_at_1": 94.92394462485045
+ },
+ "chat_text": "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>Transcribe all legible printed text (brand names, model numbers, labels) in this image. If there is none, answer NONE.<|im_end|>\n<|im_start|>assistant\n",
+ "controls": {
+  "discriminative": {
+   "count": 9,
+   "fraction": 0.03,
+   "wilson95": [
+    0.01586185380943231,
+    0.05602253914164096
+   ]
+  },
+  "has_text": {
+   "count": 107,
+   "fraction": 0.3566666666666667,
+   "wilson95": [
+    0.30458741740255907,
+    0.41237023434847747
+   ]
+  },
+  "n": 300,
+  "overlap_pos": {
+   "count": 51,
+   "fraction": 0.17,
+   "wilson95": [
+    0.13173009843992434,
+    0.21661426256827604
+   ]
+  },
+  "overlap_wrong": {
+   "count": 57,
+   "fraction": 0.19,
+   "wilson95": [
+    0.14963485033440665,
+    0.23820379182481183
+   ]
+  }
+ },
+ "counts": {
+  "controls": 300,
+  "errors": 297,
+  "image_slots": 2687,
+  "images": 2137
+ },
+ "decision": "CLOSE",
+ "errors": {
+  "discriminative": {
+   "count": 7,
+   "fraction": 0.02356902356902357,
+   "wilson95": [
+    0.0114627442740084,
+    0.04784244222067581
+   ]
+  },
+  "has_text": {
+   "count": 132,
+   "fraction": 0.4444444444444444,
+   "wilson95": [
+    0.38899909952615574,
+    0.5013085723972526
+   ]
+  },
+  "n": 297,
+  "overlap_pos": {
+   "count": 37,
+   "fraction": 0.12457912457912458,
+   "wilson95": [
+    0.09174893828537817,
+    0.1669968447121999
+   ]
+  },
+  "overlap_wrong": {
+   "count": 58,
+   "fraction": 0.19528619528619529,
+   "wilson95": [
+    0.15421279769552176,
+    0.24414140285408187
+   ]
+  }
+ },
+ "max_new_tokens": 48,
+ "max_side": 768,
+ "ocr": {
+  "generated": 2137,
+  "resumed": 0,
+  "seconds": 1542.5656013176776,
+  "seconds_per_image": 0.7218369683283471
+ },
+ "official_read": false,
+ "peak_cuda_allocated_gib": 16.78729820251465,
+ "peak_host_rss_gib": 7.820415496826172,
+ "prompt": "Transcribe all legible printed text (brand names, model numbers, labels) in this image. If there is none, answer NONE.",
+ "schema": "sop-ocr-text-overlap-diagnostic-v1",
+ "seconds": {
+  "cases": 1.6903213416226208,
+  "ocr": 1542.6320498706773,
+  "report": 0.0035658669658005238,
+  "total": 1639.3693641838618,
+  "vlm_load": 95.03314331779256
+ },
+ "stopwords": [
+  "and",
+  "china",
+  "for",
+  "made",
+  "none",
+  "the",
+  "usa",
+  "with"
+ ]
+}

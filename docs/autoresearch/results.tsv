@@ -52,3 +52,4 @@ sopfull	Q	official_r1_sop_fulltrain	93.721	-0.358	~70min	discard	SOP full-TRAIN 
 7c88f332	Q	held_r1_zoom_sum	-0.085	-0.288	2x encode	discard	attention zoom second view
 c4df2d53	Q	held_r1_token_reranker	-0.068	-0.632	+41KB/row,1.5ms/q	discard	learned token re-ranker (mAP +0.86 sig, Pareto note)
 2a3fa540	Q	held_r1_vlm_verifier	+0.068	-0.139	~100x search	discard	VLM ceiling probe NO-SIGNAL; errors = detail/label close-ups
+abba3547	Q	discriminative_text_frac	0.024	0.011	-	discard	OCR text-overlap diagnostic CLOSE
