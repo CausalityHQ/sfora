@@ -28,3 +28,6 @@ fp16 towers). Official TEST stays 94.129 for fp32 arithmetic; FP8 official not r
 scripts/evaluate_sop_shared_trunk_fp8_official_v1.py: R@1 94.042 (gate ≥ 94.029; fp32 ensemble 94.129, −0.09),
 mAP@R 82.95, 60,502 images, concat/√2 packed int8 1,026 B/row. Above the fp32 single model (93.967).
 Served SOP frontier: 94.042 at 63.7 img/s e2e on one GB10.
+
+## Batch-size sweep (GPU-only, FP8 compiled shared trunk): not a lever
+b64 67.8 img/s (2.16 GB), b128 67.9 (3.02 GB), b256 66.3 (5.09 GB). Compute-saturated; e2e 63.7 = 94 % of GPU-only.
