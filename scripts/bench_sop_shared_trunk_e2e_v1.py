@@ -28,12 +28,7 @@ def main():
     for arm, fp8, comp in (("fp16_eager", False, False), ("fp16_compile", False, True), ("fp8_compile", True, True)):
         enc = [So400mCompactEncoder.from_checkpoint(a.snapshot, c, resolution=384, output_dim=512, device=dev,
                                                     fp16_native=True, fp8=fp8) for c in (a.ckpt_a, a.ckpt_b)]
-        ens = SharedTrunkEnsemble(enc); fn = ens.encode_pixels
-        if comp:  # compile modules in place (compiling the inference_mode method crashes: storage weakref)
-            for m in enc:
-                ls = m.vision.encoder.layers
-                for i in range(len(ls)): ls[i] = torch.compile(ls[i], mode="max-autotune-no-cudagraphs")
-                m.vision.head = torch.compile(m.vision.head, mode="max-autotune-no-cudagraphs")
+        ens = SharedTrunkEnsemble(enc, compile=comp); fn = ens.encode_pixels  # segment compile (module)
         dl = lambda: torch.utils.data.DataLoader(Rows(paths, enc[0].processor), batch_size=64, num_workers=8, pin_memory=True)
         t0 = time.perf_counter()
         for px in dl(): fn(px.to(dev, non_blocking=True))

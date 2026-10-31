@@ -15,11 +15,7 @@ from sfora.so400m_shared_trunk_ensemble import SharedTrunkEnsemble
 snap, ca, cb, arch, root = map(Path, sys.argv[1:6]); dev = torch.device("cuda")
 with np.load(arch, allow_pickle=False) as z: rel = np.asarray(z["train_relative_paths"]).astype(str); lab = np.asarray(z["train_labels"], dtype=np.int64)
 enc = [So400mCompactEncoder.from_checkpoint(snap, c, resolution=384, output_dim=512, device=dev, fp16_native=True, fp8=True) for c in (ca, cb)]
-for m in enc:
-    ls = m.vision.encoder.layers
-    for i in range(len(ls)): ls[i] = torch.compile(ls[i], mode="max-autotune-no-cudagraphs")
-    m.vision.head = torch.compile(m.vision.head, mode="max-autotune-no-cudagraphs")
-ens = SharedTrunkEnsemble(enc)
+ens = SharedTrunkEnsemble(enc, compile=True)  # segment compile (module)
 dl = torch.utils.data.DataLoader(b.Rows(b.pair.paths_from_archive(root, rel), enc[0].processor), batch_size=64, num_workers=8, pin_memory=True)
 e = torch.cat([ens.encode_pixels(px.to(dev, non_blocking=True)).float().cpu() for px in dl])
 held = np.asarray(deterministic_class_partition(tuple(map(int, lab)), fit_fraction=0.9, seed=179019).validation_row_indexes, dtype=np.int64)
