@@ -31,3 +31,11 @@ Served SOP frontier: 94.042 at 63.7 img/s e2e on one GB10.
 
 ## Batch-size sweep (GPU-only, FP8 compiled shared trunk): not a lever
 b64 67.8 img/s (2.16 GB), b128 67.9 (3.02 GB), b256 66.3 (5.09 GB). Compute-saturated; e2e 63.7 = 94 % of GPU-only.
+
+## GPU profile of the served FP8 ensemble (b64, compiled)
+cutlass FP8 GEMM 41 %; fused dynamic-quant kernels (amax/div/cast fused with GELU/LN) ~31 %; flash attention (fp16) 15 %;
+residual add 10 %; rest < 3 %.
+
+## Static per-layer FP8 activation scales (scripts/bench_sop_fp8_static_scale_v1.py): KILL
+Calibrated on 512 TRAIN-FIT images (margin 1.0). GPU-only 68.1 → 72.6 img/s = 1.065× (bar 1.10×); cos drift vs dynamic
+max 0.0145 / mean 0.0033. The amax reduction is fused with neighbouring elementwise work, so removing it saves little.

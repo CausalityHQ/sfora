@@ -65,3 +65,4 @@ d13f472c	Q	held_r1_role_rescore	-0.051	-0.283	+2B/row	discard	learned role-condi
 39f49f4b	P	official_r1_ens2_fp8_served	94.042	-	63.7 img/s	official	FP8 shared-trunk served ensemble, gate 94.029 ACCEPT
 5dc04222	P	held_r1_freeze18	-0.273	-0.539	-14% ens encode	discard	freeze 18/27 for larger shared trunk; mAP -0.90 sig
 4d0ddff8	P	ens2_fp8_batch_sweep_gpu_img_s	67.9	-	b128	discard	b64/128/256 flat (67.8/67.9/66.3); compute-bound
+77ea088d	P	fp8_static_scale_speedup	1.065	-	-	discard	static FP8 act scales; bar 1.10x; drift 0.0145
