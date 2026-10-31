@@ -1,0 +1,13 @@
+Running as unit: run-u12.service; invocation ID: a0517b18039b46ceb3a13e38ad7b49bc
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  19%|█▊        | 165/888 [00:00<00:00, 1649.27it/s]Loading weights:  46%|████▌     | 410/888 [00:00<00:00, 2118.92it/s]Loading weights:  73%|███████▎  | 649/888 [00:00<00:00, 2241.68it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2316.19it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  18%|█▊        | 160/888 [00:00<00:00, 1596.71it/s]Loading weights:  48%|████▊     | 426/888 [00:00<00:00, 2211.79it/s]Loading weights:  80%|████████  | 713/888 [00:00<00:00, 2498.21it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2476.04it/s]
+RESULT {"r1": 0.9519740215347804, "map": 0.8434463299782553, "gate": 0.95166, "decision": "PASS"}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 16min 238ms
+CPU time consumed: 22min 39.219s
+Memory peak: 512.0K
+Memory swap peak: 0B
+GATEDONE rc=0

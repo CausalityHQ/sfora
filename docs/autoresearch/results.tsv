@@ -61,3 +61,4 @@ e658a480	Q	held_r1_ens3_vs_ens2	-0.103	-0.290	+514B/row,+1x encode	discard	3rd m
 d13f472c	Q	held_r1_role_rescore	-0.051	-0.283	+2B/row	discard	learned role-conditioned top-32 rescoring; map32 -0.62 sig
 -	Q	context_prefers_positive	0.216	-	+64B/row	discard	scene-context pre-kill (bar 0.65)
 -	Q	held_r1_oracle_listing_mean	-0.359	-	-	discard	oracle listing-mean fusion best beta
+3b756ec8	P	ens2_shared_fp8_compile_img_s	63.7	-	3.1GB peak	keep	held R@1 95.197 (gate 95.166 PASS), 1.6x fp16

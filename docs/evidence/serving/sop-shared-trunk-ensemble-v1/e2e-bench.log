@@ -1,0 +1,21 @@
+Running as unit: run-u12.service; invocation ID: e575761a378a452583f3da20f40ef59d
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:00<00:28, 30.83it/s]Loading weights:  46%|████▋     | 412/888 [00:00<00:00, 2145.68it/s]Loading weights:  78%|███████▊  | 695/888 [00:00<00:00, 2418.75it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2243.99it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:  18%|█▊        | 164/888 [00:00<00:00, 1637.46it/s]Loading weights:  51%|█████     | 449/888 [00:00<00:00, 2311.16it/s]Loading weights:  82%|████████▏ | 727/888 [00:00<00:00, 2517.64it/s]Loading weights: 100%|██████████| 888/888 [00:00<00:00, 2479.85it/s]
+fp16_eager {'img_s': 39.77387254157507, 'warmup_s': 52.559628386981785, 'peak_gb': 3.153871872, 'max_cos_drift_vs_fp16_eager': 2.384185791015625e-07}
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:01<04:19,  3.40it/s]Loading weights: 100%|██████████| 888/888 [00:01<00:00, 749.24it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:01<03:47,  3.89it/s]Loading weights: 100%|██████████| 888/888 [00:01<00:00, 817.33it/s]
+W1031 12:25:33.534000 2302297 torch/_inductor/utils.py:1717] [0/0] Not enough SMs to use max_autotune_gemm mode
+fp16_compile {'img_s': 42.797715470026056, 'warmup_s': 68.71831323578954, 'peak_gb': 3.047204864, 'max_cos_drift_vs_fp16_eager': 8.630752563476562e-05}
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:01<06:12,  2.37it/s]Loading weights: 100%|██████████| 888/888 [00:01<00:00, 523.80it/s]
+Loading weights:   0%|          | 0/888 [00:00<?, ?it/s]Loading weights:   0%|          | 4/888 [00:01<03:59,  3.70it/s]Loading weights: 100%|██████████| 888/888 [00:01<00:00, 799.35it/s]
+fp8_compile {'img_s': 63.743614386060734, 'warmup_s': 44.70033668586984, 'peak_gb': 3.091291648, 'max_cos_drift_vs_fp16_eager': 0.04104417562484741}
+{"n": 2048, "fp16_eager": {"img_s": 39.77387254157507, "warmup_s": 52.559628386981785, "peak_gb": 3.153871872, "max_cos_drift_vs_fp16_eager": 2.384185791015625e-07}, "fp16_compile": {"img_s": 42.797715470026056, "warmup_s": 68.71831323578954, "peak_gb": 3.047204864, "max_cos_drift_vs_fp16_eager": 8.630752563476562e-05}, "fp8_compile": {"img_s": 63.743614386060734, "warmup_s": 44.70033668586984, "peak_gb": 3.091291648, "max_cos_drift_vs_fp16_eager": 0.04104417562484741}}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 5min 13.867s
+CPU time consumed: 7min 10.565s
+Memory peak: 1.2M
+Memory swap peak: 0B
+ALLDONE rc=0
