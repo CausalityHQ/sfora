@@ -47,3 +47,6 @@ expo2	Q	inshop_held_r1_1500_vs_1000	+0.076	-0.069	-	discard	exposure saturates ~
 sopexpo	Q	sop_held_r1_2000_vs_1000_384d512	-0.034	-0.349	~1.6h	discard	SOP exposure KILL on 384/512 recipe (mAP -0.06); SOP saturated at 1000 updates
 sopfull	Q	official_r1_sop_fulltrain	93.721	-0.358	~70min	discard	SOP full-TRAIN 384/512 KILL: -0.25 [-0.36,-0.14] vs 93.967 (mAP -0.45); incumbent stays
 4ccf42be	Q	official_r1	94.129	+0.088	2x encode/1026B	official	two-seed 384/512 ensemble (new SOP incumbent)
+7c88f332	Q	held_r1_token_maxsim	-0.615	-0.947	+11KB/row	discard	training-free token MaxSim rerank
+7c88f332	Q	held_r1_context_vec	-0.359	-0.561	+256B/row	discard	background context vector
+7c88f332	Q	held_r1_zoom_sum	-0.085	-0.288	2x encode	discard	attention zoom second view

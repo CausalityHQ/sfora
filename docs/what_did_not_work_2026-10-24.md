@@ -128,3 +128,10 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
   - Likely causes: at fixed updates, 11% more products dilutes per-product exposure, and seed variance (SD ~0.2 pp) may contribute.
   - SOP data and exposure levers are both closed for this recipe.
 - **Parity lesson:** official receipts hold both `float_quality` and `packed_quality`. Always gate on `packed_quality` (the headline number).
+
+## E. Fundamental-redesign screens (2026-10-31; contextless Fable proposals, training-free, all measured)
+- **Token MaxSim re-rank (9×9 final-block tokens, PCA256, fused with the global score): KILL, harmful.** −0.62 [−0.95, −0.34], mAP −1.28.
+- **Background context vector (1 − attention pooling): KILL, harmful.** −0.36, mAP −0.87. Session/background cues are not a free signal.
+- **Attention-guided zoom second view: KILL.** Zoom alone −0.44; fused −0.09 / −0.19 (not significant), mAP worse. The median attention box already covers 78 % of the frame.
+- What survives: held R@32 is 99.33 % vs R@1 94.92 %, so the re-ranking ceiling is 4.4 pp. Untrained token evidence only adds noise; only a *learned* re-ranker remains untested in this family. Evidence 7c88f332 + sop-so400m-token-cache-screen-v1.
+- Ensembles of the same recipe: the two-seed SOP ensemble IS kept (official 94.129, +0.16), but only about half the held gain (+0.34) transferred.
