@@ -1,0 +1,153 @@
+{
+ "K": 3,
+ "ambiguous_counts": {
+  "0.02": {
+   "fit": 17522,
+   "held": 1789
+  },
+  "0.05": {
+   "fit": 31535,
+   "held": 3268
+  },
+  "0.1": {
+   "fit": 42150,
+   "held": 4478
+  }
+ },
+ "baseline": {
+  "held_recall_at_k": {
+   "R@1": 0.9492394462485045,
+   "R@10": 0.9863271235686207,
+   "R@32": 0.9933344727397025,
+   "R@5": 0.980857972996069
+  },
+  "map_at_r": 83.94732357670844,
+  "recall_at_1": 94.92394462485045
+ },
+ "budget": {
+  "dropped_taus": [
+   0.1,
+   0.05
+  ],
+  "estimated_passes_upper": 7167,
+  "max_passes": 6000,
+  "over_budget_after_drops": true,
+  "taus": [
+   0.02
+  ]
+ },
+ "chat_text": "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|><|vision_start|><|image_pad|><|vision_end|>Do these two photos show the exact same product (same model and variant, possibly from a different angle)? Answer yes or no.<|im_end|>\n<|im_start|>assistant\n",
+ "chosen": {
+  "alpha": 1.0,
+  "tau": 0.02
+ },
+ "decision": "NO-SIGNAL",
+ "fit_grid_r1_map": {
+  "baseline": [
+   94.33333333333334,
+   88.31139194096129
+  ],
+  "tau=0.02,alpha=0.5": [
+   94.16666666666667,
+   88.51800569271047
+  ],
+  "tau=0.02,alpha=1.0": [
+   94.5,
+   88.5908231648306
+  ],
+  "tau=0.02,alpha=2.0": [
+   93.83333333333333,
+   88.37215031931798
+  ],
+  "tau=0.02,alpha=inf": [
+   93.5,
+   88.29410599420467
+  ]
+ },
+ "fit_sample": {
+  "queries": 600,
+  "sampled_among_ambiguous_at_tau": 0.02
+ },
+ "held": {
+  "broken": 18,
+  "d_map": 0.06690775665833876,
+  "d_map_95": [
+   -0.025004745883719964,
+   0.17130059298404876
+  ],
+  "d_r1": 0.06836438215689626,
+  "d_r1_95": [
+   -0.13862896609213593,
+   0.2754146259926765
+  ],
+  "decision": "NO-SIGNAL",
+  "fixed": 22,
+  "gated_queries": 1789,
+  "held_recall_at_k": {
+   "R@1": 0.9499230900700735,
+   "R@10": 0.9863271235686207,
+   "R@32": 0.9933344727397025,
+   "R@5": 0.980857972996069
+  },
+  "map_at_r": 84.01423133336678,
+  "recall_at_1": 94.99230900700735
+ },
+ "held_gate_diagnostics": {
+  "all_gated_false_pairs": {
+   "mean_v": -5.81892728805542,
+   "pairs": 564,
+   "yes_rate": 0.3173758865248227
+  },
+  "all_gated_true_pairs": {
+   "mean_v": 4.464553356170654,
+   "pairs": 4803,
+   "yes_rate": 0.7824276493858006
+  },
+  "errors_in_gate_false_pairs": {
+   "mean_v": -5.711990833282471,
+   "pairs": 319,
+   "yes_rate": 0.30407523510971785
+  },
+  "errors_in_gate_positive_in_top_k": 0.45038167938931295,
+  "errors_in_gate_true_pairs": {
+   "mean_v": -0.1317567527294159,
+   "pairs": 74,
+   "yes_rate": 0.5540540540540541
+  },
+  "held_errors": 297,
+  "held_errors_in_gate": 131
+ },
+ "official_read": false,
+ "peak_cuda_allocated_gib": 16.53164577484131,
+ "peak_host_rss_gib": 7.944438934326172,
+ "prompt": "Do these two photos show the exact same product (same model and variant, possibly from a different angle)? Answer yes or no.",
+ "schema": "sop-vlm-verifier-ceiling-probe-v1",
+ "seconds": {
+  "fit": 351.667623268906,
+  "held": 1023.0582594028674,
+  "lists": 4.415409309323877,
+  "total": 1498.4942776989192,
+  "vlm_load": 119.35188322281465
+ },
+ "serving_candidate": false,
+ "token_ids": {
+  "no": {
+   " No": 2308,
+   " no": 902,
+   "No": 2753,
+   "no": 2152
+  },
+  "yes": {
+   " Yes": 7414,
+   " yes": 9834,
+   "Yes": 9454,
+   "yes": 9693
+  }
+ },
+ "vlm": {
+  "passes": 7167,
+  "resumed": 0,
+  "seconds": 1374.5365200256929,
+  "seconds_per_pass": 0.19178687317227472
+ }
+}

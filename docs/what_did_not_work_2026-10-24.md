@@ -139,3 +139,7 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
   - mAP@R improved significantly: +0.86 [+0.31, +1.39], R@10 +0.24. That is a Pareto note at +21–41 KB/image, not a kept change.
   - Overfit FIT lists early (best inner-val at step 4k of 27k).
   - With the training-free token/context/zoom KILLs, the "pooling discards information" family cannot move rank-1 on this system. Remaining rank-1 errors behave like near-duplicate ambiguity. Evidence c4df2d53, sop-so400m-token-reranker-v1.
+- **VLM pairwise verifier (Qwen3-VL-8B, top-3, margin-gated): NO-SIGNAL.** +0.07 [−0.14, +0.28]; 22 fixed, 18 broken. On hard pairs the VLM is a weaker judge than the embedding.
+- **Error anatomy (the important result).** About 2/3 of inspected held errors are detail or label close-ups: stamps, rating plates, parts, undersides. They show little of the product and their positives are full shots. Near-duplicate listings are NOT the main residual.
+  - Every single-image re-scoring idea (tokens, zoom, context, learned re-ranker, VLM) is therefore closed for rank-1.
+  - Next levers must use legible text or cross-image structure. Evidence: sop-vlm-verifier-probe-v1.
