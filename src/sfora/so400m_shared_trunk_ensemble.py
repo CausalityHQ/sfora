@@ -29,37 +29,40 @@ class SharedTrunkEnsemble:
                     not torch.equal(own[n], p) for n, p in zip(names, shared)):
                 raise ValueError("ensemble members do not share the frozen trunk")
         self.members, self.split, self.first = list(members), split, first
-        if compile:  # per-module; compiling the inference_mode method crashes. fp8+compile: 63.7 img/s e2e, held R@1 95.197
-            for m in self.members:
-                ls = m.vision.encoder.layers
-                for i in range(len(ls)):
-                    ls[i] = torch.compile(ls[i], mode="max-autotune-no-cudagraphs")
-                m.vision.head = torch.compile(m.vision.head, mode="max-autotune-no-cudagraphs")
+        self._trunk_fn, self._upper_fn = self._trunk, self._upper
+        if compile:  # whole-segment graphs (trunk; each member's upper stack + heads) so residual adds fuse across
+            # layer boundaries: +5.7 % GPU-only over per-layer compile (sop-shared-trunk-ensemble-v1). no_grad, not
+            # inference_mode: compiling under inference_mode crashes (storage weakref).
+            self._trunk_fn = torch.compile(self._trunk, mode="max-autotune-no-cudagraphs")
+            self._upper_fn = torch.compile(self._upper, mode="max-autotune-no-cudagraphs")
 
-    @torch.inference_mode()
+    @torch.no_grad()
     def _encode_batch(self, images: Sequence[Any]) -> torch.Tensor:
         f = self.first
         px = f.processor(images=[i.convert("RGB") for i in images], return_tensors="pt")["pixel_values"].to(f.device)
         return self.encode_pixels(px).cpu()
 
-    @torch.inference_mode()
-    def encode_pixels(self, px: torch.Tensor) -> torch.Tensor:
-        """Processor output (B, 3, R, R) on device -> unit ensemble rows on device."""
+    def _trunk(self, px: torch.Tensor) -> torch.Tensor:
         f = self.first
-        ctx = torch.autocast(device_type=f.device.type, dtype=torch.float16, enabled=not f.fp16_native)
-        with ctx:
+        with torch.autocast(device_type=f.device.type, dtype=torch.float16, enabled=not f.fp16_native):
             h = f.vision.embeddings(px.half() if f.fp16_native else px, interpolate_pos_encoding=f.interpolate)
             for layer in f.vision.encoder.layers[: self.split]:
                 h = _hidden(layer(h, None))
-            outs = []
-            for m in self.members:
-                x = h
-                for layer in m.vision.encoder.layers[self.split:]:
-                    x = _hidden(layer(x, None))
-                x = m.vision.post_layernorm(x)
-                pooled = m.vision.head(x)
-                with torch.autocast(device_type=f.device.type, enabled=False):
-                    outs.append(F.normalize(m.head(F.normalize(pooled.float(), dim=1)), dim=1))
+        return h
+
+    def _upper(self, vision: Any, head: Any, h: torch.Tensor) -> torch.Tensor:
+        with torch.autocast(device_type=h.device.type, dtype=torch.float16, enabled=not self.first.fp16_native):
+            for layer in vision.encoder.layers[self.split:]:
+                h = _hidden(layer(h, None))
+            pooled = vision.head(vision.post_layernorm(h))
+        with torch.autocast(device_type=h.device.type, enabled=False):
+            return F.normalize(head(F.normalize(pooled.float(), dim=1)), dim=1)
+
+    @torch.no_grad()
+    def encode_pixels(self, px: torch.Tensor) -> torch.Tensor:
+        """Processor output (B, 3, R, R) on device -> unit ensemble rows on device."""
+        h = self._trunk_fn(px)
+        outs = [self._upper_fn(m.vision, m.head, h) for m in self.members]
         return torch.cat(outs, 1) / math.sqrt(len(outs))
 
     def encode_images(self, images: Sequence[Any]) -> torch.Tensor:
