@@ -1,0 +1,25 @@
+{
+ "broken": 35,
+ "decision": "FAIL",
+ "encode_images_per_second": 102.3568840742511,
+ "encode_seconds": 262.12208629306406,
+ "encoder": "served",
+ "fixed": 23,
+ "fp8": true,
+ "gallery": 12612,
+ "gallery_index_bytes": 6482638,
+ "latency_b1_ms": {
+  "p50": 19.544884096831083,
+  "p99": 23.20927139371633
+ },
+ "net_correct_vs_read": -12,
+ "official_read_r1": 0.9703896469264313,
+ "peak_cuda_bytes": 1718053888,
+ "queries": 14218,
+ "resolution": 384,
+ "run_dir": "/home/riomus/runs/sfora-inshop-so400m-full-c384-179024-2000-v1",
+ "schema": "sfora-inshop-serving-v2",
+ "search_seconds_all_queries": 0.21189111797139049,
+ "serving_r1": 0.9695456463637643,
+ "torch": "2.12.1+cu130"
+}
