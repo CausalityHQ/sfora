@@ -135,3 +135,7 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **Attention-guided zoom second view: KILL.** Zoom alone −0.44; fused −0.09 / −0.19 (not significant), mAP worse. The median attention box already covers 78 % of the frame.
 - What survives: held R@32 is 99.33 % vs R@1 94.92 %, so the re-ranking ceiling is 4.4 pp. Untrained token evidence only adds noise; only a *learned* re-ranker remains untested in this family. Evidence 7c88f332 + sop-so400m-token-cache-screen-v1.
 - Ensembles of the same recipe: the two-seed SOP ensemble IS kept (official 94.129, +0.16), but only about half the held gain (+0.34) transferred.
+- **Learned token-pair re-ranker (2-layer cross-attention over 81+81 cached tokens, top-32): KILL on R@1.** fp16 −0.07 [−0.63, +0.46]; int8 0.00.
+  - mAP@R improved significantly: +0.86 [+0.31, +1.39], R@10 +0.24. That is a Pareto note at +21–41 KB/image, not a kept change.
+  - Overfit FIT lists early (best inner-val at step 4k of 27k).
+  - With the training-free token/context/zoom KILLs, the "pooling discards information" family cannot move rank-1 on this system. Remaining rank-1 errors behave like near-duplicate ambiguity. Evidence c4df2d53, sop-so400m-token-reranker-v1.
