@@ -57,3 +57,7 @@ scripts/check_sop_fused_single_parity_v1.py: serving R@1 93.961 vs read 93.990, 
 fixed 240 / broken 258, mAP 82.73, 113.5 img/s e2e incl. warmup, 2.09 GB. Not kept.
 SOP top-1 churn under FP8 (≈ 500 flips / 60,502) is far larger than In-Shop's (net 0, gate −3/14,218): SOP rankings
 sit on near-ties, so any FP8 numerics change moves R@1 by ±0.03–0.1 pp regardless of kernel quality.
+
+## SOP 2-seed ensemble on CUTLASS fused-epilogue FP8 (scripts/check_sop_fused_fp8_held_v2.py, single run): FAIL
+Held R@1 95.044 < gate 95.166 (mAP 84.36), e2e 93.3 img/s incl. warmup (served per-layer FP8: 63.7; +46 %), 2.76 GB.
+SOP FP8 variants now span 95.04–95.20 held R@1; speed needs an operator-accepted tolerance.

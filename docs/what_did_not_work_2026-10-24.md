@@ -166,3 +166,4 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **Per-layer FP8 serving on the 2000-update In-Shop incumbent: FAIL parity** (net −12/14,218; it passed on the 1000-update model). Replaced by the fused FP8 encoder (net 0, +9.9 %). Evidence inshop-fused-fp8-v1.
 - **SOP single-model fused FP8 (mx) as a speed Pareto point: FAIL parity.** Net −18 (gate −13/60,502), 113.5 img/s; 240 fixed / 258 broken. FP8 churn on SOP near-ties is ~500 flips regardless of kernel.
 - **H2D prefetch on a side stream for the served SOP ensemble: KILL.** Bitwise-equal output, but base 64.6–65.6 vs prefetch 64.4–65.4 img/s: the copy is already hidden; the e2e gap to GPU-only is decode/worker-bound and small.
+- **SOP ensemble on CUTLASS FP8 kernels: FAIL held gate.** 95.044 < 95.166 at 93.3 img/s e2e (+46 % vs served 63.7). Same SOP FP8 near-tie churn.

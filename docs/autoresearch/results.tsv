@@ -74,3 +74,4 @@ a322a300	P	fusion_ceiling_b64	1.789	-	126.8 img/s floor	keep	GEMM+attn floor vs 
 85049db7	P	sop_single_fused_parity_net	-18	-	113.5 img/s	discard	seed 179025 fused mx vs read 93.990; gate -13; 240 fixed/258 broken
 b4d7591b	P	sop_prefetch_e2e_img_s	65.4	-	-	discard	bitwise equal; no gain vs base 65.6 (3 repeats)
 7e0dd2f4	P	inshop_cutlass_e2e_img_s	143.2	-	net -3/14218	keep	CUTLASS fused-epilogue FP8; 1.29x e2e vs fused_mx 110.9; gate boundary
+21ce660e	P	sop_cutlass_held_r1	0.95044	-	93.3 img/s e2e	discard	fails gate 0.95166
