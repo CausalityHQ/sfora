@@ -77,3 +77,4 @@ b4d7591b	P	sop_prefetch_e2e_img_s	65.4	-	-	discard	bitwise equal; no gain vs bas
 21ce660e	P	sop_cutlass_held_r1	0.95044	-	93.3 img/s e2e	discard	fails gate 0.95166
 20beb2d6	Q	held_r1_wiseft_a085	-0.273	-0.470	0	discard	WiSE-FT toward pretrained; mAP -1.11
 20beb2d6	P	fp8_qat_seed179024	-	-	-	crash	killed by RuntimeMaxSec 7200 at ~step 900; not measured
+4f6e6e65	Q	pretrained_native512_vs_384_pp	-0.137	-	1.45x encode	discard	native-512 tower pretrained screen CLOSE

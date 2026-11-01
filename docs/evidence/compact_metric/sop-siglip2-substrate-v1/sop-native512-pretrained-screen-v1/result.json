@@ -1,0 +1,28 @@
+{
+ "n384_export": {
+  "width": 1152,
+  "encode_wall_seconds": 1148.7577833719552,
+  "images_per_second": 51.839474658617426,
+  "peak_cuda_allocated_bytes": 2979275776,
+  "features_sha256": "13e750983bd7b375dddbe5984ae4fa69201073a1628ddcaf58bd1779a07c5790",
+  "pixels": 384
+ },
+ "n384": {
+  "full": 0.8051615108528457,
+  "holdout": 0.9152281661254487
+ },
+ "n512_export": {
+  "width": 1152,
+  "encode_wall_seconds": 1579.8395026032813,
+  "images_per_second": 37.69433534347701,
+  "peak_cuda_allocated_bytes": 3248560640,
+  "features_sha256": "cc0db01a276843a92fca944612eb0e2245e145ab5d125f72e82277ef78abc59c",
+  "pixels": 384
+ },
+ "n512": {
+  "full": 0.8037942232097077,
+  "holdout": 0.9174500085455478
+ },
+ "delta_pp": -0.1367287643137982,
+ "decision": "CLOSE"
+}

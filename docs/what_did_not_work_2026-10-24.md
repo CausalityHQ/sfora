@@ -169,3 +169,4 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **SOP ensemble on CUTLASS FP8 kernels: FAIL held gate.** 95.044 < 95.166 at 93.3 img/s e2e (+46 % vs served 63.7). Same SOP FP8 near-tie churn.
 - **WiSE-FT weight interpolation toward pretrained (vision tower, α 0.85 / 0.7): KILL.** −0.27 [−0.47, −0.09] / −1.0, mAP −1.1 / −3.3; monotone. The fine-tuning shift is all useful on SOP held. Evidence sop-wiseft-179024-v1.
 - **FP8 quantisation-aware training (fake-quant all vision linears, seed 179024): NOT MEASURED.** The run was killed at 2 h by the driver's inherited RuntimeMaxSec=7200; fake-quant training runs ~2.4× slower (~2.4 h for 1000 updates). Seed 2 deliberately not started (quality priority). Re-run needs RuntimeMaxSec ≥ 4 h.
+- **Native-512 SigLIP2 So400m tower (patch16-512), pretrained screen: CLOSE.** −0.14 pp full-gallery (bar +1.0). SOP images are ~400 px; 512 input is upsampling. Resolution beyond 384 is closed on SOP.
