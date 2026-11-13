@@ -172,3 +172,4 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **Native-512 SigLIP2 So400m tower (patch16-512), pretrained screen: CLOSE.** −0.14 pp full-gallery (bar +1.0). SOP images are ~400 px; 512 input is upsampling. Resolution beyond 384 is closed on SOP.
 - **Fresh member bank (full re-encode at 150/350/600/850): KILL.** −0.03 [−0.22, +0.16], mAP −0.04, despite large measured drift (median cos 0.84–0.94). Bank staleness does not limit SOP. Evidence sop-so400m-384d512-freshbank-179024-v1.
 - **AIMv2-H/14@448 pretrained on SOP: CLOSE.** 62.47 vs So400m@384 80.52 full-gallery (−18 pp). Evidence sop-backbone-census-v1.
+- **Operational: loading MetaCLIP-2 worldwide-giant (fp16) on the GB10 took the DGX offline twice** (2026-11-01, 2026-11-13). Do not load it; cgroup MemoryMax does not bound unified-memory GPU allocations.
