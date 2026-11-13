@@ -171,3 +171,4 @@ Effective levers were the substrate (Large → So400m) and the embedding width (
 - **FP8 quantisation-aware training (fake-quant all vision linears, seed 179024): NOT MEASURED.** The run was killed at 2 h by the driver's inherited RuntimeMaxSec=7200; fake-quant training runs ~2.4× slower (~2.4 h for 1000 updates). Seed 2 deliberately not started (quality priority). Re-run needs RuntimeMaxSec ≥ 4 h.
 - **Native-512 SigLIP2 So400m tower (patch16-512), pretrained screen: CLOSE.** −0.14 pp full-gallery (bar +1.0). SOP images are ~400 px; 512 input is upsampling. Resolution beyond 384 is closed on SOP.
 - **Fresh member bank (full re-encode at 150/350/600/850): KILL.** −0.03 [−0.22, +0.16], mAP −0.04, despite large measured drift (median cos 0.84–0.94). Bank staleness does not limit SOP. Evidence sop-so400m-384d512-freshbank-179024-v1.
+- **AIMv2-H/14@448 pretrained on SOP: CLOSE.** 62.47 vs So400m@384 80.52 full-gallery (−18 pp). Evidence sop-backbone-census-v1.
